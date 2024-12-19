@@ -46,7 +46,7 @@ export default function AboutModal() {
                     <Column xs={24} lg={12}>
                         <div
                             className={styles.button}
-                            onClick={() => openLink("https://studioarchetype.net/hologui")}
+                            onClick={() => openLink("https://www.volmit.com/software/hologui")}
                         >
                             <BsCurrencyDollar/>
                             Purchase
@@ -55,7 +55,7 @@ export default function AboutModal() {
                     <Column xs={24} lg={12}>
                         <div
                             className={styles.button}
-                            onClick={() => openLink("https://docs.studioarchetype.net/en/utilities/holoui")}
+                            onClick={() => openLink("https://docs.volmit.com/hologui")}
                         >
                             <BiBook/>
                             Documentation

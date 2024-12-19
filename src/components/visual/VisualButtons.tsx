@@ -23,7 +23,7 @@ const addToggleModal: ModalData = {
                 Add Toggle Component
             </h3>
             <a
-                href={"https://docs.studioarchetype.net/en/utilities/holoui"}
+                href={"https://docs.volmit.com/hologui"}
                 target={"_blank"}
                 referrerPolicy={"no-referrer"}
                 data-label={"Toggle Documentation"}

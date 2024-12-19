@@ -38,7 +38,7 @@ function getEditToggleModal(component: HoloUIComponent): ModalData {
                     Edit Toggle Component
                 </h3>
                 <a
-                    href={"https://docs.studioarchetype.net/en/utilities/holoui"}
+                    href={"https://docs.volmit.com/hologui"}
                     target={"_blank"}
                     referrerPolicy={"no-referrer"}
                     data-label={"Toggle Documentation"}

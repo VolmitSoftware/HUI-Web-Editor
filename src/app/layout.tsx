@@ -1,5 +1,5 @@
 import {type ReactNode} from "react";
-import {type Metadata, Viewport} from "next";
+import {type Metadata, type Viewport} from "next";
 import "@/styles/global.scss";
 import ContextProviders from "@/components/ContextProviders";
 
