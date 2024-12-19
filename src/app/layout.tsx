@@ -1,5 +1,5 @@
 import {type ReactNode} from "react";
-import {type Metadata} from "next";
+import {type Metadata, Viewport} from "next";
 import "@/styles/global.scss";
 import ContextProviders from "@/components/ContextProviders";
 
@@ -12,8 +12,6 @@ export const metadata: Metadata = {
         "/favicon.ico",
     ],
     metadataBase: new URL(process.env.NODE_ENV === "production" ? "https://holoui.studioarchetype.net" : "http://localhost:3000"),
-    viewport: 'width=device-width, initial-scale=1.0',
-    colorScheme: "dark",
     openGraph: {
         type: 'website',
         locale: 'en_US',
@@ -60,6 +58,12 @@ export const metadata: Metadata = {
     },
     publisher: "Studio Archetype",
 
+}
+
+export const viewport: Viewport = {
+    width: "device-width",
+    initialScale: 1,
+    colorScheme: "dark",
 }
 
 export default function RootLayout({
