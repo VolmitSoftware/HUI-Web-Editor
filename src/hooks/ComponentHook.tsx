@@ -103,6 +103,7 @@ export function ComponentProvider({children}: ComponentHookProviderProps) {
             setData({
                 offset: [0, 1.7, 5],
                 lockPosition: false,
+                followPlayer: true,
                 components: [],
             });
         }

@@ -1,5 +1,6 @@
 import {type JSONSchemaType} from "ajv";
 import {type ReactNode} from "react";
+import {isString} from "next/dist/build/webpack/plugins/jsconfig-paths-plugin";
 
 export enum Breakpoint {
 
@@ -80,7 +81,7 @@ export interface Vector4 {
 
 export interface HoloUIIcon {
 
-    type: 'textImage' | 'item' | 'text';
+    type: 'textImage' | 'animatedTextImage' | 'item' | 'text';
 
 }
 
@@ -90,6 +91,14 @@ export interface HoloUITextImageIcon extends HoloUIIcon {
 
     path: string;
 
+}
+
+export interface HoloUIAnimatedTextImageIcon extends HoloUIIcon {
+    type: 'animatedTextImage';
+
+    source: string | string[];
+
+    speed: number;
 }
 
 export interface HoloUIItemIcon extends HoloUIIcon {
@@ -207,6 +216,7 @@ export interface HoloUIData {
 
     lockPosition: boolean;
 
+    followPlayer: boolean;
 }
 
 export type HoloUISchema = JSONSchemaType<HoloUIAction>;
