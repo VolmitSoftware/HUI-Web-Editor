@@ -70,7 +70,11 @@ export default function SideBar() {
 
         }
 
+        data.components.map(component => component.offset[1] * -1)
+
         const dataStr = JSON.stringify(data, null, 4);
+
+        console.log(dataStr)
 
         // Set the anchor href
         current.href = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);

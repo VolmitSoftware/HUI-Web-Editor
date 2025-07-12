@@ -1,5 +1,6 @@
 import {type ReactNode} from "react";
 import {type Metadata, type Viewport} from "next";
+import { JetBrains_Mono } from 'next/font/google'
 import "@/styles/global.scss";
 import ContextProviders from "@/components/ContextProviders";
 
@@ -11,24 +12,24 @@ export const metadata: Metadata = {
         "/favicon-32x32.png",
         "/favicon.ico",
     ],
-    metadataBase: new URL(process.env.NODE_ENV === "production" ? "https://holoui.studioarchetype.net" : "http://localhost:3000"),
+    metadataBase: new URL(process.env.NODE_ENV === "production" ? "https://holoui.volmit.com" : "http://localhost:3000"),
     openGraph: {
         type: 'website',
         locale: 'en_US',
         siteName: 'HoloUI Builder',
         title: 'HoloUI Builder',
         description: 'Web builder for creating and previewing HUI configs.',
-        url: 'https://holoui.studioarchetype.net/',
+        url: 'https://holoui.volmit.com/',
         images: [
             "/logo.webp"
         ],
     },
     twitter: {
-        creator: '@studioarchetype',
+        creator: '@VolmitSoftware',
         card: 'summary_large_image',
         title: 'HoloUI Builder',
         description: 'Web builder for creating and previewing HUI configs.',
-        site: '@studioarchetype',
+        site: '@VolmitSoftware',
         images: [
             "/logo.webp"
         ],
@@ -43,20 +44,20 @@ export const metadata: Metadata = {
         "holo ui config",
         "holoui config",
         "holo ui config builder",
-        "studio archetype",
-        "studioarchetype"
+        "volmit software",
+        "volmitsoftware"
     ],
     category: "Web Application",
     robots: {
         follow: true,
         index: true,
     },
-    creator: "Studio Archetype",
+    creator: "VolmitSoftware",
     authors: {
-        name: "Studio Archetype",
-        url: "https://studioarchetype.net/",
+        name: "VolmitSoftware",
+        url: "https://volmit.com/",
     },
-    publisher: "Studio Archetype",
+    publisher: "Volmit Software",
 
 }
 
@@ -66,6 +67,8 @@ export const viewport: Viewport = {
     colorScheme: "dark",
 }
 
+const JetBrainsFont = JetBrains_Mono({ subsets: ["latin"] })
+
 export default function RootLayout({
                                        children,
                                    }: {
@@ -73,7 +76,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en">
-        <body>
+        <body className={JetBrainsFont.className}>
         <ContextProviders>
             {children}
         </ContextProviders>

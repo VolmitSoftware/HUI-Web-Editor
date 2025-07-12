@@ -20,7 +20,7 @@ export default function AboutModal() {
             <div className={styles.title}>
                 <h1>HoloHUI Builder</h1>
                 <h3>
-                    &copy; {new Date().getFullYear()} Studio Archetype, All Rights Reserved.
+                    &copy; {new Date().getFullYear()} Volmit Software, All Rights Reserved.
                 </h3>
             </div>
             <div className={styles.buttons}>
@@ -28,7 +28,7 @@ export default function AboutModal() {
                     <Column xs={24} lg={12}>
                         <div
                             className={styles.button}
-                            onClick={() => openLink("https://github.com/Studio-Archetype/HUI-Builder")}
+                            onClick={() => openLink("https://github.com/VolmitSoftware/HoloUi")}
                         >
                             <AiFillGithub/>
                             GitHub
@@ -37,7 +37,7 @@ export default function AboutModal() {
                     <Column xs={24} lg={12}>
                         <div
                             className={styles.button}
-                            onClick={() => openLink("https://discord.studioarchetype.net/")}
+                            onClick={() => openLink("https://discord.com/invite/volmit-software-189665083817852928")}
                         >
                             <BsDiscord/>
                             Discord
@@ -55,7 +55,7 @@ export default function AboutModal() {
                     <Column xs={24} lg={12}>
                         <div
                             className={styles.button}
-                            onClick={() => openLink("https://docs.volmit.com/hologui")}
+                            onClick={() => openLink("https://docs.volmit.com/holoui")}
                         >
                             <BiBook/>
                             Documentation
