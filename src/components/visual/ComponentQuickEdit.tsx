@@ -232,7 +232,7 @@ export default function ComponentQuickEdit() {
                             id="component-y"
                             name="component-y"
                             type="number"
-                            value={component.offset[1]}
+                            value={component.offset[1] * -1}
                             onChange={(e) => handleOffsetChange(e, 1)}
                         />
                     </div>
