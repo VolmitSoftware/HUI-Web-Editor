@@ -90,15 +90,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
         if (components.isEmpty)
           _empty()
         else ...<Widget>[
-          const dom.p(
-            classes: 'hui-rail-hint',
-            <Widget>[
-              Text(
-                'Order is click order: the first matching component wins. '
-                'Drag a row or use the arrows to change it.',
-              ),
-            ],
-          ),
+          if (components.length > 1) _orderHint(),
           dom.div(
             classes: 'hui-rail-list',
             attributes: const <String, String>{'role': 'list'},
@@ -112,6 +104,8 @@ class _ComponentsRailState extends State<ComponentsRail> {
     );
   }
 
+  /// Heading, count and the add split-button share one line: the rail is
+  /// 240-280px wide and every line spent here is a component row lost.
   Widget _header(int count) => dom.div(
         classes: 'hui-rail-header',
         <Widget>[
@@ -119,6 +113,8 @@ class _ComponentsRailState extends State<ComponentsRail> {
             classes: 'hui-rail-heading',
             <Widget>[
               const HuiEyebrow('Components'),
+              // Plain text, not an aria-label: "Components 14" already reads
+              // correctly and a labelled <span> has no role to carry a name.
               dom.span(
                 classes: 'hui-rail-count',
                 <Widget>[Text('$count')],
@@ -129,9 +125,28 @@ class _ComponentsRailState extends State<ComponentsRail> {
         ],
       );
 
+  /// The ordering rule, demoted to one muted line. The full explanation lives
+  /// in the hover text rather than in three lines of body copy.
+  Widget _orderHint() => const dom.p(
+        classes: 'hui-rail-hint',
+        // `data-no-tooltip` keeps Arcane's title-to-tooltip upgrade away: it
+        // re-parents the element into a wrapper span, and this subtree belongs
+        // to Jaspr's differ.
+        attributes: <String, String>{
+          'data-no-tooltip': 'true',
+          'title': 'Order is click order: the first component whose hitbox '
+              'contains the cursor wins. Drag a row, use the arrows, or use '
+              'the right-click menu to change it.',
+        },
+        <Widget>[Text('Top of the list wins clicks')],
+      );
+
   Widget _addSplitButton() => dom.div(
         classes: 'hui-rail-add',
         <Widget>[
+          // No ArcaneTooltip in here: its surface is a 211px absolutely
+          // positioned box that overflows a 240px rail and gives the scroll
+          // container a horizontal scrollbar. The label is visible anyway.
           Button(
             variant: ButtonVariant.primary,
             size: ButtonSize.small,
@@ -188,6 +203,8 @@ class _ComponentsRailState extends State<ComponentsRail> {
 
   Widget _row(int index, HuiComponent data, int total) {
     final String id = data.id;
+    final String label = id.isEmpty ? '(no id)' : id;
+    final String summary = _summary(data.data);
     final bool selected = _store.selectedId == id;
     final bool armed = _armedDeleteId == id;
     final List<HuiIssue> issues = _store.issuesFor(id);
@@ -231,30 +248,46 @@ class _ComponentsRailState extends State<ComponentsRail> {
       <Widget>[
         dom.button(
           classes: 'hui-rail-main',
-          attributes: <String, String>{'type': 'button'},
+          // Both lines are ellipsized in a 240px rail, so the untruncated text
+          // has to stay reachable: the hover text is the only place it fits.
+          // `data-no-tooltip` keeps Arcane's title-to-tooltip upgrade away — it
+          // re-parents the button into a wrapper span behind Jaspr's back, and
+          // the next row rebuild would patch against a node it no longer owns.
+          attributes: <String, String>{
+            'type': 'button',
+            'data-no-tooltip': 'true',
+            'title': '$label\n${_typeLabel(data.data.type)} - $summary',
+          },
           events: <String, void Function(Object)>{
             'click': (Object _) => _select(id),
           },
           <Widget>[
+            // One 22px column for the type glyph, which becomes the drag grip
+            // on hover: two icon columns would not fit next to the text.
             dom.span(
-              classes: 'hui-rail-grip',
+              classes: 'hui-rail-mark',
               attributes: const <String, String>{'aria-hidden': 'true'},
-              <Widget>[ArcaneIcon.gripVertical(size: IconSize.sm)],
-            ),
-            dom.span(
-              classes: 'hui-rail-glyph',
-              <Widget>[_typeIcon(data.data.type, selected)],
+              <Widget>[
+                dom.span(
+                  classes: 'hui-rail-glyph',
+                  <Widget>[_typeIcon(data.data.type, selected)],
+                ),
+                dom.span(
+                  classes: 'hui-rail-grip',
+                  <Widget>[ArcaneIcon.gripVertical(size: IconSize.sm)],
+                ),
+              ],
             ),
             dom.span(
               classes: 'hui-rail-text',
               <Widget>[
                 dom.span(
                   classes: 'hui-rail-id',
-                  <Widget>[Text(id.isEmpty ? '(no id)' : id)],
+                  <Widget>[Text(label)],
                 ),
                 dom.span(
                   classes: 'hui-rail-summary',
-                  <Widget>[Text(_summary(data.data))],
+                  <Widget>[Text(summary)],
                 ),
               ],
             ),
@@ -283,7 +316,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
                 variant: ButtonVariant.destructive,
                 size: ButtonSize.iconSm,
                 onPressed: () => _delete(id),
-                attributes: <String, String>{'aria-label': 'Delete $id'},
+                attributes: <String, String>{'aria-label': 'Delete $label'},
                 child: ArcaneIcon.check(size: IconSize.sm),
               ),
               Button(
@@ -296,6 +329,9 @@ class _ComponentsRailState extends State<ComponentsRail> {
             ],
           )
         else
+          // Hidden until the row is hovered, focused or selected (CSS), so a
+          // long list is not a wall of chevrons. Focus reveals them, so they
+          // stay reachable from the keyboard.
           dom.div(
             classes: 'hui-rail-tools',
             <Widget>[
@@ -304,7 +340,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
                 size: ButtonSize.iconSm,
                 disabled: index == 0,
                 onPressed: index == 0 ? null : () => _move(id, index - 1),
-                attributes: const <String, String>{'aria-label': 'Move up'},
+                attributes: <String, String>{'aria-label': 'Move $label up'},
                 child: ArcaneIcon.chevronUp(size: IconSize.sm),
               ),
               Button(
@@ -313,7 +349,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
                 disabled: index >= total - 1,
                 onPressed:
                     index >= total - 1 ? null : () => _move(id, index + 1),
-                attributes: const <String, String>{'aria-label': 'Move down'},
+                attributes: <String, String>{'aria-label': 'Move $label down'},
                 child: ArcaneIcon.chevronDown(size: IconSize.sm),
               ),
             ],

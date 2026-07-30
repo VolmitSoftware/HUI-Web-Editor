@@ -130,8 +130,8 @@ class ActionsEditor extends StatelessWidget {
         children: <Widget>[
           if (actions.isEmpty)
             const HuiNote(
-              'No actions yet. A component with an empty action list is still '
-              'clickable and still highlights, it just does nothing.',
+              'None yet. The component still clicks and highlights, it just '
+              'does nothing.',
             )
           else
             for (int i = 0; i < actions.length; i++) _row(i),
@@ -155,9 +155,27 @@ class ActionsEditor extends StatelessWidget {
             ],
           ),
           if (actions.length > 1)
-            const HuiNote(
-              'Actions run top to bottom in this order, on the same click.',
-            ),
+            const HuiNote('Run top to bottom, on the same click.'),
+          // One disclosure for the whole list rather than one per row: the
+          // semantics are the same for every action in it.
+          const HuiMore(
+            summary: 'Placeholders, permissions and sound categories',
+            children: <Widget>[
+              HuiNote(
+                'Commands are never placeholder-expanded, so %player_name% '
+                'stays literal.',
+              ),
+              HuiNote(
+                'Run as the player, a command fails silently when they lack the '
+                'permission node. Use the console when the player must not need '
+                'the node themselves.',
+              ),
+              HuiNote(
+                'A sound with no category stops the menu from opening, and it '
+                'is played to the clicking player only.',
+              ),
+            ],
+          ),
         ],
       );
 
@@ -247,9 +265,7 @@ class _CommandActionFields extends StatelessWidget {
           HuiField(
             label: 'Command',
             required: true,
-            help: 'A leading slash is optional, the plugin strips it. Commands '
-                'are never placeholder-expanded, so %player_name% stays '
-                'literal.',
+            help: 'The leading slash is optional and never expanded.',
             control: dom.div(<Widget>[
               TextInput(
                 value: action.command,
@@ -274,10 +290,8 @@ class _CommandActionFields extends StatelessWidget {
             // (the plugin compares the enum against PLAYER), so the control
             // shows server for unknown values rather than lying.
             help: action.source == 'player'
-                ? 'The player runs it with their own permissions. It fails '
-                    'silently for them if they lack the node.'
-                : 'Console runs it with full privileges. Use this when the '
-                    'player must not need the permission themselves.',
+                ? 'Runs with the player\'s own permissions.'
+                : 'Runs from console with full privileges.',
             control: HuiSegmented(
               value: action.source == 'player' ? 'player' : 'server',
               onChanged: (String value) =>
@@ -339,7 +353,6 @@ class _SoundActionFields extends StatelessWidget {
           HuiField(
             label: 'Sound',
             required: true,
-            help: 'Lowercase registry key, played at the clicking player only.',
             control: dom.div(<Widget>[
               RegistryPicker(
                 value: action.sound,
@@ -361,9 +374,7 @@ class _SoundActionFields extends StatelessWidget {
           HuiField(
             label: 'Category',
             required: true,
-            help: 'Required. A missing category stops the menu from opening, '
-                'and the category decides which volume slider the player\'s '
-                'client applies.',
+            help: 'Decides which client volume slider applies.',
             control: dom.div(<Widget>[
               ArcaneSelect(
                 value: action.source,
@@ -388,8 +399,7 @@ class _SoundActionFields extends StatelessWidget {
           ),
           HuiField(
             label: 'Volume',
-            help: 'Above 1 does not get louder, it extends the distance the '
-                'sound carries. 0 is silent.',
+            help: 'Above 1 extends the carry distance, not the loudness.',
             control: dom.div(<Widget>[
               HuiSliderField(
                 value: action.volume,
@@ -406,8 +416,7 @@ class _SoundActionFields extends StatelessWidget {
           ),
           HuiField(
             label: 'Pitch',
-            help: 'Minecraft clamps pitch to 0.5 - 2.0. 1 is the sound as '
-                'recorded.',
+            help: 'Clamped by Minecraft to 0.5 - 2.0; 1 is as recorded.',
             control: dom.div(<Widget>[
               HuiSliderField(
                 value: action.pitch,

@@ -31,6 +31,9 @@ import '../../state/editor_store.dart';
 import 'command_palette.dart';
 import 'key_listener.dart';
 import 'keyboard_shortcuts.dart';
+import 'pane_dom.dart';
+import 'pane_layout.dart';
+import 'pane_splitter.dart';
 import 'shell_actions.dart';
 import 'shell_intents.dart';
 import 'shell_status.dart';
@@ -100,11 +103,33 @@ class _EditorShellState extends State<EditorShell> {
   bool _dropActive = false;
   bool _confirmDelete = false;
   int _confirmSeq = 0;
+  PaneLayout _panes = PaneLayout.defaults;
 
   @override
   void initState() {
     super.initState();
     _apple = isApplePlatform();
+    // Restored before the first paint: the custom properties live on the
+    // document root, which exists long before this tree mounts, so a stored
+    // layout never flashes through the defaults.
+    _panes = PaneLayout.load();
+    _paintPanes();
+  }
+
+  void _paintPanes() {
+    writePaneVariable(PaneLayout.variableOf(PaneSide.rail), _panes.railWidth);
+    writePaneVariable(
+      PaneLayout.variableOf(PaneSide.inspector),
+      _panes.inspectorWidth,
+    );
+  }
+
+  /// One rebuild per settled gesture, never one per pointer move.
+  void _commitPanes(PaneLayout next) {
+    if (next == _panes) return;
+    setState(() => _panes = next);
+    _paintPanes();
+    _panes.persist();
   }
 
   @override
@@ -218,6 +243,7 @@ class _EditorShellState extends State<EditorShell> {
       onTogglePalette: _togglePalette,
       onCloseOverlay: component.onCloseOverlay,
       child: dom.div(
+        id: 'hui-shell',
         classes: 'hui-shell',
         <Widget>[
           TopBar(
@@ -233,10 +259,20 @@ class _EditorShellState extends State<EditorShell> {
                 attributes: const <String, String>{'aria-label': 'Components'},
                 <Widget>[component.rail],
               ),
+              PaneSplitter(
+                side: PaneSide.rail,
+                layout: _panes,
+                onCommit: _commitPanes,
+              ),
               _CenterArea(
                 store: store,
                 canvas: component.canvas,
                 codeEditor: component.codeEditor,
+              ),
+              PaneSplitter(
+                side: PaneSide.inspector,
+                layout: _panes,
+                onCommit: _commitPanes,
               ),
               dom.aside(
                 classes: 'hui-pane hui-inspector',
@@ -259,7 +295,18 @@ class _EditorShellState extends State<EditorShell> {
             ),
           if (_confirmDelete) _deleteDialog(store, intents),
           if (_dropActive) const _DropOverlay(),
-          const ArcaneSonner(position: ToastPosition.bottomRight),
+          // Bottom-left, not bottom-right: the right edge is the inspector, the
+          // one surface the user is typing into while toasts fire. Bottom-centre
+          // is out too — the canvas keyboard-hint row spans the full width of
+          // the canvas column at its bottom edge. The rail's tail is the only
+          // bottom strip whose controls all live at the top, and the stylesheet
+          // caps the toaster width so it can never reach the inspector. The
+          // offset lifts the stack clear of the status bar.
+          // Top centre: the only region no pane owns. Bottom-right buries the
+          // inspector, bottom-left buries the rail, and bottom-centre lands on
+          // the canvas hint line. Toasts are transient, so briefly covering the
+          // top of the artboard costs nothing.
+          const ArcaneSonner(position: ToastPosition.topCenter, offset: 16),
         ],
       ),
     );

@@ -40,16 +40,23 @@ class MenuInspector extends StatelessWidget {
         ],
       );
 
+  /// `display: contents` on the wrapper keeps the header a direct child of the
+  /// scrolling body, which is what `position: sticky` needs.
   Widget _header() => dom.div(
-        classes: 'hui-inspector-header is-menu',
+        classes: 'hui-inspector-headgroup',
         <Widget>[
-          const HuiEyebrow('Menu'),
-          dom.h2(
-            classes: 'hui-inspector-title',
-            <Widget>[Text(store.menuId)],
+          dom.div(
+            classes: 'hui-inspector-header is-menu',
+            <Widget>[
+              const HuiEyebrow('Menu'),
+              dom.h2(
+                classes: 'hui-inspector-title',
+                <Widget>[Text(store.menuId)],
+              ),
+            ],
           ),
           const dom.p(
-            classes: 'hui-inspector-subtitle',
+            classes: 'hui-inspector-lede',
             <Widget>[
               Text(
                 'Nothing is selected, so these are the settings for the whole '
@@ -66,9 +73,7 @@ class MenuInspector extends StatelessWidget {
           HuiField(
             label: 'Offset',
             required: true,
-            help: 'Where the menu sits relative to the player, in blocks, at '
-                'the moment it opens. Measured from the feet, so y 1.7 is about '
-                'eye level and z is how far in front of them it floats.',
+            help: 'Blocks from the player\'s feet at the moment it opens.',
             control: dom.div(<Widget>[
               HuiVec3Field(
                 value: _menu.offset,
@@ -83,8 +88,7 @@ class MenuInspector extends StatelessWidget {
           HuiSwitchRow(
             label: 'Lock position',
             value: _menu.lockPosition,
-            help: 'Freezes the player while the menu is open: movement is '
-                'rewritten back and velocity is zeroed every tick.',
+            help: 'Freezes the player while the menu is open.',
             onChanged: (bool value) => store.mutate(
               'menu lockPosition',
               (HuiMenu menu) => menu.lockPosition = value,
@@ -93,12 +97,9 @@ class MenuInspector extends StatelessWidget {
           HuiSwitchRow(
             label: 'Follow player',
             value: _menu.followPlayer,
-            help: 'Re-centres the menu on the player as they move, keeping the '
-                'facing it opened with.',
+            help: 'Re-centres the menu as the player moves.',
             warning: _menu.lockPosition && _menu.followPlayer
-                ? 'Lock position is on, which freezes the player, so this '
-                    'never runs. Turn lock position off if you want the menu to '
-                    'follow.'
+                ? 'Lock position freezes the player, so this never runs.'
                 : null,
             onChanged: (bool value) => store.mutate(
               'menu followPlayer',
@@ -106,6 +107,20 @@ class MenuInspector extends StatelessWidget {
             ),
           ),
           _maxDistance(),
+          const HuiMore(
+            summary: 'How placement is applied',
+            children: <Widget>[
+              HuiNote(
+                'The offset is measured from the player\'s feet, so y 1.7 is '
+                'about eye level and z is how far in front of them the menu '
+                'floats.',
+              ),
+              HuiNote(
+                'Lock position rewrites movement back and zeroes velocity every '
+                'tick. Follow player keeps the facing the menu opened with.',
+              ),
+            ],
+          ),
         ],
       );
 
@@ -114,8 +129,7 @@ class MenuInspector extends StatelessWidget {
     final bool unlimited = value == null;
     return HuiField(
       label: 'Max distance',
-      help: 'Closes the menu when the player gets further than this from the '
-          'menu centre. Clamped by the plugin to 0 - 60000000.',
+      help: 'Closes the menu once the player is further away than this.',
       trailing: dom.div(
         classes: 'hui-inline-check',
         <Widget>[
@@ -133,8 +147,8 @@ class MenuInspector extends StatelessWidget {
       control: dom.div(<Widget>[
         if (unlimited)
           const HuiNote(
-            'Unlimited: the key is left out of the JSON entirely, which the '
-            'plugin reads as 60000000 blocks.',
+            'The key is left out of the JSON, which the plugin reads as '
+            '60000000 blocks.',
           )
         else
           HuiNumberField(
@@ -171,17 +185,26 @@ class MenuInspector extends StatelessWidget {
           HuiSwitchRow(
             label: 'Close on teleport',
             value: _menu.closeOnTeleport,
-            help: 'Closes on any teleport, including plugin teleports and '
-                'portals. Missing from the shipped JSON schema, but the plugin '
-                'honours it.',
+            help: 'Closes on any teleport, including portals.',
             onChanged: (bool value) => store.mutate(
               'menu closeOnTeleport',
               (HuiMenu menu) => menu.closeOnTeleport = value,
             ),
           ),
+          const HuiMore(
+            summary: 'Schema note',
+            children: <Widget>[
+              HuiNote(
+                'closeOnTeleport is missing from the shipped JSON schema, but '
+                'the plugin honours it.',
+              ),
+            ],
+          ),
         ],
       );
 
+  /// Reference facts, not controls: the four paths stay visible because they
+  /// are one line each, the three traps sit behind a closed disclosure.
   Widget _install() => InspectorSection(
         title: 'Install on the server',
         children: <Widget>[
@@ -192,36 +215,46 @@ class MenuInspector extends StatelessWidget {
             'Permissions',
             'holoui.command.open + holoui.open.${store.menuId}',
           ),
-          const HuiNote(
-            'The menu id is the file base name, so renaming the file renames '
-            'the menu. Only the direct children of menus/ are registered - '
-            'subfolders are ignored.',
-            title: 'Flat directory',
-          ),
-          const HuiNote(
-            'Saving over an existing file re-registers it within about 5 ticks '
-            'and closes every session that had it open. New and deleted files '
-            'are picked up within about 20 ticks.',
-            title: 'Hot reload',
-          ),
-          const HuiNote(
-            'holoui.open.<id> is not declared in plugin.yml, so it has to be '
-            'granted explicitly in your permissions plugin. Command aliases: '
-            'holo, hui, holou, hu.',
-            tone: HuiNoteTone.info,
-            title: 'Permission trap',
+          const HuiMore(
+            summary: 'Directory rules, hot reload and the permission trap',
+            children: <Widget>[
+              HuiNote(
+                'The menu id is the file base name, so renaming the file '
+                'renames the menu. Only the direct children of menus/ are '
+                'registered - subfolders are ignored.',
+                title: 'Flat directory',
+              ),
+              HuiNote(
+                'Saving over an existing file re-registers it within about 5 '
+                'ticks and closes every session that had it open. New and '
+                'deleted files are picked up within about 20 ticks.',
+                title: 'Hot reload',
+              ),
+              HuiNote(
+                'holoui.open.<id> is not declared in plugin.yml, so it has to '
+                'be granted explicitly in your permissions plugin. Command '
+                'aliases: holo, hui, holou, hu.',
+                tone: HuiNoteTone.info,
+                title: 'Permission trap',
+              ),
+            ],
           ),
         ],
       );
 
-  Widget _nonFeatures() => const InspectorSection(
-        title: 'Not in this format',
-        children: <Widget>[
-          HuiNote(
-            'The menu root has exactly seven keys. There is no background, no '
-            'scale or rotation, no title, no per-menu permission, no version '
-            'and no localization of menu text - none of those exist in the '
-            'plugin, so the editor does not offer them.',
+  Widget _nonFeatures() => const dom.div(
+        classes: 'hui-inspector-aside',
+        <Widget>[
+          HuiMore(
+            summary: 'Not in this format',
+            children: <Widget>[
+              HuiNote(
+                'The menu root has exactly seven keys. There is no background, '
+                'no scale or rotation, no title, no per-menu permission, no '
+                'version and no localization of menu text - none of those exist '
+                'in the plugin, so the editor does not offer them.',
+              ),
+            ],
           ),
         ],
       );

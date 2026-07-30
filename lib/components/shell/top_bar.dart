@@ -88,6 +88,10 @@ class _TopBarState extends State<TopBar> {
         builder: (BuildContext context, String signature) => _bar(),
       );
 
+  /// Four clusters, each a labelled group with a hairline between it and the
+  /// next (drawn by `.hui-bar-cluster + .hui-bar-cluster` in 02-shell.css) so
+  /// the right-hand run reads as history / file / assets / app instead of as
+  /// eleven identical icons.
   Widget _bar() => dom.header(
         classes: 'hui-bar',
         attributes: const <String, String>{'role': 'banner'},
@@ -95,10 +99,11 @@ class _TopBarState extends State<TopBar> {
           dom.div(
             classes: 'hui-bar-group hui-bar-left',
             <Widget>[
-              _brand(),
-              const _BarDivider(),
-              _documentSwitcher(),
-              if (_armedDelete) _deleteStrip(),
+              _cluster('Application', <Widget>[_brand()]),
+              _cluster('Document', <Widget>[
+                _documentSwitcher(),
+                if (_armedDelete) _deleteStrip(),
+              ]),
             ],
           ),
           dom.div(
@@ -110,83 +115,133 @@ class _TopBarState extends State<TopBar> {
           dom.div(
             classes: 'hui-bar-group hui-bar-right',
             <Widget>[
-              _action(
-                icon: ArcaneIcon.undo(size: IconSize.sm),
-                label: _store.undoLabel == null
-                    ? 'Undo'
-                    : 'Undo ${_store.undoLabel}',
-                shortcut: 'mod+Z',
-                disabled: !_store.canUndo,
-                onPressed: _intents.undo,
-              ),
-              _action(
-                icon: ArcaneIcon.redo(size: IconSize.sm),
-                label: _store.redoLabel == null
-                    ? 'Redo'
-                    : 'Redo ${_store.redoLabel}',
-                shortcut: 'mod+Shift+Z',
-                disabled: !_store.canRedo,
-                onPressed: _intents.redo,
-              ),
-              const _BarDivider(),
-              _action(
-                icon: ArcaneIcon.upload(size: IconSize.sm),
-                label: 'Import menu JSON',
-                hint: 'Dropping a .json file anywhere works too.',
-                onPressed: () => _intents.importMenu(),
-              ),
-              _action(
-                icon: ArcaneIcon.download(size: IconSize.sm),
-                label: 'Export menu JSON',
-                shortcut: 'mod+S',
-                variant: ButtonVariant.outline,
-                onPressed: _intents.exportMenu,
-              ),
-              _action(
-                icon: ArcaneIcon.copy(size: IconSize.sm),
-                label: 'Copy menu JSON',
-                onPressed: () => _intents.copyJson(),
-              ),
-              const _BarDivider(),
-              _action(
-                icon: ArcaneIcon.images(size: IconSize.sm),
-                label: 'Images',
-                hint: 'Upload the textures your textImage icons point at.',
-                onPressed: _intents.openImages,
-              ),
-              _action(
-                icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
+              _cluster('History', <Widget>[
+                _action(
+                  icon: ArcaneIcon.undo(size: IconSize.sm),
+                  label: _store.undoLabel == null
+                      ? 'Undo'
+                      : 'Undo ${_store.undoLabel}',
+                  shortcut: 'mod+Z',
+                  disabled: !_store.canUndo,
+                  onPressed: _intents.undo,
+                ),
+                _action(
+                  icon: ArcaneIcon.redo(size: IconSize.sm),
+                  label: _store.redoLabel == null
+                      ? 'Redo'
+                      : 'Redo ${_store.redoLabel}',
+                  shortcut: 'mod+Shift+Z',
+                  disabled: !_store.canRedo,
+                  onPressed: _intents.redo,
+                ),
+              ]),
+              _cluster('File', <Widget>[
+                _action(
+                  icon: ArcaneIcon.upload(size: IconSize.sm),
+                  label: 'Import menu JSON',
+                  hint: 'Dropping a .json file anywhere works too.',
+                  onPressed: () => _intents.importMenu(),
+                ),
+                _action(
+                  icon: ArcaneIcon.download(size: IconSize.sm),
+                  label: 'Export menu JSON',
+                  shortcut: 'mod+S',
+                  variant: ButtonVariant.outline,
+                  onPressed: _intents.exportMenu,
+                ),
+                _action(
+                  icon: ArcaneIcon.copy(size: IconSize.sm),
+                  label: 'Copy menu JSON',
+                  onPressed: () => _intents.copyJson(),
+                ),
+              ]),
+              _cluster('Assets', <Widget>[
+                _action(
+                  icon: ArcaneIcon.images(size: IconSize.sm),
+                  label: 'Images',
+                  hint: 'Upload the textures your textImage icons point at.',
+                  onPressed: _intents.openImages,
+                ),
+                _action(
+                  icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
+                  label: 'Templates',
+                  optional: true,
+                  onPressed: _intents.openTemplates,
+                ),
+              ]),
+              _cluster('Editor', <Widget>[
+                _action(
+                  icon: ArcaneIcon.command(size: IconSize.sm),
+                  label: 'Command palette',
+                  shortcut: 'mod+K',
+                  optional: true,
+                  onPressed: _intents.openPalette,
+                ),
+                _action(
+                  icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
+                  label: 'Help',
+                  onPressed: _intents.openHelp,
+                ),
+                _action(
+                  icon: ArcaneIcon.settings(size: IconSize.sm),
+                  label: 'Settings',
+                  optional: true,
+                  onPressed: _intents.openSettings,
+                ),
+                _action(
+                  icon: component.darkMode
+                      ? ArcaneIcon.sun(size: IconSize.sm)
+                      : ArcaneIcon.moon(size: IconSize.sm),
+                  label: component.darkMode
+                      ? 'Switch to the light theme'
+                      : 'Switch to the dark theme',
+                  onPressed: _intents.toggleTheme,
+                ),
+              ]),
+              _overflow(),
+            ],
+          ),
+        ],
+      );
+
+  Widget _cluster(String label, List<Widget> children) => dom.div(
+        classes: 'hui-bar-cluster',
+        attributes: <String, String>{'role': 'group', 'aria-label': label},
+        children,
+      );
+
+  /// The `is-optional` actions, reachable once the bar is too narrow to show
+  /// them. Both forms are always in the markup and the stylesheet swaps which
+  /// one is visible — measuring the bar in Dart would cost a layout read per
+  /// resize, and wrapping the bar is what made it two rows tall.
+  Widget _overflow() => dom.div(
+        classes: 'hui-bar-cluster hui-bar-overflow',
+        <Widget>[
+          ArcaneDropdownMenu(
+            id: 'hui-bar-more',
+            alignment: DropdownAlignment.right,
+            width: 240,
+            trigger: Button.ghost(
+              size: ButtonSize.iconSm,
+              icon: ArcaneIcon.ellipsis(size: IconSize.sm),
+              attributes: const <String, String>{'aria-label': 'More actions'},
+            ),
+            items: <ArcaneMenuItem>[
+              const MenuItemLabel(label: 'More'),
+              MenuItemAction(
                 label: 'Templates',
-                optional: true,
-                onPressed: _intents.openTemplates,
+                icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
+                onSelect: _intents.openTemplates,
               ),
-              const _BarDivider(),
-              _action(
-                icon: ArcaneIcon.command(size: IconSize.sm),
+              MenuItemAction(
                 label: 'Command palette',
-                shortcut: 'mod+K',
-                optional: true,
-                onPressed: _intents.openPalette,
+                icon: ArcaneIcon.command(size: IconSize.sm),
+                onSelect: _intents.openPalette,
               ),
-              _action(
-                icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
-                label: 'Help',
-                onPressed: _intents.openHelp,
-              ),
-              _action(
-                icon: ArcaneIcon.settings(size: IconSize.sm),
+              MenuItemAction(
                 label: 'Settings',
-                optional: true,
-                onPressed: _intents.openSettings,
-              ),
-              _action(
-                icon: component.darkMode
-                    ? ArcaneIcon.sun(size: IconSize.sm)
-                    : ArcaneIcon.moon(size: IconSize.sm),
-                label: component.darkMode
-                    ? 'Switch to the light theme'
-                    : 'Switch to the dark theme',
-                onPressed: _intents.toggleTheme,
+                icon: ArcaneIcon.settings(size: IconSize.sm),
+                onSelect: _intents.openSettings,
               ),
             ],
           ),
@@ -365,15 +420,4 @@ class _TopBarState extends State<TopBar> {
 
   String _ariaToken(String token) =>
       token.length == 1 ? token.toUpperCase() : token;
-}
-
-class _BarDivider extends StatelessWidget {
-  const _BarDivider();
-
-  @override
-  Widget build(BuildContext context) => const dom.span(
-        classes: 'hui-bar-divider',
-        attributes: <String, String>{'aria-hidden': 'true'},
-        <Widget>[],
-      );
 }

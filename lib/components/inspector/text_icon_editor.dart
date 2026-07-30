@@ -201,9 +201,7 @@ class _TextIconEditorState extends State<TextIconEditor> {
         <Widget>[
           HuiField(
             label: component.label,
-            help: 'Real line breaks split the text into stacked lines. Each '
-                'line is parsed on its own, so colours and formatting never '
-                'carry from one line to the next.',
+            help: 'One stacked line per line break; each is parsed on its own.',
             control: dom.div(
               classes: 'hui-text-editor-control',
               <Widget>[
@@ -228,13 +226,20 @@ class _TextIconEditorState extends State<TextIconEditor> {
               McTextPreview(raw: _text),
             ],
           ),
-          const HuiNote(
-            'Legacy codes work too: &0-&f for colour, &l bold, &m '
-            'strikethrough, &o italic, &r reset. &n and &k are broken upstream '
-            '- the plugin rewrites them to <underline> and <magic>, which '
-            'MiniMessage does not recognise, so they show up as literal text.',
-            tone: HuiNoteTone.warning,
-            title: 'Formatting codes',
+          const HuiMore(
+            summary: 'Legacy formatting codes',
+            children: <Widget>[
+              HuiNote(
+                'Legacy codes work too: &0-&f for colour, &l bold, &m '
+                'strikethrough, &o italic, &r reset.',
+              ),
+              HuiNote(
+                '&n and &k are broken upstream - the plugin rewrites them to '
+                '<underline> and <magic>, which MiniMessage does not '
+                'recognise, so they show up as literal text.',
+                tone: HuiNoteTone.warning,
+              ),
+            ],
           ),
         ],
       );

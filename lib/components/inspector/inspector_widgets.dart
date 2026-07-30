@@ -20,7 +20,7 @@ class InspectorSection extends StatelessWidget {
     this.trailing,
     this.description,
     this.classes = '',
-    this.gap = 12,
+    this.gap = 10,
     super.key,
   });
 
@@ -77,6 +77,47 @@ class InspectorSection extends StatelessWidget {
       );
 }
 
+/// Long-form explanation behind a closed native `<details>`.
+///
+/// The pane reads as controls first: anything longer than one muted line goes
+/// in here, so the information stays reachable without shouting. Closed by
+/// default, keyboard-operable because it is a real `<summary>`.
+class HuiMore extends StatelessWidget {
+  const HuiMore({
+    required this.summary,
+    required this.children,
+    this.classes = '',
+    super.key,
+  });
+
+  /// The one-line label on the closed row.
+  final String summary;
+  final List<Widget> children;
+  final String classes;
+
+  @override
+  Widget build(BuildContext context) => ArcaneDisclosure.minimal(
+        classes: <String>['hui-more', if (classes.isNotEmpty) classes],
+        showTreeLines: false,
+        summary: dom.span(
+          classes: 'hui-more-summary',
+          <Widget>[Text(summary)],
+        ),
+        child: dom.div(
+          classes: 'hui-more-body',
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'display': 'flex',
+              'flex-direction': 'column',
+              'gap': '6px',
+              'min-width': '0',
+            },
+          ),
+          children,
+        ),
+      );
+}
+
 /// Muted explanatory block. [tone] tints the left rule for warnings and traps.
 enum HuiNoteTone { neutral, info, warning, danger }
 
@@ -107,8 +148,8 @@ class HuiNote extends StatelessWidget {
         styles: dom.Styles(
           raw: <String, String>{
             'border-left': '2px solid $_accent',
-            'padding': '2px 0 2px 10px',
-            'font-size': '0.74rem',
+            'padding': '1px 0 1px 9px',
+            'font-size': '0.72rem',
             'line-height': '1.45',
             'color': 'var(--muted-foreground)',
           },
@@ -121,7 +162,7 @@ class HuiNote extends StatelessWidget {
                 raw: <String, String>{
                   'display': 'block',
                   'color': 'var(--foreground)',
-                  'font-size': '0.75rem',
+                  'font-size': '0.72rem',
                   'font-weight': '620',
                 },
               ),
@@ -149,8 +190,8 @@ class HuiDetailRow extends StatelessWidget {
             'align-items': 'baseline',
             'justify-content': 'space-between',
             'gap': '12px',
-            'min-height': '30px',
-            'padding': '5px 0',
+            'min-height': '24px',
+            'padding': '3px 0',
           },
         ),
         <Widget>[
@@ -159,7 +200,7 @@ class HuiDetailRow extends StatelessWidget {
             styles: const dom.Styles(
               raw: <String, String>{
                 'color': 'var(--muted-foreground)',
-                'font-size': '0.74rem',
+                'font-size': '0.72rem',
                 'flex': '0 0 auto',
               },
             ),
@@ -173,7 +214,7 @@ class HuiDetailRow extends StatelessWidget {
             styles: dom.Styles(
               raw: <String, String>{
                 'min-width': '0',
-                'font-size': '0.74rem',
+                'font-size': '0.72rem',
                 'font-weight': '560',
                 'text-align': 'right',
                 'overflow-wrap': 'anywhere',
@@ -488,8 +529,8 @@ class HuiSwitchRow extends StatelessWidget {
               styles: const dom.Styles(
                 raw: <String, String>{
                   'margin': '0',
-                  'font-size': '0.74rem',
-                  'line-height': '1.4',
+                  'font-size': '0.72rem',
+                  'line-height': '1.45',
                   'color': 'var(--muted-foreground)',
                 },
               ),
@@ -502,7 +543,7 @@ class HuiSwitchRow extends StatelessWidget {
                 raw: <String, String>{
                   'margin': '0',
                   'font-size': '0.72rem',
-                  'line-height': '1.4',
+                  'line-height': '1.45',
                   'color': 'var(--hui-warning, #a06022)',
                 },
               ),

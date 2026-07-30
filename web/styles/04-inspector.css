@@ -7,6 +7,11 @@
    this is only the content root inside it. */
 .hui-inspector {
   scrollbar-gutter: stable;
+  /* Hidden CSS tooltips are absolutely positioned past the right edge of their
+     trigger, which alone added ~60px of scrollWidth to the pane. Clipping the
+     inline axis removes the phantom horizontal scroll without touching the
+     vertical one. Everything that is actually a control fits the column. */
+  overflow-x: clip;
 }
 
 .hui-inspector-pane {
@@ -19,25 +24,88 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: var(--hui-space-3) var(--hui-space-3) var(--hui-space-5);
+  /* No top padding: the sticky header owns it, so the header background reaches
+     the top edge of the scrollport. */
+  padding: 0 var(--hui-space-3) var(--hui-space-5);
+}
+
+/* ---------- fit rules ----------
+   Nothing in the pane may size itself from its content. `arcane` inputs are
+   flex children with the default `min-width: auto`, which pins them at the
+   ~161px intrinsic width of a bare <input>; inside the 96px column of the
+   x/y/z row that overflowed the pane by 75px and painted over the next field.
+   These rules are the single place that guarantees a 300px pane fits. */
+
+.hui-inspector-body *,
+.hui-inspector-body *::before,
+.hui-inspector-body *::after {
+  box-sizing: border-box;
+}
+
+.hui-inspector-body :where(
+    .hui-field,
+    .hui-field-control,
+    .hui-number,
+    .hui-vec3 > *,
+    .arcane-floating-trigger,
+    .arcane-text-input-wrapper,
+    .arcane-text-input-container,
+    .arcane-textarea-wrapper,
+    .arcane-select-wrapper
+  ) {
+  min-width: 0;
+}
+
+.hui-inspector-body :where(input, textarea, select) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The three axis fields are emitted with an inline `repeat(3, minmax(0, 1fr))`,
+   which cannot wrap; `auto-fit` keeps three columns while they are usable and
+   drops to two, then one, on a narrow pane instead of clipping z. */
+.hui-inspector-body .hui-vec3 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 78px), 1fr)) !important;
 }
 
 /* ---------- headers ---------- */
 
+/* The header, the lede and the id disclosure are one widget but must be
+   siblings in the scrolling body: `position: sticky` only holds for the height
+   of its containing block, so a real wrapper box would let the header scroll
+   away after ~120px. */
+.hui-inspector-headgroup {
+  display: contents;
+}
+
+/* Sticky so the type, the id and the destructive actions stay on screen while
+   the body scrolls. The negative inline margin lets the background span the
+   body padding, and the fill is the opaque twin of the pane's translucent one
+   so nothing shows through. */
 .hui-inspector-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   gap: var(--hui-space-1);
   min-width: 0;
-  padding-bottom: var(--hui-space-3);
+  margin: 0 calc(-1 * var(--hui-space-3));
+  padding: var(--hui-space-2) var(--hui-space-3);
   border-bottom: 1px solid var(--hui-border-soft);
+  background: color-mix(in srgb, var(--hui-panel-soft) 42%, var(--hui-bg));
 }
 
 .hui-inspector-header-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--hui-space-2);
+  min-width: 0;
+}
+
+/* The id input takes the slack between the type badge and the row tools. */
+.hui-inspector-header-id {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -48,21 +116,57 @@
   flex: 0 0 auto;
 }
 
+.hui-inspector-header-error {
+  margin: 0;
+  color: var(--hui-danger);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
 .hui-inspector-title {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 0.98rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.15;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .hui-inspector-subtitle {
   margin: 0;
   color: var(--hui-muted);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   line-height: 1.45;
   text-wrap: pretty;
+}
+
+/* One muted line under the sticky header, never inside it. */
+.hui-inspector-lede {
+  margin: 0;
+  padding: var(--hui-space-2) 0 0;
+  color: var(--hui-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+/* A disclosure that belongs to no section: same rhythm and hairline, no
+   eyebrow. */
+.hui-inspector-aside {
+  min-width: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+.hui-inspector-aside:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.hui-inspector-header-id.is-invalid .arcane-text-input,
+.hui-inspector-header-id.is-invalid input {
+  border-color: var(--hui-danger);
 }
 
 .hui-type-badge {
@@ -93,18 +197,28 @@
   color: var(--hui-text);
 }
 
-/* ---------- sections ---------- */
+/* ---------- sections ----------
+   Rhythm: 7px of air on each side of the hairline, so adjacent sections sit
+   14px apart; fields inside a section sit 10px apart (the widget's gap). */
 
 .hui-inspector-section {
   display: flex;
   flex-direction: column;
-  gap: var(--hui-space-2);
+  gap: 8px;
   min-width: 0;
-  padding: var(--hui-space-3) 0;
+  padding: 7px 0;
   border-bottom: 1px solid var(--hui-border-soft);
 }
 
-.hui-inspector-section:last-child {
+.hui-inspector-body > .hui-inspector-section:first-of-type {
+  padding-top: var(--hui-space-2);
+}
+
+/* Only the last block in the pane drops its rule. A section that is merely the
+   last child of a wrapper (the icon editor, the toggle icon tabs) still needs
+   its hairline, or it runs into whatever follows the wrapper. */
+.hui-inspector-body > .hui-inspector-section:last-child,
+.hui-inspector-body > :last-child .hui-inspector-section:last-of-type {
   border-bottom: 0;
   padding-bottom: 0;
 }
@@ -112,7 +226,7 @@
 .hui-inspector-section-note {
   margin: -2px 0 0;
   color: var(--hui-muted);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   line-height: 1.45;
   text-wrap: pretty;
 }
@@ -175,27 +289,148 @@
 
 .hui-segmented {
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
 
-.hui-segmented::-webkit-scrollbar {
-  display: none;
-}
-
+/* The renderer emits `display: inline-flex` inline, so the segments were forced
+   onto one nowrap row: four of them (`Text | Image | Animated | Item`) need
+   ~430px and the labels painted over each other in a 300px pane. A grid that
+   auto-fits at the width of the widest label wraps to two rows instead, and
+   never clips. `!important` is the only way past the inline declaration. */
 .hui-segmented .arcane-toggle-group {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
+  justify-content: stretch;
   width: 100%;
+  min-width: 0;
 }
 
 .hui-segmented .arcane-toggle-group-item {
-  flex: 1 1 0;
   min-width: 0;
+}
+
+.hui-segment-inner {
+  min-width: 0;
+}
+
+/* Tooltips are absolutely positioned and centred on their trigger, so a
+   right-hand control pushes them past the pane edge. Narrowing and wrapping
+   them inside the inspector keeps the hint readable in the column it belongs
+   to; the first and last cell of a wrapped row anchor to their own edge. */
+.hui-inspector .arcane-css-tooltip-content {
+  max-width: 210px !important;
+  white-space: normal !important;
+  text-align: left;
+}
+
+.hui-inspector .hui-vec3 > *:first-child .arcane-css-tooltip-content,
+.hui-inspector .hui-segmented .arcane-toggle-group > *:first-child
+  .arcane-css-tooltip-content {
+  left: 0 !important;
+  right: auto !important;
+  transform: translateY(-4px) !important;
+}
+
+.hui-inspector .hui-vec3 > *:last-child .arcane-css-tooltip-content,
+.hui-inspector .hui-segmented .arcane-toggle-group > *:last-child
+  .arcane-css-tooltip-content,
+/* Row tools and header actions always sit against the right edge. */
+.hui-inspector .hui-inspector-header-actions .arcane-css-tooltip-content,
+.hui-inspector .hui-inspector-section-trailing .arcane-css-tooltip-content,
+.hui-inspector .hui-field-trailing .arcane-css-tooltip-content,
+.hui-inspector .hui-row-tools .arcane-css-tooltip-content {
+  left: auto !important;
+  right: 0 !important;
+  transform: translateY(-4px) !important;
 }
 
 @media (max-width: 420px) {
   .hui-slider-field {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ---------- demoted help ----------
+   Secondary text is one muted line. `HuiField` writes its help style inline, so
+   the demotion has to out-rank it. Anything longer than a line belongs in a
+   `.hui-more` disclosure, closed by default. */
+
+.hui-inspector .hui-field-help {
+  margin-top: 4px !important;
+  color: var(--hui-muted) !important;
+  font-size: 0.72rem !important;
+  line-height: 1.45 !important;
+}
+
+.hui-inspector .hui-field-error {
+  margin-top: 4px !important;
+  font-size: 0.72rem !important;
+  line-height: 1.45 !important;
+}
+
+.hui-inspector .hui-switch-row-help,
+.hui-inspector .hui-switch-row-warning {
+  font-size: 0.72rem !important;
+  line-height: 1.45 !important;
+}
+
+/* ---------- collapsed detail ---------- */
+
+.hui-more {
+  min-width: 0;
+}
+
+/* The `#arcane-root` prefix is load-bearing, not decoration: the framework's
+   own base sheet is id-prefixed, so a plain class selector loses the cascade on
+   colour and transform. `!important` covers the declarations the renderer
+   writes inline (summary padding and gap, chevron font-size). */
+#arcane-root .hui-more > summary {
+  gap: 8px !important;
+  padding: 3px 0 !important;
+  font-size: 0.72rem;
+  font-weight: 620;
+  border-radius: var(--hui-radius);
+  transition: color var(--hui-transition);
+}
+
+#arcane-root .hui-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The label and the chevron carry the colour themselves: the framework pins the
+   summary element to a fixed grey that does not follow the light theme, and a
+   colour set on our own span is not in that fight. */
+#arcane-root .hui-more .hui-more-summary,
+#arcane-root .hui-more .arcane-disclosure-chevron {
+  color: var(--hui-muted) !important;
+}
+
+#arcane-root .hui-more > summary:hover .hui-more-summary,
+#arcane-root .hui-more[open] > summary .hui-more-summary,
+#arcane-root .hui-more > summary:hover .arcane-disclosure-chevron,
+#arcane-root .hui-more[open] > summary .arcane-disclosure-chevron {
+  color: var(--hui-text) !important;
+}
+
+#arcane-root .hui-more > summary:focus-visible {
+  outline: 2px solid var(--hui-ring);
+  outline-offset: 2px;
+}
+
+#arcane-root .hui-more .arcane-disclosure-chevron {
+  font-size: 0.5rem !important;
+  transition: transform var(--hui-transition);
+}
+
+#arcane-root .hui-more[open] .arcane-disclosure-chevron {
+  transform: rotate(180deg) !important;
+}
+
+#arcane-root .hui-more > .arcane-disclosure-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 0 2px !important;
 }
 
 .hui-row-tools button {
@@ -803,4 +1038,26 @@
 .hui-placeholder-foot {
   padding-top: 6px;
   border-top: 1px solid var(--hui-border-soft);
+}
+
+/* A trailing control sits against the pane's right edge, so its tooltip must
+   anchor right even when the trigger is the first item of its group — the
+   generic first-child rule above assumes a left-aligned group and would push
+   the hint past the edge, where `overflow-x: clip` cuts it. Specificity is
+   matched deliberately so source order decides. */
+.hui-inspector
+  .hui-inspector-section-trailing
+  .hui-segmented
+  .arcane-toggle-group
+  > *
+  .arcane-css-tooltip-content,
+.hui-inspector
+  .hui-field-trailing
+  .hui-segmented
+  .arcane-toggle-group
+  > *
+  .arcane-css-tooltip-content {
+  left: auto !important;
+  right: 0 !important;
+  transform: translateY(-4px) !important;
 }

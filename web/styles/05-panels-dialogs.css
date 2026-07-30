@@ -9,83 +9,121 @@
 
 /* The shell owns the rail cell (`.hui-pane.hui-rail` in 02-shell.css): its
    border, background and scrolling. This root only fills it, so the divider is
-   drawn once and there is a single scroll container. */
+   drawn once and there is a single scroll container.
+
+   `flex: 0 0 auto` is load-bearing: the rail cell is a flex column, so a
+   shrinkable child would be clamped to the viewport and its overflow would fall
+   outside the scroll box — the last rows and the bottom padding were being
+   swallowed under the status bar. Sizing to content lets the rail scroll. */
 .hui-rail-pane {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
 }
 
 .hui-rail-inner {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
-  gap: var(--hui-space-2);
-  min-height: 0;
-  padding: var(--hui-space-3);
+  gap: 8px;
+  /* The bottom pad is the scroll runway: the last row never sits flush against
+     the status bar. */
+  padding: var(--hui-space-2) var(--hui-space-2) var(--hui-space-5);
 }
 
+/* Heading, count and add split-button on one line. `nowrap` plus a truncating
+   eyebrow keeps it one line down to ~200px of rail. */
 .hui-rail-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--hui-space-2);
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-height: 28px;
 }
 
 .hui-rail-heading {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+}
+
+.hui-rail-heading .hui-eyebrow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hui-rail-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 20px;
-  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  padding: 0 5px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--hui-accent) 14%, transparent);
   color: var(--hui-text);
-  font-size: .72rem;
+  font-size: .68rem;
   font-variant-numeric: tabular-nums;
   font-weight: 650;
 }
 
 .hui-rail-add {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: stretch;
   gap: 1px;
 }
 
 .hui-rail-add > * + * { margin-left: 1px; }
 
+/* Arcane sizes its buttons with inline styles, so trimming them to the rail's
+   rhythm needs !important. Sizing only — colour and state stay Arcane's. */
+.hui-rail-add .arcane-button {
+  height: 28px !important;
+  padding: 0 9px !important;
+  border-radius: var(--hui-radius) !important;
+  font-size: .78rem !important;
+  gap: 5px !important;
+}
+
+/* The split-button's second half is the dropdown trigger: icon only. */
+.hui-rail-add > .arcane-dropdown .arcane-button {
+  padding: 0 4px !important;
+}
+
 .hui-rail-hint {
+  overflow: hidden;
   margin: 0;
   color: var(--hui-muted);
-  font-size: .72rem;
-  line-height: 1.4;
+  font-size: .7rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hui-rail-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* ~36px: two text lines (id + summary) inside 2px of padding and a hairline. */
 .hui-rail-row {
   position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
-  min-height: 44px;
-  padding: 4px 6px 4px 10px;
+  min-height: 36px;
+  padding: 2px 4px 2px 6px;
   border: 1px solid transparent;
   border-radius: var(--hui-radius);
   color: var(--hui-muted);
@@ -108,7 +146,7 @@
 
 .hui-rail-row.is-selected::before {
   position: absolute;
-  inset: 8px auto 8px -1px;
+  inset: 6px auto 6px -1px;
   width: 3px;
   border-radius: 0 3px 3px 0;
   background: var(--hui-accent);
@@ -127,13 +165,16 @@
   background: color-mix(in srgb, var(--hui-danger) 10%, var(--hui-panel));
 }
 
+/* One line is enough while the row is asking to be deleted. */
+.hui-rail-row.is-armed .hui-rail-summary { display: none; }
+
 .hui-rail-main {
   display: flex;
   flex: 1 1 auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  padding: 2px 0;
+  padding: 0;
   border: 0;
   background: none;
   color: inherit;
@@ -147,45 +188,57 @@
   outline-offset: 2px;
 }
 
-.hui-rail-grip {
+/* One fixed 22px column so every id starts at the same x. The type glyph and
+   the drag grip share it and cross-fade on hover — two columns do not fit. */
+.hui-rail-mark {
+  position: relative;
   display: inline-flex;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--hui-radius) - 3px);
+  background: var(--hui-panel-soft);
   color: var(--hui-muted);
-  cursor: grab;
-  opacity: 0;
-  transition: opacity var(--hui-transition);
+  transition: background var(--hui-transition), color var(--hui-transition);
 }
 
-.hui-rail-row:hover .hui-rail-grip,
-.hui-rail-row.is-selected .hui-rail-grip { opacity: .7; }
-
-.hui-rail-glyph {
+.hui-rail-glyph,
+.hui-rail-grip {
+  position: absolute;
+  inset: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  flex: 0 0 auto;
-  border-radius: calc(var(--hui-radius) - 2px);
-  background: var(--hui-panel-soft);
-  color: var(--hui-muted);
+  transition: opacity var(--hui-transition);
 }
 
-.hui-rail-row.is-selected .hui-rail-glyph {
+.hui-rail-grip {
+  cursor: grab;
+  opacity: 0;
+}
+
+.hui-rail-row:hover .hui-rail-glyph { opacity: 0; }
+.hui-rail-row:hover .hui-rail-grip { opacity: .8; }
+
+.hui-rail-row.is-selected .hui-rail-mark {
   background: color-mix(in srgb, var(--hui-accent) 18%, transparent);
   color: var(--hui-text);
 }
 
 .hui-rail-text {
   display: grid;
-  gap: 1px;
+  flex: 1 1 auto;
+  gap: 0;
   min-width: 0;
 }
 
 .hui-rail-id {
   overflow: hidden;
   color: var(--hui-text);
-  font-size: .82rem;
-  font-weight: 650;
+  font-size: .84rem;
+  font-weight: 620;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -195,14 +248,14 @@
   overflow: hidden;
   color: var(--hui-muted);
   font-size: .7rem;
-  line-height: 1.3;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .hui-rail-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   flex: 0 0 auto;
   border-radius: 999px;
   background: var(--hui-warning);
@@ -213,24 +266,59 @@
 .hui-rail-tools,
 .hui-rail-confirm {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 2px;
-  flex: 0 0 auto;
 }
 
-.hui-rail-tools { opacity: 0; transition: opacity var(--hui-transition); }
+/* The arrows are hover/selection furniture: fourteen permanent chevron pairs
+   are most of what made the rail read as clutter. `visibility` (not `display`)
+   plus the `:focus-within` reversal keeps them keyboard reachable — tabbing to
+   the row's own button reveals them before focus can reach them. */
+.hui-rail-tools {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--hui-transition), visibility var(--hui-transition);
+}
 
 .hui-rail-row:hover .hui-rail-tools,
 .hui-rail-row:focus-within .hui-rail-tools,
-.hui-rail-row.is-selected .hui-rail-tools { opacity: 1; }
+.hui-rail-row.is-selected .hui-rail-tools,
+.hui-rail-row.is-drop-target .hui-rail-tools {
+  opacity: 1;
+  visibility: visible;
+}
+
+.hui-rail-tools .arcane-button,
+.hui-rail-confirm .arcane-button {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  border-radius: calc(var(--hui-radius) - 3px) !important;
+}
+
+/* No hover to reveal them with, and a coarse pointer needs a bigger target. */
+@media (hover: none) {
+  .hui-rail-tools { opacity: 1; visibility: visible; }
+  .hui-rail-tools .arcane-button,
+  .hui-rail-confirm .arcane-button {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  /* No drag-and-drop on touch, so the grip never replaces the type glyph. */
+  .hui-rail-grip,
+  .hui-rail-row:hover .hui-rail-grip { opacity: 0; }
+  .hui-rail-row:hover .hui-rail-glyph { opacity: 1; }
+}
 
 .hui-rail-confirm-label {
   color: var(--hui-danger);
-  font-size: .72rem;
+  font-size: .7rem;
   font-weight: 650;
+  white-space: nowrap;
 }
 
-.hui-rail-empty { padding: var(--hui-space-4) var(--hui-space-2); }
+.hui-rail-empty { padding: var(--hui-space-3) var(--hui-space-1); }
 
 .hui-two-step { display: inline-flex; align-items: center; gap: 4px; }
 
@@ -1052,6 +1140,8 @@
 @media (prefers-reduced-motion: reduce) {
   .hui-rail-row,
   .hui-rail-tools,
+  .hui-rail-mark,
+  .hui-rail-glyph,
   .hui-rail-grip,
   .hui-image-card,
   .hui-option-card,

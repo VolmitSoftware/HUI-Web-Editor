@@ -219,17 +219,18 @@ class _CanvasViewportState extends State<CanvasViewport> {
         ),
       ),
       _stageTree,
+      // One line, never two: the separators are drawn by CSS between the
+      // items, and the trailing note is dropped by CSS before anything is
+      // allowed to wrap. See `.hui-canvas-hint` in web/styles/03-canvas.css.
       const dom.div(classes: 'hui-canvas-hint', <Widget>[
-        dom.span(<Widget>[
-          Component.text('Scroll to zoom - drag to pan - 0 to reset - F to fit'),
+        dom.span(classes: 'hui-canvas-hint-item', <Widget>[
+          Component.text('Scroll to zoom - drag to pan - 0 resets - F fits'),
         ]),
-        dom.span(classes: 'hui-canvas-hint-sep', <Widget>[]),
-        dom.span(<Widget>[
-          Component.text('Drag a component to move it - arrows nudge - '
-              'Delete removes - Esc deselects'),
+        dom.span(classes: 'hui-canvas-hint-item', <Widget>[
+          Component.text('Drag to move - arrows nudge - Delete removes - '
+              'Esc deselects'),
         ]),
-        dom.span(classes: 'hui-canvas-hint-sep', <Widget>[]),
-        dom.span(classes: 'hui-canvas-hint-note', <Widget>[
+        dom.span(classes: 'hui-canvas-hint-item hui-canvas-hint-note', <Widget>[
           Component.text('Icons never turn to face the player (billboard '
               'FIXED); only the click plane re-aims.'),
         ]),

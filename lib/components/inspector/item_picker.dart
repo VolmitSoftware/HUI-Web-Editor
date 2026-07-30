@@ -46,9 +46,7 @@ class ItemIconEditor extends StatelessWidget {
           HuiField(
             label: 'Material',
             required: true,
-            help: 'Lowercase registry key, for example diamond_sword or '
-                'minecraft:emerald. An uppercase or unknown key stops the whole '
-                'menu from opening.',
+            help: 'Lowercase registry key. An unknown one blocks the open.',
             control: dom.div(<Widget>[
               RegistryPicker(
                 value: icon.item,
@@ -84,8 +82,6 @@ class ItemIconEditor extends StatelessWidget {
             <Widget>[
               HuiField(
                 label: 'Count',
-                help: 'Above 1 adds a bold white number under the item and '
-                    'lifts the item slightly.',
                 control: HuiNumberField(
                   value: icon.count.toDouble(),
                   min: 1,
@@ -103,10 +99,7 @@ class ItemIconEditor extends StatelessWidget {
                 ),
               ),
               HuiField(
-                label: 'Custom model value',
-                help: 'Exported as customModelValue. The old editor and the '
-                    'shipped schema wrote customModelData, which the plugin '
-                    'ignores.',
+                label: 'Model value',
                 control: HuiNumberField(
                   value: icon.customModelValue.toDouble(),
                   min: 0,
@@ -121,9 +114,24 @@ class ItemIconEditor extends StatelessWidget {
               ),
             ],
           ),
-          const HuiNote(
-            'Items render at roughly 0.75 blocks square and are the only icon '
-            'type with a fixed size: uiScale is the only thing that changes it.',
+          const HuiMore(
+            summary: 'Count, model value and item size',
+            children: <Widget>[
+              HuiNote(
+                'A count above 1 adds a bold white number under the item and '
+                'lifts the item slightly.',
+              ),
+              HuiNote(
+                'The model value is exported as customModelValue. The old '
+                'editor and the shipped schema wrote customModelData, which the '
+                'plugin ignores.',
+              ),
+              HuiNote(
+                'Items render at roughly 0.75 blocks square and are the only '
+                'icon type with a fixed size: uiScale is the only thing that '
+                'changes it.',
+              ),
+            ],
           ),
         ],
       );

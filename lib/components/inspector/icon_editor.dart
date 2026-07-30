@@ -224,8 +224,8 @@ class IconEditor extends StatelessWidget {
         classes: 'hui-icon-empty',
         <Widget>[
           const HuiNote(
-            'This slot has no icon. HoloUI draws its built-in black and magenta '
-            'checker in its place, and a button keeps its hitbox.',
+            'No icon: HoloUI draws its magenta checker here, and a button '
+            'keeps its hitbox.',
             tone: HuiNoteTone.warning,
           ),
           dom.div(
@@ -302,8 +302,7 @@ class _ImageIconEditor extends StatelessWidget {
         HuiField(
           label: 'Path',
           required: true,
-          help: 'Relative to plugins/holoui/images/. No leading slash, no "..", '
-              'no drive letters.',
+          help: 'Relative to plugins/holoui/images/.',
           control: dom.div(<Widget>[
             TextInput(
               value: icon.path,
@@ -350,10 +349,19 @@ class _ImageIconEditor extends StatelessWidget {
             ),
           ],
         ),
-        const HuiNote(
-          'HoloUI draws one character per source pixel with no resizing, so an '
-          '64x64 image becomes 64 text displays of 64 characters. Keep images '
-          'small.',
+        const HuiMore(
+          summary: 'Path rules and image cost',
+          children: <Widget>[
+            HuiNote(
+              'No leading slash, no "..", no drive letters - the path is read '
+              'inside plugins/holoui/images/ and nowhere else.',
+            ),
+            HuiNote(
+              'HoloUI draws one character per source pixel with no resizing, so '
+              'a 64x64 image becomes 64 text displays of 64 characters. Keep '
+              'images small.',
+            ),
+          ],
         ),
       ],
     );
@@ -413,8 +421,7 @@ class _AnimatedIconEditor extends StatelessWidget {
       <Widget>[
         InspectorSection(
           title: 'Frames',
-          description: 'Played in this order and looped. Every frame is padded '
-              'to the tallest frame with blank rows.',
+          description: 'Played in this order and looped.',
           trailing: dom.span(
             classes: 'hui-count-chip',
             <Widget>[
@@ -462,8 +469,7 @@ class _AnimatedIconEditor extends StatelessWidget {
         HuiField(
           label: 'Speed',
           required: true,
-          help: 'Ticks per frame at 20 ticks per second. 1 is the fastest the '
-              'plugin can go; 0 or less also advances every tick.',
+          help: 'Ticks per frame, at 20 ticks per second.',
           trailing: dom.span(
             classes: 'hui-unit-chip',
             <Widget>[Text('${speed}t = ${ms}ms per frame')],
@@ -485,6 +491,18 @@ class _AnimatedIconEditor extends StatelessWidget {
                   .toList(),
             ),
           ]),
+        ),
+        const HuiMore(
+          summary: 'Frame padding and tick limits',
+          children: <Widget>[
+            HuiNote(
+              'Every frame is padded to the tallest frame with blank rows.',
+            ),
+            HuiNote(
+              '1 tick is the fastest the plugin can go; 0 or less also advances '
+              'every tick.',
+            ),
+          ],
         ),
       ],
     );

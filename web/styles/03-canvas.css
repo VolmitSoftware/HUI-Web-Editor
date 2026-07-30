@@ -8,7 +8,12 @@
      store is sized from, so it must never have padding.
    - state classes are toggled from Dart, never from CSS:
      `is-pan-ready`, `is-dragging`, `is-moving-component`, `is-over-component`
-     on the stage, and `is-visible` on the drag readout. */
+     on the stage, and `is-visible` on the drag readout.
+   - the toolbar is ONE row at every width. Dart never measures anything: it
+     emits every droppable word inside `.hui-canvas-tool-label` and this file
+     decides whether that text renders. Both conditions have to hold for the
+     labels to come back — a wide viewport AND a wide canvas cell — because in
+     split view the canvas is half the window. */
 
 .hui-canvas {
   display: grid;
@@ -16,45 +21,70 @@
   min-height: 0;
   height: 100%;
   gap: 0;
+  /* The toolbar's density switch queries THIS box, not the viewport. */
+  container: hui-canvas / inline-size;
 }
 
 /* ---- toolbar strip (fused to the stage, anim-al markdown-toolbar shape) ---- */
 
 .hui-canvas-toolbar {
+  --hui-tool-size: 30px;
+  --hui-tool-pad: 7px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 43px;
+  /* Load-bearing: wrapping is what turned this strip into four rows. */
+  flex-wrap: nowrap;
+  gap: 0;
+  min-height: 40px;
   padding: 4px 8px;
   border: 1px solid var(--hui-border);
   border-bottom: 0;
   border-radius: var(--hui-radius) var(--hui-radius) 0 0;
   background: var(--hui-panel-soft);
+  scrollbar-width: none;
 }
+
+.hui-canvas-toolbar::-webkit-scrollbar { display: none; }
 
 .hui-canvas-toolgroup {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: 2px;
   min-width: 0;
 }
 
+.hui-canvas-toolgroup > * { flex: 0 0 auto; }
+
+/* Hairline between groups instead of a gap: the divider is the rhythm. */
 .hui-canvas-toolgroup + .hui-canvas-toolgroup {
-  padding-left: 8px;
+  margin-left: 7px;
+  padding-left: 7px;
   border-left: 1px solid color-mix(in srgb, var(--hui-border) 62%, transparent);
 }
 
-.hui-canvas-toolgroup-scale {
-  flex: 1 1 220px;
-  gap: 8px;
-}
-
-.hui-canvas-toolbar .arcane-button,
-.hui-canvas-toolbar button {
-  min-height: 30px;
+/* Arcane sizes its buttons with inline styles, so the strip has to shout to
+   land on a 30px control. This is the documented override path. */
+.hui-canvas-toolbar .arcane-button {
+  height: var(--hui-tool-size) !important;
+  min-height: var(--hui-tool-size);
   border-radius: var(--hui-radius);
   white-space: nowrap;
+  transition:
+    color var(--hui-transition),
+    background-color var(--hui-transition),
+    box-shadow var(--hui-transition);
+}
+
+.hui-canvas-toolbar .arcane-button[data-size="sm"] {
+  gap: 6px !important;
+  padding: 0 var(--hui-tool-pad) !important;
+}
+
+.hui-canvas-toolbar .arcane-button[data-size="iconSm"] {
+  width: var(--hui-tool-size) !important;
+  padding: 0 !important;
 }
 
 .hui-canvas-toolbar [aria-pressed="true"] {
@@ -64,42 +94,130 @@
 }
 
 .hui-canvas-zoom {
-  min-width: 52px;
+  min-width: 46px;
   padding: 0 2px;
   color: var(--hui-text);
-  font-size: .78rem;
+  font-size: .76rem;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
-.hui-canvas-scale-label {
-  flex: 0 0 auto;
+/* Droppable word inside a control. Hidden by default; the query below is the
+   only thing that brings it back. The control keeps its aria-label and its
+   tooltip either way. */
+.hui-canvas-tool-label { display: none; }
+
+.hui-canvas-toggle-label {
+  padding: 0 4px 0 2px;
   white-space: nowrap;
 }
 
-.hui-canvas-scale-slider {
-  flex: 1 1 90px;
-  min-width: 80px;
-  max-width: 220px;
+/* ---- uiScale: a readout in the row, the real slider in a popover ---- */
+
+.hui-canvas-scale-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .hui-canvas-scale-value {
-  min-width: 38px;
   color: var(--hui-text);
-  font-size: .78rem;
+  font-size: .76rem;
   font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 
-.hui-canvas-toolbar-divider {
-  width: 1px;
+.hui-scale-pop {
+  display: grid;
+  gap: 10px;
+  width: 246px;
+  padding: 2px;
+}
+
+.hui-scale-pop-note {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+/* Native range input: the Arcane slider renderer never wires its callback to
+   the DOM, so the popover carries a real control instead of a pretty one. */
+.hui-scale-range {
+  width: 100%;
   height: 20px;
-  margin: 0 4px;
-  background: color-mix(in srgb, var(--hui-border) 62%, transparent);
+  margin: 0;
+  background: transparent;
+  accent-color: var(--hui-accent);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.hui-canvas-toggle-label {
-  white-space: nowrap;
+.hui-scale-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hui-border) 90%, transparent);
+}
+
+.hui-scale-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hui-border) 90%, transparent);
+}
+
+.hui-scale-range::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--hui-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--hui-accent) 40%, transparent);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.hui-scale-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--hui-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--hui-accent) 40%, transparent);
+}
+
+.hui-scale-range:focus-visible {
+  outline: 2px solid var(--hui-ring);
+  outline-offset: 3px;
+}
+
+.hui-scale-pop-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -4px;
+  color: var(--hui-muted);
+  font-size: .68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hui-scale-pop-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--hui-border) 62%, transparent);
+}
+
+.hui-scale-pop-value {
+  color: var(--hui-text);
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hui-scale-pop-foot .arcane-button {
+  height: 30px !important;
+  min-height: 30px;
 }
 
 /* ---- stage ---- */
@@ -163,43 +281,75 @@
   transform: translateY(0);
 }
 
-/* ---- keyboard hint line ---- */
+/* ---- keyboard hint line ----
+   One line. The clauses are separated by a middot drawn between them, and the
+   trailing note is dropped before the line is ever allowed to wrap. */
 
 .hui-canvas-hint {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 2px 0;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 0;
+  overflow: hidden;
+  padding: 6px 2px 0;
   color: var(--hui-muted);
   font-size: .74rem;
   line-height: 1.35;
+  white-space: nowrap;
 }
 
-.hui-canvas-hint-sep {
-  width: 1px;
-  height: 11px;
-  background: color-mix(in srgb, var(--hui-border) 62%, transparent);
+/* A clause is shown whole or not at all: only the trailing note may shrink,
+   and by then the queries below have already dropped it. */
+.hui-canvas-hint-item {
+  flex: 0 0 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hui-canvas-hint-item:last-child { flex: 0 1 auto; }
+
+.hui-canvas-hint-item + .hui-canvas-hint-item::before {
+  content: "\00B7";
+  padding: 0 8px;
+  color: color-mix(in srgb, var(--hui-muted) 62%, transparent);
 }
 
 .hui-canvas-hint-note {
   color: color-mix(in srgb, var(--hui-muted) 82%, transparent);
 }
 
-/* ---- narrow layouts ---- */
+/* ---- density switch ----
+   Labels come back only when both the window and the canvas cell are wide.
+   Below that every view control is icon-only, and the tooltip carries the
+   name it just dropped. */
 
-@media (max-width: 1100px) {
-  .hui-canvas-toolgroup + .hui-canvas-toolgroup {
-    padding-left: 0;
-    border-left: 0;
+@media (min-width: 1500px) {
+  @container hui-canvas (min-width: 860px) {
+    .hui-canvas-toolbar { --hui-tool-pad: 9px; }
+    .hui-canvas-tool-label { display: inline; }
   }
-  .hui-canvas-toolgroup-scale { flex-basis: 100%; }
 }
 
-@media (max-width: 720px) {
+/* The hint drops clauses in importance order rather than wrapping or
+   truncating. Measured natural widths: 248px / 360px / 461px plus 20px per
+   separator, so all three need a 1130px cell (~1750px window in the three-pane
+   layout, ~1130px in code-only view) and the first two need 650px. */
+@container hui-canvas (max-width: 1129px) {
   .hui-canvas-hint-note { display: none; }
+}
+
+@container hui-canvas (max-width: 649px) {
+  .hui-canvas-hint-item:nth-child(2) { display: none; }
+}
+
+/* Last resort. A scroll container clips the CSS tooltips that hang above the
+   row, so the strip only becomes scrollable when the cell is genuinely too
+   narrow for the icon-only strip to fit (split view, phone widths). */
+@container hui-canvas (max-width: 620px) {
+  .hui-canvas-toolbar { overflow-x: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hui-canvas-readout { transition: none; }
+  .hui-canvas-toolbar .arcane-button { transition: none; }
 }

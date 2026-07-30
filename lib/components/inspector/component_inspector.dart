@@ -57,11 +57,9 @@ class ComponentInspector extends StatelessWidget {
         title: 'Offset',
         children: <Widget>[
           HuiField(
-            label: 'Offset from the menu centre',
+            label: 'From the menu centre',
             required: true,
-            help: 'In blocks, multiplied by the server uiScale. z moves the '
-                'component toward or away from the player; it is invisible in '
-                'a flat view but still changes draw order.',
+            help: 'Blocks, multiplied by the server uiScale.',
             control: dom.div(<Widget>[
               HuiVec3Field(
                 // Typed entry bypasses grid snapping on purpose: an exact
@@ -75,6 +73,16 @@ class ComponentInspector extends StatelessWidget {
               ),
               HuiInlineIssues(_issuesFor('.offset')),
             ]),
+          ),
+          const HuiMore(
+            summary: 'What z does',
+            children: <Widget>[
+              HuiNote(
+                'z moves the component toward or away from the player. It is '
+                'invisible in a flat view but still changes draw order, so two '
+                'components at the same x and y stack by z.',
+              ),
+            ],
           ),
         ],
       );
@@ -100,21 +108,24 @@ class ComponentInspector extends StatelessWidget {
           componentId: _id,
           slot: ActionSlot.actions,
           actions: data.actions,
-          description: 'Run in order on every left click, after the click '
-              'event fires.',
+          description: 'Run in order on every left click.',
           issues: _issues,
         ),
       ];
     }
     if (data is HuiDecorationData) {
       return <Widget>[
-        const InspectorSection(
-          title: 'Behaviour',
-          children: <Widget>[
-            HuiNote(
-              'A decoration is draw-only. It has no hitbox, never receives a '
-              'click and never leans toward the player. Use a button if you '
-              'need either.',
+        const dom.div(
+          classes: 'hui-inspector-aside',
+          <Widget>[
+            HuiMore(
+              summary: 'How a decoration behaves',
+              children: <Widget>[
+                HuiNote(
+                  'Draw-only: no hitbox, never receives a click and never leans '
+                  'toward the player. Use a button if you need either.',
+                ),
+              ],
             ),
           ],
         ),
@@ -140,8 +151,7 @@ class ComponentInspector extends StatelessWidget {
         componentId: _id,
         slot: ActionSlot.trueActions,
         actions: toggle.trueActions,
-        description: 'Fire when the toggle switches TO true, which is a click '
-            'made while it is showing the false icon.',
+        description: 'Fire on a click made while the false icon is showing.',
         issues: _issues,
       ),
       ActionsEditor(
@@ -151,8 +161,7 @@ class ComponentInspector extends StatelessWidget {
         componentId: _id,
         slot: ActionSlot.falseActions,
         actions: toggle.falseActions,
-        description: 'Fire when the toggle switches TO false, which is a click '
-            'made while it is showing the true icon.',
+        description: 'Fire on a click made while the true icon is showing.',
         issues: _issues,
       ),
     ];
@@ -164,8 +173,8 @@ class ComponentInspector extends StatelessWidget {
         children: <Widget>[
           HuiField(
             label: 'Highlight modifier',
-            help: 'Blocks the icon leans toward the player while the cursor is '
-                'on it. 0.05 is the usual value; 0 disables the lean.',
+            help: 'Blocks the icon leans toward the player under the cursor. '
+                '0.05 is usual; 0 disables the lean.',
             control: dom.div(<Widget>[
               HuiSliderField(
                 value: value,
@@ -197,7 +206,7 @@ class ComponentInspector extends StatelessWidget {
         description: 'Decides which icon the toggle starts on.',
         children: <Widget>[
           HuiField(
-            label: 'Condition',
+            label: 'Placeholder',
             required: true,
             trailing: PlaceholderPicker(
               catalogs: catalogs,
@@ -210,8 +219,7 @@ class ComponentInspector extends StatelessWidget {
                 },
               ),
             ),
-            help: 'Expanded once, at the moment the menu opens, then compared '
-                'against the expected value.',
+            help: 'Expanded once, when the menu opens.',
             control: dom.div(<Widget>[
               TextInput(
                 value: toggle.condition,
@@ -237,7 +245,7 @@ class ComponentInspector extends StatelessWidget {
           HuiField(
             label: 'Expected value',
             required: true,
-            help: 'Compared with equalsIgnoreCase, so "TRUE" and "true" match.',
+            help: 'Case-insensitive, so "TRUE" and "true" match.',
             control: dom.div(<Widget>[
               TextInput(
                 value: toggle.expectedValue,
@@ -260,18 +268,23 @@ class ComponentInspector extends StatelessWidget {
               HuiInlineIssues(_issuesFor('.expectedValue')),
             ]),
           ),
-          const HuiNote(
-            'The condition is read once at open and never again. After that '
-            'the state only changes when a player clicks. Placeholders outside '
-            'HoloUI need PlaceholderAPI installed; without it the string is '
-            'compared literally.',
-            tone: HuiNoteTone.info,
-            title: 'Evaluated once',
-          ),
-          const HuiNote(
-            'String equality is the only comparison in the format. There are '
-            'no operators, no ranges and no visibility conditions on other '
-            'component types.',
+          const HuiMore(
+            summary: 'How the comparison works',
+            children: <Widget>[
+              HuiNote(
+                'The condition is read once at open and never again. After that '
+                'the state only changes when a player clicks. Placeholders '
+                'outside HoloUI need PlaceholderAPI installed; without it the '
+                'string is compared literally.',
+                tone: HuiNoteTone.info,
+                title: 'Evaluated once',
+              ),
+              HuiNote(
+                'String equality is the only comparison in the format. There '
+                'are no operators, no ranges and no visibility conditions on '
+                'other component types.',
+              ),
+            ],
           ),
         ],
       );
@@ -283,8 +296,8 @@ class ComponentInspector extends StatelessWidget {
       <Widget>[
         InspectorSection(
           title: 'Icons',
-          description: 'Both icons are built when the menu opens, so a broken '
-              'image breaks the open even if that state is never shown.',
+          description: 'Both are built at open, so a broken one breaks the '
+              'open even if it is never shown.',
           trailing: HuiSegmented(
             value: showTrue ? 'true' : 'false',
             onChanged: (String value) =>
@@ -378,68 +391,99 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
   @override
   Widget build(BuildContext context) {
     final String type = component.target.data.type;
-    return dom.div(
-      classes: 'hui-inspector-header is-component',
-      <Widget>[
-        dom.div(
-          classes: 'hui-inspector-header-top',
-          <Widget>[
-            dom.span(
-              classes: 'hui-type-badge is-$type',
-              <Widget>[Text(_typeLabel)],
-            ),
-            dom.div(
-              classes: 'hui-inspector-header-actions',
+    // `display: contents` (04-inspector.css): the three rows below have to be
+    // direct children of the scrolling body, or `position: sticky` on the
+    // header would only hold for the height of this wrapper.
+    return dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+      // Sticky: the badge, the id and the destructive actions stay on screen
+      // for the whole scroll, so what is being edited is never in doubt.
+      dom.div(
+        classes: 'hui-inspector-header is-component',
+        <Widget>[
+          dom.div(
+            classes: 'hui-inspector-header-top',
+            <Widget>[
+              dom.span(
+                classes: 'hui-type-badge is-$type',
+                <Widget>[Text(_typeLabel)],
+              ),
+              dom.div(
+                classes: classNames(<String?>[
+                  'hui-inspector-header-id',
+                  _isDuplicate ? 'is-invalid' : null,
+                ]),
+                <Widget>[
+                  TextInput(
+                    value: _draft,
+                    size: ComponentSize.sm,
+                    fullWidth: true,
+                    placeholder: 'component-id',
+                    prefix: const Text('id', color: TextColor.muted),
+                    onInput: (String value) => setState(() => _draft = value),
+                    onBlur: _commit,
+                    onSubmit: (String _) => _commit(),
+                    attributes: const <String, String>{
+                      'aria-label': 'Component id',
+                      'autocomplete': 'off',
+                      'spellcheck': 'false',
+                    },
+                  ),
+                ],
+              ),
+              dom.div(
+                classes: 'hui-inspector-header-actions',
+                <Widget>[
+                  HuiIconButton(
+                    icon: ArcaneIcon.copy(size: IconSize.sm),
+                    label: 'Duplicate component',
+                    onPressed: () =>
+                        component.store.duplicateComponent(_currentId),
+                  ),
+                  HuiArmedButton(
+                    label: 'Delete component',
+                    armedLabel: 'Delete',
+                    icon: ArcaneIcon.trash2(size: IconSize.sm),
+                    iconOnly: true,
+                    variant: ButtonVariant.ghost,
+                    onConfirm: () => component.store.deleteComponent(_currentId),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (_isDuplicate)
+            const dom.p(
+              classes: 'hui-inspector-header-error',
               <Widget>[
-                HuiIconButton(
-                  icon: ArcaneIcon.copy(size: IconSize.sm),
-                  label: 'Duplicate component',
-                  onPressed: () =>
-                      component.store.duplicateComponent(_currentId),
-                ),
-                HuiArmedButton(
-                  label: 'Delete component',
-                  armedLabel: 'Delete',
-                  icon: ArcaneIcon.trash2(size: IconSize.sm),
-                  iconOnly: true,
-                  variant: ButtonVariant.ghost,
-                  onConfirm: () => component.store.deleteComponent(_currentId),
+                Text(
+                  'Another component already uses this id. Both still render, '
+                  'but only the first can be addressed by the API.',
                 ),
               ],
             ),
-          ],
-        ),
-        HuiField(
-          label: 'Component id',
-          required: true,
-          help: 'How the Java API addresses this component, and what shows up '
-              'in server logs. Allowed characters: letters, digits, dot, dash '
-              'and underscore.',
-          error: _isDuplicate
-              ? 'Another component already uses this id. Both still render and '
-                  'both still click, but only the first can be addressed by the '
-                  'API.'
-              : null,
-          control: TextInput(
-            value: _draft,
-            size: ComponentSize.sm,
-            fullWidth: true,
-            onInput: (String value) => setState(() => _draft = value),
-            onBlur: _commit,
-            onSubmit: (String _) => _commit(),
-            attributes: const <String, String>{
-              'autocomplete': 'off',
-              'spellcheck': 'false',
-            },
+        ],
+      ),
+      dom.p(
+        classes: 'hui-inspector-lede',
+        <Widget>[
+          Text(huiComponentTypeDescriptions[type] ?? ''),
+        ],
+      ),
+      const dom.div(
+        classes: 'hui-inspector-aside',
+        <Widget>[
+          HuiMore(
+            summary: 'About the id',
+            children: <Widget>[
+              HuiNote(
+                'How the Java API addresses this component, and what shows up '
+                'in server logs. Allowed characters: letters, digits, dot, '
+                'dash and underscore.',
+              ),
+            ],
           ),
-        ),
-        dom.p(
-          classes: 'hui-inspector-subtitle',
-          <Widget>[
-            Text(huiComponentTypeDescriptions[type] ?? ''),
-          ],
-        ),
-      ],
-    );
+        ],
+      ),
+    ]);
   }
 }

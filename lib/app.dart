@@ -15,6 +15,29 @@ import 'theme/theme_state.dart';
 
 enum _EditorDialog { none, import, export, images, templates, settings, help }
 
+/// Shadcn with every remote asset stripped out.
+///
+/// The stock stylesheet injects a render-blocking Google Fonts link (plus its
+/// preconnects) for Inter. This editor is served from `/holoui builder start`
+/// on game servers that may have no outbound internet, where that request
+/// stalls the first paint until it times out. Geist is bundled in
+/// `web/assets/fonts/`, so the remote list is emptied and the font stack is
+/// declared here rather than being overridden later in CSS.
+class _OfflineShadcnStylesheet extends ShadcnStylesheet {
+  const _OfflineShadcnStylesheet({super.theme});
+
+  @override
+  List<String> get externalCssUrls => const <String>[];
+
+  @override
+  FontConfig get fonts => const FontConfig(
+        sans: "'Geist', ui-sans-serif, system-ui, -apple-system, "
+            "BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        mono: "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, "
+            'Consolas, monospace',
+      );
+}
+
 class App extends StatefulWidget {
   const App({super.key});
 
@@ -79,7 +102,7 @@ class _AppState extends State<App> {
 
   @override
   Widget build(BuildContext context) => ArcaneApp(
-        stylesheet: const ShadcnStylesheet(theme: ShadcnTheme.midnight),
+        stylesheet: const _OfflineShadcnStylesheet(theme: ShadcnTheme.midnight),
         brightness: _brightness,
         title: 'HoloUI Editor',
         description: 'Visual web editor for creating and previewing HoloUI menu configurations.',
