@@ -1,0 +1,1066 @@
+/* 05-panels-dialogs.css — components rail, validation panel, code editor and
+   every dialog. Owned by: agent-panels. Later numbered files override earlier
+   ones, so this file only styles `hui-*` hooks plus the Arcane dialog and sheet
+   surfaces it opens by id. */
+
+/* ==========================================================================
+   1. Components rail
+   ========================================================================== */
+
+/* The shell owns the rail cell (`.hui-pane.hui-rail` in 02-shell.css): its
+   border, background and scrolling. This root only fills it, so the divider is
+   drawn once and there is a single scroll container. */
+.hui-rail-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hui-rail-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-2);
+  min-height: 0;
+  padding: var(--hui-space-3);
+}
+
+.hui-rail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hui-space-2);
+  flex-wrap: wrap;
+}
+
+.hui-rail-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hui-rail-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hui-accent) 14%, transparent);
+  color: var(--hui-text);
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.hui-rail-add {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 1px;
+}
+
+.hui-rail-add > * + * { margin-left: 1px; }
+
+.hui-rail-hint {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+.hui-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hui-rail-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--hui-radius);
+  color: var(--hui-muted);
+  background: transparent;
+  transition: background var(--hui-transition), border-color var(--hui-transition),
+              color var(--hui-transition);
+}
+
+.hui-rail-row:hover {
+  border-color: var(--hui-border-soft);
+  background: var(--hui-panel-soft);
+  color: var(--hui-text);
+}
+
+.hui-rail-row.is-selected {
+  border-color: var(--hui-border);
+  color: var(--hui-text);
+  background: color-mix(in srgb, var(--hui-panel-soft) 86%, var(--hui-accent) 14%);
+}
+
+.hui-rail-row.is-selected::before {
+  position: absolute;
+  inset: 8px auto 8px -1px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--hui-accent);
+  content: "";
+}
+
+.hui-rail-row.is-dragging { opacity: .45; }
+
+.hui-rail-row.is-drop-target {
+  border-color: var(--hui-accent);
+  box-shadow: inset 0 2px 0 0 var(--hui-accent);
+}
+
+.hui-rail-row.is-armed {
+  border-color: color-mix(in srgb, var(--hui-danger) 60%, transparent);
+  background: color-mix(in srgb, var(--hui-danger) 10%, var(--hui-panel));
+}
+
+.hui-rail-main {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hui-rail-main:focus-visible {
+  border-radius: calc(var(--hui-radius) - 2px);
+  outline: 2px solid var(--hui-ring);
+  outline-offset: 2px;
+}
+
+.hui-rail-grip {
+  display: inline-flex;
+  color: var(--hui-muted);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--hui-transition);
+}
+
+.hui-rail-row:hover .hui-rail-grip,
+.hui-rail-row.is-selected .hui-rail-grip { opacity: .7; }
+
+.hui-rail-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: calc(var(--hui-radius) - 2px);
+  background: var(--hui-panel-soft);
+  color: var(--hui-muted);
+}
+
+.hui-rail-row.is-selected .hui-rail-glyph {
+  background: color-mix(in srgb, var(--hui-accent) 18%, transparent);
+  color: var(--hui-text);
+}
+
+.hui-rail-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.hui-rail-id {
+  overflow: hidden;
+  color: var(--hui-text);
+  font-size: .82rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hui-rail-summary {
+  overflow: hidden;
+  color: var(--hui-muted);
+  font-size: .7rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hui-rail-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--hui-warning);
+}
+
+.hui-rail-dot.is-error { background: var(--hui-danger); }
+
+.hui-rail-tools,
+.hui-rail-confirm {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.hui-rail-tools { opacity: 0; transition: opacity var(--hui-transition); }
+
+.hui-rail-row:hover .hui-rail-tools,
+.hui-rail-row:focus-within .hui-rail-tools,
+.hui-rail-row.is-selected .hui-rail-tools { opacity: 1; }
+
+.hui-rail-confirm-label {
+  color: var(--hui-danger);
+  font-size: .72rem;
+  font-weight: 650;
+}
+
+.hui-rail-empty { padding: var(--hui-space-4) var(--hui-space-2); }
+
+.hui-two-step { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ==========================================================================
+   2. Validation panel
+   ========================================================================== */
+
+[data-arcane-surface="sheet"][data-arcane-id="hui-validation-sheet"] {
+  backdrop-filter: blur(6px);
+}
+
+.hui-validation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-3);
+  max-height: min(62vh, 640px);
+  padding: var(--hui-space-2) 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.hui-validation-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  overflow: hidden;
+}
+
+.hui-validation-cell {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border-right: 1px solid var(--hui-border-soft);
+}
+
+.hui-validation-cell:last-child { border-right: 0; }
+
+.hui-validation-cell-value {
+  color: var(--hui-text);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 680;
+  line-height: 1.1;
+}
+
+.hui-validation-cell-label {
+  color: var(--hui-muted);
+  font-size: .7rem;
+  font-weight: 650;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.hui-validation-cell.is-error .hui-validation-cell-value { color: var(--hui-danger); }
+.hui-validation-cell.is-warning .hui-validation-cell-value { color: var(--hui-warning); }
+.hui-validation-cell.is-info .hui-validation-cell-value { color: var(--hui-info); }
+
+.hui-validation-group { display: grid; gap: 8px; }
+
+.hui-validation-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hui-validation-group.is-error .hui-validation-group-head,
+.hui-validation-group.is-error .hui-validation-group-head .hui-eyebrow { color: var(--hui-danger); }
+.hui-validation-group.is-warning .hui-validation-group-head,
+.hui-validation-group.is-warning .hui-validation-group-head .hui-eyebrow { color: var(--hui-warning); }
+.hui-validation-group.is-info .hui-validation-group-head,
+.hui-validation-group.is-info .hui-validation-group-head .hui-eyebrow { color: var(--hui-info); }
+
+.hui-validation-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  list-style: none;
+  overflow: hidden;
+}
+
+.hui-validation-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--hui-space-2);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+.hui-validation-row:last-child { border-bottom: 0; }
+
+.hui-validation-body { display: grid; gap: 3px; min-width: 0; }
+
+.hui-validation-message {
+  margin: 0;
+  color: var(--hui-text);
+  font-size: .82rem;
+  line-height: 1.4;
+}
+
+.hui-validation-fix {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+.hui-validation-path,
+.hui-code-issue-path,
+.hui-import-issue code {
+  color: var(--hui-muted);
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  word-break: break-all;
+}
+
+/* ==========================================================================
+   3. Code editor
+   ========================================================================== */
+
+.hui-code {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--hui-bg);
+}
+
+.hui-code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hui-space-2);
+  min-height: 43px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--hui-border-soft);
+  background: var(--hui-panel-soft);
+}
+
+.hui-code-toolbar-info { display: flex; align-items: baseline; gap: 10px; }
+
+.hui-code-stat {
+  color: var(--hui-muted);
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hui-code-toolbar-tools { display: flex; align-items: center; gap: 2px; }
+
+.hui-code-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--hui-danger) 45%, transparent);
+  background: color-mix(in srgb, var(--hui-danger) 12%, var(--hui-panel));
+  color: var(--hui-danger);
+  font-size: .78rem;
+}
+
+.hui-code-error-text { color: var(--hui-text); }
+
+/* The textarea owns the horizontal scroll and never scrolls vertically, so the
+   gutter beside it stays aligned line for line without any JS sync. */
+.hui-code-body {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  line-height: 1.55;
+}
+
+.hui-code-gutter {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  padding: 12px 10px 12px 12px;
+  border-right: 1px solid var(--hui-border-soft);
+  background: var(--hui-panel);
+  color: color-mix(in srgb, var(--hui-muted) 75%, transparent);
+  text-align: right;
+  user-select: none;
+  align-self: stretch;
+}
+
+.hui-code-line {
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+
+.hui-code-area {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--hui-text);
+  font: inherit;
+  overflow-x: auto;
+  overflow-y: hidden;
+  resize: none;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.hui-code-area:focus,
+.hui-code-area:focus-visible { outline: none; }
+
+.hui-code-issues {
+  flex: 0 0 auto;
+  max-height: 28vh;
+  padding: var(--hui-space-2) var(--hui-space-3);
+  border-top: 1px solid var(--hui-border-soft);
+  background: var(--hui-panel);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.hui-code-issues-head { margin-bottom: 6px; }
+
+.hui-code-issues-empty {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: .78rem;
+}
+
+.hui-code-issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hui-code-issue {
+  display: grid;
+  grid-template-columns: minmax(120px, .34fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 5px 0 5px 10px;
+  border-left: 3px solid var(--hui-border);
+  font-size: .76rem;
+}
+
+.hui-code-issue.is-error { border-left-color: var(--hui-danger); }
+.hui-code-issue.is-warning { border-left-color: var(--hui-warning); }
+.hui-code-issue.is-info { border-left-color: var(--hui-info); }
+
+.hui-code-issue-message { color: var(--hui-text); line-height: 1.4; }
+
+@media (max-width: 860px) {
+  .hui-code-issue { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* ==========================================================================
+   4. Dialog surfaces
+   ========================================================================== */
+
+/* The renderer writes these boxes with inline styles, so overriding them needs
+   !important. This is the documented way to restyle an Arcane surface by id;
+   nothing else in this file uses it. */
+
+[data-arcane-surface="dialog"][data-arcane-id^="hui-"] {
+  padding: clamp(10px, 3vw, 28px) !important;
+  background-color: color-mix(in srgb, #000 66%, transparent) !important;
+  backdrop-filter: blur(7px);
+}
+
+[data-arcane-id^="hui-"] .arcane-dialog {
+  max-height: min(92vh, 980px) !important;
+  border: 1px solid var(--hui-border) !important;
+  border-radius: calc(var(--hui-radius) + 4px) !important;
+  background-color: var(--hui-panel) !important;
+  box-shadow: var(--hui-shadow-md) !important;
+}
+
+[data-arcane-id^="hui-"] .arcane-dialog-header {
+  padding: 18px 22px 14px !important;
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+[data-arcane-id^="hui-"] .arcane-dialog-body {
+  padding: 0 22px !important;
+  scrollbar-gutter: stable;
+}
+
+[data-arcane-id^="hui-"] .arcane-dialog-footer {
+  padding: 14px 22px !important;
+  border-top: 1px solid var(--hui-border-soft);
+  background: color-mix(in srgb, var(--hui-panel) 94%, var(--hui-bg));
+}
+
+.hui-dialog-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hui-dialog-section {
+  display: grid;
+  grid-template-columns: minmax(150px, .32fr) minmax(0, 1fr);
+  gap: clamp(16px, 3vw, 30px);
+  padding: 18px 0;
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+.hui-dialog-section:last-child { border-bottom: 0; }
+
+.hui-dialog-section-heading { display: grid; align-content: start; gap: 4px; }
+
+.hui-dialog-section-heading strong {
+  color: var(--hui-text);
+  font-size: .9rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.hui-dialog-section-heading span {
+  color: var(--hui-muted);
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+.hui-dialog-section-body {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  min-width: 0;
+}
+
+.hui-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.hui-dialog-note {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+.hui-dialog-filename {
+  color: var(--hui-text);
+  font-family: var(--font-mono);
+  font-size: .76rem;
+}
+
+.hui-codeblock {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: color-mix(in srgb, var(--hui-bg) 70%, var(--hui-panel));
+  color: var(--hui-text);
+  font-family: var(--font-mono);
+  font-size: .76rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.hui-codeblock.is-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.hui-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  counter-reset: hui-step;
+  list-style: none;
+}
+
+.hui-steps li {
+  position: relative;
+  padding-left: 30px;
+  color: var(--hui-text);
+  font-size: .82rem;
+  line-height: 1.5;
+  counter-increment: hui-step;
+}
+
+.hui-steps li::before {
+  position: absolute;
+  top: 1px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hui-accent) 16%, transparent);
+  color: var(--hui-text);
+  font-size: .7rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 680;
+  content: counter(hui-step);
+}
+
+.hui-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.hui-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: 999px;
+  color: var(--hui-muted);
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hui-chip.is-accent {
+  border-color: color-mix(in srgb, var(--hui-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
+  color: var(--hui-text);
+}
+
+/* ==========================================================================
+   5. Import preview
+   ========================================================================== */
+
+.hui-import-preview { display: grid; gap: 10px; }
+
+.hui-import-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.hui-import-issue {
+  display: grid;
+  grid-template-columns: minmax(110px, .3fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 5px 0 5px 10px;
+  border-left: 3px solid var(--hui-border);
+  color: var(--hui-text);
+  font-size: .76rem;
+  line-height: 1.4;
+}
+
+.hui-import-issue.is-error { border-left-color: var(--hui-danger); }
+.hui-import-issue.is-warning { border-left-color: var(--hui-warning); }
+.hui-import-issue.is-info { border-left-color: var(--hui-info); }
+
+@media (max-width: 720px) {
+  .hui-import-issue { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* ==========================================================================
+   6. Image manager
+   ========================================================================== */
+
+.hui-image-toolbar { display: grid; gap: 8px; padding: 16px 0; }
+
+.hui-quota {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: var(--hui-panel-soft);
+}
+
+.hui-quota.is-warning { border-color: color-mix(in srgb, var(--hui-warning) 55%, transparent); }
+.hui-quota.is-critical { border-color: color-mix(in srgb, var(--hui-danger) 55%, transparent); }
+
+.hui-quota-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hui-quota-value {
+  color: var(--hui-text);
+  font-size: .76rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hui-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.hui-image-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: var(--hui-panel);
+  transition: border-color var(--hui-transition);
+}
+
+.hui-image-card:hover { border-color: var(--hui-border); }
+
+.hui-image-card.is-used {
+  border-color: color-mix(in srgb, var(--hui-accent) 45%, transparent);
+}
+
+.hui-image-card.is-oversized {
+  border-color: color-mix(in srgb, var(--hui-warning) 55%, transparent);
+}
+
+.hui-image-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 128px;
+  border-radius: calc(var(--hui-radius) - 2px);
+  overflow: hidden;
+}
+
+.hui-image-thumb {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+
+.hui-image-meta { display: grid; gap: 8px; min-width: 0; }
+
+.hui-image-card-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.hui-image-card-tools .hui-chip { margin-right: auto; }
+
+.hui-image-empty { padding: var(--hui-space-4) 0; }
+
+/* ==========================================================================
+   7. Templates
+   ========================================================================== */
+
+.hui-option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.hui-option-card {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-height: 132px;
+  padding: 13px;
+  border: 1px solid var(--hui-border);
+  border-radius: var(--hui-radius);
+  background: var(--hui-panel);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--hui-transition), background-color var(--hui-transition),
+              box-shadow var(--hui-transition);
+}
+
+.hui-option-card:hover,
+.hui-option-card:focus-visible {
+  border-color: var(--hui-ring);
+  background: var(--hui-panel-soft);
+  outline: none;
+}
+
+.hui-option-card.is-selected {
+  border-color: var(--hui-accent);
+  background: color-mix(in srgb, var(--hui-accent) 7%, var(--hui-panel));
+  box-shadow: 0 0 0 1px var(--hui-accent);
+}
+
+.hui-option-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hui-option-card-head strong {
+  color: var(--hui-text);
+  font-size: .88rem;
+  font-weight: 650;
+}
+
+.hui-option-card-id {
+  color: var(--hui-muted);
+  font-family: var(--font-mono);
+  font-size: .7rem;
+}
+
+.hui-option-card-text {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   8. Help
+   ========================================================================== */
+
+.hui-axis { display: grid; gap: 10px; }
+
+.hui-axis-stage {
+  position: relative;
+  display: grid;
+  align-content: space-between;
+  gap: 6px;
+  min-height: 170px;
+  padding: 12px 14px 26px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background:
+    linear-gradient(to right, color-mix(in srgb, var(--hui-border) 40%, transparent) 1px, transparent 1px) 14px 0 / 100% 100%,
+    var(--hui-panel-soft);
+  background-repeat: no-repeat;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+}
+
+.hui-axis-tick {
+  position: relative;
+  padding-left: 16px;
+  color: var(--hui-muted);
+}
+
+.hui-axis-tick::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  margin-top: -4px;
+  border-radius: 999px;
+  content: "";
+}
+
+.hui-axis-tick.is-menu { color: var(--hui-text); }
+.hui-axis-tick.is-menu::before { background: var(--hui-accent); }
+.hui-axis-tick.is-eye::before {
+  border: 1px dashed var(--hui-muted);
+  background: transparent;
+}
+.hui-axis-tick.is-feet::before { background: var(--hui-muted); }
+
+.hui-axis-ground {
+  position: absolute;
+  right: 14px;
+  bottom: 6px;
+  left: 14px;
+  padding-top: 4px;
+  border-top: 2px solid var(--hui-border);
+  color: var(--hui-muted);
+}
+
+.hui-cheat { display: grid; gap: 6px; }
+
+.hui-cheat-list {
+  display: grid;
+  grid-template-columns: minmax(160px, .38fr) minmax(0, 1fr);
+  gap: 4px 14px;
+  margin: 0;
+}
+
+.hui-cheat-list dt { margin: 0; }
+
+.hui-cheat-list dt code {
+  color: var(--hui-text);
+  font-family: var(--font-mono);
+  font-size: .74rem;
+  word-break: break-word;
+}
+
+.hui-cheat-list dd {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .hui-cheat-list { grid-template-columns: 1fr; gap: 1px 0; }
+  .hui-cheat-list dd { margin-bottom: 6px; }
+}
+
+.hui-nonfeatures {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hui-nonfeatures li {
+  position: relative;
+  padding-left: 20px;
+  color: var(--hui-muted);
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.hui-nonfeatures li::before {
+  position: absolute;
+  top: .62em;
+  left: 2px;
+  width: 9px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--hui-danger);
+  content: "";
+}
+
+.hui-link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.hui-link-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: var(--hui-panel);
+  color: var(--hui-text);
+  text-decoration: none;
+  transition: border-color var(--hui-transition), background-color var(--hui-transition);
+}
+
+.hui-link-card:hover,
+.hui-link-card:focus-visible {
+  border-color: var(--hui-accent);
+  background: var(--hui-panel-soft);
+  outline: none;
+}
+
+.hui-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: calc(var(--hui-radius) - 2px);
+  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
+}
+
+.hui-link-text { display: grid; gap: 1px; min-width: 0; }
+
+.hui-link-text strong { font-size: .82rem; font-weight: 650; }
+
+.hui-link-text span {
+  color: var(--hui-muted);
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   9. Narrow screens
+   ========================================================================== */
+
+@media (max-width: 700px) {
+  [data-arcane-surface="dialog"][data-arcane-id^="hui-"] {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  [data-arcane-id^="hui-"] .arcane-dialog {
+    max-height: 96vh !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-radius: 14px 14px 0 0 !important;
+  }
+
+  [data-arcane-id^="hui-"] .arcane-dialog-footer {
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .hui-dialog-section { grid-template-columns: 1fr; gap: 12px; padding: 16px 0; }
+  .hui-validation-strip { grid-template-columns: 1fr; }
+  .hui-validation-cell { border-right: 0; border-bottom: 1px solid var(--hui-border-soft); }
+  .hui-validation-cell:last-child { border-bottom: 0; }
+  .hui-validation-row { flex-direction: column; align-items: stretch; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hui-rail-row,
+  .hui-rail-tools,
+  .hui-rail-grip,
+  .hui-image-card,
+  .hui-option-card,
+  .hui-link-card { transition: none; }
+}
+
+/* Validation sheet: Dart-owned close control (Arcane's chrome X is JS-only). */
+.hui-validation-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--hui-space-2) 0 0;
+}

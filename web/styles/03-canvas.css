@@ -1,0 +1,205 @@
+/* 03-canvas.css — the canvas viewport: toolbar strip, artboard stage, hint row.
+   Owned by: agent-canvas. Later numbered files override earlier ones.
+
+   Contract with the Dart side (lib/components/canvas/):
+   - `.hui-canvas-stage` MUST keep `touch-action: none` and `user-select: none`
+     or pointer drags get stolen by the browser's own scroll/select gestures.
+   - the stage is the positioning context and the exact box the canvas backing
+     store is sized from, so it must never have padding.
+   - state classes are toggled from Dart, never from CSS:
+     `is-pan-ready`, `is-dragging`, `is-moving-component`, `is-over-component`
+     on the stage, and `is-visible` on the drag readout. */
+
+.hui-canvas {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  height: 100%;
+  gap: 0;
+}
+
+/* ---- toolbar strip (fused to the stage, anim-al markdown-toolbar shape) ---- */
+
+.hui-canvas-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 43px;
+  padding: 4px 8px;
+  border: 1px solid var(--hui-border);
+  border-bottom: 0;
+  border-radius: var(--hui-radius) var(--hui-radius) 0 0;
+  background: var(--hui-panel-soft);
+}
+
+.hui-canvas-toolgroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hui-canvas-toolgroup + .hui-canvas-toolgroup {
+  padding-left: 8px;
+  border-left: 1px solid color-mix(in srgb, var(--hui-border) 62%, transparent);
+}
+
+.hui-canvas-toolgroup-scale {
+  flex: 1 1 220px;
+  gap: 8px;
+}
+
+.hui-canvas-toolbar .arcane-button,
+.hui-canvas-toolbar button {
+  min-height: 30px;
+  border-radius: var(--hui-radius);
+  white-space: nowrap;
+}
+
+.hui-canvas-toolbar [aria-pressed="true"] {
+  color: var(--hui-accent);
+  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hui-accent) 34%, transparent);
+}
+
+.hui-canvas-zoom {
+  min-width: 52px;
+  padding: 0 2px;
+  color: var(--hui-text);
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.hui-canvas-scale-label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.hui-canvas-scale-slider {
+  flex: 1 1 90px;
+  min-width: 80px;
+  max-width: 220px;
+}
+
+.hui-canvas-scale-value {
+  min-width: 38px;
+  color: var(--hui-text);
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.hui-canvas-toolbar-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: color-mix(in srgb, var(--hui-border) 62%, transparent);
+}
+
+.hui-canvas-toggle-label {
+  white-space: nowrap;
+}
+
+/* ---- stage ---- */
+
+.hui-canvas-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--hui-border);
+  border-radius: 0 0 var(--hui-radius) var(--hui-radius);
+  background: var(--hui-panel);
+  /* Load-bearing: without these the browser pans/selects instead of the app. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: contain;
+  cursor: default;
+  outline: none;
+}
+
+.hui-canvas-stage:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hui-ring) 70%, transparent);
+}
+
+.hui-canvas-stage.is-over-component { cursor: move; }
+.hui-canvas-stage.is-pan-ready { cursor: grab; }
+.hui-canvas-stage.is-dragging { cursor: grabbing; }
+.hui-canvas-stage.is-moving-component { cursor: grabbing; }
+
+.hui-canvas-surface {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The backing store is sized in Dart from this element's client box. */
+}
+
+/* ---- drag coordinate readout ---- */
+
+.hui-canvas-readout {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--hui-border);
+  border-radius: var(--hui-radius);
+  background: color-mix(in srgb, var(--hui-panel) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(1.15);
+  color: var(--hui-text);
+  font-family: var(--font-mono);
+  font-size: .74rem;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--hui-transition), transform var(--hui-transition);
+}
+
+.hui-canvas-readout.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---- keyboard hint line ---- */
+
+.hui-canvas-hint {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 2px 0;
+  color: var(--hui-muted);
+  font-size: .74rem;
+  line-height: 1.35;
+}
+
+.hui-canvas-hint-sep {
+  width: 1px;
+  height: 11px;
+  background: color-mix(in srgb, var(--hui-border) 62%, transparent);
+}
+
+.hui-canvas-hint-note {
+  color: color-mix(in srgb, var(--hui-muted) 82%, transparent);
+}
+
+/* ---- narrow layouts ---- */
+
+@media (max-width: 1100px) {
+  .hui-canvas-toolgroup + .hui-canvas-toolgroup {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .hui-canvas-toolgroup-scale { flex-basis: 100%; }
+}
+
+@media (max-width: 720px) {
+  .hui-canvas-hint-note { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hui-canvas-readout { transition: none; }
+}

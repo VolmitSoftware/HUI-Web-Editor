@@ -1,0 +1,406 @@
+/* 02-shell.css — app frame: top bar, panes, status bar, command palette.
+   Owned by: agent-shell. Later numbered files override earlier ones.
+   Only --hui-* aliases and theme variables from 01-foundations.css are used. */
+
+/* ---- Frame -------------------------------------------------------------- */
+/* The shell is the viewport. Nothing above it scrolls; every pane owns its own
+   scroll box, so there is never a scrollbar inside a scrollbar. */
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+
+.hui-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--hui-bg);
+  color: var(--hui-text);
+}
+
+.hui-shell-body {
+  display: grid;
+  grid-template-columns:
+    var(--hui-rail-width) minmax(0, 1fr) var(--hui-inspector-width);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hui-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+.hui-rail,
+.hui-inspector {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: color-mix(in srgb, var(--hui-panel-soft) 42%, transparent);
+}
+.hui-rail { border-right: 1px solid var(--hui-border-soft); }
+.hui-inspector { border-left: 1px solid var(--hui-border-soft); }
+
+/* All three views are the same grid; only the column count changes. The canvas
+   cell is always present in the markup so a view switch never unmounts it (see
+   _CenterArea) — in the code view it is hidden here instead. */
+.hui-center {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--hui-bg);
+}
+.hui-center.is-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.hui-center.is-code > .hui-split-cell:not(.is-code) { display: none; }
+.hui-center.is-code > .hui-split-cell.is-code { border-left: 0; }
+
+.hui-split-cell { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.hui-split-cell.is-code { border-left: 1px solid var(--hui-border-soft); }
+
+.hui-shell :focus-visible {
+  outline: 2px solid var(--hui-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Top bar ------------------------------------------------------------ */
+.hui-bar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--hui-space-3);
+  min-height: var(--hui-bar-height);
+  padding: 0 var(--hui-space-3);
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+/* The glass lives on a pseudo-element: `backdrop-filter` on the bar itself
+   would make it the containing block for its fixed-position descendants, which
+   is where the dropdown menu and every tooltip render. */
+.hui-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--hui-bg) 84%, transparent);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+}
+
+.hui-bar-group { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.hui-bar-left { flex: 1 1 auto; }
+.hui-bar-center { flex: 0 0 auto; }
+.hui-bar-right { flex: 1 1 auto; justify-content: flex-end; }
+
+.hui-bar-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--hui-border-soft);
+}
+
+.hui-bar-action { display: inline-flex; }
+
+.hui-brand { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.hui-brand-mark { display: block; width: 22px; height: 22px; }
+.hui-brand-word {
+  font-size: 0.92rem;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.hui-doc { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.hui-doc-id {
+  min-width: 0;
+  max-width: 260px;
+  overflow: hidden;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hui-doc-ext {
+  color: var(--hui-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Two-step destructive control: arm in the menu, confirm in the bar. */
+.hui-armed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: var(--hui-space-2);
+  padding: 4px 6px 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--hui-danger) 50%, var(--hui-border));
+  border-radius: var(--hui-radius);
+  background: color-mix(in srgb, var(--hui-danger) 12%, transparent);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.hui-view-switcher { display: flex; align-items: center; }
+.hui-view-switcher-item { display: inline-flex; align-items: center; gap: 6px; }
+.hui-view-label { font-size: 0.8rem; font-weight: 600; }
+
+.hui-tip { display: grid; gap: 4px; }
+.hui-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 620;
+}
+.hui-tip-hint {
+  max-width: 220px;
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+/* ---- Status bar --------------------------------------------------------- */
+.hui-status {
+  display: flex;
+  align-items: center;
+  gap: var(--hui-space-2);
+  min-height: 30px;
+  padding: 0 var(--hui-space-3);
+  border-top: 1px solid var(--hui-border-soft);
+  background: color-mix(in srgb, var(--hui-panel-soft) 40%, transparent);
+  color: var(--hui-muted);
+  font-size: 0.76rem;
+}
+.hui-status-left,
+.hui-status-right {
+  display: flex;
+  align-items: center;
+  gap: var(--hui-space-2);
+  min-width: 0;
+}
+.hui-status-spacer { flex: 1 1 auto; }
+.hui-status-item { white-space: nowrap; }
+.hui-status-item.is-numeric {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.hui-status-item.is-muted { color: var(--hui-muted); }
+.hui-status-item.is-error { color: var(--hui-danger); }
+.hui-status-item.is-hint {
+  max-width: 44ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hui-status-chip button {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--hui-radius);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.hui-status-chip.is-clean button { color: var(--hui-muted); }
+.hui-status-chip.is-warning button {
+  color: var(--hui-warning);
+  background: color-mix(in srgb, var(--hui-warning) 10%, transparent);
+}
+.hui-status-chip.is-error button {
+  color: var(--hui-danger);
+  background: color-mix(in srgb, var(--hui-danger) 10%, transparent);
+}
+
+/* ---- Command palette ---------------------------------------------------- */
+.hui-cmd-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16vh 16px 16px;
+  background: color-mix(in srgb, #000 52%, transparent);
+  animation: hui-cmd-fade 150ms ease;
+}
+
+.hui-cmd-dialog {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: 64vh;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--hui-border) 78%, transparent);
+  border-radius: var(--hui-radius);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--hui-surface-raised) 94%, transparent),
+    color-mix(in srgb, var(--hui-panel-soft) 92%, transparent)
+  );
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), var(--hui-shadow-md);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  animation: hui-cmd-rise 150ms ease;
+}
+
+.hui-cmd-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--hui-border-soft);
+  color: var(--hui-muted);
+}
+.hui-cmd-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--hui-text);
+  font-size: 0.92rem;
+  outline: none;
+}
+.hui-cmd-input::placeholder { color: var(--hui-muted); }
+
+.hui-cmd-list {
+  min-height: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.hui-cmd-heading {
+  padding: 10px 10px 6px;
+  color: var(--hui-muted);
+  font-size: 0.68rem;
+  font-weight: 680;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.hui-cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: var(--hui-radius);
+  color: var(--hui-text);
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: background var(--hui-transition), box-shadow var(--hui-transition);
+}
+.hui-cmd-item:hover { background: var(--hui-panel-soft); }
+.hui-cmd-item.is-active {
+  background: color-mix(in srgb, var(--hui-accent) 14%, transparent);
+  box-shadow: inset 3px 0 0 var(--hui-accent);
+}
+.hui-cmd-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  width: 18px;
+  color: var(--hui-muted);
+}
+.hui-cmd-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hui-cmd-empty {
+  margin: 0;
+  padding: 20px 12px;
+  color: var(--hui-muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+.hui-cmd-footer {
+  display: flex;
+  gap: 14px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--hui-border-soft);
+  color: var(--hui-muted);
+  font-size: 0.72rem;
+}
+
+@keyframes hui-cmd-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes hui-cmd-rise {
+  from { opacity: 0; transform: translateY(-6px) scale(0.99); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---- Drag-and-drop overlay ---------------------------------------------- */
+.hui-dropzone {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--hui-bg) 72%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+.hui-dropzone-card {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 26px 34px;
+  border: 2px dashed color-mix(in srgb, var(--hui-accent) 60%, var(--hui-border));
+  border-radius: var(--hui-radius);
+  background: var(--hui-panel);
+  color: var(--hui-text);
+  font-size: 0.9rem;
+}
+.hui-dropzone-card p { margin: 0; }
+
+/* ---- Responsive --------------------------------------------------------- */
+@media (max-width: 1400px) { :root { --hui-inspector-width: 320px; } }
+@media (max-width: 1240px) {
+  :root { --hui-rail-width: 244px; --hui-inspector-width: 304px; }
+  .hui-bar-action.is-optional { display: none; }
+}
+@media (max-width: 1100px) {
+  .hui-view-label { display: none; }
+  .hui-brand-word { display: none; }
+  .hui-doc-id { max-width: 150px; }
+}
+@media (max-width: 1024px) {
+  .hui-shell-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(280px, 1fr) auto;
+  }
+  .hui-rail {
+    max-height: 28vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--hui-border-soft);
+  }
+  .hui-inspector {
+    max-height: 38vh;
+    border-left: 0;
+    border-top: 1px solid var(--hui-border-soft);
+  }
+  .hui-center.is-split {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .hui-split-cell.is-code {
+    border-top: 1px solid var(--hui-border-soft);
+    border-left: 0;
+  }
+  /* Wrap rather than scroll: a scrolling bar would clip the dropdown and
+     tooltip surfaces that render inside it. */
+  .hui-bar {
+    flex-wrap: wrap;
+    padding: 6px var(--hui-space-3);
+    row-gap: 6px;
+  }
+  .hui-bar-left, .hui-bar-right { flex: 1 1 260px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hui-cmd-scrim, .hui-cmd-dialog { animation: none; }
+  .hui-cmd-item { transition: none; }
+}

@@ -1,0 +1,379 @@
+/// Glass top bar: identity, document switching, view switching and every
+/// global action.
+///
+/// Rebuilds are narrowed to a signature of the values it actually renders, so
+/// canvas drags (which notify the store on every pointer move) do not re-render
+/// the bar.
+library;
+
+import 'package:arcane_jaspr/arcane_jaspr.dart';
+import 'package:arcane_jaspr/component/input/mutable_text_types.dart';
+import 'package:jaspr/dom.dart' as dom;
+import 'package:jaspr/jaspr.dart' show Listenable;
+
+import '../../state/editor_store.dart';
+import '../../state/workspace.dart';
+import '../common/class_names.dart';
+import 'shell_intents.dart';
+import 'shell_keys.dart';
+import 'store_selector.dart';
+import 'view_switcher.dart';
+
+class TopBar extends StatefulWidget {
+  const TopBar({
+    required this.intents,
+    this.apple = false,
+    this.darkMode = true,
+    super.key,
+  });
+
+  final ShellIntents intents;
+  final bool apple;
+  final bool darkMode;
+
+  @override
+  State<TopBar> createState() => _TopBarState();
+}
+
+class _TopBarState extends State<TopBar> {
+  bool _armedDelete = false;
+  Listenable? _sources;
+
+  EditorStore get _store => component.intents.store;
+
+  ShellIntents get _intents => component.intents;
+
+  /// Cached: a fresh merged listenable on every build would re-subscribe the
+  /// selector each time.
+  Listenable get _listenable =>
+      _sources ??= Listenable.merge(<Listenable?>[_store, _store.workspace]);
+
+  @override
+  void didUpdateComponent(covariant TopBar oldComponent) {
+    super.didUpdateComponent(oldComponent);
+    if (!identical(oldComponent.intents.store, component.intents.store)) {
+      _sources = null;
+    }
+  }
+
+  String _signature() {
+    final Workspace workspace = _store.workspace;
+    final StringBuffer buffer = StringBuffer()
+      ..write(_store.menuId)
+      ..write('|')
+      ..write(_store.view.name)
+      ..write('|')
+      ..write(_store.canUndo)
+      ..write(_store.canRedo)
+      ..write('|')
+      ..write(_store.undoLabel)
+      ..write('|')
+      ..write(_store.redoLabel)
+      ..write('|')
+      ..write(workspace.activeId);
+    for (final WorkspaceDoc doc in workspace.recent) {
+      buffer
+        ..write('|')
+        ..write(doc.id)
+        ..write(':')
+        ..write(doc.name);
+    }
+    return buffer.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) => StoreSelector<String>(
+        listenable: _listenable,
+        selector: _signature,
+        builder: (BuildContext context, String signature) => _bar(),
+      );
+
+  Widget _bar() => dom.header(
+        classes: 'hui-bar',
+        attributes: const <String, String>{'role': 'banner'},
+        <Widget>[
+          dom.div(
+            classes: 'hui-bar-group hui-bar-left',
+            <Widget>[
+              _brand(),
+              const _BarDivider(),
+              _documentSwitcher(),
+              if (_armedDelete) _deleteStrip(),
+            ],
+          ),
+          dom.div(
+            classes: 'hui-bar-group hui-bar-center',
+            <Widget>[
+              ViewSwitcher(view: _store.view, onChanged: _intents.setView),
+            ],
+          ),
+          dom.div(
+            classes: 'hui-bar-group hui-bar-right',
+            <Widget>[
+              _action(
+                icon: ArcaneIcon.undo(size: IconSize.sm),
+                label: _store.undoLabel == null
+                    ? 'Undo'
+                    : 'Undo ${_store.undoLabel}',
+                shortcut: 'mod+Z',
+                disabled: !_store.canUndo,
+                onPressed: _intents.undo,
+              ),
+              _action(
+                icon: ArcaneIcon.redo(size: IconSize.sm),
+                label: _store.redoLabel == null
+                    ? 'Redo'
+                    : 'Redo ${_store.redoLabel}',
+                shortcut: 'mod+Shift+Z',
+                disabled: !_store.canRedo,
+                onPressed: _intents.redo,
+              ),
+              const _BarDivider(),
+              _action(
+                icon: ArcaneIcon.upload(size: IconSize.sm),
+                label: 'Import menu JSON',
+                hint: 'Dropping a .json file anywhere works too.',
+                onPressed: () => _intents.importMenu(),
+              ),
+              _action(
+                icon: ArcaneIcon.download(size: IconSize.sm),
+                label: 'Export menu JSON',
+                shortcut: 'mod+S',
+                variant: ButtonVariant.outline,
+                onPressed: _intents.exportMenu,
+              ),
+              _action(
+                icon: ArcaneIcon.copy(size: IconSize.sm),
+                label: 'Copy menu JSON',
+                onPressed: () => _intents.copyJson(),
+              ),
+              const _BarDivider(),
+              _action(
+                icon: ArcaneIcon.images(size: IconSize.sm),
+                label: 'Images',
+                hint: 'Upload the textures your textImage icons point at.',
+                onPressed: _intents.openImages,
+              ),
+              _action(
+                icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
+                label: 'Templates',
+                optional: true,
+                onPressed: _intents.openTemplates,
+              ),
+              const _BarDivider(),
+              _action(
+                icon: ArcaneIcon.command(size: IconSize.sm),
+                label: 'Command palette',
+                shortcut: 'mod+K',
+                optional: true,
+                onPressed: _intents.openPalette,
+              ),
+              _action(
+                icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
+                label: 'Help',
+                onPressed: _intents.openHelp,
+              ),
+              _action(
+                icon: ArcaneIcon.settings(size: IconSize.sm),
+                label: 'Settings',
+                optional: true,
+                onPressed: _intents.openSettings,
+              ),
+              _action(
+                icon: component.darkMode
+                    ? ArcaneIcon.sun(size: IconSize.sm)
+                    : ArcaneIcon.moon(size: IconSize.sm),
+                label: component.darkMode
+                    ? 'Switch to the light theme'
+                    : 'Switch to the dark theme',
+                onPressed: _intents.toggleTheme,
+              ),
+            ],
+          ),
+        ],
+      );
+
+  Widget _brand() => const dom.div(
+        classes: 'hui-brand',
+        <Widget>[
+          dom.img(
+            src: 'assets/brand/logo.svg',
+            alt: '',
+            classes: 'hui-brand-mark',
+            attributes: <String, String>{'aria-hidden': 'true'},
+          ),
+          dom.span(classes: 'hui-brand-word', <Widget>[Text('HoloUI')]),
+        ],
+      );
+
+  Widget _documentSwitcher() => dom.div(
+        classes: 'hui-doc',
+        <Widget>[
+          dom.span(
+            classes: 'hui-doc-id',
+            <Widget>[
+              MutableText(
+                _store.menuId,
+                onChanged: _store.setMenuId,
+                placeholder: 'menu-id',
+                variant: MutableTextStyle.dashed,
+              ),
+            ],
+          ),
+          const dom.span(classes: 'hui-doc-ext', <Widget>[Text('.json')]),
+          ArcaneDropdownMenu(
+            id: 'hui-doc-menu',
+            alignment: DropdownAlignment.left,
+            width: 260,
+            trigger: Button.ghost(
+              size: ButtonSize.iconSm,
+              icon: ArcaneIcon.chevronDown(size: IconSize.sm),
+              attributes: const <String, String>{
+                'aria-label': 'Switch document',
+              },
+            ),
+            items: _documentItems(),
+          ),
+        ],
+      );
+
+  List<ArcaneMenuItem> _documentItems() {
+    final Workspace workspace = _store.workspace;
+    final List<ArcaneMenuItem> items = <ArcaneMenuItem>[
+      const MenuItemLabel(label: 'Recent documents'),
+    ];
+    for (final WorkspaceDoc doc in workspace.recent) {
+      final bool active = doc.id == workspace.activeId;
+      items.add(
+        MenuItemAction(
+          label: doc.name,
+          icon: active ? ArcaneIcon.check(size: IconSize.sm) : null,
+          onSelect: active ? null : () => _intents.openDocument(doc.id),
+        ),
+      );
+    }
+    items
+      ..add(const MenuItemSeparator())
+      ..add(
+        MenuItemAction(
+          label: 'New menu',
+          icon: ArcaneIcon.filePlus(size: IconSize.sm),
+          onSelect: _intents.newDocument,
+        ),
+      )
+      ..add(
+        MenuItemAction(
+          label: 'Delete this document',
+          icon: ArcaneIcon.trash2(size: IconSize.sm),
+          destructive: true,
+          onSelect: () => setState(() => _armedDelete = true),
+        ),
+      );
+    return items;
+  }
+
+  /// Two-step destructive control: the menu arms it, the bar confirms it. A
+  /// modal would be heavier than the action deserves.
+  Widget _deleteStrip() => dom.div(
+        classes: 'hui-armed',
+        attributes: const <String, String>{'role': 'alert'},
+        <Widget>[
+          dom.span(<Widget>[Text('Delete ${_store.menuId}.json?')]),
+          Button.destructive(
+            size: ButtonSize.sm,
+            icon: ArcaneIcon.check(size: IconSize.sm),
+            label: 'Delete',
+            onPressed: () {
+              setState(() => _armedDelete = false);
+              _intents.deleteActiveDocument();
+            },
+          ),
+          Button.ghost(
+            size: ButtonSize.sm,
+            icon: ArcaneIcon.x(size: IconSize.sm),
+            label: 'Keep',
+            onPressed: () => setState(() => _armedDelete = false),
+          ),
+        ],
+      );
+
+  Widget _action({
+    required Widget icon,
+    required String label,
+    required void Function() onPressed,
+    String? shortcut,
+    String? hint,
+    bool disabled = false,
+    bool optional = false,
+    ButtonVariant variant = ButtonVariant.ghost,
+  }) {
+    final String? aria = _ariaShortcut(shortcut);
+    final Widget button = Button(
+      icon: icon,
+      variant: variant,
+      size: ButtonSize.iconSm,
+      disabled: disabled,
+      onPressed: onPressed,
+      attributes: <String, String>{
+        'aria-label': label,
+        'aria-keyshortcuts': ?aria,
+      },
+    );
+    return dom.span(
+      classes: classNames(<String?>[
+        'hui-bar-action',
+        optional ? 'is-optional' : null,
+      ]),
+      <Widget>[
+        ArcaneTooltip.custom(
+          position: FloatingPosition.bottom,
+          content: dom.div(
+            classes: 'hui-tip',
+            <Widget>[
+              dom.div(
+                classes: 'hui-tip-head',
+                <Widget>[
+                  dom.span(<Widget>[Text(label)]),
+                  if (shortcut != null)
+                    ArcaneKbd.combo(
+                      shortcutKeys(shortcut, apple: component.apple),
+                      size: ComponentSize.sm,
+                    ),
+                ],
+              ),
+              if (hint != null)
+                dom.p(classes: 'hui-tip-hint', <Widget>[Text(hint)]),
+            ],
+          ),
+          child: button,
+        ),
+      ],
+    );
+  }
+
+  /// `mod+Shift+Z` advertises as both platform chords, which is what screen
+  /// readers expect from `aria-keyshortcuts`.
+  String? _ariaShortcut(String? spec) {
+    if (spec == null) return null;
+    final List<String> parts = spec.split('+');
+    if (!parts.first.toLowerCase().contains('mod')) {
+      return parts.map(_ariaToken).join('+');
+    }
+    final String tail = parts.skip(1).map(_ariaToken).join('+');
+    return 'Meta+$tail Control+$tail';
+  }
+
+  String _ariaToken(String token) =>
+      token.length == 1 ? token.toUpperCase() : token;
+}
+
+class _BarDivider extends StatelessWidget {
+  const _BarDivider();
+
+  @override
+  Widget build(BuildContext context) => const dom.span(
+        classes: 'hui-bar-divider',
+        attributes: <String, String>{'aria-hidden': 'true'},
+        <Widget>[],
+      );
+}

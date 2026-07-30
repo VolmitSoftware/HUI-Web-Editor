@@ -1,0 +1,104 @@
+/* 01-foundations.css — fonts, hui token layer, base element rules.
+   Owned by: scaffold. Later numbered files override earlier ones. */
+
+/* ---- Fonts (all self-hosted; no CDN at runtime) ---- */
+@font-face { font-family: "Geist"; src: url("../assets/fonts/geist/Geist-Regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Geist"; src: url("../assets/fonts/geist/Geist-Medium.woff2") format("woff2");
+  font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Geist"; src: url("../assets/fonts/geist/Geist-SemiBold.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Geist"; src: url("../assets/fonts/geist/Geist-Bold.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Geist Mono"; src: url("../assets/fonts/geist/GeistMono-Regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Geist Mono"; src: url("../assets/fonts/geist/GeistMono-SemiBold.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Minecraftia"; src: url("../assets/fonts/minecraft/Minecraft-Regular.ttf") format("truetype");
+  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "lucide"; src: url("../assets/fonts/lucide/lucide.woff2") format("woff2"),
+  url("../assets/fonts/lucide/lucide.woff") format("woff");
+  font-weight: 400; font-style: normal; font-display: block; }
+
+:root, #arcane-root {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
+
+/* ---- hui token layer (patterned on anim-al's --animal-* layer) ---- */
+:root {
+  --hui-bar-height: 52px;
+  --hui-control-height: 36px;
+  --hui-radius: var(--radius, 8px);
+  --hui-space-1: 6px;
+  --hui-space-2: 10px;
+  --hui-space-3: 14px;
+  --hui-space-4: 18px;
+  --hui-space-5: 24px;
+  --hui-transition: 150ms ease;
+  --hui-rail-width: 280px;
+  --hui-inspector-width: 340px;
+  --hui-mc-font: "Minecraftia", "Geist Mono", monospace;
+}
+html.light, html.light #arcane-root, html.dark, html.dark #arcane-root {
+  --hui-bg: var(--background);
+  --hui-panel: var(--card);
+  --hui-panel-soft: color-mix(in srgb, var(--muted) 88%, var(--background));
+  --hui-surface-raised: color-mix(in srgb, var(--card) 84%, var(--accent));
+  --hui-border: var(--border);
+  --hui-border-soft: color-mix(in srgb, var(--border) 62%, transparent);
+  --hui-text: var(--foreground);
+  --hui-muted: var(--muted-foreground);
+  --hui-accent: var(--primary);
+  --hui-accent-foreground: var(--primary-foreground);
+  --hui-ring: var(--ring);
+  --hui-danger: var(--destructive);
+  --hui-warning: var(--warning, #a06022);
+  --hui-info: var(--info, #007acc);
+  --hui-success: var(--success, #2e7d55);
+}
+html.light, html.light #arcane-root {
+  --hui-shadow-xs: 0 1px 2px rgb(20 35 32 / .04);
+  --hui-shadow-sm: 0 8px 22px rgb(20 35 32 / .07);
+  --hui-shadow-md: 0 18px 48px rgb(20 35 32 / .11);
+}
+html.dark, html.dark #arcane-root {
+  --hui-shadow-xs: 0 1px 2px rgb(0 0 0 / .22);
+  --hui-shadow-sm: 0 10px 26px rgb(0 0 0 / .24);
+  --hui-shadow-md: 0 24px 60px rgb(0 0 0 / .32);
+}
+
+html, body {
+  background: var(--hui-bg, #050505);
+  color: var(--hui-text, #f7f4ec);
+  font-family: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+body { line-height: 1.5; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+button, input, textarea, select { font: inherit; }
+@media (pointer: coarse) { input, textarea, select { font-size: max(16px, 1em); } }
+::selection { color: var(--hui-accent-foreground); background: var(--hui-accent); }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--hui-border) 80%, transparent); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--hui-border); }
+
+/* Uppercase micro-label used across the editor */
+.hui-eyebrow {
+  color: var(--hui-muted); font-size: .7rem; font-weight: 680;
+  letter-spacing: .085em; line-height: 1.2; text-transform: uppercase;
+}
+
+/* Transparency checkerboard for image previews */
+.hui-checkerboard {
+  background:
+    linear-gradient(45deg,  var(--hui-panel-soft) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--hui-panel-soft) 25%, transparent 25%),
+    linear-gradient(45deg,  transparent 75%, var(--hui-panel-soft) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--hui-panel-soft) 75%),
+    var(--hui-panel);
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  background-size: 20px 20px;
+}
+
+#loading { display: none; }

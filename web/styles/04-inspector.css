@@ -1,0 +1,806 @@
+/* 04-inspector.css - right-hand inspector.
+   Rhythm: uppercase eyebrow, label column, hairline between sections. Never a
+   card inside a card; the frame comes from the pane, the separation from rules.
+   Every colour is a --hui-* token, so light and dark both follow the theme. */
+
+/* The shell owns the scrolling `.hui-inspector` grid cell (02-shell.css);
+   this is only the content root inside it. */
+.hui-inspector {
+  scrollbar-gutter: stable;
+}
+
+.hui-inspector-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hui-inspector-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--hui-space-3) var(--hui-space-3) var(--hui-space-5);
+}
+
+/* ---------- headers ---------- */
+
+.hui-inspector-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-1);
+  min-width: 0;
+  padding-bottom: var(--hui-space-3);
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+.hui-inspector-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hui-space-2);
+  min-width: 0;
+}
+
+.hui-inspector-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.hui-inspector-title {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.hui-inspector-subtitle {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.hui-type-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border: 1px solid var(--hui-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--hui-muted);
+  font-size: 0.68rem;
+  font-weight: 680;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hui-type-badge.is-button {
+  border-color: color-mix(in srgb, var(--hui-accent) 55%, var(--hui-border));
+  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
+  color: var(--hui-text);
+}
+
+.hui-type-badge.is-toggle {
+  border-color: color-mix(in srgb, var(--hui-info) 55%, var(--hui-border));
+  background: color-mix(in srgb, var(--hui-info) 12%, transparent);
+  color: var(--hui-text);
+}
+
+/* ---------- sections ---------- */
+
+.hui-inspector-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-2);
+  min-width: 0;
+  padding: var(--hui-space-3) 0;
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+.hui-inspector-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.hui-inspector-section-note {
+  margin: -2px 0 0;
+  color: var(--hui-muted);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+/* Nested sections (the icon editor inside the toggle icon tabs) drop the rule
+   so two hairlines never stack. */
+.hui-inspector-section .hui-inspector-section {
+  border-bottom: 0;
+  padding: 0;
+}
+
+.hui-count-chip,
+.hui-unit-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: 999px;
+  color: var(--hui-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- notes, details, issues ---------- */
+
+.hui-note + .hui-note {
+  margin-top: 2px;
+}
+
+.hui-detail-row + .hui-detail-row {
+  border-top: 1px solid var(--hui-border-soft);
+}
+
+.hui-inline-issue::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+
+.hui-field.is-invalid .arcane-input,
+.hui-field.is-invalid input,
+.hui-field.is-invalid textarea {
+  border-color: var(--hui-danger);
+}
+
+.hui-inline-check {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---------- controls ---------- */
+
+.hui-segmented {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.hui-segmented::-webkit-scrollbar {
+  display: none;
+}
+
+.hui-segmented .arcane-toggle-group {
+  width: 100%;
+}
+
+.hui-segmented .arcane-toggle-group-item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (max-width: 420px) {
+  .hui-slider-field {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.hui-row-tools button {
+  color: var(--hui-muted);
+}
+
+.hui-row-tools button:hover:not(:disabled) {
+  color: var(--hui-text);
+}
+
+/* ---------- minecraft text editor ---------- */
+
+.hui-text-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-3);
+  min-width: 0;
+}
+
+.hui-text-editor-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-1);
+  min-width: 0;
+}
+
+.hui-text-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hui-text-tag,
+.hui-text-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--hui-border);
+  border-radius: var(--hui-radius);
+  background: transparent;
+  color: var(--hui-muted);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 580;
+  cursor: pointer;
+  transition: color var(--hui-transition), border-color var(--hui-transition),
+    background-color var(--hui-transition);
+}
+
+.hui-text-tag:hover,
+.hui-text-color:hover,
+.hui-text-tag:focus-visible {
+  color: var(--hui-text);
+  border-color: color-mix(in srgb, var(--hui-accent) 55%, var(--hui-border));
+  background: color-mix(in srgb, var(--hui-accent) 10%, transparent);
+  outline: none;
+}
+
+.hui-text-color-input {
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.hui-text-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.hui-text-color-input::-webkit-color-swatch {
+  border: 1px solid var(--hui-border);
+  border-radius: 3px;
+}
+
+.hui-text-preview-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Dark plate with a faint checker so transparent-looking text still reads, and
+   so the preview never pretends the game has a text background (it has none). */
+.hui-mc-preview-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--hui-bg) 78%, #000),
+      color-mix(in srgb, var(--hui-bg) 78%, #000)
+    ),
+    conic-gradient(
+      from 45deg,
+      color-mix(in srgb, var(--hui-border) 40%, transparent) 0 25%,
+      transparent 0 50%
+    );
+  background-size: auto, 12px 12px;
+  overflow-x: auto;
+}
+
+.hui-mc-line {
+  font-family: var(--hui-mc-font);
+  font-size: 0.92rem;
+  line-height: 1.35;
+  white-space: pre;
+  text-shadow: 1px 1px 0 rgb(0 0 0 / 0.55);
+}
+
+.hui-mc-line.is-empty {
+  color: var(--hui-muted);
+  font-family: inherit;
+  font-size: 0.74rem;
+  text-shadow: none;
+}
+
+.hui-mc-span.is-obfuscated {
+  animation: hui-mc-flicker 260ms steps(2, end) infinite alternate;
+}
+
+@keyframes hui-mc-flicker {
+  from {
+    opacity: 1;
+    letter-spacing: 0;
+  }
+  to {
+    opacity: 0.62;
+    letter-spacing: 0.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hui-mc-span.is-obfuscated {
+    animation: none;
+    opacity: 0.72;
+  }
+}
+
+.hui-mc-preview-metrics {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hui-mc-preview-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--hui-warning);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* ---------- image library ---------- */
+
+.hui-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 6px;
+  min-width: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.hui-image-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: transparent;
+  color: var(--hui-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--hui-transition),
+    background-color var(--hui-transition);
+}
+
+.hui-image-tile:hover,
+.hui-image-tile:focus-visible {
+  border-color: var(--hui-ring);
+  outline: none;
+}
+
+.hui-image-tile.is-selected {
+  border-color: var(--hui-accent);
+  background: color-mix(in srgb, var(--hui-accent) 8%, transparent);
+  color: var(--hui-text);
+}
+
+.hui-image-tile-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  border-radius: 4px;
+  background: conic-gradient(
+    from 45deg,
+    color-mix(in srgb, var(--hui-border) 55%, transparent) 0 25%,
+    transparent 0 50%
+  );
+  background-size: 10px 10px;
+  overflow: hidden;
+}
+
+.hui-image-tile-img {
+  max-width: 100%;
+  max-height: 48px;
+}
+
+.hui-image-tile-path {
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.hui-image-tile-size {
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.hui-image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 6px;
+}
+
+.hui-image-upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: var(--hui-control-height);
+  padding: 0 12px;
+  border: 1px dashed var(--hui-border);
+  border-radius: var(--hui-radius);
+  color: var(--hui-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--hui-transition), border-color var(--hui-transition),
+    background-color var(--hui-transition);
+}
+
+.hui-image-upload-button:hover,
+.hui-image-upload-button:focus-within {
+  color: var(--hui-text);
+  border-color: color-mix(in srgb, var(--hui-accent) 55%, var(--hui-border));
+  background: color-mix(in srgb, var(--hui-accent) 8%, transparent);
+}
+
+.hui-image-upload-button.is-busy {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.hui-image-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
+  padding: 8px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: conic-gradient(
+    from 45deg,
+    color-mix(in srgb, var(--hui-border) 55%, transparent) 0 25%,
+    transparent 0 50%
+  );
+  background-size: 12px 12px;
+}
+
+.hui-image-preview img {
+  max-width: 100%;
+  max-height: 160px;
+}
+
+/* ---------- animated frames ---------- */
+
+.hui-animated-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--hui-space-2);
+  min-width: 0;
+}
+
+.hui-animated-preview-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: conic-gradient(
+    from 45deg,
+    color-mix(in srgb, var(--hui-border) 55%, transparent) 0 25%,
+    transparent 0 50%
+  );
+  background-size: 12px 12px;
+  overflow: hidden;
+}
+
+.hui-animated-preview-frame img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+
+.hui-animated-preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hui-animated-preview-count {
+  color: var(--hui-muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hui-frame-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+.hui-frame-row:last-of-type {
+  border-bottom: 0;
+}
+
+.hui-frame-index {
+  flex: 0 0 auto;
+  width: 18px;
+  color: var(--hui-muted);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.hui-frame-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hui-frame-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+}
+
+/* Mirrors the plugin's built-in missing-icon checker. */
+.hui-frame-thumb-missing {
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(from 45deg, #ff00ff 0 25%, #000 0 50%);
+  background-size: 12px 12px;
+}
+
+.hui-frame-path {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---------- registry picker ---------- */
+
+.hui-registry-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hui-registry-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: var(--hui-panel-soft);
+}
+
+.hui-registry-results {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: 210px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.hui-registry-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--hui-text);
+  font: inherit;
+  font-size: 0.76rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hui-registry-result:hover,
+.hui-registry-result:focus-visible {
+  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
+  outline: none;
+}
+
+.hui-registry-result.is-selected {
+  box-shadow: inset 3px 0 0 var(--hui-accent);
+  font-weight: 620;
+}
+
+.hui-registry-result-icon.is-blank {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.hui-registry-result-key {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.hui-registry-empty,
+.hui-registry-more {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* ---------- actions ---------- */
+
+.hui-action-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-2);
+  min-width: 0;
+  padding: var(--hui-space-2) 0;
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+.hui-action-row:last-of-type {
+  border-bottom: 0;
+}
+
+.hui-action-row-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hui-action-row-head .hui-segmented {
+  flex: 1 1 auto;
+}
+
+.hui-action-index {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: 999px;
+  color: var(--hui-muted);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hui-action-row-body,
+.hui-action-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-2);
+  min-width: 0;
+}
+
+.hui-action-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* ---------- icon editor ---------- */
+
+.hui-icon-editor,
+.hui-icon-image,
+.hui-icon-animated,
+.hui-icon-item,
+.hui-icon-empty,
+.hui-icon-image-library,
+.hui-icon-animated-library,
+.hui-toggle-icons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-2);
+  min-width: 0;
+}
+
+.hui-icon-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------- placeholder popover ---------- */
+
+.hui-placeholder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 240px;
+  max-width: min(320px, 80vw);
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.hui-placeholder-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--hui-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hui-placeholder-row:hover,
+.hui-placeholder-row:focus-visible {
+  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
+  outline: none;
+}
+
+.hui-placeholder-key {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.74rem;
+  font-weight: 620;
+  overflow-wrap: anywhere;
+}
+
+.hui-placeholder-desc,
+.hui-placeholder-empty,
+.hui-placeholder-foot {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.hui-placeholder-foot {
+  padding-top: 6px;
+  border-top: 1px solid var(--hui-border-soft);
+}
