@@ -46,6 +46,79 @@ const Map<String, String> huiIconTypeDescriptions = <String, String>{
   'textImage': 'A stored image drawn one character per pixel.',
   'animatedTextImage': 'A list of images cycled at a fixed tick interval.',
   'item': 'A floating item stack.',
+  'customItem': 'An item from a custom-item plugin, resolved by the server.',
+};
+
+/// Authoring hints for one custom-item provider.
+///
+/// No two of these plugins agree on an id shape, and the editor cannot ask the
+/// server, so the format is spelled out per provider instead of guessed at.
+class HuiItemProviderInfo {
+  const HuiItemProviderInfo({
+    required this.label,
+    required this.idFormat,
+    required this.example,
+  });
+
+  final String label;
+  final String idFormat;
+  final String example;
+}
+
+/// Keyed by the provider ids in `huiCustomItemProviders`. Every id has an
+/// entry; the inspector degrades to no hint if one is ever missing.
+const Map<String, HuiItemProviderInfo> huiItemProviderInfo =
+    <String, HuiItemProviderInfo>{
+  'craftengine': HuiItemProviderInfo(
+    label: 'CraftEngine',
+    idFormat: 'namespace:id, or a bare id searched across namespaces',
+    example: 'default:ruby_sword',
+  ),
+  'itemsadder': HuiItemProviderInfo(
+    label: 'ItemsAdder',
+    idFormat: 'namespace:id, lowercase',
+    example: 'myitems:ruby',
+  ),
+  'oraxen': HuiItemProviderInfo(
+    label: 'Oraxen',
+    idFormat: 'bare id (the yml key), case-sensitive',
+    example: 'ruby_sword',
+  ),
+  'nexo': HuiItemProviderInfo(
+    label: 'Nexo',
+    idFormat: 'bare id (the yml key), case-sensitive',
+    example: 'ruby_sword',
+  ),
+  'mmoitems': HuiItemProviderInfo(
+    label: 'MMOItems',
+    idFormat: 'TYPE:ID, both conventionally uppercase',
+    example: 'SWORD:CUTLASS',
+  ),
+  'executableitems': HuiItemProviderInfo(
+    label: 'ExecutableItems',
+    idFormat: 'bare id (the config file name), case-sensitive',
+    example: 'MagicWand',
+  ),
+  'ecoitems': HuiItemProviderInfo(
+    label: 'EcoItems',
+    idFormat: 'bare id, or ecoitems:id',
+    example: 'ecoitems:my_item',
+  ),
+  'slimefun': HuiItemProviderInfo(
+    label: 'Slimefun',
+    idFormat: 'bare id in UPPER_SNAKE_CASE, case-sensitive',
+    example: 'MAGIC_WORKBENCH',
+  ),
+  'mythicmobs': HuiItemProviderInfo(
+    label: 'MythicMobs',
+    idFormat: 'bare item name from your item config',
+    example: 'SkeletonKing_Sword',
+  ),
+  'headdatabase': HuiItemProviderInfo(
+    label: 'HeadDatabase',
+    idFormat: 'the numeric head id',
+    example: '7129',
+  ),
 };
 
 /// The starting document: menu at eye level, one visible title so the canvas is
@@ -74,6 +147,10 @@ HuiIcon createDefaultIcon(String iconType, {String text = '&fNew text'}) {
       return HuiAnimatedImageIcon(<String>[], huiDefaultAnimationSpeed);
     case 'item':
       return HuiItemIcon(huiDefaultItemMaterial, 1, 0);
+    case 'customItem':
+      // No id can be defaulted: it belongs to a plugin the editor cannot see.
+      // The empty id is flagged as an error until the user types one.
+      return HuiCustomItemIcon(huiAutoItemProvider, '', 1);
     case 'text':
     default:
       return HuiTextIcon(text);

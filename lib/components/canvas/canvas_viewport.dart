@@ -64,8 +64,9 @@ class CanvasViewport extends StatefulWidget {
   final EditorStore store;
   final ImageLibrary images;
 
-  /// Supplies item sprites. The canvas works without it; items fall back to a
-  /// labelled placeholder square.
+  /// Boot snapshot supplying item sprites; `store.catalogs` wins once it holds
+  /// anything, so an imported custom item catalog reaches the canvas. The
+  /// canvas works without either; items fall back to a labelled placeholder.
   final HuiCatalogs? catalogs;
 
   /// Pointer, zoom and hint readouts for the shell status bar. Pushed from the
@@ -472,7 +473,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
       togglePreview: store.togglePreviewFor,
       textCache: _textCache,
       images: component.images,
-      catalogs: component.catalogs,
+      catalogs: huiFreshestCatalogs(store.catalogs, component.catalogs),
       charCache: _charCache,
       animationTicks: _animationElapsedMs ~/ 50,
     );

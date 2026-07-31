@@ -25,7 +25,7 @@ const Duration huiAnimationTick = Duration(milliseconds: 50);
 /// Extra grab room around a hitbox so hairline icons stay clickable.
 const double huiPickToleranceBlocks = 0.03;
 
-enum CanvasIconKind { text, image, item, missing }
+enum CanvasIconKind { text, image, item, customItem, missing }
 
 /// Everything the painter needs about one component, already measured.
 class CanvasItem {
@@ -48,6 +48,7 @@ class CanvasItem {
     this.itemKey = '',
     this.itemCount = 1,
     this.itemTexture,
+    this.itemProvider = '',
     this.animationFrame = -1,
     this.animationFrameCount = 0,
   });
@@ -87,12 +88,19 @@ class CanvasItem {
   /// Null while the decode is still in flight; a repaint follows.
   final ImagePixels? pixels;
 
+  /// The material key for [CanvasIconKind.item], the provider's own id for
+  /// [CanvasIconKind.customItem]. Only the former is lowercased.
   final String itemKey;
   final int itemCount;
 
   /// Data URI from the material catalog, or null when the catalog has no
-  /// sprite for this key.
+  /// sprite for this key. A custom item resolves it through its exported base
+  /// material, so it is null until the id appears in a catalog export.
   final String? itemTexture;
+
+  /// Provider id of a [CanvasIconKind.customItem], drawn as the placeholder
+  /// badge. Empty for every other kind.
+  final String itemProvider;
 
   final int animationFrame;
   final int animationFrameCount;
@@ -359,6 +367,7 @@ CanvasItem _resolveItem({
   String itemKey = '';
   int itemCount = 1;
   String? itemTexture;
+  String itemProvider = '';
   int animationFrame = -1;
   int animationFrameCount = 0;
 
@@ -434,6 +443,26 @@ CanvasItem _resolveItem({
         );
         hitShape = shape;
       }
+    case HuiCustomItemIcon():
+      // The resolved stack is a plain ItemStack, so the plugin renders it
+      // through the same ItemMenuIcon: the geometry is the vanilla item's,
+      // down to the collision plane. Only the sprite is approximate, and only
+      // when the server exported a base material for this id.
+      itemKey = icon.item.trim();
+      itemCount = math.max(1, icon.count);
+      itemProvider = icon.provider.trim();
+      if (itemKey.isNotEmpty) {
+        kind = CanvasIconKind.customItem;
+        final String? material =
+            catalogs?.customItems.entry(itemProvider, itemKey)?.material;
+        itemTexture = material == null ? null : catalogs?.textureFor(material);
+        shape = IconShape.item(
+          count: itemCount,
+          isBlockItem:
+              material != null && huiIsBlockLikeMaterial(material),
+        );
+        hitShape = shape;
+      }
   }
 
   final WorldPoint anchor = anchorFor(
@@ -475,6 +504,7 @@ CanvasItem _resolveItem({
     itemKey: itemKey,
     itemCount: itemCount,
     itemTexture: itemTexture,
+    itemProvider: itemProvider,
     animationFrame: animationFrame,
     animationFrameCount: animationFrameCount,
   );

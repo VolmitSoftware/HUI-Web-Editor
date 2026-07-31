@@ -18,6 +18,7 @@ import '../../services/catalogs.dart';
 import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
+import 'custom_item_picker.dart';
 import 'image_picker_grid.dart';
 import 'inspector_session.dart';
 import 'inspector_widgets.dart';
@@ -178,6 +179,12 @@ class IconEditor extends StatelessWidget {
               icon: ArcaneIcon.package(size: IconSize.sm),
               hint: huiIconTypeDescriptions['item'],
             ),
+            HuiSegment(
+              value: 'customItem',
+              label: 'Custom',
+              icon: ArcaneIcon.boxes(size: IconSize.sm),
+              hint: huiIconTypeDescriptions['customItem'],
+            ),
           ],
         ),
         switch (icon!) {
@@ -217,6 +224,13 @@ class IconEditor extends StatelessWidget {
               onChanged: (String label, HuiItemIcon next) =>
                   _write(label, next),
             ),
+          final HuiCustomItemIcon custom => CustomItemIconEditor(
+              icon: custom,
+              catalogs: catalogs,
+              issues: _slotIssues,
+              onChanged: (String label, HuiCustomItemIcon next) =>
+                  _write(label, next),
+            ),
         },
       ];
 
@@ -252,6 +266,7 @@ class IconEditor extends StatelessWidget {
         'textImage' => 'Image',
         'animatedTextImage' => 'Animated',
         'item' => 'Item',
+        'customItem' => 'Custom item',
         _ => type,
       };
 }

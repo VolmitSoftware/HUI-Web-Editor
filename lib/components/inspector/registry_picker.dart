@@ -16,12 +16,14 @@ import 'package:jaspr/jaspr.dart' show EventCallback;
 
 import '../common/common.dart';
 
-/// One row in the browse list. [texture] is a data URI or null.
+/// One row in the browse list. [texture] is a data URI or null, [detail] a
+/// muted second line (a display name, the owning plugin, ...).
 class RegistryOption {
-  const RegistryOption(this.key, [this.texture]);
+  const RegistryOption(this.key, [this.texture, this.detail]);
 
   final String key;
   final String? texture;
+  final String? detail;
 }
 
 class RegistryPicker extends StatefulWidget {
@@ -37,10 +39,11 @@ class RegistryPicker extends StatefulWidget {
     this.catalogAvailable = true,
     this.maxResults = 60,
     this.showThumbnail = true,
+    this.lowercase = true,
     super.key,
   });
 
-  /// The raw registry key. Always lowercase on the way out.
+  /// The raw registry key. Trimmed, and lowercased unless [lowercase] is off.
   final String value;
   final void Function(String value) onChanged;
 
@@ -59,6 +62,11 @@ class RegistryPicker extends StatefulWidget {
   final bool catalogAvailable;
   final int maxResults;
   final bool showThumbnail;
+
+  /// Vanilla registry keys must be lowercase or they resolve to null. Custom
+  /// item ids must not be touched: several providers use case-sensitive maps
+  /// and MMOItems ids are conventionally uppercase.
+  final bool lowercase;
 
   @override
   State<RegistryPicker> createState() => _RegistryPickerState();
@@ -128,8 +136,9 @@ class _RegistryPickerState extends State<RegistryPicker> {
                   fullWidth: true,
                   placeholder: component.placeholder,
                   prefix: _thumbnail(),
-                  onInput: (String raw) =>
-                      component.onChanged(raw.trim().toLowerCase()),
+                  onInput: (String raw) => component.onChanged(
+                    component.lowercase ? raw.trim().toLowerCase() : raw.trim(),
+                  ),
                   attributes: const <String, String>{
                     'autocomplete': 'off',
                     'autocapitalize': 'off',
@@ -237,8 +246,18 @@ class _RegistryPickerState extends State<RegistryPicker> {
             <Widget>[],
           ),
         dom.span(
-          classes: 'hui-registry-result-key',
-          <Widget>[Text(option.key)],
+          classes: 'hui-registry-result-text',
+          <Widget>[
+            dom.span(
+              classes: 'hui-registry-result-key',
+              <Widget>[Text(option.key)],
+            ),
+            if (option.detail != null)
+              dom.span(
+                classes: 'hui-registry-result-detail',
+                <Widget>[Text(option.detail!)],
+              ),
+          ],
         ),
       ],
     );

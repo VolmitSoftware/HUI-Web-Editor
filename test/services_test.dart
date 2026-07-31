@@ -8,9 +8,26 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:holoui_editor/services/catalogs.dart';
 import 'package:holoui_editor/services/image_library.dart';
 import 'package:holoui_editor/services/storage_service.dart';
 import 'package:test/test.dart';
+
+/// A two-provider catalog in the exact shape `/holoui items export` writes.
+const String _catalogBody = '''
+{
+  "version": 1,
+  "generated": 1730000000000,
+  "providers": ["itemsadder", "mmoitems"],
+  "items": [
+    { "provider": "itemsadder", "id": "myitems:ruby", "name": "Ruby",
+      "material": "diamond" },
+    { "provider": "itemsadder", "id": "myitems:ruby_sword",
+      "material": "iron_sword" },
+    { "provider": "mmoitems", "id": "SWORD:CUTLASS", "name": "Cutlass" }
+  ]
+}
+''';
 
 void main() {
   setUp(StorageService.clearAll);
@@ -215,6 +232,181 @@ void main() {
       expect(outcome.isSuccess, isFalse);
       expect(library.images, isEmpty);
       expect(await library.addFromFiles(<Object>[]), same(ImageAddOutcome.empty));
+    });
+  });
+
+  group('HuiCustomItemCatalog', () {
+    test('parses the exported shape', () {
+      final HuiCustomItemCatalog? catalog =
+          HuiCustomItemCatalog.parse(_catalogBody);
+      expect(catalog, isNotNull);
+      expect(catalog!.items.length, 3);
+      expect(catalog.providers, <String>['itemsadder', 'mmoitems']);
+      expect(catalog.isEmpty, isFalse);
+
+      final CustomItemEntry ruby = catalog.items.first;
+      expect(ruby.provider, 'itemsadder');
+      expect(ruby.id, 'myitems:ruby');
+      expect(ruby.name, 'Ruby');
+      expect(ruby.material, 'diamond');
+      expect(catalog.items[1].name, isNull);
+    });
+
+    test('derives the provider list when the file omits it', () {
+      final HuiCustomItemCatalog? catalog = HuiCustomItemCatalog.parse(
+        '{"items":[{"provider":"nexo","id":"a"},{"provider":"nexo","id":"b"},'
+        '{"provider":"oraxen","id":"c"}]}',
+      );
+      expect(catalog!.providers, <String>['nexo', 'oraxen']);
+    });
+
+    test('rejects a body that is not a catalog', () {
+      expect(HuiCustomItemCatalog.parse('{not json'), isNull);
+      expect(HuiCustomItemCatalog.parse('[]'), isNull);
+      expect(HuiCustomItemCatalog.parse('{"materials":[]}'), isNull);
+      // A well-formed but empty export is still a catalog.
+      expect(HuiCustomItemCatalog.parse('{"items":[]}')!.isEmpty, isTrue);
+    });
+
+    test('drops entries without a usable provider and id', () {
+      final HuiCustomItemCatalog? catalog = HuiCustomItemCatalog.parse(
+        '{"items":[{"provider":"nexo"},{"id":"a"},"nope",'
+        '{"provider":" NEXO ","id":" ruby "}]}',
+      );
+      expect(catalog!.items.length, 1);
+      // The provider id is normalized; the item id never is.
+      expect(catalog.items.single.provider, 'nexo');
+      expect(catalog.items.single.id, 'ruby');
+    });
+
+    test('lookup is exact and case-sensitive on the item id', () {
+      final HuiCustomItemCatalog catalog =
+          HuiCustomItemCatalog.parse(_catalogBody)!;
+      expect(catalog.contains('mmoitems', 'SWORD:CUTLASS'), isTrue);
+      expect(catalog.contains('mmoitems', 'sword:cutlass'), isFalse);
+      expect(catalog.contains('itemsadder', 'myitems:ruby'), isTrue);
+      expect(catalog.contains('oraxen', 'myitems:ruby'), isFalse);
+      expect(catalog.entry('itemsadder', 'myitems:ruby')!.material, 'diamond');
+    });
+
+    test('auto and a blank provider match any provider', () {
+      final HuiCustomItemCatalog catalog =
+          HuiCustomItemCatalog.parse(_catalogBody)!;
+      expect(catalog.contains('auto', 'SWORD:CUTLASS'), isTrue);
+      expect(catalog.contains('', 'myitems:ruby'), isTrue);
+      expect(catalog.entry('auto', 'SWORD:CUTLASS')!.provider, 'mmoitems');
+      expect(catalog.contains('auto', 'nothing'), isFalse);
+    });
+
+    test('search is case-insensitive, prefix-first and provider-filtered', () {
+      final HuiCustomItemCatalog catalog =
+          HuiCustomItemCatalog.parse(_catalogBody)!;
+      expect(
+        catalog.search('ruby').map((CustomItemEntry e) => e.id).toList(),
+        <String>['myitems:ruby', 'myitems:ruby_sword'],
+      );
+      expect(
+        catalog
+            .search('cut', provider: 'mmoitems')
+            .map((CustomItemEntry e) => e.id)
+            .toList(),
+        <String>['SWORD:CUTLASS'],
+      );
+      expect(catalog.search('cut', provider: 'itemsadder'), isEmpty);
+      // A name match counts even when the id does not contain the needle.
+      expect(catalog.search('Cutlass').single.id, 'SWORD:CUTLASS');
+      expect(catalog.search('').length, 3);
+      expect(catalog.search('ruby', limit: 1).length, 1);
+    });
+
+    test('counts per provider, and everything for auto', () {
+      final HuiCustomItemCatalog catalog =
+          HuiCustomItemCatalog.parse(_catalogBody)!;
+      expect(catalog.countFor('itemsadder'), 2);
+      expect(catalog.countFor('mmoitems'), 1);
+      expect(catalog.countFor('oraxen'), 0);
+      expect(catalog.countFor('auto'), 3);
+      expect(catalog.countFor(''), 3);
+      expect(HuiCustomItemCatalog.empty().countFor('auto'), 0);
+    });
+
+    test('an imported catalog persists and can be forgotten', () {
+      expect(HuiCustomItemCatalog.loadStored(), isNull);
+      expect(HuiCustomItemCatalog.store(_catalogBody), isTrue);
+      expect(HuiCustomItemCatalog.loadStored()!.items.length, 3);
+      HuiCustomItemCatalog.forgetStored();
+      expect(HuiCustomItemCatalog.loadStored(), isNull);
+    });
+
+    test('a corrupt stored body reads as no catalog', () {
+      StorageService.write(HuiCustomItemCatalog.storageKey, '{not json');
+      expect(HuiCustomItemCatalog.loadStored(), isNull);
+    });
+  });
+
+  group('HuiCatalogs custom items', () {
+    test('empty catalogs carry an empty custom item catalog', () {
+      final HuiCatalogs catalogs = HuiCatalogs.empty();
+      expect(catalogs.customItems.isEmpty, isTrue);
+      expect(catalogs.customItems.providers, isEmpty);
+    });
+
+    test('withCustomItems swaps only the custom item catalog', () {
+      final HuiCatalogs base = HuiCatalogs.build(
+        materials: const <MaterialEntry>[MaterialEntry('stone', null)],
+        sounds: const <String>['ui.button.click'],
+        loaded: true,
+      );
+      final HuiCatalogs next =
+          base.withCustomItems(HuiCustomItemCatalog.parse(_catalogBody)!);
+      expect(next.customItems.items.length, 3);
+      expect(next.materialKeys, base.materialKeys);
+      expect(next.soundKeys, base.soundKeys);
+      expect(next.loaded, isTrue);
+      expect(base.customItems.isEmpty, isTrue);
+    });
+
+    test('load tolerates a missing custom item catalog silently', () async {
+      final HuiCatalogs catalogs = await HuiCatalogs.load(
+        itemsUrl: 'nope-items.json',
+        soundsUrl: 'nope-sounds.json',
+        customItemUrls: const <String>['nope-custom.json'],
+      );
+      expect(catalogs.loaded, isFalse);
+      expect(catalogs.customItems.isEmpty, isTrue);
+    });
+
+    test('load prefers a stored import over the shipped assets', () async {
+      HuiCustomItemCatalog.store(_catalogBody);
+      final HuiCatalogs catalogs = await HuiCatalogs.load(
+        itemsUrl: 'nope-items.json',
+        soundsUrl: 'nope-sounds.json',
+        customItemUrls: const <String>['nope-custom.json'],
+      );
+      expect(catalogs.customItems.items.length, 3);
+    });
+  });
+
+  group('huiFreshestCatalogs', () {
+    final HuiCatalogs loaded = HuiCatalogs.build(
+      materials: const <MaterialEntry>[MaterialEntry('stone', null)],
+      sounds: const <String>['ui.button.click'],
+      loaded: true,
+    );
+
+    test('keeps the boot snapshot while the store is still empty', () {
+      expect(
+        huiFreshestCatalogs(HuiCatalogs.empty(), loaded),
+        same(loaded),
+      );
+      expect(huiFreshestCatalogs(loaded, null), same(loaded));
+    });
+
+    test('prefers the store once it holds anything', () {
+      final HuiCatalogs imported = HuiCatalogs.empty()
+          .withCustomItems(HuiCustomItemCatalog.parse(_catalogBody)!);
+      expect(huiFreshestCatalogs(imported, loaded), same(imported));
+      expect(huiFreshestCatalogs(loaded, HuiCatalogs.empty()), same(loaded));
     });
   });
 

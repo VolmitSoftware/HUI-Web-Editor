@@ -673,6 +673,15 @@
   line-height: 1.5;
 }
 
+/* Import sits next to a two-step destructive button, so they share a row and
+   wrap together on a narrow dialog. */
+.hui-catalog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .hui-dialog-filename {
   color: var(--hui-text);
   font-family: var(--font-mono);

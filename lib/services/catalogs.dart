@@ -10,6 +10,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'storage_service.dart';
+
 /// One material registry entry.
 ///
 /// [key] is the lowercase registry key the plugin's `Material.matchMaterial`
@@ -26,6 +28,215 @@ class MaterialEntry {
   String toString() => 'MaterialEntry($key)';
 }
 
+/// One item exported by a custom-item plugin through `/holoui items export`.
+///
+/// [id] is kept exactly as the provider spelled it — several providers look ids
+/// up in case-sensitive maps, and MMOItems ids are conventionally uppercase.
+class CustomItemEntry {
+  const CustomItemEntry({
+    required this.provider,
+    required this.id,
+    this.name,
+    this.material,
+  });
+
+  final String provider;
+  final String id;
+
+  /// The provider's display name, when it offers one.
+  final String? name;
+
+  /// Lowercase vanilla key of the resolved stack's base material, used to draw
+  /// an approximate sprite. Null when the export could not resolve one.
+  final String? material;
+
+  String get label => name ?? id;
+
+  @override
+  String toString() => 'CustomItemEntry($provider, $id)';
+}
+
+/// The catalog `/holoui items export` writes to
+/// `plugins/holoui/custom-items.json`.
+///
+/// Entirely optional: the editor is a static offline page, so a missing catalog
+/// is silent and every id stays hand-typable. Its only jobs are autocomplete,
+/// an approximate canvas sprite, and an informational "not in your export"
+/// hint.
+class HuiCustomItemCatalog {
+  HuiCustomItemCatalog._({
+    required List<CustomItemEntry> items,
+    required Map<String, List<CustomItemEntry>> byId,
+    required Map<String, int> countByProvider,
+    required List<String> providers,
+    required this.generated,
+  })  : _items = items,
+        _byId = byId,
+        _countByProvider = countByProvider,
+        _providers = providers;
+
+  final List<CustomItemEntry> _items;
+  final Map<String, List<CustomItemEntry>> _byId;
+
+  /// Precomputed because the inspector reads it on every keystroke.
+  final Map<String, int> _countByProvider;
+  final List<String> _providers;
+
+  /// Epoch milliseconds the export was written, or 0 when the file omits it.
+  final int generated;
+
+  /// `localStorage` slot for a hand-imported catalog, kept as the raw body so a
+  /// future parser change re-reads it rather than a stale decoded shape.
+  static const String storageKey = 'holoui.custom-items';
+
+  static final HuiCustomItemCatalog _empty = HuiCustomItemCatalog._(
+    items: const <CustomItemEntry>[],
+    byId: const <String, List<CustomItemEntry>>{},
+    countByProvider: const <String, int>{},
+    providers: const <String>[],
+    generated: 0,
+  );
+
+  factory HuiCustomItemCatalog.empty() => _empty;
+
+  List<CustomItemEntry> get items => _items;
+
+  /// Provider ids present in the export, in file order.
+  List<String> get providers => _providers;
+
+  bool get isEmpty => _items.isEmpty;
+
+  bool get isNotEmpty => _items.isNotEmpty;
+
+  /// Entries one provider contributes; the whole catalog for `auto` or blank.
+  int countFor(String provider) {
+    final String wanted = provider.trim().toLowerCase();
+    if (wanted.isEmpty || wanted == 'auto') return _items.length;
+    return _countByProvider[wanted] ?? 0;
+  }
+
+  /// Exact, case-sensitive id match. [provider] may be `auto`, blank, or a
+  /// provider id; the first two match any provider.
+  CustomItemEntry? entry(String provider, String id) {
+    final List<CustomItemEntry>? candidates = _byId[id];
+    if (candidates == null) return null;
+    final String wanted = provider.trim().toLowerCase();
+    if (wanted.isEmpty || wanted == 'auto') return candidates.first;
+    for (final CustomItemEntry candidate in candidates) {
+      if (candidate.provider == wanted) return candidate;
+    }
+    return null;
+  }
+
+  bool contains(String provider, String id) => entry(provider, id) != null;
+
+  /// Substring match over id and display name, ranked prefix-first, optionally
+  /// narrowed to one provider. The needle is folded; the entries are not.
+  List<CustomItemEntry> search(
+    String query, {
+    String? provider,
+    int limit = 60,
+  }) {
+    final String wanted = (provider ?? '').trim().toLowerCase();
+    final bool anyProvider = wanted.isEmpty || wanted == 'auto';
+    final String needle = query.trim().toLowerCase();
+    final List<CustomItemEntry> prefix = <CustomItemEntry>[];
+    final List<CustomItemEntry> partial = <CustomItemEntry>[];
+    for (final CustomItemEntry entry in _items) {
+      if (!anyProvider && entry.provider != wanted) continue;
+      if (needle.isEmpty) {
+        prefix.add(entry);
+      } else {
+        final String id = entry.id.toLowerCase();
+        if (id.startsWith(needle)) {
+          prefix.add(entry);
+        } else if (id.contains(needle) ||
+            (entry.name?.toLowerCase().contains(needle) ?? false)) {
+          partial.add(entry);
+        }
+      }
+      if (prefix.length >= limit) break;
+    }
+    final List<CustomItemEntry> out = <CustomItemEntry>[...prefix, ...partial];
+    return out.length <= limit ? out : out.sublist(0, limit);
+  }
+
+  /// Decodes an export. Returns null when [body] is not a catalog at all, so
+  /// the import action can tell "wrong file" from "empty export".
+  static HuiCustomItemCatalog? parse(String body) {
+    final Object? decoded = _decode(body);
+    if (decoded is! Map<String, Object?>) return null;
+    final Object? raw = decoded['items'];
+    if (raw is! List<Object?>) return null;
+
+    final List<CustomItemEntry> items = <CustomItemEntry>[];
+    final Map<String, List<CustomItemEntry>> byId =
+        <String, List<CustomItemEntry>>{};
+    final Map<String, int> countByProvider = <String, int>{};
+    for (final Object? item in raw) {
+      if (item is! Map<String, Object?>) continue;
+      final Object? provider = item['provider'];
+      final Object? id = item['id'];
+      if (provider is! String || id is! String) continue;
+      final String normalizedProvider = provider.trim().toLowerCase();
+      final String normalizedId = id.trim();
+      if (normalizedProvider.isEmpty || normalizedId.isEmpty) continue;
+      final Object? name = item['name'];
+      final Object? material = item['material'];
+      final CustomItemEntry entry = CustomItemEntry(
+        provider: normalizedProvider,
+        id: normalizedId,
+        name: name is String && name.isNotEmpty ? name : null,
+        material: material is String && material.isNotEmpty
+            ? material.trim().toLowerCase()
+            : null,
+      );
+      items.add(entry);
+      (byId[entry.id] ??= <CustomItemEntry>[]).add(entry);
+      countByProvider[entry.provider] =
+          (countByProvider[entry.provider] ?? 0) + 1;
+    }
+
+    final Object? declared = decoded['providers'];
+    final List<String> providers = <String>[];
+    if (declared is List<Object?>) {
+      for (final Object? provider in declared) {
+        if (provider is! String) continue;
+        final String normalized = provider.trim().toLowerCase();
+        if (normalized.isNotEmpty && !providers.contains(normalized)) {
+          providers.add(normalized);
+        }
+      }
+    }
+    if (providers.isEmpty) {
+      for (final CustomItemEntry entry in items) {
+        if (!providers.contains(entry.provider)) providers.add(entry.provider);
+      }
+    }
+
+    final Object? generated = decoded['generated'];
+    return HuiCustomItemCatalog._(
+      items: List<CustomItemEntry>.unmodifiable(items),
+      byId: byId,
+      countByProvider: countByProvider,
+      providers: List<String>.unmodifiable(providers),
+      generated: generated is num ? generated.toInt() : 0,
+    );
+  }
+
+  /// Persists a hand-imported export. False when storage refused the write.
+  static bool store(String body) => StorageService.write(storageKey, body);
+
+  static void forgetStored() => StorageService.remove(storageKey);
+
+  /// The imported export, or null when none was imported or it no longer
+  /// parses.
+  static HuiCustomItemCatalog? loadStored() {
+    final String? body = StorageService.read(storageKey);
+    return body == null ? null : parse(body);
+  }
+}
+
 /// Immutable snapshot of both catalogs.
 class HuiCatalogs {
   const HuiCatalogs._({
@@ -34,6 +245,7 @@ class HuiCatalogs {
     required Set<String> materialKeys,
     required List<String> sounds,
     required Set<String> soundKeys,
+    required this.customItems,
     required this.loaded,
   })  : _materials = materials,
         _materialIndex = materialIndex,
@@ -47,6 +259,9 @@ class HuiCatalogs {
   final List<String> _sounds;
   final Set<String> _soundKeys;
 
+  /// Empty unless the server exported one; see [HuiCustomItemCatalog].
+  final HuiCustomItemCatalog customItems;
+
   /// False when either asset failed to fetch or parse. Consumers should keep
   /// working: validation degrades to "no catalog" (unknown keys are not
   /// flagged) and pickers fall back to free text.
@@ -54,13 +269,24 @@ class HuiCatalogs {
 
   static const String itemsAssetUrl = 'assets/catalog/items.json';
   static const String soundsAssetUrl = 'assets/catalog/sounds.json';
+
+  /// One URL, and the build always ships a file there — an empty catalog when
+  /// nobody has exported one. Probing a second, usually-absent URL would print
+  /// a red 404 in every visitor's console on every load, which reads as a
+  /// broken app. `/holoui items export` overwrites this asset in the bundle it
+  /// serves, so the self-hosted editor still fills in automatically.
+  static const List<String> customItemUrlCandidates = <String>[
+    'assets/catalog/custom-items.json',
+  ];
   static const Duration _fetchTimeout = Duration(seconds: 20);
 
-  /// Fetches both catalog assets. Never throws; on failure the corresponding
-  /// list is empty and [loaded] is false.
+  /// Fetches every catalog asset. Never throws; on failure the corresponding
+  /// list is empty and [loaded] is false. [loaded] tracks the material and
+  /// sound catalogs only: custom items are an optional server export.
   static Future<HuiCatalogs> load({
     String itemsUrl = itemsAssetUrl,
     String soundsUrl = soundsAssetUrl,
+    List<String> customItemUrls = customItemUrlCandidates,
   }) async {
     final List<String?> bodies = await Future.wait<String?>(<Future<String?>>[
       _fetch(itemsUrl),
@@ -73,7 +299,28 @@ class HuiCatalogs {
     final List<String> sounds =
         soundsBody == null ? const <String>[] : parseSounds(soundsBody);
     final bool ok = materials.isNotEmpty && sounds.isNotEmpty;
-    return build(materials: materials, sounds: sounds, loaded: ok);
+    return build(
+      materials: materials,
+      sounds: sounds,
+      customItems: await loadCustomItems(customItemUrls),
+      loaded: ok,
+    );
+  }
+
+  /// A hand-imported catalog wins: it is an explicit user action, and on the
+  /// public site it is the only source there is.
+  static Future<HuiCustomItemCatalog> loadCustomItems([
+    List<String> urls = customItemUrlCandidates,
+  ]) async {
+    final HuiCustomItemCatalog? stored = HuiCustomItemCatalog.loadStored();
+    if (stored != null) return stored;
+    for (final String url in urls) {
+      final String? body = await _fetch(url);
+      if (body == null) continue;
+      final HuiCustomItemCatalog? parsed = HuiCustomItemCatalog.parse(body);
+      if (parsed != null && parsed.isNotEmpty) return parsed;
+    }
+    return HuiCustomItemCatalog.empty();
   }
 
   /// Empty catalogs, used before [load] completes and when it fails outright.
@@ -89,6 +336,7 @@ class HuiCatalogs {
     required List<MaterialEntry> materials,
     required List<String> sounds,
     required bool loaded,
+    HuiCustomItemCatalog? customItems,
   }) {
     final Map<String, MaterialEntry> index = <String, MaterialEntry>{};
     for (final MaterialEntry entry in materials) {
@@ -100,9 +348,22 @@ class HuiCatalogs {
       materialKeys: Set<String>.unmodifiable(index.keys),
       sounds: List<String>.unmodifiable(sounds),
       soundKeys: Set<String>.unmodifiable(sounds),
+      customItems: customItems ?? HuiCustomItemCatalog.empty(),
       loaded: loaded,
     );
   }
+
+  /// Same material and sound data with a different custom item catalog, for the
+  /// import action.
+  HuiCatalogs withCustomItems(HuiCustomItemCatalog catalog) => HuiCatalogs._(
+        materials: _materials,
+        materialIndex: _materialIndex,
+        materialKeys: _materialKeys,
+        sounds: _sounds,
+        soundKeys: _soundKeys,
+        customItems: catalog,
+        loaded: loaded,
+      );
 
   /// Registry keys sorted alphabetically; textured entries and key-only entries
   /// are interleaved.
@@ -217,12 +478,24 @@ class HuiCatalogs {
     return out;
   }
 
-  static Object? _decode(String body) {
-    try {
-      return jsonDecode(body) as Object?;
-    } catch (_) {
-      return null;
-    }
+}
+
+/// Picks the live catalogs over a boot snapshot.
+///
+/// The shell hands its panes the catalogs it fetched once, at boot, and never
+/// updates them; importing a custom item catalog swaps `EditorStore.catalogs`
+/// instead. The store therefore only ever equals or leads the snapshot, and is
+/// preferred as soon as it holds anything at all.
+HuiCatalogs huiFreshestCatalogs(HuiCatalogs store, HuiCatalogs? snapshot) {
+  if (snapshot == null) return store;
+  return store.loaded || store.customItems.isNotEmpty ? store : snapshot;
+}
+
+Object? _decode(String body) {
+  try {
+    return jsonDecode(body) as Object?;
+  } catch (_) {
+    return null;
   }
 }
 

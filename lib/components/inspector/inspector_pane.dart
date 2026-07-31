@@ -27,7 +27,9 @@ class InspectorPane extends StatefulWidget {
   final EditorStore store;
   final ImageLibrary images;
 
-  /// Falls back to `store.catalogs`, which is empty until the assets load.
+  /// Boot snapshot from the shell. `store.catalogs` wins whenever it holds
+  /// more, which is how an imported custom item catalog reaches the inspector:
+  /// it is swapped into the store, not back into the shell.
   final HuiCatalogs? catalogs;
 
   @override
@@ -73,7 +75,8 @@ class _InspectorPaneState extends State<InspectorPane> {
   @override
   Widget build(BuildContext context) {
     final EditorStore store = component.store;
-    final HuiCatalogs catalogs = component.catalogs ?? store.catalogs;
+    final HuiCatalogs catalogs =
+        huiFreshestCatalogs(store.catalogs, component.catalogs);
     final HuiComponent? selected = store.selected;
     // The shell already renders the scrolling `<aside class="hui-pane
     // hui-inspector">` cell around this slot, so the pane root is a plain

@@ -420,6 +420,126 @@ void main() {
     });
   });
 
+  group('customItem icon', () {
+    String iconJson(String icon) =>
+        '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
+        '"data":{"type":"decoration","icon":$icon}}]}';
+
+    HuiCustomItemIcon iconOf(HuiMenu menu) =>
+        (menu.components.single.data as HuiDecorationData).icon!
+            as HuiCustomItemIcon;
+
+    test('is an authorable icon type', () {
+      expect(huiIconTypes, contains('customItem'));
+    });
+
+    test('reads provider, item and count verbatim', () {
+      final HuiCustomItemIcon icon = iconOf(decodeHuiMenu(iconJson(
+        '{"type":"customItem","provider":"itemsadder",'
+        '"item":"myitems:ruby","count":4}',
+      )));
+      expect(icon.provider, 'itemsadder');
+      expect(icon.item, 'myitems:ruby');
+      expect(icon.count, 4);
+      expect(icon.type, 'customItem');
+    });
+
+    test('preserves the case of an id the provider defines uppercase', () {
+      final HuiCustomItemIcon icon = iconOf(decodeHuiMenu(iconJson(
+        '{"type":"customItem","provider":"mmoitems","item":"SWORD:CUTLASS"}',
+      )));
+      expect(icon.item, 'SWORD:CUTLASS');
+      expect(encodeHuiMenu(decodeHuiMenu(iconJson(
+        '{"type":"customItem","provider":"mmoitems","item":"SWORD:CUTLASS"}',
+      ))), contains('"item": "SWORD:CUTLASS"'));
+    });
+
+    test('a missing or blank provider defaults to auto', () {
+      expect(
+        iconOf(decodeHuiMenu(
+          iconJson('{"type":"customItem","item":"ruby"}'),
+        )).provider,
+        'auto',
+      );
+      expect(
+        iconOf(decodeHuiMenu(
+          iconJson('{"type":"customItem","provider":"  ","item":"ruby"}'),
+        )).provider,
+        'auto',
+      );
+    });
+
+    test('a missing or zero count coerces to 1, like the plugin', () {
+      expect(
+        iconOf(decodeHuiMenu(
+          iconJson('{"type":"customItem","item":"ruby"}'),
+        )).count,
+        1,
+      );
+      expect(
+        iconOf(decodeHuiMenu(
+          iconJson('{"type":"customItem","item":"ruby","count":0}'),
+        )).count,
+        1,
+      );
+      expect(
+        iconOf(decodeHuiMenu(
+          iconJson('{"type":"customItem","item":"ruby","count":-3}'),
+        )).count,
+        1,
+      );
+    });
+
+    test('exports the keys in the contract order', () {
+      final String out = encodeHuiMenu(decodeHuiMenu(iconJson(
+        '{"type":"customItem","count":2,"item":"ruby",'
+        '"provider":"oraxen"}',
+      )));
+      expect(
+        out,
+        contains('"icon": {\n'
+            '          "type": "customItem",\n'
+            '          "provider": "oraxen",\n'
+            '          "item": "ruby",\n'
+            '          "count": 2\n'
+            '        }'),
+      );
+    });
+
+    test('unknown keys survive a round trip', () {
+      final HuiMenu menu = decodeHuiMenu(iconJson(
+        '{"type":"customItem","provider":"nexo","item":"ruby",'
+        '"lore":["a","b"],"note":{"x":1}}',
+      ));
+      expect(iconOf(menu).extras.keys, <String>['lore', 'note']);
+      final String out = encodeHuiMenu(menu);
+      expect(out, contains('"lore"'));
+      expect(out, contains('"note"'));
+      expect(decodeHuiMenu(out).components.single.data, isA<HuiDecorationData>());
+    });
+
+    test('re-decoding an export is a fixed point', () {
+      final String first = encodeHuiMenu(decodeHuiMenu(iconJson(
+        '{"type":"customItem","provider":"slimefun","item":"MAGIC_WORKBENCH",'
+        '"count":16,"extra":true}',
+      )));
+      expect(encodeHuiMenu(decodeHuiMenu(first)), first);
+    });
+
+    test('copy() shares nothing with the original', () {
+      final HuiCustomItemIcon icon =
+          HuiCustomItemIcon('itemsadder', 'myitems:ruby', 2)
+            ..extras = <String, dynamic>{
+              'nested': <String, dynamic>{'a': 1},
+            };
+      final HuiCustomItemIcon copy = icon.copy();
+      copy.item = 'other';
+      (copy.extras['nested'] as Map<String, dynamic>)['a'] = 2;
+      expect(icon.item, 'myitems:ruby');
+      expect((icon.extras['nested'] as Map<String, dynamic>)['a'], 1);
+    });
+  });
+
   group('stale schema keys', () {
     test('an animated icon authored with path migrates onto source', () {
       final HuiMenu menu = decodeHuiMenu(

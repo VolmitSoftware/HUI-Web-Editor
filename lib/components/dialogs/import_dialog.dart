@@ -82,6 +82,7 @@ class _ImportDialogState extends State<ImportDialog> {
         knownMaterials:
             _store.catalogs.loaded ? _store.catalogs.materialKeys : null,
         knownSounds: _store.catalogs.loaded ? _store.catalogs.soundKeys : null,
+        customItems: _store.catalogs.customItems,
       );
     } on HuiFormatException catch (e) {
       _parsed = null;

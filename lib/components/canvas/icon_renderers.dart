@@ -127,7 +127,10 @@ class IconRenderers {
         _paintText(item);
       case CanvasIconKind.image:
         _paintImage(item);
+      // A custom item resolves to a plain ItemStack in game, so it draws
+      // exactly where a vanilla item icon would; only the sprite differs.
       case CanvasIconKind.item:
+      case CanvasIconKind.customItem:
         _paintItem(item);
       case CanvasIconKind.missing:
         _paintMissing(item);
@@ -376,13 +379,15 @@ class IconRenderers {
   }
 
   /// A key with no catalogue sprite is not necessarily invalid — the catalogue
-  /// can lag the server — so this reads as "no preview", not as broken.
+  /// can lag the server, and a custom item has no sprite at all until the
+  /// server exports one — so this reads as "no preview", not as broken.
   void _paintItemPlaceholder(
     CanvasItem item,
     double left,
     double top,
     double size,
   ) {
+    final bool custom = item.kind == CanvasIconKind.customItem;
     brush.save();
     brush.lineWidth = 1.2;
     brush.dash(<double>[5, 4]);
@@ -391,15 +396,32 @@ class IconRenderers {
     brush.ctx.stroke();
     brush.clearDash();
     if (size >= 28) {
-      brush.setUiFont(math.min(11, size / 4.5), bold: true);
+      final double labelSize = math.min(11, size / 4.5);
+      final double centerY =
+          top + size / 2 + (custom ? -labelSize * 0.45 : 0);
+      brush.setUiFont(labelSize, bold: true);
       brush.textAlign = 'center';
       brush.textBaseline = 'middle';
       brush.fill = brush.palette.labelMuted;
       brush.fillTextPx(
         brush.ellipsize(item.itemKey, size - 8),
         left + size / 2,
-        top + size / 2,
+        centerY,
       );
+      if (custom) {
+        // Which plugin owns the id matters as much as the id itself: the same
+        // bare id can exist in two providers.
+        brush.setUiFont(math.max(8, labelSize * 0.82));
+        brush.alpha = 0.75;
+        brush.fillTextPx(
+          brush.ellipsize(
+            item.itemProvider.isEmpty ? 'auto' : item.itemProvider,
+            size - 8,
+          ),
+          left + size / 2,
+          centerY + labelSize * 1.15,
+        );
+      }
     }
     brush.restore();
   }

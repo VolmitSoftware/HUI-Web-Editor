@@ -1,13 +1,33 @@
 import 'json_codec.dart';
 
-/// The four JSON-authorable icon types. `fontImage` and `itemStack` exist in
+/// The five JSON-authorable icon types. `fontImage` and `itemStack` exist in
 /// the plugin enum but map to a null class, so they are unparseable.
 const List<String> huiIconTypes = <String>[
   'text',
   'textImage',
   'animatedTextImage',
   'item',
+  'customItem',
 ];
+
+/// Provider ids the plugin ships adapters for, in registration order — which is
+/// also the order `auto` probes them in. These strings are part of the file
+/// format, not a UI list.
+const List<String> huiCustomItemProviders = <String>[
+  'craftengine',
+  'itemsadder',
+  'oraxen',
+  'nexo',
+  'mmoitems',
+  'executableitems',
+  'ecoitems',
+  'slimefun',
+  'mythicmobs',
+  'headdatabase',
+];
+
+/// Sentinel `provider`: try every ready provider in registration order.
+const String huiAutoItemProvider = 'auto';
 
 sealed class HuiIcon {
   Map<String, dynamic> extras = <String, dynamic>{};
@@ -30,6 +50,8 @@ sealed class HuiIcon {
         return HuiAnimatedImageIcon.fromMap(map);
       case 'item':
         return HuiItemIcon.fromMap(map);
+      case 'customItem':
+        return HuiCustomItemIcon.fromMap(map);
       default:
         huiUnknownType(type, path);
     }
@@ -179,4 +201,62 @@ class HuiItemIcon extends HuiIcon {
               : 'customModelValue',
         ),
       )..extras = huiCollectExtras(map, _known);
+}
+
+/// An item owned by a custom-item plugin (ItemsAdder, Oraxen, MMOItems, ...).
+///
+/// The id is whatever format its provider uses — `ns:id`, a bare yml key,
+/// `TYPE:ID`, or a numeric head id — and is written back byte for byte,
+/// including case: several providers look ids up in case-sensitive maps. Only
+/// the server can say whether an id exists, so the editor never rejects one.
+class HuiCustomItemIcon extends HuiIcon {
+  /// A provider id from [huiCustomItemProviders], or [huiAutoItemProvider].
+  String provider;
+
+  /// The provider's own id, verbatim.
+  String item;
+  int count;
+
+  HuiCustomItemIcon([
+    this.provider = huiAutoItemProvider,
+    this.item = '',
+    this.count = 1,
+  ]);
+
+  @override
+  String get type => 'customItem';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(
+        <String, dynamic>{
+          'type': 'customItem',
+          'provider': provider,
+          'item': item,
+          'count': count,
+        },
+        extras,
+      );
+
+  @override
+  HuiCustomItemIcon copy() => HuiCustomItemIcon(provider, item, count)
+    ..extras = huiDeepCopyMap(extras);
+
+  static const Set<String> _known = <String>{
+    'type',
+    'provider',
+    'item',
+    'count',
+  };
+
+  static HuiCustomItemIcon fromMap(Map<String, dynamic> map) {
+    // Both defaults mirror the plugin: a blank provider means "try them all",
+    // and `setAmount(count > 0 ? count : 1)` makes 0 and 1 the same stack.
+    final String provider = huiReadString(map, 'provider').trim();
+    final int count = huiReadInt(map, 'count');
+    return HuiCustomItemIcon(
+      provider.isEmpty ? huiAutoItemProvider : provider,
+      huiReadString(map, 'item'),
+      count > 0 ? count : 1,
+    )..extras = huiCollectExtras(map, _known);
+  }
 }

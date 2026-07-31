@@ -292,10 +292,11 @@
 }
 
 /* The renderer emits `display: inline-flex` inline, so the segments were forced
-   onto one nowrap row: four of them (`Text | Image | Animated | Item`) need
-   ~430px and the labels painted over each other in a 300px pane. A grid that
-   auto-fits at the width of the widest label wraps to two rows instead, and
-   never clips. `!important` is the only way past the inline declaration. */
+   onto one nowrap row: five of them (`Text | Image | Animated | Item | Custom`)
+   need ~540px and the labels painted over each other in a 300px pane. A grid
+   that auto-fits at the width of the widest label wraps to further rows
+   instead, and never clips. `!important` is the only way past the inline
+   declaration. */
 .hui-segmented .arcane-toggle-group {
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
@@ -893,12 +894,29 @@
   flex: 0 0 auto;
 }
 
+.hui-registry-result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 .hui-registry-result-key {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+/* Second line of a custom item row: display name and owning plugin. */
+.hui-registry-result-detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--hui-muted);
+  font-size: 0.68rem;
 }
 
 .hui-registry-empty,
@@ -970,6 +988,7 @@
 .hui-icon-image,
 .hui-icon-animated,
 .hui-icon-item,
+.hui-icon-custom,
 .hui-icon-empty,
 .hui-icon-image-library,
 .hui-icon-animated-library,

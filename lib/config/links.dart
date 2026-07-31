@@ -12,8 +12,9 @@ const String huiDocsUrl = 'https://docs.volmit.com/holoui';
 const String huiSiteUrl = 'https://www.volmit.com';
 
 /// Where the plugin looks for menus and images, quoted verbatim in help copy.
-const String huiMenuFolder = 'plugins/holoui/menus/';
-const String huiImageFolder = 'plugins/holoui/images/';
+const String huiPluginFolder = 'plugins/holoui/';
+const String huiMenuFolder = '${huiPluginFolder}menus/';
+const String huiImageFolder = '${huiPluginFolder}images/';
 
 /// One external destination in the help dialog's link grid.
 class HuiLink {

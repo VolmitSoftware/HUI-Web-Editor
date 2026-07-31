@@ -647,6 +647,7 @@ class EditorStore extends ChangeNotifier {
         knownImagePaths: _images?.paths,
         knownMaterials: _catalogs.loaded ? _catalogs.materialKeys : null,
         knownSounds: _catalogs.loaded ? _catalogs.soundKeys : null,
+        customItems: _catalogs.customItems,
       );
 
   /// Text fields and sliders mutate on every keystroke and every pointer move,

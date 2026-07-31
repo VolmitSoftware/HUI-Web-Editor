@@ -1,5 +1,6 @@
 import 'package:holoui_editor/logic/validation.dart';
 import 'package:holoui_editor/model/model.dart';
+import 'package:holoui_editor/services/catalogs.dart';
 import 'package:test/test.dart';
 
 HuiMenu _menu(List<HuiComponent> components) =>
@@ -218,6 +219,142 @@ void main() {
       );
       expect(_has(issues, HuiSeverity.warning, 'not in the material catalog'),
           isTrue);
+    });
+  });
+
+  group('custom item icons', () {
+    final HuiCustomItemCatalog catalog = HuiCustomItemCatalog.parse(
+      '{"providers":["itemsadder"],"items":[{"provider":"itemsadder",'
+      '"id":"myitems:ruby","material":"diamond"}]}',
+    )!;
+
+    test('flags a blank id as an error', () {
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(HuiCustomItemIcon('itemsadder', '  ', 1))),
+          HuiSeverity.error,
+          'Custom item id is empty',
+        ),
+        isTrue,
+      );
+    });
+
+    test('accepts any id under a known provider or auto', () {
+      for (final String provider in <String>['auto', 'itemsadder', '']) {
+        expect(
+          validateHuiMenu(
+            _withIcon(HuiCustomItemIcon(provider, 'anything:at:all', 1)),
+          ),
+          isEmpty,
+          reason: provider,
+        );
+      }
+    });
+
+    test('warns on a provider the plugin has no adapter for', () {
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withIcon(HuiCustomItemIcon('itemsadder2', 'myitems:ruby', 1)),
+      );
+      expect(_has(issues, HuiSeverity.warning, 'Unknown item provider'), isTrue);
+      expect(
+        _matching(issues, HuiSeverity.warning, 'Unknown item provider')
+            .single
+            .path,
+        'components[0].data.icon.provider',
+      );
+    });
+
+    test('warns on a provider id that only differs in case', () {
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withIcon(HuiCustomItemIcon('ItemsAdder', 'myitems:ruby', 1)),
+      );
+      expect(_has(issues, HuiSeverity.warning, 'Unknown item provider'), isTrue);
+      expect(
+        _matching(issues, HuiSeverity.warning, 'Unknown item provider')
+            .single
+            .fix,
+        contains('itemsadder'),
+      );
+    });
+
+    test('warns on padded ids, which never match verbatim', () {
+      expect(
+        _has(
+          validateHuiMenu(
+            _withIcon(HuiCustomItemIcon('oraxen', ' ruby_sword', 1)),
+          ),
+          HuiSeverity.warning,
+          'whitespace',
+        ),
+        isTrue,
+      );
+    });
+
+    test('warns on a count outside 1-99', () {
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(HuiCustomItemIcon('auto', 'ruby', 0))),
+          HuiSeverity.warning,
+          'count',
+        ),
+        isTrue,
+      );
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(HuiCustomItemIcon('auto', 'ruby', 100))),
+          HuiSeverity.warning,
+          'count',
+        ),
+        isTrue,
+      );
+      expect(
+        validateHuiMenu(_withIcon(HuiCustomItemIcon('auto', 'ruby', 99))),
+        isEmpty,
+      );
+    });
+
+    test('an id missing from the catalog is info, never an error', () {
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withIcon(HuiCustomItemIcon('itemsadder', 'myitems:sapphire', 1)),
+        customItems: catalog,
+      );
+      expect(_has(issues, HuiSeverity.info, 'not in the custom item catalog'),
+          isTrue);
+      expect(issues.where((HuiIssue i) => i.severity == HuiSeverity.error),
+          isEmpty);
+    });
+
+    test('an id present in the catalog raises nothing', () {
+      expect(
+        validateHuiMenu(
+          _withIcon(HuiCustomItemIcon('itemsadder', 'myitems:ruby', 1)),
+          customItems: catalog,
+        ),
+        isEmpty,
+      );
+      expect(
+        validateHuiMenu(
+          _withIcon(HuiCustomItemIcon('auto', 'myitems:ruby', 1)),
+          customItems: catalog,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('without a catalog an unknown id raises nothing', () {
+      expect(
+        validateHuiMenu(
+          _withIcon(HuiCustomItemIcon('itemsadder', 'myitems:sapphire', 1)),
+        ),
+        isEmpty,
+      );
+      expect(
+        validateHuiMenu(
+          _withIcon(HuiCustomItemIcon('itemsadder', 'myitems:sapphire', 1)),
+          customItems: HuiCustomItemCatalog.empty(),
+        ),
+        isEmpty,
+      );
     });
   });
 

@@ -10,7 +10,9 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
+import '../../config/defaults.dart';
 import '../../config/links.dart';
+import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'dialog_parts.dart';
@@ -48,6 +50,7 @@ class HelpDialog extends StatelessWidget {
               _quickStart(),
               _coordinates(),
               _textFormat(),
+              _customItems(),
               _nonFeatures(),
               _links(),
             ],
@@ -207,6 +210,70 @@ class HelpDialog extends StatelessWidget {
         ],
       );
 
+  Widget _customItems() => HuiDialogSection(
+        title: 'Items from other plugins',
+        description: 'The Custom icon type resolves an id through a '
+            'custom-item plugin on your server and renders whatever stack it '
+            'hands back.',
+        children: <Widget>[
+          const HuiCodeBlock(
+            text: '{ "type": "customItem", "provider": "itemsadder",\n'
+                '  "item": "myitems:ruby", "count": 1 }',
+          ),
+          const dom.p(
+            classes: 'hui-dialog-note',
+            <Widget>[
+              Text(
+                'provider is optional and defaults to auto, which asks every '
+                'installed provider in order and takes the first hit. Name one '
+                'explicitly when the same bare id exists in two plugins. The '
+                'id is passed through verbatim, case included, because most of '
+                'these plugins look ids up in case-sensitive maps.',
+              ),
+            ],
+          ),
+          _cheatTable(
+            'Provider ids and their id formats',
+            <List<String>>[
+              for (final String provider in huiCustomItemProviders)
+                <String>[
+                  provider,
+                  '${huiItemProviderInfo[provider]?.label ?? provider}: '
+                      '${huiItemProviderInfo[provider]?.idFormat ?? 'see the '
+                          'plugin docs'}'
+                      '${huiItemProviderInfo[provider] == null ? '' : ' '
+                          '(${huiItemProviderInfo[provider]!.example})'}',
+                ],
+            ],
+          ),
+          const ArcaneAlert.warning(
+            title: 'The editor cannot verify these ids',
+            message: 'It is a static page with no connection to your server, '
+                'so an id it has never heard of is never an error. If the '
+                'provider is missing or the id is wrong, HoloUI logs a warning '
+                'naming both and draws its magenta/black placeholder; the rest '
+                'of the menu still opens.',
+          ),
+          const HuiSteps(
+            steps: <String>[
+              'Run /holoui items on the server to see which providers are '
+                  'present, ready, and how many ids they expose.',
+              'Run /holoui items export to write '
+                  '${huiPluginFolder}custom-items.json.',
+              'The self-hosted editor (/holoui builder start) serves that file '
+                  'and picks it up on its own. On the public site, import it '
+                  'from Settings instead.',
+              'With a catalog loaded you get id autocomplete, an approximate '
+                  'canvas sprite, and a note when an id is missing from your '
+                  'export.',
+            ],
+          ),
+          const HuiCodeBlock(
+            text: '/holoui items\n/holoui items export',
+          ),
+        ],
+      );
+
   Widget _cheatTable(String caption, List<List<String>> rows) => dom.div(
         classes: 'hui-cheat',
         <Widget>[
@@ -296,10 +363,12 @@ const List<String> _nonFeatureList = <String>[
   'No live placeholder refresh. Values are read once, when the menu opens, and '
       'stay frozen for the session.',
   'No placeholders in commands. The command string is dispatched verbatim.',
-  'Only three component types (button, decoration, toggle), four icon types '
-      '(text, textImage, animatedTextImage, item) and two action types '
-      '(command, sound). fontImage and itemStack exist in the plugin enum but '
-      'cannot be parsed.',
+  'Only three component types (button, decoration, toggle), five icon types '
+      '(text, textImage, animatedTextImage, item, customItem) and two action '
+      'types (command, sound). fontImage and itemStack exist in the plugin '
+      'enum but cannot be parsed.',
+  'No enchantments, lore or NBT on an item icon. A customItem icon inherits '
+      'whatever its provider plugin builds, but the JSON cannot add to it.',
   'No format version or migration: what you export is exactly what the plugin '
       'reads.',
   'No trigger other than a command or the Java API. Nothing in the JSON opens '

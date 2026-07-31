@@ -6,6 +6,7 @@ import 'package:holoui_editor/components/canvas/canvas_scene.dart';
 import 'package:holoui_editor/logic/hui_geometry.dart';
 import 'package:holoui_editor/logic/viewport_math.dart';
 import 'package:holoui_editor/model/model.dart';
+import 'package:holoui_editor/services/catalogs.dart';
 import 'package:holoui_editor/services/image_library.dart';
 import 'package:test/test.dart';
 
@@ -189,6 +190,94 @@ void main() {
         ),
       ]);
       expect(scene.hitTest(9, 9), isNull);
+    });
+  });
+
+  group('custom item icons', () {
+    final HuiCatalogs catalogs = HuiCatalogs.build(
+      materials: const <MaterialEntry>[
+        MaterialEntry('diamond', 'data:image/png;base64,ZGlhbW9uZA=='),
+      ],
+      sounds: const <String>[],
+      loaded: true,
+      customItems: HuiCustomItemCatalog.parse(
+        '{"items":[{"provider":"itemsadder","id":"myitems:ruby",'
+        '"name":"Ruby","material":"diamond"},'
+        '{"provider":"mmoitems","id":"SWORD:CUTLASS"}]}',
+      ),
+    );
+
+    CanvasItem build(HuiIcon icon, {HuiCatalogs? withCatalogs}) =>
+        buildCanvasScene(
+          menu: HuiMenu(
+            offset: Vec3(0, 1.7, 2.5),
+            components: <HuiComponent>[
+              HuiComponent('a', Vec3(0, 0, 0), HuiDecorationData(icon)),
+            ],
+          ),
+          uiScale: 1,
+          trueRender: true,
+          togglePreview: (String _) => true,
+          textCache: McTextCache(),
+          catalogs: withCatalogs,
+        ).items.single;
+
+    test('measures exactly like the vanilla item icon it mirrors', () {
+      final CanvasItem custom = build(
+        HuiCustomItemIcon('itemsadder', 'myitems:ruby', 3),
+        withCatalogs: catalogs,
+      );
+      final CanvasItem vanilla = build(
+        HuiItemIcon('diamond', 3, 0),
+        withCatalogs: catalogs,
+      );
+      expect(custom.kind, CanvasIconKind.customItem);
+      expect(custom.shape, vanilla.shape);
+      expect(custom.hitbox, vanilla.hitbox);
+      expect(custom.visual, vanilla.visual);
+      expect(custom.itemCount, 3);
+    });
+
+    test('draws the catalog material sprite when the id is known', () {
+      final CanvasItem item = build(
+        HuiCustomItemIcon('itemsadder', 'myitems:ruby', 1),
+        withCatalogs: catalogs,
+      );
+      expect(item.itemTexture, 'data:image/png;base64,ZGlhbW9uZA==');
+      expect(item.itemKey, 'myitems:ruby');
+      expect(item.itemProvider, 'itemsadder');
+    });
+
+    test('falls back to a labelled placeholder for an unknown id', () {
+      final CanvasItem item = build(
+        HuiCustomItemIcon('nexo', 'ruby_sword', 1),
+        withCatalogs: catalogs,
+      );
+      expect(item.kind, CanvasIconKind.customItem);
+      expect(item.itemTexture, isNull);
+      // The label is the id, verbatim: it is what the user typed.
+      expect(item.itemKey, 'ruby_sword');
+      expect(item.itemProvider, 'nexo');
+    });
+
+    test('keeps the id case a case-sensitive provider needs', () {
+      final CanvasItem item = build(
+        HuiCustomItemIcon('mmoitems', 'SWORD:CUTLASS', 1),
+        withCatalogs: catalogs,
+      );
+      expect(item.itemKey, 'SWORD:CUTLASS');
+    });
+
+    test('renders without a catalog at all', () {
+      final CanvasItem item =
+          build(HuiCustomItemIcon('auto', 'myitems:ruby', 1));
+      expect(item.kind, CanvasIconKind.customItem);
+      expect(item.itemTexture, isNull);
+    });
+
+    test('a blank id falls back to the missing-icon placeholder', () {
+      final CanvasItem item = build(HuiCustomItemIcon('auto', '  ', 1));
+      expect(item.kind, CanvasIconKind.missing);
     });
   });
 }

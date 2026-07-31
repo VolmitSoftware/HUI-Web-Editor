@@ -10,6 +10,8 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show ListenableBuilder;
 
+import '../../services/catalogs.dart';
+import '../../services/file_transfer.dart';
 import '../../services/storage_service.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
@@ -78,14 +80,104 @@ class SettingsDialog extends StatelessWidget {
         ],
       );
 
+  /// The catalog is only ever an aid: autocomplete, an approximate canvas
+  /// sprite and an informational hint. A failed import changes nothing.
+  Future<void> _importCustomItems() async {
+    final (String, String)? picked = await pickJsonFile();
+    if (picked == null) return;
+    final HuiCustomItemCatalog? parsed =
+        HuiCustomItemCatalog.parse(picked.$2);
+    if (parsed == null) {
+      toast.error(
+        '${picked.$1} is not a HoloUI custom item catalog. Run /holoui items '
+        'export and pick the file it names.',
+      );
+      return;
+    }
+    store.setCatalogs(store.catalogs.withCustomItems(parsed));
+    if (!HuiCustomItemCatalog.store(picked.$2)) {
+      toast.warning(
+        'Loaded ${parsed.items.length} items, but this browser refused to '
+        'save them, so they are gone on reload.',
+      );
+      return;
+    }
+    toast.success(
+      'Loaded ${parsed.items.length} custom item'
+      '${parsed.items.length == 1 ? '' : 's'} from '
+      '${parsed.providers.length} provider'
+      '${parsed.providers.length == 1 ? '' : 's'}.',
+    );
+  }
+
+  void _forgetCustomItems() {
+    HuiCustomItemCatalog.forgetStored();
+    store.setCatalogs(
+      store.catalogs.withCustomItems(HuiCustomItemCatalog.empty()),
+    );
+    toast.warning('Custom item catalog cleared.');
+  }
+
   Widget _body() => dom.div(
         classes: 'hui-dialog-body',
         <Widget>[
           _appearance(),
           _canvas(),
+          _customItems(),
           _localData(),
         ],
       );
+
+  Widget _customItems() {
+    final HuiCustomItemCatalog catalog = store.catalogs.customItems;
+    return HuiDialogSection(
+      title: 'Custom item catalog',
+      description: 'Optional. Only powers autocomplete and the canvas preview '
+          'for customItem icons; ids always work without it.',
+      children: <Widget>[
+        HuiChips(
+          labels: <String>[
+            if (catalog.isEmpty)
+              'no catalog loaded'
+            else ...<String>[
+              '${catalog.items.length} item'
+                  '${catalog.items.length == 1 ? '' : 's'}',
+              ...catalog.providers,
+            ],
+          ],
+        ),
+        const dom.p(
+          classes: 'hui-dialog-note',
+          <Widget>[
+            Text(
+              'Run /holoui items export on your server, then import '
+              'plugins/holoui/custom-items.json here. The self-hosted editor '
+              'picks the file up on its own; this is for the public site. The '
+              'server is still the only thing that can confirm an id.',
+            ),
+          ],
+        ),
+        dom.div(
+          classes: 'hui-catalog-actions',
+          <Widget>[
+            Button(
+              variant: ButtonVariant.outline,
+              size: ButtonSize.sm,
+              onPressed: _importCustomItems,
+              child: const Text('Import custom item catalog'),
+            ),
+            if (catalog.isNotEmpty)
+              HuiTwoStepButton(
+                label: 'Forget catalog',
+                confirmLabel: 'Forget it',
+                icon: ArcaneIcon.trash2(size: IconSize.sm),
+                onConfirm: _forgetCustomItems,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
 
   Widget _appearance() => HuiDialogSection(
         title: 'Appearance',

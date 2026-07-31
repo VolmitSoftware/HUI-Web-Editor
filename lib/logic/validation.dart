@@ -1,4 +1,5 @@
 import '../model/model.dart';
+import '../services/catalogs.dart';
 
 enum HuiSeverity { error, warning, info }
 
@@ -33,15 +34,20 @@ List<HuiIssue> validateHuiMenu(
   Set<String>? knownImagePaths,
   Set<String>? knownMaterials,
   Set<String>? knownSounds,
+  HuiCustomItemCatalog? customItems,
 }) {
   final _Validator validator = _Validator(
     knownImagePaths: knownImagePaths,
     knownMaterials: knownMaterials,
     knownSounds: knownSounds,
+    customItems: customItems,
   );
   validator.validateMenu(menu);
   return validator.issues;
 }
+
+/// Stack sizes above this are refused by the client, not by HoloUI.
+const int huiMaxStackCount = 99;
 
 final RegExp _idPattern = RegExp(r'^[A-Za-z0-9_.-]+$');
 final RegExp _registryKeyPattern = RegExp(r'^([a-z0-9_.-]+:)?[a-z0-9_./-]+$');
@@ -52,11 +58,17 @@ final RegExp _placeholderPattern = RegExp(r'%[^%\s]+%');
 final RegExp _brokenLegacyPattern = RegExp('&[nNkK]|§[nk]');
 
 class _Validator {
-  _Validator({this.knownImagePaths, this.knownMaterials, this.knownSounds});
+  _Validator({
+    this.knownImagePaths,
+    this.knownMaterials,
+    this.knownSounds,
+    this.customItems,
+  });
 
   final Set<String>? knownImagePaths;
   final Set<String>? knownMaterials;
   final Set<String>? knownSounds;
+  final HuiCustomItemCatalog? customItems;
   final List<HuiIssue> issues = <HuiIssue>[];
 
   String? _componentId;
@@ -256,6 +268,74 @@ class _Validator {
         }
       case final HuiItemIcon item:
         _validateMaterial(item.item, '$path.item');
+      case final HuiCustomItemIcon custom:
+        _validateCustomItem(custom, path);
+    }
+  }
+
+  /// The editor cannot see the server's plugins, so nothing here except a blank
+  /// id is an error: an id it has never heard of may still be perfectly valid.
+  void _validateCustomItem(HuiCustomItemIcon icon, String path) {
+    final String id = icon.item;
+    if (id.trim().isEmpty) {
+      _add(
+        HuiSeverity.error,
+        '$path.item',
+        'Custom item id is empty; the plugin logs a warning and draws the '
+            'magenta/black missing-icon placeholder',
+        fix: 'Enter the id exactly as the provider plugin defines it',
+      );
+    } else if (id != id.trim()) {
+      _add(
+        HuiSeverity.warning,
+        '$path.item',
+        'The id starts or ends with whitespace and is looked up verbatim, so '
+            'it will not resolve',
+        fix: 'Remove the surrounding whitespace',
+      );
+    }
+
+    final String provider = icon.provider.trim();
+    if (provider.isNotEmpty &&
+        provider != huiAutoItemProvider &&
+        !huiCustomItemProviders.contains(provider)) {
+      final String lowered = provider.toLowerCase();
+      _add(
+        HuiSeverity.warning,
+        '$path.provider',
+        'Unknown item provider "$provider"; HoloUI has no adapter for it and '
+            'the icon will not resolve',
+        fix: huiCustomItemProviders.contains(lowered)
+            ? 'Provider ids are lowercase: use $lowered'
+            : 'Use one of ${huiCustomItemProviders.join(", ")}, or auto',
+      );
+    }
+
+    if (icon.count < 1 || icon.count > huiMaxStackCount) {
+      _add(
+        HuiSeverity.warning,
+        '$path.count',
+        'Stack count is outside 1-$huiMaxStackCount; the plugin turns anything '
+            'below 1 into 1 and the client cannot draw a larger stack',
+        fix: 'Use a count between 1 and $huiMaxStackCount',
+      );
+    }
+
+    // Only for an id that is otherwise well formed: a padded id is already
+    // reported above, and "re-run the export" would be the wrong advice.
+    final HuiCustomItemCatalog? catalog = customItems;
+    if (catalog != null &&
+        catalog.isNotEmpty &&
+        id.isNotEmpty &&
+        id == id.trim() &&
+        !catalog.contains(icon.provider, id)) {
+      _add(
+        HuiSeverity.info,
+        '$path.item',
+        '"$id" is not in the custom item catalog exported from your server; '
+            'the server is the only thing that can confirm it',
+        fix: 'Re-run /holoui items export if you added the item recently',
+      );
     }
   }
 

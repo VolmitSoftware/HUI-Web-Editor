@@ -425,6 +425,9 @@ class _ComponentsRailState extends State<ComponentsRail> {
         final HuiItemIcon item =>
           'item ${item.item.isEmpty ? '(unset)' : item.item}'
               '${item.count > 1 ? ' x${item.count}' : ''}',
+        final HuiCustomItemIcon custom =>
+          '${custom.provider} ${custom.item.isEmpty ? '(unset)' : custom.item}'
+              '${custom.count > 1 ? ' x${custom.count}' : ''}',
       };
 
   /// First line only, colour codes and MiniMessage tags removed, ellipsized.
