@@ -1,0 +1,817 @@
+/* 07-preview.css — everything the 3D preview view draws.
+   Owned by: the preview stage. Nothing outside lib/components/preview/ styles
+   itself from this file.
+
+   The centre-area arm lives here rather than in 02-shell.css so the preview
+   owns its own layout end to end.
+
+   Contract with the Dart side (lib/components/preview/):
+   - `.hui-preview-scene` provides the perspective; `.hui-preview-camera` is the
+     only element that ever receives the camera matrix. Neither may grow
+     `overflow`, `filter`, `opacity < 1`, `clip-path` or `mask`: any of those
+     flattens `preserve-3d` and collapses the scene into a plane.
+   - every world element is `position: absolute; left: 0; top: 0` with
+     `transform-origin: 0 0`, because Dart writes `matrix3d(...) translate(-50%,
+     -50%)` and the trailing translate is what centres the box on the world
+     point the matrix carries.
+   - state classes are toggled from Dart, never from CSS: `is-orbiting`,
+     `is-panning`, `is-pan-ready` on the stage, `is-hovered` and `is-decoration`
+     on a quad.
+   - `.hui-preview-stage` MUST keep `touch-action: none` and `user-select: none`
+     or the browser claims the drag gesture first.
+   - the view is a four-row grid: toolbar, readout strip, stage, log dock. Only
+     the stage flexes. The dock's height comes from `--hui-preview-log-h`, which
+     `preview_log_view.dart` writes inline on `<html>` during a splitter drag —
+     never from its content, because a dock that grew as entries arrived would
+     shrink the stage under the pointer mid-gesture. */
+
+.hui-center.is-preview > .hui-split-cell:not(.is-preview) { display: none; }
+
+.hui-preview {
+  position: relative;
+  display: grid;
+  /* toolbar · readout · stage · log dock. Only the stage flexes; the dock has
+     a height of its own (see the action log section) so that appending to the
+     log can never resize the stage. */
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  /* Explicit, so the implicit `auto` column cannot grow past the cell: an
+     Arcane tooltip bubble inside a row is absolutely positioned and its box
+     would otherwise widen the track and push the whole view sideways. */
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--hui-bg);
+  container: hui-preview / inline-size;
+}
+
+/* ---- control strip ------------------------------------------------------ */
+
+/* The strip WRAPS, unlike the canvas toolbar's single-row contract. It carries
+   a range input, and a range that shrinks to a stub or is dropped at a narrow
+   width is a control the user can no longer reach; a second row costs 34px and
+   keeps everything usable. `overflow` must stay visible — the overlays menu is
+   absolutely positioned inside it. */
+.hui-preview-toolbar {
+  --hui-tool-size: 30px;
+  position: relative;
+  z-index: 3;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 0;
+  row-gap: 3px;
+  min-height: 40px;
+  padding: 4px 8px;
+  border: 1px solid var(--hui-border);
+  border-bottom: 0;
+  border-radius: var(--hui-radius) var(--hui-radius) 0 0;
+  background: var(--hui-panel-soft);
+}
+
+.hui-preview-toolgroup {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hui-preview-toolgroup + .hui-preview-toolgroup {
+  margin-left: 7px;
+  padding-left: 7px;
+  border-left: 1px solid color-mix(in srgb, var(--hui-border) 62%, transparent);
+}
+
+/* Arcane sizes its buttons inline, so the strip has to shout to land on a
+   30px control. Same documented override path as the canvas toolbar. */
+.hui-preview-toolbar .arcane-button {
+  height: var(--hui-tool-size) !important;
+  min-height: var(--hui-tool-size);
+  border-radius: var(--hui-radius);
+  white-space: nowrap;
+}
+
+.hui-preview-tool-label { margin-left: 4px; }
+.hui-preview-toolgroup > .hui-preview-tool-label { margin: 0 4px 0 2px; }
+
+.hui-preview-overlays-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hui-preview-overlays-trigger .hui-count-chip {
+  min-height: 17px;
+  padding: 0 6px;
+  font-size: .64rem;
+}
+
+@container hui-preview (max-width: 720px) {
+  .hui-preview-tool-label { display: none; }
+}
+
+/* ---- uiScale ------------------------------------------------------------ */
+
+/* Native `input[type=range]`, sharing `.hui-range` with the Settings dialog and
+   the inspector. `ArcaneSlider` never wires its `onChanged` to the DOM. */
+.hui-preview-scale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hui-preview-scale-range { width: 92px; }
+
+.hui-preview-scale-value {
+  min-width: 4ch;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--hui-muted);
+}
+
+/* ---- overlays menu ------------------------------------------------------ */
+
+/* Hand-built: `ArcaneDropdownMenu` never opens in this arcane_jaspr build. */
+.hui-preview-overlays { position: relative; }
+
+.hui-preview-overlaymenu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.hui-preview-overlaymenu {
+  position: absolute;
+  z-index: 41;
+  top: calc(100% + 5px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: max-content;
+  max-width: min(340px, 82vw);
+  padding: 5px;
+  border: 1px solid var(--hui-border);
+  border-radius: var(--hui-radius);
+  background: var(--hui-surface-raised);
+  box-shadow: var(--hui-shadow-sm);
+}
+
+.hui-preview-overlaymenu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: calc(var(--hui-radius) - 2px);
+  background: transparent;
+  color: var(--hui-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hui-preview-overlaymenu-item:hover,
+.hui-preview-overlaymenu-item:focus-visible {
+  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
+  outline: none;
+}
+
+.hui-preview-overlaymenu-tick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 15px;
+  height: 17px;
+  color: var(--hui-accent);
+}
+
+.hui-preview-overlaymenu-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.hui-preview-overlaymenu-label {
+  font-size: .78rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.hui-preview-overlaymenu-item.is-on .hui-preview-overlaymenu-label { color: var(--hui-accent); }
+
+.hui-preview-overlaymenu-hint {
+  font-size: .7rem;
+  line-height: 1.4;
+  color: var(--hui-muted);
+}
+
+/* ---- readout strip ------------------------------------------------------ */
+
+/* Chrome, not an overlay: it never covers the menu it describes, and a screen
+   reader can reach it. Wraps for the same reason the toolbar does. */
+.hui-preview-hudbar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  padding: 5px 10px;
+  border: 1px solid var(--hui-border);
+  border-bottom: 0;
+  background: var(--hui-panel);
+  font-size: .72rem;
+  line-height: 1.5;
+}
+
+.hui-preview-hudbar-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hui-preview-hudbar-label {
+  color: var(--hui-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: .62rem;
+}
+
+.hui-preview-hudbar-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--hui-text);
+  white-space: nowrap;
+}
+
+.hui-preview-hudbar-value.is-muted { color: var(--hui-muted); }
+
+.hui-preview-hudbar-note {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--hui-muted);
+}
+
+.hui-preview-hudbar-note.is-warning { color: var(--hui-warning); }
+
+.hui-preview-hudbar-item.is-open .hui-preview-hudbar-value {
+  color: var(--hui-success);
+}
+
+.hui-preview-hudbar-item.is-closed .hui-preview-hudbar-value {
+  color: var(--hui-danger);
+  font-weight: 700;
+}
+
+/* ---- stage -------------------------------------------------------------- */
+
+.hui-preview-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--hui-border);
+  background:
+    radial-gradient(
+      120% 90% at 50% 0%,
+      color-mix(in srgb, var(--hui-accent) 7%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--hui-panel) 70%, #04070a) 0%,
+      #04070a 100%
+    );
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+.hui-preview-stage:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--hui-ring);
+}
+
+.hui-preview-stage.is-orbiting { cursor: grabbing; }
+.hui-preview-stage.is-pan-ready { cursor: move; }
+.hui-preview-stage.is-panning { cursor: move; }
+
+/* Perspective lives here; the camera under it carries the view matrix. The
+   900px matches huiPreviewPerspectivePx in projection.dart — changing one
+   without the other silently rescales the whole scene. */
+.hui-preview-scene {
+  position: absolute;
+  inset: 0;
+  perspective: 900px;
+  perspective-origin: 50% 50%;
+  pointer-events: none;
+}
+
+.hui-preview-camera,
+.hui-preview-menu {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform-origin: 0 0;
+}
+
+/* The menu group sits at the camera's own origin: quads carry absolute world
+   matrices, because preview_scene.dart has already baked the player anchor and
+   the frozen open-yaw rotation into every position. */
+.hui-preview-menu { left: 0; top: 0; }
+
+.hui-preview-camera > *,
+.hui-preview-menu > * {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  transform-style: preserve-3d;
+}
+
+/* ---- world markers ------------------------------------------------------ */
+
+.hui-preview-ground {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--hui-accent) 34%, transparent) 0 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--hui-accent) 34%, transparent) 0 1px,
+      transparent 1px
+    );
+  background-size: 96px 96px;
+  background-position: 48px 48px;
+  opacity: .5;
+  -webkit-mask-image: radial-gradient(closest-side, #000 45%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 45%, transparent 100%);
+}
+
+.hui-preview-avatar-disc,
+.hui-preview-avatar-eye,
+.hui-preview-center-disc {
+  border-radius: 50%;
+}
+
+.hui-preview-avatar-disc {
+  border: 2px solid color-mix(in srgb, #7fd4ff 78%, transparent);
+  background: color-mix(in srgb, #7fd4ff 16%, transparent);
+}
+
+.hui-preview-avatar-eye {
+  border: 2px dashed color-mix(in srgb, #7fd4ff 70%, transparent);
+}
+
+.hui-preview-avatar-post {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, #7fd4ff 70%, transparent),
+    transparent
+  );
+}
+
+.hui-preview-center-disc {
+  border: 2px solid color-mix(in srgb, #ffd479 85%, transparent);
+}
+
+.hui-preview-center-post {
+  background: color-mix(in srgb, #ffd479 75%, transparent);
+}
+
+/* ---- icon quads --------------------------------------------------------- */
+
+.hui-preview-quad {
+  /* Presentation only. The runtime teleports on hover with no easing at all
+     (ClickableComponent.java:59-70); 80 ms is short enough that the tick-2
+     snap to a full block still reads as a snap. Zeroed by reduced motion,
+     because --hui-dur-1 is. */
+  transition: transform var(--hui-dur-1) var(--hui-ease-out);
+}
+
+.hui-preview-quad-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Minecraft glyphs and image icons are pixel art, and sprites rasterize at a
+     fixed scale so the compositor is always the one magnifying them. */
+  image-rendering: pixelated;
+}
+
+.hui-preview-quad-placeholder {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 4%;
+  height: 0;
+  border-bottom: 2px dotted color-mix(in srgb, #ffd479 90%, transparent);
+  pointer-events: none;
+}
+
+/* Visibility is a class, not the `hidden` attribute: package:web types
+   `hidden` as JSAny? (the spec allows "until-found"), so a bool cannot be
+   assigned to it from Dart. */
+.hui-preview-camera > .is-hidden,
+.hui-preview-menu > .is-hidden,
+.hui-preview-quad > .is-hidden { display: none; }
+
+/* ---- facing-mode banner ------------------------------------------------- */
+
+.hui-preview-banner {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: min(38ch, 42%);
+  padding: 8px 11px;
+  border: 1px solid color-mix(in srgb, var(--hui-border) 80%, transparent);
+  border-radius: var(--hui-radius);
+  background: color-mix(in srgb, #04070a 78%, transparent);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.hui-preview-banner.is-hidden { display: none; }
+
+.hui-preview-banner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hui-preview-banner-mode {
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+/* The banner itself is click-through so it never steals the camera; the close
+   control is the one thing in it that has to be reachable. */
+.hui-preview-banner-close {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: color-mix(in srgb, #f7f4ec 60%, transparent);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hui-preview-banner-close:hover,
+.hui-preview-banner-close:focus-visible {
+  background: color-mix(in srgb, #f7f4ec 14%, transparent);
+  color: #f7f4ec;
+}
+
+.hui-preview-banner[data-mode="inGame"] .hui-preview-banner-mode {
+  color: #ffd479;
+}
+
+.hui-preview-banner[data-mode="intent"] .hui-preview-banner-mode {
+  color: #7fd4ff;
+}
+
+.hui-preview-banner-body {
+  font-size: .76rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, #f7f4ec 78%, transparent);
+}
+
+/* The in-stage `.hui-preview-hud` overlay was deleted with `_paintHud`: it
+   duplicated the `.hui-preview-hudbar` strip above the stage. Its rules went
+   with it. */
+
+/* ---- hint row ----------------------------------------------------------- */
+
+.hui-preview-hint {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  min-width: 0;
+  font-size: .72rem;
+  line-height: 1.35;
+  color: color-mix(in srgb, #f7f4ec 52%, transparent);
+  pointer-events: none;
+}
+
+.hui-preview-hint-item {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hui-preview-hint-item + .hui-preview-hint-item::before {
+  content: "·";
+  margin: 0 8px;
+  opacity: .6;
+}
+
+.hui-preview-hint-note { color: color-mix(in srgb, #ffd479 72%, transparent); }
+
+@container hui-preview (max-width: 900px) {
+  .hui-preview-hint-note { display: none; }
+}
+
+/* ---- action log --------------------------------------------------------- */
+
+/* A height, never a content size. The stage is the flexible row of
+   `.hui-preview`, so a dock that grew with each logged entry would shrink the
+   stage and slide the whole 3D scene out from under the pointer — clicking a
+   button would move the menu, and the second click of a toggle round trip would
+   miss. Rows scroll inside instead, and the only thing that ever changes this
+   height is the splitter, driven by the user.
+
+   `--hui-preview-log-h` is written inline on `<html>` during a splitter drag
+   (`preview_log_view.dart`); the fallback here is that file's
+   huiPreviewLogDefaultHeight. */
+.hui-preview-log {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  height: var(--hui-preview-log-h, 190px);
+  min-height: 0;
+  border: 1px solid var(--hui-border);
+  border-top: 0;
+  border-radius: 0 0 var(--hui-radius) var(--hui-radius);
+  background: var(--hui-panel);
+}
+
+/* The closed dock still occupies its grid row, at zero height, so toggling it
+   resizes the stage exactly once. */
+.hui-preview-log-closed { height: 0; }
+
+/* ---- splitter ------------------------------------------------------------ */
+
+/* Hand-built. `ArcaneResizable` exposes no Dart callbacks at all, so there is
+   nothing to listen to. */
+.hui-preview-log-splitter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 9px;
+  background: var(--hui-panel-soft);
+  cursor: row-resize;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+.hui-preview-log-grip {
+  width: 34px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--hui-border);
+  transition:
+    background-color var(--hui-dur-1) var(--hui-ease-out),
+    transform var(--hui-dur-1) var(--hui-ease-out);
+}
+
+.hui-preview-log-splitter:hover .hui-preview-log-grip,
+.hui-preview-log-splitter:focus-visible .hui-preview-log-grip,
+body.hui-resizing-row .hui-preview-log-grip {
+  background: var(--hui-accent);
+  transform: scaleX(1.3);
+}
+
+.hui-preview-log-splitter:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--hui-ring);
+}
+
+/* While the splitter is captured the pointer spends most of the drag over the
+   stage, which sets its own `grab` cursor. Scoped to the drag, and the same
+   documented escape hatch `body.hui-resizing` uses for the vertical splitters
+   in 02-shell.css. */
+body.hui-resizing-row { user-select: none; -webkit-user-select: none; }
+body.hui-resizing-row * { cursor: row-resize !important; }
+
+/* ---- head --------------------------------------------------------------- */
+
+.hui-preview-log-head {
+  display: flex;
+  align-items: center;
+  gap: var(--hui-space-2);
+  min-width: 0;
+  padding: 4px 6px 4px 10px;
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+.hui-preview-log-count {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .72rem;
+  color: var(--hui-muted);
+}
+
+.hui-preview-log-headtools {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+.hui-preview-log-empty {
+  margin: 0;
+  padding: 10px;
+  font-size: .78rem;
+  color: var(--hui-muted);
+}
+
+/* ---- rows --------------------------------------------------------------- */
+
+/* Oldest first, newest last, with the tail pinned from Dart — a plain reading
+   order, and the pin releases the moment the user scrolls up. */
+.hui-preview-log-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  padding: 6px 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.hui-preview-log-rows:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--hui-ring);
+}
+
+/* One click. Grouping is the overlap lesson: every hovered hitbox fires, and
+   the group header says how many did. */
+.hui-preview-log-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 8px;
+  border-left: 2px solid var(--hui-border-soft);
+}
+
+.hui-preview-log-group.is-newest { border-left-color: var(--hui-accent); }
+
+.hui-preview-log-grouphead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hui-preview-log-tick {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  color: var(--hui-muted);
+}
+
+.hui-preview-log-groupnote {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .68rem;
+  color: var(--hui-warning);
+}
+
+.hui-preview-log-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 0;
+}
+
+.hui-preview-log-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: .72rem;
+}
+
+.hui-preview-log-id { font-weight: 600; color: var(--hui-text); }
+
+.hui-preview-log-trigger {
+  color: var(--hui-muted);
+  text-transform: lowercase;
+}
+
+/* ---- actions ------------------------------------------------------------ */
+
+.hui-preview-log-action {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  font-size: .72rem;
+  line-height: 1.5;
+  color: var(--hui-text);
+}
+
+.hui-preview-log-action.is-empty {
+  font-style: italic;
+  color: var(--hui-muted);
+}
+
+.hui-preview-log-verb {
+  color: var(--hui-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: .62rem;
+}
+
+.hui-preview-log-cmd {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  word-break: break-word;
+  color: var(--hui-text);
+}
+
+.hui-preview-log-soundmeta {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  color: var(--hui-muted);
+}
+
+/* The dispatch target, which is the format's sharpest edge: only the exact
+   token `player` reaches the player, and everything else — including an absent
+   key — goes to the console (CommandMenuAction.java:34-40). */
+.hui-preview-log-dispatch {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.hui-preview-log-dispatch.is-player {
+  border: 1px solid color-mix(in srgb, var(--hui-success) 45%, transparent);
+  color: var(--hui-success);
+}
+
+.hui-preview-log-dispatch.is-console {
+  border: 1px solid color-mix(in srgb, var(--hui-warning) 55%, transparent);
+  background: color-mix(in srgb, var(--hui-warning) 14%, transparent);
+  color: var(--hui-warning);
+  text-transform: uppercase;
+}
+
+.hui-preview-log-dispatch.is-uncertain {
+  border-style: dashed;
+  text-transform: none;
+}
+
+.hui-preview-log-badge {
+  padding: 0 6px;
+  border: 1px dashed var(--hui-border);
+  border-radius: 999px;
+  font-size: .64rem;
+  color: var(--hui-muted);
+  white-space: nowrap;
+  cursor: help;
+}
+
+.hui-preview-log-badge.is-omitted,
+.hui-preview-log-badge.is-unknown {
+  border-color: color-mix(in srgb, var(--hui-warning) 55%, transparent);
+  color: var(--hui-warning);
+}
+
+.hui-preview-log-badge.is-inaudible {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--hui-muted) 45%, transparent);
+}
+
+.hui-preview-log-badge.is-error {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--hui-danger) 60%, transparent);
+  background: color-mix(in srgb, var(--hui-danger) 12%, transparent);
+  color: var(--hui-danger);
+}

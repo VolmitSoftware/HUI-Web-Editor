@@ -13,6 +13,7 @@
 ///   child: EditorShell(
 ///     rail: const ComponentsRail(),
 ///     canvas: const CanvasViewport(),
+///     preview: const PreviewView(),
 ///     inspector: const InspectorPane(),
 ///     codeEditor: const CodeEditorView(),
 ///     overlays: <Widget>[ExportDialog(...), HelpDialog(...)],
@@ -36,15 +37,19 @@ import 'pane_layout.dart';
 import 'pane_splitter.dart';
 import 'shell_actions.dart';
 import 'shell_intents.dart';
+import 'shell_keys.dart';
 import 'shell_status.dart';
+import 'shortcut_sheet.dart';
 import 'status_bar.dart';
 import 'store_selector.dart';
 import 'top_bar.dart';
+import 'tour.dart';
 
 class EditorShell extends StatefulWidget {
   const EditorShell({
     required this.rail,
     required this.canvas,
+    required this.preview,
     required this.inspector,
     required this.codeEditor,
     required this.overlays,
@@ -65,6 +70,9 @@ class EditorShell extends StatefulWidget {
 
   final Widget rail;
   final Widget canvas;
+
+  /// Mounted only while the preview view is active; see [_CenterArea].
+  final Widget preview;
   final Widget inspector;
   final Widget codeEditor;
 
@@ -103,6 +111,14 @@ class _EditorShellState extends State<EditorShell> {
   bool _dropActive = false;
   bool _confirmDelete = false;
   int _confirmSeq = 0;
+  bool _tourOpen = false;
+  bool _tourLeaving = false;
+  bool _tourChecked = false;
+  bool _shortcutsOpen = false;
+  bool _shortcutsLeaving = false;
+  /// Bumped on every open and close so a dismissal already in flight cannot
+  /// unmount a surface the user has since re-opened.
+  int _dismissSeq = 0;
   PaneLayout _panes = PaneLayout.defaults;
 
   @override
@@ -136,6 +152,7 @@ class _EditorShellState extends State<EditorShell> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final EditorStore resolved = component.store ?? EditorScope.of(context);
+    _maybeStartTour(resolved);
     if (identical(resolved, _store)) {
       _intents = _buildIntents(resolved);
       return;
@@ -199,6 +216,23 @@ class _EditorShellState extends State<EditorShell> {
 
   void _togglePalette() => setState(() => _paletteOpen = !_paletteOpen);
 
+  /// The injected arcane_jaspr runtime claims `(meta|ctrl)+K` on the document
+  /// and `stopPropagation`s it before the shell's binder ever sees it
+  /// (`command_palette_scripts.dart:239-250`), then clicks
+  /// `[data-command-trigger]`. This app rendered no such node, so ⌘K did
+  /// nothing at all while the top bar advertised it. Rather than fight the
+  /// script, give it the node it is looking for — the same shape of fix as
+  /// `data-arcane-interactive` for the accordion binder. The shell's own table
+  /// row still runs if the script is ever gone; the two cannot both fire,
+  /// because the script consumes the event when it is present.
+  void _triggerPalette() {
+    // The binder stands all three of these down; the script knows about none of
+    // them. Measured before this guard: with `hui-settings-dialog` open, one
+    // Meta+K put the palette on top of it.
+    if (_tourOpen || _shortcutsOpen || huiArcaneOverlayOpen()) return;
+    _togglePalette();
+  }
+
   void _closePalette() {
     if (!_paletteOpen) return;
     setState(() => _paletteOpen = false);
@@ -208,6 +242,79 @@ class _EditorShellState extends State<EditorShell> {
     setState(() {
       _confirmDelete = true;
       _confirmSeq++;
+    });
+  }
+
+  /// Escape while any Arcane surface is open.
+  ///
+  /// The delete confirm is the one dialog `app.dart` cannot close: its flag
+  /// lives here, so `onCloseOverlay` cleared the other overlays, reported the
+  /// key as handled and left the confirm on screen with Escape swallowed —
+  /// the only dialog in the app that ignored it. Measured before this fix.
+  void _escapeOverlay() {
+    switch (huiOverlayEscapeTarget(confirmDeleteOpen: _confirmDelete)) {
+      case HuiOverlayEscape.confirmDelete:
+        setState(() => _confirmDelete = false);
+      case HuiOverlayEscape.appOverlay:
+        component.onCloseOverlay?.call();
+    }
+  }
+
+  // --- tour and shortcut sheet ----------------------------------------------
+
+  /// Runs once per shell, before the first build, so an unseen tour is up in
+  /// the first frame rather than arriving after the user has already started
+  /// clicking. The flag is browser state, not document state: it lives in the
+  /// workspace's storage under `holoui.tour.v1` and never touches the store.
+  void _maybeStartTour(EditorStore store) {
+    if (_tourChecked) return;
+    _tourChecked = true;
+    final String? seen = store.workspace.read(huiTourSeenKey);
+    if (seen == null || seen.isEmpty) _tourOpen = true;
+  }
+
+  void _replayTour() {
+    setState(() {
+      _tourOpen = true;
+      _tourLeaving = false;
+      _dismissSeq++;
+    });
+  }
+
+  void _endTour({required bool remember}) {
+    if (remember) _store?.workspace.write(huiTourSeenKey, 'seen');
+    _dismiss(() => _tourLeaving = true, () {
+      _tourOpen = false;
+      _tourLeaving = false;
+    });
+  }
+
+  void _toggleShortcuts() {
+    if (_shortcutsOpen && !_shortcutsLeaving) {
+      _dismiss(() => _shortcutsLeaving = true, () {
+        _shortcutsOpen = false;
+        _shortcutsLeaving = false;
+      });
+      return;
+    }
+    setState(() {
+      _shortcutsOpen = true;
+      _shortcutsLeaving = false;
+      _dismissSeq++;
+    });
+  }
+
+  /// Exit animations are impossible for an Arcane surface — the runtime writes
+  /// `hidden` with `display:none!important` in the same batch as the state flip
+  /// (06-motion.css, foot of file). These two are ours to unmount, so the class
+  /// runs first and the node drops after it. The wait is deliberately shorter
+  /// than the entrance: a dismissal must never feel held up.
+  void _dismiss(void Function() start, void Function() finish) {
+    setState(start);
+    final int seq = ++_dismissSeq;
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      if (!mounted || seq != _dismissSeq) return;
+      setState(finish);
     });
   }
 
@@ -240,8 +347,12 @@ class _EditorShellState extends State<EditorShell> {
     return KeyboardShortcuts(
       intents: intents,
       paletteOpen: _paletteOpen,
+      tourOpen: _tourOpen,
+      shortcutsOpen: _shortcutsOpen,
       onTogglePalette: _togglePalette,
-      onCloseOverlay: component.onCloseOverlay,
+      onToggleShortcuts: _toggleShortcuts,
+      onSkipTour: () => _endTour(remember: false),
+      onCloseOverlay: _escapeOverlay,
       child: dom.div(
         id: 'hui-shell',
         classes: 'hui-shell',
@@ -267,6 +378,7 @@ class _EditorShellState extends State<EditorShell> {
               _CenterArea(
                 store: store,
                 canvas: component.canvas,
+                preview: component.preview,
                 codeEditor: component.codeEditor,
               ),
               PaneSplitter(
@@ -286,14 +398,46 @@ class _EditorShellState extends State<EditorShell> {
             status: component.status,
             onOpenValidation: component.onOpenValidation,
           ),
+          // Never reachable by pointer or Tab (see `.hui-cmd-trigger`); it
+          // exists only so the runtime's ⌘K handler has something to click.
+          dom.button(
+            classes: 'hui-cmd-trigger',
+            attributes: const <String, String>{
+              'type': 'button',
+              'tabindex': '-1',
+              'aria-hidden': 'true',
+              'data-command-trigger': '',
+            },
+            events: dom.events<Null>(onClick: _triggerPalette),
+            const <Widget>[],
+          ),
           ...component.overlays,
           if (_paletteOpen)
             ShellCommandPalette(
-              actions: buildShellActions(intents),
+              actions: buildShellActions(
+                intents,
+                onShowShortcuts: _toggleShortcuts,
+                onReplayTour: _replayTour,
+              ),
               onClose: _closePalette,
               apple: _apple,
             ),
           if (_confirmDelete) _deleteDialog(store, intents),
+          if (_shortcutsOpen)
+            ShortcutSheet(
+              onClose: _toggleShortcuts,
+              apple: _apple,
+              leaving: _shortcutsLeaving,
+            ),
+          // Last of the overlays and above them all: a spotlight over a region
+          // a dialog was covering would be teaching the wrong thing.
+          if (_tourOpen)
+            HuiTour(
+              onFinish: () => _endTour(remember: true),
+              onSkip: () => _endTour(remember: false),
+              onNever: () => _endTour(remember: true),
+              leaving: _tourLeaving,
+            ),
           if (_dropActive) const _DropOverlay(),
           // Bottom-left, not bottom-right: the right edge is the inspector, the
           // one surface the user is typing into while toasts fire. Bottom-centre
@@ -314,12 +458,20 @@ class _EditorShellState extends State<EditorShell> {
 
   /// Keyed per arming: the dialog surface is closed by the injected JS runtime,
   /// so reusing the element would re-open a node the runtime already hid.
+  ///
+  /// Counted, not named: the confirm deletes the whole selection, so naming the
+  /// primary while removing three was a dialog that lied about its own effect.
   Widget _deleteDialog(EditorStore store, ShellIntents intents) {
-    final String id = store.selectedId ?? 'this component';
+    final int count = store.selectionIds.length;
+    final bool many = count > 1;
     return ArcaneConfirmDialog(
       key: ValueKey<int>(_confirmSeq),
-      title: 'Delete $id?',
-      message: 'The component is removed from the menu. Undo brings it back.',
+      title: many
+          ? 'Delete $count components?'
+          : 'Delete ${store.selectedId ?? 'this component'}?',
+      message: many
+          ? 'They are removed from the menu. Undo brings them back.'
+          : 'The component is removed from the menu. Undo brings it back.',
       confirmText: 'Delete',
       cancelText: 'Keep',
       destructive: true,
@@ -332,25 +484,28 @@ class _EditorShellState extends State<EditorShell> {
   }
 }
 
-/// Visual / code / split. Rebuilds only when the view actually changes, not on
-/// every store notification.
+/// Visual / preview / code / split. Rebuilds only when the view actually
+/// changes, not on every store notification.
 ///
-/// The canvas cell is child 0 in all three arms and is only ever hidden by CSS,
+/// The canvas cell is child 0 in all four arms and is only ever hidden by CSS,
 /// never unmounted. Anything else destroys `_CanvasViewportState` on a view
 /// switch — Jaspr replaces a child whose runtimeType changed — which resets
 /// zoom and pan and throws away every decoded bitmap and the font calibration.
-/// The code cell is genuinely unmounted in the visual view instead of hidden,
-/// because a live [CodeEditorView] re-serializes the whole document on every
-/// store notification.
+/// The code and preview cells are genuinely unmounted when inactive, for
+/// opposite reasons that land in the same place: a live [CodeEditorView]
+/// re-serializes the whole document on every store notification, and a live
+/// preview keeps a rAF loop and a 50 ms simulation timer running.
 class _CenterArea extends StatelessWidget {
   const _CenterArea({
     required this.store,
     required this.canvas,
+    required this.preview,
     required this.codeEditor,
   });
 
   final EditorStore store;
   final Widget canvas;
+  final Widget preview;
   final Widget codeEditor;
 
   @override
@@ -360,12 +515,18 @@ class _CenterArea extends StatelessWidget {
         builder: (BuildContext context, EditorView view) => dom.section(
           classes: switch (view) {
             EditorView.visual => 'hui-pane hui-center is-visual',
+            EditorView.preview => 'hui-pane hui-center is-preview',
             EditorView.code => 'hui-pane hui-center is-code',
             EditorView.split => 'hui-pane hui-center is-split',
           },
           <Widget>[
             dom.div(classes: 'hui-split-cell', <Widget>[canvas]),
-            if (view != EditorView.visual)
+            if (view == EditorView.preview)
+              dom.div(
+                classes: 'hui-split-cell is-preview',
+                <Widget>[preview],
+              ),
+            if (view == EditorView.code || view == EditorView.split)
               dom.div(
                 classes: 'hui-split-cell is-code',
                 <Widget>[codeEditor],

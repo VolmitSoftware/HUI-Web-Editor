@@ -23,7 +23,7 @@ void Function() installShellKeyListener(ShellKeyHandler handler) {
       shift: typed.shiftKey,
       alt: typed.altKey,
       editable: _isEditable(event.target),
-      overlayOpen: _overlayOpen(),
+      overlayOpen: huiArcaneOverlayOpen(),
     );
     if (handler(key)) {
       event.preventDefault();
@@ -48,10 +48,34 @@ bool isApplePlatform() {
   }
 }
 
-bool _overlayOpen() {
+/// Surfaces that do NOT take keyboard ownership when they open.
+///
+/// `ArcaneTooltip` renders `data-arcane-surface="hovercard"`
+/// (`floating_render_base.dart:120`) and the interaction layer also emits
+/// `tooltip`. Both are pointer-hover decoration with nothing focusable inside.
+///
+/// Excluding them is a bug fix, not a refinement: the predicate used to match
+/// any open surface, so **every** shortcut in the app went dead while a tooltip
+/// was showing. Measured — with the pointer resting on the top bar's Settings
+/// button, `P` left the view on Visual; moved away, the same key switched to
+/// Preview. Anything not listed here still stands the shell down, so a new
+/// modal surface type is safe by default.
+const String _passiveSurfaces = ':not([data-arcane-surface="hovercard"])'
+    ':not([data-arcane-surface="tooltip"])';
+
+/// True while an Arcane surface that owns the keyboard is open — a dialog,
+/// sheet, drawer, menu or popover, but never a tooltip.
+///
+/// Public because the shell's `[data-command-trigger]` needs the same answer:
+/// the injected runtime claims the ⌘K chord on the document and consumes it
+/// before this listener runs, so a stand-down expressed only in [ShellKey]
+/// cannot reach it. The trigger's click handler asks this directly instead, and
+/// both paths therefore agree on what "an overlay owns the keyboard" means.
+bool huiArcaneOverlayOpen() {
   try {
-    return web.document
-            .querySelector('[data-arcane-surface][data-arcane-state="open"]') !=
+    return web.document.querySelector(
+          '[data-arcane-surface][data-arcane-state="open"]$_passiveSurfaces',
+        ) !=
         null;
   } catch (_) {
     return false;

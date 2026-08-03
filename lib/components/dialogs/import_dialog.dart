@@ -152,7 +152,7 @@ class _ImportDialogState extends State<ImportDialog> {
       );
 
   Widget _body() => dom.div(
-        classes: 'hui-dialog-body',
+        classes: 'hui-dialog-body hui-stagger',
         <Widget>[
           const ArcaneAlert.warning(
             message: 'Importing replaces the document you are editing. It is a '
@@ -208,6 +208,12 @@ class _ImportDialogState extends State<ImportDialog> {
       );
 
   Widget _preview() {
+    // The picker is a real wait: the browser dialog, then a full file read.
+    // Standing in for the summary that is about to appear keeps the section
+    // from collapsing and reflowing everything under it.
+    if (_picking) {
+      return const HuiSkeleton(label: 'Reading the file', lines: 4);
+    }
     final String? error = _parseError;
     if (error != null) {
       return ArcaneAlert.error(
@@ -217,11 +223,12 @@ class _ImportDialogState extends State<ImportDialog> {
     }
     final HuiMenu? menu = _parsed;
     if (menu == null) {
-      return const dom.p(
-        classes: 'hui-dialog-note',
-        <Widget>[
-          Text('Choose a file or paste JSON to see what will be imported.'),
-        ],
+      return ArcaneEmptyState(
+        title: 'Nothing to import yet',
+        description: 'Choose a file or paste JSON above. The menu is parsed as '
+            'you type and everything the plugin would complain about is listed '
+            'here before anything is replaced.',
+        icon: ArcaneIcon.fileCode(size: IconSize.lg),
       );
     }
 

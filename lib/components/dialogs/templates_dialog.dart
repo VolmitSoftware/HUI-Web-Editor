@@ -76,7 +76,7 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
       );
 
   Widget _body() => dom.div(
-        classes: 'hui-dialog-body',
+        classes: 'hui-dialog-body hui-stagger',
         <Widget>[
           const dom.p(
             classes: 'hui-dialog-note',
@@ -103,6 +103,7 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
     return dom.button(
       classes: classNames(<String?>[
         'hui-option-card',
+        'hui-lift',
         selected ? 'is-selected' : null,
       ]),
       attributes: <String, String>{

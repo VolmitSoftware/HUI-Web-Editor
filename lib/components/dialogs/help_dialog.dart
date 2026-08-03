@@ -45,7 +45,7 @@ class HelpDialog extends StatelessWidget {
         ],
         children: <Widget>[
           dom.div(
-            classes: 'hui-dialog-body',
+            classes: 'hui-dialog-body hui-stagger',
             <Widget>[
               _quickStart(),
               _coordinates(),
@@ -318,7 +318,7 @@ class HelpDialog extends StatelessWidget {
                 dom.a(
                   href: link.url,
                   target: dom.Target.blank,
-                  classes: 'hui-link-card',
+                  classes: 'hui-link-card hui-lift',
                   attributes: const <String, String>{
                     'rel': 'noopener noreferrer',
                   },

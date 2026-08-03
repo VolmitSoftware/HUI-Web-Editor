@@ -40,6 +40,21 @@ class ShellKey {
 
 typedef ShellKeyHandler = bool Function(ShellKey key);
 
+/// Which overlay an Escape press belongs to while an Arcane surface is open.
+enum HuiOverlayEscape { confirmDelete, appOverlay }
+
+/// The shell's own delete confirm wins over the app's dialogs and sheet.
+///
+/// Its flag lives in the shell's state, which `app.dart` cannot see, so the
+/// app-level close reported the key as handled and left the confirm on screen:
+/// the one dialog in the editor that ignored Escape. Only one of the two can be
+/// open at a time — arming the confirm is what closes the dialog the user came
+/// from — so this is a precedence rule, not a cascade.
+HuiOverlayEscape huiOverlayEscapeTarget({required bool confirmDeleteOpen}) =>
+    confirmDeleteOpen
+        ? HuiOverlayEscape.confirmDelete
+        : HuiOverlayEscape.appOverlay;
+
 const String _apple = 'apple';
 
 /// Renders `mod+Shift+Z` as `['⌘', '⇧', 'Z']` or `['Ctrl', 'Shift', 'Z']`.

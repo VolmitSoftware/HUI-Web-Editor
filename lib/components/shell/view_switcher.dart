@@ -1,4 +1,4 @@
-/// Visual / Code / Split segmented control.
+/// Visual / Preview / Code / Split segmented control.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
@@ -25,6 +25,11 @@ class ViewSwitcher extends StatelessWidget {
             onChanged: _onChanged,
             items: <ToggleGroupItem>[
               _item(EditorView.visual, 'Visual', ArcaneIcon.eye(size: IconSize.sm)),
+              _item(
+                EditorView.preview,
+                'Preview',
+                ArcaneIcon.rotate3d(size: IconSize.sm),
+              ),
               _item(EditorView.code, 'Code', ArcaneIcon.code(size: IconSize.sm)),
               _item(
                 EditorView.split,

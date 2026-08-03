@@ -6,3 +6,5 @@ import 'shell_keys.dart';
 void Function() installShellKeyListener(ShellKeyHandler handler) => () {};
 
 bool isApplePlatform() => false;
+
+bool huiArcaneOverlayOpen() => false;

@@ -2,7 +2,7 @@
 /// plane is measured, and which component a click resolves to.
 library;
 
-import 'package:holoui_editor/components/canvas/canvas_scene.dart';
+import 'package:holoui_editor/logic/canvas_scene.dart';
 import 'package:holoui_editor/logic/hui_geometry.dart';
 import 'package:holoui_editor/logic/viewport_math.dart';
 import 'package:holoui_editor/model/model.dart';

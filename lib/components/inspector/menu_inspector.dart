@@ -12,6 +12,8 @@ import '../../logic/validation.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
+import 'extras_editor.dart';
+import 'field_help.dart';
 import 'inspector_widgets.dart';
 
 class MenuInspector extends StatelessWidget {
@@ -36,6 +38,7 @@ class MenuInspector extends StatelessWidget {
           _placement(),
           _lifetime(),
           _install(),
+          _extras(),
           _nonFeatures(),
         ],
       );
@@ -49,9 +52,15 @@ class MenuInspector extends StatelessWidget {
             classes: 'hui-inspector-header is-menu',
             <Widget>[
               const HuiEyebrow('Menu'),
-              dom.h2(
-                classes: 'hui-inspector-title',
-                <Widget>[Text(store.menuId)],
+              dom.div(
+                classes: 'hui-inspector-title-row',
+                <Widget>[
+                  dom.h2(
+                    classes: 'hui-inspector-title',
+                    <Widget>[Text(store.menuId)],
+                  ),
+                  const HuiFieldHelp('menu.id'),
+                ],
               ),
             ],
           ),
@@ -73,6 +82,7 @@ class MenuInspector extends StatelessWidget {
           HuiField(
             label: 'Offset',
             required: true,
+            trailing: const HuiFieldHelp('menu.offset'),
             help: 'Blocks from the player\'s feet at the moment it opens.',
             control: dom.div(<Widget>[
               HuiVec3Field(
@@ -89,6 +99,7 @@ class MenuInspector extends StatelessWidget {
             label: 'Lock position',
             value: _menu.lockPosition,
             help: 'Freezes the player while the menu is open.',
+            trailing: const HuiFieldHelp('menu.lockPosition'),
             onChanged: (bool value) => store.mutate(
               'menu lockPosition',
               (HuiMenu menu) => menu.lockPosition = value,
@@ -101,6 +112,7 @@ class MenuInspector extends StatelessWidget {
             warning: _menu.lockPosition && _menu.followPlayer
                 ? 'Lock position freezes the player, so this never runs.'
                 : null,
+            trailing: const HuiFieldHelp('menu.followPlayer'),
             onChanged: (bool value) => store.mutate(
               'menu followPlayer',
               (HuiMenu menu) => menu.followPlayer = value,
@@ -142,6 +154,7 @@ class MenuInspector extends StatelessWidget {
               (HuiMenu menu) => menu.maxDistance = checked ? null : 8,
             ),
           ),
+          const HuiFieldHelp('menu.maxDistance'),
         ],
       ),
       control: dom.div(<Widget>[
@@ -177,6 +190,7 @@ class MenuInspector extends StatelessWidget {
             label: 'Close on death',
             value: _menu.closeOnDeath,
             help: 'Closes when the player dies.',
+            trailing: const HuiFieldHelp('menu.closeOnDeath'),
             onChanged: (bool value) => store.mutate(
               'menu closeOnDeath',
               (HuiMenu menu) => menu.closeOnDeath = value,
@@ -186,6 +200,7 @@ class MenuInspector extends StatelessWidget {
             label: 'Close on teleport',
             value: _menu.closeOnTeleport,
             help: 'Closes on any teleport, including portals.',
+            trailing: const HuiFieldHelp('menu.closeOnTeleport'),
             onChanged: (bool value) => store.mutate(
               'menu closeOnTeleport',
               (HuiMenu menu) => menu.closeOnTeleport = value,
@@ -238,6 +253,23 @@ class MenuInspector extends StatelessWidget {
                 title: 'Permission trap',
               ),
             ],
+          ),
+        ],
+      );
+
+  /// Unknown keys at the menu root. `name` is the one that turns up in real
+  /// files: the plugin ignores it and takes the id from the filename, so seeing
+  /// it here is the only way to learn it does nothing.
+  Widget _extras() => InspectorSection(
+        title: 'Extra keys',
+        children: <Widget>[
+          ExtrasEditor(
+            title: 'Menu',
+            extras: _menu.extras,
+            onChanged: (String label, Map<String, dynamic> next) => store.mutate(
+              label,
+              (HuiMenu menu) => menu.extras = next,
+            ),
           ),
         ],
       );

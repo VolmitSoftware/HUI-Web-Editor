@@ -1,9 +1,7 @@
 /// Canvas viewport barrel. Import this rather than the individual files.
 library;
 
-export 'backdrop.dart' show huiPlayerEyeHeight, huiPlayerHeight;
-export 'canvas_assets.dart' show huiBackdropAssetUrl;
-export 'canvas_scene.dart'
+export '../../logic/canvas_scene.dart'
     show
         CanvasIconKind,
         CanvasItem,
@@ -14,4 +12,6 @@ export 'canvas_scene.dart'
         buildCanvasScene,
         huiIsBlockLikeMaterial,
         imageRowChars;
+export '../render/canvas_assets.dart' show huiBackdropAssetUrl;
+export 'backdrop.dart' show huiPlayerEyeHeight, huiPlayerHeight;
 export 'canvas_viewport.dart' show CanvasViewport;

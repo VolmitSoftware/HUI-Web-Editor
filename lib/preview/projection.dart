@@ -1,0 +1,472 @@
+/// Cameras, rays and collision planes for the 3D preview.
+///
+/// Pure and DOM-free: everything here is numbers, so the whole projection is
+/// testable on the VM and the DOM stage only has to write the strings out.
+///
+/// Three frames meet in this file and they are stated once, here:
+///
+///  * **Authoring frame** (`preview_types.dart`): the player's feet are the
+///    origin, +X is the player's right, +Y is up, +Z is forward/away. This is
+///    the json frame verbatim — `MenuSession.java:70` multiplies the parsed
+///    offset by (-1, 1, 1) precisely so that json +X means "player's right",
+///    so the preview adds no second mirror.
+///  * **Yaw** is Minecraft yaw in degrees: yaw 0 looks along +Z, increasing yaw
+///    turns the player to their right, and positive pitch looks down. The
+///    runtime captures `initialY = -yaw` at open (`MenuSession.java:120`) and
+///    rotates the layout by that once (`MenuComponent.java:142-144`), so the
+///    authoring-frame rotation angle is the *negated* yaw — see
+///    [huiOpenYawRadians], which is the only place that sign lives.
+///  * **CSS frame**: +x right, +y **down**, +z toward the viewer. The mapping
+///    from authoring blocks to css pixels is `(S·x, −S·y, −S·z)` for a scene
+///    scale `S` px per block. That flip is orientation-preserving, so rotations
+///    survive it unchanged (a rotation by `θ` about the authoring vertical axis
+///    is exactly `rotateY(θ)` in css).
+///
+/// Matrices are 16 doubles in **column-major** order, which is both the OpenGL
+/// convention and the argument order of the css `matrix3d()` function, so no
+/// transpose ever happens between here and the stage.
+library;
+
+import 'dart:math' as math;
+
+import 'preview_types.dart';
+
+/// Default scene scale. One block is this many css pixels before perspective.
+const double huiPreviewPxPerBlock = 96;
+
+/// Default css `perspective`. With [huiPreviewPxPerBlock] this puts the 1:1
+/// plane a little over 9 blocks from the camera, which frames a typical menu.
+const double huiPreviewPerspectivePx = 900;
+
+/// Unit look direction for a Minecraft yaw/pitch pair, in the authoring frame.
+///
+/// Minecraft's own direction is `(−cos p·sin y, −sin p, cos p·cos y)`; the
+/// authoring frame negates X, which is what turns "world east" into "player's
+/// right".
+PVec3 huiLookDirection({
+  required double yawDegrees,
+  double pitchDegrees = 0,
+}) {
+  final double yaw = yawDegrees * math.pi / 180;
+  final double pitch = pitchDegrees * math.pi / 180;
+  final double cosPitch = math.cos(pitch);
+  return PVec3(
+    cosPitch * math.sin(yaw),
+    -math.sin(pitch),
+    cosPitch * math.cos(yaw),
+  );
+}
+
+/// The one and only rotation the menu ever gets, in radians.
+///
+/// `MenuSession.java:120` stores `initialY = -player.getEyeLocation().getYaw()`
+/// and `MenuComponent.java:142-144` rotates every component location by it,
+/// about the vertical axis through the player. Everything else about the menu
+/// is frozen from that moment on.
+double huiOpenYawRadians(double openYawDegrees) =>
+    -openYawDegrees * math.pi / 180;
+
+/// A camera reduced to a position and an orthonormal basis.
+///
+/// Built once per frame and handed to [projectToScreen], [rayThrough] and
+/// [cssCameraMatrix] so none of them re-derive trigonometry.
+class CameraBasis {
+  const CameraBasis({
+    required this.position,
+    required this.forward,
+    required this.right,
+    required this.up,
+  });
+
+  /// Camera behind [OrbitCamera.target] along its look direction.
+  factory CameraBasis.orbit(OrbitCamera camera) {
+    final PVec3 forward = huiLookDirection(
+      yawDegrees: camera.yawDegrees,
+      pitchDegrees: camera.pitchDegrees,
+    );
+    return CameraBasis._facing(
+      camera.target - forward * camera.distance,
+      forward,
+    );
+  }
+
+  /// First-person camera at the player's eye (`feet + 1.62`).
+  factory CameraBasis.player(PlayerPose pose) => CameraBasis._facing(
+        pose.eye,
+        huiLookDirection(
+          yawDegrees: pose.yawDegrees,
+          pitchDegrees: pose.pitchDegrees,
+        ),
+      );
+
+  /// Derives a roll-free basis: [right] is horizontal, so the horizon never
+  /// tilts. A camera aimed exactly at the poles falls back to +X, which is what
+  /// the pitch clamps in `preview_types.dart` normally keep out of reach.
+  factory CameraBasis._facing(PVec3 position, PVec3 forward) {
+    final PVec3 look = forward.normalized;
+    PVec3 right = PVec3.up.cross(look);
+    right = right.lengthSquared <= 1e-18 ? PVec3.right : right.normalized;
+    return CameraBasis(
+      position: position,
+      forward: look,
+      right: right,
+      up: look.cross(right),
+    );
+  }
+
+  final PVec3 position;
+  final PVec3 forward;
+  final PVec3 right;
+  final PVec3 up;
+
+  @override
+  String toString() => 'CameraBasis($position -> $forward)';
+}
+
+/// A world point resolved to viewport pixels.
+class ProjectedPoint {
+  const ProjectedPoint({
+    required this.x,
+    required this.y,
+    required this.distance,
+  });
+
+  /// Pixels from the left of the viewport.
+  final double x;
+
+  /// Pixels from the top of the viewport — css y grows downward.
+  final double y;
+
+  /// Blocks in front of the camera along its forward axis.
+  final double distance;
+
+  @override
+  String toString() => 'ProjectedPoint($x, $y, d: $distance)';
+}
+
+/// Where [point] lands on screen, or null when it is at or behind the camera.
+///
+/// The scene scale cancels out of this: a quad's *size* is measured in pixels
+/// per block, but where its centre lands is `perspective / distance` either
+/// way.
+ProjectedPoint? projectToScreen({
+  required CameraBasis basis,
+  required PVec3 point,
+  required double viewportWidth,
+  required double viewportHeight,
+  required double perspectivePx,
+}) {
+  final PVec3 relative = point - basis.position;
+  final double distance = relative.dot(basis.forward);
+  if (!(distance > 0)) return null;
+  final double scale = perspectivePx / distance;
+  return ProjectedPoint(
+    x: viewportWidth / 2 + relative.dot(basis.right) * scale,
+    y: viewportHeight / 2 - relative.dot(basis.up) * scale,
+    distance: distance,
+  );
+}
+
+/// Picking ray through a viewport pixel — the inverse of [projectToScreen].
+///
+/// The player's own look ray is this with the pointer at the viewport centre,
+/// which is what pointer-lock mode uses.
+LookRay rayThrough({
+  required CameraBasis basis,
+  required double viewportWidth,
+  required double viewportHeight,
+  required double pointerX,
+  required double pointerY,
+  required double perspectivePx,
+}) {
+  final double offsetX = pointerX - viewportWidth / 2;
+  final double offsetY = pointerY - viewportHeight / 2;
+  return LookRay.normalized(
+    basis.position,
+    basis.right * offsetX -
+        basis.up * offsetY +
+        basis.forward * perspectivePx,
+  );
+}
+
+/// A collision plane aimed at the player's eye.
+///
+/// [normal] points from [center] at the eye; [right] and [up] span the
+/// rectangle. Rebuilt every tick — that is the point of it.
+class PlaneAim {
+  const PlaneAim({
+    required this.center,
+    required this.normal,
+    required this.right,
+    required this.up,
+  });
+
+  final PVec3 center;
+  final PVec3 normal;
+  final PVec3 right;
+  final PVec3 up;
+
+  @override
+  String toString() => 'PlaneAim($center, n: $normal)';
+}
+
+/// Re-aims a collision plane at [eye], exactly as `ClickableComponent.rotateToFace`
+/// does before every hit test (`ClickableComponent.java:60-62,111-113`).
+///
+/// The runtime routes this through Minecraft yaw/pitch, but the algebra
+/// collapses: `plane.rotate(pitch, -yaw)` with the rotation derived from
+/// `center − eye` yields `normal = normalize(eye − center)`,
+/// `right = normalize(normal × up)` and `up = right × normal`
+/// (`CollisionPlane.java:56-64,83-85`). The exact `x == 0 && z == 0` branch of
+/// `MathHelper.getRotationFromDirection` is preserved below: an eye straight
+/// above or below the plane gives yaw 0, pitch ±90, hence right = +X.
+///
+/// The authoring frame mirrors Minecraft's X, which flips the handedness of a
+/// cross product — harmless here, because the hit test only ever reads
+/// `|right·i|` and `|up·i|`, and an overlay rectangle spanned by ±right, ±up is
+/// the same rectangle either way.
+PlaneAim aimPlaneAt(PVec3 planeCenter, PVec3 eye) {
+  final PVec3 toEye = eye - planeCenter;
+  final double horizontal = math.sqrt(toEye.x * toEye.x + toEye.z * toEye.z);
+  final PVec3 normal;
+  final PVec3 right;
+  if (horizontal == 0) {
+    normal = toEye.y >= 0 ? PVec3.up : -PVec3.up;
+    right = PVec3.right;
+  } else {
+    normal = toEye.normalized;
+    right = PVec3(-toEye.z / horizontal, 0, toEye.x / horizontal);
+  }
+  return PlaneAim(
+    center: planeCenter,
+    normal: normal,
+    right: right,
+    up: right.cross(normal),
+  );
+}
+
+/// Port of `CollisionPlane.isLookingAt` (`CollisionPlane.java:42-54`).
+///
+/// Two rejections are deliberate and must not be "improved": an exactly
+/// parallel ray bails on `proj == 0`, and a plane behind the ray bails on
+/// `distance < 0`. The edge test is strictly `<`, so a ray through a corner of
+/// the rectangle misses, and a zero-width plane can never be hit at all.
+bool rayHitsPlane(
+  LookRay ray,
+  PlaneAim aim,
+  double width,
+  double height,
+) {
+  final double projection = aim.normal.dot(ray.direction);
+  if (projection == 0) return false;
+  final double distance =
+      aim.normal.dot(aim.center - ray.origin) / projection;
+  if (distance < 0) return false;
+  final PVec3 intersect = ray.pointAt(distance) - aim.center;
+  return aim.right.dot(intersect).abs() < width / 2 &&
+      aim.up.dot(intersect).abs() < height / 2;
+}
+
+/// How far the icon leans toward the player on hover tick [hoverTicks].
+///
+/// Tick 1 is the raw `highlightModifier`: `ClickableComponent.java:59-70` moves
+/// the icon by `normal × highlightMod`, and Gson writes that record field
+/// directly, so the API's 0..1 clamp (`HoloComponent.java:33`) never runs on a
+/// value parsed from json — a file saying `3.0` really does throw the icon
+/// three blocks.
+///
+/// From tick 2 the push is exactly **1.0 block**, whatever the modifier says:
+/// `rotateToFace` runs *before* the hit test and, while selected, teleports the
+/// icon to `location + plane.normal`, and that normal is normalised
+/// (`ClickableComponent.java:111-116`, `CollisionPlane.java:83-85`). Exit is an
+/// instant teleport back to zero, which is why there is no easing anywhere in
+/// this function.
+PVec3 hoverPush(PlaneAim aim, double modifier, int hoverTicks) {
+  if (hoverTicks <= 0) return PVec3.zero;
+  return hoverTicks == 1 ? aim.normal * modifier : aim.normal;
+}
+
+/// Column-major 4x4 identity.
+List<double> huiIdentityMatrix() => <double>[
+      1, 0, 0, 0, //
+      0, 1, 0, 0, //
+      0, 0, 1, 0, //
+      0, 0, 0, 1, //
+    ];
+
+/// `a · b`, i.e. [b] applied first.
+List<double> huiMultiplyMatrix(List<double> a, List<double> b) {
+  _requireMatrix(a);
+  _requireMatrix(b);
+  final List<double> out = List<double>.filled(16, 0);
+  for (int column = 0; column < 4; column++) {
+    for (int row = 0; row < 4; row++) {
+      double sum = 0;
+      for (int k = 0; k < 4; k++) {
+        sum += a[k * 4 + row] * b[column * 4 + k];
+      }
+      out[column * 4 + row] = sum;
+    }
+  }
+  return out;
+}
+
+/// Transforms a point (w = 1) by a column-major matrix.
+PVec3 huiTransformPoint(List<double> matrix, PVec3 point) {
+  _requireMatrix(matrix);
+  final double x = matrix[0] * point.x +
+      matrix[4] * point.y +
+      matrix[8] * point.z +
+      matrix[12];
+  final double y = matrix[1] * point.x +
+      matrix[5] * point.y +
+      matrix[9] * point.z +
+      matrix[13];
+  final double z = matrix[2] * point.x +
+      matrix[6] * point.y +
+      matrix[10] * point.z +
+      matrix[14];
+  final double w = matrix[3] * point.x +
+      matrix[7] * point.y +
+      matrix[11] * point.z +
+      matrix[15];
+  return w == 1 || w == 0 ? PVec3(x, y, z) : PVec3(x / w, y / w, z / w);
+}
+
+/// World blocks to camera blocks: right, up, backward, with the camera at the
+/// origin. Exposed because it is the numerically checkable half of
+/// [cssCameraMatrix].
+List<double> viewMatrix(CameraBasis basis) {
+  final PVec3 r = basis.right;
+  final PVec3 u = basis.up;
+  final PVec3 f = basis.forward;
+  final PVec3 e = basis.position;
+  return <double>[
+    r.x, u.x, -f.x, 0, //
+    r.y, u.y, -f.y, 0, //
+    r.z, u.z, -f.z, 0, //
+    -r.dot(e), -u.dot(e), f.dot(e), 1, //
+  ];
+}
+
+/// Transform for the stage's camera element.
+///
+/// Composed as `translateZ(perspective) · pxFlip · view · blockFlip⁻¹` so that a
+/// child placed at the css-world position of a point exactly `perspective /
+/// pxPerBlock` blocks ahead of the camera renders 1:1. The parent must carry
+/// `perspective: perspectivePx` and a centred `perspective-origin`.
+List<double> cssCameraMatrix({
+  required CameraBasis basis,
+  required double perspectivePx,
+  required double pxPerBlock,
+}) {
+  final double scale = pxPerBlock == 0 ? 1 : pxPerBlock;
+  final List<double> toBlocks = <double>[
+    1 / scale, 0, 0, 0, //
+    0, -1 / scale, 0, 0, //
+    0, 0, -1 / scale, 0, //
+    0, 0, 0, 1, //
+  ];
+  final List<double> toPixels = <double>[
+    scale, 0, 0, 0, //
+    0, -scale, 0, 0, //
+    0, 0, scale, 0, //
+    0, 0, 0, 1, //
+  ];
+  final List<double> depth = <double>[
+    1, 0, 0, 0, //
+    0, 1, 0, 0, //
+    0, 0, 1, 0, //
+    0, 0, perspectivePx, 1, //
+  ];
+  return huiMultiplyMatrix(
+    depth,
+    huiMultiplyMatrix(toPixels, huiMultiplyMatrix(viewMatrix(basis), toBlocks)),
+  );
+}
+
+/// Transform for one icon quad, frozen at the yaw the player had at open.
+///
+/// The quad is a plain translation plus `rotateY(−openYaw)`: an untransformed
+/// css element already faces the viewer, so yaw 0 needs no rotation at all, and
+/// the rotation is the same `initialY` the layout got. Nothing here reads the
+/// camera, which is the structural reason a quad cannot drift while orbiting.
+///
+/// The element itself is sized in pixels (`blocks × pxPerBlock`), so the matrix
+/// deliberately carries no scale — a scale here would double-apply.
+List<double> cssQuadMatrix({
+  required PVec3 position,
+  required double facingYawDegrees,
+  required double pxPerBlock,
+}) {
+  final double angle = huiOpenYawRadians(facingYawDegrees);
+  final double cos = math.cos(angle);
+  final double sin = math.sin(angle);
+  return <double>[
+    cos, 0, -sin, 0, //
+    0, 1, 0, 0, //
+    sin, 0, cos, 0, //
+    position.x * pxPerBlock,
+    -position.y * pxPerBlock,
+    -position.z * pxPerBlock,
+    1,
+  ];
+}
+
+/// Transform for an aimed collision-plane overlay.
+///
+/// Columns are the css images of `right`, `−up` (css y is down) and `normal`,
+/// so the overlay lies exactly on the plane the hit test uses. Push it a few
+/// thousandths of a block along [PlaneAim.normal] before calling this if it is
+/// coplanar with a quad, or the two will z-fight.
+List<double> cssPlaneMatrix(PlaneAim aim, {required double pxPerBlock}) =>
+    <double>[
+      aim.right.x, -aim.right.y, -aim.right.z, 0, //
+      -aim.up.x, aim.up.y, aim.up.z, 0, //
+      aim.normal.x, -aim.normal.y, -aim.normal.z, 0, //
+      aim.center.x * pxPerBlock,
+      -aim.center.y * pxPerBlock,
+      -aim.center.z * pxPerBlock,
+      1,
+    ];
+
+/// Formats a column-major matrix as a css `matrix3d()`.
+///
+/// Fixed notation only: css cannot parse `1e-9`, and a single exponent anywhere
+/// invalidates the whole declaration, silently dropping an element off the
+/// stage. Non-finite values collapse to 0 for the same reason.
+String cssMatrix3d(List<double> matrix) {
+  _requireMatrix(matrix);
+  final StringBuffer buffer = StringBuffer('matrix3d(');
+  for (int i = 0; i < 16; i++) {
+    if (i > 0) buffer.write(',');
+    buffer.write(_css(matrix[i]));
+  }
+  buffer.write(')');
+  return buffer.toString();
+}
+
+/// Six decimals is a thousandth of a pixel at any scale this stage uses.
+String _css(double value) {
+  if (!value.isFinite) return '0';
+  final String text = value.toStringAsFixed(6);
+  int end = text.length;
+  if (text.contains('.')) {
+    while (end > 0 && text[end - 1] == '0') {
+      end--;
+    }
+    if (end > 0 && text[end - 1] == '.') end--;
+  }
+  final String trimmed = text.substring(0, end);
+  return trimmed.isEmpty || trimmed == '-' || trimmed == '-0' ? '0' : trimmed;
+}
+
+void _requireMatrix(List<double> matrix) {
+  if (matrix.length != 16) {
+    throw ArgumentError.value(
+      matrix.length,
+      'matrix',
+      'a 4x4 column-major matrix needs exactly 16 values',
+    );
+  }
+}

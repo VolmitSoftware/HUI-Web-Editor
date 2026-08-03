@@ -119,7 +119,7 @@ class SettingsDialog extends StatelessWidget {
   }
 
   Widget _body() => dom.div(
-        classes: 'hui-dialog-body',
+        classes: 'hui-dialog-body hui-stagger',
         <Widget>[
           _appearance(),
           _canvas(),
@@ -280,22 +280,71 @@ class SettingsDialog extends StatelessWidget {
               },
             ),
           ),
-          HuiField(
-            label: 'Server uiScale (preview)',
-            help: 'The real value lives in plugins/holoui/settings.json and is '
-                'global for the server. It multiplies every offset and every '
-                'icon size.',
-            control: ArcaneSlider(
-              value: store.previewUiScale,
-              min: 0.25,
-              max: 4,
-              step: 0.05,
-              valueDecimals: 2,
-              onChanged: (double value) => store.previewUiScale = value,
-            ),
-          ),
+          _uiScale(),
         ],
       );
+
+  /// The server uiScale, as a native range input.
+  ///
+  /// Not `ArcaneSlider`. That renderer never binds `onChanged` to the DOM — it
+  /// reads `props.onChangeAction` and emits no `events:` map at all — so the
+  /// injected JS dragged the fill while the store stayed put. Measured before
+  /// replacing it: a full-width drag and five ArrowRight presses both left
+  /// `previewUiScale` at 1.00, while the canvas toolbar's native range moved
+  /// the same field to 1.25.
+  ///
+  /// Bounds, step, rounding and the reset target are copied from that toolbar
+  /// control (`canvas_toolbar.dart`) on purpose: the two edit one store field,
+  /// and a user who nudges one and then the other must not find a different
+  /// number. Keep them in step if either changes.
+  Widget _uiScale() {
+    final String value = store.previewUiScale.toStringAsFixed(2);
+    return HuiField(
+      label: 'Server uiScale (preview)',
+      help: 'The real value lives in plugins/holoui/settings.json and is '
+          'global for the server. It multiplies every offset and every '
+          'icon size.',
+      // Always mounted, disabled at 1.00: a button that appears only once the
+      // value moves would shift the row's header as the user drags.
+      trailing: Button(
+        variant: ButtonVariant.ghost,
+        size: ButtonSize.sm,
+        disabled: store.previewUiScale == 1,
+        onPressed: () => store.previewUiScale = 1,
+        icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
+        label: 'Reset',
+        attributes: const <String, String>{
+          'aria-label': 'Reset uiScale to 1.00',
+        },
+      ),
+      control: dom.div(
+        classes: 'hui-range-row',
+        <Widget>[
+          // HuiField's <label> carries no `for`, so the accessible name has to
+          // ride on the input itself.
+          dom.input<num>(
+            type: dom.InputType.range,
+            classes: 'hui-range',
+            value: value,
+            // No setState: the store notifies and the ListenableBuilder that
+            // wraps this body rebuilds it, exactly as the toolbar does.
+            onInput: (num next) =>
+                store.previewUiScale = (next.toDouble() * 100).round() / 100,
+            attributes: const <String, String>{
+              'min': '0.25',
+              'max': '4',
+              'step': '0.05',
+              'aria-label': 'Server uiScale (preview)',
+            },
+          ),
+          dom.span(
+            classes: 'hui-range-value',
+            <Widget>[Text('${value}x')],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _localData() {
     final int used = StorageService.estimateUsageBytes();

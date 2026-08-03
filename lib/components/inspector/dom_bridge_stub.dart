@@ -14,3 +14,5 @@ void writeTextValue(
 List<Object> readInputFiles(String elementId) => const <Object>[];
 
 void resetFileInput(String elementId) {}
+
+void focusElement(String elementId) {}

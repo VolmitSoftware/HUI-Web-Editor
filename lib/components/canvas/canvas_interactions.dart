@@ -6,12 +6,12 @@
 /// straight to the canvas and to the DOM readouts, never through `setState`.
 part of 'canvas_viewport.dart';
 
-enum _DragMode { none, pan, component }
+enum _DragMode { none, pan, component, marquee }
 
-/// Buttons the browser reports on `PointerEvent.button`.
+/// Buttons the browser reports on `PointerEvent.button`. Secondary is 2 and is
+/// deliberately absent: the canvas answers it with `contextmenu` only.
 const int _primaryButton = 0;
 const int _middleButton = 1;
-const int _secondaryButton = 2;
 
 /// Reads a numeric event property without trusting package:web's `int` typing.
 ///
@@ -125,7 +125,11 @@ extension _CanvasInteractions on _CanvasViewportState {
   void _handlePointerDown(web.Event event) {
     if (!event.isA<web.PointerEvent>()) return;
     final web.PointerEvent pointer = event as web.PointerEvent;
-    if (pointer.button == _secondaryButton) return;
+    // Only the two buttons the canvas has a meaning for. Back/forward mice
+    // report buttons 3 and 4 and used to fall through into a pan.
+    if (pointer.button != _primaryButton && pointer.button != _middleButton) {
+      return;
+    }
     _stage?.focus();
     _lastClientX = _eventDouble(pointer, 'clientX');
     _lastClientY = _eventDouble(pointer, 'clientY');
@@ -135,21 +139,13 @@ extension _CanvasInteractions on _CanvasViewportState {
     final CanvasItem? hit =
         forcePan ? null : _currentScene.hitTest(world.x, world.y);
 
-    if (hit == null) {
+    if (forcePan) {
       _dragMode = _DragMode.pan;
       _dragComponentId = null;
-      if (!forcePan && pointer.button == _primaryButton) {
-        component.store.select(null);
-      }
+    } else if (hit == null) {
+      _beginMarquee(pointer, world);
     } else {
-      _dragMode = _DragMode.component;
-      _dragComponentId = hit.id;
-      // Preserve the grab point so the component does not jump to the cursor.
-      _grabOffsetX = world.x - hit.anchor.x;
-      _grabOffsetY = world.y - hit.anchor.y;
-      component.store.select(hit.id);
-      component.store.beginDrag();
-      _showReadout(hit.component.offset);
+      _beginComponentDrag(pointer, hit, world);
     }
 
     _statusDirty = true;
@@ -161,6 +157,87 @@ extension _CanvasInteractions on _CanvasViewportState {
     }
     _setStageState(dragging: true);
     event.preventDefault();
+  }
+
+  /// Left-drag on empty space. Panning moved to Space-drag and the middle
+  /// button (both handled above), which is the one muscle-memory break in this
+  /// wave and why the hint line leads with it.
+  void _beginMarquee(web.PointerEvent pointer, WorldPoint world) {
+    _dragMode = _DragMode.marquee;
+    _dragComponentId = null;
+    _marqueeStartX = world.x;
+    _marqueeStartY = world.y;
+    _marquee = marqueeRect(world.x, world.y, world.x, world.y);
+    // Shift keeps what was already selected and only ever adds: a band swept
+    // across a member must not silently drop it.
+    _marqueeBase = pointer.shiftKey
+        ? Set<String>.of(component.store.selectionIds)
+        : const <String>{};
+    if (!pointer.shiftKey) component.store.select(null);
+    _markDirty();
+  }
+
+  void _beginComponentDrag(
+    web.PointerEvent pointer,
+    CanvasItem hit,
+    WorldPoint world,
+  ) {
+    final EditorStore store = component.store;
+    if (pointer.shiftKey) {
+      store.toggleInSelection(hit.id);
+      // A shift-click that REMOVED the component must not then drag it.
+      if (!store.isSelected(hit.id)) {
+        _dragMode = _DragMode.none;
+        return;
+      }
+    } else if (store.isSelected(hit.id)) {
+      // Grabbing a member of a group keeps the group and re-primaries it, so
+      // the inspector follows the pointer without the group collapsing.
+      store.addToSelection(hit.id);
+    } else {
+      store.select(hit.id);
+    }
+
+    _dragMode = _DragMode.component;
+    _dragComponentId = hit.id;
+    // Preserve the grab point so the component does not jump to the cursor.
+    _grabOffsetX = world.x - hit.anchor.x;
+    _grabOffsetY = world.y - hit.anchor.y;
+    // Deferred to the first pointer move: an alt-CLICK must not leave a
+    // coincident copy behind, and the copies land exactly on their sources so
+    // the grab point stays valid when it does happen.
+    _altDuplicatePending = pointer.altKey;
+    // Opened before any mutation so the duplicate and every move that follows
+    // collapse into the one undo step the gesture deserves.
+    store.beginDrag();
+    _captureDragStart();
+    _showReadout(hit.component.offset);
+  }
+
+  /// Snapshots what the drag moves. Re-run after an alt-duplicate, because by
+  /// then the selection is a different set of components.
+  void _captureDragStart() {
+    _dragStartOffsets = <String, Vec3>{
+      for (final HuiComponent selected in component.store.selectedComponents)
+        selected.id: selected.offset.copy(),
+    };
+    _dragStartBounds = outlineBounds(_currentScene, _dragStartOffsets.keys);
+  }
+
+  /// Copies the selection in place and hands the drag to the copies, so the
+  /// originals never move.
+  void _performAltDuplicate() {
+    final EditorStore store = component.store;
+    final String? grabbed = _dragComponentId;
+    if (grabbed == null) return;
+    final List<HuiComponent> sources = store.selectedComponents;
+    final int index = sources.indexWhere((HuiComponent c) => c.id == grabbed);
+    final List<String> copies = store.duplicateSelection();
+    // duplicateSelection walks the document and so does selectedComponents, so
+    // the two lists are index-aligned.
+    if (index < 0 || copies.length != sources.length) return;
+    _dragComponentId = copies[index];
+    _captureDragStart();
   }
 
   void _handlePointerMove(web.Event event) {
@@ -184,33 +261,104 @@ extension _CanvasInteractions on _CanvasViewportState {
         _setCursorReadout(_worldPoint(clientX, clientY));
       case _DragMode.component:
         _dragComponentTo(clientX, clientY);
+      case _DragMode.marquee:
+        _dragMarqueeTo(clientX, clientY);
     }
     _lastClientX = clientX;
     _lastClientY = clientY;
     event.preventDefault();
   }
 
-  void _dragComponentTo(double clientX, double clientY) {
-    final String? id = _dragComponentId;
-    if (id == null) return;
-    final EditorStore store = component.store;
-    final HuiComponent? target = store.menu.componentById(id);
-    if (target == null) return;
-    final double scale = store.previewUiScale > 0 ? store.previewUiScale : 1;
+  /// The band updates the selection live rather than only on release: sweeping
+  /// with the rings appearing as you go is the whole point of a marquee.
+  /// [EditorStore.selectMany] drops a write that would not change the set, so
+  /// the live update costs one notification per membership change, not one per
+  /// pointer frame.
+  void _dragMarqueeTo(double clientX, double clientY) {
     final WorldPoint world = _worldPoint(clientX, clientY);
     _setCursorReadout(world);
-    // anchor = menuOffset + offset * uiScale, so invert exactly that.
-    final double rawX = (world.x - _grabOffsetX - store.menu.offset.x) / scale;
-    final double rawY = (world.y - _grabOffsetY - store.menu.offset.y) / scale;
-    final double nextX = store.snapValue(rawX);
-    final double nextY = store.snapValue(rawY);
-    if (nextX == target.offset.x && nextY == target.offset.y) return;
-    // editComponent instead of setComponentOffset: z must survive an xy drag
-    // untouched, and the store's snapVec would round it too.
-    store.editComponent(id, 'move $id', (HuiComponent moved) {
-      moved.offset = Vec3(nextX, nextY, moved.offset.z);
-    });
-    _showReadout(Vec3(nextX, nextY, target.offset.z));
+    _marquee = marqueeRect(_marqueeStartX, _marqueeStartY, world.x, world.y);
+    final Set<String> next = <String>{
+      ..._marqueeBase,
+      ...idsInMarquee(_currentScene, _marquee!),
+    };
+    component.store.selectMany(next);
+    _markDirty();
+  }
+
+  void _dragComponentTo(double clientX, double clientY) {
+    if (_altDuplicatePending) {
+      _altDuplicatePending = false;
+      _performAltDuplicate();
+    }
+    final String? id = _dragComponentId;
+    final Vec3? start = _dragStartOffsets[id];
+    final WorldBounds? bounds = _dragStartBounds;
+    if (id == null || start == null || bounds == null) return;
+    final EditorStore store = component.store;
+    final CanvasScene scene = _currentScene;
+    final WorldPoint world = _worldPoint(clientX, clientY);
+    _setCursorReadout(world);
+
+    // anchor = menuOffset + offset * uiScale, so invert exactly that. The scale
+    // and offset come from the scene rather than the store so the inversion can
+    // never disagree with the geometry the guides were measured against.
+    final double scale = scene.uiScale > 0 ? scene.uiScale : 1;
+    final double rawX = (world.x - _grabOffsetX - scene.menuOffset.x) / scale;
+    final double rawY = (world.y - _grabOffsetY - scene.menuOffset.y) / scale;
+
+    final GroupDrag drag = resolveGroupDrag(
+      scene: scene,
+      startOffsets: _dragStartOffsets,
+      startBounds: bounds,
+      grabbedId: id,
+      // Snap the grabbed component only; the rest follow its snapped delta, so
+      // the group can never be torn apart by the grid.
+      grabbedTarget:
+          Vec3(store.snapValue(rawX), store.snapValue(rawY), start.z),
+      guideThresholdBlocks: _viewport.pixelsToBlocks(huiGuideCatchPx),
+    );
+    if (drag.offsets.isEmpty) return;
+
+    if (!_sameGuides(_guides, drag.guides)) {
+      _guides = drag.guides;
+      _markDirty();
+    }
+    if (!_offsetsChanged(store, drag.offsets)) return;
+    store.setOffsets(
+      drag.offsets.length == 1 ? 'move $id' : 'move ${drag.offsets.length} components',
+      drag.offsets,
+    );
+    final Vec3? landed = drag.offsets[id];
+    if (landed != null) _showReadout(landed);
+  }
+
+  /// True when at least one member would actually move. A pointer frame that
+  /// lands on the same snapped cell must not notify the store, or every
+  /// listener in the shell rebuilds sixty times a second for nothing.
+  bool _offsetsChanged(EditorStore store, Map<String, Vec3> offsets) {
+    for (final MapEntry<String, Vec3> entry in offsets.entries) {
+      if (store.menu.componentById(entry.key)?.offset != entry.value) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Guides are compared by what gets drawn, not by identity: a fresh list with
+  /// the same lines every frame would repaint the canvas for nothing.
+  bool _sameGuides(List<AlignmentGuide> a, List<AlignmentGuide> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].axis != b[i].axis ||
+          a[i].match != b[i].match ||
+          a[i].position != b[i].position ||
+          a[i].start != b[i].start ||
+          a[i].end != b[i].end) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void _handlePointerUp(web.Event event) {
@@ -223,6 +371,12 @@ extension _CanvasInteractions on _CanvasViewportState {
     _activePointerId = null;
     _dragMode = _DragMode.none;
     _dragComponentId = null;
+    _altDuplicatePending = false;
+    _dragStartOffsets = const <String, Vec3>{};
+    _dragStartBounds = null;
+    _marqueeBase = const <String>{};
+    _marquee = null;
+    _guides = const <AlignmentGuide>[];
     _statusDirty = true;
     try {
       if (_stage?.hasPointerCapture(pointer.pointerId) ?? false) {
@@ -268,7 +422,13 @@ extension _CanvasInteractions on _CanvasViewportState {
     final CanvasItem? hit = _currentScene.hitTest(world.x, world.y);
     if (hit == null) return;
     event.preventDefault();
-    component.store.select(hit.id);
+    // Re-primary rather than replace when it is already a member: double-click
+    // means "edit this one", not "throw away the group I just built".
+    if (component.store.isSelected(hit.id)) {
+      component.store.addToSelection(hit.id);
+    } else {
+      component.store.select(hit.id);
+    }
     // Advisory: the inspector may listen for this to pull focus. Nothing
     // depends on anyone handling it.
     _stage?.dispatchEvent(
@@ -318,17 +478,21 @@ extension _CanvasInteractions on _CanvasViewportState {
         _nudge(0, 1, key.shiftKey);
       case 'ArrowDown':
         _nudge(0, -1, key.shiftKey);
+      // Stepped zoom commits immediately: key repeat fires ~30x/s and would
+      // restart the ease every frame, so the camera would never arrive.
       case '+':
       case '=':
         _zoomFromCenter(huiZoomStep);
       case '-':
       case '_':
         _zoomFromCenter(1 / huiZoomStep);
+      // Reset and fit are single, large, non-repeating moves — the same ones
+      // the toolbar buttons ease (canvas_viewport.dart:303-304).
       case '0':
-        _resetView();
+        _easeThrough(_resetView);
       case 'f':
       case 'F':
-        _fitToContent();
+        _easeThrough(_fitToContent);
       default:
         handled = false;
     }
@@ -343,29 +507,48 @@ extension _CanvasInteractions on _CanvasViewportState {
   /// is local, undo is one keystroke away, and a modal over the artboard breaks
   /// the flow. The shell keeps its confirm for the global binding.
   void _deleteSelection() {
-    final String? id = component.store.selectedId;
-    if (id == null) return;
-    component.store.deleteComponent(id);
+    // One store path for every count, so the canvas, the rail and the shell
+    // agree: removal is by INDEX, and a duplicated id keeps its namesake. The
+    // `removeWhere` this replaced took both rows.
+    component.store.deleteComponents(
+      component.store.selectionIds.toList(growable: false),
+    );
   }
 
+  /// Arrows move the whole selection, in one undo step.
   void _nudge(int dx, int dy, bool coarse) {
     final EditorStore store = component.store;
-    final String? id = store.selectedId;
-    if (id == null) return;
-    final double step = coarse ? huiNudgeStepCoarse : huiNudgeStep;
-    final HuiComponent? target = store.menu.componentById(id);
-    if (target == null) return;
-    store.editComponent(id, 'nudge $id', (HuiComponent moved) {
-      moved.offset = Vec3(
-        _round(moved.offset.x + dx * step),
-        _round(moved.offset.y + dy * step),
-        moved.offset.z,
-      );
-    });
+    final List<HuiComponent> selected = store.selectedComponents;
+    if (selected.isEmpty) return;
+    final double step = coarse ? huiNudgeStepLarge : huiNudgeStep;
+    final Map<String, Vec3> moved = shiftOffsets(
+      offsets: <String, Vec3>{
+        for (final HuiComponent c in selected) c.id: c.offset,
+      },
+      dx: dx * step,
+      dy: dy * step,
+    );
+    store.setOffsets(
+      moved.length == 1
+          ? 'nudge ${selected.first.id}'
+          : 'nudge ${moved.length} components',
+      moved,
+    );
   }
 
-  double _round(double value) =>
-      !value.isFinite ? 0 : (value * 10000).roundToDouble() / 10000;
+  /// Toolbar restack. [zOrderOffsets] does the sign work — larger `z` paints
+  /// first, so "forward" subtracts.
+  void _applyZOrder(HuiZOrder op) {
+    final EditorStore store = component.store;
+    final Map<String, Vec3> next = zOrderOffsets(
+      items: _currentScene.items,
+      ids: store.selectionIds,
+      op: op,
+      step: huiDepthStep,
+    );
+    if (next.isEmpty) return;
+    store.setOffsets(huiZOrderLabels[op]!, next);
+  }
 
   /// True when a form control owns the keyboard, so canvas shortcuts stay out
   /// of the way of inline editing anywhere in the shell.
@@ -392,6 +575,11 @@ extension _CanvasInteractions on _CanvasViewportState {
         stage,
         'is-moving-component',
         dragging && _dragMode == _DragMode.component,
+      );
+      _toggleClass(
+        stage,
+        'is-marqueeing',
+        dragging && _dragMode == _DragMode.marquee,
       );
     }
     if (overComponent != null) {

@@ -14,6 +14,7 @@ import 'package:jaspr/jaspr.dart' show Listenable;
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../common/class_names.dart';
+import 'bar_menu.dart';
 import 'shell_intents.dart';
 import 'shell_keys.dart';
 import 'store_selector.dart';
@@ -217,28 +218,24 @@ class _TopBarState extends State<TopBar> {
   Widget _overflow() => dom.div(
         classes: 'hui-bar-cluster hui-bar-overflow',
         <Widget>[
-          ArcaneDropdownMenu(
+          BarMenu(
             id: 'hui-bar-more',
-            alignment: DropdownAlignment.right,
-            width: 240,
-            trigger: Button.ghost(
-              size: ButtonSize.iconSm,
-              icon: ArcaneIcon.ellipsis(size: IconSize.sm),
-              attributes: const <String, String>{'aria-label': 'More actions'},
-            ),
-            items: <ArcaneMenuItem>[
-              const MenuItemLabel(label: 'More'),
-              MenuItemAction(
+            align: BarMenuAlign.right,
+            triggerIcon: ArcaneIcon.ellipsis(size: IconSize.sm),
+            triggerLabel: 'More actions',
+            entries: () => <BarMenuEntry>[
+              const BarMenuHeading('More'),
+              BarMenuAction(
                 label: 'Templates',
                 icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
                 onSelect: _intents.openTemplates,
               ),
-              MenuItemAction(
+              BarMenuAction(
                 label: 'Command palette',
                 icon: ArcaneIcon.command(size: IconSize.sm),
                 onSelect: _intents.openPalette,
               ),
-              MenuItemAction(
+              BarMenuAction(
                 label: 'Settings',
                 icon: ArcaneIcon.settings(size: IconSize.sm),
                 onSelect: _intents.openSettings,
@@ -276,31 +273,25 @@ class _TopBarState extends State<TopBar> {
             ],
           ),
           const dom.span(classes: 'hui-doc-ext', <Widget>[Text('.json')]),
-          ArcaneDropdownMenu(
+          BarMenu(
             id: 'hui-doc-menu',
-            alignment: DropdownAlignment.left,
+            triggerIcon: ArcaneIcon.chevronDown(size: IconSize.sm),
+            triggerLabel: 'Switch document',
             width: 260,
-            trigger: Button.ghost(
-              size: ButtonSize.iconSm,
-              icon: ArcaneIcon.chevronDown(size: IconSize.sm),
-              attributes: const <String, String>{
-                'aria-label': 'Switch document',
-              },
-            ),
-            items: _documentItems(),
+            entries: _documentItems,
           ),
         ],
       );
 
-  List<ArcaneMenuItem> _documentItems() {
+  List<BarMenuEntry> _documentItems() {
     final Workspace workspace = _store.workspace;
-    final List<ArcaneMenuItem> items = <ArcaneMenuItem>[
-      const MenuItemLabel(label: 'Recent documents'),
+    final List<BarMenuEntry> items = <BarMenuEntry>[
+      const BarMenuHeading('Recent documents'),
     ];
     for (final WorkspaceDoc doc in workspace.recent) {
       final bool active = doc.id == workspace.activeId;
       items.add(
-        MenuItemAction(
+        BarMenuAction(
           label: doc.name,
           icon: active ? ArcaneIcon.check(size: IconSize.sm) : null,
           onSelect: active ? null : () => _intents.openDocument(doc.id),
@@ -308,16 +299,16 @@ class _TopBarState extends State<TopBar> {
       );
     }
     items
-      ..add(const MenuItemSeparator())
+      ..add(const BarMenuSeparator())
       ..add(
-        MenuItemAction(
+        BarMenuAction(
           label: 'New menu',
           icon: ArcaneIcon.filePlus(size: IconSize.sm),
           onSelect: _intents.newDocument,
         ),
       )
       ..add(
-        MenuItemAction(
+        BarMenuAction(
           label: 'Delete this document',
           icon: ArcaneIcon.trash2(size: IconSize.sm),
           destructive: true,

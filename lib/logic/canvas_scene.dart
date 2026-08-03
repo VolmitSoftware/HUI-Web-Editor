@@ -8,16 +8,20 @@
 /// (report-holoui 2.2/2.5): [CanvasItem.hitbox] is the plugin's `CollisionPlane`
 /// centred on the anchor, [CanvasItem.visual] is where the icon actually draws.
 /// With `trueRender` off they share a centre; with it on the visual drops.
+///
+/// It lives under `logic/` rather than with the canvas because the 3D preview
+/// resolves the same frame: one layout pass, two views, no way for them to
+/// disagree on a measurement.
 library;
 
 import 'dart:math' as math;
 
-import '../../logic/hui_geometry.dart';
-import '../../logic/mc_text.dart';
-import '../../logic/viewport_math.dart';
-import '../../model/model.dart';
-import '../../services/catalogs.dart';
-import '../../services/image_library.dart';
+import '../model/model.dart';
+import '../services/catalogs.dart';
+import '../services/image_library.dart';
+import 'hui_geometry.dart';
+import 'mc_text.dart';
+import 'viewport_math.dart';
 
 /// One animation tick is one Minecraft tick.
 const Duration huiAnimationTick = Duration(milliseconds: 50);
@@ -119,6 +123,76 @@ class CanvasItem {
 
   /// Selection outline box, and the primary pick target.
   HuiRect get outline => visual.w <= 0 || visual.h <= 0 ? hitbox : visual;
+}
+
+/// Measured text runs wider than the character-count estimate in
+/// [visualBoundsAt] - bold widens every glyph by a font pixel - so a rasterized
+/// icon is given room rather than clipping its last glyph.
+const double huiSpritePadFractionX = 0.25;
+const double huiSpritePadFractionY = 0.12;
+const double huiSpritePadBlocks = 0.05;
+
+/// Block-space rectangle a rasterized icon bitmap covers, RELATIVE to the
+/// item's anchor.
+///
+/// One definition, two consumers: `IconSpriteRasterizer` fits its offscreen
+/// viewport to this, and the 3D stage both sizes and POSITIONS its quad from
+/// it. They used to derive it independently, which is a standing invitation
+/// for the bitmap and the quad it is blitted into to drift apart by a nametag.
+///
+/// Relative to the anchor rather than absolute, because sprites are cached by
+/// appearance: two identical decorations share one bitmap, so an absolute
+/// rectangle would carry the world position of whichever item rasterized it
+/// first and stack the two on top of each other.
+///
+/// The centre is the drawn box's - `visual` already carries the true-render
+/// drop (`MenuIcon.java:129` plus `TextMenuIcon.java:58`, or
+/// `ItemMenuIcon.java:83-89`) - with two documented exceptions: an icon that
+/// draws nothing falls back to its collision plane, and a stack of more than
+/// one grows down to swallow the count label `ItemMenuIcon` spawns under it
+/// (`ItemMenuIcon.java:91-94,142-149`). Padding is symmetric and never moves
+/// the centre.
+HuiRect spriteExtentFor(
+  CanvasItem item, {
+  required double uiScale,
+  required bool trueRender,
+}) {
+  HuiRect rect = item.visual;
+  if (rect.w <= 0 || rect.h <= 0) rect = item.outline;
+  if (rect.w <= 0 || rect.h <= 0) return HuiRect.zero;
+  if (item.shape.isItem && item.itemCount > 1) {
+    rect = rect.union(_countLabelRect(item, uiScale, rect, trueRender));
+  }
+  final double padX =
+      rect.w * huiSpritePadFractionX + huiSpritePadBlocks * uiScale;
+  final double padY =
+      rect.h * huiSpritePadFractionY + huiSpritePadBlocks * uiScale;
+  return HuiRect.fromEdges(
+    left: rect.left - padX,
+    bottom: rect.bottom - padY,
+    right: rect.right + padX,
+    top: rect.top + padY,
+  ).translate(-item.anchor.x, -item.anchor.y);
+}
+
+/// The bold `xN` label under a stack of more than one, as the renderer draws
+/// it: on the anchor in true-render mode, tucked under the icon otherwise.
+HuiRect _countLabelRect(
+  CanvasItem item,
+  double uiScale,
+  HuiRect icon,
+  bool trueRender,
+) {
+  final double lineHeight = huiLineHeight * uiScale;
+  return HuiRect(
+    x: item.anchor.x,
+    y: trueRender
+        ? itemCountLabelY(anchorY: item.anchor.y, uiScale: uiScale)
+        : icon.bottom - lineHeight * 0.6,
+    // Two digits at the glyph advance, with slack for a three-digit stack.
+    w: math.max(icon.w, huiTextCharWidth * uiScale * 4),
+    h: lineHeight * 2,
+  );
 }
 
 /// A pair of clickable components whose planes intersect: in game a single

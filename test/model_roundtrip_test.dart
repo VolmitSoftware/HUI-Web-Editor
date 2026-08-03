@@ -579,6 +579,64 @@ void main() {
     });
   });
 
+  group('absent command source', () {
+    HuiCommandAction only(HuiMenu menu) =>
+        (menu.components.single.data as HuiButtonData).actions.single
+            as HuiCommandAction;
+
+    String document(String action) =>
+        '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
+        '"data":{"type":"button","actions":[$action]}}]}';
+
+    test('the absent key is recorded so validation can report it', () {
+      expect(
+        only(decodeHuiMenu(document('{"type":"command","command":"/x"}')))
+            .absentKeys,
+        <String>{'source'},
+      );
+      expect(
+        only(decodeHuiMenu(
+                document('{"type":"command","command":"/x","source":""}')))
+            .absentKeys,
+        <String>{'source'},
+      );
+    });
+
+    test('an explicit source records nothing', () {
+      for (final String source in <String>['player', 'server', 'console']) {
+        expect(
+          only(decodeHuiMenu(document(
+                  '{"type":"command","command":"/x","source":"$source"}')))
+              .absentKeys,
+          isEmpty,
+          reason: source,
+        );
+      }
+    });
+
+    test('the flag never reaches the export', () {
+      final String absent =
+          encodeHuiMenu(decodeHuiMenu(document('{"type":"command",'
+              '"command":"/x"}')));
+      final String explicit = encodeHuiMenu(decodeHuiMenu(document(
+          '{"type":"command","command":"/x","source":"server"}')));
+      expect(absent, explicit);
+      expect(absent, isNot(contains('absent')));
+    });
+
+    test('re-decoding the export clears the flag', () {
+      final HuiMenu repaired = decodeHuiMenu(encodeHuiMenu(
+          decodeHuiMenu(document('{"type":"command","command":"/x"}'))));
+      expect(only(repaired).absentKeys, isEmpty);
+    });
+
+    test('copy() drops it, exactly like a component offset', () {
+      final HuiCommandAction original =
+          only(decodeHuiMenu(document('{"type":"command","command":"/x"}')));
+      expect(original.copy().absentKeys, isEmpty);
+    });
+  });
+
   group('strict export', () {
     test('omits maxDistance when unlimited and emits it when set', () {
       final HuiMenu menu = HuiMenu(offset: Vec3(0, 1.7, 2.5));
@@ -678,6 +736,30 @@ void main() {
                   'components[0].data.icon'),
         ),
       );
+    });
+
+    test('the unknown-type message says the whole file fails to load', () {
+      // fontImage and itemStack are declared by MenuIconType but carry a null
+      // data class, so EnumType filters them out of its type map and the file
+      // is rejected exactly like a typo would be.
+      for (final String type in <String>['fontImage', 'itemStack']) {
+        expect(
+          () => decodeHuiMenu('{"offset":[0,0,0],"components":[{"id":"a",'
+              '"offset":[0,0,0],"data":{"type":"decoration",'
+              '"icon":{"type":"$type"}}}]}'),
+          throwsA(
+            isA<HuiFormatException>().having(
+              (HuiFormatException e) => e.message,
+              'message',
+              allOf(<Matcher>[
+                contains(type),
+                contains('whole menu file'),
+              ]),
+            ),
+          ),
+          reason: type,
+        );
+      }
     });
 
     test('throws on an unknown action type', () {

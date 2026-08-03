@@ -8,8 +8,10 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
+import '../../config/field_docs.dart';
 import '../../logic/validation.dart';
 import '../common/common.dart';
+import 'field_help.dart';
 
 /// One inspector section: uppercase eyebrow, optional trailing control, body.
 /// Sections are separated by hairlines, never by nested cards.
@@ -466,6 +468,7 @@ class HuiSwitchRow extends StatelessWidget {
     required this.onChanged,
     this.help,
     this.warning,
+    this.trailing,
     this.disabled = false,
     super.key,
   });
@@ -474,6 +477,9 @@ class HuiSwitchRow extends StatelessWidget {
   final bool value;
   final void Function(bool value) onChanged;
   final String? help;
+
+  /// Sits between the label and the switch; the field-help button lives here.
+  final Widget? trailing;
 
   /// Rendered under the help line in the warning tone (used for
   /// `followPlayer` when `lockPosition` has already frozen the player).
@@ -515,11 +521,25 @@ class HuiSwitchRow extends StatelessWidget {
                 ),
                 <Widget>[Text(label)],
               ),
-              ArcaneToggleSwitch(
-                value: value,
-                disabled: disabled,
-                size: ComponentSize.sm,
-                onChanged: disabled ? null : onChanged,
+              dom.span(
+                classes: 'hui-switch-row-tail',
+                styles: const dom.Styles(
+                  raw: <String, String>{
+                    'display': 'inline-flex',
+                    'align-items': 'center',
+                    'gap': '2px',
+                    'flex': '0 0 auto',
+                  },
+                ),
+                <Widget>[
+                  ?trailing,
+                  ArcaneToggleSwitch(
+                    value: value,
+                    disabled: disabled,
+                    size: ComponentSize.sm,
+                    onChanged: disabled ? null : onChanged,
+                  ),
+                ],
               ),
             ],
           ),
@@ -553,11 +573,25 @@ class HuiSwitchRow extends StatelessWidget {
       );
 }
 
-/// Slider plus an unclamped number field. HoloUI's JSON path does not clamp
+/// Track plus an unclamped number field. HoloUI's JSON path does not clamp
 /// `highlightModifier`, so the number entry deliberately allows values the
-/// slider cannot reach and validation warns instead of the UI blocking.
+/// track cannot reach and validation warns instead of the UI blocking.
+///
+/// A native `input[type=range]`, not `ArcaneSlider`. That renderer emits only
+/// `data-arcane-slider-*` and no `events:` map at all, so the injected JS drags
+/// the thumb while the store never hears about it. Measured before replacing
+/// it: a full-width drag on `highlightModifier` put the thumb at `left: 100%`
+/// and left both the number field and the stored value at 0.05. The native
+/// input brings real input events, arrow keys, Home/End and a focus ring with
+/// it. Same control as the settings dialog's (`settings_dialog.dart`), down to
+/// the shared `.hui-range` styling — one widget, two places.
+///
+/// A drag is one undo step: every input event carries the caller's label, and
+/// `_pushUndo`'s coalesce window slides forward on each one, so a gesture only
+/// splits if the pointer rests for longer than the window.
 class HuiSliderField extends StatelessWidget {
   const HuiSliderField({
+    required this.label,
     required this.value,
     required this.onChanged,
     required this.min,
@@ -566,8 +600,13 @@ class HuiSliderField extends StatelessWidget {
     this.decimals = 3,
     this.numberMin,
     this.numberMax,
+    this.resetTo,
     super.key,
   });
+
+  /// Accessible name for the track. `HuiField` renders a `<label>` with no
+  /// `for`, so the name has to ride on the input itself.
+  final String label;
 
   final double value;
   final void Function(double value) onChanged;
@@ -580,27 +619,64 @@ class HuiSliderField extends StatelessWidget {
   final double? numberMin;
   final double? numberMax;
 
+  /// Value the reset button returns to. Null hides the button.
+  final double? resetTo;
+
+  /// Snaps the raw track value onto the step and trims the float noise a
+  /// range input reports, so a drag commits the same numbers the step buttons
+  /// and the typed entry do.
+  double _snap(double raw) {
+    final double stepped = step <= 0 ? raw : (raw / step).roundToDouble() * step;
+    final num factor = _pow10(decimals);
+    return (stepped * factor).roundToDouble() / factor;
+  }
+
+  static num _pow10(int digits) {
+    num out = 1;
+    for (int i = 0; i < digits; i++) {
+      out *= 10;
+    }
+    return out;
+  }
+
+  String _text(double raw) {
+    final String out = raw.toStringAsFixed(decimals);
+    return out.contains('.')
+        ? out.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '')
+        : out;
+  }
+
   @override
   Widget build(BuildContext context) => dom.div(
         classes: 'hui-slider-field',
-        styles: const dom.Styles(
+        styles: dom.Styles(
           raw: <String, String>{
             'display': 'grid',
-            'grid-template-columns': 'minmax(0, 1fr) 104px',
+            'grid-template-columns':
+                'minmax(0, 1fr) 96px${resetTo == null ? '' : ' auto'}',
             'align-items': 'center',
-            'gap': '10px',
+            'gap': '8px',
             'min-width': '0',
           },
         ),
         <Widget>[
-          ArcaneSlider(
-            value: value.clamp(min, max).toDouble(),
-            min: min,
-            max: max,
-            step: step,
-            showValue: false,
-            size: ComponentSize.sm,
-            onChanged: onChanged,
+          dom.input<num>(
+            type: dom.InputType.range,
+            classes: 'hui-range',
+            // Clamped for the track only: a value the plugin accepted but the
+            // track cannot show still reads correctly in the number field.
+            value: value.clamp(min, max).toString(),
+            // No setState: the inspector pane rebuilds on the store's notify,
+            // and jaspr writes the `value` property rather than the attribute
+            // (`dom_render_object.dart:115`), so the thumb follows a typed edit
+            // even after the input has been dragged.
+            onInput: (num next) => onChanged(_snap(next.toDouble())),
+            attributes: <String, String>{
+              'min': '$min',
+              'max': '$max',
+              'step': '$step',
+              'aria-label': label,
+            },
           ),
           HuiNumberField(
             value: value,
@@ -611,6 +687,16 @@ class HuiSliderField extends StatelessWidget {
             decimals: decimals,
             steppers: false,
           ),
+          // Always mounted, disabled when there is nothing to undo: a button
+          // that appeared only once the value moved would jump the row width
+          // mid-drag.
+          if (resetTo != null)
+            HuiIconButton(
+              icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
+              label: 'Reset $label to ${_text(resetTo!)}',
+              disabled: value == resetTo,
+              onPressed: () => onChanged(resetTo!),
+            ),
         ],
       );
 }
@@ -644,6 +730,145 @@ class HuiIconButton extends StatelessWidget {
           child: icon,
         ),
       );
+}
+
+/// Placeholder for a control that is still waiting on an asset fetch.
+///
+/// Only the catalogue-backed affordances use it: the browse buttons appear the
+/// moment `assets/catalog/*.json` resolves, so without a placeholder the field
+/// jumps by a row height under whatever the user is already reading. The free
+/// text control is never replaced by one — typing a key must work from the
+/// first paint, catalogue or no catalogue.
+class HuiSkeleton extends StatelessWidget {
+  const HuiSkeleton({this.width = '100%', this.height = 26, super.key});
+
+  final String width;
+  final num height;
+
+  @override
+  Widget build(BuildContext context) => dom.span(
+        classes: 'hui-skeleton',
+        attributes: const <String, String>{'aria-hidden': 'true'},
+        styles: dom.Styles(
+          raw: <String, String>{
+            'display': 'block',
+            'width': width,
+            'height': '${height}px',
+            'border-radius': 'var(--hui-radius, 6px)',
+            'background': 'var(--hui-border-soft, var(--border))',
+          },
+        ),
+        const <Widget>[],
+      );
+}
+
+/// A stack of [HuiSkeleton] rows with the widths staggered, so a loading list
+/// reads as a list rather than as a solid block.
+class HuiSkeletonRows extends StatelessWidget {
+  const HuiSkeletonRows({this.rows = 3, this.height = 26, super.key});
+
+  final int rows;
+  final num height;
+
+  static const List<String> _widths = <String>['100%', '82%', '64%'];
+
+  @override
+  Widget build(BuildContext context) => dom.div(
+        classes: 'hui-skeleton-rows',
+        styles: const dom.Styles(
+          raw: <String, String>{
+            'display': 'flex',
+            'flex-direction': 'column',
+            'gap': '6px',
+            'min-width': '0',
+          },
+        ),
+        <Widget>[
+          for (int i = 0; i < rows; i++)
+            HuiSkeleton(width: _widths[i % _widths.length], height: height),
+        ],
+      );
+}
+
+/// What an empty list says for itself: the consequence in game first, then the
+/// way out of it. Replaces the bare note the lists used to render, which read
+/// as a warning about something the user had done rather than as a next step.
+class HuiEmptyState extends StatelessWidget {
+  const HuiEmptyState({
+    required this.icon,
+    required this.title,
+    required this.body,
+    this.tone = HuiNoteTone.neutral,
+    this.actions = const <Widget>[],
+    super.key,
+  });
+
+  final Widget icon;
+  final String title;
+  final String body;
+  final HuiNoteTone tone;
+  final List<Widget> actions;
+
+  String get _toneClass => switch (tone) {
+        HuiNoteTone.neutral => 'is-neutral',
+        HuiNoteTone.info => 'is-info',
+        HuiNoteTone.warning => 'is-warning',
+        HuiNoteTone.danger => 'is-danger',
+      };
+
+  @override
+  Widget build(BuildContext context) => dom.div(
+        classes: classNames(<String?>['hui-empty', _toneClass]),
+        <Widget>[
+          dom.span(classes: 'hui-empty-icon', <Widget>[icon]),
+          dom.div(
+            classes: 'hui-empty-text',
+            <Widget>[
+              dom.strong(classes: 'hui-empty-title', <Widget>[Text(title)]),
+              dom.p(classes: 'hui-empty-body', <Widget>[Text(body)]),
+            ],
+          ),
+          if (actions.isNotEmpty)
+            dom.div(classes: 'hui-empty-actions', actions),
+        ],
+      );
+}
+
+/// Field help for controls this pane composes but does not own.
+///
+/// The item, custom-item and text bodies live in their own editors, so their
+/// help cannot ride in a [HuiField.trailing] slot the way every other field's
+/// does. Grouping the affordances under the type switch keeps the same 28 doc
+/// keys reachable without reaching across file ownership.
+class HuiHelpCluster extends StatelessWidget {
+  const HuiHelpCluster(this.docKeys, {this.label, super.key});
+
+  final List<String> docKeys;
+
+  /// Optional lead-in, e.g. `Item icon`.
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<String> known =
+        docKeys.where((String key) => huiFieldDoc(key) != null).toList();
+    if (known.isEmpty) return const dom.span(<Widget>[]);
+    return dom.div(
+      classes: 'hui-help-cluster',
+      <Widget>[
+        if (label != null)
+          dom.span(classes: 'hui-help-cluster-label', <Widget>[Text(label!)]),
+        for (final String key in known)
+          dom.span(
+            classes: 'hui-help-cluster-item',
+            <Widget>[
+              Text(huiFieldDoc(key)!.title),
+              HuiFieldHelp(key, align: HuiFieldHelpAlign.start),
+            ],
+          ),
+      ],
+    );
+  }
 }
 
 /// Reorder / remove cluster shared by the frame list and the action list.

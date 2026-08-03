@@ -136,7 +136,7 @@ class _ExportDialogState extends State<ExportDialog> {
     final String json = _store.exportJson();
 
     return dom.div(
-      classes: 'hui-dialog-body',
+      classes: 'hui-dialog-body hui-stagger',
       <Widget>[
         if (_store.hasErrors)
           ArcaneAlert.error(

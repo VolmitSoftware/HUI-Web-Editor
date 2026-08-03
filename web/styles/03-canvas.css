@@ -37,6 +37,10 @@
   flex-wrap: nowrap;
   gap: 0;
   min-height: 40px;
+  /* Grid items default to min-width:auto, so a nowrap strip would otherwise
+     widen its own cell instead of being clipped by it — measured at 1179px
+     inside a 1128px cell once the order cluster appeared. */
+  min-width: 0;
   padding: 4px 8px;
   border: 1px solid var(--hui-border);
   border-bottom: 0;
@@ -71,10 +75,12 @@
   min-height: var(--hui-tool-size);
   border-radius: var(--hui-radius);
   white-space: nowrap;
+  /* --hui-dur-1: a toolbar toggle is a state flip and has to feel instant. The
+     token, not a literal, is what puts it under 06-motion.css's one switch. */
   transition:
-    color var(--hui-transition),
-    background-color var(--hui-transition),
-    box-shadow var(--hui-transition);
+    color var(--hui-dur-1) var(--hui-ease-out),
+    background-color var(--hui-dur-1) var(--hui-ease-out),
+    box-shadow var(--hui-dur-1) var(--hui-ease-out);
 }
 
 .hui-canvas-toolbar .arcane-button[data-size="sm"] {
@@ -107,9 +113,52 @@
    tooltip either way. */
 .hui-canvas-tool-label { display: none; }
 
-.hui-canvas-toggle-label {
+.hui-canvas-toggle-label,
+.hui-canvas-order-label {
   padding: 0 4px 0 2px;
   white-space: nowrap;
+}
+
+/* ---- depth scrubber ----
+   Hand-built: ArcaneSlider never delivers onChanged, and z has no bounds to
+   give a native range input a track. Relative drag, so it only ever needs to
+   show the current value. */
+
+.hui-canvas-zscrub {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  height: var(--hui-tool-size);
+  box-sizing: border-box;
+  padding: 0 7px;
+  border-radius: var(--hui-radius);
+  color: var(--hui-text);
+  font-size: .76rem;
+  font-variant-numeric: tabular-nums;
+  line-height: var(--hui-tool-size);
+  white-space: nowrap;
+  cursor: ew-resize;
+  /* Without this the browser claims the drag as a scroll and the pointer
+     stream stops mid-gesture on trackpads and touch. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color var(--hui-dur-1) var(--hui-ease-out);
+}
+
+.hui-canvas-zscrub:hover,
+.hui-canvas-zscrub.is-scrubbing {
+  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
+}
+
+.hui-canvas-zscrub:focus-visible {
+  outline: 2px solid var(--hui-ring);
+  outline-offset: -2px;
+}
+
+.hui-canvas-zscrub-key {
+  color: var(--hui-muted);
+  font-size: .7rem;
 }
 
 /* ---- uiScale: a readout in the row, the real slider in a popover ---- */
@@ -236,6 +285,10 @@
   overscroll-behavior: contain;
   cursor: default;
   outline: none;
+  /* The artboard is the largest surface in the app, so its focus ring arriving
+     as a hard edge reads as a flash. Inset box-shadow only: nothing here may
+     transform, because the canvas backing store is sized from this exact box. */
+  transition: box-shadow var(--hui-dur-1) var(--hui-ease-out);
 }
 
 .hui-canvas-stage:focus-visible {
@@ -246,6 +299,8 @@
 .hui-canvas-stage.is-pan-ready { cursor: grab; }
 .hui-canvas-stage.is-dragging { cursor: grabbing; }
 .hui-canvas-stage.is-moving-component { cursor: grabbing; }
+/* Last wins, and a live marquee is the most specific thing happening. */
+.hui-canvas-stage.is-marqueeing { cursor: crosshair; }
 
 .hui-canvas-surface {
   display: block;
@@ -272,8 +327,13 @@
   white-space: pre;
   pointer-events: none;
   opacity: 0;
+  /* The `rise` gesture of 06-motion.css, at chip scale: 8px would read as
+     flying in from a chip this small. Transform and opacity only, so a drag
+     that starts at 60fps never reflows the stage. */
   transform: translateY(4px);
-  transition: opacity var(--hui-transition), transform var(--hui-transition);
+  transition:
+    opacity var(--hui-dur-2) var(--hui-ease-out),
+    transform var(--hui-dur-2) var(--hui-ease-out);
 }
 
 .hui-canvas-readout.is-visible {
@@ -323,33 +383,49 @@
    Below that every view control is icon-only, and the tooltip carries the
    name it just dropped. */
 
+/* 1280px, not the old 860px: the order cluster adds five controls, and the
+   fully labelled strip measures 1272px with them present. Below that the labels
+   go and the icon-only strip fits in half of it. Labels are the thing to lose —
+   every control keeps its aria-label and its tooltip. */
 @media (min-width: 1500px) {
-  @container hui-canvas (min-width: 860px) {
+  @container hui-canvas (min-width: 1280px) {
     .hui-canvas-toolbar { --hui-tool-pad: 9px; }
     .hui-canvas-tool-label { display: inline; }
   }
 }
 
 /* The hint drops clauses in importance order rather than wrapping or
-   truncating. Measured natural widths: 248px / 360px / 461px plus 20px per
-   separator, so all three need a 1130px cell (~1750px window in the three-pane
-   layout, ~1130px in code-only view) and the first two need 650px. */
-@container hui-canvas (max-width: 1129px) {
+   truncating. Re-measured in the browser after the marquee/multi-select rewrite
+   lengthened the first two clauses: 325px / 445px / 443px plus 20px per
+   separator, so all three need a 1253px cell and the first two need 790px.
+   (Before the rewrite these were 248/360/461 and the thresholds were 1130/650.) */
+@container hui-canvas (max-width: 1252px) {
   .hui-canvas-hint-note { display: none; }
 }
 
-@container hui-canvas (max-width: 649px) {
+@container hui-canvas (max-width: 789px) {
   .hui-canvas-hint-item:nth-child(2) { display: none; }
 }
 
 /* Last resort. A scroll container clips the CSS tooltips that hang above the
    row, so the strip only becomes scrollable when the cell is genuinely too
-   narrow for the icon-only strip to fit (split view, phone widths). */
-@container hui-canvas (max-width: 620px) {
+   narrow for the icon-only strip to fit (split view, phone widths).
+   760px, not the old 620px: the icon-only strip with the order cluster present
+   measures 755px. Below this the controls would be clipped with no way to
+   reach them, which is worse than a clipped tooltip. */
+@container hui-canvas (max-width: 760px) {
   .hui-canvas-toolbar { overflow-x: auto; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hui-canvas-readout { transition: none; }
-  .hui-canvas-toolbar .arcane-button { transition: none; }
-}
+/* No reduced-motion block in this file any more, and none should come back.
+   Every transition above now resolves its duration from --hui-dur-*, and
+   06-motion.css loads last and zeroes those tokens on :root under the one
+   `prefers-reduced-motion` query the app has. A second copy of the query here
+   could only drift from it.
+
+   The canvas's other motion is not CSS at all: the eased zoom/fit and the
+   marching selection ring are painted from Dart, and both check
+   `matchMedia('(prefers-reduced-motion: reduce)')` themselves — see
+   `_prefersReducedMotion` in lib/components/canvas/canvas_viewport.dart. The
+   ring's clock is not merely zeroed under reduced motion, it is never started,
+   which is also what keeps an idle canvas scheduling no frames at all. */

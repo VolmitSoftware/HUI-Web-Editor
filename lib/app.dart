@@ -6,6 +6,7 @@ import 'components/code_editor/code_editor_view.dart';
 import 'components/dialogs/dialogs.dart';
 import 'components/inspector/inspector.dart';
 import 'components/panels/panels.dart';
+import 'components/preview/preview_view.dart';
 import 'components/shell/shell.dart';
 import 'services/catalogs.dart';
 import 'services/image_library.dart';
@@ -106,6 +107,26 @@ class _AppState extends State<App> {
         brightness: _brightness,
         title: 'HoloUI Editor',
         description: 'Visual web editor for creating and previewing HoloUI menu configurations.',
+        // Stays true, and the reason is not the one the flag's name suggests.
+        // `ArcaneApp` gates ONE component on it (`support/app.dart:114`) and
+        // that component emits `ArcaneScripts.all` — the modern
+        // `data-arcane-*` interaction runtime AND the legacy one-shot binder,
+        // in a single <script>. There is no switch for the binder alone.
+        //
+        // Measured with it false, against this build: every dialog overlay
+        // rendered as a visible full-screen scrim (the dropped
+        // `arcaneInteractivityRuntimeCss` owns
+        // `[data-arcane-surface][hidden]{display:none!important}`, which we can
+        // port), and — which we cannot port — no `ArcaneDropdownMenu` opened
+        // (the top bar's document switcher, the rail's component-type menu) and
+        // no `ArcaneContextMenu` opened (rail rows), because their open state
+        // lives entirely in that runtime. Dialog backdrop dismissal went with
+        // it too. Dialogs, sheets, popovers, selects, tooltips, toasts and the
+        // theme toggle were unaffected: those are Dart-driven.
+        //
+        // Recovering the three broken surfaces would mean reimplementing the
+        // runtime's attribute protocol ourselves, which is strictly worse than
+        // paying for its one-shot querySelectorAll scan at boot.
         includeFallbackScripts: true,
         home: EditorScope(
           store: _store,
@@ -128,6 +149,11 @@ class _AppState extends State<App> {
               images: _images,
               catalogs: _catalogs,
               status: _status,
+            ),
+            preview: PreviewView(
+              store: _store,
+              images: _images,
+              catalogs: _catalogs,
             ),
             inspector: InspectorPane(store: _store, images: _images, catalogs: _catalogs),
             codeEditor: CodeEditorView(store: _store),

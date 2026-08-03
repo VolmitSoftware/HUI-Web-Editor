@@ -48,6 +48,12 @@ class _PlaceholderPickerState extends State<PlaceholderPicker> {
         attributes: <String, String>{
           'aria-label': component.label,
           'aria-expanded': _open ? 'true' : 'false',
+          // Inside a floating container the trigger's next sibling IS the
+          // popup, so the legacy accordion binder would write `display` onto
+          // it and fight the popover script. `data-arcane-interactive` is that
+          // binder's opt-out (accordion_scripts.dart:8); the popover script
+          // keys on `arcanePopoverInteractive` and is unaffected.
+          'data-arcane-interactive': 'true',
         },
         child: Text(component.label),
       ),

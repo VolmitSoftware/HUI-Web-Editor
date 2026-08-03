@@ -14,8 +14,8 @@ import 'package:web/web.dart' as web;
 import '../../logic/viewport_math.dart';
 import '../../model/vec3.dart';
 import '../../state/editor_store.dart' show HuiBackdropMode;
-import 'canvas_assets.dart';
-import 'canvas_brush.dart';
+import '../render/canvas_assets.dart';
+import '../render/canvas_brush.dart';
 
 /// Player eye height in blocks; the reason a menu at `y 1.7` reads at face
 /// level.

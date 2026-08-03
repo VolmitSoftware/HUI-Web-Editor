@@ -2,14 +2,21 @@
 ///
 /// Built fresh every time the palette opens so labels reflect live state
 /// ("Show grid" vs "Hide grid") and the document list is current.
+///
+/// Shortcut chips are never written here: they are read out of the one
+/// shortcut table by action id (`shortcut_sheet.dart`), which is the same
+/// declaration the document binder dispatches from. A chip in the palette is
+/// therefore the chord that actually runs, by construction.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 
+import '../../logic/multi_select.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import 'shell_intents.dart';
+import 'shortcut_sheet.dart';
 
 class ShellAction {
   ShellAction({
@@ -42,14 +49,23 @@ class ShellAction {
 
 const String shellGroupFile = 'File';
 const String shellGroupEdit = 'Edit';
+const String shellGroupSelection = 'Selection';
 const String shellGroupAdd = 'Add component';
 const String shellGroupView = 'View';
 const String shellGroupCanvas = 'Canvas';
 const String shellGroupHelp = 'Help';
 const String shellGroupDocuments = 'Documents';
 
-List<ShellAction> buildShellActions(ShellIntents intents) {
+/// [onShowShortcuts] and [onReplayTour] are shell-owned overlays the intents
+/// layer has no handle on; their commands are omitted when the shell does not
+/// supply them rather than being listed and dead.
+List<ShellAction> buildShellActions(
+  ShellIntents intents, {
+  void Function()? onShowShortcuts,
+  void Function()? onReplayTour,
+}) {
   final EditorStore store = intents.store;
+  final int selected = store.selectionIds.length;
   final List<ShellAction> actions = <ShellAction>[
     ShellAction(
       id: 'file.new',
@@ -72,7 +88,7 @@ List<ShellAction> buildShellActions(ShellIntents intents) {
       group: shellGroupFile,
       label: 'Export menu JSON',
       icon: ArcaneIcon.download(size: IconSize.sm),
-      shortcut: 'mod+S',
+      shortcut: huiShortcutSpec('file.export'),
       keywords: const <String>['save', 'download', 'json'],
       run: intents.exportMenu,
     ),
@@ -105,7 +121,7 @@ List<ShellAction> buildShellActions(ShellIntents intents) {
       group: shellGroupEdit,
       label: store.undoLabel == null ? 'Undo' : 'Undo ${store.undoLabel}',
       icon: ArcaneIcon.undo(size: IconSize.sm),
-      shortcut: 'mod+Z',
+      shortcut: huiShortcutSpec('edit.undo'),
       enabled: store.canUndo,
       run: intents.undo,
     ),
@@ -114,37 +130,94 @@ List<ShellAction> buildShellActions(ShellIntents intents) {
       group: shellGroupEdit,
       label: store.redoLabel == null ? 'Redo' : 'Redo ${store.redoLabel}',
       icon: ArcaneIcon.redo(size: IconSize.sm),
-      shortcut: 'mod+Shift+Z',
+      shortcut: huiShortcutSpec('edit.redo'),
       enabled: store.canRedo,
       run: intents.redo,
     ),
     ShellAction(
       id: 'edit.duplicate',
       group: shellGroupEdit,
-      label: 'Duplicate selected component',
+      label: 'Duplicate ${_selectionNoun(selected)}',
       icon: ArcaneIcon.copy(size: IconSize.sm),
-      shortcut: 'mod+D',
-      enabled: store.selectedId != null,
+      shortcut: huiShortcutSpec('edit.duplicate'),
+      enabled: selected > 0,
       run: intents.duplicateSelected,
     ),
     ShellAction(
       id: 'edit.delete',
       group: shellGroupEdit,
-      label: 'Delete selected component',
+      label: 'Delete ${_selectionNoun(selected)}',
       icon: ArcaneIcon.trash2(size: IconSize.sm),
-      shortcut: 'Delete',
-      enabled: store.selectedId != null,
+      shortcut: huiShortcutSpec('edit.delete'),
+      enabled: selected > 0,
       run: intents.deleteSelected,
     ),
     ShellAction(
       id: 'edit.deselect',
       group: shellGroupEdit,
-      label: 'Deselect',
+      label: selected > 1 ? 'Deselect all' : 'Deselect',
       icon: ArcaneIcon.x(size: IconSize.sm),
-      shortcut: 'Escape',
-      enabled: store.selectedId != null,
+      shortcut: huiShortcutSpec('edit.deselect'),
+      enabled: selected > 0,
       run: intents.deselect,
     ),
+    ShellAction(
+      id: 'selection.all',
+      group: shellGroupSelection,
+      label: 'Select all components',
+      icon: ArcaneIcon.listChecks(size: IconSize.sm),
+      shortcut: huiShortcutSpec('selection.all'),
+      keywords: const <String>['every', 'everything', 'multi'],
+      enabled: store.components.isNotEmpty,
+      run: intents.selectAll,
+    ),
+    // Every arrangement command is enabled on any selection, not on a large
+    // enough one. The palette hides disabled actions outright, so gating align
+    // at two would hide it exactly when the user is looking for it and would
+    // never say why; the intents' guard toast names the requirement instead.
+    for (final (String id, String label, HuiAlign align, Widget icon)
+        in _alignments)
+      ShellAction(
+        id: 'selection.align.$id',
+        group: shellGroupSelection,
+        label: label,
+        icon: icon,
+        keywords: const <String>['align', 'flush', 'edge', 'arrange'],
+        enabled: selected > 0,
+        run: () => intents.alignSelection(align),
+      ),
+    ShellAction(
+      id: 'selection.distribute.horizontal',
+      group: shellGroupSelection,
+      label: 'Distribute horizontally',
+      icon: ArcaneIcon.alignHorizontalDistributeCenter(size: IconSize.sm),
+      keywords: const <String>['space', 'even', 'gap', 'arrange'],
+      enabled: selected > 0,
+      run: () => intents.distributeSelection(HuiAxis.horizontal),
+    ),
+    ShellAction(
+      id: 'selection.distribute.vertical',
+      group: shellGroupSelection,
+      label: 'Distribute vertically',
+      icon: ArcaneIcon.alignVerticalDistributeCenter(size: IconSize.sm),
+      keywords: const <String>['space', 'even', 'gap', 'arrange'],
+      enabled: selected > 0,
+      run: () => intents.distributeSelection(HuiAxis.vertical),
+    ),
+    // Depth only decides which icon draws over which; click dispatch stays in
+    // rail order. "To front" and "to back" move the selection past the nearest
+    // unselected component, so with everything selected they are no-ops — and
+    // again the toast, not a hidden row, is what says so.
+    for (final (String id, String label, HuiZOrder op, Widget icon) in _depths)
+      ShellAction(
+        id: 'selection.$id',
+        group: shellGroupSelection,
+        label: label,
+        icon: icon,
+        keywords: const <String>['depth', 'z', 'draw order', 'stack', 'layer'],
+        enabled: selected > 0,
+        run: () => intents.reorderDepth(op),
+      ),
     for (final String type in huiComponentTypes)
       ShellAction(
         id: 'add.$type',
@@ -159,15 +232,24 @@ List<ShellAction> buildShellActions(ShellIntents intents) {
       group: shellGroupView,
       label: 'Visual editor',
       icon: ArcaneIcon.eye(size: IconSize.sm),
-      shortcut: 'V',
+      shortcut: huiShortcutSpec('view.visual'),
       run: () => intents.setView(EditorView.visual),
+    ),
+    ShellAction(
+      id: 'view.preview',
+      group: shellGroupView,
+      label: 'Preview in 3D',
+      icon: ArcaneIcon.rotate3d(size: IconSize.sm),
+      shortcut: huiShortcutSpec('view.preview'),
+      keywords: const <String>['3d', 'player', 'simulate', 'stage'],
+      run: () => intents.setView(EditorView.preview),
     ),
     ShellAction(
       id: 'view.code',
       group: shellGroupView,
       label: 'Code editor',
       icon: ArcaneIcon.code(size: IconSize.sm),
-      shortcut: 'C',
+      shortcut: huiShortcutSpec('view.code'),
       run: () => intents.setView(EditorView.code),
     ),
     ShellAction(
@@ -175,7 +257,7 @@ List<ShellAction> buildShellActions(ShellIntents intents) {
       group: shellGroupView,
       label: 'Split view',
       icon: ArcaneIcon.layers(size: IconSize.sm),
-      shortcut: 'S',
+      shortcut: huiShortcutSpec('view.split'),
       run: () => intents.setView(EditorView.split),
     ),
     ShellAction(
@@ -243,6 +325,25 @@ List<ShellAction> buildShellActions(ShellIntents intents) {
       keywords: const <String>['docs', 'guide', 'colours', 'minimessage'],
       run: intents.openHelp,
     ),
+    if (onShowShortcuts != null)
+      ShellAction(
+        id: 'help.shortcuts',
+        group: shellGroupHelp,
+        label: 'Keyboard shortcuts',
+        icon: ArcaneIcon.keyboard(size: IconSize.sm),
+        shortcut: huiShortcutSpec('help.shortcuts'),
+        keywords: const <String>['keys', 'chord', 'binding', 'cheat sheet'],
+        run: onShowShortcuts,
+      ),
+    if (onReplayTour != null)
+      ShellAction(
+        id: 'help.tour',
+        group: shellGroupHelp,
+        label: 'Replay the guided tour',
+        icon: ArcaneIcon.compass(size: IconSize.sm),
+        keywords: const <String>['onboarding', 'intro', 'walkthrough', 'first'],
+        run: onReplayTour,
+      ),
     ShellAction(
       id: 'help.settings',
       group: shellGroupHelp,
@@ -275,3 +376,38 @@ String _typeLabel(String type) => switch (type) {
       'toggle' => 'toggle (two states)',
       _ => 'decoration (display only)',
     };
+
+/// "selected component" reads as though only one is selected when eight are,
+/// and the commands act on all of them.
+String _selectionNoun(int selected) =>
+    selected > 1 ? '$selected selected components' : 'selected component';
+
+/// Lucide's object-alignment glyphs: a vertical rule means the components line
+/// up horizontally, and the other way round.
+final List<(String, String, HuiAlign, Widget)> _alignments =
+    <(String, String, HuiAlign, Widget)>[
+  ('left', 'Align left edges', HuiAlign.left,
+      ArcaneIcon.alignStartVertical(size: IconSize.sm)),
+  ('centerX', 'Align horizontal centres', HuiAlign.centerX,
+      ArcaneIcon.alignCenterVertical(size: IconSize.sm)),
+  ('right', 'Align right edges', HuiAlign.right,
+      ArcaneIcon.alignEndVertical(size: IconSize.sm)),
+  ('top', 'Align top edges', HuiAlign.top,
+      ArcaneIcon.alignStartHorizontal(size: IconSize.sm)),
+  ('middleY', 'Align vertical centres', HuiAlign.middleY,
+      ArcaneIcon.alignCenterHorizontal(size: IconSize.sm)),
+  ('bottom', 'Align bottom edges', HuiAlign.bottom,
+      ArcaneIcon.alignEndHorizontal(size: IconSize.sm)),
+];
+
+final List<(String, String, HuiZOrder, Widget)> _depths =
+    <(String, String, HuiZOrder, Widget)>[
+  ('forward', 'Bring forward', HuiZOrder.forward,
+      ArcaneIcon.arrowUp(size: IconSize.sm)),
+  ('backward', 'Send backward', HuiZOrder.backward,
+      ArcaneIcon.arrowDown(size: IconSize.sm)),
+  ('toFront', 'Bring to front', HuiZOrder.toFront,
+      ArcaneIcon.bringToFront(size: IconSize.sm)),
+  ('toBack', 'Send to back', HuiZOrder.toBack,
+      ArcaneIcon.sendToBack(size: IconSize.sm)),
+];

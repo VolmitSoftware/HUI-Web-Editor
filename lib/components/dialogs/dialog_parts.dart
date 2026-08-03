@@ -100,6 +100,62 @@ class HuiChips extends StatelessWidget {
       );
 }
 
+/// Shimmering placeholder for content that is still being read.
+///
+/// Sized to the box the real content will occupy, so the swap is a box gaining
+/// text rather than a layout shift. The bars themselves are `aria-hidden`; the
+/// wrapper is the live region, so a screen reader hears [label] once instead of
+/// hearing nothing at all while the dialog looks busy.
+class HuiSkeleton extends StatelessWidget {
+  const HuiSkeleton({
+    required this.label,
+    this.lines = 3,
+    this.block = false,
+    this.classes = '',
+    super.key,
+  });
+
+  /// Announced while the placeholder stands in for the real content.
+  final String label;
+
+  /// Text bars drawn under the optional [block].
+  final int lines;
+
+  /// Prepends a tall box where an image preview will land.
+  final bool block;
+
+  final String classes;
+
+  /// Ragged widths read as text; equal ones read as a table.
+  static const List<String> _widths = <String>['', ' is-medium', ' is-short'];
+
+  @override
+  Widget build(BuildContext context) => dom.div(
+        classes: classNames(<String?>['hui-skeleton-group', classes]),
+        attributes: <String, String>{
+          'role': 'status',
+          'aria-live': 'polite',
+          'aria-busy': 'true',
+          'aria-label': label,
+        },
+        <Widget>[
+          if (block)
+            const dom.div(
+              classes: 'hui-skeleton hui-skeleton-block',
+              attributes: <String, String>{'aria-hidden': 'true'},
+              <Widget>[],
+            ),
+          for (int i = 0; i < lines; i++)
+            dom.div(
+              classes: 'hui-skeleton hui-skeleton-line'
+                  '${i == 0 ? ' is-tall' : _widths[i % _widths.length]}',
+              attributes: const <String, String>{'aria-hidden': 'true'},
+              const <Widget>[],
+            ),
+        ],
+      );
+}
+
 /// Every image path the menu references, in document order.
 ///
 /// The export dialog uses it to decide whether an images zip is needed, and the

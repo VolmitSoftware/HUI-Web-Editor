@@ -182,13 +182,17 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     final List<StoredImage> images = _library.images;
     final Set<String> used = huiUsedImagePaths(_store.menu);
     return dom.div(
-      classes: 'hui-dialog-body',
+      classes: 'hui-dialog-body hui-stagger',
       <Widget>[
         if (_library.lastError != null)
           ArcaneAlert.error(message: _library.lastError!),
         _toolbar(images.isNotEmpty),
         _quota(),
-        if (images.isEmpty)
+        // Every upload is decoded, re-encoded as PNG and measured before it
+        // reaches the grid, which is long enough to see on a batch. The
+        // placeholders sit where the new cards will land so the grid grows
+        // once, when the images arrive, rather than twice.
+        if (images.isEmpty && !_busy)
           _empty()
         else
           dom.div(
@@ -196,6 +200,13 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
             <Widget>[
               for (final StoredImage image in images)
                 _card(image, used.contains(image.path)),
+              if (_busy)
+                const HuiSkeleton(
+                  label: 'Reading images',
+                  block: true,
+                  lines: 2,
+                  classes: 'hui-skeleton-card',
+                ),
             ],
           ),
       ],
@@ -319,6 +330,7 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     return dom.div(
       classes: classNames(<String?>[
         'hui-image-card',
+        'hui-lift',
         inUse ? 'is-used' : null,
         image.isOversized ? 'is-oversized' : null,
       ]),

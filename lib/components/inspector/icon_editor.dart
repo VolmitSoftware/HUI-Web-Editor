@@ -19,10 +19,13 @@ import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'custom_item_picker.dart';
+import 'extras_editor.dart';
+import 'field_help.dart';
 import 'image_picker_grid.dart';
 import 'inspector_session.dart';
 import 'inspector_widgets.dart';
 import 'item_picker.dart';
+import 'reorder_list.dart';
 import 'text_icon_editor.dart';
 
 /// Which icon field of a component data object is being edited.
@@ -70,6 +73,21 @@ void writeIconSlot(HuiComponentData data, IconSlot slot, HuiIcon? icon) {
   }
 }
 
+/// Doc keys for the fields of one icon type, in the order the editor shows
+/// them. Text, item and custom item are edited by widgets this file only
+/// mounts, so their help rides in a [HuiHelpCluster] under the type switch.
+const Map<String, List<String>> huiIconTypeDocKeys = <String, List<String>>{
+  'text': <String>['icon.text.text'],
+  'textImage': <String>['icon.textImage.path'],
+  'animatedTextImage': <String>['icon.animated.source', 'icon.animated.speed'],
+  'item': <String>[
+    'icon.item.item',
+    'icon.item.count',
+    'icon.item.customModelValue',
+  ],
+  'customItem': <String>['icon.customItem.provider', 'icon.customItem.item'],
+};
+
 class IconEditor extends StatelessWidget {
   const IconEditor({
     required this.store,
@@ -79,6 +97,7 @@ class IconEditor extends StatelessWidget {
     required this.componentId,
     required this.slot,
     required this.icon,
+    this.catalogsLoading = false,
     this.issues = const <HuiIssue>[],
     super.key,
   });
@@ -90,6 +109,11 @@ class IconEditor extends StatelessWidget {
   final String componentId;
   final IconSlot slot;
   final HuiIcon? icon;
+
+  /// True until `assets/catalog/*.json` resolves; the item pickers show a
+  /// skeleton for the browse row rather than letting it appear under the
+  /// pointer a moment later.
+  final bool catalogsLoading;
 
   /// Issues for this component, already filtered by the caller.
   final List<HuiIssue> issues;
@@ -113,6 +137,15 @@ class IconEditor extends StatelessWidget {
   void _write(String label, HuiIcon? next) {
     store.editComponent(componentId, label, (HuiComponent component) {
       writeIconSlot(component.data, slot, next);
+    });
+  }
+
+  /// Extras are written onto the icon the store just snapshotted, not the one
+  /// this widget was handed: `editComponent` runs inside `mutate`, so the
+  /// object here is the live document's.
+  void _writeExtras(String label, Map<String, dynamic> next) {
+    store.editComponent(componentId, label, (HuiComponent component) {
+      readIconSlot(component.data, slot)?.extras = next;
     });
   }
 
@@ -187,6 +220,10 @@ class IconEditor extends StatelessWidget {
             ),
           ],
         ),
+        HuiHelpCluster(
+          huiIconTypeDocKeys[icon!.type] ?? const <String>[],
+          label: 'Fields',
+        ),
         switch (icon!) {
           final HuiTextIcon text => TextIconEditor(
               // Keyed by field id so flipping a toggle from the true slot to
@@ -217,34 +254,50 @@ class IconEditor extends StatelessWidget {
               issues: _slotIssues,
               onChanged: _write,
             ),
-          final HuiItemIcon item => ItemIconEditor(
-              icon: item,
-              catalogs: catalogs,
-              issues: _slotIssues,
-              onChanged: (String label, HuiItemIcon next) =>
-                  _write(label, next),
+          final HuiItemIcon item => dom.div(
+              classes: 'hui-icon-item',
+              <Widget>[
+                if (catalogsLoading) const HuiSkeletonRows(rows: 2),
+                ItemIconEditor(
+                  icon: item,
+                  catalogs: catalogs,
+                  issues: _slotIssues,
+                  onChanged: (String label, HuiItemIcon next) =>
+                      _write(label, next),
+                ),
+              ],
             ),
-          final HuiCustomItemIcon custom => CustomItemIconEditor(
-              icon: custom,
-              catalogs: catalogs,
-              issues: _slotIssues,
-              onChanged: (String label, HuiCustomItemIcon next) =>
-                  _write(label, next),
+          final HuiCustomItemIcon custom => dom.div(
+              classes: 'hui-icon-custom',
+              <Widget>[
+                if (catalogsLoading) const HuiSkeletonRows(rows: 2),
+                CustomItemIconEditor(
+                  icon: custom,
+                  catalogs: catalogs,
+                  issues: _slotIssues,
+                  onChanged: (String label, HuiCustomItemIcon next) =>
+                      _write(label, next),
+                ),
+              ],
             ),
         },
+        ExtrasEditor(
+          title: 'Icon',
+          extras: icon!.extras,
+          onChanged: _writeExtras,
+        ),
       ];
 
   Widget _emptyState() => dom.div(
         classes: 'hui-icon-empty',
         <Widget>[
-          const HuiNote(
-            'No icon: HoloUI draws its magenta checker here, and a button '
-            'keeps its hitbox.',
+          HuiEmptyState(
+            icon: ArcaneIcon.imageOff(size: IconSize.md),
+            title: 'No icon',
+            body: 'HoloUI draws its magenta checker here, and a button keeps '
+                'its hitbox. Pick a type to start one.',
             tone: HuiNoteTone.warning,
-          ),
-          dom.div(
-            classes: 'hui-icon-empty-actions',
-            <Widget>[
+            actions: <Widget>[
               for (final String type in huiIconTypes)
                 Button(
                   variant: ButtonVariant.outline,
@@ -317,6 +370,7 @@ class _ImageIconEditor extends StatelessWidget {
         HuiField(
           label: 'Path',
           required: true,
+          trailing: const HuiFieldHelp('icon.textImage.path'),
           help: 'Relative to plugins/holoui/images/.',
           control: dom.div(<Widget>[
             TextInput(
@@ -383,7 +437,7 @@ class _ImageIconEditor extends StatelessWidget {
   }
 }
 
-class _AnimatedIconEditor extends StatelessWidget {
+class _AnimatedIconEditor extends StatefulWidget {
   const _AnimatedIconEditor({
     required this.icon,
     required this.images,
@@ -398,38 +452,85 @@ class _AnimatedIconEditor extends StatelessWidget {
   final void Function(String label, HuiIcon icon) onChanged;
   final List<HuiIssue> issues;
 
+  @override
+  State<_AnimatedIconEditor> createState() => _AnimatedIconEditorState();
+}
+
+class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
+  /// Library paths picked but not yet added, in the order they were picked —
+  /// which is the order they land in as frames. Staging is what makes the grid
+  /// a multi-select: one click per frame, then one edit, then one undo step.
+  final List<String> _staged = <String>[];
+
+  HuiAnimatedImageIcon get _icon => component.icon;
+
+  List<String> get _source => _icon.source;
+
   HuiAnimatedImageIcon _with(List<String> source, int speed) =>
       HuiAnimatedImageIcon(source, speed)
-        ..extras = huiDeepCopyMap(icon.extras);
+        ..extras = huiDeepCopyMap(_icon.extras);
 
-  void _addFrame(String path) => onChanged(
-        'add frame',
-        _with(<String>[...icon.source, path], icon.speed),
+  void _emit(String label, List<String> source, [int? speed]) =>
+      component.onChanged(label, _with(source, speed ?? _icon.speed));
+
+  void _toggleStaged(String path) => setState(() {
+        if (!_staged.remove(path)) _staged.add(path);
+      });
+
+  void _addStaged() {
+    if (_staged.isEmpty) return;
+    final List<String> added = <String>[..._staged];
+    setState(_staged.clear);
+    _emit(
+      added.length == 1 ? 'add frame' : 'add ${added.length} frames',
+      <String>[..._source, ...added],
+    );
+  }
+
+  void _addFrames(List<String> paths) {
+    if (paths.isEmpty) return;
+    _emit(
+      paths.length == 1 ? 'add frame' : 'add ${paths.length} frames',
+      <String>[..._source, ...paths],
+    );
+  }
+
+  void _removeFrame(int index) =>
+      _emit('remove frame', <String>[..._source]..removeAt(index));
+
+  void _duplicateFrame(int index) => _emit(
+        'duplicate frame',
+        <String>[..._source]..insert(index + 1, _source[index]),
       );
 
-  void _removeFrame(int index) {
-    final List<String> next = <String>[...icon.source]..removeAt(index);
-    onChanged('remove frame', _with(next, icon.speed));
-  }
+  void _reverse() =>
+      _emit('reverse frames', _source.reversed.toList(growable: false));
 
   void _moveFrame(int index, int delta) {
     final int target = index + delta;
-    if (target < 0 || target >= icon.source.length) return;
-    final List<String> next = <String>[...icon.source];
-    final String moved = next.removeAt(index);
-    next.insert(target, moved);
-    onChanged('reorder frames', _with(next, icon.speed));
+    if (target < 0 || target >= _source.length) return;
+    _reorder(index, target);
+  }
+
+  /// The two indices are exactly `removeAt(from)` then `insert(to, moved)`,
+  /// which is what [HuiReorderList] promises and what keeps a drop to a single
+  /// document edit.
+  void _reorder(int from, int to) {
+    final List<String> next = <String>[..._source];
+    final String moved = next.removeAt(from);
+    next.insert(to, moved);
+    _emit('reorder frames', next);
   }
 
   void _setFrame(int index, String path) {
-    final List<String> next = <String>[...icon.source];
+    final List<String> next = <String>[..._source];
     next[index] = path;
-    onChanged('frame path', _with(next, icon.speed));
+    _emit('frame path', next);
   }
 
   @override
   Widget build(BuildContext context) {
-    final int speed = icon.speed;
+    final int speed = _icon.speed;
     final int ms = (speed < 1 ? 1 : speed) * 50;
     return dom.div(
       classes: 'hui-icon-animated',
@@ -437,57 +538,67 @@ class _AnimatedIconEditor extends StatelessWidget {
         InspectorSection(
           title: 'Frames',
           description: 'Played in this order and looped.',
-          trailing: dom.span(
-            classes: 'hui-count-chip',
+          trailing: dom.div(
+            classes: 'hui-frame-tools',
             <Widget>[
-              Text('${icon.source.length}'),
+              HuiIconButton(
+                icon: ArcaneIcon.arrowUpDown(size: IconSize.sm),
+                label: 'Reverse frame order',
+                disabled: _source.length < 2,
+                onPressed: _reverse,
+              ),
+              const HuiFieldHelp('icon.animated.source'),
+              dom.span(
+                classes: 'hui-count-chip',
+                <Widget>[Text('${_source.length}')],
+              ),
             ],
           ),
           children: <Widget>[
-            if (icon.source.isEmpty)
-              const HuiNote(
-                'An animated icon with no frames crashes the menu open. Add at '
-                'least one frame.',
+            if (_source.isEmpty)
+              HuiEmptyState(
+                icon: ArcaneIcon.triangleAlert(size: IconSize.md),
+                title: 'No frames',
+                body: 'An animated icon with an empty source list throws while '
+                    'the menu is opening, so the whole menu fails to open. Add '
+                    'at least one frame.',
                 tone: HuiNoteTone.danger,
               )
             else
-              for (int i = 0; i < icon.source.length; i++) _frameRow(i),
+              HuiReorderList(
+                itemCount: _source.length,
+                handleLabel: 'Drag to reorder frames',
+                classes: 'hui-frame-list',
+                onReorder: _reorder,
+                itemBuilder: _frameRow,
+              ),
             HuiInlineIssues(
-              issues
+              component.issues
                   .where((HuiIssue issue) => issue.path.contains('.source'))
                   .toList(),
             ),
           ],
         ),
-        if (icon.source.isNotEmpty)
+        if (_source.isNotEmpty)
           AnimatedIconPreview(
-            images: images,
-            frames: icon.source,
+            images: component.images,
+            frames: _source,
             speed: speed,
           ),
-        dom.div(
-          classes: 'hui-icon-animated-library',
-          <Widget>[
-            const HuiEyebrow('Add from library'),
-            ImagePickerGrid(images: images, onPicked: _addFrame),
-            ImageUploadButton(
-              images: images,
-              inputId: inputId,
-              onAdded: (List<String> paths) {
-                for (final String path in paths) {
-                  _addFrame(path);
-                }
-              },
-            ),
-          ],
-        ),
+        _library(),
         HuiField(
           label: 'Speed',
           required: true,
           help: 'Ticks per frame, at 20 ticks per second.',
-          trailing: dom.span(
-            classes: 'hui-unit-chip',
-            <Widget>[Text('${speed}t = ${ms}ms per frame')],
+          trailing: dom.div(
+            classes: 'hui-field-tools',
+            <Widget>[
+              dom.span(
+                classes: 'hui-unit-chip',
+                <Widget>[Text('${speed}t = ${ms}ms per frame')],
+              ),
+              const HuiFieldHelp('icon.animated.speed'),
+            ],
           ),
           control: dom.div(<Widget>[
             HuiNumberField(
@@ -495,13 +606,14 @@ class _AnimatedIconEditor extends StatelessWidget {
               min: 1,
               step: 1,
               integer: true,
-              onChanged: (double value) => onChanged(
+              onChanged: (double value) => _emit(
                 'animation speed',
-                _with(<String>[...icon.source], value.round()),
+                <String>[..._source],
+                value.round(),
               ),
             ),
             HuiInlineIssues(
-              issues
+              component.issues
                   .where((HuiIssue issue) => issue.path.endsWith('.speed'))
                   .toList(),
             ),
@@ -523,9 +635,77 @@ class _AnimatedIconEditor extends StatelessWidget {
     );
   }
 
+  Widget _library() => dom.div(
+        classes: 'hui-icon-animated-library',
+        <Widget>[
+          const HuiEyebrow('Add from library'),
+          const HuiNote(
+            'Click images to line them up, then add them in one go. The same '
+            'image can be used in more than one frame.',
+          ),
+          ImagePickerGrid(
+            images: component.images,
+            selected: _staged.isEmpty ? null : _staged.last,
+            onPicked: _toggleStaged,
+          ),
+          if (_staged.isNotEmpty) _stagedTray(),
+          ImageUploadButton(
+            images: component.images,
+            inputId: component.inputId,
+            onAdded: _addFrames,
+          ),
+        ],
+      );
+
+  Widget _stagedTray() => dom.div(
+        classes: 'hui-frame-staged',
+        <Widget>[
+          dom.div(
+            classes: 'hui-frame-staged-chips',
+            <Widget>[
+              for (int i = 0; i < _staged.length; i++)
+                dom.button(
+                  classes: 'hui-frame-staged-chip',
+                  attributes: <String, String>{
+                    'type': 'button',
+                    'aria-label': 'Remove ${_staged[i]} from the queue',
+                  },
+                  events: dom.events<Null>(
+                    onClick: () => _toggleStaged(_staged[i]),
+                  ),
+                  <Widget>[
+                    Text('${i + 1}. ${_staged[i]}'),
+                    ArcaneIcon.x(size: IconSize.sm),
+                  ],
+                ),
+            ],
+          ),
+          dom.div(
+            classes: 'hui-frame-staged-actions',
+            <Widget>[
+              Button(
+                variant: ButtonVariant.primary,
+                size: ButtonSize.sm,
+                icon: ArcaneIcon.plus(size: IconSize.sm),
+                onPressed: _addStaged,
+                child: Text(_staged.length == 1
+                    ? 'Add 1 frame'
+                    : 'Add ${_staged.length} frames'),
+              ),
+              Button(
+                variant: ButtonVariant.ghost,
+                size: ButtonSize.sm,
+                onPressed: () => setState(_staged.clear),
+                child: const Text('Clear'),
+              ),
+            ],
+          ),
+        ],
+      );
+
   Widget _frameRow(int index) {
-    final String path = icon.source[index];
-    final StoredImage? stored = images.byPath(path);
+    final String path = _source[index];
+    final StoredImage? stored = component.images.byPath(path);
     return dom.div(
       classes: 'hui-frame-row',
       <Widget>[
@@ -563,11 +743,15 @@ class _AnimatedIconEditor extends StatelessWidget {
             ),
           ],
         ),
+        HuiIconButton(
+          icon: ArcaneIcon.copy(size: IconSize.sm),
+          label: 'Duplicate frame ${index + 1}',
+          onPressed: () => _duplicateFrame(index),
+        ),
         HuiRowTools(
           onMoveUp: index == 0 ? null : () => _moveFrame(index, -1),
-          onMoveDown: index == icon.source.length - 1
-              ? null
-              : () => _moveFrame(index, 1),
+          onMoveDown:
+              index == _source.length - 1 ? null : () => _moveFrame(index, 1),
           onRemove: () => _removeFrame(index),
           removeLabel: 'Remove frame ${index + 1}',
         ),

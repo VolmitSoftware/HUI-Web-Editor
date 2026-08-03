@@ -6,6 +6,8 @@
 /// `tagName` check is.
 library;
 
+import 'dart:js_interop';
+
 import 'package:web/web.dart' as web;
 
 web.HTMLTextAreaElement? _textArea(String elementId) {
@@ -86,4 +88,15 @@ List<Object> readInputFiles(String elementId) {
 /// second time.
 void resetFileInput(String elementId) {
   _input(elementId)?.value = '';
+}
+
+/// Moves keyboard focus to [elementId], if it is present and focusable.
+///
+/// Needed because the Arcane button-feedback script `preventDefault`s mousedown,
+/// so clicking a framework `Button` leaves focus on `<body>`: a hand-built
+/// popup that listens for Escape inside its own subtree never receives the key.
+void focusElement(String elementId) {
+  final web.Element? element = web.document.getElementById(elementId);
+  if (element == null || !element.isA<web.HTMLElement>()) return;
+  (element as web.HTMLElement).focus();
 }

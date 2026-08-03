@@ -12,12 +12,12 @@ import 'dart:math' as math;
 
 import 'package:web/web.dart' as web;
 
+import '../../logic/canvas_scene.dart';
 import '../../logic/hui_geometry.dart';
 import '../../logic/mc_text.dart';
 import '../../services/image_library.dart';
 import 'canvas_assets.dart';
 import 'canvas_brush.dart';
-import 'canvas_scene.dart';
 
 /// Blocks per Minecraft font pixel at uiScale 1.
 const double huiBlocksPerFontPixel = 1 / 40;

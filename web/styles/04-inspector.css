@@ -338,12 +338,18 @@
 .hui-inspector .hui-inspector-header-actions .arcane-css-tooltip-content,
 .hui-inspector .hui-inspector-section-trailing .arcane-css-tooltip-content,
 .hui-inspector .hui-field-trailing .arcane-css-tooltip-content,
-.hui-inspector .hui-row-tools .arcane-css-tooltip-content {
+.hui-inspector .hui-row-tools .arcane-css-tooltip-content,
+/* The range row's reset button is the last thing in its row, so its hidden
+   tooltip hangs past the pane and adds ~25px of phantom scrollWidth per row —
+   the same effect the header comment describes, and the same fix. */
+.hui-inspector .hui-slider-field .arcane-css-tooltip-content {
   left: auto !important;
   right: 0 !important;
   transform: translateY(-4px) !important;
 }
 
+/* One column is unreadable for a track: below this the number field and the
+   reset keep their own row under it rather than squeezing the track to nothing. */
 @media (max-width: 420px) {
   .hui-slider-field {
     grid-template-columns: minmax(0, 1fr);
@@ -353,9 +359,13 @@
 /* ---------- demoted help ----------
    Secondary text is one muted line. `HuiField` writes its help style inline, so
    the demotion has to out-rank it. Anything longer than a line belongs in a
-   `.hui-more` disclosure, closed by default. */
+   `.hui-more` disclosure, closed by default.
 
-.hui-inspector .hui-field-help {
+   Element-qualified: `HuiField`'s help line is a <p> and `HuiFieldHelp`'s
+   popover root is a <span>, and they share the class name. Without the tag the
+   font-size below would shrink the help button's icon. */
+
+.hui-inspector p.hui-field-help {
   margin-top: 4px !important;
   color: var(--hui-muted) !important;
   font-size: 0.72rem !important;
@@ -625,14 +635,26 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--hui-transition),
-    background-color var(--hui-transition);
+  /* Carries the shared --hui-lift affordance: this is the one grid in the pane
+     where the target is the artwork rather than a label, so a border change
+     alone under-reads. Safe to transform — a tile is a plain button with no
+     fixed-position descendant (06-motion.css rule 3). */
+  transition:
+    transform var(--hui-dur-2) var(--hui-ease-out),
+    border-color var(--hui-dur-2) var(--hui-ease-out),
+    background-color var(--hui-dur-2) var(--hui-ease-out);
 }
 
 .hui-image-tile:hover,
 .hui-image-tile:focus-visible {
   border-color: var(--hui-ring);
   outline: none;
+  transform: translate3d(0, calc(var(--hui-lift) * -1), 0);
+}
+
+/* After the hover rule so a press beats it. */
+.hui-image-tile:active {
+  transform: translate3d(0, 0, 0) scale(0.99);
 }
 
 .hui-image-tile.is-selected {
@@ -883,6 +905,12 @@
 }
 
 .hui-registry-result.is-selected {
+  /* Square leading corners: an inset shadow is clipped by the border radius,
+     so with the row's 5px radius intact this 3px accent bent into a crescent
+     of light on the leading edge — the banned accent. Straight bar, rounded
+     trailing corners, same as the palette row. */
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
   box-shadow: inset 3px 0 0 var(--hui-accent);
   font-weight: 620;
 }
@@ -1079,4 +1107,477 @@
   left: auto !important;
   right: 0 !important;
   transform: translateY(-4px) !important;
+}
+
+/* ---------- field help popover (T1.5 HuiFieldHelp) ----------
+   The card is absolutely positioned inside `.hui-inspector`, which clips its
+   inline axis to kill phantom horizontal scroll. A 300px card hanging off the
+   right edge of a 320px pane would lose its left edge to that clip, so the
+   width is capped against the pane variable. `!important` because the widget
+   writes its box inline, which is what keeps it readable with no stylesheet. */
+
+/* The widget positions its card against its own trigger, which is right for a
+   free-standing popover and wrong inside a pane that clips its inline axis: a
+   trigger with anything after it (the duplicate and delete buttons, a count
+   chip) puts the card's far edge past the clip and loses a strip of the text.
+   Measured at 57px of the card cut off in the component header.
+
+   Dropping the trigger out of the positioning chain and positioning the row
+   instead makes `right: 0` mean the pane's right edge everywhere, whatever sits
+   beside the button. Every row listed here spans the pane, and the card's
+   `top: calc(100% + 6px)` lands in the same place it did before, because the
+   trigger is the full height of its row. */
+
+.hui-inspector .hui-field-help {
+  position: static !important;
+}
+
+.hui-inspector :where(
+    .hui-field-head,
+    .hui-inspector-section-head,
+    .hui-inspector-header-top,
+    .hui-inspector-title-row,
+    .hui-switch-row-head,
+    .hui-help-cluster
+  ) {
+  position: relative;
+}
+
+/* ---------- defending the two hand-built disclosures ----------
+   `AccordionScripts.bindExpandersAccordions` binds EVERY `button[aria-expanded]`
+   on the page during the legacy bundle's one-shot `setTimeout(…, 100)` scan and
+   then writes `display: none | block` straight onto the button's next sibling,
+   plus `transform: rotate(180deg)` onto its icon. Both of ours — the extras
+   summary and the help trigger — carry `aria-expanded` because they should, and
+   both keep their open state in Dart.
+
+   The primary fix is now in Dart: both triggers render
+   `data-arcane-interactive="true"`, which is the binder's own opt-out
+   (`accordion_scripts.dart:8`), so it never binds them at all. That also covers
+   the half CSS cannot reach — the binder flipping `aria-expanded` itself.
+
+   These rules stay as belt-and-braces. They cost nothing and they still hold if
+   a future trigger is added without the attribute. The bodies only exist in the
+   DOM while their Dart flag is true, so forcing them visible can never show
+   something that should be hidden. */
+
+.hui-extras-body {
+  display: flex !important;
+}
+
+.hui-field-help-scrim {
+  display: block !important;
+}
+
+.hui-extras > button svg,
+.hui-field-help > button svg {
+  transform: none !important;
+}
+
+.hui-inspector .hui-field-help-card {
+  width: min(
+    300px,
+    calc(var(--hui-inspector-width, 320px) - 44px),
+    calc(100vw - 40px)
+  ) !important;
+  border-color: var(--hui-border-soft) !important;
+  animation: hui-help-in var(--hui-dur-2, 140ms) var(--hui-ease-out, ease) backwards;
+}
+
+.hui-field-help-title {
+  color: var(--hui-text);
+}
+
+.hui-field-help-body {
+  color: var(--hui-muted) !important;
+  text-wrap: pretty;
+}
+
+.hui-field-help-citation {
+  padding-top: 6px;
+  border-top: 1px solid var(--hui-border-soft);
+}
+
+@keyframes hui-help-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+/* Cluster of help affordances for the fields whose editors this pane only
+   mounts (text, item, custom item). Reads as a legend, not as controls. */
+
+.hui-help-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  min-width: 0;
+  color: var(--hui-muted);
+  font-size: 0.7rem;
+}
+
+.hui-help-cluster-label {
+  font-weight: 640;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hui-help-cluster-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* Two or more controls in a `HuiField` / section trailing slot. */
+
+.hui-field-tools,
+.hui-frame-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.hui-inspector-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* ---------- extras (T1.5 ExtrasEditor) ---------- */
+
+.hui-extras {
+  padding: 2px 0;
+}
+
+.hui-extras.is-empty .hui-count-chip {
+  opacity: 0.6;
+}
+
+.hui-extras-summary {
+  font-size: 0.72rem;
+  font-weight: 620;
+}
+
+.hui-extras-body {
+  padding: 4px 0 2px;
+}
+
+.hui-extras-note,
+.hui-extras-empty {
+  text-wrap: pretty;
+}
+
+.hui-extras-row + .hui-extras-row {
+  padding-top: 2px;
+}
+
+/* ---------- action presets (T1.5 ActionPresetsRow) ---------- */
+
+.hui-action-presets {
+  padding-bottom: 2px;
+}
+
+.hui-action-presets-note {
+  text-wrap: pretty;
+}
+
+/* ---------- drag reorder (T1.5 HuiReorderList) ---------- */
+
+.hui-reorder-row {
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+.hui-reorder-row:last-of-type {
+  border-bottom: 0;
+}
+
+/* The dragged row stays in place; only the line moves, so nothing under the
+   pointer reflows mid-gesture. */
+.hui-reorder-row.is-dragging {
+  background: color-mix(in srgb, var(--hui-accent) 8%, transparent);
+}
+
+.hui-reorder-line {
+  transition: background var(--hui-dur-1, 80ms) linear;
+}
+
+.hui-reorder-handle:hover {
+  color: var(--hui-text) !important;
+}
+
+.hui-reorder .hui-frame-row {
+  border-bottom: 0;
+}
+
+/* ---------- toggle icons, side by side ---------- */
+
+.hui-toggle-copy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Two columns while both stay usable, one below that: a 300px pane cannot show
+   two icon editors, and stacking is still both-editable, which is the point. */
+.hui-toggle-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: var(--hui-space-2);
+  min-width: 0;
+}
+
+.hui-toggle-icon-cell {
+  min-width: 0;
+  padding: 2px 0 0;
+  border-top: 1px solid var(--hui-border-soft);
+}
+
+/* Which one the canvas is drawing, so the segmented control above still means
+   something now that both are on screen. */
+.hui-toggle-icon-cell.is-previewed {
+  border-top-color: var(--hui-accent);
+}
+
+/* ---------- animated frame staging ---------- */
+
+.hui-frame-staged {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: var(--hui-panel-soft);
+}
+
+.hui-frame-staged-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hui-frame-staged-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 6px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--hui-text);
+  font: inherit;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.hui-frame-staged-chip:hover,
+.hui-frame-staged-chip:focus-visible {
+  border-color: var(--hui-accent);
+  outline: none;
+}
+
+.hui-frame-staged-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------- empty states ---------- */
+
+.hui-empty {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 4px 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px dashed var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+}
+
+.hui-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hui-muted);
+}
+
+.hui-empty.is-warning .hui-empty-icon {
+  color: var(--hui-warning);
+}
+
+.hui-empty.is-danger .hui-empty-icon {
+  color: var(--hui-danger);
+}
+
+.hui-empty.is-danger {
+  border-color: color-mix(in srgb, var(--hui-danger) 45%, transparent);
+}
+
+.hui-empty-text {
+  min-width: 0;
+}
+
+.hui-empty-title {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+}
+
+.hui-empty-body {
+  margin: 3px 0 0;
+  color: var(--hui-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.hui-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  grid-column: 2;
+  padding-top: 2px;
+}
+
+/* ---------- range fields ----------
+   The track, thumb and focus ring come from `.hui-range` in
+   05-panels-dialogs.css, shared with the settings dialog on purpose: both edit
+   a number by dragging and must not read as two different widgets. Only the
+   row is the inspector's, and it is a grid rather than that file's flex row
+   because the readout here is an editable number field, not a label.
+
+   `HuiSliderField` writes the grid inline; these two rules are the parts the
+   inspector's own fit rules would otherwise fight. */
+
+.hui-inspector .hui-slider-field .hui-range {
+  width: 100%;
+  min-width: 0;
+}
+
+.hui-inspector .hui-slider-field .hui-number {
+  min-width: 0;
+}
+
+/* ---------- skeletons ----------
+   The box and its shimmer are the motion layer's (`.hui-skeleton` in
+   06-motion.css); the inspector only decides where one belongs. That is never
+   in place of a control the user can already type into — only where a
+   catalogue-backed affordance will appear once the asset lands.
+
+   `HuiSkeletonRows` is stacked above the picker it stands in for, so the
+   loading strip and the free-text field are both on screen. */
+
+.hui-skeleton-rows {
+  padding-bottom: 2px;
+}
+
+/* ---------- hover reveals ----------
+   One rule decides what may recede and what may not: an affordance that is the
+   only way to reach a behaviour stays visible and reveals EMPHASIS; an
+   affordance that duplicates a keyboard path may recede entirely.
+
+   So the row tools never fade — the delete button is a row's only delete — and
+   the drag handle does, because it is `aria-hidden` and the up/down buttons
+   are its accessible twin (reorder_list.dart). Every duration resolves from
+   --hui-dur-*, so 06-motion.css's single switch flattens all of it. */
+
+/* The row band. Background only: a transform here would make the row a
+   containing block for the field-help popover it hosts, which is exactly the
+   trap 06-motion.css rule 3 describes. `:focus-within` is not decoration —
+   typing in a command field should light the row its tools belong to. */
+.hui-inspector .hui-action-row,
+.hui-inspector .hui-frame-row {
+  transition: background-color var(--hui-dur-2) var(--hui-ease-out);
+}
+
+.hui-inspector .hui-action-row:hover,
+.hui-inspector .hui-action-row:focus-within,
+.hui-inspector .hui-frame-row:hover,
+.hui-inspector .hui-frame-row:focus-within {
+  background: color-mix(in srgb, var(--hui-accent) 5%, transparent);
+}
+
+/* The whole cluster recedes with the row, not just the button under the
+   pointer.
+
+   Opacity on the WRAPPER, not colour on the buttons: measured, the icon
+   buttons compute to full --hui-text, not the --hui-muted the rule above them
+   asks for, because Arcane's own ghost-button colour outranks a plain class
+   selector. A colour promotion would therefore have been a no-op. Opacity on a
+   node the framework does not style cannot lose that fight, and at 0.6 of
+   foreground the contrast is still an order of magnitude past the 3:1 a
+   non-text control owes. */
+.hui-inspector .hui-row-tools {
+  opacity: 0.6;
+  transition: opacity var(--hui-dur-2) var(--hui-ease-out);
+}
+
+.hui-inspector .hui-action-row:hover .hui-row-tools,
+.hui-inspector .hui-action-row:focus-within .hui-row-tools,
+.hui-inspector .hui-frame-row:hover .hui-row-tools,
+.hui-inspector .hui-frame-row:focus-within .hui-row-tools,
+.hui-inspector .hui-row-tools:hover,
+.hui-inspector .hui-row-tools:focus-within {
+  opacity: 1;
+}
+
+/* The one thing here that may genuinely recede. */
+.hui-inspector .hui-reorder-handle {
+  opacity: 0.45;
+  transition: opacity var(--hui-dur-2) var(--hui-ease-out);
+}
+
+.hui-inspector .hui-reorder-row:hover .hui-reorder-handle,
+.hui-inspector .hui-reorder-row:focus-within .hui-reorder-handle {
+  opacity: 1;
+}
+
+/* A coarse pointer has no hover to reveal with. */
+@media (hover: none) {
+  .hui-inspector .hui-reorder-handle,
+  .hui-inspector .hui-row-tools {
+    opacity: 1;
+  }
+}
+
+/* Pick lists already highlight; they just did it as a hard cut. --hui-dur-1,
+   because a row highlight that lags the pointer down a list feels broken. */
+.hui-registry-result,
+.hui-placeholder-row,
+.hui-frame-staged-chip {
+  transition:
+    color var(--hui-dur-1) var(--hui-ease-out),
+    border-color var(--hui-dur-1) var(--hui-ease-out),
+    background-color var(--hui-dur-1) var(--hui-ease-out);
+}
+
+/* The duration tokens zero out under reduced motion, which a one-shot entrance
+   handles but the card's own animation should not have to reason about. The
+   press scale is the other case a token cannot reach: it is a distance, not a
+   duration, so --hui-lift going to 0 does not touch it. */
+@media (prefers-reduced-motion: reduce) {
+  .hui-inspector .hui-field-help-card {
+    animation: none;
+  }
+
+  .hui-image-tile:active {
+    transform: none;
+  }
 }

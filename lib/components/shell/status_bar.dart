@@ -5,6 +5,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show Listenable;
 
+import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/class_names.dart';
 import 'shell_status.dart';
@@ -51,8 +52,11 @@ class StatusBar extends StatelessWidget {
         ],
       );
 
+  // The whole selection, not its size and primary: swapping one member for
+  // another leaves both of those unchanged while the hover text changes.
   String _documentSignature() => '${store.errorCount}|${store.warningCount}|'
-      '${store.infoCount}|${store.selectedId}|${store.menu.components.length}';
+      '${store.infoCount}|${store.selectionIds.join(',')}|'
+      '${store.menu.components.length}';
 
   String _saveSignature() => '${store.hasUnsavedChanges}|'
       '${store.lastSavedAt?.millisecondsSinceEpoch}|'
@@ -94,13 +98,43 @@ class StatusBar extends StatelessWidget {
     );
   }
 
+  /// A multi-selection names its size, not its primary: with eight components
+  /// selected, naming one of them reads as though only that one is. The ids are
+  /// still reachable — they move into the hover text, which is the only place
+  /// eight of them fit in a 32px strip.
   Widget _selectionReadout() {
-    final String? selected = store.selectedId;
+    final int selectedCount = store.selectionIds.length;
     final int count = store.menu.components.length;
-    final String text = selected == null
-        ? '$count component${count == 1 ? '' : 's'}'
-        : 'Selected $selected';
-    return dom.span(classes: 'hui-status-item', <Widget>[Text(text)]);
+    final String text = switch (selectedCount) {
+      0 => '$count component${count == 1 ? '' : 's'}',
+      1 => 'Selected ${store.selectedId}',
+      _ => '$selectedCount of $count selected',
+    };
+    if (selectedCount < 2) {
+      return dom.span(classes: 'hui-status-item', <Widget>[Text(text)]);
+    }
+    return dom.span(
+      classes: 'hui-status-item',
+      // `data-no-tooltip` keeps Arcane's title-to-tooltip upgrade away: it
+      // re-parents the element behind Jaspr's back, and this span rebuilds on
+      // every selection change.
+      attributes: <String, String>{
+        'data-no-tooltip': 'true',
+        'title': _selectionTitle(),
+      },
+      <Widget>[Text(text)],
+    );
+  }
+
+  /// Document order, matching the rail, so the list can be read against it.
+  String _selectionTitle() {
+    const int shown = 12;
+    final List<String> ids = <String>[
+      for (final HuiComponent component in store.selectedComponents)
+        component.id.isEmpty ? '(no id)' : component.id,
+    ];
+    if (ids.length <= shown) return ids.join(', ');
+    return '${ids.take(shown).join(', ')} and ${ids.length - shown} more';
   }
 
   Widget _canvasReadout() {

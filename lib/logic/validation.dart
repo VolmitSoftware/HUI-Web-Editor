@@ -1,5 +1,8 @@
 import '../model/model.dart';
 import '../services/catalogs.dart';
+import 'canvas_scene.dart' show CanvasOverlap;
+import 'hui_geometry.dart' show huiLineHeight;
+import 'mc_text.dart' show parseMcText;
 
 enum HuiSeverity { error, warning, info }
 
@@ -29,18 +32,25 @@ class HuiIssue {
 /// Semantic validation against the Java parser's real behaviour (not the stale
 /// shipped JSON schema). Catalog sets are optional: when omitted, catalog
 /// membership is not checked.
+///
+/// [overlaps] carries intersecting clickable hitbox pairs from an already
+/// resolved scene, because overlap is a geometry question the validator has no
+/// business re-deriving. The store passes the pairs from a uiScale-1 scene;
+/// omitting them simply skips the overlap rule.
 List<HuiIssue> validateHuiMenu(
   HuiMenu menu, {
   Set<String>? knownImagePaths,
   Set<String>? knownMaterials,
   Set<String>? knownSounds,
   HuiCustomItemCatalog? customItems,
+  List<CanvasOverlap> overlaps = const <CanvasOverlap>[],
 }) {
   final _Validator validator = _Validator(
     knownImagePaths: knownImagePaths,
     knownMaterials: knownMaterials,
     knownSounds: knownSounds,
     customItems: customItems,
+    overlaps: overlaps,
   );
   validator.validateMenu(menu);
   return validator.issues;
@@ -48,6 +58,53 @@ List<HuiIssue> validateHuiMenu(
 
 /// Stack sizes above this are refused by the client, not by HoloUI.
 const int huiMaxStackCount = 99;
+
+/// Widest line, in characters, at which a text click plane is called out.
+/// `TextMenuIcon.createBoundingBox` sizes the plane at
+/// `chars x lineHeight / 2` (`TextMenuIcon.java:66-71`), so 16 characters is
+/// already 1.75 blocks wide — wider than most authors picture.
+const int huiWideTextHitboxChars = 16;
+
+/// `/holoui` plus its aliases (`HoloCommand.java:38`). Director resolves both
+/// command and subcommand names with `equalsIgnoreCase`
+/// (`DirectorRuntimeEngine.java:365,613,668`).
+const Set<String> _huiCommandRoots = <String>{
+  'holoui',
+  'holo',
+  'hui',
+  'holou',
+  'hu',
+};
+
+/// Subcommands that return early unless the sender is a `Player`
+/// (`HoloCommand.java:99-102,115-118,133-136`).
+const Set<String> _huiPlayerOnlySubcommands = <String>{'open', 'back', 'close'};
+
+final RegExp _whitespacePattern = RegExp(r'\s+');
+
+/// The player-only `/holoui` subcommand [command] dispatches, or null.
+///
+/// `open` is the exception: its menu argument defaults to `*`, and `*` returns
+/// through `list(sender)` before the Player check (`HoloCommand.java:94-97`),
+/// so a bare `open` genuinely does work from the console.
+String? huiPlayerOnlySubcommand(String command) {
+  // The plugin strips one leading slash and nothing else
+  // (`CommandMenuAction.java:35`); the trim is for the author, not the parser.
+  final String body =
+      (command.startsWith('/') ? command.substring(1) : command).trim();
+  final List<String> tokens = body
+      .split(_whitespacePattern)
+      .where((String token) => token.isNotEmpty)
+      .toList();
+  if (tokens.length < 2) return null;
+  if (!_huiCommandRoots.contains(tokens[0].toLowerCase())) return null;
+  final String subcommand = tokens[1].toLowerCase();
+  if (!_huiPlayerOnlySubcommands.contains(subcommand)) return null;
+  if (subcommand == 'open' && (tokens.length < 3 || tokens[2] == '*')) {
+    return null;
+  }
+  return subcommand;
+}
 
 final RegExp _idPattern = RegExp(r'^[A-Za-z0-9_.-]+$');
 final RegExp _registryKeyPattern = RegExp(r'^([a-z0-9_.-]+:)?[a-z0-9_./-]+$');
@@ -63,15 +120,24 @@ class _Validator {
     this.knownMaterials,
     this.knownSounds,
     this.customItems,
+    this.overlaps = const <CanvasOverlap>[],
   });
 
   final Set<String>? knownImagePaths;
   final Set<String>? knownMaterials;
   final Set<String>? knownSounds;
   final HuiCustomItemCatalog? customItems;
+
+  /// Intersecting clickable hitboxes, resolved by the caller's scene.
+  final List<CanvasOverlap> overlaps;
   final List<HuiIssue> issues = <HuiIssue>[];
 
   String? _componentId;
+
+  /// The highlightModifier override is a property of the runtime, not of any
+  /// one component: every clickable in a typical menu carries a non-1 modifier
+  /// and twenty copies of the same note would bury everything else.
+  bool _highlightOverrideReported = false;
 
   void _add(HuiSeverity severity, String path, String message, {String? fix}) {
     issues.add(HuiIssue(
@@ -123,11 +189,49 @@ class _Validator {
       );
     }
 
+    // `MenuDefinitionData` has no name field, and `ConfigManager.registerMenu`
+    // keys the registry by the file base name before overwriting the parsed id
+    // (`ConfigManager.java:157,214`). The key survives export as an extra, so
+    // the note is about expectations, not about data loss.
+    if (menu.extras.containsKey('name')) {
+      _add(
+        HuiSeverity.info,
+        'name',
+        'HoloUI has no menu "name" field: the menu id is the file base name. '
+            'The key is preserved on export but ignored in-game',
+        fix: 'Rename the exported file to change the menu id',
+      );
+    }
+
     final Set<String> seen = <String>{};
     for (int i = 0; i < menu.components.length; i++) {
       final HuiComponent component = menu.components[i];
       _componentId = component.id.isEmpty ? null : component.id;
       _validateComponent(component, 'components[$i]', seen);
+    }
+    _componentId = null;
+    _validateOverlaps(menu);
+  }
+
+  /// One issue per pair, anchored on the first component: a left click fires
+  /// every clickable whose plane is under the crosshair, in declaration order
+  /// (`MenuSessionManager.java:170-203`), so an accidental overlap silently
+  /// doubles up actions.
+  void _validateOverlaps(HuiMenu menu) {
+    for (final CanvasOverlap overlap in overlaps) {
+      final int index = menu.indexOfComponent(overlap.firstId);
+      // A stale pair from a scene built before the last edit names a component
+      // that is gone; reporting a path that does not exist is worse than
+      // reporting nothing.
+      if (index < 0 || menu.indexOfComponent(overlap.secondId) < 0) continue;
+      _componentId = overlap.firstId;
+      _add(
+        HuiSeverity.warning,
+        'components[$index]',
+        'Hitbox overlaps "${overlap.secondId}": one left click fires every '
+            'component under the crosshair, so both run their actions',
+        fix: 'Move or shrink one of them, or make one a decoration',
+      );
     }
     _componentId = null;
   }
@@ -185,10 +289,10 @@ class _Validator {
     switch (component.data) {
       case final HuiButtonData data:
         _validateHighlight(data.highlightModifier, '$path.data');
-        _validateIcon(data.icon, '$path.data.icon');
+        _validateIcon(data.icon, '$path.data.icon', clickable: true);
         _validateActions(data.actions, '$path.data.actions');
       case final HuiDecorationData data:
-        _validateIcon(data.icon, '$path.data.icon');
+        _validateIcon(data.icon, '$path.data.icon', clickable: false);
       case final HuiToggleData data:
         _validateHighlight(data.highlightModifier, '$path.data');
         if (data.condition.trim().isEmpty) {
@@ -209,8 +313,8 @@ class _Validator {
             fix: 'Set the value the condition is compared against, e.g. "true"',
           );
         }
-        _validateIcon(data.trueIcon, '$path.data.trueIcon');
-        _validateIcon(data.falseIcon, '$path.data.falseIcon');
+        _validateIcon(data.trueIcon, '$path.data.trueIcon', clickable: true);
+        _validateIcon(data.falseIcon, '$path.data.falseIcon', clickable: true);
         _validateActions(data.trueActions, '$path.data.trueActions');
         _validateActions(data.falseActions, '$path.data.falseActions');
     }
@@ -221,14 +325,37 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         '$path.highlightModifier',
-        'highlightModifier is outside 0..1; the Java API clamps it and large '
-            'values push the icon through the player',
+        // The clamp at HoloComponent.java:33 is on the third-party API record
+        // only. ButtonComponentData/ToggleComponentData are plain records with
+        // no compact constructor, so Gson writes a parsed value straight in and
+        // ClickableComponent.java:65 spends it as a block distance along the
+        // unit plane normal.
+        'highlightModifier is outside 0..1 and a value read from a file is '
+            'used verbatim - the API clamp never sees it. It is a distance in '
+            'blocks along the plane normal, so large values push the icon '
+            'through the player and negative ones push it away',
         fix: 'Use a value between 0 and 1 (0.05 is typical)',
+      );
+    }
+
+    // `rotateToFace` runs before the hit test and teleports a selected icon to
+    // `location + plane.normal`, and the normal is normalised
+    // (`ClickableComponent.java:111-116`, `CollisionPlane.java:83-85`). So the
+    // modifier is only ever seen on the tick hover begins.
+    if (value != 1 && !_highlightOverrideReported) {
+      _highlightOverrideReported = true;
+      _add(
+        HuiSeverity.info,
+        '$path.highlightModifier',
+        'highlightModifier only governs the first hover tick: from the second '
+            'tick every hovered component sits exactly 1 block toward the '
+            'player, whatever the modifier says',
+        fix: 'Set it to 1 if you want the first tick to match the snap',
       );
     }
   }
 
-  void _validateIcon(HuiIcon? icon, String path) {
+  void _validateIcon(HuiIcon? icon, String path, {required bool clickable}) {
     if (icon == null) {
       _add(
         HuiSeverity.warning,
@@ -241,7 +368,7 @@ class _Validator {
     }
     switch (icon) {
       case final HuiTextIcon text:
-        _validateText(text.text, '$path.text');
+        _validateText(text.text, '$path.text', clickable: clickable);
       case final HuiTextImageIcon image:
         _validateImagePath(image.path, '$path.path');
       case final HuiAnimatedImageIcon animated:
@@ -339,7 +466,26 @@ class _Validator {
     }
   }
 
-  void _validateText(String text, String path) {
+  void _validateText(String text, String path, {required bool clickable}) {
+    // Plain length never exceeds raw length (parsing only strips tags), so a
+    // short field can skip the parse entirely — this runs on every keystroke.
+    if (clickable && text.length >= huiWideTextHitboxChars) {
+      final int chars = parseMcText(text).maxLineLength;
+      if (chars >= huiWideTextHitboxChars) {
+        final String blocks =
+            (chars * huiLineHeight / 2).toStringAsFixed(2);
+        _add(
+          HuiSeverity.info,
+          path,
+          'Text hitboxes are sized by character count, not by how wide the '
+              'glyphs look: $chars characters make this click plane $blocks '
+              'blocks wide at UI scale 1',
+          fix: 'Shorten the line, or leave room around it; the canvas hitbox '
+              'outline shows the real extent',
+        );
+      }
+    }
+
     if (_brokenLegacyPattern.hasMatch(text)) {
       _add(
         HuiSeverity.warning,
@@ -482,12 +628,50 @@ class _Validator {
             'verbatim',
       );
     }
-    if (!huiCommandSources.contains(action.source)) {
+    // `CommandMenuAction.execute` dispatches as the player only for an exact
+    // PLAYER enum match; `server` and an absent key both reach the console
+    // sender (`CommandMenuAction.java:34-40`). An absent key is normalised to
+    // `server` on import, so the flag is what tells those two apart.
+    final bool sourceAbsent = action.absentKeys.contains('source');
+    final bool consoleForCertain = sourceAbsent || action.source == 'server';
+    final String? playerOnly = huiPlayerOnlySubcommand(action.command);
+
+    // The specific failure beats the generic one: an absent source on a
+    // player-only subcommand would otherwise raise two warnings that say
+    // roughly the same thing and neither of them the useful part.
+    if (playerOnly != null && consoleForCertain) {
       _add(
         HuiSeverity.warning,
         '$path.source',
-        'Unknown command source "${action.source}"; the plugin falls back to '
-            'running the command as the console',
+        '"holoui $playerOnly" only works for a player, and this action runs '
+            'from the console (${sourceAbsent ? 'the file gave it no source' : 'source "server"'}), '
+            'so clicking does nothing but print a player-only notice to the '
+            'server log',
+        fix: 'Set the source to "player"',
+      );
+    } else if (sourceAbsent) {
+      _add(
+        HuiSeverity.warning,
+        '$path.source',
+        'The imported file gave this command no source, so HoloUI ran it from '
+            'the console. It was read as "server" and the export now writes '
+            'that explicitly',
+        fix: 'Switch the source to "player" if the command was meant to run as '
+            'the clicking player',
+      );
+    } else if (!huiCommandSources.contains(action.source)) {
+      // HoloUi shades no Gson and registers no adapter for
+      // `MenuActionCommandSource`, so an odd spelling is resolved by whatever
+      // Gson the server ships: 2.10+ falls back to matching `toString()`, so
+      // "PLAYER" reaches the player, while 2.8.x leaves the field null and the
+      // command runs from the console. Neither outcome can be asserted here.
+      _add(
+        HuiSeverity.warning,
+        '$path.source',
+        'Command source "${action.source}" is not one of the two spellings '
+            'HoloUI declares, and no Gson adapter is registered for them, so '
+            'whether it resolves to the player or falls through to the console '
+            'depends on the server\'s Gson version',
         fix: 'Use "player" or "server"',
       );
     }

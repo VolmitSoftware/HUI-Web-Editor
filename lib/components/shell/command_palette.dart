@@ -12,6 +12,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:arcane_jaspr/core/dom_value.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show EventCallback;
+import 'package:web/web.dart' as web;
 
 import '../common/class_names.dart';
 import 'shell_actions.dart';
@@ -36,8 +37,26 @@ class ShellCommandPalette extends StatefulWidget {
 }
 
 class _ShellCommandPaletteState extends State<ShellCommandPalette> {
+  static const String _inputId = 'hui-cmd-input';
+
   String _query = '';
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // The `autofocus` attribute is not enough. The palette is inserted long
+    // after the document loaded, and whatever opened it — an Arcane button
+    // whose feedback script `preventDefault`s mousedown, or the runtime's own
+    // hidden ⌘K trigger — leaves focus on `body`. Measured with autofocus
+    // alone: typing went nowhere, arrows did not move the selection and
+    // Escape did not close, because every one of those is a keydown handler
+    // on this input.
+    context.binding.addPostFrameCallback(() {
+      final web.Element? input = web.document.getElementById(_inputId);
+      (input as web.HTMLElement?)?.focus();
+    });
+  }
 
   List<ShellAction> get _matches {
     final List<ShellAction> enabled = component.actions
@@ -130,6 +149,7 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
           ArcaneIcon.search(size: IconSize.sm),
           dom.input<String>(
             type: dom.InputType.text,
+            id: _inputId,
             classes: 'hui-cmd-input',
             attributes: const <String, String>{
               'placeholder': 'Search commands',

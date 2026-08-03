@@ -10,14 +10,24 @@ import 'dart:math' as math;
 
 import 'package:web/web.dart' as web;
 
+import '../../logic/canvas_scene.dart';
 import '../../logic/hui_geometry.dart';
+import '../../logic/multi_select.dart';
 import '../../logic/viewport_math.dart';
 import '../../state/editor_store.dart' show HuiBackdropMode;
+import '../render/canvas_assets.dart';
+import '../render/canvas_brush.dart';
+import '../render/icon_renderers.dart';
 import 'backdrop.dart';
-import 'canvas_assets.dart';
-import 'canvas_brush.dart';
-import 'canvas_scene.dart';
-import 'icon_renderers.dart';
+
+/// Dash pattern of the selection ring, in screen pixels, and how far one march
+/// tick advances it. Both live here rather than in the viewport so the phase
+/// the clock produces can never drift from the pattern it is marching.
+///
+/// 10 px of period at 2 px per 80 ms tick is one full cycle every 400 ms —
+/// slow enough to read as a crawl rather than a strobe.
+const List<double> huiSelectionDash = <double>[6, 4];
+const double huiSelectionDashStep = 2;
 
 class CanvasFrameOptions {
   const CanvasFrameOptions({
@@ -28,9 +38,13 @@ class CanvasFrameOptions {
     required this.trueRender,
     required this.uiScale,
     this.selectedId,
+    this.selectedIds = const <String>{},
     this.hoveredId,
     this.draggingId,
+    this.marquee,
+    this.guides = const <AlignmentGuide>[],
     this.obfuscationTick = 0,
+    this.selectionDashOffset = 0,
   });
 
   final HuiBackdropMode backdrop;
@@ -39,10 +53,31 @@ class CanvasFrameOptions {
   final bool showAnchors;
   final bool trueRender;
   final double uiScale;
+
+  /// The primary — the most recent member of [selectedIds]. It alone carries
+  /// the heavy ring and the corner ticks, so a group still has an obvious
+  /// "the one the inspector is editing".
   final String? selectedId;
+
+  final Set<String> selectedIds;
   final String? hoveredId;
   final String? draggingId;
+
+  /// Live rubber band in world blocks, or null when no marquee is running.
+  final HuiRect? marquee;
+
+  /// Smart-alignment lines for the drag in flight. Driven by the guide list
+  /// alone: a correction of exactly zero still means "you are flush with this",
+  /// and the line has to show.
+  final List<AlignmentGuide> guides;
+
   final int obfuscationTick;
+
+  /// Phase of the marching selection dash, in screen pixels. The viewport owns
+  /// the clock and holds this at 0 whenever the march is not running (nothing
+  /// selected, or reduced motion), so the painter stays a pure function of its
+  /// options and never has to ask whether motion is allowed.
+  final double selectionDashOffset;
 
   /// Component ids are only worth drawing when the user asked for the debug
   /// overlay; otherwise they cover the artwork.
@@ -101,9 +136,11 @@ class CanvasPainter {
     }
 
     _paintDragGuides(brush, scene, options);
+    _paintSmartGuides(brush, options);
     _paintDepthBadges(brush, scene);
     _paintLabels(brush, scene, options);
     _paintSelection(brush, scene, options);
+    _paintMarquee(brush, options);
 
     if (scene.isEmpty) {
       _paintEmptyState(brush);
@@ -205,13 +242,67 @@ class CanvasPainter {
     }
   }
 
+  /// Edge and centre alignments found for the drag in flight.
+  ///
+  /// Solid for an edge, dashed for a centre-to-centre line, so a group that is
+  /// centred on something reads differently from one that is flush against it.
+  void _paintSmartGuides(CanvasBrush brush, CanvasFrameOptions options) {
+    if (options.guides.isEmpty) return;
+    brush.save();
+    brush.lineWidth = 1;
+    brush.stroke = brush.palette.anchor;
+    for (final AlignmentGuide guide in options.guides) {
+      if (guide.match == GuideMatch.center) {
+        brush.dash(<double>[3, 3]);
+      } else {
+        brush.clearDash();
+      }
+      // 10px of overshoot so the line reads as a rule rather than a bar.
+      if (guide.axis == GuideAxis.vertical) {
+        final double x = brush.sx(guide.position);
+        brush.linePx(
+          x,
+          brush.sy(guide.end) - 10,
+          x,
+          brush.sy(guide.start) + 10,
+        );
+      } else {
+        final double y = brush.sy(guide.position);
+        brush.linePx(
+          brush.sx(guide.start) - 10,
+          y,
+          brush.sx(guide.end) + 10,
+          y,
+        );
+      }
+    }
+    brush.restore();
+  }
+
+  /// The live rubber band. Painted last of the overlays so it always reads as
+  /// the thing the pointer is doing right now.
+  void _paintMarquee(CanvasBrush brush, CanvasFrameOptions options) {
+    final HuiRect? band = options.marquee;
+    if (band == null) return;
+    brush.save();
+    brush.alpha = 0.12;
+    brush.fill = brush.palette.selection;
+    brush.fillWorldRect(band);
+    brush.alpha = 1;
+    brush.dash(<double>[4, 3]);
+    brush.lineWidth = 1;
+    brush.stroke = brush.palette.selection;
+    brush.strokeWorldRect(band);
+    brush.restore();
+  }
+
   void _paintLabels(
     CanvasBrush brush,
     CanvasScene scene,
     CanvasFrameOptions options,
   ) {
     for (final CanvasItem item in scene.drawOrder) {
-      final bool selected = item.id == options.selectedId;
+      final bool selected = options.selectedIds.contains(item.id);
       final bool hovered = item.id == options.hoveredId;
       if (!options.showAllIds && !selected && !hovered) continue;
       final HuiRect box = item.outline;
@@ -226,26 +317,59 @@ class CanvasPainter {
     }
   }
 
+  /// Every member gets a marching ring; the primary gets the halo and the
+  /// corner ticks.
+  ///
+  /// Drawn in scene order rather than selection order so the emphasis never
+  /// depends on the sequence the user happened to click in. The dash is the
+  /// selection's shape language and stays whether or not it marches, so
+  /// reduced motion removes the movement without redesigning the ring.
   void _paintSelection(
     CanvasBrush brush,
     CanvasScene scene,
     CanvasFrameOptions options,
   ) {
-    final String? selectedId = options.selectedId;
-    if (selectedId == null) return;
-    final CanvasItem? item = scene.byId(selectedId);
-    if (item == null) return;
-    final HuiRect box = item.outline;
+    if (options.selectedIds.isEmpty) return;
+    final String? primaryId = options.selectedId;
+    HuiRect? primaryBox;
     brush.save();
-    brush.clearDash();
-    brush.lineWidth = 4;
-    brush.stroke = brush.palette.selectionHalo;
-    brush.strokeWorldRect(box, inset: 3);
-    brush.lineWidth = 1.6;
-    brush.stroke = brush.palette.selection;
-    brush.strokeWorldRect(box, inset: 3);
+    _armSelectionDash(brush, options);
+    for (final CanvasItem item in scene.drawOrder) {
+      if (!options.selectedIds.contains(item.id)) continue;
+      final HuiRect box = item.outline;
+      if (item.id == primaryId) {
+        primaryBox = box;
+        continue;
+      }
+      brush.alpha = 0.8;
+      brush.lineWidth = 1.2;
+      brush.stroke = brush.palette.selection;
+      brush.strokeWorldRect(box, inset: 3);
+    }
+    brush.alpha = 1;
+    if (primaryBox != null) {
+      // The halo stays solid: two dashed rings a hair apart beat against each
+      // other while they march, which reads as a rendering fault.
+      brush.clearDash();
+      brush.lineWidth = 4;
+      brush.stroke = brush.palette.selectionHalo;
+      brush.strokeWorldRect(primaryBox, inset: 3);
+      _armSelectionDash(brush, options);
+      brush.lineWidth = 1.6;
+      brush.stroke = brush.palette.selection;
+      brush.strokeWorldRect(primaryBox, inset: 3);
+    }
+    // Restores the dash offset too: the 2D context saves it with the rest of
+    // the drawing state, so nothing painted after this inherits the phase.
     brush.restore();
-    _paintHandles(brush, box);
+    if (primaryBox != null) _paintHandles(brush, primaryBox);
+  }
+
+  /// [CanvasBrush] has no dash-offset setter and belongs to another owner, so
+  /// the phase is written straight onto the context it already exposes.
+  void _armSelectionDash(CanvasBrush brush, CanvasFrameOptions options) {
+    brush.dash(huiSelectionDash);
+    brush.ctx.lineDashOffset = options.selectionDashOffset;
   }
 
   /// Corner ticks. They are decoration only: the canvas has no resize gesture

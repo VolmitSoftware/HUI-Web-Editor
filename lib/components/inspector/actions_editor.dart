@@ -15,6 +15,9 @@ import '../../model/model.dart';
 import '../../services/catalogs.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
+import 'action_presets.dart';
+import 'extras_editor.dart';
+import 'field_help.dart';
 import 'inspector_session.dart';
 import 'inspector_widgets.dart';
 import 'registry_picker.dart';
@@ -33,6 +36,14 @@ extension ActionSlotNames on ActionSlot {
         ActionSlot.actions => 'Actions',
         ActionSlot.trueActions => 'Actions on switch to TRUE',
         ActionSlot.falseActions => 'Actions on switch to FALSE',
+      };
+
+  /// Key into `huiFieldDocs`. A button's `actions` list has no doc of its own —
+  /// the traps that need explaining are the toggle's two.
+  String? get docKey => switch (this) {
+        ActionSlot.actions => null,
+        ActionSlot.trueActions => 'toggle.trueActions',
+        ActionSlot.falseActions => 'toggle.falseActions',
       };
 }
 
@@ -53,6 +64,7 @@ class ActionsEditor extends StatelessWidget {
     required this.componentId,
     required this.slot,
     required this.actions,
+    this.catalogsLoading = false,
     this.description,
     this.issues = const <HuiIssue>[],
     super.key,
@@ -64,6 +76,9 @@ class ActionsEditor extends StatelessWidget {
   final String componentId;
   final ActionSlot slot;
   final List<HuiAction> actions;
+
+  /// True until `assets/catalog/sounds.json` resolves.
+  final bool catalogsLoading;
 
   /// Sentence under the eyebrow explaining when this list fires.
   final String? description;
@@ -87,6 +102,11 @@ class ActionsEditor extends StatelessWidget {
   void _add(String type) =>
       _edit('add $type action', (List<HuiAction> list) {
         list.add(createDefaultAction(type));
+      });
+
+  void _insert(HuiAction action) =>
+      _edit('add ${action.type} action', (List<HuiAction> list) {
+        list.add(action);
       });
 
   void _remove(int index) => _edit('remove action', (List<HuiAction> list) {
@@ -123,15 +143,24 @@ class ActionsEditor extends StatelessWidget {
   Widget build(BuildContext context) => InspectorSection(
         title: slot.label,
         description: description,
-        trailing: dom.span(
-          classes: 'hui-count-chip',
-          <Widget>[Text('${actions.length}')],
+        trailing: dom.div(
+          classes: 'hui-field-tools',
+          <Widget>[
+            if (slot.docKey != null) HuiFieldHelp(slot.docKey!),
+            dom.span(
+              classes: 'hui-count-chip',
+              <Widget>[Text('${actions.length}')],
+            ),
+          ],
         ),
         children: <Widget>[
+          ActionPresetsRow(menuId: store.menuId, onInsert: _insert),
           if (actions.isEmpty)
-            const HuiNote(
-              'None yet. The component still clicks and highlights, it just '
-              'does nothing.',
+            HuiEmptyState(
+              icon: ArcaneIcon.listX(size: IconSize.md),
+              title: 'No actions',
+              body: 'The component still clicks and highlights, it just does '
+                  'nothing. Start from a preset above or add one below.',
             )
           else
             for (int i = 0; i < actions.length; i++) _row(i),
@@ -170,10 +199,20 @@ class ActionsEditor extends StatelessWidget {
                 'permission node. Use the console when the player must not need '
                 'the node themselves.',
               ),
+              // The category is only read when the action runs
+              // (`SoundMenuAction.java:31`); `MenuAction.resolve` just builds
+              // the object, so nothing goes wrong at open. The click throws,
+              // `MenuSessionManager.java:188-193` catches it per component and
+              // logs it, and the list is abandoned where it stood.
               HuiNote(
-                'A sound with no category stops the menu from opening, and it '
-                'is played to the clicking player only.',
+                'A sound with no category throws on the click, not at open. The '
+                'menu stays up, the server logs it, and every action after it '
+                'in this list is skipped. On a toggle the icon and state never '
+                'flip either, so it desyncs from whatever already ran.',
+                tone: HuiNoteTone.warning,
+                title: 'A missing sound category',
               ),
+              HuiNote('Sounds are played to the clicking player only.'),
             ],
           ),
         ],
@@ -231,11 +270,22 @@ class ActionsEditor extends StatelessWidget {
               final HuiSoundAction sound => _SoundActionFields(
                   action: sound,
                   catalogs: catalogs,
+                  catalogsLoading: catalogsLoading,
                   issues: _issuesFor(index),
                   onChanged: (String label, HuiAction next) =>
                       _replace(index, label, next),
                 ),
             },
+            ExtrasEditor(
+              title: 'Action',
+              extras: action.extras,
+              onChanged: (String label, Map<String, dynamic> next) =>
+                  _edit(label, (List<HuiAction> list) {
+                if (index >= 0 && index < list.length) {
+                  list[index].extras = next;
+                }
+              }),
+            ),
           ],
         ),
       ],
@@ -265,6 +315,7 @@ class _CommandActionFields extends StatelessWidget {
           HuiField(
             label: 'Command',
             required: true,
+            trailing: const HuiFieldHelp('action.command.command'),
             help: 'The leading slash is optional and never expanded.',
             control: dom.div(<Widget>[
               TextInput(
@@ -286,6 +337,7 @@ class _CommandActionFields extends StatelessWidget {
           ),
           HuiField(
             label: 'Run as',
+            trailing: const HuiFieldHelp('action.command.source'),
             // Anything that is not exactly "player" behaves as server in game
             // (the plugin compares the enum against PLAYER), so the control
             // shows server for unknown values rather than lying.
@@ -322,12 +374,14 @@ class _SoundActionFields extends StatelessWidget {
     required this.catalogs,
     required this.onChanged,
     required this.issues,
+    this.catalogsLoading = false,
   });
 
   final HuiSoundAction action;
   final HuiCatalogs catalogs;
   final void Function(String label, HuiAction action) onChanged;
   final List<HuiIssue> issues;
+  final bool catalogsLoading;
 
   HuiSoundAction _with({
     String? sound,
@@ -353,7 +407,11 @@ class _SoundActionFields extends StatelessWidget {
           HuiField(
             label: 'Sound',
             required: true,
+            trailing: const HuiFieldHelp('action.sound.sound'),
             control: dom.div(<Widget>[
+              // The browse button only exists once sounds.json lands; without
+              // a placeholder it appears under whatever the user is reading.
+              if (catalogsLoading) const HuiSkeletonRows(rows: 1),
               RegistryPicker(
                 value: action.sound,
                 placeholder: 'ui.button.click',
@@ -374,6 +432,7 @@ class _SoundActionFields extends StatelessWidget {
           HuiField(
             label: 'Category',
             required: true,
+            trailing: const HuiFieldHelp('action.sound.source'),
             help: 'Decides which client volume slider applies.',
             control: dom.div(<Widget>[
               ArcaneSelect(
@@ -399,15 +458,20 @@ class _SoundActionFields extends StatelessWidget {
           ),
           HuiField(
             label: 'Volume',
+            trailing: const HuiFieldHelp('action.sound.volume'),
             help: 'Above 1 extends the carry distance, not the loudness.',
             control: dom.div(<Widget>[
               HuiSliderField(
+                label: 'Volume',
                 value: action.volume,
                 min: 0,
                 max: 2,
                 step: 0.05,
                 decimals: 2,
                 numberMin: 0,
+                // Not the format default of 0 — that is silence, and the trap
+                // this editor exists to keep people out of.
+                resetTo: 1,
                 onChanged: (double value) =>
                     onChanged('sound volume', _with(volume: value)),
               ),
@@ -416,15 +480,20 @@ class _SoundActionFields extends StatelessWidget {
           ),
           HuiField(
             label: 'Pitch',
+            trailing: const HuiFieldHelp('action.sound.pitch'),
             help: 'Clamped by Minecraft to 0.5 - 2.0; 1 is as recorded.',
             control: dom.div(<Widget>[
               HuiSliderField(
+                label: 'Pitch',
                 value: action.pitch,
                 min: 0.5,
                 max: 2,
                 step: 0.05,
                 decimals: 2,
                 numberMin: 0,
+                // 1 is the sound as recorded; the format default of 0 clamps
+                // up to 0.5, the deepest version of it.
+                resetTo: 1,
                 onChanged: (double value) =>
                     onChanged('sound pitch', _with(pitch: value)),
               ),

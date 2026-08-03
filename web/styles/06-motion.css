@@ -1,0 +1,306 @@
+/* 06-motion.css — the motion vocabulary. Owned by: the motion layer.
+   arcane_jaspr ships 13 @keyframes but binds no utility classes to them and has
+   no Dart animation API, so every transition in this app is authored here.
+
+   Four rules govern everything below.
+
+   1. Two arrival gestures, and their mirror departures. `rise` is content that
+      belongs to a surface that has just appeared; `pop` is a surface that
+      appears in place. Fade is the degenerate case of both. A third gesture
+      would read as a different app.
+   2. Transform and opacity only. Nothing here may move a box in layout, so a
+      dialog opening can never reflow the page behind it.
+   3. Entrances fill BACKWARDS, never forwards. A `forwards` fill leaves the
+      final transform applied, and an element with a transform becomes the
+      containing block for its fixed-position descendants — which is where every
+      Arcane dropdown, select and popover renders (they are inline in the tree,
+      not portalled). Backwards fill holds the offset state before the animation
+      and drops it at the end, so the resting DOM carries no transform at all.
+   4. Every duration and delay resolves from --hui-dur-*, so the one
+      reduced-motion block at the bottom switches the whole system off. No rule
+      here repeats the media query, and none uses !important.
+
+   In use today: hui-stagger (dialog bodies), hui-lift (template, image and link
+   cards), hui-skeleton* (import preview, image manager), and the keyframes,
+   which 02-shell.css and 05-panels-dialogs.css bind directly to markup this
+   task does not own. The hui-anim-* and hui-reveal* classes are the same
+   vocabulary in class form, for the waves that do own their markup. */
+
+:root {
+  /* 1: state flips that must feel instant (hover push, checkbox).
+     2: local reveals (popover, tooltip, chip).
+     3: overlays and panels (dialog, drawer, toast).
+     4: full-surface moves (view transitions, camera easing). */
+  --hui-dur-1: 80ms;
+  --hui-dur-2: 140ms;
+  --hui-dur-3: 220ms;
+  --hui-dur-4: 320ms;
+
+  /* Decelerating: things arriving from off-surface. */
+  --hui-ease-out: cubic-bezier(.16, 1, .3, 1);
+  /* Slight overshoot: things that appear in place and should feel physical. */
+  --hui-ease-spring: cubic-bezier(.2, .9, .25, 1.15);
+  /* Accelerating: things leaving. Exits should not linger. */
+  --hui-ease-in: cubic-bezier(.4, 0, 1, 1);
+
+  /* Derived, never literal: zeroing the durations zeroes these too, because
+     custom properties substitute at use time. */
+  --hui-stagger: calc(var(--hui-dur-1) * .4);        /* ~32ms between siblings */
+  --hui-skeleton-cycle: calc(var(--hui-dur-4) * 4.5); /* ~1.4s shimmer sweep */
+
+  /* Hover displacement. A token so reduced motion can flatten it to nothing:
+     an instant 2px jump with no transition is worse than staying still. */
+  --hui-lift: 2px;
+}
+
+/* ---- Keyframes ----------------------------------------------------------- */
+
+@keyframes hui-fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes hui-fade-out {
+  to { opacity: 0; }
+}
+
+/* Arrives from below. 8px is the largest offset that still reads as "settling"
+   rather than "flying in" at these durations. */
+@keyframes hui-rise-in {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+}
+
+/* Appears in place. Paired with --hui-ease-spring the scale overshoots ~1.5%,
+   which is what stops a dialog reading as a hard cut. */
+@keyframes hui-pop-in {
+  from { opacity: 0; transform: scale(.965); }
+}
+
+@keyframes hui-pop-out {
+  to { opacity: 0; transform: scale(.97); }
+}
+
+/* Toast/sheet lane: enters along the edge it is docked to. */
+@keyframes hui-slide-in-down {
+  from { opacity: 0; transform: translate3d(0, -14px, 0); }
+}
+
+@keyframes hui-slide-in-up {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+}
+
+/* The skeleton sweep. Runs on a pseudo-element so it is a pure compositor
+   transform: the placeholder itself never repaints. */
+@keyframes hui-shimmer {
+  from { transform: translate3d(-100%, 0, 0); }
+  to   { transform: translate3d(100%, 0, 0); }
+}
+
+/* ---- Arrival utilities --------------------------------------------------- */
+/* Each of these is a one-shot entrance. Because an element that goes from
+   `display: none` to displayed starts its animations fresh, a surface the
+   framework hides with [hidden] replays its entrance every time it opens — no
+   Dart state and no class toggling required. */
+
+.hui-anim-fade {
+  animation: hui-fade-in var(--hui-dur-3) var(--hui-ease-out) backwards;
+}
+
+.hui-anim-rise {
+  animation: hui-rise-in var(--hui-dur-3) var(--hui-ease-out) backwards;
+}
+
+.hui-anim-in {
+  animation: hui-pop-in var(--hui-dur-3) var(--hui-ease-spring) backwards;
+}
+
+.hui-anim-slide-up {
+  animation: hui-slide-in-up var(--hui-dur-3) var(--hui-ease-out) backwards;
+}
+
+.hui-anim-slide-down {
+  animation: hui-slide-in-down var(--hui-dur-3) var(--hui-ease-out) backwards;
+}
+
+/* Departures fill forwards on purpose: the element is about to be removed, and
+   holding the end state stops a one-frame flash back to full opacity. Only for
+   callers that own their own unmount — see the note at the foot of this file. */
+.hui-anim-out {
+  animation: hui-pop-out var(--hui-dur-2) var(--hui-ease-in) forwards;
+}
+
+.hui-anim-fade-out {
+  animation: hui-fade-out var(--hui-dur-2) var(--hui-ease-in) forwards;
+}
+
+/* ---- Stagger ------------------------------------------------------------- */
+/* Put on a container: its children arrive in sequence. One gesture, so a
+   stagger always reads the same way wherever it is used; a caller wanting a
+   different one overrides `animation-name` on the children from its own
+   stylesheet.
+
+   That gesture is `pop`, not `rise`, and the reason is mechanical: a stagger
+   almost always sits inside a scroll box, and a downward translate extends the
+   scrollable overflow in the block-end direction — long enough for a scrollbar
+   to blink in and out on a container that was exactly full. Scaling down never
+   grows the box.
+
+   Capped at eight slots — past that the last item would arrive after the eye
+   has already moved on, so the ninth child and beyond share the eighth. */
+
+.hui-stagger > * {
+  animation: hui-pop-in var(--hui-dur-3) var(--hui-ease-out) backwards;
+  animation-delay: calc(var(--hui-stagger) * 7);
+}
+
+.hui-stagger > :nth-child(1) { animation-delay: 0ms; }
+.hui-stagger > :nth-child(2) { animation-delay: var(--hui-stagger); }
+.hui-stagger > :nth-child(3) { animation-delay: calc(var(--hui-stagger) * 2); }
+.hui-stagger > :nth-child(4) { animation-delay: calc(var(--hui-stagger) * 3); }
+.hui-stagger > :nth-child(5) { animation-delay: calc(var(--hui-stagger) * 4); }
+.hui-stagger > :nth-child(6) { animation-delay: calc(var(--hui-stagger) * 5); }
+.hui-stagger > :nth-child(7) { animation-delay: calc(var(--hui-stagger) * 6); }
+
+/* ---- Hover affordances --------------------------------------------------- */
+/* Transitions, not animations: a hover has to be reversible mid-flight, and an
+   animation cannot be. */
+
+.hui-lift {
+  transition:
+    transform var(--hui-dur-2) var(--hui-ease-out),
+    box-shadow var(--hui-dur-2) var(--hui-ease-out),
+    border-color var(--hui-dur-2) var(--hui-ease-out),
+    background-color var(--hui-dur-2) var(--hui-ease-out);
+}
+
+.hui-lift:hover,
+.hui-lift:focus-visible {
+  transform: translate3d(0, calc(var(--hui-lift) * -1), 0);
+}
+
+/* Pressing has to beat the hover rule, so it comes after it. */
+.hui-lift:active { transform: translate3d(0, 0, 0) scale(.99); }
+
+/* Reveal pair: the container arms it, the child fades in. `visibility` rather
+   than `display` keeps the child in the tab order the moment focus enters, and
+   keeps the row height fixed whether or not the tools are showing. */
+.hui-reveal-item {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--hui-dur-2) var(--hui-ease-out),
+    visibility var(--hui-dur-2) var(--hui-ease-out),
+    transform var(--hui-dur-2) var(--hui-ease-out);
+}
+
+.hui-reveal:hover .hui-reveal-item,
+.hui-reveal:focus-within .hui-reveal-item,
+.hui-reveal.is-active .hui-reveal-item {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+/* A coarse pointer has no hover to reveal with. */
+@media (hover: none) {
+  .hui-reveal-item { opacity: 1; visibility: visible; transform: none; }
+}
+
+/* ---- Skeletons ----------------------------------------------------------- */
+/* A skeleton occupies the box its content will occupy, so the real content
+   replacing it is not a layout shift — it is the same box gaining text. */
+
+.hui-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: calc(var(--hui-radius) - 3px);
+  background: color-mix(in srgb, var(--hui-border) 42%, transparent);
+  /* Nothing inside a skeleton is readable, and screen readers get the
+     `role="status"` wrapper the widget emits instead. */
+  color: transparent;
+  user-select: none;
+}
+
+.hui-skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--hui-text) 9%, transparent),
+    transparent
+  );
+  animation: hui-shimmer var(--hui-skeleton-cycle) linear infinite;
+  content: "";
+}
+
+.hui-skeleton-line { height: 11px; }
+.hui-skeleton-line.is-tall { height: 15px; }
+.hui-skeleton-line.is-short { width: 42%; }
+.hui-skeleton-line.is-medium { width: 68%; }
+
+.hui-skeleton-block { height: 128px; border-radius: calc(var(--hui-radius) - 2px); }
+
+.hui-skeleton-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* ---- Reduced motion ------------------------------------------------------ */
+/* Zeroing the duration tokens is enough for every animation and transition in
+   this file, in 02-shell.css and in 05-panels-dialogs.css, because none of them
+   names a literal time. A zero-duration animation still resolves to its resting
+   state, so nothing is left mid-gesture.
+
+   The three blocks below cover what a duration token cannot reach on its own:
+   literals declared in stylesheets this task does not own, the framework's own
+   timing tokens, and the two rules whose motion is not expressed as a duration
+   at all. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --hui-dur-1: 0ms;
+    --hui-dur-2: 0ms;
+    --hui-dur-3: 0ms;
+    --hui-dur-4: 0ms;
+    --hui-lift: 0px;
+
+    /* Not ours, but it belongs in the same switch: 01-foundations.css declares
+       --hui-transition as a literal, and rules in 03, 04 and 05 that this task
+       does not own still use it. This file loads last, so the same :root
+       selector wins on document order — no !important, no edit to a foreign
+       file, and every one of those transitions flattens with the rest. */
+    --hui-transition: 0ms linear;
+  }
+
+  /* The framework's own motion, reached the only way it can be reached without
+     !important. arcane_jaspr writes `animation: arcane-scale-in
+     var(--transition-slow)` and friends as INLINE styles — unreachable — but
+     the durations inside them are custom properties it declares on
+     `:root, html.light, .light`. An id selector out-specifies all three, and
+     every Arcane surface is a descendant of #arcane-root, so zeroing them here
+     flattens the dialog scale-in, the overlay fade, the dropdown fade and every
+     `var(--transition)` hover in the component library at once.
+     `0ms linear` rather than `0ms`: these substitute into shorthands that
+     expect a duration and an easing. */
+  #arcane-root {
+    --transition-fast: 0ms linear;
+    --transition: 0ms linear;
+    --transition-slow: 0ms linear;
+    --transition-slower: 0ms linear;
+  }
+
+  /* An infinite animation has no "instant" form, and the hover press is a
+     distance rather than a duration. */
+  .hui-skeleton::after { animation: none; }
+  .hui-lift:active { transform: none; }
+}
+
+/* ---- Note for later waves ------------------------------------------------
+   Exit animations only work for a surface whose caller owns the unmount. The
+   Arcane dialog/sheet/menu surfaces do not qualify: closing one writes the
+   `hidden` attribute from Dart in the same frame as the state flip, and the
+   injected runtime CSS carries `[data-arcane-surface][hidden]{display:none
+   !important}`, which no unprefixed author rule can outrank. Measured: the
+   state flip and the `hidden` write land in one mutation batch, 12 ms after the
+   click. Use .hui-anim-out only where the element is removed by your own code
+   after the animation ends. */

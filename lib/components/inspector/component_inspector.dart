@@ -13,10 +13,16 @@ import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'actions_editor.dart';
+import 'extras_editor.dart';
+import 'field_help.dart';
 import 'icon_editor.dart';
 import 'inspector_session.dart';
 import 'inspector_widgets.dart';
 import 'placeholder_picker.dart';
+
+/// DOM id of the component id input. `inspector_pane.dart` focuses it when the
+/// canvas asks the inspector to take over.
+const String huiComponentIdFieldId = 'hui-component-id-field';
 
 class ComponentInspector extends StatelessWidget {
   const ComponentInspector({
@@ -25,6 +31,7 @@ class ComponentInspector extends StatelessWidget {
     required this.catalogs,
     required this.session,
     required this.target,
+    this.catalogsLoading = false,
     super.key,
   });
 
@@ -32,6 +39,10 @@ class ComponentInspector extends StatelessWidget {
   final ImageLibrary images;
   final HuiCatalogs catalogs;
   final InspectorSession session;
+
+  /// True until the shipped catalogue assets have resolved. Only the pickers
+  /// that read them care; every free-text control works from the first paint.
+  final bool catalogsLoading;
 
   /// The selected component.
   final HuiComponent target;
@@ -50,6 +61,7 @@ class ComponentInspector extends StatelessWidget {
           _ComponentHeader(store: store, session: session, target: target),
           _placement(),
           ..._typeSections(),
+          _extras(),
         ],
       );
 
@@ -59,6 +71,7 @@ class ComponentInspector extends StatelessWidget {
           HuiField(
             label: 'From the menu centre',
             required: true,
+            trailing: const HuiFieldHelp('component.offset'),
             help: 'Blocks, multiplied by the server uiScale.',
             control: dom.div(<Widget>[
               HuiVec3Field(
@@ -104,6 +117,7 @@ class ComponentInspector extends StatelessWidget {
         ActionsEditor(
           store: store,
           catalogs: catalogs,
+          catalogsLoading: catalogsLoading,
           session: session,
           componentId: _id,
           slot: ActionSlot.actions,
@@ -147,6 +161,7 @@ class ComponentInspector extends StatelessWidget {
       ActionsEditor(
         store: store,
         catalogs: catalogs,
+        catalogsLoading: catalogsLoading,
         session: session,
         componentId: _id,
         slot: ActionSlot.trueActions,
@@ -157,6 +172,7 @@ class ComponentInspector extends StatelessWidget {
       ActionsEditor(
         store: store,
         catalogs: catalogs,
+        catalogsLoading: catalogsLoading,
         session: session,
         componentId: _id,
         slot: ActionSlot.falseActions,
@@ -173,15 +189,20 @@ class ComponentInspector extends StatelessWidget {
         children: <Widget>[
           HuiField(
             label: 'Highlight modifier',
+            trailing: const HuiFieldHelp('button.highlightModifier'),
             help: 'Blocks the icon leans toward the player under the cursor. '
                 '0.05 is usual; 0 disables the lean.',
             control: dom.div(<Widget>[
               HuiSliderField(
+                label: 'Highlight modifier',
                 value: value,
                 min: 0,
                 max: 1,
                 step: 0.01,
                 decimals: 3,
+                // The shipped-example value and what a new component is born
+                // with, so it is the one worth getting back to.
+                resetTo: huiDefaultHighlightModifier,
                 onChanged: onChanged,
               ),
               HuiInlineIssues(_issuesFor('.highlightModifier')),
@@ -194,6 +215,7 @@ class ComponentInspector extends StatelessWidget {
         store: store,
         images: images,
         catalogs: catalogs,
+        catalogsLoading: catalogsLoading,
         session: session,
         componentId: _id,
         slot: slot,
@@ -208,16 +230,22 @@ class ComponentInspector extends StatelessWidget {
           HuiField(
             label: 'Placeholder',
             required: true,
-            trailing: PlaceholderPicker(
-              catalogs: catalogs,
-              onPicked: (String placeholder) => store.editComponent(
-                _id,
-                'toggle condition',
-                (HuiComponent edited) {
-                  final HuiComponentData data = edited.data;
-                  if (data is HuiToggleData) data.condition = placeholder;
-                },
-              ),
+            trailing: dom.div(
+              classes: 'hui-field-tools',
+              <Widget>[
+                PlaceholderPicker(
+                  catalogs: catalogs,
+                  onPicked: (String placeholder) => store.editComponent(
+                    _id,
+                    'toggle condition',
+                    (HuiComponent edited) {
+                      final HuiComponentData data = edited.data;
+                      if (data is HuiToggleData) data.condition = placeholder;
+                    },
+                  ),
+                ),
+                const HuiFieldHelp('toggle.condition'),
+              ],
             ),
             help: 'Expanded once, when the menu opens.',
             control: dom.div(<Widget>[
@@ -245,6 +273,7 @@ class ComponentInspector extends StatelessWidget {
           HuiField(
             label: 'Expected value',
             required: true,
+            trailing: const HuiFieldHelp('toggle.expectedValue'),
             help: 'Case-insensitive, so "TRUE" and "true" match.',
             control: dom.div(<Widget>[
               TextInput(
@@ -289,6 +318,10 @@ class ComponentInspector extends StatelessWidget {
         ],
       );
 
+  /// Both icons at once. They are built together at open
+  /// (`ToggleComponent.java:43-44`), so an editor that only ever showed the
+  /// previewed one hid half of what the menu has to load — and the segmented
+  /// control now means only what it says: which one the canvas draws.
   Widget _toggleIcons() {
     final bool showTrue = store.togglePreviewFor(_id);
     return dom.div(
@@ -316,12 +349,99 @@ class ComponentInspector extends StatelessWidget {
             ],
           ),
           children: <Widget>[
-            _iconEditor(showTrue ? IconSlot.trueIcon : IconSlot.falseIcon),
+            _copyAcross(),
+            dom.div(
+              classes: 'hui-toggle-icon-grid',
+              <Widget>[
+                dom.div(
+                  classes: classNames(<String?>[
+                    'hui-toggle-icon-cell',
+                    showTrue ? 'is-previewed' : null,
+                  ]),
+                  <Widget>[_iconEditor(IconSlot.trueIcon)],
+                ),
+                dom.div(
+                  classes: classNames(<String?>[
+                    'hui-toggle-icon-cell',
+                    showTrue ? null : 'is-previewed',
+                  ]),
+                  <Widget>[_iconEditor(IconSlot.falseIcon)],
+                ),
+              ],
+            ),
           ],
         ),
       ],
     );
   }
+
+  Widget _copyAcross() => dom.div(
+        classes: 'hui-toggle-copy',
+        <Widget>[
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.sm,
+            icon: ArcaneIcon.arrowDown(size: IconSize.sm),
+            onPressed: () => _copyIcon(
+              from: IconSlot.trueIcon,
+              to: IconSlot.falseIcon,
+            ),
+            child: const Text('True to false'),
+          ),
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.sm,
+            icon: ArcaneIcon.arrowUp(size: IconSize.sm),
+            onPressed: () => _copyIcon(
+              from: IconSlot.falseIcon,
+              to: IconSlot.trueIcon,
+            ),
+            child: const Text('False to true'),
+          ),
+        ],
+      );
+
+  /// Plain overwrite, no confirm: the toast names what happened and undo takes
+  /// it back in one step.
+  void _copyIcon({required IconSlot from, required IconSlot to}) {
+    final String fromName = from == IconSlot.trueIcon ? 'true' : 'false';
+    final String toName = to == IconSlot.trueIcon ? 'true' : 'false';
+    store.editComponent(_id, 'copy $fromName icon to $toName',
+        (HuiComponent edited) {
+      writeIconSlot(edited.data, to, readIconSlot(edited.data, from)?.copy());
+    });
+    ArcaneSonner.success('Copied the $fromName icon onto the $toName icon.');
+  }
+
+  /// Two objects carry unknown keys here, and they are not the same object: the
+  /// wrapper holds `id`, `offset` and `data`, while the data holds the type's
+  /// own fields. A key on the wrong one still round-trips, it just sits
+  /// somewhere else in the exported JSON.
+  Widget _extras() => InspectorSection(
+        title: 'Extra keys',
+        children: <Widget>[
+          ExtrasEditor(
+            title: 'Component',
+            extras: target.extras,
+            onChanged: (String label, Map<String, dynamic> next) =>
+                store.editComponent(
+              _id,
+              label,
+              (HuiComponent edited) => edited.extras = next,
+            ),
+          ),
+          ExtrasEditor(
+            title: '${target.data.type} data',
+            extras: target.data.extras,
+            onChanged: (String label, Map<String, dynamic> next) =>
+                store.editComponent(
+              _id,
+              label,
+              (HuiComponent edited) => edited.data.extras = next,
+            ),
+          ),
+        ],
+      );
 }
 
 /// Type badge, id field with live duplicate detection, duplicate and delete.
@@ -422,7 +542,10 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
                     onInput: (String value) => setState(() => _draft = value),
                     onBlur: _commit,
                     onSubmit: (String _) => _commit(),
+                    // Fixed id: a canvas double-click pulls focus here through
+                    // `hui-inspector-focus`, which can only address the DOM.
                     attributes: const <String, String>{
+                      'id': huiComponentIdFieldId,
                       'aria-label': 'Component id',
                       'autocomplete': 'off',
                       'spellcheck': 'false',
@@ -433,6 +556,7 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
               dom.div(
                 classes: 'hui-inspector-header-actions',
                 <Widget>[
+                  const HuiFieldHelp('component.id'),
                   HuiIconButton(
                     icon: ArcaneIcon.copy(size: IconSize.sm),
                     label: 'Duplicate component',

@@ -63,6 +63,14 @@ class HuiCommandAction extends HuiAction {
   String command;
   String source;
 
+  /// Holds `source` when the imported file carried none; see
+  /// [HuiMenu.absentKeys]. `_readSource` normalises an absent source to
+  /// `server`, which is indistinguishable from an explicit one, so the flag is
+  /// the only way validation can tell the user their command was silently
+  /// running from the console. Never serialized, and cleared by any re-decode
+  /// because the export always writes the key.
+  Set<String> absentKeys = <String>{};
+
   HuiCommandAction([this.command = '', this.source = 'player']);
 
   @override
@@ -87,7 +95,11 @@ class HuiCommandAction extends HuiAction {
   static HuiCommandAction fromMap(Map<String, dynamic> map) => HuiCommandAction(
         huiReadString(map, 'command'),
         _readSource(map),
-      )..extras = huiCollectExtras(map, _known);
+      )
+        ..extras = huiCollectExtras(map, _known)
+        ..absentKeys = <String>{
+          if (huiReadString(map, 'source').isEmpty) 'source',
+        };
 
   /// An absent or blank source is null to Gson, which runs the command as the
   /// console. Reading it as `server` keeps that behaviour and keeps the export

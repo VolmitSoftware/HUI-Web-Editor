@@ -160,6 +160,10 @@ class _RegistryPickerState extends State<RegistryPicker> {
                 attributes: <String, String>{
                   'aria-label': component.browseLabel,
                   'aria-expanded': _browsing ? 'true' : 'false',
+                  // Opt out of the legacy accordion binder, which claims every
+                  // `button[aria-expanded]` and would flip the attribute Dart
+                  // owns (accordion_scripts.dart:8).
+                  'data-arcane-interactive': 'true',
                 },
                 child: Text(component.browseLabel),
               ),

@@ -11,19 +11,22 @@
 library;
 
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 
 import '../config/defaults.dart';
+import '../logic/canvas_scene.dart';
 import '../logic/validation.dart';
 import '../model/model.dart';
+import '../preview/preview_types.dart';
 import '../services/catalogs.dart';
 import '../services/image_library.dart';
 import 'undo_stack.dart';
 import 'workspace.dart';
 
-enum EditorView { visual, code, split }
+enum EditorView { visual, preview, code, split }
 
 /// Canvas background treatment. Lives in the store because the settings dialog
 /// persists it and the status bar reflects it.
@@ -66,7 +69,11 @@ class EditorStore extends ChangeNotifier {
 
   late HuiMenu _menu;
   String _menuId = huiDefaultMenuId;
-  String? _selectedId;
+
+  /// Insertion-ordered: the LAST id is the primary, which is what every
+  /// single-select call site reads through [selectedId].
+  final Set<String> _selection = <String>{};
+  late final Set<String> _selectionView = UnmodifiableSetView<String>(_selection);
   EditorView _view = EditorView.visual;
   double _previewUiScale = 1;
   bool _showHitboxes = false;
@@ -79,7 +86,24 @@ class EditorStore extends ChangeNotifier {
   bool _animationsPlaying = true;
   final Map<String, bool> _togglePreviewState = <String, bool>{};
 
+  bool _previewShowPlanes = false;
+  bool _previewShowNormals = false;
+  bool _previewShowAnchors = false;
+  bool _previewShowCenter = true;
+  bool _previewShowDistanceSphere = false;
+  bool _previewShowGroundGrid = true;
+  bool _previewLogOpen = true;
+  bool _previewBannerDismissed = false;
+  PreviewCameraMode _previewCameraMode = PreviewCameraMode.orbit;
+
   List<HuiIssue> _issues = const <HuiIssue>[];
+
+  /// Validation resolves the same scene the canvas does, so it needs the same
+  /// memos: without them every keystroke re-parses every label and re-scans
+  /// every decoded image.
+  final McTextCache _textCache = McTextCache();
+  final ImageCharCache _charCache = ImageCharCache();
+  CanvasScene? _scene;
   final UndoStack _undo = UndoStack();
   HuiCatalogs _catalogs;
   final ImageLibrary? _images;
@@ -120,20 +144,95 @@ class EditorStore extends ChangeNotifier {
     _notify();
   }
 
-  String? get selectedId => _selectedId;
+  // --- selection ------------------------------------------------------------
+
+  /// Every selected id, oldest first.
+  Set<String> get selectionIds => _selectionView;
+
+  /// The primary: the most recently added member, or null when nothing is
+  /// selected. Single-select call sites read this and keep their old meaning.
+  String? get selectedId => _selection.isEmpty ? null : _selection.last;
 
   set selectedId(String? value) => select(value);
 
-  HuiComponent? get selected => _selectedId == null
-      ? null
-      : _menu.componentById(_selectedId!);
+  HuiComponent? get selected {
+    final String? id = selectedId;
+    return id == null ? null : _menu.componentById(id);
+  }
 
-  /// Passing an unknown id is ignored; passing null deselects.
+  /// Document order, not selection order: align, distribute and duplicate all
+  /// need the components laid out the way the file declares them.
+  List<HuiComponent> get selectedComponents => <HuiComponent>[
+        for (final HuiComponent component in _menu.components)
+          if (_selection.contains(component.id)) component,
+      ];
+
+  bool isSelected(String id) => _selection.contains(id);
+
+  /// Replaces the selection with [id]; null clears it. An unknown id is
+  /// ignored, so a stale click can never wipe a good selection.
   void select(String? id) {
-    if (id != null && _menu.componentById(id) == null) return;
-    if (id == _selectedId) return;
-    _selectedId = id;
+    if (id == null) {
+      if (_selection.isEmpty) return;
+      _selection.clear();
+      _notify();
+      return;
+    }
+    if (_menu.componentById(id) == null) return;
+    if (_selection.length == 1 && _selection.first == id) return;
+    _selection
+      ..clear()
+      ..add(id);
     _notify();
+  }
+
+  /// Adds [id] and makes it the primary. Re-adding an existing member only
+  /// re-primaries it, which is what clicking an already-selected component in
+  /// a group has to do.
+  void addToSelection(String id) {
+    if (_menu.componentById(id) == null) return;
+    if (_selection.isNotEmpty && _selection.last == id) return;
+    _selection
+      ..remove(id)
+      ..add(id);
+    _notify();
+  }
+
+  void toggleInSelection(String id) {
+    if (_selection.remove(id)) {
+      _notify();
+      return;
+    }
+    addToSelection(id);
+  }
+
+  /// Replaces the selection with [ids], dropping any the document does not
+  /// have. [primary] moves that id to the end of the order when it survived.
+  void selectMany(Iterable<String> ids, {String? primary}) {
+    final Set<String> next = <String>{
+      for (final String id in ids)
+        if (_menu.componentById(id) != null) id,
+    };
+    if (primary != null && next.remove(primary)) next.add(primary);
+    if (_sameSelection(next)) return;
+    _selection
+      ..clear()
+      ..addAll(next);
+    _notify();
+  }
+
+  void selectAll() =>
+      selectMany(_menu.components.map((HuiComponent c) => c.id));
+
+  /// Order matters as much as membership: the primary is positional.
+  bool _sameSelection(Set<String> next) {
+    if (next.length != _selection.length) return false;
+    final Iterator<String> mine = _selection.iterator;
+    final Iterator<String> theirs = next.iterator;
+    while (mine.moveNext() && theirs.moveNext()) {
+      if (mine.current != theirs.current) return false;
+    }
+    return true;
   }
 
   // --- view state -----------------------------------------------------------
@@ -233,6 +332,88 @@ class EditorStore extends ChangeNotifier {
     _notify();
   }
 
+  // --- preview settings -----------------------------------------------------
+
+  /// Collision planes, drawn where the runtime re-aims them each tick
+  /// (`ClickableComponent.java:60-62`). Off by default: they hide the icons.
+  bool get previewShowPlanes => _previewShowPlanes;
+
+  set previewShowPlanes(bool value) {
+    if (_previewShowPlanes == value) return;
+    _previewShowPlanes = value;
+    _savePreference();
+  }
+
+  bool get previewShowNormals => _previewShowNormals;
+
+  set previewShowNormals(bool value) {
+    if (_previewShowNormals == value) return;
+    _previewShowNormals = value;
+    _savePreference();
+  }
+
+  /// Component anchors, which are NOT where the icon draws.
+  bool get previewShowAnchors => _previewShowAnchors;
+
+  set previewShowAnchors(bool value) {
+    if (_previewShowAnchors == value) return;
+    _previewShowAnchors = value;
+    _savePreference();
+  }
+
+  bool get previewShowCenter => _previewShowCenter;
+
+  set previewShowCenter(bool value) {
+    if (_previewShowCenter == value) return;
+    _previewShowCenter = value;
+    _savePreference();
+  }
+
+  /// The `maxDistance` shell the session closes outside of.
+  bool get previewShowDistanceSphere => _previewShowDistanceSphere;
+
+  set previewShowDistanceSphere(bool value) {
+    if (_previewShowDistanceSphere == value) return;
+    _previewShowDistanceSphere = value;
+    _savePreference();
+  }
+
+  bool get previewShowGroundGrid => _previewShowGroundGrid;
+
+  set previewShowGroundGrid(bool value) {
+    if (_previewShowGroundGrid == value) return;
+    _previewShowGroundGrid = value;
+    _savePreference();
+  }
+
+  bool get previewLogOpen => _previewLogOpen;
+
+  set previewLogOpen(bool value) {
+    if (_previewLogOpen == value) return;
+    _previewLogOpen = value;
+    _savePreference();
+  }
+
+  /// Whether the in-stage facing note has been closed for good. Set by its own
+  /// close button and by the first real camera or click interaction, because
+  /// someone who has started using the preview has stopped reading it. The
+  /// copy stays reachable from the toolbar's facing help.
+  bool get previewBannerDismissed => _previewBannerDismissed;
+
+  set previewBannerDismissed(bool value) {
+    if (_previewBannerDismissed == value) return;
+    _previewBannerDismissed = value;
+    _savePreference();
+  }
+
+  PreviewCameraMode get previewCameraMode => _previewCameraMode;
+
+  set previewCameraMode(PreviewCameraMode value) {
+    if (_previewCameraMode == value) return;
+    _previewCameraMode = value;
+    _savePreference();
+  }
+
   // --- validation -----------------------------------------------------------
 
   List<HuiIssue> get issues => _issues;
@@ -248,6 +429,12 @@ class EditorStore extends ChangeNotifier {
   List<HuiIssue> issuesFor(String componentId) => _issues
       .where((HuiIssue issue) => issue.componentId == componentId)
       .toList();
+
+  /// Clickable hitbox pairs that intersect in the resolved scene. One left
+  /// click fires every one of them (`MenuSessionManager.java:170-203`), which
+  /// is why validation is handed the list.
+  List<CanvasOverlap> get overlapPairs =>
+      _scene?.overlaps ?? const <CanvasOverlap>[];
 
   HuiCatalogs get catalogs => _catalogs;
 
@@ -343,7 +530,9 @@ class EditorStore extends ChangeNotifier {
         huiComponentTypes.contains(type) ? type : 'decoration';
     final String newId = uniqueComponentId(id ?? normalized, _takenIds());
     final Vec3 place = offset ?? nextFreeOffset(_menu);
-    _selectedId = newId;
+    _selection
+      ..clear()
+      ..add(newId);
     mutate('add $normalized', (HuiMenu menu) {
       menu.components.add(
         HuiComponent(newId, place, createDefaultComponentData(normalized)),
@@ -365,23 +554,105 @@ class EditorStore extends ChangeNotifier {
         _round(source.offset.y - huiPlacementStep),
         source.offset.z,
       );
-    _selectedId = newId;
+    _selection
+      ..clear()
+      ..add(newId);
     mutate('duplicate $id', (HuiMenu menu) {
       menu.components.insert(index + 1, copy);
     });
     return newId;
   }
 
+  /// Deep-copies every selected component, inserting each copy directly after
+  /// its source, and selects the copies. One undo step.
+  ///
+  /// Copies land exactly on their sources. The caller is usually an alt-drag
+  /// that is about to move them, and a placement nudge would fight the gesture.
+  List<String> duplicateSelection() {
+    if (_selection.isEmpty) return const <String>[];
+    final Set<String> taken = _takenIds();
+    final List<String> created = <String>[];
+    final List<HuiComponent> next = <HuiComponent>[];
+    for (final HuiComponent component in _menu.components) {
+      next.add(component);
+      if (!_selection.contains(component.id)) continue;
+      final String copyId = _duplicateId(component.id, taken);
+      taken.add(copyId);
+      created.add(copyId);
+      next.add(component.copy()..id = copyId);
+    }
+    if (created.isEmpty) return const <String>[];
+    _selection
+      ..clear()
+      ..addAll(created);
+    mutate('duplicate selection', (HuiMenu menu) {
+      menu.components
+        ..clear()
+        ..addAll(next);
+    });
+    return created;
+  }
+
   void deleteComponent(String id) {
     final int index = _menu.indexOfComponent(id);
     if (index < 0) return;
-    if (_selectedId == id) _selectedId = null;
     mutate('delete $id', (HuiMenu menu) {
       // removeAt, never removeWhere: duplicate ids are legal and deleting one
       // row must never take its namesakes with it.
       menu.components.removeAt(index);
     });
-    if (_menu.componentById(id) == null) _togglePreviewState.remove(id);
+    // Namesakes keep the id addressable, so only a truly gone id is dropped.
+    if (_menu.componentById(id) != null) return;
+    _togglePreviewState.remove(id);
+    if (_selection.remove(id)) _notify();
+  }
+
+  /// Deletes one row per id in [ids], in a single undo step.
+  ///
+  /// Index-based for the same reason [deleteComponent] is: duplicate ids are
+  /// legal in this format (`MenuSession.java:79` dedupes only the addressing
+  /// map) and a selection is a set, so it can name a duplicated id exactly
+  /// once. An id-keyed bulk delete therefore removed rows the user never
+  /// selected — which is what the canvas used to do while the rail and the
+  /// shell did not.
+  ///
+  /// Indices are resolved against the list as it stands and removed descending,
+  /// because re-resolving each id after a removal reads a list that has already
+  /// shifted.
+  void deleteComponents(Iterable<String> ids) {
+    final List<String> wanted = ids.toList(growable: false);
+    if (wanted.isEmpty) return;
+    if (wanted.length == 1) {
+      deleteComponent(wanted.single);
+      return;
+    }
+
+    final Set<int> doomed = <int>{};
+    for (final String id in wanted) {
+      for (int i = 0; i < _menu.components.length; i++) {
+        // First index not already claimed, so a request naming one id twice
+        // takes two rows rather than the same row twice.
+        if (_menu.components[i].id == id && doomed.add(i)) break;
+      }
+    }
+    if (doomed.isEmpty) return;
+
+    final List<int> descending = doomed.toList()
+      ..sort((int a, int b) => b.compareTo(a));
+    mutate('delete ${descending.length} components', (HuiMenu menu) {
+      for (final int index in descending) {
+        menu.components.removeAt(index);
+      }
+    });
+
+    // Namesakes keep an id addressable, so only truly gone ids are dropped —
+    // the rule [deleteComponent] applies one at a time.
+    for (final String id in wanted) {
+      if (_menu.componentById(id) == null) _togglePreviewState.remove(id);
+    }
+    final int before = _selection.length;
+    _pruneSelection();
+    if (_selection.length != before) _notify();
   }
 
   /// Order is click-dispatch order, so reordering is a real document change.
@@ -423,6 +694,20 @@ class EditorStore extends ChangeNotifier {
   void setComponentOffset(String id, Vec3 offset) =>
       _applyOffset(id, snapVec(offset));
 
+  /// Moves several components in ONE undo step.
+  ///
+  /// Offsets are taken verbatim: a group drag snaps the component under the
+  /// pointer and applies that snapped delta to the rest, so snapping here a
+  /// second time would tear the group apart.
+  void setOffsets(String label, Map<String, Vec3> offsets) {
+    if (offsets.isEmpty) return;
+    mutate(label, (HuiMenu menu) {
+      for (final MapEntry<String, Vec3> entry in offsets.entries) {
+        menu.componentById(entry.key)?.offset = entry.value.copy();
+      }
+    });
+  }
+
   void _applyOffset(String id, Vec3 target) {
     final HuiComponent? component = _menu.componentById(id);
     if (component == null || component.offset == target) return;
@@ -450,10 +735,19 @@ class EditorStore extends ChangeNotifier {
     if (component == null) return false;
     final String sanitized = sanitizeComponentId(nextId);
     if (sanitized == id) return true;
-    final bool wasSelected = _selectedId == id;
     final bool? preview = _togglePreviewState.remove(id);
     if (preview != null) _togglePreviewState[sanitized] = preview;
-    if (wasSelected) _selectedId = sanitized;
+    // Remapped in place: the renamed component keeps its position in the
+    // selection order, so the primary does not jump to it.
+    if (_selection.contains(id)) {
+      final List<String> remapped = <String>[
+        for (final String selected in _selection)
+          selected == id ? sanitized : selected,
+      ];
+      _selection
+        ..clear()
+        ..addAll(remapped);
+    }
     mutate('rename $id', (HuiMenu menu) {
       menu.componentById(id)?.id = sanitized;
     });
@@ -488,7 +782,7 @@ class EditorStore extends ChangeNotifier {
     }
     _lastError = null;
     _codeError = null;
-    _selectedId = null;
+    _selection.clear();
     _togglePreviewState.clear();
     final String importedId = menuIdFromFileName(name);
     final String before = _snapshot();
@@ -642,13 +936,30 @@ class EditorStore extends ChangeNotifier {
   int _countSeverity(HuiSeverity severity) =>
       _issues.where((HuiIssue issue) => issue.severity == severity).length;
 
-  List<HuiIssue> _validate() => validateHuiMenu(
-        _menu,
-        knownImagePaths: _images?.paths,
-        knownMaterials: _catalogs.loaded ? _catalogs.materialKeys : null,
-        knownSounds: _catalogs.loaded ? _catalogs.soundKeys : null,
-        customItems: _catalogs.customItems,
-      );
+  List<HuiIssue> _validate() {
+    // uiScale 1, always. Overlap is scale-invariant — positions and plane sizes
+    // both scale linearly — so the issue list must not move when someone drags
+    // the canvas toolbar's preview scale.
+    final CanvasScene scene = buildCanvasScene(
+      menu: _menu,
+      uiScale: 1,
+      trueRender: false,
+      togglePreview: togglePreviewFor,
+      textCache: _textCache,
+      images: _images,
+      catalogs: _catalogs,
+      charCache: _charCache,
+    );
+    _scene = scene;
+    return validateHuiMenu(
+      _menu,
+      knownImagePaths: _images?.paths,
+      knownMaterials: _catalogs.loaded ? _catalogs.materialKeys : null,
+      knownSounds: _catalogs.loaded ? _catalogs.soundKeys : null,
+      customItems: _catalogs.customItems,
+      overlaps: scene.overlaps,
+    );
+  }
 
   /// Text fields and sliders mutate on every keystroke and every pointer move,
   /// so a burst of same-label edits collapses into one step. Without this a
@@ -703,12 +1014,11 @@ class EditorStore extends ChangeNotifier {
     return true;
   }
 
-  void _pruneSelection() {
-    final String? id = _selectedId;
-    if (id != null && _menu.componentById(id) == null) {
-      _selectedId = null;
-    }
-  }
+  /// Selection is deliberately not part of the undo snapshot: a restored step
+  /// drops ids the restored document no longer has rather than resurrecting an
+  /// old selection.
+  void _pruneSelection() => _selection
+      .removeWhere((String id) => _menu.componentById(id) == null);
 
   void _fail(String message) {
     _lastError = message;
@@ -717,6 +1027,9 @@ class EditorStore extends ChangeNotifier {
   }
 
   void _onImagesChanged() {
+    // A re-uploaded path keeps its name but changes its pixels, and the plane
+    // character count is memoized by path, so the memo has to go.
+    _charCache.clear();
     _issues = _validate();
     _notify();
   }
@@ -769,7 +1082,7 @@ class EditorStore extends ChangeNotifier {
   void _adopt(HuiMenu menu, String menuId) {
     _menu = menu;
     _menuId = sanitizeMenuId(menuId);
-    _selectedId = null;
+    _selection.clear();
     _codeError = null;
     _togglePreviewState.clear();
     _clearCoalesce();
@@ -798,6 +1111,18 @@ class EditorStore extends ChangeNotifier {
     _snapToGrid = _readBool(decoded['snapToGrid'], true);
     _trueRender = _readBool(decoded['trueRender'], false);
     _backdrop = _backdropFromName(decoded['backdrop']);
+    _previewShowPlanes = _readBool(decoded['previewShowPlanes'], false);
+    _previewShowNormals = _readBool(decoded['previewShowNormals'], false);
+    _previewShowAnchors = _readBool(decoded['previewShowAnchors'], false);
+    _previewShowCenter = _readBool(decoded['previewShowCenter'], true);
+    _previewShowDistanceSphere =
+        _readBool(decoded['previewShowDistanceSphere'], false);
+    _previewShowGroundGrid = _readBool(decoded['previewShowGroundGrid'], true);
+    _previewLogOpen = _readBool(decoded['previewLogOpen'], true);
+    _previewBannerDismissed =
+        _readBool(decoded['previewBannerDismissed'], false);
+    _previewCameraMode =
+        PreviewCameraMode.fromName(decoded['previewCameraMode']);
   }
 
   void _writePreferences() {
@@ -813,6 +1138,15 @@ class EditorStore extends ChangeNotifier {
         'snapToGrid': _snapToGrid,
         'trueRender': _trueRender,
         'backdrop': _backdrop.name,
+        'previewShowPlanes': _previewShowPlanes,
+        'previewShowNormals': _previewShowNormals,
+        'previewShowAnchors': _previewShowAnchors,
+        'previewShowCenter': _previewShowCenter,
+        'previewShowDistanceSphere': _previewShowDistanceSphere,
+        'previewShowGroundGrid': _previewShowGroundGrid,
+        'previewLogOpen': _previewLogOpen,
+        'previewBannerDismissed': _previewBannerDismissed,
+        'previewCameraMode': _previewCameraMode.name,
       }),
     );
   }

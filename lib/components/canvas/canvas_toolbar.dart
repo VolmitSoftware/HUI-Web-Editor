@@ -18,12 +18,19 @@
 ///   the popover panel.
 library;
 
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
-import 'package:jaspr/jaspr.dart' show Component;
+import 'package:jaspr/jaspr.dart' show Component, EventCallback;
+import 'package:web/web.dart' as web;
 
+import '../../config/editing.dart';
+import '../../logic/multi_select.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../common/class_names.dart';
 
 /// Cycle order for the backdrop button.
 const List<HuiBackdropMode> huiBackdropCycle = <HuiBackdropMode>[
@@ -41,6 +48,15 @@ const Map<HuiBackdropMode, String> huiBackdropLabels =
   HuiBackdropMode.none: 'None',
 };
 
+/// Undo labels for the restack controls. Shared with the viewport so the
+/// history entry and the button say the same thing.
+const Map<HuiZOrder, String> huiZOrderLabels = <HuiZOrder, String>{
+  HuiZOrder.forward: 'bring forward',
+  HuiZOrder.backward: 'send back',
+  HuiZOrder.toFront: 'bring to front',
+  HuiZOrder.toBack: 'send to back',
+};
+
 class CanvasToolbar extends StatelessWidget {
   const CanvasToolbar({
     required this.store,
@@ -51,6 +67,7 @@ class CanvasToolbar extends StatelessWidget {
     required this.onZoomReset,
     required this.onFit,
     required this.hasAnimatedIcons,
+    required this.onZOrder,
     super.key,
   });
 
@@ -66,15 +83,21 @@ class CanvasToolbar extends StatelessWidget {
   final void Function() onFit;
   final bool hasAnimatedIcons;
 
+  /// Restack the whole selection. The viewport owns the geometry because it is
+  /// the only side holding a resolved scene.
+  final void Function(HuiZOrder op) onZOrder;
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> stateControls = _stateControls();
+    final List<Widget> orderControls = _orderControls();
     return dom.div(
       classes: 'hui-canvas-toolbar',
       <Widget>[
         _group(_zoomControls()),
         _group(_viewControls()),
         _group(<Widget>[_UiScaleControl(store: store)]),
+        if (orderControls.isNotEmpty) _group(orderControls),
         if (stateControls.isNotEmpty) _group(stateControls),
       ],
     );
@@ -168,6 +191,39 @@ class CanvasToolbar extends StatelessWidget {
           ),
         ),
       ];
+
+  /// Draw order. Only meaningful with something selected, and the whole group
+  /// comes and goes so the strip stays one row when nothing is.
+  List<Widget> _orderControls() {
+    if (store.selectionIds.isEmpty) return const <Widget>[];
+    return <Widget>[
+      const dom.span(
+        classes: 'hui-eyebrow hui-canvas-tool-label hui-canvas-order-label',
+        <Widget>[Component.text('order')],
+      ),
+      _iconAction(
+        icon: ArcaneIcon.chevronUp(size: IconSize.sm),
+        label: 'Bring forward',
+        onPressed: () => onZOrder(HuiZOrder.forward),
+      ),
+      _iconAction(
+        icon: ArcaneIcon.chevronDown(size: IconSize.sm),
+        label: 'Send back',
+        onPressed: () => onZOrder(HuiZOrder.backward),
+      ),
+      _iconAction(
+        icon: ArcaneIcon.bringToFront(size: IconSize.sm),
+        label: 'Bring to front',
+        onPressed: () => onZOrder(HuiZOrder.toFront),
+      ),
+      _iconAction(
+        icon: ArcaneIcon.sendToBack(size: IconSize.sm),
+        label: 'Send to back',
+        onPressed: () => onZOrder(HuiZOrder.toBack),
+      ),
+      _ZScrubber(store: store),
+    ];
+  }
 
   /// Playback and toggle-preview live in the same trailing group: both are
   /// about what the canvas is currently *showing*, and both come and go.
@@ -291,6 +347,193 @@ class CanvasToolbar extends StatelessWidget {
   }
 }
 
+/// Pointer travel that buys one [huiDepthStep] of depth.
+const double huiZScrubPxPerStep = 4;
+
+/// Drag-to-change depth for the whole selection.
+///
+/// Hand-built rather than `ArcaneSlider`, which never wires `onChanged` to the
+/// DOM — its thumb moves while the store stays put. A native `input[type=range]`
+/// is no good here either: `z` has no useful bounds, and this is a relative
+/// scrubber, not an absolute track.
+///
+/// One pointer gesture is one undo step, exactly like a canvas drag: every
+/// frame re-applies the total delta to the offsets captured at pointer-down,
+/// wrapped in `beginDrag`/`endDrag`.
+class _ZScrubber extends StatefulWidget {
+  const _ZScrubber({required this.store});
+
+  final EditorStore store;
+
+  @override
+  State<_ZScrubber> createState() => _ZScrubberState();
+}
+
+class _ZScrubberState extends State<_ZScrubber> {
+  static int _instances = 0;
+
+  late final String _uid = 'hui-zscrub-${_instances++}';
+
+  int? _pointerId;
+  double _startClientX = 0;
+  int _steps = 0;
+  Map<String, Vec3> _startOffsets = const <String, Vec3>{};
+
+  web.Element? get _element => web.document.getElementById(_uid);
+
+  /// `package:web` declares `clientX` as `int` while real pointers report
+  /// fractions, and dynamic dispatch on extension types throws under dart2js.
+  double _eventDouble(Object? event, String property) {
+    final JSObject? object = event as JSObject?;
+    final JSAny? value = object?.getProperty<JSAny?>(property.toJS);
+    if (value == null || !value.isA<JSNumber>()) return 0;
+    return (value as JSNumber).toDartDouble;
+  }
+
+  int _eventInt(Object? event, String property) =>
+      _eventDouble(event, property).round();
+
+  String _eventString(Object? event, String property) {
+    final JSObject? object = event as JSObject?;
+    final JSAny? value = object?.getProperty<JSAny?>(property.toJS);
+    if (value == null || !value.isA<JSString>()) return '';
+    return (value as JSString).toDart;
+  }
+
+  Map<String, Vec3> _captureOffsets() => <String, Vec3>{
+        for (final HuiComponent selected in component.store.selectedComponents)
+          selected.id: selected.offset.copy(),
+      };
+
+  void _onDown(Object? event) {
+    if (_eventInt(event, 'button') != 0) return;
+    final Map<String, Vec3> captured = _captureOffsets();
+    if (captured.isEmpty) return;
+    _startOffsets = captured;
+    _startClientX = _eventDouble(event, 'clientX');
+    _steps = 0;
+    final int pointerId = _eventInt(event, 'pointerId');
+    try {
+      _element?.setPointerCapture(pointerId);
+    } catch (_) {
+      // Capture is an enhancement; the drag still works over the control.
+    }
+    _pointerId = pointerId;
+    component.store.beginDrag();
+    setState(() {});
+    (event as JSObject?)?.callMethod<JSAny?>('preventDefault'.toJS);
+  }
+
+  void _onMove(Object? event) {
+    if (_pointerId == null) return;
+    if (_eventInt(event, 'pointerId') != _pointerId) return;
+    final int steps =
+        ((_eventDouble(event, 'clientX') - _startClientX) / huiZScrubPxPerStep)
+            .round();
+    if (steps == _steps) return;
+    _steps = steps;
+    _write(_startOffsets, steps * huiDepthStep);
+  }
+
+  void _onUp(Object? event) {
+    if (_pointerId == null) return;
+    _release();
+    component.store.endDrag();
+    _startOffsets = const <String, Vec3>{};
+    setState(() {});
+  }
+
+  void _release() {
+    final int? pointerId = _pointerId;
+    _pointerId = null;
+    if (pointerId == null) return;
+    try {
+      final web.Element? element = _element;
+      if (element != null && element.hasPointerCapture(pointerId)) {
+        element.releasePointerCapture(pointerId);
+      }
+    } catch (_) {
+      // Already released by the browser.
+    }
+  }
+
+  /// Arrow keys step depth. The event is stopped here because the shell's
+  /// document binder stands down only for real form controls, and would
+  /// otherwise nudge the selection in x/y at the same time.
+  void _onKeyDown(Object? event) {
+    final double delta = switch (_eventString(event, 'key')) {
+      'ArrowRight' || 'ArrowUp' => huiDepthStep,
+      'ArrowLeft' || 'ArrowDown' => -huiDepthStep,
+      _ => 0,
+    };
+    if (delta == 0) return;
+    final JSObject? raw = event as JSObject?;
+    raw?.callMethod<JSAny?>('preventDefault'.toJS);
+    raw?.callMethod<JSAny?>('stopPropagation'.toJS);
+    _write(_captureOffsets(), delta);
+  }
+
+  void _write(Map<String, Vec3> from, double dz) {
+    if (from.isEmpty) return;
+    final Map<String, Vec3> next = shiftOffsets(offsets: from, dz: dz);
+    component.store.setOffsets(
+      next.length == 1 ? 'depth ${next.keys.first}' : 'depth ${next.length} components',
+      next,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final EditorStore store = component.store;
+    final List<HuiComponent> selected = store.selectedComponents;
+    final double value = store.selected?.offset.z ?? 0;
+    final bool mixed =
+        selected.any((HuiComponent c) => c.offset.z != value);
+    return ArcaneTooltip(
+      text: mixed
+          ? 'Depth of ${selected.length} components (mixed). Drag or use the '
+              'arrows to move them all; larger z paints first, so it draws '
+              'further back'
+          : 'Depth. Drag or use the arrows; larger z paints first, so it '
+              'draws further back',
+      child: dom.span(
+        id: _uid,
+        classes: classNames(<String?>[
+          'hui-canvas-zscrub',
+          _pointerId != null ? 'is-scrubbing' : null,
+        ]),
+        attributes: <String, String>{
+          'tabindex': '0',
+          'role': 'slider',
+          'aria-valuenow': _format(value),
+          'aria-label': selected.length == 1
+              ? 'Depth of ${selected.first.id}'
+              : 'Depth of ${selected.length} selected components',
+        },
+        events: <String, EventCallback>{
+          'pointerdown': _onDown,
+          'pointermove': _onMove,
+          'pointerup': _onUp,
+          'pointercancel': _onUp,
+          'keydown': _onKeyDown,
+        },
+        <Widget>[
+          const dom.span(
+            classes: 'hui-canvas-zscrub-key',
+            <Widget>[Component.text('z')],
+          ),
+          dom.span(
+            classes: 'hui-canvas-zscrub-value',
+            <Widget>[Component.text(mixed ? '${_format(value)}*' : _format(value))],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _format(double value) => value.toStringAsFixed(2);
+}
+
 /// The server-side `ui-scale` preview knob.
 ///
 /// The row carries a readout button only; the slider itself lives in a popover
@@ -325,6 +568,12 @@ class _UiScaleControlState extends State<_UiScaleControl> {
           'aria-label': 'Preview uiScale $value. Opens the uiScale slider',
           'aria-haspopup': 'dialog',
           'aria-expanded': _open ? 'true' : 'false',
+          // Inside a floating container the trigger's next sibling IS the
+          // popup, so the legacy accordion binder would write `display` onto
+          // it and fight the popover script. `data-arcane-interactive` is that
+          // binder's opt-out (accordion_scripts.dart:8); the popover script
+          // keys on `arcanePopoverInteractive` and is unaffected.
+          'data-arcane-interactive': 'true',
         },
         child: dom.span(classes: 'hui-canvas-scale-trigger', <Widget>[
           const dom.span(
