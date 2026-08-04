@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>HoloUI Editor</title>
+  <meta name="description" content="Visual web editor for creating and previewing HoloUI menu configurations.">
+  <meta name="theme-color" content="#050505">
+  <meta property="og:title" content="HoloUI Editor">
+  <meta property="og:description" content="Visual web editor for creating and previewing HoloUI menu configurations.">
+  <meta property="og:image" content="assets/brand/logo.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@VolmitSoftware">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/brand/favicon-16x16.png">
+
+  <script>
+    // Pre-paint theme stamp: mirror what the Dart bundle will apply, so there is
+    // no light/dark flash before boot. Allowlist, never blocklist.
+    (function () {
+      var mode = 'dark';
+      try {
+        var stored = window.localStorage.getItem('holoui.theme');
+        if (stored === 'light' || stored === 'dark') { mode = stored; }
+      } catch (e) { /* private mode */ }
+      var root = document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(mode);
+    })();
+  </script>
+
+  <link rel="preload" href="assets/fonts/geist/Geist-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/geist/Geist-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/minecraft/Minecraft-Regular.ttf" as="font" type="font/ttf" crossorigin>
+
+  <link rel="stylesheet" href="styles/01-foundations.css">
+  <link rel="stylesheet" href="styles/02-shell.css">
+  <link rel="stylesheet" href="styles/03-canvas.css">
+  <link rel="stylesheet" href="styles/04-inspector.css">
+  <link rel="stylesheet" href="styles/05-panels-dialogs.css">
+  <link rel="stylesheet" href="styles/06-motion.css">
+  <link rel="stylesheet" href="styles/07-preview.css">
+
+  <style>
+    html, body { margin: 0; padding: 0; min-height: 100vh; }
+    html.dark body { background: #050505; color: #f7f4ec; }
+    html.light body { background: #ffffff; color: #09090b; }
+    .hui-boot { position: fixed; inset: 0; display: grid; place-items: center; z-index: 999; }
+    .hui-boot-spinner { width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid rgba(128,128,128,.25); border-top-color: currentColor;
+      animation: hui-boot-spin 800ms linear infinite; }
+    @keyframes hui-boot-spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="hui-boot" id="loading"><div class="hui-boot-spinner"></div></div>
+  <div id="app"></div>
+  <script defer src="main.client.dart.js"></script>
+</body>
+</html>

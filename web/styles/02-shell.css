@@ -1,0 +1,872 @@
+/* 02-shell.css — app frame: top bar, panes, status bar, command palette.
+   Owned by: agent-shell. Later numbered files override earlier ones.
+   Only --hui-* aliases and theme variables from 01-foundations.css are used. */
+
+/* ---- Frame -------------------------------------------------------------- */
+/* The shell is the viewport. Nothing above it scrolls; every pane owns its own
+   scroll box, so there is never a scrollbar inside a scrollbar. */
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+
+/* Pane geometry. These four are the shell's layout contract:
+   - the two widths are also written as inline custom properties on <html> by
+     the splitter drag handler (lib/components/shell/pane_dom_web.dart), which
+     is why no responsive rule may try to own them;
+   - the status height is a real grid track, not a min-height, so no pane can
+     ever extend under the status bar. */
+:root {
+  --hui-rail-width: 240px;
+  --hui-inspector-width: 320px;
+  --hui-splitter-width: 6px;
+  --hui-status-height: 32px;
+}
+
+/* The boot fade is opacity only, and that is not a stylistic choice: the top
+   bar, the rail and the inspector all host Arcane dropdown, select and popover
+   surfaces, which render `position: fixed` inline in the tree rather than in a
+   portal. Any transform on an ancestor — including one an animation is holding
+   — would make that ancestor their containing block and drop every one of them
+   in the wrong place. Opacity creates a stacking context but not a containing
+   block, so it is safe. Same rule applies to anything Wave 3 adds here. */
+.hui-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) var(--hui-status-height);
+  min-height: 0;
+  overflow: hidden;
+  background: var(--hui-bg);
+  color: var(--hui-text);
+  animation: hui-fade-in var(--hui-dur-4) var(--hui-ease-out) backwards;
+}
+
+/* Five tracks: rail, splitter, canvas, splitter, inspector. The `min()` caps
+   are a floor under the canvas — a pane restored from a wide session can never
+   eat a narrow viewport, and the Dart clamp handles the live case. */
+.hui-shell-body {
+  display: grid;
+  grid-template-columns:
+    min(var(--hui-rail-width), 34vw)
+    var(--hui-splitter-width)
+    minmax(0, 1fr)
+    var(--hui-splitter-width)
+    min(var(--hui-inspector-width), 38vw);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hui-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+.hui-rail,
+.hui-inspector {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: color-mix(in srgb, var(--hui-panel-soft) 42%, transparent);
+}
+.hui-rail { border-right: 1px solid var(--hui-border-soft); }
+.hui-inspector { border-left: 1px solid var(--hui-border-soft); }
+
+/* Load-bearing: a flex child defaults to `flex-shrink: 1`, so the pane content
+   root was being squashed to the pane height and its own overflow left
+   unreachable — which is what buried the last rail row under the status bar.
+   Natural height + the pane's own scroll box is the whole fix. */
+.hui-rail > *,
+.hui-inspector > * { flex: 0 0 auto; }
+
+/* ---- Pane splitters ------------------------------------------------------ */
+/* A 6px grab strip on the grid line between a pane and the canvas. Dragging
+   writes --hui-rail-width / --hui-inspector-width onto the document root, so a
+   resize costs no rebuild; the widget only sees the released value. */
+.hui-splitter {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  cursor: col-resize;
+  /* Load-bearing: without it the browser claims the drag as a scroll gesture. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Tint only on contact: at rest the pane's own hairline is the whole divider.
+   The tint is a fixed-size layer faded in, not a width change — a 6px strip
+   that grew on hover would nudge both panes while the pointer crossed it. */
+.hui-splitter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--hui-accent) 18%, transparent);
+  opacity: 0;
+  transition: opacity var(--hui-dur-2) var(--hui-ease-out);
+}
+.hui-splitter:hover::before,
+.hui-splitter:focus-visible::before,
+.hui-splitter:active::before { opacity: 1; }
+
+/* The grip is the affordance: at rest it is a stub, and it grows into a full
+   handle as the pointer arrives. Scale rather than height, so the flex centre
+   never moves and the grid track never reflows. */
+.hui-splitter-grip {
+  position: relative;
+  width: 2px;
+  height: 26px;
+  border-radius: var(--hui-radius);
+  background: color-mix(in srgb, var(--hui-accent) 70%, transparent);
+  opacity: 0;
+  transform: scaleY(.35);
+  transition:
+    opacity var(--hui-dur-2) var(--hui-ease-out),
+    transform var(--hui-dur-2) var(--hui-ease-spring);
+}
+.hui-splitter:hover .hui-splitter-grip,
+.hui-splitter:focus-visible .hui-splitter-grip,
+.hui-splitter:active .hui-splitter-grip {
+  opacity: 1;
+  transform: scaleY(1);
+}
+/* While a drag is live the pointer is usually somewhere else entirely, so the
+   grip is held open by the body class rather than by :hover. */
+body.hui-resizing .hui-splitter-grip { opacity: 1; transform: scaleY(1); }
+
+/* While a splitter is captured the pointer is regularly outside it, over panes
+   that set their own cursor (the canvas stage sets `grab`). `!important` is the
+   only thing that beats those, and it is scoped to the drag. */
+body.hui-resizing { user-select: none; -webkit-user-select: none; }
+body.hui-resizing * { cursor: col-resize !important; }
+
+/* All three views are the same grid; only the column count changes. The canvas
+   cell is always present in the markup so a view switch never unmounts it (see
+   _CenterArea) — in the code view it is hidden here instead. */
+.hui-center {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--hui-bg);
+}
+.hui-center.is-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.hui-center.is-code > .hui-split-cell:not(.is-code) { display: none; }
+.hui-center.is-code > .hui-split-cell.is-code { border-left: 0; }
+
+.hui-split-cell { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.hui-split-cell.is-code { border-left: 1px solid var(--hui-border-soft); }
+
+.hui-shell :focus-visible {
+  outline: 2px solid var(--hui-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Top bar ------------------------------------------------------------ */
+.hui-bar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--hui-space-3);
+  min-height: var(--hui-bar-height);
+  padding: 0 var(--hui-space-3);
+  border-bottom: 1px solid var(--hui-border-soft);
+}
+
+/* The glass lives on a pseudo-element: `backdrop-filter` on the bar itself
+   would make it the containing block for its fixed-position descendants, which
+   is where the dropdown menu and every tooltip render. */
+.hui-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--hui-bg) 84%, transparent);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+}
+
+.hui-bar-group { display: flex; align-items: center; gap: 0; min-width: 0; }
+.hui-bar-left { flex: 1 1 auto; }
+.hui-bar-center { flex: 0 0 auto; }
+.hui-bar-right { flex: 1 1 auto; justify-content: flex-end; }
+
+/* One hairline per boundary, drawn by the cluster that follows it. Grouping the
+   bar this way is what stops eleven identical icon buttons reading as one run. */
+.hui-bar-cluster {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.hui-bar-cluster + .hui-bar-cluster {
+  margin-left: 7px;
+  padding-left: 7px;
+  border-left: 1px solid var(--hui-border-soft);
+}
+
+/* Shown only once the bar is too narrow for the `is-optional` actions. */
+.hui-bar-overflow { display: none; }
+
+/* The bar buttons are Arcane's, and Arcane owns their colour states. All this
+   adds is the physical half: a press that gives way under the pointer. */
+.hui-bar-action {
+  display: inline-flex;
+  transition: transform var(--hui-dur-1) var(--hui-ease-out);
+}
+.hui-bar-action:active { transform: scale(.94); }
+
+.hui-brand { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.hui-brand-mark { display: block; width: 22px; height: 22px; }
+.hui-brand-word {
+  font-size: 0.92rem;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.hui-doc { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.hui-doc-id {
+  min-width: 0;
+  max-width: 260px;
+  overflow: hidden;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hui-doc-ext {
+  color: var(--hui-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Two-step destructive control: arm in the menu, confirm in the bar. It is
+   mounted by the arming click, so the entrance runs exactly once, when it
+   appears — the one moment the user needs to notice a new control in a bar
+   they were not looking at. */
+.hui-armed {
+  animation: hui-pop-in var(--hui-dur-3) var(--hui-ease-spring) backwards;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: var(--hui-space-2);
+  padding: 4px 6px 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--hui-danger) 50%, var(--hui-border));
+  border-radius: var(--hui-radius);
+  background: color-mix(in srgb, var(--hui-danger) 12%, transparent);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.hui-view-switcher { display: flex; align-items: center; }
+.hui-view-switcher-item { display: inline-flex; align-items: center; gap: 6px; }
+.hui-view-label { font-size: 0.8rem; font-weight: 600; }
+
+.hui-tip { display: grid; gap: 4px; }
+.hui-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 620;
+}
+.hui-tip-hint {
+  max-width: 220px;
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+/* ---- Status bar --------------------------------------------------------- */
+/* Fixed height, matching the grid track above: if the strip could grow it would
+   take the space from the panes rather than from itself. */
+.hui-status {
+  display: flex;
+  align-items: center;
+  gap: var(--hui-space-2);
+  height: var(--hui-status-height);
+  min-height: var(--hui-status-height);
+  padding: 0 var(--hui-space-3);
+  border-top: 1px solid var(--hui-border-soft);
+  background: color-mix(in srgb, var(--hui-panel-soft) 40%, transparent);
+  color: var(--hui-muted);
+  font-size: 0.76rem;
+}
+.hui-status-left,
+.hui-status-right {
+  display: flex;
+  align-items: center;
+  gap: var(--hui-space-2);
+  min-width: 0;
+}
+.hui-status-spacer { flex: 1 1 auto; }
+.hui-status-item { white-space: nowrap; }
+.hui-status-item.is-numeric {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.hui-status-item.is-muted { color: var(--hui-muted); }
+.hui-status-item.is-error { color: var(--hui-danger); }
+.hui-status-item.is-hint {
+  max-width: 44ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The chip changes colour as issues appear and clear while the user types in
+   the inspector. Crossfading it stops a keystroke reading as a flash. */
+.hui-status-chip button {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--hui-radius);
+  font-size: 0.76rem;
+  font-weight: 600;
+  transition:
+    color var(--hui-dur-3) var(--hui-ease-out),
+    background-color var(--hui-dur-3) var(--hui-ease-out);
+}
+.hui-status-chip.is-clean button { color: var(--hui-muted); }
+.hui-status-chip.is-warning button {
+  color: var(--hui-warning);
+  background: color-mix(in srgb, var(--hui-warning) 10%, transparent);
+}
+.hui-status-chip.is-error button {
+  color: var(--hui-danger);
+  background: color-mix(in srgb, var(--hui-danger) 10%, transparent);
+}
+
+/* ---- Command palette ---------------------------------------------------- */
+.hui-cmd-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16vh 16px 16px;
+  background: color-mix(in srgb, #000 52%, transparent);
+  animation: hui-fade-in var(--hui-dur-2) var(--hui-ease-out) backwards;
+}
+
+.hui-cmd-dialog {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: 64vh;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--hui-border) 78%, transparent);
+  border-radius: var(--hui-radius);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--hui-surface-raised) 94%, transparent),
+    color-mix(in srgb, var(--hui-panel-soft) 92%, transparent)
+  );
+  box-shadow: var(--hui-shadow-md);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  /* Drops from above rather than rising: the palette is anchored to the top of
+     the viewport, so it should arrive from the edge it is docked to. */
+  animation: hui-slide-in-down var(--hui-dur-3) var(--hui-ease-out) backwards;
+}
+
+.hui-cmd-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--hui-border-soft);
+  color: var(--hui-muted);
+}
+.hui-cmd-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--hui-text);
+  font-size: 0.92rem;
+  outline: none;
+}
+.hui-cmd-input::placeholder { color: var(--hui-muted); }
+
+.hui-cmd-list {
+  min-height: 0;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.hui-cmd-heading {
+  padding: 10px 10px 6px;
+  color: var(--hui-muted);
+  font-size: 0.68rem;
+  font-weight: 680;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.hui-cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: var(--hui-radius);
+  color: var(--hui-text);
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition:
+    background var(--hui-dur-1) var(--hui-ease-out),
+    box-shadow var(--hui-dur-1) var(--hui-ease-out);
+}
+.hui-cmd-item:hover { background: var(--hui-panel-soft); }
+.hui-cmd-item.is-active {
+  background: color-mix(in srgb, var(--hui-accent) 14%, transparent);
+  /* Square leading corners so the 3px accent is a STRAIGHT bar. An inset
+     shadow is clipped by the border radius, so with the row's radius intact
+     this bar bent into a crescent of light hugging the leading edge — the
+     banned accent. The trailing corners keep their radius. Same rule as the
+     rail's selection marker, which is square on the edge it sits on. */
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  box-shadow: inset 3px 0 0 var(--hui-accent);
+}
+.hui-cmd-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  width: 18px;
+  color: var(--hui-muted);
+}
+.hui-cmd-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hui-cmd-empty {
+  margin: 0;
+  padding: 20px 12px;
+  color: var(--hui-muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+.hui-cmd-footer {
+  display: flex;
+  gap: 14px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--hui-border-soft);
+  color: var(--hui-muted);
+  font-size: 0.72rem;
+}
+
+/* The node the injected runtime's ⌘K handler clicks (see `_triggerPalette`).
+   `pointer-events: none` still allows a programmatic `.click()`, so the script
+   reaches it and a user never can. */
+.hui-cmd-trigger {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  background: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- Shortcut sheet ------------------------------------------------------ */
+/* Same lane as the palette and deliberately the same shape: they are the two
+   surfaces that answer "what can I do here", and reading as one control makes
+   the pair learnable at once. It sits BELOW the palette in z so the palette
+   opened from the sheet's own command lands on top. */
+.hui-keys-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 78;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--hui-space-5) 16px;
+  background: color-mix(in srgb, #000 52%, transparent);
+  animation: hui-fade-in var(--hui-dur-2) var(--hui-ease-out) backwards;
+}
+
+.hui-keys-dialog {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  width: min(900px, 100%);
+  max-height: 82vh;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--hui-border) 78%, transparent);
+  border-radius: var(--hui-radius);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--hui-surface-raised) 94%, transparent),
+    color-mix(in srgb, var(--hui-panel-soft) 92%, transparent)
+  );
+  box-shadow: var(--hui-shadow-md);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  animation: hui-pop-in var(--hui-dur-3) var(--hui-ease-spring) backwards;
+}
+
+.hui-keys-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
+  border-bottom: 1px solid var(--hui-border-soft);
+  color: var(--hui-muted);
+}
+.hui-keys-title {
+  margin: 0;
+  color: var(--hui-text);
+  font-size: 0.95rem;
+  font-weight: 660;
+  letter-spacing: -0.01em;
+}
+.hui-keys-spacer { flex: 1 1 auto; }
+
+.hui-keys-body {
+  min-height: 0;
+  padding: 4px 14px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* auto-fit rather than a fixed count: the sheet is the one surface that has to
+   stay readable from a 1600px desktop down to a phone, and the groups have no
+   reading order between them. */
+.hui-keys-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 4px 26px;
+  align-items: start;
+}
+
+.hui-keys-group { min-width: 0; padding-top: 12px; }
+.hui-keys-group-title {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: 0.68rem;
+  font-weight: 680;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.hui-keys-group-note {
+  margin: 5px 0 0;
+  color: var(--hui-muted);
+  font-size: 0.71rem;
+  line-height: 1.45;
+}
+
+.hui-keys-list { margin: 8px 0 0; padding: 0; list-style: none; }
+
+/* Baseline-aligned rather than centred: the chip is one line and the label is
+   often two, and centring made every wrapped row look nudged upward. */
+.hui-keys-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-height: 28px;
+  padding: 4px 0;
+}
+.hui-keys-row + .hui-keys-row {
+  border-top: 1px solid color-mix(in srgb, var(--hui-border-soft) 60%, transparent);
+}
+.hui-keys-text { flex: 1 1 auto; min-width: 0; }
+.hui-keys-label {
+  display: block;
+  color: var(--hui-text);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.hui-keys-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--hui-muted);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.hui-keys-foot {
+  padding: 8px 14px;
+  border-top: 1px solid var(--hui-border-soft);
+  color: var(--hui-muted);
+  font-size: 0.72rem;
+}
+
+/* ---- Guided tour --------------------------------------------------------- */
+/* The wrapper exists only because a build returns one node: `.hui-shell` is a
+   three-row grid, and an in-flow child here would open a fourth implicit row.
+   Its children are all fixed, so contents costs nothing. */
+.hui-tour { display: contents; }
+
+/* Four dimming rects, not one scrim with a shadow cut-out: pointer events do
+   not hit a box-shadow, so the cut-out form cannot block clicks at all. These
+   do, which leaves the highlighted region — and only it — usable. */
+.hui-tour-dim {
+  position: fixed;
+  z-index: 88;
+  background: color-mix(in srgb, #000 58%, transparent);
+  animation: hui-fade-in var(--hui-dur-3) var(--hui-ease-out) backwards;
+}
+
+/* Ring only, never a filter or a transform: the highlight sits over the top
+   bar and the panes, which host the fixed-position Arcane surfaces, and any
+   transform in that chain would become their containing block. */
+.hui-tour-ring {
+  position: fixed;
+  z-index: 89;
+  border-radius: var(--hui-radius);
+  box-shadow:
+    0 0 0 2px var(--hui-accent),
+    0 0 0 7px color-mix(in srgb, var(--hui-accent) 24%, transparent);
+  pointer-events: none;
+  animation: hui-fade-in var(--hui-dur-2) var(--hui-ease-out) backwards;
+}
+
+.hui-tour-card {
+  position: fixed;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 14px 16px 12px;
+  border: 1px solid color-mix(in srgb, var(--hui-accent) 34%, var(--hui-border));
+  border-radius: var(--hui-radius);
+  background: var(--hui-panel);
+  box-shadow: var(--hui-shadow-md);
+  animation: hui-pop-in var(--hui-dur-3) var(--hui-ease-spring) backwards;
+}
+
+.hui-tour-eyebrow {
+  color: var(--hui-accent);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.hui-tour-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 660;
+  letter-spacing: -0.015em;
+}
+.hui-tour-body {
+  margin: 0;
+  color: var(--hui-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+/* The sharp edge of each region, set apart so it does not read as more prose:
+   this is the line the user will remember two days later. */
+.hui-tour-hint {
+  margin: 2px 0 0;
+  padding-left: 9px;
+  border-left: 2px solid color-mix(in srgb, var(--hui-accent) 55%, transparent);
+  color: var(--hui-text);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.hui-tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.hui-tour-spacer { flex: 1 1 auto; }
+
+/* ---- Drag-and-drop overlay ---------------------------------------------- */
+/* Mounted the moment a file enters the window, so its entrance is the whole
+   signal that the editor has taken the drag. */
+.hui-dropzone {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--hui-bg) 72%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  pointer-events: none;
+  animation: hui-fade-in var(--hui-dur-2) var(--hui-ease-out) backwards;
+}
+.hui-dropzone-card {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 26px 34px;
+  border: 2px dashed color-mix(in srgb, var(--hui-accent) 60%, var(--hui-border));
+  border-radius: var(--hui-radius);
+  background: var(--hui-panel);
+  color: var(--hui-text);
+  font-size: 0.9rem;
+  animation: hui-pop-in var(--hui-dur-3) var(--hui-ease-spring) backwards;
+}
+.hui-dropzone-card p { margin: 0; }
+
+/* ---- Toasts ------------------------------------------------------------- */
+/* The stack is mounted top-centre (see EditorShell): the only region no pane
+   owns. Capping the width stops a long message spanning a wide viewport; the
+   toasts themselves carry an inline 320-420px range, so this only bites on a
+   narrow one. */
+.arcane-toaster[data-position="topCenter"] {
+  max-width: min(440px, calc(100vw - var(--hui-space-5) * 2));
+}
+
+/* The renderer writes `animation: arcane-toast-enter 300ms ... forwards` inline
+   on every toast, `arcane-toast-exit 200ms` on an exiting one, and
+   `arcane-toast-progress <duration>ms` on the countdown bar — and arcane_jaspr
+   defines none of those three @keyframes anywhere. An unresolved
+   animation-name is simply ignored, so out of the box a toast appears and
+   vanishes as a hard cut and the countdown bar is a zero-width sliver.
+   Defining the names here binds the framework's own inline animations to our
+   motion, with no !important and no markup change. */
+@keyframes arcane-toast-enter {
+  from { opacity: 0; transform: translate3d(0, -14px, 0) scale(.97); }
+}
+
+@keyframes arcane-toast-exit {
+  to { opacity: 0; transform: translate3d(0, -10px, 0) scale(.97); }
+}
+
+/* The bar has no inline width, so it is ours to size; scaling from the left
+   edge keeps the countdown on the compositor instead of relaying out a 2px
+   strip sixty times a second. */
+.arcane-toast-progress {
+  width: 100%;
+  transform-origin: left center;
+  opacity: .5;
+}
+
+@keyframes arcane-toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* Stack depth. The manager inserts at index 0 and the top-anchored container
+   lays out in document order, so :nth-child(1) is the newest toast and the
+   ones behind it recede. Transform and opacity only — the boxes keep their
+   places, so nothing below them moves when the stack changes. */
+.arcane-toaster[data-position="topCenter"] .arcane-toast:nth-child(2) {
+  transform: scale(.965);
+  opacity: .82;
+}
+.arcane-toaster[data-position="topCenter"] .arcane-toast:nth-child(3) {
+  transform: scale(.93);
+  opacity: .64;
+}
+
+/* ---- Responsive --------------------------------------------------------- */
+/* No breakpoint may set --hui-rail-width or --hui-inspector-width: those are
+   user-owned and written inline on <html>, which out-cascades any rule here.
+   The `min()` caps on .hui-shell-body do the narrow-viewport work instead. */
+@media (max-width: 1240px) {
+  .hui-bar-action.is-optional { display: none; }
+  .hui-bar-overflow { display: flex; }
+}
+@media (max-width: 1100px) {
+  .hui-view-label { display: none; }
+  .hui-brand-word { display: none; }
+  .hui-doc-id { max-width: 150px; }
+}
+@media (max-width: 1024px) {
+  /* Stacked: the splitters are meaningless once the panes are rows. */
+  .hui-splitter { display: none; }
+  .hui-shell-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(280px, 1fr) auto;
+  }
+  .hui-rail {
+    max-height: 28vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--hui-border-soft);
+  }
+  .hui-inspector {
+    max-height: 38vh;
+    border-left: 0;
+    border-top: 1px solid var(--hui-border-soft);
+  }
+  .hui-center.is-split {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .hui-split-cell.is-code {
+    border-top: 1px solid var(--hui-border-soft);
+    border-left: 0;
+  }
+  /* Wrap rather than scroll: a scrolling bar would clip the dropdown and
+     tooltip surfaces that render inside it. */
+  .hui-bar {
+    flex-wrap: wrap;
+    padding: 6px var(--hui-space-3);
+    row-gap: 6px;
+  }
+  .hui-bar-left, .hui-bar-right { flex: 1 1 260px; }
+}
+
+/* Everything in this file that moves resolves its duration from --hui-dur-*,
+   which 06-motion.css zeroes, so none of it needs an override here. The three
+   exceptions are the toast animations: their durations are written inline by
+   the renderer and cannot be reached from CSS without !important. What CAN be
+   reached is the @keyframes they name — redefining them as no-ops flattens the
+   toast layer as completely as zeroing a duration would. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes arcane-toast-enter { from { opacity: 1; } }
+  @keyframes arcane-toast-exit { to { opacity: 1; } }
+  /* The countdown is decoration on top of a timer the user cannot influence;
+     with motion off it simply is not drawn. */
+  @keyframes arcane-toast-progress { from, to { transform: scaleX(0); } }
+}
+
+/* ---------------------------------------------------------------------------
+   Framework keycaps and the busy spinner: the two remaining crescents.
+
+   `ArcaneKbd` writes its whole look INLINE on the <kbd> element — a top-lit
+   `linear-gradient(180deg, var(--muted), var(--card))` fill plus
+   `inset 0 1px 0 rgba(var(--foreground-rgb), .1)`. On a 4px radius that inset
+   bends around both top corners into exactly the sliver of light this project
+   bans, and the gradient is the top-anchored fade the same rule forbids on a
+   chip. There are 19 of them across the palette, the shortcut sheet and the
+   top-bar tooltips.
+
+   An inline declaration cannot be outranked by a plain author rule, so these
+   are the one place `!important` is the mechanism rather than a shortcut, and
+   the override is kept to the two properties that carry the crescent. The
+   solid `0 2px 0` drop stays: it is a uniform dark offset, not a light arc,
+   and it is what still reads as a key. arcane_jaspr is not edited. */
+kbd {
+  background: var(--hui-panel-soft) !important;
+  box-shadow: 0 2px 0 var(--hui-border) !important;
+}
+
+/* The framework loader is a ring with one opaque border side and the rest
+   transparent — a rotating arc. Inside a pill button that is a crescent by
+   another name, which is the case the audit called out. Scoped to buttons:
+   a uniform ring that pulses reads as busy with no arc anywhere in it. */
+.arcane-button .arcane-loader,
+button .arcane-loader {
+  border-color: currentColor !important;
+  opacity: .55;
+  animation: hui-busy-pulse 1s var(--hui-ease-out) infinite alternate !important;
+}
+
+@keyframes hui-busy-pulse {
+  from { opacity: .25; }
+  to { opacity: .8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arcane-button .arcane-loader,
+  button .arcane-loader { animation: none !important; opacity: .55; }
+}
