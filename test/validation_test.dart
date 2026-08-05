@@ -16,26 +16,22 @@ HuiComponent _component(String id, HuiComponentData data) =>
 HuiMenu _withIcon(HuiIcon? icon) =>
     _menu(<HuiComponent>[_component('a', HuiDecorationData(icon))]);
 
-/// highlightModifier 1 keeps the override note (its own group below) out of
-/// every unrelated action assertion.
 HuiMenu _withAction(HuiAction action) => _menu(<HuiComponent>[
-      _component(
-        'a',
-        HuiButtonData(1, <HuiAction>[action], HuiTextIcon('x')),
-      ),
-    ]);
+  _component('a', HuiButtonData(1, <HuiAction>[action], HuiTextIcon('x'))),
+]);
 
 /// A one-button menu carrying [actionJson] verbatim, decoded rather than
 /// constructed so absent-key tracking is exercised the way an import does it.
-HuiMenu _decodedWithAction(String actionJson) =>
-    decodeHuiMenu('{"offset":[0,1.7,2.5],"components":[{"id":"a",'
-        '"offset":[0,0,0],"data":{"type":"button","highlightModifier":1,'
-        '"icon":{"type":"text","text":"x"},"actions":[$actionJson]}}]}');
+HuiMenu _decodedWithAction(String actionJson) => decodeHuiMenu(
+  '{"offset":[0,1.7,2.5],"components":[{"id":"a",'
+  '"offset":[0,0,0],"data":{"type":"button","highlightModifier":1,'
+  '"icon":{"type":"text","text":"x"},"actions":[$actionJson]}}]}',
+);
 
 HuiMenu _withCommand(String command, {String? source}) => _decodedWithAction(
-      '{"type":"command","command":${jsonEncode(command)}'
-      '${source == null ? '' : ',"source":${jsonEncode(source)}'}}',
-    );
+  '{"type":"command","command":${jsonEncode(command)}'
+  '${source == null ? '' : ',"source":${jsonEncode(source)}'}}',
+);
 
 HuiComponent _button(String id, {double modifier = 1, HuiIcon? icon}) =>
     _component(
@@ -44,18 +40,18 @@ HuiComponent _button(String id, {double modifier = 1, HuiIcon? icon}) =>
     );
 
 CanvasOverlap _overlap(String first, String second) => CanvasOverlap(
-      firstId: first,
-      secondId: second,
-      region: const HuiRect(x: 0, y: 0, w: 0.1, h: 0.1),
-    );
+  firstId: first,
+  secondId: second,
+  region: const HuiRect(x: 0, y: 0, w: 0.1, h: 0.1),
+);
 
 Iterable<HuiIssue> _matching(
   List<HuiIssue> issues,
   HuiSeverity severity,
   Pattern fragment,
-) =>
-    issues.where((HuiIssue i) =>
-        i.severity == severity && i.message.contains(fragment));
+) => issues.where(
+  (HuiIssue i) => i.severity == severity && i.message.contains(fragment),
+);
 
 bool _has(List<HuiIssue> issues, HuiSeverity severity, Pattern fragment) =>
     _matching(issues, severity, fragment).isNotEmpty;
@@ -63,48 +59,59 @@ bool _has(List<HuiIssue> issues, HuiSeverity severity, Pattern fragment) =>
 void main() {
   group('component ids', () {
     test('flags duplicate ids as warnings', () {
-      final List<HuiIssue> issues = validateHuiMenu(_menu(<HuiComponent>[
-        _component('dup', HuiDecorationData(HuiTextIcon('a'))),
-        _component('dup', HuiDecorationData(HuiTextIcon('b'))),
-      ]));
-      expect(_has(issues, HuiSeverity.warning, 'Duplicate component id'), isTrue);
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[
+          _component('dup', HuiDecorationData(HuiTextIcon('a'))),
+          _component('dup', HuiDecorationData(HuiTextIcon('b'))),
+        ]),
+      );
       expect(
-        _matching(issues, HuiSeverity.warning, 'Duplicate component id')
-            .single
-            .path,
+        _has(issues, HuiSeverity.warning, 'Duplicate component id'),
+        isTrue,
+      );
+      expect(
+        _matching(
+          issues,
+          HuiSeverity.warning,
+          'Duplicate component id',
+        ).single.path,
         'components[1].id',
       );
     });
 
     test('flags an empty id', () {
-      final List<HuiIssue> issues =
-          validateHuiMenu(_menu(<HuiComponent>[
-        _component('', HuiDecorationData(HuiTextIcon('a'))),
-      ]));
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[
+          _component('', HuiDecorationData(HuiTextIcon('a'))),
+        ]),
+      );
       expect(_has(issues, HuiSeverity.warning, 'no id'), isTrue);
     });
 
     test('flags characters outside [A-Za-z0-9_.-]', () {
-      final List<HuiIssue> issues =
-          validateHuiMenu(_menu(<HuiComponent>[
-        _component('bad id!', HuiDecorationData(HuiTextIcon('a'))),
-      ]));
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[
+          _component('bad id!', HuiDecorationData(HuiTextIcon('a'))),
+        ]),
+      );
       expect(_has(issues, HuiSeverity.warning, 'invalid characters'), isTrue);
     });
 
     test('flags ids longer than 64 characters', () {
-      final List<HuiIssue> issues =
-          validateHuiMenu(_menu(<HuiComponent>[
-        _component('a' * 65, HuiDecorationData(HuiTextIcon('a'))),
-      ]));
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[
+          _component('a' * 65, HuiDecorationData(HuiTextIcon('a'))),
+        ]),
+      );
       expect(_has(issues, HuiSeverity.warning, 'longer than 64'), isTrue);
     });
 
     test('accepts a clean id', () {
-      final List<HuiIssue> issues =
-          validateHuiMenu(_menu(<HuiComponent>[
-        _component('shop.buy-1_x', HuiDecorationData(HuiTextIcon('a'))),
-      ]));
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[
+          _component('shop.buy-1_x', HuiDecorationData(HuiTextIcon('a'))),
+        ]),
+      );
       expect(issues, isEmpty);
     });
   });
@@ -112,8 +119,11 @@ void main() {
   group('command actions', () {
     test('flags a missing command as an error', () {
       expect(
-        _has(validateHuiMenu(_withAction(HuiCommandAction('  ', 'player'))),
-            HuiSeverity.error, 'Command is empty'),
+        _has(
+          validateHuiMenu(_withAction(HuiCommandAction('  ', 'player'))),
+          HuiSeverity.error,
+          'Command is empty',
+        ),
         isTrue,
       );
     });
@@ -122,7 +132,8 @@ void main() {
       expect(
         _has(
           validateHuiMenu(
-              _withAction(HuiCommandAction('/pay %player_name%', 'player'))),
+            _withAction(HuiCommandAction('/pay %player_name%', 'player')),
+          ),
           HuiSeverity.info,
           'not expanded in commands',
         ),
@@ -132,8 +143,11 @@ void main() {
 
     test('flags a command source that is neither player nor server', () {
       expect(
-        _has(validateHuiMenu(_withAction(HuiCommandAction('/a', 'console'))),
-            HuiSeverity.warning, 'not one of the two spellings'),
+        _has(
+          validateHuiMenu(_withAction(HuiCommandAction('/a', 'console'))),
+          HuiSeverity.warning,
+          'not one of the two spellings',
+        ),
         isTrue,
       );
     });
@@ -144,7 +158,8 @@ void main() {
       expect(
         _has(
           validateHuiMenu(
-              _withAction(HuiSoundAction('UI.BUTTON.CLICK', 'master', 1, 1))),
+            _withAction(HuiSoundAction('UI.BUTTON.CLICK', 'master', 1, 1)),
+          ),
           HuiSeverity.error,
           'lowercase',
         ),
@@ -156,7 +171,8 @@ void main() {
       expect(
         _has(
           validateHuiMenu(
-              _withAction(HuiSoundAction('ui button click', 'master', 1, 1))),
+            _withAction(HuiSoundAction('ui button click', 'master', 1, 1)),
+          ),
           HuiSeverity.error,
           'invalid characters',
         ),
@@ -166,8 +182,11 @@ void main() {
 
     test('flags an empty sound key as an error', () {
       expect(
-        _has(validateHuiMenu(_withAction(HuiSoundAction('', 'master', 1, 1))),
-            HuiSeverity.error, 'Sound key is empty'),
+        _has(
+          validateHuiMenu(_withAction(HuiSoundAction('', 'master', 1, 1))),
+          HuiSeverity.error,
+          'Sound key is empty',
+        ),
         isTrue,
       );
     });
@@ -176,7 +195,8 @@ void main() {
       expect(
         _has(
           validateHuiMenu(
-              _withAction(HuiSoundAction('ui.button.click', '', 1, 1))),
+            _withAction(HuiSoundAction('ui.button.click', '', 1, 1)),
+          ),
           HuiSeverity.error,
           'Sound source',
         ),
@@ -185,7 +205,8 @@ void main() {
       expect(
         _has(
           validateHuiMenu(
-              _withAction(HuiSoundAction('ui.button.click', 'sfx', 1, 1))),
+            _withAction(HuiSoundAction('ui.button.click', 'sfx', 1, 1)),
+          ),
           HuiSeverity.error,
           'Sound source',
         ),
@@ -198,14 +219,17 @@ void main() {
         _withAction(HuiSoundAction('ui.nope', 'master', 1, 1)),
         knownSounds: <String>{'ui.button.click'},
       );
-      expect(_has(issues, HuiSeverity.warning, 'not in the sound catalog'),
-          isTrue);
+      expect(
+        _has(issues, HuiSeverity.warning, 'not in the sound catalog'),
+        isTrue,
+      );
     });
 
     test('accepts a namespaced sound present in the catalog', () {
       final List<HuiIssue> issues = validateHuiMenu(
         _withAction(
-            HuiSoundAction('minecraft:ui.button.click', 'master', 1, 1)),
+          HuiSoundAction('minecraft:ui.button.click', 'master', 1, 1),
+        ),
         knownSounds: <String>{'ui.button.click'},
       );
       expect(issues, isEmpty);
@@ -213,14 +237,16 @@ void main() {
 
     test('warns on zero volume and zero pitch', () {
       final List<HuiIssue> issues = validateHuiMenu(
-          _withAction(HuiSoundAction('ui.button.click', 'master', 0, 0)));
+        _withAction(HuiSoundAction('ui.button.click', 'master', 0, 0)),
+      );
       expect(_has(issues, HuiSeverity.warning, 'Volume 0'), isTrue);
       expect(_has(issues, HuiSeverity.warning, 'Pitch 0'), isTrue);
     });
 
     test('reports a pitch outside 0.5-2.0 as info', () {
       final List<HuiIssue> issues = validateHuiMenu(
-          _withAction(HuiSoundAction('ui.button.click', 'master', 1, 3)));
+        _withAction(HuiSoundAction('ui.button.click', 'master', 1, 3)),
+      );
       expect(_has(issues, HuiSeverity.info, 'outside the 0.5-2.0'), isTrue);
     });
   });
@@ -228,16 +254,22 @@ void main() {
   group('item icons', () {
     test('flags an uppercase material key as an error', () {
       expect(
-        _has(validateHuiMenu(_withIcon(HuiItemIcon('STONE', 1, 0))),
-            HuiSeverity.error, 'lowercase'),
+        _has(
+          validateHuiMenu(_withIcon(HuiItemIcon('STONE', 1, 0))),
+          HuiSeverity.error,
+          'lowercase',
+        ),
         isTrue,
       );
     });
 
     test('flags an empty material key as an error', () {
       expect(
-        _has(validateHuiMenu(_withIcon(HuiItemIcon('', 1, 0))),
-            HuiSeverity.error, 'Material key is empty'),
+        _has(
+          validateHuiMenu(_withIcon(HuiItemIcon('', 1, 0))),
+          HuiSeverity.error,
+          'Material key is empty',
+        ),
         isTrue,
       );
     });
@@ -247,8 +279,10 @@ void main() {
         _withIcon(HuiItemIcon('unobtainium', 1, 0)),
         knownMaterials: <String>{'stone'},
       );
-      expect(_has(issues, HuiSeverity.warning, 'not in the material catalog'),
-          isTrue);
+      expect(
+        _has(issues, HuiSeverity.warning, 'not in the material catalog'),
+        isTrue,
+      );
     });
   });
 
@@ -285,11 +319,16 @@ void main() {
       final List<HuiIssue> issues = validateHuiMenu(
         _withIcon(HuiCustomItemIcon('itemsadder2', 'myitems:ruby', 1)),
       );
-      expect(_has(issues, HuiSeverity.warning, 'Unknown item provider'), isTrue);
       expect(
-        _matching(issues, HuiSeverity.warning, 'Unknown item provider')
-            .single
-            .path,
+        _has(issues, HuiSeverity.warning, 'Unknown item provider'),
+        isTrue,
+      );
+      expect(
+        _matching(
+          issues,
+          HuiSeverity.warning,
+          'Unknown item provider',
+        ).single.path,
         'components[0].data.icon.provider',
       );
     });
@@ -298,11 +337,16 @@ void main() {
       final List<HuiIssue> issues = validateHuiMenu(
         _withIcon(HuiCustomItemIcon('ItemsAdder', 'myitems:ruby', 1)),
       );
-      expect(_has(issues, HuiSeverity.warning, 'Unknown item provider'), isTrue);
       expect(
-        _matching(issues, HuiSeverity.warning, 'Unknown item provider')
-            .single
-            .fix,
+        _has(issues, HuiSeverity.warning, 'Unknown item provider'),
+        isTrue,
+      );
+      expect(
+        _matching(
+          issues,
+          HuiSeverity.warning,
+          'Unknown item provider',
+        ).single.fix,
         contains('itemsadder'),
       );
     });
@@ -348,10 +392,14 @@ void main() {
         _withIcon(HuiCustomItemIcon('itemsadder', 'myitems:sapphire', 1)),
         customItems: catalog,
       );
-      expect(_has(issues, HuiSeverity.info, 'not in the custom item catalog'),
-          isTrue);
-      expect(issues.where((HuiIssue i) => i.severity == HuiSeverity.error),
-          isEmpty);
+      expect(
+        _has(issues, HuiSeverity.info, 'not in the custom item catalog'),
+        isTrue,
+      );
+      expect(
+        issues.where((HuiIssue i) => i.severity == HuiSeverity.error),
+        isEmpty,
+      );
     });
 
     test('an id present in the catalog raises nothing', () {
@@ -392,10 +440,10 @@ void main() {
     test('flags an empty source list as an error', () {
       expect(
         _has(
-            validateHuiMenu(
-                _withIcon(HuiAnimatedImageIcon(<String>[], 2))),
-            HuiSeverity.error,
-            'no frames'),
+          validateHuiMenu(_withIcon(HuiAnimatedImageIcon(<String>[], 2))),
+          HuiSeverity.error,
+          'no frames',
+        ),
         isTrue,
       );
     });
@@ -404,7 +452,8 @@ void main() {
       expect(
         _has(
           validateHuiMenu(
-              _withIcon(HuiAnimatedImageIcon(<String>['a.png'], 0))),
+            _withIcon(HuiAnimatedImageIcon(<String>['a.png'], 0)),
+          ),
           HuiSeverity.error,
           'every tick',
         ),
@@ -416,7 +465,8 @@ void main() {
       expect(
         _has(
           validateHuiMenu(
-              _withIcon(HuiAnimatedImageIcon(<String>['../a.png'], 2))),
+            _withIcon(HuiAnimatedImageIcon(<String>['../a.png'], 2)),
+          ),
           HuiSeverity.error,
           'must not contain',
         ),
@@ -434,8 +484,11 @@ void main() {
         r'dir\a.png',
       ]) {
         expect(
-          _has(validateHuiMenu(_withIcon(HuiTextImageIcon(path))),
-              HuiSeverity.error, 'Image path'),
+          _has(
+            validateHuiMenu(_withIcon(HuiTextImageIcon(path))),
+            HuiSeverity.error,
+            'Image path',
+          ),
           isTrue,
           reason: path,
         );
@@ -455,8 +508,11 @@ void main() {
 
     test('flags an empty image path', () {
       expect(
-        _has(validateHuiMenu(_withIcon(HuiTextImageIcon(''))),
-            HuiSeverity.error, 'Image path is empty'),
+        _has(
+          validateHuiMenu(_withIcon(HuiTextImageIcon(''))),
+          HuiSeverity.error,
+          'Image path is empty',
+        ),
         isTrue,
       );
     });
@@ -466,33 +522,48 @@ void main() {
         _withIcon(HuiTextImageIcon('logo.png')),
         knownImagePaths: <String>{'other.png'},
       );
-      expect(_has(issues, HuiSeverity.info, 'not in the image library'), isTrue);
+      expect(
+        _has(issues, HuiSeverity.info, 'not in the image library'),
+        isTrue,
+      );
     });
   });
 
   group('text icons', () {
     test('warns about the broken &n and &k legacy codes', () {
       expect(
-        _has(validateHuiMenu(_withIcon(HuiTextIcon('&nHello'))),
-            HuiSeverity.warning, 'render literally'),
+        _has(
+          validateHuiMenu(_withIcon(HuiTextIcon('&nHello'))),
+          HuiSeverity.warning,
+          'render literally',
+        ),
         isTrue,
       );
       expect(
-        _has(validateHuiMenu(_withIcon(HuiTextIcon('&kHello'))),
-            HuiSeverity.warning, 'render literally'),
+        _has(
+          validateHuiMenu(_withIcon(HuiTextIcon('&kHello'))),
+          HuiSeverity.warning,
+          'render literally',
+        ),
         isTrue,
       );
       expect(
-        _has(validateHuiMenu(_withIcon(HuiTextIcon('&lHello'))),
-            HuiSeverity.warning, 'render literally'),
+        _has(
+          validateHuiMenu(_withIcon(HuiTextIcon('&lHello'))),
+          HuiSeverity.warning,
+          'render literally',
+        ),
         isFalse,
       );
     });
 
     test('reports placeholders in text as info', () {
       expect(
-        _has(validateHuiMenu(_withIcon(HuiTextIcon('Hi %player_name%'))),
-            HuiSeverity.info, 'PlaceholderAPI'),
+        _has(
+          validateHuiMenu(_withIcon(HuiTextIcon('Hi %player_name%'))),
+          HuiSeverity.info,
+          'PlaceholderAPI',
+        ),
         isTrue,
       );
     });
@@ -502,9 +573,14 @@ void main() {
     test('warns when a highlightModifier falls outside 0..1', () {
       expect(
         _has(
-          validateHuiMenu(_menu(<HuiComponent>[
-            _component('a', HuiButtonData(2, const <HuiAction>[], HuiTextIcon('x'))),
-          ])),
+          validateHuiMenu(
+            _menu(<HuiComponent>[
+              _component(
+                'a',
+                HuiButtonData(2, const <HuiAction>[], HuiTextIcon('x')),
+              ),
+            ]),
+          ),
           HuiSeverity.warning,
           'highlightModifier',
         ),
@@ -512,10 +588,14 @@ void main() {
       );
       expect(
         _has(
-          validateHuiMenu(_menu(<HuiComponent>[
-            _component(
-                'a', HuiButtonData(-1, const <HuiAction>[], HuiTextIcon('x'))),
-          ])),
+          validateHuiMenu(
+            _menu(<HuiComponent>[
+              _component(
+                'a',
+                HuiButtonData(-1, const <HuiAction>[], HuiTextIcon('x')),
+              ),
+            ]),
+          ),
           HuiSeverity.warning,
           'highlightModifier',
         ),
@@ -523,56 +603,128 @@ void main() {
       );
     });
 
+    test('rejects non-positive custom hitbox dimensions', () {
+      final HuiButtonData width = HuiButtonData(
+        0.05,
+        const <HuiAction>[],
+        HuiTextIcon('x'),
+        HuiHitbox(0, 1),
+      );
+      final HuiButtonData height = HuiButtonData(
+        0.05,
+        const <HuiAction>[],
+        HuiTextIcon('x'),
+        HuiHitbox(1, -0.5),
+      );
+
+      expect(
+        _has(
+          validateHuiMenu(_menu(<HuiComponent>[_component('w', width)])),
+          HuiSeverity.error,
+          'width must be',
+        ),
+        isTrue,
+      );
+      expect(
+        _has(
+          validateHuiMenu(_menu(<HuiComponent>[_component('h', height)])),
+          HuiSeverity.error,
+          'height must be',
+        ),
+        isTrue,
+      );
+    });
+
+    test('accepts positive custom hitbox dimensions', () {
+      final HuiButtonData data = HuiButtonData(
+        0.05,
+        const <HuiAction>[],
+        HuiTextIcon('x'),
+        HuiHitbox(1.25, 0.35),
+      );
+      expect(
+        validateHuiMenu(_menu(<HuiComponent>[_component('a', data)])),
+        isEmpty,
+      );
+    });
+
     test('warns when an icon is null', () {
       expect(
-        _has(validateHuiMenu(_withIcon(null)), HuiSeverity.warning,
-            'missing-icon placeholder'),
+        _has(
+          validateHuiMenu(_withIcon(null)),
+          HuiSeverity.warning,
+          'missing-icon placeholder',
+        ),
         isTrue,
       );
     });
 
     test('errors when a toggle condition or expected value is empty', () {
-      final List<HuiIssue> issues = validateHuiMenu(_menu(<HuiComponent>[
-        _component(
-          'a',
-          HuiToggleData(0.05, '', '', const <HuiAction>[], const <HuiAction>[],
-              HuiTextIcon('on'), HuiTextIcon('off')),
-        ),
-      ]));
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[
+          _component(
+            'a',
+            HuiToggleData(
+              0.05,
+              '',
+              '',
+              const <HuiAction>[],
+              const <HuiAction>[],
+              HuiTextIcon('on'),
+              HuiTextIcon('off'),
+            ),
+          ),
+        ]),
+      );
       expect(_has(issues, HuiSeverity.error, 'condition is empty'), isTrue);
       expect(_has(issues, HuiSeverity.error, 'expectedValue is empty'), isTrue);
     });
 
     test('warns when maxDistance falls outside [0, 6e7]', () {
       final HuiMenu menu = _menu(const <HuiComponent>[])..maxDistance = -1;
-      expect(_has(validateHuiMenu(menu), HuiSeverity.warning, 'maxDistance'),
-          isTrue);
+      expect(
+        _has(validateHuiMenu(menu), HuiSeverity.warning, 'maxDistance'),
+        isTrue,
+      );
       menu.maxDistance = 7e7;
-      expect(_has(validateHuiMenu(menu), HuiSeverity.warning, 'maxDistance'),
-          isTrue);
+      expect(
+        _has(validateHuiMenu(menu), HuiSeverity.warning, 'maxDistance'),
+        isTrue,
+      );
       menu.maxDistance = 8;
-      expect(_has(validateHuiMenu(menu), HuiSeverity.warning, 'maxDistance'),
-          isFalse);
+      expect(
+        _has(validateHuiMenu(menu), HuiSeverity.warning, 'maxDistance'),
+        isFalse,
+      );
     });
 
     test('carries the owning component id on nested issues', () {
-      final List<HuiIssue> issues = validateHuiMenu(_menu(<HuiComponent>[
-        _component(
-          'buy',
-          HuiButtonData(
-              0.05, <HuiAction>[HuiCommandAction('', 'player')], HuiTextIcon('x')),
-        ),
-      ]));
-      final HuiIssue issue =
-          _matching(issues, HuiSeverity.error, 'Command is empty').single;
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[
+          _component(
+            'buy',
+            HuiButtonData(0.05, <HuiAction>[
+              HuiCommandAction('', 'player'),
+            ], HuiTextIcon('x')),
+          ),
+        ]),
+      );
+      final HuiIssue issue = _matching(
+        issues,
+        HuiSeverity.error,
+        'Command is empty',
+      ).single;
       expect(issue.componentId, 'buy');
       expect(issue.path, 'components[0].data.actions[0].command');
     });
 
     test('warns when the menu has no components at all', () {
       expect(
-        _has(validateHuiMenu(_menu(const <HuiComponent>[])),
-            HuiSeverity.warning, 'no components'),
+        _has(
+          validateHuiMenu(_menu(const <HuiComponent>[])),
+          HuiSeverity.warning,
+          'no components',
+        ),
         isTrue,
       );
     });
@@ -594,19 +746,25 @@ void main() {
         'components[0].offset',
       );
 
-      final List<HuiIssue> missingList =
-          validateHuiMenu(decodeHuiMenu('{"offset":[0,1.7,2.5]}'));
+      final List<HuiIssue> missingList = validateHuiMenu(
+        decodeHuiMenu('{"offset":[0,1.7,2.5]}'),
+      );
       expect(_has(missingList, HuiSeverity.info, 'no components list'), isTrue);
     });
 
     test('a repaired document reports no defaulted-key notes', () {
-      final HuiMenu menu = decodeHuiMenu(encodeHuiMenu(decodeHuiMenu(
-        '{"components":[{"id":"a","data":{"type":"decoration",'
-        '"icon":{"type":"text","text":"hi"}}}]}',
-      )));
+      final HuiMenu menu = decodeHuiMenu(
+        encodeHuiMenu(
+          decodeHuiMenu(
+            '{"components":[{"id":"a","data":{"type":"decoration",'
+            '"icon":{"type":"text","text":"hi"}}}]}',
+          ),
+        ),
+      );
       expect(
-        validateHuiMenu(menu)
-            .where((HuiIssue i) => i.severity == HuiSeverity.info),
+        validateHuiMenu(
+          menu,
+        ).where((HuiIssue i) => i.severity == HuiSeverity.info),
         isEmpty,
       );
     });
@@ -616,35 +774,26 @@ void main() {
         _component('title', HuiDecorationData(HuiTextIcon('&6&lStore'))),
         _component(
           'buy',
-          HuiButtonData(
-            1,
-            <HuiAction>[
-              HuiCommandAction('/warp shop', 'player'),
-              HuiSoundAction('ui.button.click', 'master', 1, 1),
-            ],
-            HuiItemIcon('emerald', 3, 0),
-          ),
+          HuiButtonData(1, <HuiAction>[
+            HuiCommandAction('/warp shop', 'player'),
+            HuiSoundAction('ui.button.click', 'master', 1, 1),
+          ], HuiItemIcon('emerald', 3, 0)),
         ),
       ]);
       expect(validateHuiMenu(menu), isEmpty);
     });
 
-    test('the same menu at the typical 0.05 modifier adds only the note', () {
+    test('the typical 0.05 modifier is valid', () {
       final HuiMenu menu = _menu(<HuiComponent>[
         _component('title', HuiDecorationData(HuiTextIcon('&6&lStore'))),
         _component(
           'buy',
-          HuiButtonData(
-            0.05,
-            <HuiAction>[HuiCommandAction('/warp shop', 'player')],
-            HuiItemIcon('emerald', 3, 0),
-          ),
+          HuiButtonData(0.05, <HuiAction>[
+            HuiCommandAction('/warp shop', 'player'),
+          ], HuiItemIcon('emerald', 3, 0)),
         ),
       ]);
-      final List<HuiIssue> issues = validateHuiMenu(menu);
-      expect(issues, hasLength(1));
-      expect(issues.single.severity, HuiSeverity.info);
-      expect(issues.single.path, 'components[1].data.highlightModifier');
+      expect(validateHuiMenu(menu), isEmpty);
     });
   });
 
@@ -660,8 +809,11 @@ void main() {
         three,
         overlaps: <CanvasOverlap>[_overlap('a', 'b')],
       );
-      final HuiIssue issue =
-          _matching(issues, HuiSeverity.warning, 'Hitbox overlaps').single;
+      final HuiIssue issue = _matching(
+        issues,
+        HuiSeverity.warning,
+        'Hitbox overlaps',
+      ).single;
       expect(issue.message, contains('"b"'));
       expect(issue.componentId, 'a');
       expect(issue.path, 'components[0]');
@@ -697,16 +849,20 @@ void main() {
     test('no overlaps leaves the issue list exactly as it was', () {
       expect(validateHuiMenu(three), isEmpty);
       expect(
-        validateHuiMenu(three, overlaps: const <CanvasOverlap>[]).map(
-          (HuiIssue i) => i.toString(),
-        ),
+        validateHuiMenu(
+          three,
+          overlaps: const <CanvasOverlap>[],
+        ).map((HuiIssue i) => i.toString()),
         validateHuiMenu(three).map((HuiIssue i) => i.toString()),
       );
     });
 
     test('a pair naming a component the menu no longer has is skipped', () {
       expect(
-        validateHuiMenu(three, overlaps: <CanvasOverlap>[_overlap('a', 'gone')]),
+        validateHuiMenu(
+          three,
+          overlaps: <CanvasOverlap>[_overlap('a', 'gone')],
+        ),
         isEmpty,
       );
     });
@@ -714,11 +870,16 @@ void main() {
 
   group('wide text hitboxes', () {
     test('a clickable text line of 16 characters is reported as info', () {
-      final List<HuiIssue> issues = validateHuiMenu(_menu(<HuiComponent>[
-        _button('a', icon: HuiTextIcon('0123456789abcdef')),
-      ]));
-      final HuiIssue issue =
-          _matching(issues, HuiSeverity.info, 'character count').single;
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[
+          _button('a', icon: HuiTextIcon('0123456789abcdef')),
+        ]),
+      );
+      final HuiIssue issue = _matching(
+        issues,
+        HuiSeverity.info,
+        'character count',
+      ).single;
       expect(issue.message, contains('16 characters'));
       expect(issue.message, contains('1.75'));
       expect(issue.path, 'components[0].data.icon.text');
@@ -727,9 +888,11 @@ void main() {
     test('15 characters stays below the threshold', () {
       expect(
         _has(
-          validateHuiMenu(_menu(<HuiComponent>[
-            _button('a', icon: HuiTextIcon('0123456789abcde')),
-          ])),
+          validateHuiMenu(
+            _menu(<HuiComponent>[
+              _button('a', icon: HuiTextIcon('0123456789abcde')),
+            ]),
+          ),
           HuiSeverity.info,
           'character count',
         ),
@@ -742,9 +905,11 @@ void main() {
       // plane width even though the raw field is 20 characters.
       expect(
         _has(
-          validateHuiMenu(_menu(<HuiComponent>[
-            _button('a', icon: HuiTextIcon('&6&lVillage Store')),
-          ])),
+          validateHuiMenu(
+            _menu(<HuiComponent>[
+              _button('a', icon: HuiTextIcon('&6&lVillage Store')),
+            ]),
+          ),
           HuiSeverity.info,
           'character count',
         ),
@@ -755,9 +920,11 @@ void main() {
     test('only the widest line counts, and lines are measured separately', () {
       expect(
         _has(
-          validateHuiMenu(_menu(<HuiComponent>[
-            _button('a', icon: HuiTextIcon('short\nshort too')),
-          ])),
+          validateHuiMenu(
+            _menu(<HuiComponent>[
+              _button('a', icon: HuiTextIcon('short\nshort too')),
+            ]),
+          ),
           HuiSeverity.info,
           'character count',
         ),
@@ -765,9 +932,11 @@ void main() {
       );
       expect(
         _has(
-          validateHuiMenu(_menu(<HuiComponent>[
-            _button('a', icon: HuiTextIcon('short\n0123456789abcdef')),
-          ])),
+          validateHuiMenu(
+            _menu(<HuiComponent>[
+              _button('a', icon: HuiTextIcon('short\n0123456789abcdef')),
+            ]),
+          ),
           HuiSeverity.info,
           'character count',
         ),
@@ -787,23 +956,28 @@ void main() {
     });
 
     test('both toggle icons are measured', () {
-      final List<HuiIssue> issues = validateHuiMenu(_menu(<HuiComponent>[
-        _component(
-          'a',
-          HuiToggleData(
-            1,
-            '%c%',
-            'true',
-            const <HuiAction>[],
-            const <HuiAction>[],
-            HuiTextIcon('0123456789abcdef'),
-            HuiTextIcon('0123456789abcdefgh'),
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[
+          _component(
+            'a',
+            HuiToggleData(
+              1,
+              '%c%',
+              'true',
+              const <HuiAction>[],
+              const <HuiAction>[],
+              HuiTextIcon('0123456789abcdef'),
+              HuiTextIcon('0123456789abcdefgh'),
+            ),
           ),
-        ),
-      ]));
+        ]),
+      );
       expect(
-        _matching(issues, HuiSeverity.info, 'character count')
-            .map((HuiIssue i) => i.path),
+        _matching(
+          issues,
+          HuiSeverity.info,
+          'character count',
+        ).map((HuiIssue i) => i.path),
         <String>[
           'components[0].data.trueIcon.text',
           'components[0].data.falseIcon.text',
@@ -812,79 +986,14 @@ void main() {
     });
   });
 
-  group('highlightModifier override', () {
-    test('a clickable with a modifier other than 1 is reported once', () {
-      final List<HuiIssue> issues = validateHuiMenu(_menu(<HuiComponent>[
-        _button('a', modifier: 0.05),
-      ]));
-      final HuiIssue issue =
-          _matching(issues, HuiSeverity.info, 'first hover tick').single;
-      expect(issue.path, 'components[0].data.highlightModifier');
-      expect(issue.componentId, 'a');
-    });
-
-    test('twenty offenders still produce exactly one issue', () {
-      final List<HuiComponent> components = <HuiComponent>[
-        for (int i = 0; i < 20; i++) _button('b$i', modifier: 0.05),
-      ];
-      final List<HuiIssue> issues = validateHuiMenu(_menu(components));
-      final HuiIssue issue =
-          _matching(issues, HuiSeverity.info, 'first hover tick').single;
-      expect(issue.path, 'components[0].data.highlightModifier');
-    });
-
-    test('the note points at the first offender, not the first clickable', () {
-      final List<HuiIssue> issues = validateHuiMenu(_menu(<HuiComponent>[
-        _button('a'),
-        _button('b', modifier: 0.2),
-        _button('c', modifier: 0.3),
-      ]));
-      expect(
-        _matching(issues, HuiSeverity.info, 'first hover tick').single.path,
-        'components[1].data.highlightModifier',
-      );
-    });
-
-    test('a modifier of exactly 1 already matches the snap', () {
-      expect(
-        _has(
-          validateHuiMenu(_menu(<HuiComponent>[_button('a')])),
-          HuiSeverity.info,
-          'first hover tick',
-        ),
-        isFalse,
-      );
-    });
-
-    test('a toggle counts, a decoration does not', () {
-      expect(
-        _has(
-          validateHuiMenu(_menu(<HuiComponent>[
-            _component(
-              'a',
-              HuiToggleData(0.05, '%c%', 'true', const <HuiAction>[],
-                  const <HuiAction>[], HuiTextIcon('on'), HuiTextIcon('off')),
-            ),
-          ])),
-          HuiSeverity.info,
-          'first hover tick',
-        ),
-        isTrue,
-      );
-      expect(
-        _has(validateHuiMenu(_withIcon(HuiTextIcon('x'))), HuiSeverity.info,
-            'first hover tick'),
-        isFalse,
-      );
-    });
-  });
-
   group('command source', () {
     test('an omitted source is a warning: the command runs as the console', () {
-      final List<HuiIssue> issues =
-          validateHuiMenu(_withCommand('/warp shop'));
-      final HuiIssue issue =
-          _matching(issues, HuiSeverity.warning, 'no source').single;
+      final List<HuiIssue> issues = validateHuiMenu(_withCommand('/warp shop'));
+      final HuiIssue issue = _matching(
+        issues,
+        HuiSeverity.warning,
+        'no source',
+      ).single;
       expect(issue.path, 'components[0].data.actions[0].source');
       expect(issue.componentId, 'a');
       expect(issue.message, contains('console'));
@@ -892,8 +1001,11 @@ void main() {
 
     test('a blank source reads the same way as an omitted one', () {
       expect(
-        _has(validateHuiMenu(_withCommand('/a', source: '')),
-            HuiSeverity.warning, 'no source'),
+        _has(
+          validateHuiMenu(_withCommand('/a', source: '')),
+          HuiSeverity.warning,
+          'no source',
+        ),
         isTrue,
       );
     });
@@ -907,8 +1019,9 @@ void main() {
     });
 
     test('an unrecognised source is a Gson-version warning, not this one', () {
-      final List<HuiIssue> issues =
-          validateHuiMenu(_withCommand('/a', source: 'console'));
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withCommand('/a', source: 'console'),
+      );
       expect(
         _has(issues, HuiSeverity.warning, 'not one of the two spellings'),
         isTrue,
@@ -916,8 +1029,7 @@ void main() {
       expect(_has(issues, HuiSeverity.warning, 'no source'), isFalse);
     });
 
-    test('the unrecognised-source warning does not assert console dispatch',
-        () {
+    test('the unrecognised-source warning does not assert console dispatch', () {
       // HoloUi shades no Gson and registers no enum adapter, so "PLAYER"
       // resolves to the player on Gson >= 2.10 and to null (console) on 2.8.x.
       final HuiIssue issue = _matching(
@@ -930,15 +1042,17 @@ void main() {
 
     test('an action built in the editor is never flagged', () {
       expect(
-        _has(validateHuiMenu(_withAction(HuiCommandAction('/a', 'server'))),
-            HuiSeverity.warning, 'no source'),
+        _has(
+          validateHuiMenu(_withAction(HuiCommandAction('/a', 'server'))),
+          HuiSeverity.warning,
+          'no source',
+        ),
         isFalse,
       );
     });
 
     test('re-importing the repaired export clears the note', () {
-      final HuiMenu repaired =
-          decodeHuiMenu(encodeHuiMenu(_withCommand('/a')));
+      final HuiMenu repaired = decodeHuiMenu(encodeHuiMenu(_withCommand('/a')));
       expect(validateHuiMenu(repaired), isEmpty);
     });
   });
@@ -963,8 +1077,11 @@ void main() {
         '/holoui back ignored args',
       ]) {
         expect(
-          _has(validateHuiMenu(_withCommand(command, source: 'server')),
-              HuiSeverity.warning, 'only works for a player'),
+          _has(
+            validateHuiMenu(_withCommand(command, source: 'server')),
+            HuiSeverity.warning,
+            'only works for a player',
+          ),
           isTrue,
           reason: command,
         );
@@ -974,8 +1091,11 @@ void main() {
     test('the root aliases resolve the same command', () {
       for (final String root in <String>['holo', 'hui', 'holou', 'hu']) {
         expect(
-          _has(validateHuiMenu(_withCommand('/$root close', source: 'server')),
-              HuiSeverity.warning, 'only works for a player'),
+          _has(
+            validateHuiMenu(_withCommand('/$root close', source: 'server')),
+            HuiSeverity.warning,
+            'only works for a player',
+          ),
           isTrue,
           reason: root,
         );
@@ -989,8 +1109,11 @@ void main() {
         '  holoui close',
       ]) {
         expect(
-          _has(validateHuiMenu(_withCommand(command, source: 'server')),
-              HuiSeverity.warning, 'only works for a player'),
+          _has(
+            validateHuiMenu(_withCommand(command, source: 'server')),
+            HuiSeverity.warning,
+            'only works for a player',
+          ),
           isTrue,
           reason: command,
         );
@@ -1004,8 +1127,11 @@ void main() {
         '/holoui close',
       ]) {
         expect(
-          _has(validateHuiMenu(_withCommand(command, source: 'player')),
-              HuiSeverity.warning, 'only works for a player'),
+          _has(
+            validateHuiMenu(_withCommand(command, source: 'player')),
+            HuiSeverity.warning,
+            'only works for a player',
+          ),
           isFalse,
           reason: command,
         );
@@ -1015,13 +1141,13 @@ void main() {
     test('open without a menu id lists menus and works from the console', () {
       // `open` defaults its argument to `*` and returns through `list(sender)`
       // before the player check, so this one really does work headless.
-      for (final String command in <String>[
-        '/holoui open',
-        '/holoui open *',
-      ]) {
+      for (final String command in <String>['/holoui open', '/holoui open *']) {
         expect(
-          _has(validateHuiMenu(_withCommand(command, source: 'server')),
-              HuiSeverity.warning, 'only works for a player'),
+          _has(
+            validateHuiMenu(_withCommand(command, source: 'server')),
+            HuiSeverity.warning,
+            'only works for a player',
+          ),
           isFalse,
           reason: command,
         );
@@ -1037,8 +1163,11 @@ void main() {
         '/say open',
       ]) {
         expect(
-          _has(validateHuiMenu(_withCommand(command, source: 'server')),
-              HuiSeverity.warning, 'only works for a player'),
+          _has(
+            validateHuiMenu(_withCommand(command, source: 'server')),
+            HuiSeverity.warning,
+            'only works for a player',
+          ),
           isFalse,
           reason: command,
         );
@@ -1046,11 +1175,14 @@ void main() {
     });
 
     test('an absent source produces this warning and not the generic one', () {
-      final List<HuiIssue> issues =
-          validateHuiMenu(_withCommand('/holoui open shop'));
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withCommand('/holoui open shop'),
+      );
       final HuiIssue issue = _matching(
-              issues, HuiSeverity.warning, 'only works for a player')
-          .single;
+        issues,
+        HuiSeverity.warning,
+        'only works for a player',
+      ).single;
       expect(issue.message, contains('no source'));
       expect(
         issues.where((HuiIssue i) => i.path.endsWith('.source')),
@@ -1061,12 +1193,17 @@ void main() {
     test('an unrecognised source keeps its Gson warning instead', () {
       // "PLAYER" may well resolve to the player, so claiming a no-op would be
       // a lie; only server and absent are certainly console.
-      final List<HuiIssue> issues =
-          validateHuiMenu(_withCommand('/holoui close', source: 'PLAYER'));
-      expect(_has(issues, HuiSeverity.warning, 'only works for a player'),
-          isFalse);
-      expect(_has(issues, HuiSeverity.warning, 'not one of the two spellings'),
-          isTrue);
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withCommand('/holoui close', source: 'PLAYER'),
+      );
+      expect(
+        _has(issues, HuiSeverity.warning, 'only works for a player'),
+        isFalse,
+      );
+      expect(
+        _has(issues, HuiSeverity.warning, 'not one of the two spellings'),
+        isTrue,
+      );
     });
   });
 
@@ -1074,9 +1211,11 @@ void main() {
     test('a menu "name" key is reported as info', () {
       final HuiMenu menu = _menu(<HuiComponent>[_button('a')])
         ..extras['name'] = 'Village Store';
-      final HuiIssue issue =
-          _matching(validateHuiMenu(menu), HuiSeverity.info, 'file base name')
-              .single;
+      final HuiIssue issue = _matching(
+        validateHuiMenu(menu),
+        HuiSeverity.info,
+        'file base name',
+      ).single;
       expect(issue.path, 'name');
       expect(issue.componentId, isNull);
     });
@@ -1086,16 +1225,22 @@ void main() {
         ..extras['name'] = 'Village Store';
       expect(encodeHuiMenu(menu), contains('"name": "Village Store"'));
       expect(
-        _has(validateHuiMenu(decodeHuiMenu(encodeHuiMenu(menu))),
-            HuiSeverity.info, 'file base name'),
+        _has(
+          validateHuiMenu(decodeHuiMenu(encodeHuiMenu(menu))),
+          HuiSeverity.info,
+          'file base name',
+        ),
         isTrue,
       );
     });
 
     test('a menu without the key is silent', () {
       expect(
-        _has(validateHuiMenu(_menu(<HuiComponent>[_button('a')])),
-            HuiSeverity.info, 'file base name'),
+        _has(
+          validateHuiMenu(_menu(<HuiComponent>[_button('a')])),
+          HuiSeverity.info,
+          'file base name',
+        ),
         isFalse,
       );
     });

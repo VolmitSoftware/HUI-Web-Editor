@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://holoui-editor.web.app
+      url: https://holoui.volmitsoftware.com
 
     steps:
       - name: Checkout repository
@@ -90,7 +90,7 @@ jobs:
           actual_sha=""
           for attempt in {1..12}; do
             if actual_sha="$(curl -fsS --max-time 30 \
-                "https://holoui-editor.web.app/main.client.dart.js?release=$GITHUB_SHA" \
+                "https://holoui.volmitsoftware.com/main.client.dart.js?release=$GITHUB_SHA" \
                 | sha256sum | awk '{print $1}')" \
                 && [[ "$actual_sha" == "$expected_sha" ]]; then
               echo "Firebase is serving the client bundle built from $GITHUB_SHA."

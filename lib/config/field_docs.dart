@@ -12,11 +12,7 @@
 library;
 
 class HuiFieldDoc {
-  const HuiFieldDoc({
-    required this.title,
-    required this.body,
-    this.citation,
-  });
+  const HuiFieldDoc({required this.title, required this.body, this.citation});
 
   /// Short field name, in the editor's words rather than the JSON key's.
   final String title;
@@ -36,7 +32,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   // --- menu root ------------------------------------------------------------
   'menu.offset': HuiFieldDoc(
     title: 'Menu offset',
-    body: 'Measured in blocks from the player\'s feet at the moment the menu '
+    body:
+        'Measured in blocks from the player\'s feet at the moment the menu '
         'opens, not from their eyes, so y 1.7 is roughly eye level. X is '
         'negated on load, which is why positive X reads as the player\'s right '
         'here. This is the one offset uiScale never touches: raising the '
@@ -46,7 +43,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'menu.id': HuiFieldDoc(
     title: 'Menu id',
-    body: 'Comes from the file base name, and the plugin overwrites whatever id '
+    body:
+        'Comes from the file base name, and the plugin overwrites whatever id '
         'the JSON carries immediately after parsing. There is no name key in '
         'the format either - writing one is silently ignored. Renaming the file '
         'renames the menu, and with it the /holoui open argument and the '
@@ -55,7 +53,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'menu.lockPosition': HuiFieldDoc(
     title: 'Lock position',
-    body: 'Rewrites every movement back to where the player stood and zeroes '
+    body:
+        'Rewrites every movement back to where the player stood and zeroes '
         'their velocity, for as long as the menu is open. They can still look '
         'around and click; they cannot walk. It also means follow player never '
         'gets anything to follow.',
@@ -63,7 +62,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'menu.followPlayer': HuiFieldDoc(
     title: 'Follow player',
-    body: 'Re-centres the whole menu on the player on every move, respawn and '
+    body:
+        'Re-centres the whole menu on the player on every move, respawn and '
         'teleport, keeping the facing it opened with. Off, the menu stays where '
         'it spawned and the player can walk away from it - until max distance '
         'closes it.',
@@ -71,7 +71,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'menu.maxDistance': HuiFieldDoc(
     title: 'Max distance',
-    body: 'Closes the menu once the player gets further from the menu centre '
+    body:
+        'Closes the menu once the player gets further from the menu centre '
         'than this. Leaving the key out means 60000000 blocks, and any value is '
         'clamped into 0 to 60000000. The check is loosened by the menu offset - '
         'it compares against maxDistance squared plus the offset length squared '
@@ -81,13 +82,15 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'menu.closeOnDeath': HuiFieldDoc(
     title: 'Close on death',
-    body: 'Closes the menu when the player dies. Off, it stays open through the '
+    body:
+        'Closes the menu when the player dies. Off, it stays open through the '
         'death screen and the respawn.',
     citation: 'MenuSessionManager.java:136-140',
   ),
   'menu.closeOnTeleport': HuiFieldDoc(
     title: 'Close on teleport',
-    body: 'Closes on any teleport - commands, portals, other plugins. The '
+    body:
+        'Closes on any teleport - commands, portals, other plugins. The '
         'shipped JSON schema does not list this key but the plugin reads it. '
         'Even with it off, a teleport that leaves the menu\'s world closes the '
         'session anyway.',
@@ -97,7 +100,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   // --- component wrapper ----------------------------------------------------
   'component.id': HuiFieldDoc(
     title: 'Component id',
-    body: 'How the Java API addresses this component. Duplicates are not '
+    body:
+        'How the Java API addresses this component. Duplicates are not '
         'rejected: a second component with the same id still renders and still '
         'clicks, it just never enters the lookup map, so API calls only ever '
         'reach the first one.',
@@ -105,7 +109,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'component.offset': HuiFieldDoc(
     title: 'Component offset',
-    body: 'Blocks from the menu centre. X is negated on load, and all three '
+    body:
+        'Blocks from the menu centre. X is negated on load, and all three '
         'axes are multiplied by the server\'s uiScale - so a server at uiScale '
         '2 spreads every component twice as far from the centre while the menu '
         'itself stays put. Yaw and pitch are forced to zero; components cannot '
@@ -116,18 +121,28 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   // --- clickables -----------------------------------------------------------
   'button.highlightModifier': HuiFieldDoc(
     title: 'Highlight modifier',
-    body: 'How far the icon moves toward the player on the first tick the look '
-        'ray enters its hitbox - and only that tick. From the second tick on, '
-        'the plugin teleports the icon a full 1.0 block along the plane normal '
-        'every tick, so every hovered component ends up the same distance out '
-        'no matter what this is set to. On exit it teleports straight back; '
-        'there is no easing in either direction. Values loaded from JSON are '
-        'never clamped, only the Java API clamps them to 0 to 1.',
+    body:
+        'How far the icon moves toward the player while the look ray remains '
+        'inside its hitbox. The click plane itself stays fixed so the hover '
+        'does not chase the player\'s crosshair. On exit the icon teleports '
+        'straight back; there is no easing. Values loaded from JSON are never '
+        'clamped, only the Java API clamps them to 0 to 1.',
     citation: 'ClickableComponent.java:111-116',
+  ),
+  'button.hitbox': HuiFieldDoc(
+    title: 'Custom hitbox',
+    body:
+        'Omit hitbox to derive the click-plane size from the current icon. '
+        'When present, width and height are fixed block dimensions at uiScale '
+        '1 and both are multiplied by the server uiScale. The plane remains '
+        'centred on the rendered icon, and the component offset moves both '
+        'together. Both dimensions must be finite and greater than zero.',
+    citation: 'ClickableComponent.java:123-134',
   ),
   'toggle.condition': HuiFieldDoc(
     title: 'Condition',
-    body: 'A PlaceholderAPI string, expanded once when the menu opens and '
+    body:
+        'A PlaceholderAPI string, expanded once when the menu opens and '
         'compared case-insensitively against the expected value to pick the '
         'starting state. It is never re-evaluated - after that first sample the '
         'state only changes when a player clicks. A missing condition throws '
@@ -136,21 +151,24 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'toggle.expectedValue': HuiFieldDoc(
     title: 'Expected value',
-    body: 'What the expanded condition has to equal, ignoring case, for the '
+    body:
+        'What the expanded condition has to equal, ignoring case, for the '
         'toggle to open in its true state. Leaving it out does not crash: the '
         'comparison simply never matches, so the toggle always opens false.',
     citation: 'ToggleComponent.java:78-80',
   ),
   'toggle.trueActions': HuiFieldDoc(
     title: 'Actions on switch to true',
-    body: 'Run on the click that moves the toggle from false to true, before '
+    body:
+        'Run on the click that moves the toggle from false to true, before '
         'the icon swaps. Nothing runs at open, whatever the condition '
         'evaluated to - only clicks fire actions.',
     citation: 'ToggleComponent.java:52-62',
   ),
   'toggle.falseActions': HuiFieldDoc(
     title: 'Actions on switch to false',
-    body: 'Run on the click that moves the toggle from true to false. A player '
+    body:
+        'Run on the click that moves the toggle from true to false. A player '
         'clicking twice runs the true list and then the false list; that round '
         'trip is the only way both lists fire.',
     citation: 'ToggleComponent.java:52-62',
@@ -159,7 +177,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   // --- icons ----------------------------------------------------------------
   'icon.item.item': HuiFieldDoc(
     title: 'Material',
-    body: 'A lowercase namespaced key such as diamond_sword or '
+    body:
+        'A lowercase namespaced key such as diamond_sword or '
         'minecraft:diamond_sword. The uppercase enum spelling DIAMOND_SWORD '
         'parses to null and then crashes when the icon is built: the value goes '
         'through a namespaced-key registry lookup, not an enum valueOf.',
@@ -167,7 +186,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'icon.item.count': HuiFieldDoc(
     title: 'Count',
-    body: 'Stack size on the floating item. 0 is coerced to 1, so there is no '
+    body:
+        'Stack size on the floating item. 0 is coerced to 1, so there is no '
         'way to render an empty stack. Above 1 the plugin spawns a second '
         'display below the item showing a bold white count, which widens what '
         'the icon draws but not its hitbox.',
@@ -175,7 +195,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'icon.item.customModelValue': HuiFieldDoc(
     title: 'Custom model value',
-    body: 'The key is customModelValue. The shipped JSON schema calls it '
+    body:
+        'The key is customModelValue. The shipped JSON schema calls it '
         'customModelData, which the plugin does not read at all - a file using '
         'the schema spelling silently gets no custom model. It is written onto '
         'the item meta unconditionally, including 0, so leaving it at 0 still '
@@ -184,7 +205,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'icon.customItem.provider': HuiFieldDoc(
     title: 'Provider',
-    body: 'Which custom-item plugin resolves the id. Blank or auto tries every '
+    body:
+        'Which custom-item plugin resolves the id. Blank or auto tries every '
         'installed provider in registration order and takes the first hit, '
         'which is fine while ids are unique and ambiguous the moment two '
         'plugins define the same one. Naming the provider is faster and leaves '
@@ -193,7 +215,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'icon.customItem.item': HuiFieldDoc(
     title: 'Custom item id',
-    body: 'The provider\'s own id, passed through verbatim with its case '
+    body:
+        'The provider\'s own id, passed through verbatim with its case '
         'intact - MMOItems wants SWORD:CUTLASS, Oraxen wants its yml key '
         'exactly as written. The editor cannot check it because resolution '
         'happens on the server; an id nothing recognises falls back to the '
@@ -202,7 +225,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'icon.textImage.path': HuiFieldDoc(
     title: 'Image path',
-    body: 'Relative to plugins/holoui/images/. The image is drawn one block '
+    body:
+        'Relative to plugins/holoui/images/. The image is drawn one block '
         'character per pixel with a hex colour, so a 64 by 64 image becomes 64 '
         'text displays of 64 characters each; fully transparent pixels are left '
         'blank. A path that does not resolve renders the magenta and black '
@@ -211,7 +235,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'icon.animated.source': HuiFieldDoc(
     title: 'Frames',
-    body: 'The key is source and it holds the list of frame paths. The shipped '
+    body:
+        'The key is source and it holds the list of frame paths. The shipped '
         'JSON schema calls it path, which the plugin does not read - a file '
         'using the schema spelling loads with no frames. Frames are '
         'bottom-padded to the tallest one, so mixed sizes stay anchored at the '
@@ -220,7 +245,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'icon.animated.speed': HuiFieldDoc(
     title: 'Speed',
-    body: 'Ticks between frames, not milliseconds. One tick is 50 ms, so 2 is '
+    body:
+        'Ticks between frames, not milliseconds. One tick is 50 ms, so 2 is '
         '100 ms a frame and 20 is one frame a second. There is no per-frame '
         'duration, no ping-pong and no play-once: the list loops forever at '
         'this one interval.',
@@ -228,7 +254,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'icon.text.text': HuiFieldDoc(
     title: 'Text',
-    body: 'A newline splits it into one text display per line. Ampersand codes, '
+    body:
+        'A newline splits it into one text display per line. Ampersand codes, '
         'legacy section codes and full MiniMessage tags all work, and '
         'PlaceholderAPI runs over it - once, when the icon is created. Nothing '
         're-resolves afterwards, so a placeholder shows whatever it meant at '
@@ -241,14 +268,16 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   // --- actions --------------------------------------------------------------
   'action.command.command': HuiFieldDoc(
     title: 'Command',
-    body: 'The leading slash is optional - the plugin strips it. Commands are '
+    body:
+        'The leading slash is optional - the plugin strips it. Commands are '
         'never placeholder-expanded, so %player_name% arrives at the command '
         'handler literally. A missing command throws on click.',
     citation: 'CommandMenuAction.java:34-40',
   ),
   'action.command.source': HuiFieldDoc(
     title: 'Run as',
-    body: 'Only the exact value player runs the command as the clicking player, '
+    body:
+        'Only the exact value player runs the command as the clicking player, '
         'with their permissions. Everything else - an unknown value, and an '
         'omitted key - dispatches from the console instead, with full '
         'privileges and no permission check against the player. That is the '
@@ -258,14 +287,16 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'action.sound.sound': HuiFieldDoc(
     title: 'Sound',
-    body: 'A lowercase namespaced key such as ui.button.click; the uppercase '
+    body:
+        'A lowercase namespaced key such as ui.button.click; the uppercase '
         'enum spelling parses to null. It plays at the clicking player\'s own '
         'location and only to them - nobody standing nearby hears it.',
     citation: 'SoundMenuAction.java:30-32',
   ),
   'action.sound.source': HuiFieldDoc(
     title: 'Category',
-    body: 'Which client volume slider applies: master, music, record, weather, '
+    body:
+        'Which client volume slider applies: master, music, record, weather, '
         'block, hostile, neutral, player, ambient or voice. It is required, and '
         'not just for the sound - a missing or unrecognised category throws on '
         'click, and the plugin catches that per component, so every remaining '
@@ -274,7 +305,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'action.sound.volume': HuiFieldDoc(
     title: 'Volume',
-    body: 'The format default is 0, which is silence - a sound action that '
+    body:
+        'The format default is 0, which is silence - a sound action that '
         'leaves volume out plays nothing at all, which is why the editor always '
         'writes it. Above 1 Minecraft extends how far the sound carries rather '
         'than making it louder.',
@@ -282,7 +314,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   ),
   'action.sound.pitch': HuiFieldDoc(
     title: 'Pitch',
-    body: 'Playback speed, which the client clamps to 0.5 to 2.0. The format '
+    body:
+        'Playback speed, which the client clamps to 0.5 to 2.0. The format '
         'default is 0, so a pitch left out is clamped up to 0.5: the deepest, '
         'slowest version of the sound rather than the sound as recorded. Write '
         '1 for as recorded.',

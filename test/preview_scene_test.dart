@@ -26,12 +26,11 @@ HuiMenu _menu({
   Vec3? offset,
   List<HuiComponent>? components,
   bool followPlayer = false,
-}) =>
-    HuiMenu(
-      offset: offset ?? Vec3.zero(),
-      followPlayer: followPlayer,
-      components: components ?? <HuiComponent>[],
-    );
+}) => HuiMenu(
+  offset: offset ?? Vec3.zero(),
+  followPlayer: followPlayer,
+  components: components ?? <HuiComponent>[],
+);
 
 PreviewScene _scene(
   HuiMenu menu, {
@@ -40,15 +39,14 @@ PreviewScene _scene(
   double openYawDeg = 0,
   PVec3? currentCenter,
   bool trueRender = false,
-}) =>
-    buildPreviewScene(
-      menu: menu,
-      uiScale: uiScale,
-      openFeet: openFeet,
-      openYawDeg: openYawDeg,
-      currentCenter: currentCenter,
-      trueRender: trueRender,
-    );
+}) => buildPreviewScene(
+  menu: menu,
+  uiScale: uiScale,
+  openFeet: openFeet,
+  openYawDeg: openYawDeg,
+  currentCenter: currentCenter,
+  trueRender: trueRender,
+);
 
 void main() {
   group('anchoring', () {
@@ -100,19 +98,25 @@ void main() {
   });
 
   group('open yaw', () {
-    test('rotates about the vertical axis through the PLAYER, not the centre',
-        () {
-      // `MenuComponent.java:142-144` pivots on the player's eye location; a
-      // centre-pivot would leave this component where it started.
-      final PreviewScene scene = _scene(
-        _menu(
-          offset: Vec3(0, 0, 4),
-          components: <HuiComponent>[_button('a', Vec3(0, 0, 0))],
-        ),
-        openYawDeg: 90,
-      );
-      expectVec(scene.quads.single.anchor, const PVec3(4, 0, 0), epsilon: 1e-9);
-    });
+    test(
+      'rotates about the vertical axis through the PLAYER, not the centre',
+      () {
+        // `MenuComponent.java:142-144` pivots on the player's eye location; a
+        // centre-pivot would leave this component where it started.
+        final PreviewScene scene = _scene(
+          _menu(
+            offset: Vec3(0, 0, 4),
+            components: <HuiComponent>[_button('a', Vec3(0, 0, 0))],
+          ),
+          openYawDeg: 90,
+        );
+        expectVec(
+          scene.quads.single.anchor,
+          const PVec3(4, 0, 0),
+          epsilon: 1e-9,
+        );
+      },
+    );
 
     test('the pivot follows the player, keeping the layout rigid', () {
       const PVec3 feet = PVec3(-7, 64, 12);
@@ -177,12 +181,16 @@ void main() {
     });
 
     test('changing the open yaw is the ONLY thing that moves a quad', () {
-      final HuiMenu menu =
-          _menu(components: <HuiComponent>[_button('a', Vec3(0, 0, 3))]);
+      final HuiMenu menu = _menu(
+        components: <HuiComponent>[_button('a', Vec3(0, 0, 3))],
+      );
       final PreviewScene at0 = _scene(menu, openYawDeg: 0);
       final PreviewScene at90 = _scene(menu, openYawDeg: 90);
       expect(at0.quads.single.anchor == at90.quads.single.anchor, isFalse);
-      expect(at0.quads.single.facingYawDeg, isNot(at90.quads.single.facingYawDeg));
+      expect(
+        at0.quads.single.facingYawDeg,
+        isNot(at90.quads.single.facingYawDeg),
+      );
     });
   });
 
@@ -205,8 +213,9 @@ void main() {
     });
 
     test('a moving eye re-aims the plane while the quad stays put', () {
-      final PVec3 fromFront = aimQuadPlane(quad, const PVec3(0, 1.5, -5)).normal;
-      final PVec3 fromSide = aimQuadPlane(quad, const PVec3(9, 1.5, 3)).normal;
+      final double planeY = quad.planeCenter.y;
+      final PVec3 fromFront = aimQuadPlane(quad, PVec3(0, planeY, -5)).normal;
+      final PVec3 fromSide = aimQuadPlane(quad, PVec3(9, planeY, 3)).normal;
       expectVec(fromFront, const PVec3(0, 0, -1), epsilon: 1e-9);
       expectVec(fromSide, const PVec3(1, 0, 0), epsilon: 1e-9);
       // ... and the quad is untouched by either call.
@@ -281,7 +290,7 @@ void main() {
       );
     });
 
-    test('the drawn quad carries the true-render drop when asked', () {
+    test('the drawn quad and plane carry the true-render drop together', () {
       final HuiMenu menu = _menu(
         components: <HuiComponent>[
           HuiComponent(
@@ -295,8 +304,9 @@ void main() {
       final PreviewQuad biased = _scene(menu, trueRender: true).quads.single;
       expect(flat.visualCenter.y, closeTo(0, 1e-12));
       expect(biased.visualCenter.y, closeTo(-huiTextTrueRenderBias, 1e-12));
-      // The collision plane never moves with the drawing.
-      expect(flat.planeCenter.y, closeTo(biased.planeCenter.y, 1e-12));
+      expect(flat.planeCenter.y, closeTo(0, 1e-12));
+      expect(biased.planeCenter.y, closeTo(-huiTextTrueRenderBias, 1e-12));
+      expect(biased.planeCenter.y, closeTo(biased.visualCenter.y, 1e-12));
     });
 
     test('reuses the supplied canvas scene rather than rebuilding it', () {
@@ -335,10 +345,9 @@ void main() {
       );
       expect(scene.byId('deco')!.clickable, isFalse);
       expect(scene.byId('btn')!.clickable, isTrue);
-      expect(
-        scene.clickables.map((PreviewQuad q) => q.id).toList(),
-        <String>['btn'],
-      );
+      expect(scene.clickables.map((PreviewQuad q) => q.id).toList(), <String>[
+        'btn',
+      ]);
     });
 
     test('clickables keep declaration order — the click dispatch order', () {
@@ -352,12 +361,15 @@ void main() {
           ],
         ),
       );
-      expect(
-        scene.clickables.map((PreviewQuad q) => q.id).toList(),
-        <String>['one', 'two'],
-      );
-      expect(scene.quads.map((PreviewQuad q) => q.id).toList(),
-          <String>['one', 'deco', 'two']);
+      expect(scene.clickables.map((PreviewQuad q) => q.id).toList(), <String>[
+        'one',
+        'two',
+      ]);
+      expect(scene.quads.map((PreviewQuad q) => q.id).toList(), <String>[
+        'one',
+        'deco',
+        'two',
+      ]);
     });
 
     test('the highlight modifier is carried through unclamped', () {
@@ -370,8 +382,15 @@ void main() {
             HuiComponent(
               'toggle',
               Vec3(1, 0, 0),
-              HuiToggleData(2.5, '', '', <HuiAction>[], <HuiAction>[],
-                  HuiTextIcon('on'), HuiTextIcon('off')),
+              HuiToggleData(
+                2.5,
+                '',
+                '',
+                <HuiAction>[],
+                <HuiAction>[],
+                HuiTextIcon('on'),
+                HuiTextIcon('off'),
+              ),
             ),
           ],
         ),
@@ -407,8 +426,11 @@ void main() {
         openYawDeg: 45,
         currentCenter: still.sessionCenter + const PVec3(5, 0, -2),
       );
-      expectVec(walked.center, still.center + const PVec3(5, 0, -2),
-          epsilon: 1e-9);
+      expectVec(
+        walked.center,
+        still.center + const PVec3(5, 0, -2),
+        epsilon: 1e-9,
+      );
       for (final PreviewQuad quad in still.quads) {
         expectVec(
           walked.byId(quad.id)!.anchor,
@@ -435,8 +457,11 @@ void main() {
         currentCenter: const PVec3(20, 0, 24),
       );
       expectVec(scene.anchorFeet, const PVec3(20, 0, 20), epsilon: 1e-9);
-      expectVec(scene.quads.single.anchor, const PVec3(24, 0, 20),
-          epsilon: 1e-9);
+      expectVec(
+        scene.quads.single.anchor,
+        const PVec3(24, 0, 20),
+        epsilon: 1e-9,
+      );
       expectVec(scene.center, const PVec3(24, 0, 20), epsilon: 1e-9);
     });
   });
@@ -449,10 +474,16 @@ void main() {
         openFeet: feet,
         openYawDeg: 90,
       );
-      expectVec(scene.lift(0, 0, 2), feet + const PVec3(2, 0, 0),
-          epsilon: 1e-9);
-      expectVec(scene.lift(0, 3, 0), feet + const PVec3(0, 3, 0),
-          epsilon: 1e-9);
+      expectVec(
+        scene.lift(0, 0, 2),
+        feet + const PVec3(2, 0, 0),
+        epsilon: 1e-9,
+      );
+      expectVec(
+        scene.lift(0, 3, 0),
+        feet + const PVec3(0, 3, 0),
+        epsilon: 1e-9,
+      );
     });
 
     test('a quad anchor is exactly the lift of its canvas anchor', () {
@@ -479,10 +510,16 @@ void main() {
         openFeet: const PVec3(100, 5, -20),
         openYawDeg: 90,
       );
-      expectVec(scene.liftDirection(const PVec3(0, 0, 1)),
-          const PVec3(1, 0, 0), epsilon: 1e-9);
-      expectVec(scene.liftDirection(const PVec3(0, 1, 0)),
-          const PVec3(0, 1, 0), epsilon: 1e-9);
+      expectVec(
+        scene.liftDirection(const PVec3(0, 0, 1)),
+        const PVec3(1, 0, 0),
+        epsilon: 1e-9,
+      );
+      expectVec(
+        scene.liftDirection(const PVec3(0, 1, 0)),
+        const PVec3(0, 1, 0),
+        epsilon: 1e-9,
+      );
     });
   });
 
@@ -490,29 +527,29 @@ void main() {
     // One call is a whole tick of `ClickableComponent.onTick`: re-aim every
     // plane at the eye, then test the look ray against each.
     PreviewScene overlapping() => _scene(
-          _menu(
-            components: <HuiComponent>[
-              _button('back', Vec3(0, 0, 3)),
-              _decoration('deco', Vec3(0, 0, 3)),
-              _button('front', Vec3(0, 0, 2.9)),
-            ],
-          ),
-          openFeet: const PVec3(0, 0, 0),
-        );
+      _menu(
+        components: <HuiComponent>[
+          _button('back', Vec3(0, 0, 3)),
+          _decoration('deco', Vec3(0, 0, 3)),
+          _button('front', Vec3(0, 0, 2.9)),
+        ],
+      ),
+      openFeet: const PVec3(0, 0, 0),
+    );
 
     test('reports every hit clickable in declaration order', () {
       final PreviewScene scene = overlapping();
-      const PVec3 eye = PVec3(0, 0, -1);
+      final PVec3 eye = PVec3(0, scene.quads.first.planeCenter.y, -1);
       final LookRay ray = LookRay.normalized(eye, const PVec3(0, 0, 1));
-      expect(
-        hoveredClickableIds(scene: scene, ray: ray, eye: eye),
-        <String>['back', 'front'],
-      );
+      expect(hoveredClickableIds(scene: scene, ray: ray, eye: eye), <String>[
+        'back',
+        'front',
+      ]);
     });
 
     test('never reports a decoration', () {
       final PreviewScene scene = overlapping();
-      const PVec3 eye = PVec3(0, 0, -1);
+      final PVec3 eye = PVec3(0, scene.quads.first.planeCenter.y, -1);
       final LookRay ray = LookRay.normalized(eye, const PVec3(0, 0, 1));
       expect(
         hoveredClickableIds(scene: scene, ray: ray, eye: eye),
@@ -536,10 +573,9 @@ void main() {
       final PVec3 anchor = scene.quads.single.planeCenter;
       const PVec3 eye = PVec3(6, 0, 3);
       final LookRay ray = LookRay.normalized(eye, anchor - eye);
-      expect(
-        hoveredClickableIds(scene: scene, ray: ray, eye: eye),
-        <String>['a'],
-      );
+      expect(hoveredClickableIds(scene: scene, ray: ray, eye: eye), <String>[
+        'a',
+      ]);
     });
   });
 

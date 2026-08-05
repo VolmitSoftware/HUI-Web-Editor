@@ -40,8 +40,10 @@ void main() {
     });
 
     test('is a unit vector at arbitrary angles', () {
-      final PVec3 look =
-          huiLookDirection(yawDegrees: 37.5, pitchDegrees: -22.25);
+      final PVec3 look = huiLookDirection(
+        yawDegrees: 37.5,
+        pitchDegrees: -22.25,
+      );
       expect(look.length, closeTo(1, 1e-12));
     });
   });
@@ -57,9 +59,16 @@ void main() {
 
     test('rotating +z by the open yaw lands on the look direction', () {
       for (final double yaw in <double>[0, 30, 90, 137.5, 180, 270, -60]) {
-        final PVec3 rotated = const PVec3(0, 0, 2)
-            .rotateAroundY(PVec3.zero, huiOpenYawRadians(yaw));
-        expectVec(rotated, huiLookDirection(yawDegrees: yaw) * 2, epsilon: 1e-9);
+        final PVec3 rotated = const PVec3(
+          0,
+          0,
+          2,
+        ).rotateAroundY(PVec3.zero, huiOpenYawRadians(yaw));
+        expectVec(
+          rotated,
+          huiLookDirection(yawDegrees: yaw) * 2,
+          epsilon: 1e-9,
+        );
       }
     });
   });
@@ -96,7 +105,10 @@ void main() {
       expect(basis.right.dot(basis.up), closeTo(0, 1e-12));
       // Right is horizontal: the camera never rolls.
       expect(basis.right.y, closeTo(0, 1e-12));
-      expect(basis.position.distanceTo(const PVec3(1, 2, 3)), closeTo(6, 1e-12));
+      expect(
+        basis.position.distanceTo(const PVec3(1, 2, 3)),
+        closeTo(6, 1e-12),
+      );
     });
 
     test('player camera sits at the eye, 1.62 above the feet', () {
@@ -143,17 +155,19 @@ void main() {
       expect(point.y, closeTo(300, 1e-9));
     });
 
-    test('one block above the target moves UP the screen: css y is flipped',
-        () {
-      final ProjectedPoint point = projectToScreen(
-        basis: basis,
-        point: camera.target + const PVec3(0, 1, 0),
-        viewportWidth: 800,
-        viewportHeight: 600,
-        perspectivePx: 900,
-      )!;
-      expect(point.y, closeTo(300 - 900 / 4, 1e-9));
-    });
+    test(
+      'one block above the target moves UP the screen: css y is flipped',
+      () {
+        final ProjectedPoint point = projectToScreen(
+          basis: basis,
+          point: camera.target + const PVec3(0, 1, 0),
+          viewportWidth: 800,
+          viewportHeight: 600,
+          perspectivePx: 900,
+        )!;
+        expect(point.y, closeTo(300 - 900 / 4, 1e-9));
+      },
+    );
 
     test('points behind the camera do not project', () {
       expect(
@@ -227,8 +241,10 @@ void main() {
     });
 
     test('right is horizontal and the basis is orthonormal', () {
-      final PlaneAim aim =
-          aimPlaneAt(const PVec3(1, 2, 3), const PVec3(-4, 7, 2));
+      final PlaneAim aim = aimPlaneAt(
+        const PVec3(1, 2, 3),
+        const PVec3(-4, 7, 2),
+      );
       expect(aim.right.y, closeTo(0, 1e-12));
       expect(aim.right.length, closeTo(1, 1e-12));
       expect(aim.up.length, closeTo(1, 1e-12));
@@ -240,8 +256,7 @@ void main() {
     test('an eye straight ahead gives the identity-ish basis', () {
       // Eye 5 blocks along -z: this is the canonical "player behind the menu"
       // pose, and the plane must land unrotated.
-      final PlaneAim aim =
-          aimPlaneAt(PVec3.zero, const PVec3(0, 0, -5));
+      final PlaneAim aim = aimPlaneAt(PVec3.zero, const PVec3(0, 0, -5));
       expectVec(aim.normal, const PVec3(0, 0, -1));
       expectVec(aim.right, const PVec3(1, 0, 0));
       expectVec(aim.up, const PVec3(0, 1, 0));
@@ -340,35 +355,24 @@ void main() {
       expect(hoverPush(aim, 0.05, -3), PVec3.zero);
     });
 
-    test('tick 1 uses the RAW highlightModifier', () {
-      // `ClickableComponent.java:59-70` moves by `normal * highlightMod`. Gson
-      // writes the record field directly, so the API's 0..1 clamp
-      // (`HoloComponent.java:33`) never runs on a parsed value.
-      expectVec(hoverPush(aim, 0.05, 1), aim.normal * 0.05);
-      expectVec(hoverPush(aim, 3, 1), aim.normal * 3);
-      expect(hoverPush(aim, 3, 1).length, closeTo(3, 1e-12));
-      expect(hoverPush(aim, 0, 1), PVec3.zero);
-    });
-
-    test('tick 2 onward is exactly one block, whatever the modifier', () {
-      // `rotateToFace` teleports to `location + normal` BEFORE the hit test
-      // (`ClickableComponent.java:111-116`) and the normal is normalised
-      // (`CollisionPlane.java:83-85`).
+    test('every hovered tick uses the raw highlightModifier', () {
       for (final double modifier in <double>[0, 0.05, 1, 3]) {
-        for (final int tick in <int>[2, 3, 40]) {
+        for (final int tick in <int>[1, 2, 3, 40]) {
           expect(
             hoverPush(aim, modifier, tick).length,
-            closeTo(1, 1e-12),
+            closeTo(modifier, 1e-12),
             reason: 'modifier $modifier tick $tick',
           );
-          expectVec(hoverPush(aim, modifier, tick), aim.normal);
+          expectVec(hoverPush(aim, modifier, tick), aim.normal * modifier);
         }
       }
     });
 
     test('follows the re-aimed normal, not the frozen quad facing', () {
-      final PlaneAim sideways =
-          aimPlaneAt(const PVec3(0, 0, 4), const PVec3(9, 0, 4));
+      final PlaneAim sideways = aimPlaneAt(
+        const PVec3(0, 0, 4),
+        const PVec3(9, 0, 4),
+      );
       expectVec(hoverPush(sideways, 1, 2), const PVec3(1, 0, 0));
     });
   });
@@ -400,8 +404,9 @@ void main() {
       final String css = cssMatrix3d(huiIdentityMatrix());
       expect(css.startsWith('matrix3d('), isTrue);
       expect(css.endsWith(')'), isTrue);
-      final List<String> parts =
-          css.substring('matrix3d('.length, css.length - 1).split(',');
+      final List<String> parts = css
+          .substring('matrix3d('.length, css.length - 1)
+          .split(',');
       expect(parts.length, 16);
       expect(parts.first, '1');
       expect(parts[1], '0');
@@ -419,17 +424,19 @@ void main() {
       expect(css.contains('E'), isFalse, reason: css);
     });
 
-    test('non-finite values degrade to zero rather than poisoning the style',
-        () {
-      final String css = cssMatrix3d(<double>[
-        double.nan, double.infinity, 0, 0, //
-        0, 1, 0, 0, //
-        0, 0, 1, 0, //
-        0, 0, 0, 1, //
-      ]);
-      expect(css.contains('NaN'), isFalse, reason: css);
-      expect(css.contains('Infinity'), isFalse, reason: css);
-    });
+    test(
+      'non-finite values degrade to zero rather than poisoning the style',
+      () {
+        final String css = cssMatrix3d(<double>[
+          double.nan, double.infinity, 0, 0, //
+          0, 1, 0, 0, //
+          0, 0, 1, 0, //
+          0, 0, 0, 1, //
+        ]);
+        expect(css.contains('NaN'), isFalse, reason: css);
+        expect(css.contains('Infinity'), isFalse, reason: css);
+      },
+    );
 
     test('rejects a matrix that is not 16 long', () {
       expect(() => cssMatrix3d(<double>[1, 0, 0, 1]), throwsArgumentError);
@@ -472,8 +479,10 @@ void main() {
         facingYawDegrees: yaw,
         pxPerBlock: 40,
       );
-      final List<double> plane =
-          cssPlaneMatrix(aimPlaneAt(position, eye), pxPerBlock: 40);
+      final List<double> plane = cssPlaneMatrix(
+        aimPlaneAt(position, eye),
+        pxPerBlock: 40,
+      );
       for (int i = 0; i < 16; i++) {
         expect(quad[i], closeTo(plane[i], 1e-9), reason: 'element $i');
       }
@@ -492,8 +501,11 @@ void main() {
     const double pxPerBlock = 60;
     const double perspectivePx = 900;
 
-    PVec3 cssWorld(PVec3 point) =>
-        PVec3(point.x * pxPerBlock, -point.y * pxPerBlock, -point.z * pxPerBlock);
+    PVec3 cssWorld(PVec3 point) => PVec3(
+      point.x * pxPerBlock,
+      -point.y * pxPerBlock,
+      -point.z * pxPerBlock,
+    );
 
     final List<double> matrix = cssCameraMatrix(
       basis: basis,

@@ -163,10 +163,12 @@ void main() {
       expect(menu.closeOnDeath, isTrue);
       expect(menu.closeOnTeleport, isTrue);
       expect(menu.components.length, 4);
-      expect(
-        menu.components.map((HuiComponent c) => c.id).toList(),
-        <String>['title', 'buy', 'logo', 'fly'],
-      );
+      expect(menu.components.map((HuiComponent c) => c.id).toList(), <String>[
+        'title',
+        'buy',
+        'logo',
+        'fly',
+      ]);
     });
 
     test('decodes every component payload', () {
@@ -180,6 +182,7 @@ void main() {
 
       final HuiButtonData buy = menu.components[1].data as HuiButtonData;
       expect(buy.highlightModifier, 0.05);
+      expect(buy.hitbox, isNull);
       final HuiItemIcon buyIcon = buy.icon! as HuiItemIcon;
       expect(buyIcon.item, 'emerald');
       expect(buyIcon.count, 3);
@@ -227,10 +230,55 @@ void main() {
         HuiComponent('inserted', Vec3(1, 1, 1), HuiDecorationData()),
       );
       final HuiMenu again = decodeHuiMenu(encodeHuiMenu(menu));
-      expect(
-        again.components.map((HuiComponent c) => c.id).toList(),
-        <String>['title', 'inserted', 'buy', 'logo', 'fly'],
+      expect(again.components.map((HuiComponent c) => c.id).toList(), <String>[
+        'title',
+        'inserted',
+        'buy',
+        'logo',
+        'fly',
+      ]);
+    });
+  });
+
+  group('button hitbox', () {
+    test('round-trips explicit dimensions', () {
+      final HuiMenu menu = decodeHuiMenu(
+        '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
+        '"data":{"type":"button","highlightModifier":0.05,'
+        '"hitbox":{"width":1.25,"height":0.35},"actions":[]}}]}',
       );
+      final HuiButtonData button = menu.components.single.data as HuiButtonData;
+      expect(button.hitbox!.width, 1.25);
+      expect(button.hitbox!.height, 0.35);
+
+      final String encoded = encodeHuiMenu(menu);
+      expect(encoded, contains('"hitbox": {'));
+      expect(encoded, contains('"width": 1.25'));
+      expect(encoded, contains('"height": 0.35'));
+    });
+
+    test('omitted hitbox remains automatic and stays omitted', () {
+      final HuiMenu menu = decodeHuiMenu(
+        '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
+        '"data":{"type":"button","actions":[]}}]}',
+      );
+      final HuiButtonData button = menu.components.single.data as HuiButtonData;
+      expect(button.hitbox, isNull);
+      expect(encodeHuiMenu(menu), isNot(contains('"hitbox"')));
+    });
+
+    test('copy owns independent hitbox dimensions', () {
+      final HuiButtonData original = HuiButtonData(
+        0.05,
+        <HuiAction>[],
+        HuiTextIcon('Play'),
+        HuiHitbox(1.25, 0.35),
+      );
+      final HuiButtonData copy = original.copy();
+      copy.hitbox!.width = 2;
+
+      expect(original.hitbox!.width, 1.25);
+      expect(copy.hitbox!.width, 2);
     });
   });
 
@@ -295,17 +343,21 @@ void main() {
       expect(toggle.trueIcon, isNull);
       expect(toggle.falseIcon, isNull);
 
-      final HuiDecorationData deco = menu.components[2].data as HuiDecorationData;
+      final HuiDecorationData deco =
+          menu.components[2].data as HuiDecorationData;
       final HuiItemIcon item = deco.icon! as HuiItemIcon;
       expect(item.count, 0);
       expect(item.customModelValue, 0);
     });
 
-    test('a missing root offset defaults to the origin instead of throwing', () {
-      final HuiMenu menu = decodeHuiMenu('{"components":[]}');
-      expect(menu.offset, Vec3(0, 0, 0));
-      expect(menu.components, isEmpty);
-    });
+    test(
+      'a missing root offset defaults to the origin instead of throwing',
+      () {
+        final HuiMenu menu = decodeHuiMenu('{"components":[]}');
+        expect(menu.offset, Vec3(0, 0, 0));
+        expect(menu.components, isEmpty);
+      },
+    );
 
     test('defaulted hard-required keys are recorded for validation', () {
       final HuiMenu menu = decodeHuiMenu(
@@ -326,15 +378,15 @@ void main() {
 
   group('extras preservation', () {
     test('unknown keys survive a round trip at every level', () {
-      const String source = '{"offset":[0,0,0],"weirdRoot":{"a":1},'
+      const String source =
+          '{"offset":[0,0,0],"weirdRoot":{"a":1},'
           '"components":[{"id":"a","offset":[0,0,0],"nickname":"x",'
           '"data":{"type":"button","note":7,"icon":'
           '{"type":"text","text":"hi","tint":"red"},'
           '"actions":[{"type":"sound","sound":"ui.button.click",'
           '"source":"master","volume":1,"pitch":1,"delay":5}]}}]}';
       final String out = encodeHuiMenu(decodeHuiMenu(source));
-      final Map<String, dynamic> tree =
-          jsonDecode(out) as Map<String, dynamic>;
+      final Map<String, dynamic> tree = jsonDecode(out) as Map<String, dynamic>;
 
       expect(tree['weirdRoot'], <String, dynamic>{'a': 1});
       final Map<String, dynamic> component =
@@ -360,15 +412,16 @@ void main() {
     });
 
     test('extras are deep copied, not aliased', () {
-      final HuiMenu menu = decodeHuiMenu('{"offset":[0,0,0],"components":[],'
-          '"nested":{"list":[1,2]}}');
-      final HuiMenu clone = cloneHuiMenu(menu);
-      (clone.extras['nested'] as Map<String, dynamic>)['list'] =
-          <int>[9];
-      expect(
-        (menu.extras['nested'] as Map<String, dynamic>)['list'],
-        <int>[1, 2],
+      final HuiMenu menu = decodeHuiMenu(
+        '{"offset":[0,0,0],"components":[],'
+        '"nested":{"list":[1,2]}}',
       );
+      final HuiMenu clone = cloneHuiMenu(menu);
+      (clone.extras['nested'] as Map<String, dynamic>)['list'] = <int>[9];
+      expect((menu.extras['nested'] as Map<String, dynamic>)['list'], <int>[
+        1,
+        2,
+      ]);
     });
 
     test('the root id key is parsed then dropped, never re-emitted', () {
@@ -434,10 +487,14 @@ void main() {
     });
 
     test('reads provider, item and count verbatim', () {
-      final HuiCustomItemIcon icon = iconOf(decodeHuiMenu(iconJson(
-        '{"type":"customItem","provider":"itemsadder",'
-        '"item":"myitems:ruby","count":4}',
-      )));
+      final HuiCustomItemIcon icon = iconOf(
+        decodeHuiMenu(
+          iconJson(
+            '{"type":"customItem","provider":"itemsadder",'
+            '"item":"myitems:ruby","count":4}',
+          ),
+        ),
+      );
       expect(icon.provider, 'itemsadder');
       expect(icon.item, 'myitems:ruby');
       expect(icon.count, 4);
@@ -445,84 +502,116 @@ void main() {
     });
 
     test('preserves the case of an id the provider defines uppercase', () {
-      final HuiCustomItemIcon icon = iconOf(decodeHuiMenu(iconJson(
-        '{"type":"customItem","provider":"mmoitems","item":"SWORD:CUTLASS"}',
-      )));
+      final HuiCustomItemIcon icon = iconOf(
+        decodeHuiMenu(
+          iconJson(
+            '{"type":"customItem","provider":"mmoitems","item":"SWORD:CUTLASS"}',
+          ),
+        ),
+      );
       expect(icon.item, 'SWORD:CUTLASS');
-      expect(encodeHuiMenu(decodeHuiMenu(iconJson(
-        '{"type":"customItem","provider":"mmoitems","item":"SWORD:CUTLASS"}',
-      ))), contains('"item": "SWORD:CUTLASS"'));
+      expect(
+        encodeHuiMenu(
+          decodeHuiMenu(
+            iconJson(
+              '{"type":"customItem","provider":"mmoitems","item":"SWORD:CUTLASS"}',
+            ),
+          ),
+        ),
+        contains('"item": "SWORD:CUTLASS"'),
+      );
     });
 
     test('a missing or blank provider defaults to auto', () {
       expect(
-        iconOf(decodeHuiMenu(
-          iconJson('{"type":"customItem","item":"ruby"}'),
-        )).provider,
+        iconOf(
+          decodeHuiMenu(iconJson('{"type":"customItem","item":"ruby"}')),
+        ).provider,
         'auto',
       );
       expect(
-        iconOf(decodeHuiMenu(
-          iconJson('{"type":"customItem","provider":"  ","item":"ruby"}'),
-        )).provider,
+        iconOf(
+          decodeHuiMenu(
+            iconJson('{"type":"customItem","provider":"  ","item":"ruby"}'),
+          ),
+        ).provider,
         'auto',
       );
     });
 
     test('a missing or zero count coerces to 1, like the plugin', () {
       expect(
-        iconOf(decodeHuiMenu(
-          iconJson('{"type":"customItem","item":"ruby"}'),
-        )).count,
+        iconOf(
+          decodeHuiMenu(iconJson('{"type":"customItem","item":"ruby"}')),
+        ).count,
         1,
       );
       expect(
-        iconOf(decodeHuiMenu(
-          iconJson('{"type":"customItem","item":"ruby","count":0}'),
-        )).count,
+        iconOf(
+          decodeHuiMenu(
+            iconJson('{"type":"customItem","item":"ruby","count":0}'),
+          ),
+        ).count,
         1,
       );
       expect(
-        iconOf(decodeHuiMenu(
-          iconJson('{"type":"customItem","item":"ruby","count":-3}'),
-        )).count,
+        iconOf(
+          decodeHuiMenu(
+            iconJson('{"type":"customItem","item":"ruby","count":-3}'),
+          ),
+        ).count,
         1,
       );
     });
 
     test('exports the keys in the contract order', () {
-      final String out = encodeHuiMenu(decodeHuiMenu(iconJson(
-        '{"type":"customItem","count":2,"item":"ruby",'
-        '"provider":"oraxen"}',
-      )));
+      final String out = encodeHuiMenu(
+        decodeHuiMenu(
+          iconJson(
+            '{"type":"customItem","count":2,"item":"ruby",'
+            '"provider":"oraxen"}',
+          ),
+        ),
+      );
       expect(
         out,
-        contains('"icon": {\n'
-            '          "type": "customItem",\n'
-            '          "provider": "oraxen",\n'
-            '          "item": "ruby",\n'
-            '          "count": 2\n'
-            '        }'),
+        contains(
+          '"icon": {\n'
+          '          "type": "customItem",\n'
+          '          "provider": "oraxen",\n'
+          '          "item": "ruby",\n'
+          '          "count": 2\n'
+          '        }',
+        ),
       );
     });
 
     test('unknown keys survive a round trip', () {
-      final HuiMenu menu = decodeHuiMenu(iconJson(
-        '{"type":"customItem","provider":"nexo","item":"ruby",'
-        '"lore":["a","b"],"note":{"x":1}}',
-      ));
+      final HuiMenu menu = decodeHuiMenu(
+        iconJson(
+          '{"type":"customItem","provider":"nexo","item":"ruby",'
+          '"lore":["a","b"],"note":{"x":1}}',
+        ),
+      );
       expect(iconOf(menu).extras.keys, <String>['lore', 'note']);
       final String out = encodeHuiMenu(menu);
       expect(out, contains('"lore"'));
       expect(out, contains('"note"'));
-      expect(decodeHuiMenu(out).components.single.data, isA<HuiDecorationData>());
+      expect(
+        decodeHuiMenu(out).components.single.data,
+        isA<HuiDecorationData>(),
+      );
     });
 
     test('re-decoding an export is a fixed point', () {
-      final String first = encodeHuiMenu(decodeHuiMenu(iconJson(
-        '{"type":"customItem","provider":"slimefun","item":"MAGIC_WORKBENCH",'
-        '"count":16,"extra":true}',
-      )));
+      final String first = encodeHuiMenu(
+        decodeHuiMenu(
+          iconJson(
+            '{"type":"customItem","provider":"slimefun","item":"MAGIC_WORKBENCH",'
+            '"count":16,"extra":true}',
+          ),
+        ),
+      );
       expect(encodeHuiMenu(decodeHuiMenu(first)), first);
     });
 
@@ -590,14 +679,17 @@ void main() {
 
     test('the absent key is recorded so validation can report it', () {
       expect(
-        only(decodeHuiMenu(document('{"type":"command","command":"/x"}')))
-            .absentKeys,
+        only(
+          decodeHuiMenu(document('{"type":"command","command":"/x"}')),
+        ).absentKeys,
         <String>{'source'},
       );
       expect(
-        only(decodeHuiMenu(
-                document('{"type":"command","command":"/x","source":""}')))
-            .absentKeys,
+        only(
+          decodeHuiMenu(
+            document('{"type":"command","command":"/x","source":""}'),
+          ),
+        ).absentKeys,
         <String>{'source'},
       );
     });
@@ -605,9 +697,11 @@ void main() {
     test('an explicit source records nothing', () {
       for (final String source in <String>['player', 'server', 'console']) {
         expect(
-          only(decodeHuiMenu(document(
-                  '{"type":"command","command":"/x","source":"$source"}')))
-              .absentKeys,
+          only(
+            decodeHuiMenu(
+              document('{"type":"command","command":"/x","source":"$source"}'),
+            ),
+          ).absentKeys,
           isEmpty,
           reason: source,
         );
@@ -615,24 +709,36 @@ void main() {
     });
 
     test('the flag never reaches the export', () {
-      final String absent =
-          encodeHuiMenu(decodeHuiMenu(document('{"type":"command",'
-              '"command":"/x"}')));
-      final String explicit = encodeHuiMenu(decodeHuiMenu(document(
-          '{"type":"command","command":"/x","source":"server"}')));
+      final String absent = encodeHuiMenu(
+        decodeHuiMenu(
+          document(
+            '{"type":"command",'
+            '"command":"/x"}',
+          ),
+        ),
+      );
+      final String explicit = encodeHuiMenu(
+        decodeHuiMenu(
+          document('{"type":"command","command":"/x","source":"server"}'),
+        ),
+      );
       expect(absent, explicit);
       expect(absent, isNot(contains('absent')));
     });
 
     test('re-decoding the export clears the flag', () {
-      final HuiMenu repaired = decodeHuiMenu(encodeHuiMenu(
-          decodeHuiMenu(document('{"type":"command","command":"/x"}'))));
+      final HuiMenu repaired = decodeHuiMenu(
+        encodeHuiMenu(
+          decodeHuiMenu(document('{"type":"command","command":"/x"}')),
+        ),
+      );
       expect(only(repaired).absentKeys, isEmpty);
     });
 
     test('copy() drops it, exactly like a component offset', () {
-      final HuiCommandAction original =
-          only(decodeHuiMenu(document('{"type":"command","command":"/x"}')));
+      final HuiCommandAction original = only(
+        decodeHuiMenu(document('{"type":"command","command":"/x"}')),
+      );
       expect(original.copy().absentKeys, isEmpty);
     });
   });
@@ -697,22 +803,32 @@ void main() {
 
     test('throws on a missing component data type', () {
       expect(
-        () => decodeHuiMenu('{"offset":[0,0,0],"components":[{"id":"a",'
-            '"offset":[0,0,0],"data":{}}]}'),
+        () => decodeHuiMenu(
+          '{"offset":[0,0,0],"components":[{"id":"a",'
+          '"offset":[0,0,0],"data":{}}]}',
+        ),
         throwsA(
           isA<HuiFormatException>()
-              .having((HuiFormatException e) => e.message, 'message',
-                  contains('Missing type'))
-              .having((HuiFormatException e) => e.path, 'path',
-                  'components[0].data'),
+              .having(
+                (HuiFormatException e) => e.message,
+                'message',
+                contains('Missing type'),
+              )
+              .having(
+                (HuiFormatException e) => e.path,
+                'path',
+                'components[0].data',
+              ),
         ),
       );
     });
 
     test('throws on an unknown component data type', () {
       expect(
-        () => decodeHuiMenu('{"offset":[0,0,0],"components":[{"id":"a",'
-            '"offset":[0,0,0],"data":{"type":"widget"}}]}'),
+        () => decodeHuiMenu(
+          '{"offset":[0,0,0],"components":[{"id":"a",'
+          '"offset":[0,0,0],"data":{"type":"widget"}}]}',
+        ),
         throwsA(
           isA<HuiFormatException>().having(
             (HuiFormatException e) => e.message,
@@ -725,15 +841,23 @@ void main() {
 
     test('throws on an unknown icon type', () {
       expect(
-        () => decodeHuiMenu('{"offset":[0,0,0],"components":[{"id":"a",'
-            '"offset":[0,0,0],"data":{"type":"decoration",'
-            '"icon":{"type":"fontImage","path":"a.png"}}}]}'),
+        () => decodeHuiMenu(
+          '{"offset":[0,0,0],"components":[{"id":"a",'
+          '"offset":[0,0,0],"data":{"type":"decoration",'
+          '"icon":{"type":"fontImage","path":"a.png"}}}]}',
+        ),
         throwsA(
           isA<HuiFormatException>()
-              .having((HuiFormatException e) => e.message, 'message',
-                  contains('Unknown type: fontImage'))
-              .having((HuiFormatException e) => e.path, 'path',
-                  'components[0].data.icon'),
+              .having(
+                (HuiFormatException e) => e.message,
+                'message',
+                contains('Unknown type: fontImage'),
+              )
+              .having(
+                (HuiFormatException e) => e.path,
+                'path',
+                'components[0].data.icon',
+              ),
         ),
       );
     });
@@ -744,17 +868,16 @@ void main() {
       // is rejected exactly like a typo would be.
       for (final String type in <String>['fontImage', 'itemStack']) {
         expect(
-          () => decodeHuiMenu('{"offset":[0,0,0],"components":[{"id":"a",'
-              '"offset":[0,0,0],"data":{"type":"decoration",'
-              '"icon":{"type":"$type"}}}]}'),
+          () => decodeHuiMenu(
+            '{"offset":[0,0,0],"components":[{"id":"a",'
+            '"offset":[0,0,0],"data":{"type":"decoration",'
+            '"icon":{"type":"$type"}}}]}',
+          ),
           throwsA(
             isA<HuiFormatException>().having(
               (HuiFormatException e) => e.message,
               'message',
-              allOf(<Matcher>[
-                contains(type),
-                contains('whole menu file'),
-              ]),
+              allOf(<Matcher>[contains(type), contains('whole menu file')]),
             ),
           ),
           reason: type,
@@ -764,9 +887,11 @@ void main() {
 
     test('throws on an unknown action type', () {
       expect(
-        () => decodeHuiMenu('{"offset":[0,0,0],"components":[{"id":"a",'
-            '"offset":[0,0,0],"data":{"type":"button","actions":'
-            '[{"type":"teleport"}]}}]}'),
+        () => decodeHuiMenu(
+          '{"offset":[0,0,0],"components":[{"id":"a",'
+          '"offset":[0,0,0],"data":{"type":"button","actions":'
+          '[{"type":"teleport"}]}}]}',
+        ),
         throwsA(
           isA<HuiFormatException>().having(
             (HuiFormatException e) => e.path,
@@ -781,8 +906,11 @@ void main() {
       expect(
         () => decodeHuiMenu('{"offset":[0,1],"components":[]}'),
         throwsA(
-          isA<HuiFormatException>()
-              .having((HuiFormatException e) => e.path, 'path', 'offset'),
+          isA<HuiFormatException>().having(
+            (HuiFormatException e) => e.path,
+            'path',
+            'offset',
+          ),
         ),
       );
     });
@@ -796,8 +924,9 @@ void main() {
 
       clone.offset.x = 99;
       clone.components.removeLast();
-      (clone.components[0].data as HuiDecorationData).icon =
-          HuiTextIcon('changed');
+      (clone.components[0].data as HuiDecorationData).icon = HuiTextIcon(
+        'changed',
+      );
 
       expect(menu.offset.x, 0);
       expect(menu.components.length, 4);

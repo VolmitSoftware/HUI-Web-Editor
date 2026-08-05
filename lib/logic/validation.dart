@@ -90,8 +90,8 @@ final RegExp _whitespacePattern = RegExp(r'\s+');
 String? huiPlayerOnlySubcommand(String command) {
   // The plugin strips one leading slash and nothing else
   // (`CommandMenuAction.java:35`); the trim is for the author, not the parser.
-  final String body =
-      (command.startsWith('/') ? command.substring(1) : command).trim();
+  final String body = (command.startsWith('/') ? command.substring(1) : command)
+      .trim();
   final List<String> tokens = body
       .split(_whitespacePattern)
       .where((String token) => token.isNotEmpty)
@@ -134,19 +134,16 @@ class _Validator {
 
   String? _componentId;
 
-  /// The highlightModifier override is a property of the runtime, not of any
-  /// one component: every clickable in a typical menu carries a non-1 modifier
-  /// and twenty copies of the same note would bury everything else.
-  bool _highlightOverrideReported = false;
-
   void _add(HuiSeverity severity, String path, String message, {String? fix}) {
-    issues.add(HuiIssue(
-      severity: severity,
-      path: path,
-      message: message,
-      componentId: _componentId,
-      fix: fix,
-    ));
+    issues.add(
+      HuiIssue(
+        severity: severity,
+        path: path,
+        message: message,
+        componentId: _componentId,
+        fix: fix,
+      ),
+    );
   }
 
   void validateMenu(HuiMenu menu) {
@@ -237,7 +234,10 @@ class _Validator {
   }
 
   void _validateComponent(
-      HuiComponent component, String path, Set<String> seen) {
+    HuiComponent component,
+    String path,
+    Set<String> seen,
+  ) {
     if (component.absentKeys.contains('offset')) {
       _add(
         HuiSeverity.info,
@@ -289,6 +289,7 @@ class _Validator {
     switch (component.data) {
       case final HuiButtonData data:
         _validateHighlight(data.highlightModifier, '$path.data');
+        _validateHitbox(data.hitbox, '$path.data.hitbox');
         _validateIcon(data.icon, '$path.data.icon', clickable: true);
         _validateActions(data.actions, '$path.data.actions');
       case final HuiDecorationData data:
@@ -337,20 +338,24 @@ class _Validator {
         fix: 'Use a value between 0 and 1 (0.05 is typical)',
       );
     }
+  }
 
-    // `rotateToFace` runs before the hit test and teleports a selected icon to
-    // `location + plane.normal`, and the normal is normalised
-    // (`ClickableComponent.java:111-116`, `CollisionPlane.java:83-85`). So the
-    // modifier is only ever seen on the tick hover begins.
-    if (value != 1 && !_highlightOverrideReported) {
-      _highlightOverrideReported = true;
+  void _validateHitbox(HuiHitbox? hitbox, String path) {
+    if (hitbox == null) return;
+    if (!hitbox.width.isFinite || hitbox.width <= 0) {
       _add(
-        HuiSeverity.info,
-        '$path.highlightModifier',
-        'highlightModifier only governs the first hover tick: from the second '
-            'tick every hovered component sits exactly 1 block toward the '
-            'player, whatever the modifier says',
-        fix: 'Set it to 1 if you want the first tick to match the snap',
+        HuiSeverity.error,
+        '$path.width',
+        'Custom hitbox width must be finite and greater than zero',
+        fix: 'Set a positive width in blocks, or switch back to automatic',
+      );
+    }
+    if (!hitbox.height.isFinite || hitbox.height <= 0) {
+      _add(
+        HuiSeverity.error,
+        '$path.height',
+        'Custom hitbox height must be finite and greater than zero',
+        fix: 'Set a positive height in blocks, or switch back to automatic',
       );
     }
   }
@@ -361,7 +366,7 @@ class _Validator {
         HuiSeverity.warning,
         path,
         'No icon: the component renders the built-in magenta/black '
-            'missing-icon placeholder',
+        'missing-icon placeholder',
         fix: 'Pick an icon type for this component',
       );
       return;
@@ -472,15 +477,15 @@ class _Validator {
     if (clickable && text.length >= huiWideTextHitboxChars) {
       final int chars = parseMcText(text).maxLineLength;
       if (chars >= huiWideTextHitboxChars) {
-        final String blocks =
-            (chars * huiLineHeight / 2).toStringAsFixed(2);
+        final String blocks = (chars * huiLineHeight / 2).toStringAsFixed(2);
         _add(
           HuiSeverity.info,
           path,
           'Text hitboxes are sized by character count, not by how wide the '
-              'glyphs look: $chars characters make this click plane $blocks '
-              'blocks wide at UI scale 1',
-          fix: 'Shorten the line, or leave room around it; the canvas hitbox '
+          'glyphs look: $chars characters make this click plane $blocks '
+          'blocks wide at UI scale 1',
+          fix:
+              'Shorten the line, or leave room around it; the canvas hitbox '
               'outline shows the real extent',
         );
       }
@@ -491,7 +496,7 @@ class _Validator {
         HuiSeverity.warning,
         path,
         '&n and &k translate to invalid MiniMessage tags and render literally '
-            'in-game as <underline> / <magic>',
+        'in-game as <underline> / <magic>',
         fix: 'Use <u>...</u> or <obf>...</obf> instead',
       );
     }
@@ -500,7 +505,7 @@ class _Validator {
         HuiSeverity.info,
         path,
         'Uses a PlaceholderAPI placeholder: it is expanded once when the menu '
-            'opens and requires PlaceholderAPI on the server',
+        'opens and requires PlaceholderAPI on the server',
         fix: null,
       );
     }
@@ -521,17 +526,25 @@ class _Validator {
         HuiSeverity.error,
         jsonPath,
         'Image path must not start with "/": it is resolved relative to '
-            'plugins/holoui/images/',
+        'plugins/holoui/images/',
         fix: 'Drop the leading slash',
       );
     }
     if (path.contains(':')) {
-      _add(HuiSeverity.error, jsonPath, 'Image path must not contain ":"',
-          fix: 'Use a path relative to plugins/holoui/images/');
+      _add(
+        HuiSeverity.error,
+        jsonPath,
+        'Image path must not contain ":"',
+        fix: 'Use a path relative to plugins/holoui/images/',
+      );
     }
     if (path.contains('..')) {
-      _add(HuiSeverity.error, jsonPath, 'Image path must not contain ".."',
-          fix: 'Use a path relative to plugins/holoui/images/');
+      _add(
+        HuiSeverity.error,
+        jsonPath,
+        'Image path must not contain ".."',
+        fix: 'Use a path relative to plugins/holoui/images/',
+      );
     }
     if (path.contains(r'\')) {
       _add(
@@ -542,9 +555,12 @@ class _Validator {
       );
     }
     if (path.length > 256) {
-      _add(HuiSeverity.error, jsonPath,
-          'Image path is longer than 256 characters',
-          fix: 'Rename the image to something shorter');
+      _add(
+        HuiSeverity.error,
+        jsonPath,
+        'Image path is longer than 256 characters',
+        fix: 'Rename the image to something shorter',
+      );
     }
     final Set<String>? known = knownImagePaths;
     if (known != null && !known.contains(path)) {
@@ -552,7 +568,7 @@ class _Validator {
         HuiSeverity.info,
         jsonPath,
         'Image "$path" is not in the image library; make sure it exists in '
-            'plugins/holoui/images/',
+        'plugins/holoui/images/',
         fix: 'Upload the image so it ships with the exported zip',
       );
     }
@@ -573,7 +589,7 @@ class _Validator {
         HuiSeverity.error,
         path,
         'Material key must be lowercase: NamespacedKey rejects uppercase and '
-            'the item resolves to null',
+        'the item resolves to null',
         fix: 'Use ${material.toLowerCase()}',
       );
       return;
@@ -593,7 +609,7 @@ class _Validator {
         HuiSeverity.warning,
         path,
         'Material "$material" is not in the material catalog; it may still be '
-            'valid on a newer server',
+        'valid on a newer server',
         fix: 'Double-check the spelling against the item picker',
       );
     }
@@ -656,7 +672,8 @@ class _Validator {
         'The imported file gave this command no source, so HoloUI ran it from '
             'the console. It was read as "server" and the export now writes '
             'that explicitly',
-        fix: 'Switch the source to "player" if the command was meant to run as '
+        fix:
+            'Switch the source to "player" if the command was meant to run as '
             'the clicking player',
       );
     } else if (!huiCommandSources.contains(action.source)) {

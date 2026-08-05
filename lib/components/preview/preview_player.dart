@@ -97,9 +97,7 @@ const double huiPreviewMaxRangeBlocks = 16;
 /// coplanar pair z-fights into a flicker at every camera angle.
 const double huiPreviewOverlayEpsilon = 0.004;
 
-/// Length of a plane-normal marker, in blocks. Exactly 1.0, because that is
-/// where a hovered icon sits from the second tick whatever `highlightModifier`
-/// says (`ClickableComponent.java:111-116`) — the stick is the push, drawn.
+/// Length of a plane-normal marker, in blocks.
 const double huiPreviewNormalBlocks = 1;
 
 /// Overlay palette. Blue is already the player and amber already the menu
@@ -190,8 +188,11 @@ class PreviewInput {
     detach();
     _stage = stage;
 
-    void bindStage(String type, void Function(web.Event event) handler,
-        {bool passive = true}) {
+    void bindStage(
+      String type,
+      void Function(web.Event event) handler, {
+      bool passive = true,
+    }) {
       final JSFunction listener = handler.toJS;
       _stageListeners[type] = listener;
       stage.addEventListener(
@@ -345,8 +346,8 @@ class PreviewInput {
     _drag = _host.inputPlayerMode
         ? PreviewDragMode.press
         : (button == 1 || _spaceHeld
-            ? PreviewDragMode.pan
-            : PreviewDragMode.orbit);
+              ? PreviewDragMode.pan
+              : PreviewDragMode.orbit);
     _syncStageState();
     try {
       _stage?.setPointerCapture(pointer.pointerId);
@@ -402,7 +403,7 @@ class PreviewInput {
     if (_activePointerId != pointer.pointerId) return;
     final bool wasClick =
         (_drag == PreviewDragMode.orbit || _drag == PreviewDragMode.press) &&
-            _dragTotalPx <= huiPreviewClickSlopPx;
+        _dragTotalPx <= huiPreviewClickSlopPx;
     _endDrag(pointer.pointerId);
     // LEFT_CLICK_AIR only (`MenuSessionManager.java:170-203`); a drag that
     // happens to end over a component is a camera move, not a click.
@@ -474,7 +475,8 @@ class PreviewInput {
     // A pixel of drag should move the target by a pixel at the target's depth.
     final double blocksPerPixel = pose.orbit.distance / huiPreviewPerspectivePx;
     pose.orbit = pose.orbit.copyWith(
-      target: pose.orbit.target -
+      target:
+          pose.orbit.target -
           basis.right * (dx * blocksPerPixel) +
           basis.up * (dy * blocksPerPixel),
     );
@@ -505,16 +507,20 @@ class PreviewInput {
     final web.HTMLElement? stage = _stage;
     if (stage == null) return;
     try {
-      final JSAny? result =
-          (stage as JSObject).callMethod<JSAny?>('requestPointerLock'.toJS);
+      final JSAny? result = (stage as JSObject).callMethod<JSAny?>(
+        'requestPointerLock'.toJS,
+      );
       // Modern browsers return a promise that rejects when the document is not
       // focused or the user just escaped out of a lock. Swallow it: the state
       // is read back from `pointerlockchange` either way, and an unhandled
       // rejection would be the only thing it produced.
       if (result != null && result.isA<JSPromise<JSAny?>>()) {
-        unawaited((result as JSPromise<JSAny?>)
-            .toDart
-            .then<void>((JSAny? _) {}, onError: (Object _) {}));
+        unawaited(
+          (result as JSPromise<JSAny?>).toDart.then<void>(
+            (JSAny? _) {},
+            onError: (Object _) {},
+          ),
+        );
       }
     } catch (_) {
       _refuseLock();
@@ -652,7 +658,7 @@ String huiPreviewRangeSummary(PreviewSimulation sim) {
   final double effective = huiPreviewEffectiveRange(sim);
   final String text = effective > bare + 5e-3
       ? '${bare.toStringAsFixed(2)} -> ${effective.toStringAsFixed(2)} '
-          'effective (+ menu offset)'
+            'effective (+ menu offset)'
       : '${bare.toStringAsFixed(2)} blocks';
   return effective > huiPreviewMaxRangeBlocks ? '$text - ring clamped' : text;
 }
@@ -733,7 +739,8 @@ class PreviewOverlayLayer {
     required web.HTMLElement camera,
   }) {
     final web.HTMLElement node = huiPreviewElement(
-        'hui-preview-ring ${solid ? 'is-effective' : 'is-bare'}');
+      'hui-preview-ring ${solid ? 'is-effective' : 'is-bare'}',
+    );
     huiPreviewCss(node, <String, String>{
       'box-sizing': 'border-box',
       'border-radius': '50%',
@@ -776,38 +783,60 @@ class PreviewOverlayLayer {
     final bool showAvatar = !playerMode || playerFeet.distanceTo(feet) > 0.75;
 
     for (final _MarkerNode marker in _markers) {
-      final (bool visible, String transform, double width, double height) spec =
-          switch (marker.key) {
+      final (bool visible, String transform, double width, double height)
+      spec = switch (marker.key) {
         // Snapped to whole blocks so the 1-block gradient stays aligned to
         // integer world coordinates however far the player wanders, and hung
         // off the LIVE feet so walking never runs off the edge of it.
         'ground' => (
-            flags.groundGrid,
-            _flatTransform(PVec3(
+          flags.groundGrid,
+          _flatTransform(
+            PVec3(
               playerFeet.x.roundToDouble(),
               0,
               playerFeet.z.roundToDouble(),
-            )),
-            huiPreviewGroundBlocks * 2,
-            huiPreviewGroundBlocks * 2,
+            ),
           ),
+          huiPreviewGroundBlocks * 2,
+          huiPreviewGroundBlocks * 2,
+        ),
         'avatar-disc' => (showAvatar, _flatTransform(feet), 0.6, 0.6),
-        'avatar-postA' =>
-          (showAvatar, _uprightTransform(_eyeMid(feet), yaw), 0.03, 1.62),
-        'avatar-postB' =>
-          (showAvatar, _uprightTransform(_eyeMid(feet), yaw + 90), 0.03, 1.62),
+        'avatar-postA' => (
+          showAvatar,
+          _uprightTransform(_eyeMid(feet), yaw),
+          0.03,
+          1.62,
+        ),
+        'avatar-postB' => (
+          showAvatar,
+          _uprightTransform(_eyeMid(feet), yaw + 90),
+          0.03,
+          1.62,
+        ),
         'avatar-eye' => (showAvatar, _flatTransform(eye), 0.4, 0.4),
         'center-disc' => (flags.center, _flatTransform(center), 0.24, 0.24),
-        'center-postA' =>
-          (flags.center, _uprightTransform(center, yaw), 0.02, 0.4),
-        'center-postB' =>
-          (flags.center, _uprightTransform(center, yaw + 90), 0.02, 0.4),
+        'center-postA' => (
+          flags.center,
+          _uprightTransform(center, yaw),
+          0.02,
+          0.4,
+        ),
+        'center-postB' => (
+          flags.center,
+          _uprightTransform(center, yaw + 90),
+          0.02,
+          0.4,
+        ),
         _ => (false, '', 0, 0),
       };
       huiPreviewShow(marker, spec.$1);
       if (!spec.$1) continue;
-      huiPreviewPlace(marker, spec.$2, spec.$3 * huiPreviewPxPerBlock,
-          spec.$4 * huiPreviewPxPerBlock);
+      huiPreviewPlace(
+        marker,
+        spec.$2,
+        spec.$3 * huiPreviewPxPerBlock,
+        spec.$4 * huiPreviewPxPerBlock,
+      );
     }
   }
 
@@ -836,8 +865,10 @@ class PreviewOverlayLayer {
       final double size = (isBare ? bare : drawn) * 2 * huiPreviewPxPerBlock;
       huiPreviewPlace(ring, _ringTransform(ring.key, center), size, size);
       if (!isBare) {
-        ring.element.style
-            .setProperty('border-style', clamped ? 'dotted' : 'solid');
+        ring.element.style.setProperty(
+          'border-style',
+          clamped ? 'dotted' : 'solid',
+        );
       }
     }
   }
@@ -876,7 +907,9 @@ class PreviewOverlayLayer {
     // The plane is rebuilt from the eye EVERY frame while the quad it belongs
     // to never moves (`ClickableComponent.java:60-62`). Seeing the rectangle
     // swing around a stationary icon is the entire reason this overlay exists.
-    final PlaneAim? aim = open && quad.hasPlane ? aimQuadPlane(quad, eye) : null;
+    final PlaneAim? aim = open && quad.hasPlane
+        ? aimQuadPlane(quad, eye)
+        : null;
 
     huiPreviewShow(node.plane, flags.planes && aim != null);
     if (flags.planes && aim != null) {
@@ -893,7 +926,8 @@ class PreviewOverlayLayer {
       huiPreviewPlace(
         node.normal,
         _barTransform(
-          center: aim.center +
+          center:
+              aim.center +
               aim.normal *
                   (huiPreviewNormalBlocks / 2 + huiPreviewOverlayEpsilon),
           along: aim.normal,
@@ -951,30 +985,33 @@ class _OverlayNode {
   _OverlayNode._(this.plane, this.normal, this.anchor, this.drop);
 
   factory _OverlayNode.create() => _OverlayNode._(
-        _styled('hui-preview-plane', <String, String>{
-          'box-sizing': 'border-box',
-          'border': '1px solid ${huiPreviewAlpha(_huiPlaneColor, .85)}',
-          'background': huiPreviewAlpha(_huiPlaneColor, .1),
-        }),
-        // Opaque at the plane, fading outward: the element's local top is the
-        // +normal end, which is where hover teleports the icon to.
-        _styled('hui-preview-normal', <String, String>{
-          'background': 'linear-gradient(to top, '
-              '${huiPreviewAlpha(_huiPlaneColor, .9)}, '
-              '${huiPreviewAlpha(_huiPlaneColor, 0)})',
-        }),
-        _styled('hui-preview-anchor', <String, String>{
-          'box-sizing': 'border-box',
-          'border-radius': '50%',
-          'border': '2px solid ${huiPreviewAlpha(_huiAnchorColor, .9)}',
-        }),
-        _styled('hui-preview-drop', <String, String>{
-          'background': huiPreviewAlpha(_huiAnchorColor, .55),
-        }),
-      );
+    _styled('hui-preview-plane', <String, String>{
+      'box-sizing': 'border-box',
+      'border': '1px solid ${huiPreviewAlpha(_huiPlaneColor, .85)}',
+      'background': huiPreviewAlpha(_huiPlaneColor, .1),
+    }),
+    // Opaque at the plane, fading outward: the element's local top is the
+    // +normal end, which is where hover teleports the icon to.
+    _styled('hui-preview-normal', <String, String>{
+      'background':
+          'linear-gradient(to top, '
+          '${huiPreviewAlpha(_huiPlaneColor, .9)}, '
+          '${huiPreviewAlpha(_huiPlaneColor, 0)})',
+    }),
+    _styled('hui-preview-anchor', <String, String>{
+      'box-sizing': 'border-box',
+      'border-radius': '50%',
+      'border': '2px solid ${huiPreviewAlpha(_huiAnchorColor, .9)}',
+    }),
+    _styled('hui-preview-drop', <String, String>{
+      'background': huiPreviewAlpha(_huiAnchorColor, .55),
+    }),
+  );
 
   static PreviewWorldNode _styled(
-      String classes, Map<String, String> declarations) {
+    String classes,
+    Map<String, String> declarations,
+  ) {
     final web.HTMLElement node = huiPreviewElement(classes);
     huiPreviewCss(node, declarations);
     node.classList.toggle('is-hidden', true);
@@ -986,8 +1023,12 @@ class _OverlayNode {
   final PreviewWorldNode anchor;
   final PreviewWorldNode drop;
 
-  Iterable<PreviewWorldNode> get all =>
-      <PreviewWorldNode>[plane, normal, anchor, drop];
+  Iterable<PreviewWorldNode> get all => <PreviewWorldNode>[
+    plane,
+    normal,
+    anchor,
+    drop,
+  ];
 
   /// Appended straight to the camera rather than to a group of their own, so
   /// `.hui-preview-camera > *` in `07-preview.css` supplies the absolute
@@ -1014,7 +1055,8 @@ class _OverlayNode {
 /// Columns are the css images of the element's own axes: local x maps to css x,
 /// local y (which points DOWN in css) maps to css +z, and the normal ends up
 /// along css -y, i.e. world up.
-String _flatTransform(PVec3 position) => '${cssMatrix3d(<double>[
+String _flatTransform(PVec3 position) =>
+    '${cssMatrix3d(<double>[
       1, 0, 0, 0, //
       0, 0, 1, 0, //
       0, -1, 0, 0, //
@@ -1025,11 +1067,7 @@ String _flatTransform(PVec3 position) => '${cssMatrix3d(<double>[
     ])} translate(-50%,-50%)';
 
 String _uprightTransform(PVec3 position, double yawDegrees) =>
-    '${cssMatrix3d(cssQuadMatrix(
-      position: position,
-      facingYawDegrees: yawDegrees,
-      pxPerBlock: huiPreviewPxPerBlock,
-    ))} translate(-50%,-50%)';
+    '${cssMatrix3d(cssQuadMatrix(position: position, facingYawDegrees: yawDegrees, pxPerBlock: huiPreviewPxPerBlock))} translate(-50%,-50%)';
 
 /// An element lying exactly on [aim].
 String _aimTransform(PlaneAim aim) =>
@@ -1039,11 +1077,11 @@ String _aimTransform(PlaneAim aim) =>
 /// [aim] pushed off its own plane, to keep a coplanar overlay out of a z-fight
 /// with the quad it describes.
 PlaneAim _liftAim(PlaneAim aim, double blocks) => PlaneAim(
-      center: aim.center + aim.normal * blocks,
-      normal: aim.normal,
-      right: aim.right,
-      up: aim.up,
-    );
+  center: aim.center + aim.normal * blocks,
+  normal: aim.normal,
+  right: aim.right,
+  up: aim.up,
+);
 
 /// A thin world-space bar of [along]'s length, centred at [center] and turned
 /// face-on to [eye] so a 2 cm stick never goes edge-on and vanishes.
@@ -1062,12 +1100,9 @@ String _barTransform({
   if (right.lengthSquared <= 1e-12) right = up.cross(PVec3.forward);
   if (right.lengthSquared <= 1e-12) right = up.cross(PVec3.right);
   right = right.normalized;
-  return _aimTransform(PlaneAim(
-    center: center,
-    normal: right.cross(up),
-    right: right,
-    up: up,
-  ));
+  return _aimTransform(
+    PlaneAim(center: center, normal: right.cross(up), right: right, up: up),
+  );
 }
 
 /// One of the three great circles, on the world plane its key names.
@@ -1077,23 +1112,23 @@ String _barTransform({
 String _ringTransform(String key, PVec3 center) =>
     _aimTransform(switch (key.substring(key.length - 2)) {
       'xy' => PlaneAim(
-          center: center,
-          normal: PVec3.forward,
-          right: PVec3.right,
-          up: PVec3.up,
-        ),
+        center: center,
+        normal: PVec3.forward,
+        right: PVec3.right,
+        up: PVec3.up,
+      ),
       'xz' => PlaneAim(
-          center: center,
-          normal: PVec3.up,
-          right: PVec3.right,
-          up: PVec3.forward,
-        ),
+        center: center,
+        normal: PVec3.up,
+        right: PVec3.right,
+        up: PVec3.forward,
+      ),
       _ => PlaneAim(
-          center: center,
-          normal: PVec3.right,
-          right: PVec3.forward,
-          up: PVec3.up,
-        ),
+        center: center,
+        normal: PVec3.right,
+        right: PVec3.forward,
+        up: PVec3.up,
+      ),
     });
 
 // ---------------------------------------------------------------------------
@@ -1146,8 +1181,12 @@ void huiPreviewPlace(
   double widthPx,
   double heightPx,
 ) {
-  huiPreviewWriteTransform(node.element, transform, node.transform,
-      (String value) => node.transform = value);
+  huiPreviewWriteTransform(
+    node.element,
+    transform,
+    node.transform,
+    (String value) => node.transform = value,
+  );
   huiPreviewWriteSize(node.element, widthPx, heightPx, node);
 }
 

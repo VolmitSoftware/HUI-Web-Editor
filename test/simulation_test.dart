@@ -17,12 +17,11 @@ HuiComponent _button(
   String id, {
   double highlightModifier = 0.05,
   List<HuiAction>? actions,
-}) =>
-    HuiComponent(
-      id,
-      Vec3.zero(),
-      HuiButtonData(highlightModifier, actions ?? <HuiAction>[]),
-    );
+}) => HuiComponent(
+  id,
+  Vec3.zero(),
+  HuiButtonData(highlightModifier, actions ?? <HuiAction>[]),
+);
 
 HuiComponent _decoration(String id) =>
     HuiComponent(id, Vec3.zero(), HuiDecorationData());
@@ -32,18 +31,17 @@ HuiComponent _toggle(
   double highlightModifier = 0.05,
   List<HuiAction>? trueActions,
   List<HuiAction>? falseActions,
-}) =>
-    HuiComponent(
-      id,
-      Vec3.zero(),
-      HuiToggleData(
-        highlightModifier,
-        '%player_name%',
-        'Steve',
-        trueActions ?? <HuiAction>[],
-        falseActions ?? <HuiAction>[],
-      ),
-    );
+}) => HuiComponent(
+  id,
+  Vec3.zero(),
+  HuiToggleData(
+    highlightModifier,
+    '%player_name%',
+    'Steve',
+    trueActions ?? <HuiAction>[],
+    falseActions ?? <HuiAction>[],
+  ),
+);
 
 HuiMenu _menu(
   List<HuiComponent> components, {
@@ -51,25 +49,23 @@ HuiMenu _menu(
   double? maxDistance,
   bool followPlayer = false,
   bool lockPosition = false,
-}) =>
-    HuiMenu(
-      offset: offset ?? Vec3(0, 1, 2),
-      maxDistance: maxDistance,
-      followPlayer: followPlayer,
-      lockPosition: lockPosition,
-      components: components,
-    );
+}) => HuiMenu(
+  offset: offset ?? Vec3(0, 1, 2),
+  maxDistance: maxDistance,
+  followPlayer: followPlayer,
+  lockPosition: lockPosition,
+  components: components,
+);
 
 PreviewSimulation _sim(
   HuiMenu menu, {
   PVec3 openFeet = PVec3.zero,
   bool Function(String id)? initialToggleState,
-}) =>
-    PreviewSimulation(
-      menu: menu,
-      openFeet: openFeet,
-      initialToggleState: initialToggleState,
-    );
+}) => PreviewSimulation(
+  menu: menu,
+  openFeet: openFeet,
+  initialToggleState: initialToggleState,
+);
 
 HuiCommandAction _command(String command, [String source = 'player']) =>
     HuiCommandAction(command, source);
@@ -79,18 +75,21 @@ void main() {
     test('collects clickables in declaration order and skips decorations', () {
       // SessionHolder.snapshotClick walks MenuSession's component list, which is
       // built straight from the JSON order (MenuSession.java:74-77).
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _decoration('backdrop'),
-        _button('one'),
-        _decoration('label'),
-        _toggle('two'),
-        _button('three'),
-      ]));
-
-      expect(
-        sim.clickables.map((SimClickable c) => c.id).toList(),
-        <String>['one', 'two', 'three'],
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _decoration('backdrop'),
+          _button('one'),
+          _decoration('label'),
+          _toggle('two'),
+          _button('three'),
+        ]),
       );
+
+      expect(sim.clickables.map((SimClickable c) => c.id).toList(), <String>[
+        'one',
+        'two',
+        'three',
+      ]);
       expect(sim.clickables[1].kind, SimClickableKind.toggle);
       expect(sim.clickables[0].kind, SimClickableKind.button);
     });
@@ -98,10 +97,12 @@ void main() {
     test('carries per-clickable highlightModifier verbatim', () {
       // Gson writes the field directly, so the Java API's 0..1 clamp never runs
       // on parsed values (ClickableComponent.java:111-116 uses it raw).
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _button('raw', highlightModifier: 3),
-        _toggle('zero', highlightModifier: 0),
-      ]));
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _button('raw', highlightModifier: 3),
+          _toggle('zero', highlightModifier: 0),
+        ]),
+      );
 
       expect(sim.highlightModifierFor('raw'), 3);
       expect(sim.highlightModifierFor('zero'), 0);
@@ -124,12 +125,17 @@ void main() {
       // `condition` is a PAPI expression the editor cannot evaluate, so the
       // editor substitutes its own canvas preview choice
       // (ToggleComponent.java:48 samples it once at open).
-      final HuiMenu menu = _menu(<HuiComponent>[_toggle('lamp'), _toggle('door')]);
+      final HuiMenu menu = _menu(<HuiComponent>[
+        _toggle('lamp'),
+        _toggle('door'),
+      ]);
 
       expect(_sim(menu).toggleStateFor('lamp'), isTrue);
       expect(
-        _sim(menu, initialToggleState: (String id) => id == 'door')
-            .toggleStateFor('lamp'),
+        _sim(
+          menu,
+          initialToggleState: (String id) => id == 'door',
+        ).toggleStateFor('lamp'),
         isFalse,
       );
       expect(_sim(menu).toggleStateFor('nope'), isNull);
@@ -151,8 +157,6 @@ void main() {
 
   group('hover ticks', () {
     test('count from one on entry and keep climbing while held', () {
-      // Tick 1 pushes by highlightModifier; from tick 2 rotateToFace teleports
-      // the icon a full normal — 1.0 block (ClickableComponent.java:111-116).
       final PreviewSimulation sim = _sim(_menu(<HuiComponent>[_button('a')]));
 
       sim.tick(hoveredClickableIds: <String>{'a'}, playerFeet: PVec3.zero);
@@ -183,10 +187,9 @@ void main() {
       // DecoComponent is not a ClickableComponent: no plane, no selection
       // (DecoComponent.java has an empty onTick; MenuComponent.java:62-67 still
       // ticks its icon, which is why animation is unaffected).
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _decoration('backdrop'),
-        _button('a'),
-      ]));
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[_decoration('backdrop'), _button('a')]),
+      );
 
       final PreviewTickResult result = sim.tick(
         hoveredClickableIds: <String>{'backdrop', 'a'},
@@ -209,11 +212,9 @@ void main() {
     });
 
     test('the reported hovered set follows declaration order', () {
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _button('one'),
-        _button('two'),
-        _button('three'),
-      ]));
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[_button('one'), _button('two'), _button('three')]),
+      );
 
       final PreviewTickResult result = sim.tick(
         hoveredClickableIds: <String>{'three', 'one', 'two'},
@@ -241,11 +242,13 @@ void main() {
       // walks SessionHolder.snapshotClick's list and calls onClick on EVERY
       // selected component (SessionHolder.java:145-159). Overlapping hitboxes
       // are not deduplicated.
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _button('one', actions: <HuiAction>[_command('say one')]),
-        _button('two', actions: <HuiAction>[_command('say two')]),
-        _button('three', actions: <HuiAction>[_command('say three')]),
-      ]));
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _button('one', actions: <HuiAction>[_command('say one')]),
+          _button('two', actions: <HuiAction>[_command('say two')]),
+          _button('three', actions: <HuiAction>[_command('say three')]),
+        ]),
+      );
 
       sim.tick(
         hoveredClickableIds: <String>{'three', 'two', 'one'},
@@ -253,13 +256,16 @@ void main() {
       );
       final List<ActionLogEntry> fired = sim.click();
 
-      expect(
-        fired.map((ActionLogEntry e) => e.componentId).toList(),
-        <String>['one', 'two', 'three'],
-      );
+      expect(fired.map((ActionLogEntry e) => e.componentId).toList(), <String>[
+        'one',
+        'two',
+        'three',
+      ]);
       expect(
         fired
-            .map((ActionLogEntry e) => (e.actions.single as LoggedCommand).command)
+            .map(
+              (ActionLogEntry e) => (e.actions.single as LoggedCommand).command,
+            )
             .toList(),
         <String>['say one', 'say two', 'say three'],
       );
@@ -268,10 +274,12 @@ void main() {
     test('a duplicate id fires once per component, not once per id', () {
       // MenuSession.java:79 dedupes only the addressing map via putIfAbsent; the
       // component list — which the click snapshot walks — keeps both.
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _button('twin', actions: <HuiAction>[_command('first')]),
-        _button('twin', actions: <HuiAction>[_command('second')]),
-      ]));
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _button('twin', actions: <HuiAction>[_command('first')]),
+          _button('twin', actions: <HuiAction>[_command('second')]),
+        ]),
+      );
 
       sim.tick(hoveredClickableIds: <String>{'twin'}, playerFeet: PVec3.zero);
       final List<ActionLogEntry> fired = sim.click();
@@ -279,17 +287,18 @@ void main() {
       expect(fired.length, 2);
       expect(
         fired
-            .map((ActionLogEntry e) => (e.actions.single as LoggedCommand).command)
+            .map(
+              (ActionLogEntry e) => (e.actions.single as LoggedCommand).command,
+            )
             .toList(),
         <String>['first', 'second'],
       );
     });
 
     test('decorations never fire even when named as hovered', () {
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _decoration('backdrop'),
-        _button('a'),
-      ]));
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[_decoration('backdrop'), _button('a')]),
+      );
 
       sim.tick(
         hoveredClickableIds: <String>{'backdrop', 'a'},
@@ -303,9 +312,11 @@ void main() {
     });
 
     test('nothing fires before the first tick', () {
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _button('a', actions: <HuiAction>[_command('say hi')]),
-      ]));
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _button('a', actions: <HuiAction>[_command('say hi')]),
+        ]),
+      );
       expect(sim.click(), isEmpty);
     });
 
@@ -345,20 +356,25 @@ void main() {
       // ToggleComponent.java:52-61: when state is true the click runs
       // falseActions and sets state=false. trueActions fire on the transition
       // INTO true, never on the way out.
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _toggle(
-          'lamp',
-          trueActions: <HuiAction>[_command('lamp on')],
-          falseActions: <HuiAction>[_command('lamp off')],
-        ),
-      ]));
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _toggle(
+            'lamp',
+            trueActions: <HuiAction>[_command('lamp on')],
+            falseActions: <HuiAction>[_command('lamp off')],
+          ),
+        ]),
+      );
 
       sim.tick(hoveredClickableIds: <String>{'lamp'}, playerFeet: PVec3.zero);
       final List<ActionLogEntry> fired = sim.click();
 
       expect(sim.toggleStateFor('lamp'), isFalse);
       expect(fired.single.trigger, ActionLogTrigger.toggleToFalse);
-      expect((fired.single.actions.single as LoggedCommand).command, 'lamp off');
+      expect(
+        (fired.single.actions.single as LoggedCommand).command,
+        'lamp off',
+      );
     });
 
     test('a double click round trips and fires each list once', () {
@@ -383,7 +399,10 @@ void main() {
       final List<ActionLogEntry> second = sim.click();
       expect(sim.toggleStateFor('lamp'), isFalse);
       expect(second.single.trigger, ActionLogTrigger.toggleToFalse);
-      expect((second.single.actions.single as LoggedCommand).command, 'lamp off');
+      expect(
+        (second.single.actions.single as LoggedCommand).command,
+        'lamp off',
+      );
 
       final List<ActionLogEntry> third = sim.click();
       expect(sim.toggleStateFor('lamp'), isTrue);
@@ -715,10 +734,22 @@ void main() {
       // through to the console for everything else. The enum's JSON spelling is
       // @SerializedName("player") / @SerializedName("server").
       expect(LoggedCommand(command: 'heal', source: 'player').asPlayer, isTrue);
-      expect(LoggedCommand(command: 'heal', source: 'server').asPlayer, isFalse);
-      expect(LoggedCommand(command: 'heal', source: 'PLAYER').asPlayer, isFalse);
-      expect(LoggedCommand(command: 'heal', source: 'Player').asPlayer, isFalse);
-      expect(LoggedCommand(command: 'heal', source: 'nonsense').asPlayer, isFalse);
+      expect(
+        LoggedCommand(command: 'heal', source: 'server').asPlayer,
+        isFalse,
+      );
+      expect(
+        LoggedCommand(command: 'heal', source: 'PLAYER').asPlayer,
+        isFalse,
+      );
+      expect(
+        LoggedCommand(command: 'heal', source: 'Player').asPlayer,
+        isFalse,
+      );
+      expect(
+        LoggedCommand(command: 'heal', source: 'nonsense').asPlayer,
+        isFalse,
+      );
       expect(LoggedCommand(command: 'heal', source: null).asPlayer, isFalse);
       expect(LoggedCommand(command: 'heal', source: '').asPlayer, isFalse);
     });
@@ -731,15 +762,23 @@ void main() {
         'nonsense',
         null,
       ]) {
-        final LoggedCommand cmd =
-            LoggedCommand(command: 'heal', source: source);
+        final LoggedCommand cmd = LoggedCommand(
+          command: 'heal',
+          source: source,
+        );
         expect(cmd.asConsole, !cmd.asPlayer, reason: 'source=$source');
       }
     });
 
     test('an absent or blank source reads as omitted', () {
-      expect(LoggedCommand(command: 'heal', source: null).sourceOmitted, isTrue);
-      expect(LoggedCommand(command: 'heal', source: '  ').sourceOmitted, isTrue);
+      expect(
+        LoggedCommand(command: 'heal', source: null).sourceOmitted,
+        isTrue,
+      );
+      expect(
+        LoggedCommand(command: 'heal', source: '  ').sourceOmitted,
+        isTrue,
+      );
       expect(
         LoggedCommand(command: 'heal', source: 'server').sourceOmitted,
         isFalse,
@@ -768,13 +807,17 @@ void main() {
     test('one leading slash is stripped, exactly as the runtime does', () {
       // CommandMenuAction.java:35 strips a single leading '/'.
       expect(LoggedCommand(command: '/heal', source: 'player').command, 'heal');
-      expect(LoggedCommand(command: '//heal', source: 'player').command, '/heal');
+      expect(
+        LoggedCommand(command: '//heal', source: 'player').command,
+        '/heal',
+      );
       expect(LoggedCommand(command: 'heal', source: 'player').command, 'heal');
     });
 
     test('converting a model action preserves the raw source spelling', () {
-      final LoggedCommand cmd =
-          LoggedCommand.from(HuiCommandAction('/heal', 'PLAYER'));
+      final LoggedCommand cmd = LoggedCommand.from(
+        HuiCommandAction('/heal', 'PLAYER'),
+      );
       expect(cmd.command, 'heal');
       expect(cmd.rawSource, 'PLAYER');
       expect(cmd.asPlayer, isFalse);
@@ -794,15 +837,20 @@ void main() {
     });
 
     test('the whole resolution table, end to end through the machine', () {
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _button('probe', actions: <HuiAction>[
-          _command('a', 'player'),
-          _command('b', 'server'),
-          _command('c', 'PLAYER'),
-          _command('d', 'garbage'),
-          _command('e', ''),
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _button(
+            'probe',
+            actions: <HuiAction>[
+              _command('a', 'player'),
+              _command('b', 'server'),
+              _command('c', 'PLAYER'),
+              _command('d', 'garbage'),
+              _command('e', ''),
+            ],
+          ),
         ]),
-      ]));
+      );
 
       sim.tick(hoveredClickableIds: <String>{'probe'}, playerFeet: PVec3.zero);
       final List<LoggedAction> fired = sim.click().single.actions;
@@ -842,20 +890,29 @@ void main() {
     test('a blank category is flagged: a null source NPEs on click', () {
       // SoundMenuAction.java:31 calls data.source().getCategory().
       expect(
-        const LoggedSound(key: 's', category: '', volume: 1, pitch: 1)
-            .categoryMissing,
+        const LoggedSound(
+          key: 's',
+          category: '',
+          volume: 1,
+          pitch: 1,
+        ).categoryMissing,
         isTrue,
       );
       expect(
-        const LoggedSound(key: 's', category: 'master', volume: 1, pitch: 1)
-            .categoryMissing,
+        const LoggedSound(
+          key: 's',
+          category: 'master',
+          volume: 1,
+          pitch: 1,
+        ).categoryMissing,
         isFalse,
       );
     });
 
     test('converting a model sound action carries every field', () {
-      final LoggedSound sound =
-          LoggedSound.from(HuiSoundAction('block.note_block.bell', 'block', 0, 2));
+      final LoggedSound sound = LoggedSound.from(
+        HuiSoundAction('block.note_block.bell', 'block', 0, 2),
+      );
       expect(sound.key, 'block.note_block.bell');
       expect(sound.category, 'block');
       expect(sound.volume, 0);
@@ -864,12 +921,17 @@ void main() {
     });
 
     test('sounds fire through the machine in authored order', () {
-      final PreviewSimulation sim = _sim(_menu(<HuiComponent>[
-        _button('probe', actions: <HuiAction>[
-          HuiSoundAction('ui.button.click', 'master', 1, 1),
-          _command('say hi', 'player'),
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _button(
+            'probe',
+            actions: <HuiAction>[
+              HuiSoundAction('ui.button.click', 'master', 1, 1),
+              _command('say hi', 'player'),
+            ],
+          ),
         ]),
-      ]));
+      );
 
       sim.tick(hoveredClickableIds: <String>{'probe'}, playerFeet: PVec3.zero);
       final List<LoggedAction> fired = sim.click().single.actions;
@@ -901,30 +963,36 @@ void main() {
 
     test('spells out sound volume, pitch and the inaudible flag', () {
       expect(
-        describeLoggedAction(const LoggedSound(
-          key: 'ui.button.click',
-          category: 'master',
-          volume: 1,
-          pitch: 1.5,
-        )),
+        describeLoggedAction(
+          const LoggedSound(
+            key: 'ui.button.click',
+            category: 'master',
+            volume: 1,
+            pitch: 1.5,
+          ),
+        ),
         'play "ui.button.click" (master) volume 1, pitch 1.5',
       );
       expect(
-        describeLoggedAction(const LoggedSound(
-          key: 'ui.button.click',
-          category: 'master',
-          volume: 0,
-          pitch: 1,
-        )),
+        describeLoggedAction(
+          const LoggedSound(
+            key: 'ui.button.click',
+            category: 'master',
+            volume: 0,
+            pitch: 1,
+          ),
+        ),
         'play "ui.button.click" (master) volume 0, pitch 1 — inaudible',
       );
       expect(
-        describeLoggedAction(const LoggedSound(
-          key: 'ui.button.click',
-          category: '',
-          volume: 1,
-          pitch: 1,
-        )),
+        describeLoggedAction(
+          const LoggedSound(
+            key: 'ui.button.click',
+            category: '',
+            volume: 1,
+            pitch: 1,
+          ),
+        ),
         'play "ui.button.click" (source missing) volume 1, pitch 1 '
         '— a null source NPEs on click',
       );
@@ -932,43 +1000,49 @@ void main() {
 
     test('renders an entry with its tick, id and trigger', () {
       expect(
-        describeActionLogEntry(ActionLogEntry(
-          tick: 7,
-          componentId: 'confirm',
-          trigger: ActionLogTrigger.button,
-          actions: <LoggedAction>[
-            LoggedCommand(command: 'heal', source: 'player'),
-          ],
-        )),
+        describeActionLogEntry(
+          ActionLogEntry(
+            tick: 7,
+            componentId: 'confirm',
+            trigger: ActionLogTrigger.button,
+            actions: <LoggedAction>[
+              LoggedCommand(command: 'heal', source: 'player'),
+            ],
+          ),
+        ),
         '#7 confirm (click): run "heal" as player',
       );
       expect(
-        describeActionLogEntry(const ActionLogEntry(
-          tick: 7,
-          componentId: 'lamp',
-          trigger: ActionLogTrigger.toggleToTrue,
-          actions: <LoggedAction>[],
-        )),
+        describeActionLogEntry(
+          const ActionLogEntry(
+            tick: 7,
+            componentId: 'lamp',
+            trigger: ActionLogTrigger.toggleToTrue,
+            actions: <LoggedAction>[],
+          ),
+        ),
         '#7 lamp (toggle → true): no actions',
       );
     });
 
     test('joins multiple actions in order', () {
       expect(
-        describeActionLogEntry(ActionLogEntry(
-          tick: 1,
-          componentId: 'a',
-          trigger: ActionLogTrigger.toggleToFalse,
-          actions: <LoggedAction>[
-            LoggedCommand(command: 'x', source: 'server'),
-            const LoggedSound(
-              key: 's',
-              category: 'block',
-              volume: 1,
-              pitch: 1,
-            ),
-          ],
-        )),
+        describeActionLogEntry(
+          ActionLogEntry(
+            tick: 1,
+            componentId: 'a',
+            trigger: ActionLogTrigger.toggleToFalse,
+            actions: <LoggedAction>[
+              LoggedCommand(command: 'x', source: 'server'),
+              const LoggedSound(
+                key: 's',
+                category: 'block',
+                volume: 1,
+                pitch: 1,
+              ),
+            ],
+          ),
+        ),
         '#1 a (toggle → false): run "x" as console; '
         'play "s" (block) volume 1, pitch 1',
       );

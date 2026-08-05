@@ -28,16 +28,11 @@ class _FakeStorage {
   }
 }
 
-Workspace _workspace(_FakeStorage storage, {bool autoLoad = true}) => Workspace(
-      read: storage.read,
-      write: storage.write,
-      autoLoad: autoLoad,
-    );
+Workspace _workspace(_FakeStorage storage, {bool autoLoad = true}) =>
+    Workspace(read: storage.read, write: storage.write, autoLoad: autoLoad);
 
-EditorStore _store(_FakeStorage storage) => EditorStore(
-      workspace: _workspace(storage),
-      autosaveDelay: Duration.zero,
-    );
+EditorStore _store(_FakeStorage storage) =>
+    EditorStore(workspace: _workspace(storage), autosaveDelay: Duration.zero);
 
 void main() {
   group('UndoStack', () {
@@ -141,8 +136,10 @@ void main() {
     test('create makes the document active and persists it', () {
       final _FakeStorage storage = _FakeStorage();
       final Workspace workspace = _workspace(storage);
-      final WorkspaceDoc doc =
-          workspace.create(name: 'shop', json: '{"components": []}');
+      final WorkspaceDoc doc = workspace.create(
+        name: 'shop',
+        json: '{"components": []}',
+      );
       expect(workspace.activeId, doc.id);
       expect(workspace.docs.length, 1);
       expect(storage.values[Workspace.storageKey], isNotNull);
@@ -164,7 +161,8 @@ void main() {
 
     test('skips corrupt entries instead of throwing', () {
       final _FakeStorage storage = _FakeStorage();
-      storage.values[Workspace.storageKey] = '{"docs":['
+      storage.values[Workspace.storageKey] =
+          '{"docs":['
           '{"id":"1","name":"good","json":"{}","updatedAt":5},'
           '{"id":"2","name":"bad-json","json":"{not json","updatedAt":6},'
           '{"id":"3"},'
@@ -222,16 +220,18 @@ void main() {
       expect(workspace.switchTo('nope'), isFalse);
     });
 
-    test('a refused write is reported without losing the in-memory document',
-        () {
-      final _FakeStorage storage = _FakeStorage();
-      final Workspace workspace = _workspace(storage);
-      storage.refuseWrites = true;
-      final WorkspaceDoc doc = workspace.create(name: 'a', json: '{}');
-      expect(workspace.byId(doc.id), isNotNull);
-      expect(workspace.lastError, isNotNull);
-      expect(workspace.quotaExceeded, isTrue);
-    });
+    test(
+      'a refused write is reported without losing the in-memory document',
+      () {
+        final _FakeStorage storage = _FakeStorage();
+        final Workspace workspace = _workspace(storage);
+        storage.refuseWrites = true;
+        final WorkspaceDoc doc = workspace.create(name: 'a', json: '{}');
+        expect(workspace.byId(doc.id), isNotNull);
+        expect(workspace.lastError, isNotNull);
+        expect(workspace.quotaExceeded, isTrue);
+      },
+    );
 
     test('recent orders by updatedAt descending', () {
       final _FakeStorage storage = _FakeStorage();
@@ -276,6 +276,7 @@ void main() {
       final HuiButtonData button =
           createDefaultComponentData('button') as HuiButtonData;
       expect(button.highlightModifier, 0.05);
+      expect(button.hitbox, isNull);
 
       final HuiSoundAction sound =
           createDefaultAction('sound') as HuiSoundAction;
@@ -292,13 +293,13 @@ void main() {
     test('every default component and icon validates clean', () {
       for (final String type in huiComponentTypes) {
         final HuiMenu menu = HuiMenu()
-          ..components.add(createDefaultComponent(
-            type: type,
-            takenIds: const <String>{},
-          ));
+          ..components.add(
+            createDefaultComponent(type: type, takenIds: const <String>{}),
+          );
         expect(
-          validateHuiMenu(menu)
-              .where((HuiIssue i) => i.severity == HuiSeverity.error),
+          validateHuiMenu(
+            menu,
+          ).where((HuiIssue i) => i.severity == HuiSeverity.error),
           isEmpty,
           reason: 'default $type component must not start in an error state',
         );
@@ -341,8 +342,10 @@ void main() {
       expect(store.menuId, huiDefaultMenuId);
       expect(store.menu.components.length, 1);
       expect(store.canUndo, isFalse);
-      expect(store.issues.where((HuiIssue i) => i.severity == HuiSeverity.error),
-          isEmpty);
+      expect(
+        store.issues.where((HuiIssue i) => i.severity == HuiSeverity.error),
+        isEmpty,
+      );
       store.dispose();
     });
 
@@ -447,16 +450,42 @@ void main() {
       store.dispose();
     });
 
-    test('addComponent generates readable unique ids and selects the result',
-        () {
+    test('custom hitbox edits undo and redo as one component change', () {
       final EditorStore store = _store(_FakeStorage());
-      expect(store.addComponent('button'), 'button');
-      expect(store.selectedId, 'button');
-      expect(store.addComponent('button'), 'button-2');
-      expect(store.addComponent('toggle'), 'toggle');
-      expect(store.menu.components.length, 4);
+      final String id = store.addComponent('button')!;
+      store.editComponent(id, 'enable custom hitbox', (HuiComponent component) {
+        (component.data as HuiButtonData).hitbox = HuiHitbox(1.25, 0.35);
+      });
+      expect(
+        (store.menu.componentById(id)!.data as HuiButtonData).hitbox!.width,
+        1.25,
+      );
+
+      expect(store.performUndo(), isTrue);
+      expect(
+        (store.menu.componentById(id)!.data as HuiButtonData).hitbox,
+        isNull,
+      );
+      expect(store.performRedo(), isTrue);
+      expect(
+        (store.menu.componentById(id)!.data as HuiButtonData).hitbox!.height,
+        0.35,
+      );
       store.dispose();
     });
+
+    test(
+      'addComponent generates readable unique ids and selects the result',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        expect(store.addComponent('button'), 'button');
+        expect(store.selectedId, 'button');
+        expect(store.addComponent('button'), 'button-2');
+        expect(store.addComponent('toggle'), 'toggle');
+        expect(store.menu.components.length, 4);
+        store.dispose();
+      },
+    );
 
     test('duplicateComponent copies deeply and never reuses an id', () {
       final EditorStore store = _store(_FakeStorage());
@@ -484,10 +513,10 @@ void main() {
       store.importJson(
         'dupes.json',
         '{"offset":[0,1.7,2.5],"components":['
-        '{"id":"btn","offset":[0,0,0],"data":{"type":"decoration",'
-        '"icon":{"type":"text","text":"first"}}},'
-        '{"id":"btn","offset":[0,-0.5,0],"data":{"type":"decoration",'
-        '"icon":{"type":"text","text":"second"}}}]}',
+            '{"id":"btn","offset":[0,0,0],"data":{"type":"decoration",'
+            '"icon":{"type":"text","text":"first"}}},'
+            '{"id":"btn","offset":[0,-0.5,0],"data":{"type":"decoration",'
+            '"icon":{"type":"text","text":"second"}}}]}',
       );
       expect(store.menu.components.length, 2);
 
@@ -555,8 +584,11 @@ void main() {
       final EditorStore store = _store(_FakeStorage());
       final HuiMenu replacement = HuiMenu(offset: Vec3(1, 2, 3))
         ..components.add(
-          HuiComponent('imported', Vec3.zero(),
-              HuiDecorationData(HuiTextIcon('&aImported'))),
+          HuiComponent(
+            'imported',
+            Vec3.zero(),
+            HuiDecorationData(HuiTextIcon('&aImported')),
+          ),
         );
 
       store.importJson('Warp Compass.json', encodeHuiMenu(replacement));
@@ -715,10 +747,14 @@ void main() {
       store.newDocument(name: 'second');
       store.addComponent('toggle');
       store.openDocument(first);
-      expect(store.menu.components.any((HuiComponent c) => c.id == 'button'),
-          isTrue);
-      expect(store.menu.components.any((HuiComponent c) => c.id == 'toggle'),
-          isFalse);
+      expect(
+        store.menu.components.any((HuiComponent c) => c.id == 'button'),
+        isTrue,
+      );
+      expect(
+        store.menu.components.any((HuiComponent c) => c.id == 'toggle'),
+        isFalse,
+      );
       store.dispose();
     });
 

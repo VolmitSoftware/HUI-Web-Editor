@@ -20,6 +20,7 @@ const List<String> _contractKeys = <String>[
   'component.id',
   'component.offset',
   'button.highlightModifier',
+  'button.hitbox',
   'toggle.condition',
   'toggle.expectedValue',
   'toggle.trueActions',
@@ -45,7 +46,9 @@ const List<String> _contractKeys = <String>[
 final RegExp _citationPattern = RegExp(r'^\w+\.java:\d+(-\d+)?$');
 
 /// Dotted lower-camel path, matching the JSON keys the docs describe.
-final RegExp _keyPattern = RegExp(r'^[a-z][A-Za-z0-9]*(\.[a-zA-Z][A-Za-z0-9]*)+$');
+final RegExp _keyPattern = RegExp(
+  r'^[a-z][A-Za-z0-9]*(\.[a-zA-Z][A-Za-z0-9]*)+$',
+);
 
 void main() {
   group('huiFieldDocs', () {
@@ -72,15 +75,21 @@ void main() {
       for (final MapEntry<String, HuiFieldDoc> entry in huiFieldDocs.entries) {
         final String? citation = entry.value.citation;
         expect(citation, isNotNull, reason: entry.key);
-        expect(_citationPattern.hasMatch(citation!), isTrue,
-            reason: '${entry.key} -> $citation');
+        expect(
+          _citationPattern.hasMatch(citation!),
+          isTrue,
+          reason: '${entry.key} -> $citation',
+        );
       }
     });
 
     test('no body repeats its own title as the first sentence', () {
       for (final MapEntry<String, HuiFieldDoc> entry in huiFieldDocs.entries) {
-        expect(entry.value.body.startsWith(entry.value.title), isFalse,
-            reason: entry.key);
+        expect(
+          entry.value.body.startsWith(entry.value.title),
+          isFalse,
+          reason: entry.key,
+        );
       }
     });
   });
@@ -112,9 +121,14 @@ void main() {
       expect(body('menu.id'), contains('name'));
     });
 
-    test('highlightModifier is overridden after the first tick', () {
-      expect(body('button.highlightModifier'), contains('first'));
-      expect(body('button.highlightModifier'), contains('1.0 block'));
+    test('highlightModifier remains stable while hovered', () {
+      expect(body('button.highlightModifier'), contains('while'));
+      expect(body('button.highlightModifier'), contains('stays fixed'));
+    });
+
+    test('button hitbox documents linked positioning and scaling', () {
+      expect(body('button.hitbox'), contains('uiScale'));
+      expect(body('button.hitbox'), contains('moves both together'));
     });
 
     test('a toggle condition is sampled once, at open', () {

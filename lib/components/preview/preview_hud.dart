@@ -49,23 +49,20 @@ class PreviewHud extends StatelessWidget {
     final String? reason = live.closeReason?.wireName;
     final String text = live.isOpen ? 'Open' : 'Closed — ${reason ?? 'CLOSED'}';
     return dom.div(
-      classes: 'hui-preview-hudbar-item is-state'
+      classes:
+          'hui-preview-hudbar-item is-state'
           '${live.isOpen ? ' is-open' : ' is-closed'}',
       // The one value here slow enough to announce.
       attributes: const <String, String>{'role': 'status'},
       <Widget>[
         _label('menu'),
-        dom.span(
-          classes: 'hui-preview-hudbar-value',
-          <Widget>[Component.text(text)],
-        ),
+        dom.span(classes: 'hui-preview-hudbar-value', <Widget>[
+          Component.text(text),
+        ]),
         if (!live.isOpen)
-          const dom.span(
-            classes: 'hui-preview-hudbar-note',
-            <Widget>[
-              Component.text('Reopen here starts a fresh session'),
-            ],
-          ),
+          const dom.span(classes: 'hui-preview-hudbar-note', <Widget>[
+            Component.text('Reopen here starts a fresh session'),
+          ]),
       ],
     );
   }
@@ -87,23 +84,17 @@ class PreviewHud extends StatelessWidget {
     );
   }
 
-  /// The hover displacement, which is the single most surprising thing about
-  /// authoring a HoloUi menu: `highlightModifier` governs the first tick only,
-  /// and from the second the icon sits a full block toward the eye
-  /// (`ClickableComponent.java:111-116`).
+  /// The hover displacement applied while the look ray remains in the plane.
   Widget _push(PreviewLiveState live) {
     if (live.hoveredId == null) {
       return _item(label: 'push', value: '—', muted: true);
     }
-    final bool firstTick = live.hoverTicks <= 1;
     return _item(
       label: 'push',
       value: '${_blocks(live.hoverPushBlocks)} blocks',
-      note: firstTick
-          ? 'tick 1 — highlightModifier ${_blocks(live.highlightModifier)}'
-          : 'tick ${live.hoverTicks} — overrides highlightModifier '
-              '${_blocks(live.highlightModifier)}',
-      noteIsWarning: !firstTick && live.highlightModifier != 1,
+      note:
+          'tick ${live.hoverTicks} — highlightModifier '
+          '${_blocks(live.highlightModifier)}',
     );
   }
 
@@ -117,23 +108,25 @@ class PreviewHud extends StatelessWidget {
       value: max == null
           ? '${live.distanceToCenter.toStringAsFixed(2)} blocks'
           : '${live.distanceToCenter.toStringAsFixed(2)} / '
-              '${_blocks(max)} blocks',
-      note: max == null ? 'no maxDistance — the menu never closes on range' : null,
+                '${_blocks(max)} blocks',
+      note: max == null
+          ? 'no maxDistance — the menu never closes on range'
+          : null,
     );
   }
 
   Widget _locked() => _item(
-        label: 'movement',
-        value: 'locked',
-        note: 'lockPosition rewrites the move destination back to its origin',
-        noteIsWarning: true,
-      );
+    label: 'movement',
+    value: 'locked',
+    note: 'lockPosition rewrites the move destination back to its origin',
+    noteIsWarning: true,
+  );
 
   Widget _follows() => _item(
-        label: 'follow',
-        value: 'on',
-        note: 'followPlayer recentres the menu as the player walks',
-      );
+    label: 'follow',
+    value: 'on',
+    note: 'followPlayer recentres the menu as the player walks',
+  );
 
   Widget _item({
     required String label,
@@ -141,28 +134,23 @@ class PreviewHud extends StatelessWidget {
     String? note,
     bool muted = false,
     bool noteIsWarning = false,
-  }) =>
-      dom.div(
-        classes: 'hui-preview-hudbar-item',
-        <Widget>[
-          _label(label),
-          dom.span(
-            classes: 'hui-preview-hudbar-value${muted ? ' is-muted' : ''}',
-            <Widget>[Component.text(value)],
-          ),
-          if (note != null)
-            dom.span(
-              classes:
-                  'hui-preview-hudbar-note${noteIsWarning ? ' is-warning' : ''}',
-              <Widget>[Component.text(note)],
-            ),
-        ],
-      );
+  }) => dom.div(classes: 'hui-preview-hudbar-item', <Widget>[
+    _label(label),
+    dom.span(
+      classes: 'hui-preview-hudbar-value${muted ? ' is-muted' : ''}',
+      <Widget>[Component.text(value)],
+    ),
+    if (note != null)
+      dom.span(
+        classes: 'hui-preview-hudbar-note${noteIsWarning ? ' is-warning' : ''}',
+        <Widget>[Component.text(note)],
+      ),
+  ]);
 
   static Widget _label(String text) => dom.span(
-        classes: 'hui-preview-hudbar-label',
-        <Widget>[Component.text(text)],
-      );
+    classes: 'hui-preview-hudbar-label',
+    <Widget>[Component.text(text)],
+  );
 
   /// Whole values read as whole numbers; `1.00` in a readout is noise.
   static String _blocks(double value) {

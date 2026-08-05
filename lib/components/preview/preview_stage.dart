@@ -240,7 +240,8 @@ class _PreviewStageState extends State<PreviewStage>
     attributes: const <String, String>{
       'tabindex': '0',
       'role': 'application',
-      'aria-label': 'HoloUI menu preview. Drag to orbit, scroll to dolly, '
+      'aria-label':
+          'HoloUI menu preview. Drag to orbit, scroll to dolly, '
           'space or middle-drag to pan, 0 resets to the open position, '
           'left click fires every hovered component, 1 to 6 toggle overlays, '
           'F switches icon facing. In Player mode WASD walks and clicking '
@@ -249,21 +250,33 @@ class _PreviewStageState extends State<PreviewStage>
     <Widget>[
       dom.div(id: _sceneId, classes: 'hui-preview-scene', const <Widget>[]),
       dom.div(
-          id: _crosshairId, classes: 'hui-preview-crosshair', const <Widget>[]),
+        id: _crosshairId,
+        classes: 'hui-preview-crosshair',
+        const <Widget>[],
+      ),
       dom.div(id: _bannerId, classes: 'hui-preview-banner', const <Widget>[]),
       dom.div(classes: 'hui-preview-hint', <Widget>[
         dom.span(
-            id: _hintId, classes: 'hui-preview-hint-item', const <Widget>[]),
+          id: _hintId,
+          classes: 'hui-preview-hint-item',
+          const <Widget>[],
+        ),
         const dom.span(classes: 'hui-preview-hint-item', <Widget>[
-          Component.text('Left click fires every hovered hitbox, in '
-              'declaration order'),
+          Component.text(
+            'Left click fires every hovered hitbox, in '
+            'declaration order',
+          ),
         ]),
         const dom.span(
-            classes: 'hui-preview-hint-item hui-preview-hint-note', <Widget>[
-          Component.text('+X is the player\'s RIGHT: HoloUi negates the JSON x '
+          classes: 'hui-preview-hint-item hui-preview-hint-note',
+          <Widget>[
+            Component.text(
+              '+X is the player\'s RIGHT: HoloUi negates the JSON x '
               'at load (MenuSession.java:70), so the menu is mirrored relative '
-              'to the numbers in the file.'),
-        ]),
+              'to the numbers in the file.',
+            ),
+          ],
+        ),
       ]),
     ],
   );
@@ -290,7 +303,9 @@ class _PreviewStageState extends State<PreviewStage>
     );
     if (preview == null) {
       _pose.orbit = _lookFrom(
-          eye, _pose.openFeet + const PVec3(0, huiPreviewEyeHeight, 2));
+        eye,
+        _pose.openFeet + const PVec3(0, huiPreviewEyeHeight, 2),
+      );
     } else {
       final (double x, double y, double distance) frame = _framing(preview);
       // `contentBounds` is the 2D menu plane; its depth is the menu offset's,
@@ -301,8 +316,10 @@ class _PreviewStageState extends State<PreviewStage>
         distance: frame.$3,
       );
     }
-    _pose.player =
-        PlayerPose(feet: _pose.openFeet, yawDegrees: _pose.openYawDeg);
+    _pose.player = PlayerPose(
+      feet: _pose.openFeet,
+      yawDegrees: _pose.openYawDeg,
+    );
     _liftDirty = true;
     _wake();
     _markDirty();
@@ -316,8 +333,14 @@ class _PreviewStageState extends State<PreviewStage>
   /// is half of what the preview is for.
   (double, double, double) _framing(PreviewScene preview) {
     final WorldBounds bounds = preview.canvas.contentBounds
-        .union(const WorldBounds(
-            minX: 0, minY: 0, maxX: 0, maxY: huiPreviewEyeHeight))
+        .union(
+          const WorldBounds(
+            minX: 0,
+            minY: 0,
+            maxX: 0,
+            maxY: huiPreviewEyeHeight,
+          ),
+        )
         .expand(huiPreviewFrameMargin);
     final double halfWidth = math.max(0.5, bounds.width / 2);
     final double halfHeight = math.max(0.5, bounds.height / 2);
@@ -553,7 +576,8 @@ class _PreviewStageState extends State<PreviewStage>
     // through `_simulate`, so walking never sleeps mid-stride.
     // Pausing has to reach this, not just the frame counter: a paused preview
     // that kept the timer alive would never hit zero scheduled frames.
-    final bool continuous = (_sceneHasAnimation && _animating) ||
+    final bool continuous =
+        (_sceneHasAnimation && _animating) ||
         (_sceneHasObfuscation && !_pose.paused);
     if (!continuous && !hadInput && !changed) {
       _tickTimer?.cancel();
@@ -601,18 +625,18 @@ class _PreviewStageState extends State<PreviewStage>
     if (result.center != previousCenter) _liftDirty = true;
     if (result.closedThisTick != null) _canvasDirty = true;
 
-    final String? primary =
-        result.hoveredIds.isEmpty ? null : result.hoveredIds.first;
+    final String? primary = result.hoveredIds.isEmpty
+        ? null
+        : result.hoveredIds.first;
     final int ticks = primary == null ? 0 : _sim.hoverTicksFor(primary);
-    final double modifier =
-        primary == null ? 0 : (_sim.highlightModifierFor(primary) ?? 0);
+    final double modifier = primary == null
+        ? 0
+        : (_sim.highlightModifierFor(primary) ?? 0);
     _pose.live.update(
       hoveredId: primary,
       hoveredIds: result.hoveredIds.length,
       hoverTicks: ticks,
-      // The push magnitude, not the vector: tick 1 is the raw modifier, tick 2
-      // and later exactly one block (`ClickableComponent.java:111-116`).
-      hoverPushBlocks: ticks <= 0 ? 0 : (ticks == 1 ? modifier : 1),
+      hoverPushBlocks: ticks <= 0 ? 0 : modifier,
       highlightModifier: modifier,
       distanceToCenter: result.distanceToCenter,
       isOpen: result.isOpen,
@@ -633,11 +657,11 @@ class _PreviewStageState extends State<PreviewStage>
     if (attempted == null) return standing;
     if (!_sim.lockPosition || !_sim.isOpen) return attempted;
     return huiWithinMaxDistance(
-      playerFeet: attempted,
-      center: _sim.center,
-      maxDistance: _sim.maxDistance,
-      menuOffset: _sim.menuOffset,
-    )
+          playerFeet: attempted,
+          center: _sim.center,
+          maxDistance: _sim.maxDistance,
+          menuOffset: _sim.menuOffset,
+        )
         ? standing
         : attempted;
   }
@@ -667,10 +691,10 @@ class _PreviewStageState extends State<PreviewStage>
   // --- scene -----------------------------------------------------------------
 
   PreviewSimulation _newSimulation() => PreviewSimulation(
-        menu: component.store.menu,
-        openFeet: component.pose.openFeet,
-        initialToggleState: component.store.togglePreviewFor,
-      );
+    menu: component.store.menu,
+    openFeet: component.pose.openFeet,
+    initialToggleState: component.store.togglePreviewFor,
+  );
 
   void _reseedSimulation() {
     _sim = _newSimulation();
@@ -779,16 +803,16 @@ class _PreviewStageState extends State<PreviewStage>
         ..write(':');
       switch (item.data) {
         case HuiButtonData(
-            :final double highlightModifier,
-            :final List<HuiAction> actions
-          ):
+          :final double highlightModifier,
+          :final List<HuiAction> actions,
+        ):
           buffer.write('b$highlightModifier');
           _writeActions(buffer, actions);
         case HuiToggleData(
-            :final double highlightModifier,
-            :final List<HuiAction> trueActions,
-            :final List<HuiAction> falseActions
-          ):
+          :final double highlightModifier,
+          :final List<HuiAction> trueActions,
+          :final List<HuiAction> falseActions,
+        ):
           buffer.write('t$highlightModifier');
           _writeActions(buffer, trueActions);
           _writeActions(buffer, falseActions);
@@ -912,7 +936,8 @@ class _PreviewStageState extends State<PreviewStage>
         'display': 'none',
         'pointer-events': 'none',
         'opacity': '.85',
-        'background': 'linear-gradient(#f7f4ec,#f7f4ec) center/15px 1px '
+        'background':
+            'linear-gradient(#f7f4ec,#f7f4ec) center/15px 1px '
             'no-repeat, linear-gradient(#f7f4ec,#f7f4ec) center/1px 15px '
             'no-repeat',
       });
@@ -920,8 +945,9 @@ class _PreviewStageState extends State<PreviewStage>
   void _observeResize(web.HTMLElement stage) {
     _resizeObserver?.disconnect();
     try {
-      final web.ResizeObserver observer =
-          web.ResizeObserver(((JSAny _, JSAny _) => _syncStageSize()).toJS);
+      final web.ResizeObserver observer = web.ResizeObserver(
+        ((JSAny _, JSAny _) => _syncStageSize()).toJS,
+      );
       observer.observe(stage);
       _resizeObserver = observer;
     } catch (_) {
@@ -971,11 +997,13 @@ class _PreviewStageState extends State<PreviewStage>
     final CameraBasis basis = _basis();
     huiPreviewWriteTransform(
       camera,
-      cssMatrix3d(cssCameraMatrix(
-        basis: basis,
-        perspectivePx: huiPreviewPerspectivePx,
-        pxPerBlock: huiPreviewPxPerBlock,
-      )),
+      cssMatrix3d(
+        cssCameraMatrix(
+          basis: basis,
+          perspectivePx: huiPreviewPerspectivePx,
+          pxPerBlock: huiPreviewPxPerBlock,
+        ),
+      ),
       _cameraTransform,
       (String value) => _cameraTransform = value,
     );
@@ -1068,9 +1096,8 @@ class _PreviewStageState extends State<PreviewStage>
     // (`spriteExtentFor`). It is relative to the anchor, so a cached sprite
     // shared by two identical decorations still lands on each item's own
     // position, and there is no second derivation that could drift from the
-    // pixels: the drawn icon sits `huiTextTrueRenderBias` below the anchor
-    // (`MenuIcon.java:129` + `TextMenuIcon.java:58`) while the plane stays on
-    // it (`TextMenuIcon.java:70`), and that gap is real in game.
+    // pixels: the drawn icon sits `huiTextTrueRenderBias` below the anchor and
+    // its click plane follows the same rendered centre.
     final HuiRect extent = sprite.localRect;
 
     // Hover push along the plane's CURRENT normal: the plane re-aims at the
@@ -1083,7 +1110,8 @@ class _PreviewStageState extends State<PreviewStage>
     );
     final int ticks = _sim.hoverTicksFor(quad.id);
     if (ticks > 0 && quad.hasPlane) {
-      position = position +
+      position =
+          position +
           hoverPush(
             aimQuadPlane(quad, eye),
             _sim.highlightModifierFor(quad.id) ?? 0,
@@ -1091,13 +1119,14 @@ class _PreviewStageState extends State<PreviewStage>
           );
     }
 
-    final String transform = '${cssMatrix3d(cssQuadMatrix(
-      position: position,
-      facingYawDegrees: _facingYawFor(quad, preview.openYawDeg),
-      pxPerBlock: huiPreviewPxPerBlock,
-    ))} translate(-50%,-50%)';
-    huiPreviewWriteTransform(node.root, transform, node.transform,
-        (String value) => node.transform = value);
+    final String transform =
+        '${cssMatrix3d(cssQuadMatrix(position: position, facingYawDegrees: _facingYawFor(quad, preview.openYawDeg), pxPerBlock: huiPreviewPxPerBlock))} translate(-50%,-50%)';
+    huiPreviewWriteTransform(
+      node.root,
+      transform,
+      node.transform,
+      (String value) => node.transform = value,
+    );
     huiPreviewWriteSize(
       node.root,
       extent.w * huiPreviewPxPerBlock,
@@ -1122,12 +1151,11 @@ class _PreviewStageState extends State<PreviewStage>
       switch (_pose.facing) {
         PreviewFacingMode.intent => openYawDeg,
         PreviewFacingMode.inGame => switch (quad.item.kind) {
-            CanvasIconKind.item || CanvasIconKind.customItem => openYawDeg,
-            CanvasIconKind.text ||
-            CanvasIconKind.image ||
-            CanvasIconKind.missing =>
-              0,
-          },
+          CanvasIconKind.item || CanvasIconKind.customItem => openYawDeg,
+          CanvasIconKind.text ||
+          CanvasIconKind.image ||
+          CanvasIconKind.missing => 0,
+        },
       };
 
   /// Raw authored text, not the parsed spans: a placeholder is a source-file
@@ -1135,8 +1163,9 @@ class _PreviewStageState extends State<PreviewStage>
   String? _placeholderTextOf(CanvasItem item) {
     final HuiIcon? icon = item.icon;
     if (icon is! HuiTextIcon) return null;
-    final Iterable<RegExpMatch> found =
-        huiPlaceholderPattern.allMatches(icon.text);
+    final Iterable<RegExpMatch> found = huiPlaceholderPattern.allMatches(
+      icon.text,
+    );
     if (found.isEmpty) return null;
     return found.map((RegExpMatch match) => match.group(0)!).join(' ');
   }
@@ -1155,9 +1184,9 @@ class _PreviewStageState extends State<PreviewStage>
     if (hint == null) return;
     final String text = _playerMode
         ? 'WASD walks - click takes the pointer, Esc releases - 0 returns to '
-            'the open spot - 1-6 overlays - F facing - K pause'
+              'the open spot - 1-6 overlays - F facing - K pause'
         : 'Drag orbits - scroll dollies - space-drag pans - 0 resets - '
-            '1-6 overlays - F facing - K pause';
+              '1-6 overlays - F facing - K pause';
     if (hint.textContent == text) return;
     hint.textContent = text;
   }
@@ -1187,7 +1216,8 @@ class _PreviewStageState extends State<PreviewStage>
     // from a `pointerlockerror` that changes no other value here, and without
     // it the banner keeps telling a browser that already refused to click and
     // take the pointer.
-    final String signature = '${facing.name}|$_playerMode|$locked|$paused|'
+    final String signature =
+        '${facing.name}|$_playerMode|$locked|$paused|'
         '$range|${_input.pointerLockAvailable}|$dismissed';
     if (banner.getAttribute('data-signature') == signature) return;
     banner.setAttribute('data-signature', signature);
@@ -1201,9 +1231,12 @@ class _PreviewStageState extends State<PreviewStage>
       banner.append(_text('hui-preview-banner-body', facing.headline));
     }
     if (paused) {
-      _note(banner, '#ffd479',
-          'Paused (K). Animated frames and obfuscated glyphs are frozen and '
-          'the preview schedules no work at all; hover and clicks still run.');
+      _note(
+        banner,
+        '#ffd479',
+        'Paused (K). Animated frames and obfuscated glyphs are frozen and '
+            'the preview schedules no work at all; hover and clicks still run.',
+      );
     }
     if (sphere) {
       // The rings show the boundary; only a number can say WHY it is not the
@@ -1216,13 +1249,13 @@ class _PreviewStageState extends State<PreviewStage>
         '#7fd4ff',
         locked
             ? 'Player mode: the mouse looks, WASD walks at 4.3 blocks a '
-                'second, and the crosshair is the look ray the runtime '
-                'hit-tests. Escape releases the pointer.'
+                  'second, and the crosshair is the look ray the runtime '
+                  'hit-tests. Escape releases the pointer.'
             : _input.pointerLockAvailable
-                ? 'Player mode: click the stage to take the pointer, then the '
-                    'mouse looks and WASD walks. Escape gives it back.'
-                : 'Player mode: this browser refused the pointer lock, so the '
-                    'cursor is the aim instead. WASD still walks.',
+            ? 'Player mode: click the stage to take the pointer, then the '
+                  'mouse looks and WASD walks. Escape gives it back.'
+            : 'Player mode: this browser refused the pointer lock, so the '
+                  'cursor is the aim instead. WASD still walks.',
       );
     }
     // Nothing left to say: the box goes, rather than sitting there empty on
@@ -1296,8 +1329,9 @@ class _QuadNode extends PreviewSizedNode {
     final web.HTMLElement root = huiPreviewElement('hui-preview-quad');
     final web.HTMLCanvasElement canvas = web.HTMLCanvasElement()
       ..className = 'hui-preview-quad-canvas';
-    final web.HTMLElement placeholder =
-        huiPreviewElement('hui-preview-quad-placeholder');
+    final web.HTMLElement placeholder = huiPreviewElement(
+      'hui-preview-quad-placeholder',
+    );
     placeholder.classList.toggle('is-hidden', true);
     root.append(canvas);
     root.append(placeholder);
@@ -1322,13 +1356,7 @@ class _QuadNode extends PreviewSizedNode {
     final web.CanvasRenderingContext2D ctx =
         raw as web.CanvasRenderingContext2D;
     ctx.clearRect(0, 0, width.toDouble(), height.toDouble());
-    ctx.drawImage(
-      sprite.canvas,
-      0,
-      0,
-      width.toDouble(),
-      height.toDouble(),
-    );
+    ctx.drawImage(sprite.canvas, 0, 0, width.toDouble(), height.toDouble());
   }
 
   void setPlaceholder(String? found) {
@@ -1341,7 +1369,7 @@ class _QuadNode extends PreviewSizedNode {
     root.setAttribute(
       'title',
       '$found resolves once, at open, on the server. The editor has no '
-      'PlaceholderAPI, so it is drawn verbatim.',
+          'PlaceholderAPI, so it is drawn verbatim.',
     );
   }
 }

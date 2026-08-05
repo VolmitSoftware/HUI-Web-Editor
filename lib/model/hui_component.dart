@@ -35,43 +35,69 @@ sealed class HuiComponentData {
   }
 }
 
+class HuiHitbox {
+  double width;
+  double height;
+  Map<String, dynamic> extras = <String, dynamic>{};
+
+  HuiHitbox(this.width, this.height);
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'width': width,
+    'height': height,
+  }, extras);
+
+  HuiHitbox copy() => HuiHitbox(width, height)..extras = huiDeepCopyMap(extras);
+
+  static const Set<String> _known = <String>{'width', 'height'};
+
+  static HuiHitbox? fromJsonOrNull(Object? raw, {required String path}) {
+    if (raw == null) return null;
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return HuiHitbox(huiReadDouble(map, 'width'), huiReadDouble(map, 'height'))
+      ..extras = huiCollectExtras(map, _known);
+  }
+}
+
 class HuiButtonData extends HuiComponentData {
   /// Blocks the icon leans toward the player while highlighted. Unclamped in
   /// JSON; the Java API clamps to 0..1.
   double highlightModifier;
   List<HuiAction> actions;
   HuiIcon? icon;
+  HuiHitbox? hitbox;
 
   HuiButtonData([
     this.highlightModifier = 0.05,
     List<HuiAction>? actions,
     this.icon,
+    this.hitbox,
   ]) : actions = actions ?? <HuiAction>[];
 
   @override
   String get type => 'button';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{
-          'type': 'button',
-          'highlightModifier': highlightModifier,
-          'icon': icon?.toJson(),
-          'actions': HuiAction.listToJson(actions),
-        },
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'button',
+    'highlightModifier': highlightModifier,
+    if (hitbox != null) 'hitbox': hitbox!.toJson(),
+    'icon': icon?.toJson(),
+    'actions': HuiAction.listToJson(actions),
+  }, extras);
 
   @override
   HuiButtonData copy() => HuiButtonData(
-        highlightModifier,
-        actions.map((HuiAction a) => a.copy()).toList(),
-        icon?.copy(),
-      )..extras = huiDeepCopyMap(extras);
+    highlightModifier,
+    actions.map((HuiAction a) => a.copy()).toList(),
+    icon?.copy(),
+    hitbox?.copy(),
+  )..extras = huiDeepCopyMap(extras);
 
   static const Set<String> _known = <String>{
     'type',
     'highlightModifier',
+    'hitbox',
     'icon',
     'actions',
   };
@@ -81,6 +107,7 @@ class HuiButtonData extends HuiComponentData {
         huiReadDouble(map, 'highlightModifier'),
         HuiAction.listFromJson(map['actions'], '$path.actions'),
         HuiIcon.fromJsonOrNull(map['icon'], path: '$path.icon'),
+        HuiHitbox.fromJsonOrNull(map['hitbox'], path: '$path.hitbox'),
       )..extras = huiCollectExtras(map, _known);
 }
 
@@ -93,10 +120,10 @@ class HuiDecorationData extends HuiComponentData {
   String get type => 'decoration';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{'type': 'decoration', 'icon': icon?.toJson()},
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'decoration',
+    'icon': icon?.toJson(),
+  }, extras);
 
   @override
   HuiDecorationData copy() =>
@@ -105,9 +132,8 @@ class HuiDecorationData extends HuiComponentData {
   static const Set<String> _known = <String>{'type', 'icon'};
 
   static HuiDecorationData fromMap(Map<String, dynamic> map, String path) =>
-      HuiDecorationData(
-        HuiIcon.fromJsonOrNull(map['icon'], path: '$path.icon'),
-      )..extras = huiCollectExtras(map, _known);
+      HuiDecorationData(HuiIcon.fromJsonOrNull(map['icon'], path: '$path.icon'))
+        ..extras = huiCollectExtras(map, _known);
 }
 
 class HuiToggleData extends HuiComponentData {
@@ -130,37 +156,34 @@ class HuiToggleData extends HuiComponentData {
     List<HuiAction>? falseActions,
     this.trueIcon,
     this.falseIcon,
-  ])  : trueActions = trueActions ?? <HuiAction>[],
-        falseActions = falseActions ?? <HuiAction>[];
+  ]) : trueActions = trueActions ?? <HuiAction>[],
+       falseActions = falseActions ?? <HuiAction>[];
 
   @override
   String get type => 'toggle';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{
-          'type': 'toggle',
-          'highlightModifier': highlightModifier,
-          'condition': condition,
-          'expectedValue': expectedValue,
-          'trueIcon': trueIcon?.toJson(),
-          'falseIcon': falseIcon?.toJson(),
-          'trueActions': HuiAction.listToJson(trueActions),
-          'falseActions': HuiAction.listToJson(falseActions),
-        },
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'toggle',
+    'highlightModifier': highlightModifier,
+    'condition': condition,
+    'expectedValue': expectedValue,
+    'trueIcon': trueIcon?.toJson(),
+    'falseIcon': falseIcon?.toJson(),
+    'trueActions': HuiAction.listToJson(trueActions),
+    'falseActions': HuiAction.listToJson(falseActions),
+  }, extras);
 
   @override
   HuiToggleData copy() => HuiToggleData(
-        highlightModifier,
-        condition,
-        expectedValue,
-        trueActions.map((HuiAction a) => a.copy()).toList(),
-        falseActions.map((HuiAction a) => a.copy()).toList(),
-        trueIcon?.copy(),
-        falseIcon?.copy(),
-      )..extras = huiDeepCopyMap(extras);
+    highlightModifier,
+    condition,
+    expectedValue,
+    trueActions.map((HuiAction a) => a.copy()).toList(),
+    falseActions.map((HuiAction a) => a.copy()).toList(),
+    trueIcon?.copy(),
+    falseIcon?.copy(),
+  )..extras = huiDeepCopyMap(extras);
 
   static const Set<String> _known = <String>{
     'type',
@@ -201,27 +224,25 @@ class HuiComponent {
 
   HuiComponent(this.id, this.offset, this.data);
 
-  HuiComponent copy() => HuiComponent(id, offset.copy(), data.copy())
-    ..extras = huiDeepCopyMap(extras);
+  HuiComponent copy() =>
+      HuiComponent(id, offset.copy(), data.copy())
+        ..extras = huiDeepCopyMap(extras);
 
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{
-          'id': id,
-          'offset': offset.toJson(),
-          'data': data.toJson(),
-        },
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'id': id,
+    'offset': offset.toJson(),
+    'data': data.toJson(),
+  }, extras);
 
   static const Set<String> _known = <String>{'id', 'offset', 'data'};
 
   static HuiComponent fromJson(Object? raw, {String path = 'component'}) {
     final Map<String, dynamic> map = huiReadObject(raw, path);
     return HuiComponent(
-      huiReadString(map, 'id'),
-      Vec3.fromJson(map['offset'], path: '$path.offset'),
-      HuiComponentData.fromJson(map['data'], path: '$path.data'),
-    )
+        huiReadString(map, 'id'),
+        Vec3.fromJson(map['offset'], path: '$path.offset'),
+        HuiComponentData.fromJson(map['data'], path: '$path.data'),
+      )
       ..extras = huiCollectExtras(map, _known)
       ..absentKeys = <String>{if (map['offset'] == null) 'offset'};
   }

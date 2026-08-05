@@ -43,10 +43,7 @@ const double huiPreviewPerspectivePx = 900;
 /// Minecraft's own direction is `(−cos p·sin y, −sin p, cos p·cos y)`; the
 /// authoring frame negates X, which is what turns "world east" into "player's
 /// right".
-PVec3 huiLookDirection({
-  required double yawDegrees,
-  double pitchDegrees = 0,
-}) {
+PVec3 huiLookDirection({required double yawDegrees, double pitchDegrees = 0}) {
   final double yaw = yawDegrees * math.pi / 180;
   final double pitch = pitchDegrees * math.pi / 180;
   final double cosPitch = math.cos(pitch);
@@ -92,12 +89,12 @@ class CameraBasis {
 
   /// First-person camera at the player's eye (`feet + 1.62`).
   factory CameraBasis.player(PlayerPose pose) => CameraBasis._facing(
-        pose.eye,
-        huiLookDirection(
-          yawDegrees: pose.yawDegrees,
-          pitchDegrees: pose.pitchDegrees,
-        ),
-      );
+    pose.eye,
+    huiLookDirection(
+      yawDegrees: pose.yawDegrees,
+      pitchDegrees: pose.pitchDegrees,
+    ),
+  );
 
   /// Derives a roll-free basis: [right] is horizontal, so the horizon never
   /// tilts. A camera aimed exactly at the poles falls back to +X, which is what
@@ -183,9 +180,7 @@ LookRay rayThrough({
   final double offsetY = pointerY - viewportHeight / 2;
   return LookRay.normalized(
     basis.position,
-    basis.right * offsetX -
-        basis.up * offsetY +
-        basis.forward * perspectivePx,
+    basis.right * offsetX - basis.up * offsetY + basis.forward * perspectivePx,
   );
 }
 
@@ -251,16 +246,10 @@ PlaneAim aimPlaneAt(PVec3 planeCenter, PVec3 eye) {
 /// parallel ray bails on `proj == 0`, and a plane behind the ray bails on
 /// `distance < 0`. The edge test is strictly `<`, so a ray through a corner of
 /// the rectangle misses, and a zero-width plane can never be hit at all.
-bool rayHitsPlane(
-  LookRay ray,
-  PlaneAim aim,
-  double width,
-  double height,
-) {
+bool rayHitsPlane(LookRay ray, PlaneAim aim, double width, double height) {
   final double projection = aim.normal.dot(ray.direction);
   if (projection == 0) return false;
-  final double distance =
-      aim.normal.dot(aim.center - ray.origin) / projection;
+  final double distance = aim.normal.dot(aim.center - ray.origin) / projection;
   if (distance < 0) return false;
   final PVec3 intersect = ray.pointAt(distance) - aim.center;
   return aim.right.dot(intersect).abs() < width / 2 &&
@@ -269,30 +258,20 @@ bool rayHitsPlane(
 
 /// How far the icon leans toward the player on hover tick [hoverTicks].
 ///
-/// Tick 1 is the raw `highlightModifier`: `ClickableComponent.java:59-70` moves
-/// the icon by `normal × highlightMod`, and Gson writes that record field
-/// directly, so the API's 0..1 clamp (`HoloComponent.java:33`) never runs on a
-/// value parsed from json — a file saying `3.0` really does throw the icon
-/// three blocks.
-///
-/// From tick 2 the push is exactly **1.0 block**, whatever the modifier says:
-/// `rotateToFace` runs *before* the hit test and, while selected, teleports the
-/// icon to `location + plane.normal`, and that normal is normalised
-/// (`ClickableComponent.java:111-116`, `CollisionPlane.java:83-85`). Exit is an
-/// instant teleport back to zero, which is why there is no easing anywhere in
-/// this function.
+/// Every hovered tick uses the raw `highlightModifier`. Gson writes that record
+/// field directly, so the API's 0..1 clamp does not run on JSON values.
 PVec3 hoverPush(PlaneAim aim, double modifier, int hoverTicks) {
   if (hoverTicks <= 0) return PVec3.zero;
-  return hoverTicks == 1 ? aim.normal * modifier : aim.normal;
+  return aim.normal * modifier;
 }
 
 /// Column-major 4x4 identity.
 List<double> huiIdentityMatrix() => <double>[
-      1, 0, 0, 0, //
-      0, 1, 0, 0, //
-      0, 0, 1, 0, //
-      0, 0, 0, 1, //
-    ];
+  1, 0, 0, 0, //
+  0, 1, 0, 0, //
+  0, 0, 1, 0, //
+  0, 0, 0, 1, //
+];
 
 /// `a · b`, i.e. [b] applied first.
 List<double> huiMultiplyMatrix(List<double> a, List<double> b) {
@@ -314,19 +293,23 @@ List<double> huiMultiplyMatrix(List<double> a, List<double> b) {
 /// Transforms a point (w = 1) by a column-major matrix.
 PVec3 huiTransformPoint(List<double> matrix, PVec3 point) {
   _requireMatrix(matrix);
-  final double x = matrix[0] * point.x +
+  final double x =
+      matrix[0] * point.x +
       matrix[4] * point.y +
       matrix[8] * point.z +
       matrix[12];
-  final double y = matrix[1] * point.x +
+  final double y =
+      matrix[1] * point.x +
       matrix[5] * point.y +
       matrix[9] * point.z +
       matrix[13];
-  final double z = matrix[2] * point.x +
+  final double z =
+      matrix[2] * point.x +
       matrix[6] * point.y +
       matrix[10] * point.z +
       matrix[14];
-  final double w = matrix[3] * point.x +
+  final double w =
+      matrix[3] * point.x +
       matrix[7] * point.y +
       matrix[11] * point.z +
       matrix[15];

@@ -64,37 +64,51 @@ void main() {
 
     test('exposes viewport bounds for fit-to-content', () {
       const HuiRect a = HuiRect(x: 1, y: 1, w: 2, h: 2);
-      const WorldBounds expected =
-          WorldBounds(minX: 0, minY: 0, maxX: 2, maxY: 2);
+      const WorldBounds expected = WorldBounds(
+        minX: 0,
+        minY: 0,
+        maxX: 2,
+        maxY: 2,
+      );
       expect(a.bounds, expected);
     });
   });
 
   group('hitboxAt - text', () {
-    test('3 lines x 10 chars at uiScale 1 matches the collision plane table',
-        () {
-      const IconShape shape = IconShape.text(lines: 3, maxLineChars: 10);
-      final HuiRect box =
-          hitboxAt(anchorX: 0, anchorY: 0, uiScale: 1, shape: shape);
-      expect(box.w, closeTo(10 * huiLineHeight / 2, _epsilon));
-      expect(box.w, closeTo(1.09375, _epsilon));
-      expect(box.h, closeTo(3 * huiLineHeight, _epsilon));
-      expect(box.h, closeTo(0.65625, _epsilon));
-      expect(box.x, 0.0);
-      expect(box.y, 0.0);
-    });
+    test(
+      '3 lines x 10 chars at uiScale 1 matches the collision plane table',
+      () {
+        const IconShape shape = IconShape.text(lines: 3, maxLineChars: 10);
+        final HuiRect box = hitboxAt(
+          anchorX: 0,
+          anchorY: 0,
+          uiScale: 1,
+          shape: shape,
+        );
+        expect(box.w, closeTo(10 * huiLineHeight / 2, _epsilon));
+        expect(box.w, closeTo(1.09375, _epsilon));
+        expect(box.h, closeTo(3 * huiLineHeight, _epsilon));
+        expect(box.h, closeTo(0.65625, _epsilon));
+        expect(box.x, 0.0);
+        expect(box.y, closeTo(-huiTextTrueRenderBias, _epsilon));
+      },
+    );
 
     test('scales width, height and the anchor by uiScale 2.5', () {
       const IconShape shape = IconShape.text(lines: 3, maxLineChars: 10);
-      final HuiRect box =
-          hitboxAt(anchorX: 1, anchorY: 2, uiScale: 2.5, shape: shape);
+      final HuiRect box = hitboxAt(
+        anchorX: 1,
+        anchorY: 2,
+        uiScale: 2.5,
+        shape: shape,
+      );
       expect(box.w, closeTo(2.734375, _epsilon));
       expect(box.h, closeTo(1.640625, _epsilon));
       expect(box.x, 1.0);
-      expect(box.y, 2.0);
+      expect(box.y, closeTo(2 - huiTextTrueRenderBias * 2.5, _epsilon));
     });
 
-    test('stays centred on the anchor regardless of line count', () {
+    test('stays centred on the visible text regardless of line count', () {
       for (final int lines in <int>[1, 2, 5]) {
         final HuiRect box = hitboxAt(
           anchorX: -0.5,
@@ -103,7 +117,7 @@ void main() {
           shape: IconShape.text(lines: lines, maxLineChars: 4),
         );
         expect(box.x, -0.5);
-        expect(box.y, 0.85);
+        expect(box.y, closeTo(0.85 - huiTextTrueRenderBias, _epsilon));
         expect(box.h, closeTo(lines * huiLineHeight, _epsilon));
       }
     });
@@ -112,17 +126,26 @@ void main() {
   group('hitboxAt - image', () {
     test('height uses (rows - 1) line heights', () {
       const IconShape shape = IconShape.image(rows: 8, columns: 8);
-      final HuiRect box =
-          hitboxAt(anchorX: 0, anchorY: 0, uiScale: 1, shape: shape);
+      final HuiRect box = hitboxAt(
+        anchorX: 0,
+        anchorY: 0,
+        uiScale: 1,
+        shape: shape,
+      );
       expect(box.w, closeTo(0.875, _epsilon));
       expect(box.h, closeTo(7 * huiLineHeight, _epsilon));
       expect(box.h, closeTo(1.53125, _epsilon));
+      expect(box.y, closeTo(-huiTextTrueRenderBias, _epsilon));
     });
 
     test('scales with uiScale 2.5', () {
       const IconShape shape = IconShape.image(rows: 8, columns: 8);
-      final HuiRect box =
-          hitboxAt(anchorX: 0, anchorY: 0, uiScale: 2.5, shape: shape);
+      final HuiRect box = hitboxAt(
+        anchorX: 0,
+        anchorY: 0,
+        uiScale: 2.5,
+        shape: shape,
+      );
       expect(box.w, closeTo(2.1875, _epsilon));
       expect(box.h, closeTo(3.828125, _epsilon));
     });
@@ -142,8 +165,12 @@ void main() {
       expect(missing.lines, 8);
       expect(missing.maxLineChars, 8);
       expect(missing.isItem, isFalse);
-      final HuiRect box =
-          hitboxAt(anchorX: 0, anchorY: 0, uiScale: 1, shape: missing);
+      final HuiRect box = hitboxAt(
+        anchorX: 0,
+        anchorY: 0,
+        uiScale: 1,
+        shape: missing,
+      );
       expect(box.w, closeTo(0.875, _epsilon));
       expect(box.h, closeTo(1.53125, _epsilon));
     });
@@ -365,10 +392,18 @@ void main() {
     });
 
     test('line spacing is the scaled nametag size', () {
-      final double a =
-          textLineCenterY(anchorY: 0, uiScale: 2.5, lineIndex: 0, lineCount: 4);
-      final double b =
-          textLineCenterY(anchorY: 0, uiScale: 2.5, lineIndex: 1, lineCount: 4);
+      final double a = textLineCenterY(
+        anchorY: 0,
+        uiScale: 2.5,
+        lineIndex: 0,
+        lineCount: 4,
+      );
+      final double b = textLineCenterY(
+        anchorY: 0,
+        uiScale: 2.5,
+        lineIndex: 1,
+        lineCount: 4,
+      );
       expect(a - b, closeTo(huiLineHeight * 2.5, _epsilon));
     });
   });
@@ -401,8 +436,11 @@ void main() {
     test('the menu offset is added without being scaled', () {
       final HuiComponent c = _component(1, 1, 1);
       final Vec3 menu = Vec3(0, 1.7, 2.5);
-      final WorldPoint anchor =
-          anchorFor(component: c, uiScale: 2, menuOffset: menu);
+      final WorldPoint anchor = anchorFor(
+        component: c,
+        uiScale: 2,
+        menuOffset: menu,
+      );
       expect(anchor.x, closeTo(2, _epsilon));
       expect(anchor.y, closeTo(3.7, _epsilon));
       expect(
@@ -419,7 +457,7 @@ void main() {
         shape: const IconShape.text(lines: 3, maxLineChars: 10),
       );
       expect(box.x, closeTo(2.5, _epsilon));
-      expect(box.y, closeTo(5, _epsilon));
+      expect(box.y, closeTo(5 - huiTextTrueRenderBias * 2.5, _epsilon));
       expect(box.w, closeTo(2.734375, _epsilon));
       expect(box.h, closeTo(1.640625, _epsilon));
     });
@@ -432,6 +470,22 @@ void main() {
       );
       expect(box.y, closeTo(2 - 0.1, _epsilon));
       expect(box.w, closeTo(1.5, _epsilon));
+    });
+
+    test('button custom hitbox overrides scaled dimensions only', () {
+      final HuiComponent component = HuiComponent(
+        'button',
+        Vec3(0, 1, 0),
+        HuiButtonData(0.05, const [], null, HuiHitbox(1.25, 0.35)),
+      );
+      final HuiRect box = hitboxFor(
+        component: component,
+        uiScale: 2,
+        shape: const IconShape.text(lines: 1, maxLineChars: 4),
+      );
+      expect(box.y, closeTo(2 - huiTextTrueRenderBias * 2, _epsilon));
+      expect(box.w, closeTo(2.5, _epsilon));
+      expect(box.h, closeTo(0.7, _epsilon));
     });
 
     test('visualBoundsFor carries the true-render bias off the anchor', () {
@@ -470,7 +524,7 @@ void main() {
       );
       expect(a.overlaps(near), isTrue);
       expect(a.overlaps(far), isFalse);
-      expect(a.contains(0.5, 0.3), isTrue);
+      expect(a.contains(0.5, -0.3), isTrue);
     });
   });
 

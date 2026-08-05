@@ -1,12 +1,8 @@
 /// Vertical alignment: where an icon's collision plane sits, where its glyphs
 /// are drawn, and where the bitmap that carries those glyphs has to be pinned.
 ///
-/// The gap between the two is REAL runtime behaviour, not a preview artifact:
-///  - `TextMenuIcon.createBoundingBox` centres the plane exactly on the
-///    component anchor (`TextMenuIcon.java:70`),
-///  - `MenuIcon.spawn` drops the display one nametag (`MenuIcon.java:129`) and
-///    `TextMenuIcon.createDisplayEntities` drops it another
-///    (`TextMenuIcon.java:58`), so the drawn block centres two nametags below.
+/// Text display entities retain their below-anchor bias, and their collision
+/// planes follow the resulting visible glyph centre.
 ///
 /// The 2D canvas and the 3D preview both read these numbers, so an assertion
 /// here is what keeps the two views from disagreeing about the same document.
@@ -55,15 +51,20 @@ void main() {
       // `MenuIcon.spawn` -1 nametag (MenuIcon.java:129) and
       // `TextMenuIcon.createDisplayEntities` -1 more (TextMenuIcon.java:58),
       // calibrated back up by the text display's own 4.5 px baseline.
-      expect(huiTextTrueRenderBias, closeTo(2 * huiLineHeight - 4.5 / 40, 1e-12));
+      expect(
+        huiTextTrueRenderBias,
+        closeTo(2 * huiLineHeight - 4.5 / 40, 1e-12),
+      );
     });
 
     test('a loose item drops a nametag plus ITEM_OFFSET plus the single-count '
         'nudge, a block-like one only BLOCK_OFFSET', () {
       expect(
         itemTrueRenderBias(count: 1, isBlockItem: false),
-        closeTo(huiLineHeight + huiItemDisplayOffset + huiSingleItemCountOffset,
-            1e-12),
+        closeTo(
+          huiLineHeight + huiItemDisplayOffset + huiSingleItemCountOffset,
+          1e-12,
+        ),
       );
       expect(
         itemTrueRenderBias(count: 4, isBlockItem: false),
@@ -77,19 +78,20 @@ void main() {
   });
 
   group('anchor to plane and anchor to visual', () {
-    test('single-line text plants the plane on the anchor and the glyphs one '
-        'true-render bias below', () {
+    test('single-line text plants the plane on the visible glyphs', () {
       final CanvasItem item = _only(HuiTextIcon('ONE'));
-      expect(_planeDrop(item), closeTo(0, 1e-12));
+      expect(_planeDrop(item), closeTo(huiTextTrueRenderBias, 1e-12));
       expect(_visualDrop(item), closeTo(huiTextTrueRenderBias, 1e-12));
+      expect(item.hitbox.y, closeTo(item.visual.y, 1e-12));
       expect(item.hitbox.h, closeTo(huiLineHeight, 1e-12));
       expect(item.visual.h, closeTo(huiLineHeight, 1e-12));
     });
 
     test('multi-line text keeps the same drop and grows both boxes', () {
       final CanvasItem item = _only(HuiTextIcon('AA\nBB\nCC'));
-      expect(_planeDrop(item), closeTo(0, 1e-12));
+      expect(_planeDrop(item), closeTo(huiTextTrueRenderBias, 1e-12));
       expect(_visualDrop(item), closeTo(huiTextTrueRenderBias, 1e-12));
+      expect(item.hitbox.y, closeTo(item.visual.y, 1e-12));
       expect(item.hitbox.h, closeTo(3 * huiLineHeight, 1e-12));
       expect(item.visual.h, closeTo(3 * huiLineHeight, 1e-12));
     });
@@ -99,7 +101,7 @@ void main() {
       // which is the image geometry path.
       final CanvasItem item = _only(HuiTextImageIcon('nope.png'));
       expect(item.shape.kind, IconShapeKind.image);
-      expect(_planeDrop(item), closeTo(0, 1e-12));
+      expect(_planeDrop(item), closeTo(huiTextTrueRenderBias, 1e-12));
       expect(_visualDrop(item), closeTo(huiTextTrueRenderBias, 1e-12));
     });
 
@@ -130,9 +132,31 @@ void main() {
 
     test('uiScale multiplies every drop', () {
       final CanvasItem item = _only(HuiTextIcon('ONE'), uiScale: 2);
-      expect(_planeDrop(item), closeTo(0, 1e-12));
+      expect(_planeDrop(item), closeTo(huiTextTrueRenderBias * 2, 1e-12));
       expect(_visualDrop(item), closeTo(huiTextTrueRenderBias * 2, 1e-12));
     });
+
+    test(
+      'custom size changes dimensions without separating text and plane',
+      () {
+        final HuiComponent button = HuiComponent(
+          'a',
+          Vec3(0, 0, 0),
+          HuiButtonData(
+            0,
+            <HuiAction>[],
+            HuiTextIcon('ONE'),
+            HuiHitbox(1.25, 0.35),
+          ),
+        );
+        final CanvasItem item = _scene(<HuiComponent>[
+          button,
+        ], uiScale: 2).items.single;
+        expect(item.hitbox.w, closeTo(2.5, 1e-12));
+        expect(item.hitbox.h, closeTo(0.7, 1e-12));
+        expect(item.hitbox.y, closeTo(item.visual.y, 1e-12));
+      },
+    );
   });
 
   group('the drawn stack agrees with the visual box', () {
@@ -170,33 +194,45 @@ void main() {
   });
 
   group('spriteExtentFor', () {
-    test('is relative to the anchor, so a shared bitmap carries no position', () {
-      final CanvasScene scene = _scene(<HuiComponent>[
-        HuiComponent(
-          'left',
-          Vec3(-2, 1, 0),
-          HuiButtonData(0, <HuiAction>[], HuiTextIcon('SAME')),
-        ),
-        HuiComponent(
-          'right',
-          Vec3(3, -1, 0),
-          HuiButtonData(0, <HuiAction>[], HuiTextIcon('SAME')),
-        ),
-      ]);
-      final HuiRect a =
-          spriteExtentFor(scene.items[0], uiScale: 1, trueRender: true);
-      final HuiRect b =
-          spriteExtentFor(scene.items[1], uiScale: 1, trueRender: true);
-      expect(a.x, closeTo(b.x, 1e-12));
-      expect(a.y, closeTo(b.y, 1e-12));
-      expect(a.w, closeTo(b.w, 1e-12));
-      expect(a.h, closeTo(b.h, 1e-12));
-    });
+    test(
+      'is relative to the anchor, so a shared bitmap carries no position',
+      () {
+        final CanvasScene scene = _scene(<HuiComponent>[
+          HuiComponent(
+            'left',
+            Vec3(-2, 1, 0),
+            HuiButtonData(0, <HuiAction>[], HuiTextIcon('SAME')),
+          ),
+          HuiComponent(
+            'right',
+            Vec3(3, -1, 0),
+            HuiButtonData(0, <HuiAction>[], HuiTextIcon('SAME')),
+          ),
+        ]);
+        final HuiRect a = spriteExtentFor(
+          scene.items[0],
+          uiScale: 1,
+          trueRender: true,
+        );
+        final HuiRect b = spriteExtentFor(
+          scene.items[1],
+          uiScale: 1,
+          trueRender: true,
+        );
+        expect(a.x, closeTo(b.x, 1e-12));
+        expect(a.y, closeTo(b.y, 1e-12));
+        expect(a.w, closeTo(b.w, 1e-12));
+        expect(a.h, closeTo(b.h, 1e-12));
+      },
+    );
 
     test('centres on the drawn box and only pads around it', () {
       final CanvasItem item = _only(HuiTextIcon('ONE'));
-      final HuiRect extent =
-          spriteExtentFor(item, uiScale: 1, trueRender: true);
+      final HuiRect extent = spriteExtentFor(
+        item,
+        uiScale: 1,
+        trueRender: true,
+      );
       expect(extent.x, closeTo(item.visual.x - item.anchor.x, 1e-12));
       expect(extent.y, closeTo(item.visual.y - item.anchor.y, 1e-12));
       expect(
@@ -229,12 +265,17 @@ void main() {
         h: huiLineHeight * 2,
       );
       final double top = math.max(item.visual.top - item.anchor.y, label.top);
-      final double bottom =
-          math.min(item.visual.bottom - item.anchor.y, label.bottom);
+      final double bottom = math.min(
+        item.visual.bottom - item.anchor.y,
+        label.bottom,
+      );
       final double padY =
           (top - bottom) * huiSpritePadFractionY + huiSpritePadBlocks;
-      final HuiRect extent =
-          spriteExtentFor(item, uiScale: 1, trueRender: true);
+      final HuiRect extent = spriteExtentFor(
+        item,
+        uiScale: 1,
+        trueRender: true,
+      );
       expect(extent.y, closeTo((top + bottom) / 2, 1e-12));
       expect(extent.h, closeTo(top - bottom + 2 * padY, 1e-12));
       // Sanity: the label really does move the centre off the icon's own.
@@ -243,8 +284,11 @@ void main() {
 
     test('a single item is not grown at all', () {
       final CanvasItem item = _only(HuiItemIcon('stone'));
-      final HuiRect extent =
-          spriteExtentFor(item, uiScale: 1, trueRender: true);
+      final HuiRect extent = spriteExtentFor(
+        item,
+        uiScale: 1,
+        trueRender: true,
+      );
       expect(extent.y, closeTo(item.visual.y - item.anchor.y, 1e-12));
     });
 
@@ -258,42 +302,48 @@ void main() {
   });
 
   group('the 3D scene reports the same relationship the canvas measured', () {
-    test('every quad carries its item\'s own anchor, plane and visual gaps', () {
-      final HuiMenu menu = HuiMenu(
-        offset: Vec3(0, 1.5, 2.5),
-        components: <HuiComponent>[
-          _button('text', HuiTextIcon('ONE')),
-          HuiComponent(
-            'item',
-            Vec3(1, 0, 0),
-            HuiButtonData(0, <HuiAction>[], HuiItemIcon('diamond_sword')),
-          ),
-        ],
-      );
-      final CanvasScene canvas = buildCanvasScene(
-        menu: menu,
-        uiScale: 1,
-        trueRender: true,
-        togglePreview: (String _) => true,
-        textCache: McTextCache(),
-      );
-      final PreviewScene preview = buildPreviewScene(
-        menu: menu,
-        uiScale: 1,
-        openFeet: PVec3.zero,
-        openYawDeg: 0,
-        canvas: canvas,
-      );
-
-      for (int i = 0; i < canvas.items.length; i++) {
-        final CanvasItem item = canvas.items[i];
-        final PreviewQuad quad = preview.quads[i];
-        expect(quad.anchor.y - quad.planeCenter.y, closeTo(_planeDrop(item), 1e-12));
-        expect(
-          quad.anchor.y - quad.visualCenter.y,
-          closeTo(_visualDrop(item), 1e-12),
+    test(
+      'every quad carries its item\'s own anchor, plane and visual gaps',
+      () {
+        final HuiMenu menu = HuiMenu(
+          offset: Vec3(0, 1.5, 2.5),
+          components: <HuiComponent>[
+            _button('text', HuiTextIcon('ONE')),
+            HuiComponent(
+              'item',
+              Vec3(1, 0, 0),
+              HuiButtonData(0, <HuiAction>[], HuiItemIcon('diamond_sword')),
+            ),
+          ],
         );
-      }
-    });
+        final CanvasScene canvas = buildCanvasScene(
+          menu: menu,
+          uiScale: 1,
+          trueRender: true,
+          togglePreview: (String _) => true,
+          textCache: McTextCache(),
+        );
+        final PreviewScene preview = buildPreviewScene(
+          menu: menu,
+          uiScale: 1,
+          openFeet: PVec3.zero,
+          openYawDeg: 0,
+          canvas: canvas,
+        );
+
+        for (int i = 0; i < canvas.items.length; i++) {
+          final CanvasItem item = canvas.items[i];
+          final PreviewQuad quad = preview.quads[i];
+          expect(
+            quad.anchor.y - quad.planeCenter.y,
+            closeTo(_planeDrop(item), 1e-12),
+          );
+          expect(
+            quad.anchor.y - quad.visualCenter.y,
+            closeTo(_visualDrop(item), 1e-12),
+          );
+        }
+      },
+    );
   });
 }

@@ -76,9 +76,7 @@ class PreviewTickResult {
   /// dropped from whatever the caller passed in.
   final Set<String> hoveredIds;
 
-  /// Consecutive ticks each hovered id has been held, counting from 1. Feeds
-  /// the hover push: tick 1 uses `highlightModifier`, tick 2 and later a flat
-  /// 1.0 block (`ClickableComponent.java:111-116`).
+  /// Consecutive ticks each hovered id has been held, counting from 1.
   final Map<String, int> hoverTicks;
 
   final bool isOpen;
@@ -104,22 +102,27 @@ class PreviewSimulation {
     required HuiMenu menu,
     required this.openFeet,
     bool Function(String componentId)? initialToggleState,
-  })  : menuOffset = PVec3(menu.offset.x, menu.offset.y, menu.offset.z),
-        maxDistance = menu.maxDistance,
-        followPlayer = menu.followPlayer,
-        lockPosition = menu.lockPosition,
-        _clickables = List<SimClickable>.unmodifiable(_collectClickables(menu)) {
+  }) : menuOffset = PVec3(menu.offset.x, menu.offset.y, menu.offset.z),
+       maxDistance = menu.maxDistance,
+       followPlayer = menu.followPlayer,
+       lockPosition = menu.lockPosition,
+       _clickables = List<SimClickable>.unmodifiable(_collectClickables(menu)) {
     // MenuSession.java:73 anchors on player.getLocation() — the feet — and the
     // menu offset is the one offset uiScale never touches
     // (HuiSettings.java:60-66).
     _center = openFeet + menuOffset;
     for (final SimClickable clickable in _clickables) {
-      _toggleStates.add(clickable.kind == SimClickableKind.toggle
-          ? (initialToggleState?.call(clickable.id) ?? true)
-          : null);
+      _toggleStates.add(
+        clickable.kind == SimClickableKind.toggle
+            ? (initialToggleState?.call(clickable.id) ?? true)
+            : null,
+      );
       // MenuSession.java:79 builds the id map with putIfAbsent, so a duplicate
       // id resolves to the first component that claimed it.
-      _highlightById.putIfAbsent(clickable.id, () => clickable.highlightModifier);
+      _highlightById.putIfAbsent(
+        clickable.id,
+        () => clickable.highlightModifier,
+      );
     }
   }
 
@@ -231,27 +234,31 @@ class PreviewSimulation {
 
       switch (clickable.kind) {
         case SimClickableKind.button:
-          fired.add(ActionLogEntry(
-            tick: _tickCount,
-            componentId: clickable.id,
-            trigger: ActionLogTrigger.button,
-            actions: loggedActionsFrom(clickable.actions),
-          ));
+          fired.add(
+            ActionLogEntry(
+              tick: _tickCount,
+              componentId: clickable.id,
+              trigger: ActionLogTrigger.button,
+              actions: loggedActionsFrom(clickable.actions),
+            ),
+          );
         case SimClickableKind.toggle:
           // ToggleComponent.java:52-61 fires the list named for the state it is
           // moving INTO, then swaps the icon and stores the new state.
           final bool next = !(_toggleStates[i] ?? false);
           _toggleStates[i] = next;
-          fired.add(ActionLogEntry(
-            tick: _tickCount,
-            componentId: clickable.id,
-            trigger: next
-                ? ActionLogTrigger.toggleToTrue
-                : ActionLogTrigger.toggleToFalse,
-            actions: loggedActionsFrom(
-              next ? clickable.trueActions : clickable.falseActions,
+          fired.add(
+            ActionLogEntry(
+              tick: _tickCount,
+              componentId: clickable.id,
+              trigger: next
+                  ? ActionLogTrigger.toggleToTrue
+                  : ActionLogTrigger.toggleToFalse,
+              actions: loggedActionsFrom(
+                next ? clickable.trueActions : clickable.falseActions,
+              ),
             ),
-          ));
+          );
       }
     }
     return fired;
@@ -274,48 +281,51 @@ class PreviewSimulation {
   PreviewTickResult _result({
     required PVec3 playerFeet,
     required PreviewCloseReason? closedThisTick,
-  }) =>
-      PreviewTickResult(
-        tick: _tickCount,
-        center: _center,
-        distanceToCenter: _center.distanceTo(playerFeet),
-        hoveredIds: _hoveredIds,
-        // Snapshot: a result must not mutate under a caller that holds it.
-        hoverTicks: Map<String, int>.unmodifiable(_hoverTicks),
-        isOpen: _open,
-        closedThisTick: closedThisTick,
-        movementLocked: movementLocked,
-      );
+  }) => PreviewTickResult(
+    tick: _tickCount,
+    center: _center,
+    distanceToCenter: _center.distanceTo(playerFeet),
+    hoveredIds: _hoveredIds,
+    // Snapshot: a result must not mutate under a caller that holds it.
+    hoverTicks: Map<String, int>.unmodifiable(_hoverTicks),
+    isOpen: _open,
+    closedThisTick: closedThisTick,
+    movementLocked: movementLocked,
+  );
 
   static List<SimClickable> _collectClickables(HuiMenu menu) {
     final List<SimClickable> out = <SimClickable>[];
     for (final HuiComponent component in menu.components) {
       switch (component.data) {
         case HuiButtonData(
-            :final double highlightModifier,
-            :final List<HuiAction> actions
-          ):
-          out.add(SimClickable(
-            id: component.id,
-            kind: SimClickableKind.button,
-            highlightModifier: highlightModifier,
-            actions: List<HuiAction>.unmodifiable(actions),
-            trueActions: const <HuiAction>[],
-            falseActions: const <HuiAction>[],
-          ));
+          :final double highlightModifier,
+          :final List<HuiAction> actions,
+        ):
+          out.add(
+            SimClickable(
+              id: component.id,
+              kind: SimClickableKind.button,
+              highlightModifier: highlightModifier,
+              actions: List<HuiAction>.unmodifiable(actions),
+              trueActions: const <HuiAction>[],
+              falseActions: const <HuiAction>[],
+            ),
+          );
         case HuiToggleData(
-            :final double highlightModifier,
-            :final List<HuiAction> trueActions,
-            :final List<HuiAction> falseActions
-          ):
-          out.add(SimClickable(
-            id: component.id,
-            kind: SimClickableKind.toggle,
-            highlightModifier: highlightModifier,
-            actions: const <HuiAction>[],
-            trueActions: List<HuiAction>.unmodifiable(trueActions),
-            falseActions: List<HuiAction>.unmodifiable(falseActions),
-          ));
+          :final double highlightModifier,
+          :final List<HuiAction> trueActions,
+          :final List<HuiAction> falseActions,
+        ):
+          out.add(
+            SimClickable(
+              id: component.id,
+              kind: SimClickableKind.toggle,
+              highlightModifier: highlightModifier,
+              actions: const <HuiAction>[],
+              trueActions: List<HuiAction>.unmodifiable(trueActions),
+              falseActions: List<HuiAction>.unmodifiable(falseActions),
+            ),
+          );
         case HuiDecorationData():
           // No plane, no selection, no click. Its icon still ticks, which is
           // why an animated decoration keeps animating.

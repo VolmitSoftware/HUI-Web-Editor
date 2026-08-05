@@ -4,10 +4,8 @@
 /// two stay in agreement: what you can click is exactly what was drawn. Nothing
 /// here touches the DOM, so the whole layout pass is testable on the VM.
 ///
-/// Two rectangles exist per component and they legitimately disagree in game
-/// (report-holoui 2.2/2.5): [CanvasItem.hitbox] is the plugin's `CollisionPlane`
-/// centred on the anchor, [CanvasItem.visual] is where the icon actually draws.
-/// With `trueRender` off they share a centre; with it on the visual drops.
+/// [CanvasItem.hitbox] is the plugin's `CollisionPlane` and [CanvasItem.visual]
+/// is where the icon draws. Text-backed planes share the rendered glyph centre.
 ///
 /// It lives under `logic/` rather than with the canvas because the 3D preview
 /// resolves the same frame: one layout pass, two views, no way for them to
@@ -68,7 +66,7 @@ class CanvasItem {
   final WorldPoint anchor;
   final double depth;
 
-  /// The plugin's collision plane. Always centred on the anchor.
+  /// The plugin's collision plane, centred on the rendered icon.
   final HuiRect hitbox;
 
   /// Where the icon draws, honouring the true-render bias when enabled.
@@ -114,12 +112,9 @@ class CanvasItem {
   bool get isAnimated => animationFrameCount > 1;
 
   /// Region a click may land on when nothing was hit on the drawn icon itself.
-  /// The union is a fallback only: in true-render mode it spans the empty gap
-  /// between the anchor and the icon a block below it, which is why
-  /// [CanvasScene.hitTest] tries [outline] first.
-  HuiRect get pickRegion => hitbox.w <= 0 || hitbox.h <= 0
-      ? visual
-      : hitbox.union(visual);
+  /// The union is a fallback for icons whose visual extent exceeds the plane.
+  HuiRect get pickRegion =>
+      hitbox.w <= 0 || hitbox.h <= 0 ? visual : hitbox.union(visual);
 
   /// Selection outline box, and the primary pick target.
   HuiRect get outline => visual.w <= 0 || visual.h <= 0 ? hitbox : visual;
@@ -252,8 +247,7 @@ class CanvasScene {
   ///
   /// Two passes. The drawn icon always wins, because a click on what you can
   /// see must never select something else; only when nothing was drawn under
-  /// the cursor does the collision plane (and the true-render gap between the
-  /// two) come into play.
+  /// the cursor does the collision plane come into play.
   CanvasItem? hitTest(
     double worldX,
     double worldY, {
@@ -475,8 +469,7 @@ CanvasItem _resolveItem({
       animationFrameCount = icon.source.length;
       if (animationFrameCount > 0) {
         final int speed = math.max(1, icon.speed);
-        animationFrame =
-            (animationTicks ~/ speed) % animationFrameCount;
+        animationFrame = (animationTicks ~/ speed) % animationFrameCount;
         final String path = icon.source[animationFrame];
         final _ResolvedImage resolved = _resolveImage(path, images);
         if (resolved.valid) {
@@ -527,13 +520,13 @@ CanvasItem _resolveItem({
       itemProvider = icon.provider.trim();
       if (itemKey.isNotEmpty) {
         kind = CanvasIconKind.customItem;
-        final String? material =
-            catalogs?.customItems.entry(itemProvider, itemKey)?.material;
+        final String? material = catalogs?.customItems
+            .entry(itemProvider, itemKey)
+            ?.material;
         itemTexture = material == null ? null : catalogs?.textureFor(material);
         shape = IconShape.item(
           count: itemCount,
-          isBlockItem:
-              material != null && huiIsBlockLikeMaterial(material),
+          isBlockItem: material != null && huiIsBlockLikeMaterial(material),
         );
         hitShape = shape;
       }
@@ -560,6 +553,8 @@ CanvasItem _resolveItem({
       anchorY: anchor.y,
       uiScale: uiScale,
       shape: hitShape,
+      override: data is HuiButtonData ? data.hitbox : null,
+      trueRender: trueRender,
     ),
     visual: visualBoundsAt(
       anchorX: anchor.x,
@@ -592,8 +587,11 @@ class _ResolvedImage {
     this.pixels,
   });
 
-  static const _ResolvedImage invalid =
-      _ResolvedImage(valid: false, width: 0, height: 0);
+  static const _ResolvedImage invalid = _ResolvedImage(
+    valid: false,
+    width: 0,
+    height: 0,
+  );
 
   final bool valid;
   final int width;
@@ -623,11 +621,7 @@ _ResolvedImage _resolveImage(String path, ImageLibrary? images) {
 /// Plane width of one image in characters. Until the decode lands the pixel
 /// width is the only number available; the repaint that follows the decode
 /// replaces it with the real count.
-int _hitChars(
-  String path,
-  _ResolvedImage resolved,
-  ImageCharCache? charCache,
-) {
+int _hitChars(String path, _ResolvedImage resolved, ImageCharCache? charCache) {
   final ImagePixels? pixels = resolved.pixels;
   if (pixels == null) return resolved.width;
   return charCache == null
@@ -699,8 +693,9 @@ List<CanvasOverlap> _findOverlaps(List<CanvasItem> items) {
 /// only thing this changes is the true-render vertical drop (1.169 vs 1.309
 /// blocks), so an occasional miss is cosmetic and confined to that mode.
 bool huiIsBlockLikeMaterial(String key) {
-  final String normalized =
-      key.contains(':') ? key.substring(key.indexOf(':') + 1) : key;
+  final String normalized = key.contains(':')
+      ? key.substring(key.indexOf(':') + 1)
+      : key;
   if (normalized.isEmpty || _flatRenderedBlocks.contains(normalized)) {
     return false;
   }

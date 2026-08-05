@@ -4,16 +4,14 @@
 /// centre unless a menu offset is supplied. Values are ports of the plugin's
 /// own constants; see report-holoui sections 2.2, 2.3 and 2.5.
 ///
-/// Two coordinate conventions matter and they disagree in game:
-///  - the click hitbox is centred exactly ON the component anchor,
-///  - the drawn icon sits BELOW the anchor (an artefact of the armor-stand to
-///    display-entity migration). Preview drawing centres on the anchor; pass
-///    `trueRender: true` to reproduce the in-game bias.
+/// Drawn text keeps the display-entity migration's below-anchor bias. Its click
+/// plane follows that rendered centre so looking at the glyphs activates it.
 library;
 
 import 'dart:math' as math;
 
-import '../model/hui_component.dart' show HuiComponent;
+import '../model/hui_component.dart'
+    show HuiButtonData, HuiComponent, HuiHitbox;
 import '../model/vec3.dart' show Vec3;
 import 'viewport_math.dart' show WorldBounds, WorldPoint;
 
@@ -90,46 +88,46 @@ class IconShape {
   });
 
   const IconShape.text({required int lines, required int maxLineChars})
-      : this._(
-          kind: IconShapeKind.text,
-          lines: lines,
-          maxLineChars: maxLineChars,
-          isItem: false,
-          isBlockItem: false,
-          itemCount: 1,
-        );
+    : this._(
+        kind: IconShapeKind.text,
+        lines: lines,
+        maxLineChars: maxLineChars,
+        isItem: false,
+        isBlockItem: false,
+        itemCount: 1,
+      );
 
   /// `textImage` / `animatedTextImage`: one row per image pixel row.
   const IconShape.image({required int rows, required int columns})
-      : this._(
-          kind: IconShapeKind.image,
-          lines: rows,
-          maxLineChars: columns,
-          isItem: false,
-          isBlockItem: false,
-          itemCount: 1,
-        );
+    : this._(
+        kind: IconShapeKind.image,
+        lines: rows,
+        maxLineChars: columns,
+        isItem: false,
+        isBlockItem: false,
+        itemCount: 1,
+      );
 
   const IconShape.item({int count = 1, bool isBlockItem = false})
-      : this._(
-          kind: IconShapeKind.item,
-          lines: 1,
-          maxLineChars: 0,
-          isItem: true,
-          isBlockItem: isBlockItem,
-          itemCount: count,
-        );
+    : this._(
+        kind: IconShapeKind.item,
+        lines: 1,
+        maxLineChars: 0,
+        isItem: true,
+        isBlockItem: isBlockItem,
+        itemCount: count,
+      );
 
   /// Shape of the missing-icon placeholder drawn for a null or broken icon.
   const IconShape.missing()
-      : this._(
-          kind: IconShapeKind.image,
-          lines: huiMissingIconSize,
-          maxLineChars: huiMissingIconSize,
-          isItem: false,
-          isBlockItem: false,
-          itemCount: 1,
-        );
+    : this._(
+        kind: IconShapeKind.image,
+        lines: huiMissingIconSize,
+        maxLineChars: huiMissingIconSize,
+        isItem: false,
+        isBlockItem: false,
+        itemCount: 1,
+      );
 
   int get rows => lines;
 
@@ -172,10 +170,10 @@ class HuiRect {
     required double bottom,
     required double right,
     required double top,
-  })  : x = (left + right) / 2,
-        y = (bottom + top) / 2,
-        w = right - left,
-        h = top - bottom;
+  }) : x = (left + right) / 2,
+       y = (bottom + top) / 2,
+       w = right - left,
+       h = top - bottom;
 
   static const HuiRect zero = HuiRect(x: 0, y: 0, w: 0, h: 0);
 
@@ -194,10 +192,7 @@ class HuiRect {
   double get top => y + h / 2;
 
   bool contains(double pointX, double pointY) =>
-      pointX >= left &&
-      pointX <= right &&
-      pointY >= bottom &&
-      pointY <= top;
+      pointX >= left && pointX <= right && pointY >= bottom && pointY <= top;
 
   /// Strict overlap: rectangles that merely touch do not count.
   bool overlaps(HuiRect other) =>
@@ -210,18 +205,18 @@ class HuiRect {
       HuiRect(x: x + dx, y: y + dy, w: w, h: h);
 
   HuiRect inflate(double blocks) => HuiRect(
-        x: x,
-        y: y,
-        w: math.max(0, w + blocks * 2),
-        h: math.max(0, h + blocks * 2),
-      );
+    x: x,
+    y: y,
+    w: math.max(0, w + blocks * 2),
+    h: math.max(0, h + blocks * 2),
+  );
 
   HuiRect union(HuiRect other) => HuiRect.fromEdges(
-        left: math.min(left, other.left),
-        bottom: math.min(bottom, other.bottom),
-        right: math.max(right, other.right),
-        top: math.max(top, other.top),
-      );
+    left: math.min(left, other.left),
+    bottom: math.min(bottom, other.bottom),
+    right: math.max(right, other.right),
+    top: math.max(top, other.top),
+  );
 
   /// Viewport-ready bounds for fit-to-content.
   WorldBounds get bounds =>
@@ -243,33 +238,49 @@ class HuiRect {
 }
 
 /// `CollisionPlane` for an icon anchored at ([anchorX], [anchorY]).
-/// The plane is always centred on the anchor except for items, which drop by
-/// `huiItemHitboxDrop * uiScale`. Never affected by the true-render bias -
-/// in game the hitbox stays on the anchor while the icon draws lower.
+/// Text-backed planes follow the visible glyph centre. Items retain their
+/// item-specific drop. [override] replaces dimensions without changing that
+/// icon-derived centre.
 HuiRect hitboxAt({
   required double anchorX,
   required double anchorY,
   required double uiScale,
   required IconShape shape,
+  HuiHitbox? override,
+  bool trueRender = true,
 }) {
   final double scale = _safeScale(uiScale);
   if (shape.isItem) {
-    final double size = huiItemSize * scale;
+    final double width = override == null
+        ? huiItemSize * scale
+        : _safeDimension(override.width) * scale;
+    final double height = override == null
+        ? huiItemSize * scale
+        : _safeDimension(override.height) * scale;
     return HuiRect(
       x: anchorX,
       y: anchorY - huiItemHitboxDrop * scale,
-      w: size,
-      h: size,
+      w: width,
+      h: height,
     );
   }
   final double lineHeight = huiLineHeight * scale;
   final int lines = math.max(0, shape.lines);
   final int chars = math.max(0, shape.maxLineChars);
-  final double width = chars * lineHeight / 2;
-  final double height = shape.kind == IconShapeKind.image
-      ? math.max(0, lines - 1) * lineHeight
-      : lines * lineHeight;
-  return HuiRect(x: anchorX, y: anchorY, w: width, h: height);
+  final double width = override == null
+      ? chars * lineHeight / 2
+      : _safeDimension(override.width) * scale;
+  final double height = override == null
+      ? shape.kind == IconShapeKind.image
+            ? math.max(0, lines - 1) * lineHeight
+            : lines * lineHeight
+      : _safeDimension(override.height) * scale;
+  return HuiRect(
+    x: anchorX,
+    y: anchorY - (trueRender ? huiTextTrueRenderBias * scale : 0),
+    w: width,
+    h: height,
+  );
 }
 
 /// Drawn extent of an icon anchored at ([anchorX], [anchorY]).
@@ -288,17 +299,18 @@ HuiRect visualBoundsAt({
     final double size = huiItemSize * scale;
     final double drop = trueRender
         ? itemTrueRenderBias(
-              count: shape.itemCount,
-              isBlockItem: shape.isBlockItem,
-            ) *
-            scale
+                count: shape.itemCount,
+                isBlockItem: shape.isBlockItem,
+              ) *
+              scale
         : 0;
     return HuiRect(x: anchorX, y: anchorY - drop, w: size, h: size);
   }
   final int lines = math.max(0, shape.lines);
   final int chars = math.max(0, shape.maxLineChars);
-  final double cellWidth =
-      shape.kind == IconShapeKind.image ? huiCharCell : huiTextCharWidth;
+  final double cellWidth = shape.kind == IconShapeKind.image
+      ? huiCharCell
+      : huiTextCharWidth;
   final double drop = trueRender ? huiTextTrueRenderBias * scale : 0;
   return HuiRect(
     x: anchorX,
@@ -332,8 +344,7 @@ double depthFor({
   required HuiComponent component,
   required double uiScale,
   Vec3? menuOffset,
-}) =>
-    (menuOffset?.z ?? 0) + component.offset.z * _safeScale(uiScale);
+}) => (menuOffset?.z ?? 0) + component.offset.z * _safeScale(uiScale);
 
 /// [hitboxAt] for a component, using its offset as the anchor.
 HuiRect hitboxFor({
@@ -341,6 +352,7 @@ HuiRect hitboxFor({
   required double uiScale,
   required IconShape shape,
   Vec3? menuOffset,
+  bool trueRender = true,
 }) {
   final WorldPoint anchor = anchorFor(
     component: component,
@@ -352,6 +364,11 @@ HuiRect hitboxFor({
     anchorY: anchor.y,
     uiScale: uiScale,
     shape: shape,
+    override: switch (component.data) {
+      HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+      _ => null,
+    },
+    trueRender: trueRender,
   );
 }
 
@@ -419,3 +436,6 @@ double itemCountLabelY({required double anchorY, required double uiScale}) {
 
 double _safeScale(double uiScale) =>
     uiScale.isFinite && uiScale > 0 ? uiScale : 0;
+
+double _safeDimension(double dimension) =>
+    dimension.isFinite && dimension > 0 ? dimension : 0;

@@ -50,49 +50,49 @@ enum PreviewFacingMode {
   intent;
 
   String get label => switch (this) {
-        PreviewFacingMode.inGame => 'In-game',
-        PreviewFacingMode.intent => 'Intent',
-      };
+    PreviewFacingMode.inGame => 'In-game',
+    PreviewFacingMode.intent => 'Intent',
+  };
 
   /// One line for a chip or a tooltip.
   String get summary => switch (this) {
-        PreviewFacingMode.inGame =>
-          'Text, image and animated icons face world yaw 0. Item icons face '
-              'the player.',
-        PreviewFacingMode.intent =>
-          'Every icon faces the yaw the menu was opened at.',
-      };
+    PreviewFacingMode.inGame =>
+      'Text, image and animated icons face world yaw 0. Item icons face '
+          'the player.',
+    PreviewFacingMode.intent =>
+      'Every icon faces the yaw the menu was opened at.',
+  };
 
   /// One line for the in-stage note. Says which mode you are in and that the
   /// result is HoloUi's, not the preview's; the rest is behind the toolbar's
   /// facing help so the stage stays out of the way.
   String get headline => switch (this) {
-        PreviewFacingMode.inGame =>
-          'Positions follow the player, glyphs do not. A HoloUi quirk, not a '
-              'preview artifact.',
-        PreviewFacingMode.intent =>
-          'Every icon turned to the open yaw. The server will not render text '
-              'or images this way.',
-      };
+    PreviewFacingMode.inGame =>
+      'Positions follow the player, glyphs do not. A HoloUi quirk, not a '
+          'preview artifact.',
+    PreviewFacingMode.intent =>
+      'Every icon turned to the open yaw. The server will not render text '
+          'or images this way.',
+  };
 
   /// The teaching copy. In-game mode has to explain why it looks wrong,
   /// because looking wrong is the correct result.
   String get explanation => switch (this) {
-        PreviewFacingMode.inGame =>
-          'The layout follows the player but the glyphs do not. HoloUi rotates '
-              'every component position by the yaw at open, then spawns text, '
-              'image and animated icons at world yaw 0 and never rotates them '
-              '(billboard is FIXED and MenuSession.rotate has no caller). Only '
-              'item icons are yawed at the player, once, at spawn. So a menu '
-              'authored at one yaw reads correctly there and slides toward '
-              'edge-on everywhere else. This is a HoloUi bug, not a preview '
-              'artifact.',
-        PreviewFacingMode.intent =>
-          'Every quad is turned to the open yaw — the menu as you are drawing '
-              'it. Useful for judging layout, but the server will not render '
-              'text, image or animated icons this way. Switch to In-game to '
-              'see what a player gets.',
-      };
+    PreviewFacingMode.inGame =>
+      'The layout follows the player but the glyphs do not. HoloUi rotates '
+          'every component position by the yaw at open, then spawns text, '
+          'image and animated icons at world yaw 0 and never rotates them '
+          '(billboard is FIXED and MenuSession.rotate has no caller). Only '
+          'item icons are yawed at the player, once, at spawn. So a menu '
+          'authored at one yaw reads correctly there and slides toward '
+          'edge-on everywhere else. This is a HoloUi bug, not a preview '
+          'artifact.',
+    PreviewFacingMode.intent =>
+      'Every quad is turned to the open yaw — the menu as you are drawing '
+          'it. Useful for judging layout, but the server will not render '
+          'text, image or animated icons this way. Switch to In-game to '
+          'see what a player gets.',
+  };
 }
 
 /// Imperative commands the preview chrome sends to the stage.
@@ -179,9 +179,7 @@ class PreviewLiveState extends ChangeNotifier {
   /// Consecutive ticks [hoveredId] has been held, counting from 1.
   int get hoverTicks => _hoverTicks;
 
-  /// Blocks [hoveredId] is currently displaced toward the eye. Tick 1 is the
-  /// raw `highlightModifier`; from tick 2 it is exactly 1.0
-  /// (`ClickableComponent.java:111-116`).
+  /// Blocks [hoveredId] is currently displaced toward the eye.
   double get hoverPushBlocks => _hoverPushBlocks;
 
   /// The authored modifier for [hoveredId], unclamped.
@@ -235,16 +233,16 @@ class PreviewLiveState extends ChangeNotifier {
   }
 
   void reset() => update(
-        hoveredId: null,
-        hoveredIds: 0,
-        hoverTicks: 0,
-        hoverPushBlocks: 0,
-        highlightModifier: 0,
-        distanceToCenter: 0,
-        isOpen: true,
-        closeReason: null,
-        movementLocked: false,
-      );
+    hoveredId: null,
+    hoveredIds: 0,
+    hoverTicks: 0,
+    hoverPushBlocks: 0,
+    highlightModifier: 0,
+    distanceToCenter: 0,
+    isOpen: true,
+    closeReason: null,
+    movementLocked: false,
+  );
 }
 
 /// Everything about one preview session that survives a remount.

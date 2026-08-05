@@ -10,6 +10,7 @@ pubspec.lock
 
 # Packaging output
 builder_static.zip
+/vaquita-macos-arm64.dmg
 
 # Firebase tooling
 .firebase/

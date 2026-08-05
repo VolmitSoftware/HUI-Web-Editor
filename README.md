@@ -7,6 +7,7 @@ Version 3.0.0 — a from-scratch rewrite in [arcane_jaspr](https://github.com/Ar
 ## Features
 
 - **Visual canvas** in block space: zoom/pan, grid + snapping, drag components, selection, keyboard nudge. Renders text (legacy `&` codes and MiniMessage, in the Minecraft font), item sprites, pixel-art image icons and animated icons at the exact in-game metrics (0.21875 blocks per text line, `uiScale` semantics, hitbox overlays matching the plugin's `debugHitbox`).
+- **Linked button hitboxes**: text and image click planes follow the visible render, while an optional custom width and height can replace automatic icon-derived sizing without creating an independent position that can drift away.
 - **Full format coverage** as the plugin's Gson actually reads it — all three component types (button / decoration / toggle), all four authorable icon types (text / textImage / animatedTextImage / item), both actions (command / sound with all 10 sound categories), toggle conditions, `maxDistance`, `closeOnDeath`, `closeOnTeleport`, `customModelValue` (the real key — not the `customModelData` the old schema documented).
 - **Code view** with two-way sync, plus split view.
 - **Validation** engine encoding the plugin's real parsing rules (lowercase registry keys, required action sources, silent-zero pitfalls like `volume: 0`, the `&n`/`&k` legacy-code trap, hitbox overlap warnings).
@@ -29,7 +30,7 @@ dart run jaspr_cli:jaspr build      # static output in build/jaspr/
 
 ## Releasing
 
-The hosted editor is deployed to [Firebase Hosting](https://holoui-editor.web.app/) by `.github/workflows/firebase-hosting.yml` after every push to `master`. The workflow analyzes and tests the project before building and deploying it. It requires the `FIREBASE_SERVICE_ACCOUNT_HOLOUI_EDITOR` repository secret.
+The hosted editor is deployed to [holoui.volmitsoftware.com](https://holoui.volmitsoftware.com/) on Firebase Hosting by `.github/workflows/firebase-hosting.yml` after every push to `master`. The workflow analyzes and tests the project before building, deploying, and verifying the custom-domain bundle. It requires the `FIREBASE_SERVICE_ACCOUNT_HOLOUI_EDITOR` repository secret.
 
 HoloUI also self-hosts this editor: `/holoui builder start` downloads the **latest GitHub release** asset named exactly `builder_static.zip` (with `index.html` at the ZIP root) and serves it from the game server. The release tag must be **bare semver** (`3.0.0`, never `v3.0.0` — the plugin's semver parser rejects a `v` prefix).
 

@@ -42,11 +42,11 @@ const List<HuiBackdropMode> huiBackdropCycle = <HuiBackdropMode>[
 
 const Map<HuiBackdropMode, String> huiBackdropLabels =
     <HuiBackdropMode, String>{
-  HuiBackdropMode.image: 'In-game',
-  HuiBackdropMode.dark: 'Dark',
-  HuiBackdropMode.light: 'Light',
-  HuiBackdropMode.none: 'None',
-};
+      HuiBackdropMode.image: 'In-game',
+      HuiBackdropMode.dark: 'Dark',
+      HuiBackdropMode.light: 'Light',
+      HuiBackdropMode.none: 'None',
+    };
 
 /// Undo labels for the restack controls. Shared with the viewport so the
 /// history entry and the button say the same thing.
@@ -91,106 +91,106 @@ class CanvasToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Widget> stateControls = _stateControls();
     final List<Widget> orderControls = _orderControls();
-    return dom.div(
-      classes: 'hui-canvas-toolbar',
-      <Widget>[
-        _group(_zoomControls()),
-        _group(_viewControls()),
-        _group(<Widget>[_UiScaleControl(store: store)]),
-        if (orderControls.isNotEmpty) _group(orderControls),
-        if (stateControls.isNotEmpty) _group(stateControls),
-      ],
-    );
+    return dom.div(classes: 'hui-canvas-toolbar', <Widget>[
+      _group(_zoomControls()),
+      _group(_viewControls()),
+      _group(<Widget>[_UiScaleControl(store: store)]),
+      if (orderControls.isNotEmpty) _group(orderControls),
+      if (stateControls.isNotEmpty) _group(stateControls),
+    ]);
   }
 
   Widget _group(List<Widget> children) =>
       dom.div(classes: 'hui-canvas-toolgroup', children);
 
   List<Widget> _zoomControls() => <Widget>[
-        _iconAction(
-          icon: ArcaneIcon.zoomOut(size: IconSize.sm),
-          label: 'Zoom out',
-          onPressed: onZoomOut,
-        ),
-        dom.span(
-          id: zoomLabelId,
-          classes: 'hui-canvas-zoom',
-          <Widget>[Component.text(zoomPercent)],
-        ),
-        _iconAction(
-          icon: ArcaneIcon.zoomIn(size: IconSize.sm),
-          label: 'Zoom in',
-          onPressed: onZoomIn,
-        ),
-        _iconAction(
-          icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
-          label: 'Reset view (0)',
-          onPressed: onZoomReset,
-        ),
-        _iconAction(
-          icon: ArcaneIcon.maximize(size: IconSize.sm),
-          label: 'Fit to components (F)',
-          onPressed: onFit,
-        ),
-      ];
+    _iconAction(
+      icon: ArcaneIcon.zoomOut(size: IconSize.sm),
+      label: 'Zoom out',
+      onPressed: onZoomOut,
+    ),
+    dom.span(id: zoomLabelId, classes: 'hui-canvas-zoom', <Widget>[
+      Component.text(zoomPercent),
+    ]),
+    _iconAction(
+      icon: ArcaneIcon.zoomIn(size: IconSize.sm),
+      label: 'Zoom in',
+      onPressed: onZoomIn,
+    ),
+    _iconAction(
+      icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
+      label: 'Reset view (0)',
+      onPressed: onZoomReset,
+    ),
+    _iconAction(
+      icon: ArcaneIcon.maximize(size: IconSize.sm),
+      label: 'Fit to components (F)',
+      onPressed: onFit,
+    ),
+  ];
 
   List<Widget> _viewControls() => <Widget>[
-        _toggle(
-          icon: ArcaneIcon.grid3x3(size: IconSize.sm),
-          label: 'Block grid',
-          tooltip: 'Block grid: the 1-block grid and the rulers',
-          active: store.showGrid,
-          onPressed: () => store.showGrid = !store.showGrid,
-        ),
-        _toggle(
-          icon: ArcaneIcon.magnet(size: IconSize.sm),
-          label: 'Snap',
-          tooltip: 'Snap: dragged components land on '
-              '${_trimNumber(store.gridSize)} block steps',
-          active: store.snapToGrid,
-          onPressed: () => store.snapToGrid = !store.snapToGrid,
-        ),
-        _toggle(
-          icon: ArcaneIcon.frame(size: IconSize.sm),
-          label: 'Hitboxes',
-          tooltip: 'Hitboxes: draw each click plane. Solid = clickable, '
-              'dashed = decoration',
-          active: store.showHitboxes,
-          onPressed: () => store.showHitboxes = !store.showHitboxes,
-        ),
-        _toggle(
-          icon: ArcaneIcon.locateFixed(size: IconSize.sm),
-          label: 'Anchors',
-          tooltip: 'Anchors: component anchors, menu centre and component ids',
-          active: store.showAnchors,
-          onPressed: () => store.showAnchors = !store.showAnchors,
-        ),
-        _toggle(
-          icon: ArcaneIcon.moveVertical(size: IconSize.sm),
-          label: 'True render',
-          tooltip: 'True render: reproduce the in-game vertical bias. Text '
-              'draws about 0.325 x uiScale blocks BELOW the anchor while the '
-              'click plane stays on it',
-          active: store.trueRender,
-          onPressed: () => store.trueRender = !store.trueRender,
-        ),
-        ArcaneTooltip(
-          text: 'Canvas backdrop: ${huiBackdropLabels[store.backdrop]}. '
-              'Click to cycle',
-          child: Button(
-            icon: ArcaneIcon.image(size: IconSize.sm),
-            variant: ButtonVariant.ghost,
-            size: ButtonSize.sm,
-            type: ButtonType.button,
-            attributes: <String, String>{
-              'aria-label': 'Cycle canvas backdrop, currently '
-                  '${huiBackdropLabels[store.backdrop]}',
-            },
-            onPressed: _cycleBackdrop,
-            child: _toolLabel(huiBackdropLabels[store.backdrop] ?? 'Backdrop'),
-          ),
-        ),
-      ];
+    _toggle(
+      icon: ArcaneIcon.grid3x3(size: IconSize.sm),
+      label: 'Block grid',
+      tooltip: 'Block grid: the 1-block grid and the rulers',
+      active: store.showGrid,
+      onPressed: () => store.showGrid = !store.showGrid,
+    ),
+    _toggle(
+      icon: ArcaneIcon.magnet(size: IconSize.sm),
+      label: 'Snap',
+      tooltip:
+          'Snap: dragged components land on '
+          '${_trimNumber(store.gridSize)} block steps',
+      active: store.snapToGrid,
+      onPressed: () => store.snapToGrid = !store.snapToGrid,
+    ),
+    _toggle(
+      icon: ArcaneIcon.frame(size: IconSize.sm),
+      label: 'Hitboxes',
+      tooltip:
+          'Hitboxes: draw each click plane. Solid = clickable, '
+          'dashed = decoration',
+      active: store.showHitboxes,
+      onPressed: () => store.showHitboxes = !store.showHitboxes,
+    ),
+    _toggle(
+      icon: ArcaneIcon.locateFixed(size: IconSize.sm),
+      label: 'Anchors',
+      tooltip: 'Anchors: component anchors, menu centre and component ids',
+      active: store.showAnchors,
+      onPressed: () => store.showAnchors = !store.showAnchors,
+    ),
+    _toggle(
+      icon: ArcaneIcon.moveVertical(size: IconSize.sm),
+      label: 'True render',
+      tooltip:
+          'True render: reproduce the in-game vertical bias. Text '
+          'draws about 0.325 x uiScale blocks BELOW the anchor and its '
+          'click plane follows it',
+      active: store.trueRender,
+      onPressed: () => store.trueRender = !store.trueRender,
+    ),
+    ArcaneTooltip(
+      text:
+          'Canvas backdrop: ${huiBackdropLabels[store.backdrop]}. '
+          'Click to cycle',
+      child: Button(
+        icon: ArcaneIcon.image(size: IconSize.sm),
+        variant: ButtonVariant.ghost,
+        size: ButtonSize.sm,
+        type: ButtonType.button,
+        attributes: <String, String>{
+          'aria-label':
+              'Cycle canvas backdrop, currently '
+              '${huiBackdropLabels[store.backdrop]}',
+        },
+        onPressed: _cycleBackdrop,
+        child: _toolLabel(huiBackdropLabels[store.backdrop] ?? 'Backdrop'),
+      ),
+    ),
+  ];
 
   /// Draw order. Only meaningful with something selected, and the whole group
   /// comes and goes so the strip stays one row when nothing is.
@@ -228,19 +228,18 @@ class CanvasToolbar extends StatelessWidget {
   /// Playback and toggle-preview live in the same trailing group: both are
   /// about what the canvas is currently *showing*, and both come and go.
   List<Widget> _stateControls() => <Widget>[
-        if (hasAnimatedIcons)
-          _toggle(
-            icon: store.animationsPlaying
-                ? ArcaneIcon.pause(size: IconSize.sm)
-                : ArcaneIcon.play(size: IconSize.sm),
-            label: store.animationsPlaying ? 'Pause' : 'Play',
-            tooltip: 'Animated icons advance one frame every speed x 50 ms',
-            active: store.animationsPlaying,
-            onPressed: () =>
-                store.animationsPlaying = !store.animationsPlaying,
-          ),
-        ..._togglePreviewControl(),
-      ];
+    if (hasAnimatedIcons)
+      _toggle(
+        icon: store.animationsPlaying
+            ? ArcaneIcon.pause(size: IconSize.sm)
+            : ArcaneIcon.play(size: IconSize.sm),
+        label: store.animationsPlaying ? 'Pause' : 'Play',
+        tooltip: 'Animated icons advance one frame every speed x 50 ms',
+        active: store.animationsPlaying,
+        onPressed: () => store.animationsPlaying = !store.animationsPlaying,
+      ),
+    ..._togglePreviewControl(),
+  ];
 
   /// Only meaningful while a toggle component is selected: it decides which of
   /// the two icons the canvas previews.
@@ -288,26 +287,24 @@ class CanvasToolbar extends StatelessWidget {
 
   void _cycleBackdrop() {
     final int index = huiBackdropCycle.indexOf(store.backdrop);
-    store.backdrop =
-        huiBackdropCycle[(index + 1) % huiBackdropCycle.length];
+    store.backdrop = huiBackdropCycle[(index + 1) % huiBackdropCycle.length];
   }
 
   Widget _iconAction({
     required Widget icon,
     required String label,
     required void Function() onPressed,
-  }) =>
-      ArcaneTooltip(
-        text: label,
-        child: Button(
-          icon: icon,
-          variant: ButtonVariant.ghost,
-          size: ButtonSize.iconSm,
-          type: ButtonType.button,
-          attributes: <String, String>{'aria-label': label},
-          onPressed: onPressed,
-        ),
-      );
+  }) => ArcaneTooltip(
+    text: label,
+    child: Button(
+      icon: icon,
+      variant: ButtonVariant.ghost,
+      size: ButtonSize.iconSm,
+      type: ButtonType.button,
+      attributes: <String, String>{'aria-label': label},
+      onPressed: onPressed,
+    ),
+  );
 
   Widget _toggle({
     required Widget icon,
@@ -315,29 +312,28 @@ class CanvasToolbar extends StatelessWidget {
     required String tooltip,
     required bool active,
     required void Function() onPressed,
-  }) =>
-      ArcaneTooltip(
-        text: tooltip,
-        child: Button(
-          icon: icon,
-          variant: active ? ButtonVariant.secondary : ButtonVariant.ghost,
-          size: ButtonSize.sm,
-          type: ButtonType.button,
-          attributes: <String, String>{
-            'aria-pressed': '$active',
-            'aria-label': label,
-          },
-          onPressed: onPressed,
-          child: _toolLabel(label),
-        ),
-      );
+  }) => ArcaneTooltip(
+    text: tooltip,
+    child: Button(
+      icon: icon,
+      variant: active ? ButtonVariant.secondary : ButtonVariant.ghost,
+      size: ButtonSize.sm,
+      type: ButtonType.button,
+      attributes: <String, String>{
+        'aria-pressed': '$active',
+        'aria-label': label,
+      },
+      onPressed: onPressed,
+      child: _toolLabel(label),
+    ),
+  );
 
   /// Text that the stylesheet is allowed to drop when the canvas cell is too
   /// narrow to carry it. Never the only description of a control.
   static Widget _toolLabel(String text) => dom.span(
-        classes: 'hui-canvas-tool-label',
-        <Widget>[Component.text(text)],
-      );
+    classes: 'hui-canvas-tool-label',
+    <Widget>[Component.text(text)],
+  );
 
   static String _trimNumber(double value) {
     final String text = value.toStringAsFixed(3);
@@ -401,9 +397,9 @@ class _ZScrubberState extends State<_ZScrubber> {
   }
 
   Map<String, Vec3> _captureOffsets() => <String, Vec3>{
-        for (final HuiComponent selected in component.store.selectedComponents)
-          selected.id: selected.offset.copy(),
-      };
+    for (final HuiComponent selected in component.store.selectedComponents)
+      selected.id: selected.offset.copy(),
+  };
 
   void _onDown(Object? event) {
     if (_eventInt(event, 'button') != 0) return;
@@ -477,7 +473,9 @@ class _ZScrubberState extends State<_ZScrubber> {
     if (from.isEmpty) return;
     final Map<String, Vec3> next = shiftOffsets(offsets: from, dz: dz);
     component.store.setOffsets(
-      next.length == 1 ? 'depth ${next.keys.first}' : 'depth ${next.length} components',
+      next.length == 1
+          ? 'depth ${next.keys.first}'
+          : 'depth ${next.length} components',
       next,
     );
   }
@@ -487,15 +485,14 @@ class _ZScrubberState extends State<_ZScrubber> {
     final EditorStore store = component.store;
     final List<HuiComponent> selected = store.selectedComponents;
     final double value = store.selected?.offset.z ?? 0;
-    final bool mixed =
-        selected.any((HuiComponent c) => c.offset.z != value);
+    final bool mixed = selected.any((HuiComponent c) => c.offset.z != value);
     return ArcaneTooltip(
       text: mixed
           ? 'Depth of ${selected.length} components (mixed). Drag or use the '
-              'arrows to move them all; larger z paints first, so it draws '
-              'further back'
+                'arrows to move them all; larger z paints first, so it draws '
+                'further back'
           : 'Depth. Drag or use the arrows; larger z paints first, so it '
-              'draws further back',
+                'draws further back',
       child: dom.span(
         id: _uid,
         classes: classNames(<String?>[
@@ -518,14 +515,12 @@ class _ZScrubberState extends State<_ZScrubber> {
           'keydown': _onKeyDown,
         },
         <Widget>[
-          const dom.span(
-            classes: 'hui-canvas-zscrub-key',
-            <Widget>[Component.text('z')],
-          ),
-          dom.span(
-            classes: 'hui-canvas-zscrub-value',
-            <Widget>[Component.text(mixed ? '${_format(value)}*' : _format(value))],
-          ),
+          const dom.span(classes: 'hui-canvas-zscrub-key', <Widget>[
+            Component.text('z'),
+          ]),
+          dom.span(classes: 'hui-canvas-zscrub-value', <Widget>[
+            Component.text(mixed ? '${_format(value)}*' : _format(value)),
+          ]),
         ],
       ),
     );
@@ -576,30 +571,24 @@ class _UiScaleControlState extends State<_UiScaleControl> {
           'data-arcane-interactive': 'true',
         },
         child: dom.span(classes: 'hui-canvas-scale-trigger', <Widget>[
-          const dom.span(
-            classes: 'hui-canvas-tool-label',
-            <Widget>[Component.text('uiScale')],
-          ),
-          dom.span(
-            classes: 'hui-canvas-scale-value',
-            <Widget>[Component.text(value)],
-          ),
+          const dom.span(classes: 'hui-canvas-tool-label', <Widget>[
+            Component.text('uiScale'),
+          ]),
+          dom.span(classes: 'hui-canvas-scale-value', <Widget>[
+            Component.text(value),
+          ]),
         ]),
       ),
       content: dom.div(classes: 'hui-scale-pop', <Widget>[
-        const dom.span(
-          classes: 'hui-eyebrow',
-          <Widget>[Component.text('server uiScale (preview)')],
-        ),
-        const dom.p(
-          classes: 'hui-scale-pop-note',
-          <Widget>[
-            Component.text(
-              'Mirrors the ui-scale the server renders the menu at. Preview '
-              'only: it is never written to the layout file.',
-            ),
-          ],
-        ),
+        const dom.span(classes: 'hui-eyebrow', <Widget>[
+          Component.text('server uiScale (preview)'),
+        ]),
+        const dom.p(classes: 'hui-scale-pop-note', <Widget>[
+          Component.text(
+            'Mirrors the ui-scale the server renders the menu at. Preview '
+            'only: it is never written to the layout file.',
+          ),
+        ]),
         // A native range input, not ArcaneSlider: the Arcane slider renderer
         // never wires its `onChanged` to the DOM, so its thumb moves while the
         // store stays put. `input[type=range]` gives a real input event, real
@@ -625,10 +614,9 @@ class _UiScaleControlState extends State<_UiScaleControl> {
           dom.span(<Widget>[Component.text('4.00')]),
         ]),
         dom.div(classes: 'hui-scale-pop-foot', <Widget>[
-          dom.span(
-            classes: 'hui-scale-pop-value',
-            <Widget>[Component.text('${value}x')],
-          ),
+          dom.span(classes: 'hui-scale-pop-value', <Widget>[
+            Component.text('${value}x'),
+          ]),
           Button(
             label: 'Reset to 1.00',
             icon: ArcaneIcon.rotateCcw(size: IconSize.sm),

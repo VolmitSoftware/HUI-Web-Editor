@@ -20,6 +20,8 @@ const double huiDefaultMenuDistance = 2.5;
 /// The Java API clamps `highlightModifier` to 0..1; 0.05 is the value every
 /// shipped example uses.
 const double huiDefaultHighlightModifier = 0.05;
+const double huiDefaultHitboxWidth = 1.0;
+const double huiDefaultHitboxHeight = 0.5;
 
 /// Ticks per animated frame. 2 ticks = 100 ms, which reads as animation without
 /// strobing; anything below 1 is rejected by validation.
@@ -35,7 +37,8 @@ const String huiDefaultToggleExpectedValue = 'true';
 
 /// One-line descriptions for the "add component" menu.
 const Map<String, String> huiComponentTypeDescriptions = <String, String>{
-  'button': 'Clickable. Runs commands and plays sounds when a player clicks it.',
+  'button':
+      'Clickable. Runs commands and plays sounds when a player clicks it.',
   'decoration': 'Display only. Draws an icon but cannot be clicked.',
   'toggle':
       'Two states. Picks an icon from a placeholder value checked once at open.',
@@ -69,74 +72,74 @@ class HuiItemProviderInfo {
 /// entry; the inspector degrades to no hint if one is ever missing.
 const Map<String, HuiItemProviderInfo> huiItemProviderInfo =
     <String, HuiItemProviderInfo>{
-  'craftengine': HuiItemProviderInfo(
-    label: 'CraftEngine',
-    idFormat: 'namespace:id, or a bare id searched across namespaces',
-    example: 'default:ruby_sword',
-  ),
-  'itemsadder': HuiItemProviderInfo(
-    label: 'ItemsAdder',
-    idFormat: 'namespace:id, lowercase',
-    example: 'myitems:ruby',
-  ),
-  'oraxen': HuiItemProviderInfo(
-    label: 'Oraxen',
-    idFormat: 'bare id (the yml key), case-sensitive',
-    example: 'ruby_sword',
-  ),
-  'nexo': HuiItemProviderInfo(
-    label: 'Nexo',
-    idFormat: 'bare id (the yml key), case-sensitive',
-    example: 'ruby_sword',
-  ),
-  'mmoitems': HuiItemProviderInfo(
-    label: 'MMOItems',
-    idFormat: 'TYPE:ID, both conventionally uppercase',
-    example: 'SWORD:CUTLASS',
-  ),
-  'executableitems': HuiItemProviderInfo(
-    label: 'ExecutableItems',
-    idFormat: 'bare id (the config file name), case-sensitive',
-    example: 'MagicWand',
-  ),
-  'ecoitems': HuiItemProviderInfo(
-    label: 'EcoItems',
-    idFormat: 'bare id, or ecoitems:id',
-    example: 'ecoitems:my_item',
-  ),
-  'slimefun': HuiItemProviderInfo(
-    label: 'Slimefun',
-    idFormat: 'bare id in UPPER_SNAKE_CASE, case-sensitive',
-    example: 'MAGIC_WORKBENCH',
-  ),
-  'mythicmobs': HuiItemProviderInfo(
-    label: 'MythicMobs',
-    idFormat: 'bare item name from your item config',
-    example: 'SkeletonKing_Sword',
-  ),
-  'headdatabase': HuiItemProviderInfo(
-    label: 'HeadDatabase',
-    idFormat: 'the numeric head id',
-    example: '7129',
-  ),
-};
+      'craftengine': HuiItemProviderInfo(
+        label: 'CraftEngine',
+        idFormat: 'namespace:id, or a bare id searched across namespaces',
+        example: 'default:ruby_sword',
+      ),
+      'itemsadder': HuiItemProviderInfo(
+        label: 'ItemsAdder',
+        idFormat: 'namespace:id, lowercase',
+        example: 'myitems:ruby',
+      ),
+      'oraxen': HuiItemProviderInfo(
+        label: 'Oraxen',
+        idFormat: 'bare id (the yml key), case-sensitive',
+        example: 'ruby_sword',
+      ),
+      'nexo': HuiItemProviderInfo(
+        label: 'Nexo',
+        idFormat: 'bare id (the yml key), case-sensitive',
+        example: 'ruby_sword',
+      ),
+      'mmoitems': HuiItemProviderInfo(
+        label: 'MMOItems',
+        idFormat: 'TYPE:ID, both conventionally uppercase',
+        example: 'SWORD:CUTLASS',
+      ),
+      'executableitems': HuiItemProviderInfo(
+        label: 'ExecutableItems',
+        idFormat: 'bare id (the config file name), case-sensitive',
+        example: 'MagicWand',
+      ),
+      'ecoitems': HuiItemProviderInfo(
+        label: 'EcoItems',
+        idFormat: 'bare id, or ecoitems:id',
+        example: 'ecoitems:my_item',
+      ),
+      'slimefun': HuiItemProviderInfo(
+        label: 'Slimefun',
+        idFormat: 'bare id in UPPER_SNAKE_CASE, case-sensitive',
+        example: 'MAGIC_WORKBENCH',
+      ),
+      'mythicmobs': HuiItemProviderInfo(
+        label: 'MythicMobs',
+        idFormat: 'bare item name from your item config',
+        example: 'SkeletonKing_Sword',
+      ),
+      'headdatabase': HuiItemProviderInfo(
+        label: 'HeadDatabase',
+        idFormat: 'the numeric head id',
+        example: '7129',
+      ),
+    };
 
 /// The starting document: menu at eye level, one visible title so the canvas is
 /// never empty.
 HuiMenu createDefaultMenu() => HuiMenu(
-      offset: Vec3(0, huiDefaultMenuHeight, huiDefaultMenuDistance),
-      lockPosition: false,
-      followPlayer: true,
-      closeOnDeath: true,
-      closeOnTeleport: true,
-      components: <HuiComponent>[
-        HuiComponent(
-          'title',
-          Vec3(0, 0.85, 0),
-          HuiDecorationData(HuiTextIcon('&6&lMy Menu')),
-        ),
-      ],
-    );
+  offset: Vec3(0, huiDefaultMenuHeight, huiDefaultMenuDistance),
+  lockPosition: false,
+  followPlayer: true,
+  closeOnDeath: true,
+  closeOnTeleport: true,
+  components: <HuiComponent>[
+    HuiComponent(
+      'title',
+      Vec3(0, 0.85, 0),
+      HuiDecorationData(HuiTextIcon('&6&lMy Menu')),
+    ),
+  ],
+);
 
 /// Default icon for [iconType]; unknown types fall back to a text icon.
 HuiIcon createDefaultIcon(String iconType, {String text = '&fNew text'}) {
@@ -198,12 +201,11 @@ HuiComponent createDefaultComponent({
   required String type,
   required Set<String> takenIds,
   Vec3? offset,
-}) =>
-    HuiComponent(
-      uniqueComponentId(type, takenIds),
-      offset ?? Vec3.zero(),
-      createDefaultComponentData(type),
-    );
+}) => HuiComponent(
+  uniqueComponentId(type, takenIds),
+  offset ?? Vec3.zero(),
+  createDefaultComponentData(type),
+);
 
 /// `button`, then `button-2`, `button-3`... Readable ids matter: they are what
 /// the Java API addresses and what the rail shows.
