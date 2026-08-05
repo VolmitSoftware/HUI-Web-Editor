@@ -11,4 +11,10 @@ pubspec.lock
 # Packaging output
 builder_static.zip
 
+# Firebase tooling
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Local credentials
 service-account.json

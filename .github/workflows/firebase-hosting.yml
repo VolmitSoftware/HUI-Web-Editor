@@ -1,0 +1,103 @@
+name: Deploy Firebase Hosting
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ARCANE_JASPR_REF: b896cdc28008ef56439f10670a177943c7aba69e
+  FIREBASE_PROJECT_ID: holoui-editor
+  FIREBASE_TOOLS_VERSION: 15.25.1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_VERSION: 22.23.1
+
+concurrency:
+  group: firebase-hosting-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build, verify, and deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://holoui-editor.web.app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Cache pinned Arcane Jaspr
+        id: cache-arcane-jaspr
+        uses: actions/cache@v5
+        with:
+          path: .deps/arcane_jaspr
+          key: arcane-jaspr-${{ env.ARCANE_JASPR_REF }}
+
+      - name: Checkout pinned Arcane Jaspr
+        if: steps.cache-arcane-jaspr.outputs.cache-hit != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: ArcaneArts/arcane_jaspr
+          ref: ${{ env.ARCANE_JASPR_REF }}
+          path: .deps/arcane_jaspr
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Get dependencies
+        run: dart pub get
+
+      - name: Analyze
+        run: dart analyze
+
+      - name: Test
+        run: dart test
+
+      - name: Build
+        run: dart run jaspr_cli:jaspr build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HOLOUI_EDITOR }}
+
+      - name: Deploy Firebase Hosting
+        run: |
+          set -euo pipefail
+          unset FIREBASE_TOKEN
+          npx --yes "firebase-tools@$FIREBASE_TOOLS_VERSION" deploy \
+            --only hosting \
+            --project "$FIREBASE_PROJECT_ID" \
+            --non-interactive
+
+      - name: Verify deployed bundle
+        run: |
+          set -euo pipefail
+          expected_sha="$(sha256sum build/jaspr/main.client.dart.js | awk '{print $1}')"
+          actual_sha=""
+          for attempt in {1..12}; do
+            if actual_sha="$(curl -fsS --max-time 30 \
+                "https://holoui-editor.web.app/main.client.dart.js?release=$GITHUB_SHA" \
+                | sha256sum | awk '{print $1}')" \
+                && [[ "$actual_sha" == "$expected_sha" ]]; then
+              echo "Firebase is serving the client bundle built from $GITHUB_SHA."
+              exit 0
+            fi
+            echo "Waiting for Firebase Hosting to converge (attempt $attempt/12)."
+            sleep 5
+          done
+          echo "::error title=Stale Firebase client bundle::Expected $expected_sha but received $actual_sha."
+          exit 1

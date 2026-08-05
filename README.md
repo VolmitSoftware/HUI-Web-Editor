@@ -29,10 +29,12 @@ dart run jaspr_cli:jaspr build      # static output in build/jaspr/
 
 ## Releasing
 
-HoloUI self-hosts this editor: `/holoui builder start` downloads the **latest GitHub release** asset named exactly `builder_static.zip` (with `index.html` at the ZIP root) and serves it from the game server. The release tag must be **bare semver** (`3.0.0`, never `v3.0.0` — the plugin's semver parser rejects a `v` prefix).
+The hosted editor is deployed to [Firebase Hosting](https://holoui-editor.web.app/) by `.github/workflows/firebase-hosting.yml` after every push to `master`. The workflow analyzes and tests the project before building and deploying it. It requires the `FIREBASE_SERVICE_ACCOUNT_HOLOUI_EDITOR` repository secret.
+
+HoloUI also self-hosts this editor: `/holoui builder start` downloads the **latest GitHub release** asset named exactly `builder_static.zip` (with `index.html` at the ZIP root) and serves it from the game server. The release tag must be **bare semver** (`3.0.0`, never `v3.0.0` — the plugin's semver parser rejects a `v` prefix).
 
 - Locally: `tool/package_builder_static.sh` builds and packages the ZIP.
-- CI: pushing a bare-semver tag runs `.github/workflows/release.yml`, which builds, attaches `builder_static.zip` to the release, and deploys GitHub Pages (`https://holoui.volmit.com/`). The workflow needs an `ARCANE_JASPR_TOKEN` repository secret with read access to `ArcaneArts/arcane_jaspr`.
+- CI: pushing a bare-semver tag runs `.github/workflows/release.yml`, which builds and attaches `builder_static.zip` to the release.
 
 ## Architecture
 
