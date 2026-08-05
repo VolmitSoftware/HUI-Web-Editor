@@ -342,7 +342,16 @@ class _Validator {
 
   void _validateHitbox(HuiHitbox? hitbox, String path) {
     if (hitbox == null) return;
-    if (!hitbox.width.isFinite || hitbox.width <= 0) {
+    if ((hitbox.width == null) != (hitbox.height == null)) {
+      _add(
+        HuiSeverity.error,
+        path,
+        'Custom hitbox width and height must be supplied together',
+        fix: 'Set both dimensions, or switch back to automatic size',
+      );
+    }
+    final double? width = hitbox.width;
+    if (width != null && (!width.isFinite || width <= 0)) {
       _add(
         HuiSeverity.error,
         '$path.width',
@@ -350,12 +359,23 @@ class _Validator {
         fix: 'Set a positive width in blocks, or switch back to automatic',
       );
     }
-    if (!hitbox.height.isFinite || hitbox.height <= 0) {
+    final double? height = hitbox.height;
+    if (height != null && (!height.isFinite || height <= 0)) {
       _add(
         HuiSeverity.error,
         '$path.height',
         'Custom hitbox height must be finite and greater than zero',
         fix: 'Set a positive height in blocks, or switch back to automatic',
+      );
+    }
+    if (!hitbox.offset.x.isFinite ||
+        !hitbox.offset.y.isFinite ||
+        !hitbox.offset.z.isFinite) {
+      _add(
+        HuiSeverity.error,
+        '$path.offset',
+        'Hitbox offset components must be finite numbers',
+        fix: 'Set finite right, up and forward offsets',
       );
     }
   }

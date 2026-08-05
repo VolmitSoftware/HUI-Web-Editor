@@ -66,6 +66,7 @@ CanvasItem _item({
       shape: const IconShape.text(lines: 1, maxLineChars: 2),
       anchor: WorldPoint(visual.x, visual.y),
       depth: (offset ?? Vec3.zero()).z,
+      hitboxDepth: (offset ?? Vec3.zero()).z,
       hitbox: visual,
       visual: visual,
       clickable: true,

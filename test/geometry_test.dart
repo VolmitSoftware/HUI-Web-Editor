@@ -488,6 +488,107 @@ void main() {
       expect(box.h, closeTo(0.7, _epsilon));
     });
 
+    test('button anchor applies a scaled offset from the icon plane', () {
+      final HuiComponent component = HuiComponent(
+        'button',
+        Vec3(1, 2, 3),
+        HuiButtonData(
+          0.05,
+          const [],
+          null,
+          HuiHitbox(null, null, Vec3(0.5, -0.25, 0.75)),
+        ),
+      );
+      final HuiRect box = hitboxFor(
+        component: component,
+        uiScale: 2,
+        shape: const IconShape.text(lines: 1, maxLineChars: 4),
+        menuOffset: Vec3(10, 20, 30),
+      );
+      expect(box.x, closeTo(13, _epsilon));
+      expect(box.y, closeTo(23.5 - huiTextTrueRenderBias * 2, _epsilon));
+      expect(
+        hitboxDepthFor(
+          component: component,
+          uiScale: 2,
+          menuOffset: Vec3(10, 20, 30),
+        ),
+        closeTo(37.5, _epsilon),
+      );
+    });
+
+    test('menu anchor ignores component movement', () {
+      HuiComponent component(double x, double y, double z) => HuiComponent(
+        'button',
+        Vec3(x, y, z),
+        HuiButtonData(
+          0.05,
+          const [],
+          null,
+          HuiHitbox(null, null, Vec3(0.5, -0.25, 0.75), HuiHitboxAnchor.menu),
+        ),
+      );
+      final Vec3 menuOffset = Vec3(10, 20, 30);
+      final HuiRect first = hitboxFor(
+        component: component(1, 2, 3),
+        uiScale: 2,
+        shape: const IconShape.text(lines: 1, maxLineChars: 4),
+        menuOffset: menuOffset,
+      );
+      final HuiRect moved = hitboxFor(
+        component: component(8, -4, 9),
+        uiScale: 2,
+        shape: const IconShape.text(lines: 1, maxLineChars: 4),
+        menuOffset: menuOffset,
+      );
+      expect(first, moved);
+      expect(first.x, closeTo(11, _epsilon));
+      expect(first.y, closeTo(19.5, _epsilon));
+      expect(
+        hitboxDepthFor(
+          component: component(8, -4, 9),
+          uiScale: 2,
+          menuOffset: menuOffset,
+        ),
+        closeTo(31.5, _epsilon),
+      );
+    });
+
+    test('menu anchor stays aligned in the authoring projection', () {
+      final HuiComponent component = HuiComponent(
+        'button',
+        Vec3(0, 0.5, 0),
+        HuiButtonData(
+          0.05,
+          const [],
+          null,
+          HuiHitbox(
+            null,
+            null,
+            Vec3(0, 0.175, 0),
+            HuiHitboxAnchor.menu,
+          ),
+        ),
+      );
+      final Vec3 menuOffset = Vec3(0, 1.7, 2.5);
+      final HuiRect authoring = hitboxFor(
+        component: component,
+        uiScale: 1,
+        shape: const IconShape.text(lines: 1, maxLineChars: 10),
+        menuOffset: menuOffset,
+        trueRender: false,
+      );
+      final HuiRect runtime = hitboxFor(
+        component: component,
+        uiScale: 1,
+        shape: const IconShape.text(lines: 1, maxLineChars: 10),
+        menuOffset: menuOffset,
+        trueRender: true,
+      );
+      expect(authoring.y, closeTo(2.2, _epsilon));
+      expect(runtime.y, closeTo(1.875, _epsilon));
+    });
+
     test('visualBoundsFor carries the true-render bias off the anchor', () {
       final HuiComponent c = _component(0, 1);
       final HuiRect preview = visualBoundsFor(

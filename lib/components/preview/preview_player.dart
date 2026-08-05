@@ -676,6 +676,7 @@ class PreviewOverlayFlags {
     required this.normals,
     required this.anchors,
     required this.range,
+    this.selectedButtonId,
   });
 
   final bool groundGrid;
@@ -684,8 +685,10 @@ class PreviewOverlayFlags {
   final bool normals;
   final bool anchors;
   final bool range;
+  final String? selectedButtonId;
 
-  bool get anyPerComponent => planes || normals || anchors;
+  bool get anyPerComponent =>
+      planes || normals || anchors || selectedButtonId != null;
 }
 
 /// Every world overlay: the ground, the avatar, the menu centre, the
@@ -911,8 +914,10 @@ class PreviewOverlayLayer {
         ? aimQuadPlane(quad, eye)
         : null;
 
-    huiPreviewShow(node.plane, flags.planes && aim != null);
-    if (flags.planes && aim != null) {
+    final bool showPlane =
+        flags.planes || quad.item.id == flags.selectedButtonId;
+    huiPreviewShow(node.plane, showPlane && aim != null);
+    if (showPlane && aim != null) {
       huiPreviewPlace(
         node.plane,
         _aimTransform(_liftAim(aim, huiPreviewOverlayEpsilon)),

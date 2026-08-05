@@ -103,6 +103,9 @@ const double huiGuideCatchPx = 8;
 /// Shown in the status bar for the duration of a component drag.
 const String huiDragHint = 'Drag to move - one undo step per gesture';
 
+const String huiHitboxDragHint =
+    'Drag to move detached hitbox - one undo step per gesture';
+
 /// Shown while the rubber band is live.
 const String huiMarqueeHint = 'Marquee - Shift keeps the current selection';
 
@@ -208,6 +211,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
   // the drag is resolved against them, so a group can never drift apart across
   // frames the way an incremental delta would let it.
   Map<String, Vec3> _dragStartOffsets = const <String, Vec3>{};
+  Vec3? _hitboxDragStart;
   WorldBounds? _dragStartBounds;
   bool _altDuplicatePending = false;
   List<AlignmentGuide> _guides = const <AlignmentGuide>[];
@@ -461,6 +465,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
     status.setPointer(_pendingPointerX, _pendingPointerY);
     status.setHint(switch (_dragMode) {
       _DragMode.component => huiDragHint,
+      _DragMode.hitbox => huiHitboxDragHint,
       _DragMode.marquee => huiMarqueeHint,
       _DragMode.pan || _DragMode.none => null,
     });

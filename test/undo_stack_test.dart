@@ -4,6 +4,7 @@
 library;
 
 import 'package:holoui_editor/config/defaults.dart';
+import 'package:holoui_editor/logic/canvas_scene.dart';
 import 'package:holoui_editor/logic/validation.dart';
 import 'package:holoui_editor/model/model.dart';
 import 'package:holoui_editor/state/editor_store.dart';
@@ -473,6 +474,80 @@ void main() {
       );
       store.dispose();
     });
+
+    test(
+      'detach preserves the plane while later button moves leave it fixed',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        final String id = store.addComponent('button')!;
+        CanvasItem item() => buildCanvasScene(
+          menu: store.menu,
+          uiScale: 1,
+          trueRender: true,
+          togglePreview: (String _) => true,
+          textCache: McTextCache(),
+        ).byId(id)!;
+
+      final CanvasItem linked = item();
+      store.setHitboxAnchor(id, HuiHitboxAnchor.menu);
+      final CanvasItem detached = item();
+      expect(detached.hitbox.x, closeTo(linked.hitbox.x, 1e-9));
+      expect(detached.hitbox.y, closeTo(linked.hitbox.y, 1e-9));
+      expect(detached.hitbox.w, closeTo(linked.hitbox.w, 1e-9));
+      expect(detached.hitbox.h, closeTo(linked.hitbox.h, 1e-9));
+        expect(detached.hitboxDepth, linked.hitboxDepth);
+
+        store.setComponentOffset(id, Vec3(1, 1, 1));
+        final CanvasItem movedButton = item();
+        expect(movedButton.visual, isNot(linked.visual));
+        expect(movedButton.hitbox.x, closeTo(detached.hitbox.x, 1e-9));
+        expect(movedButton.hitbox.y, closeTo(detached.hitbox.y, 1e-9));
+        expect(movedButton.hitbox.w, closeTo(detached.hitbox.w, 1e-9));
+        expect(movedButton.hitbox.h, closeTo(detached.hitbox.h, 1e-9));
+        expect(movedButton.hitboxDepth, detached.hitboxDepth);
+
+        store.setHitboxOffset(id, Vec3(2, 3, 4));
+        final CanvasItem movedPlane = item();
+        expect(movedPlane.hitbox.x, 2);
+        expect(movedPlane.hitbox.y, closeTo(4.7, 1e-9));
+        expect(movedPlane.hitboxDepth, closeTo(6.5, 1e-9));
+        store.dispose();
+      },
+    );
+
+    test(
+      'relink preserves the plane and makes later button moves carry it',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        final String id = store.addComponent('button')!;
+        store.setHitboxAnchor(id, HuiHitboxAnchor.menu);
+        store.setHitboxOffset(id, Vec3(2, 3, 4));
+        CanvasItem item() => buildCanvasScene(
+          menu: store.menu,
+          uiScale: 1,
+          trueRender: true,
+          togglePreview: (String _) => true,
+          textCache: McTextCache(),
+        ).byId(id)!;
+
+        final CanvasItem detached = item();
+        store.setHitboxAnchor(id, HuiHitboxAnchor.button);
+        final CanvasItem relinked = item();
+        expect(relinked.hitbox, detached.hitbox);
+        expect(relinked.hitboxDepth, detached.hitboxDepth);
+
+        final Vec3 beforeMove = store.menu.componentById(id)!.offset.copy();
+        store.setComponentOffset(
+          id,
+          Vec3(beforeMove.x + 1, beforeMove.y - 0.5, beforeMove.z + 0.25),
+        );
+        final CanvasItem moved = item();
+        expect(moved.hitbox.x - relinked.hitbox.x, closeTo(1, 1e-9));
+        expect(moved.hitbox.y - relinked.hitbox.y, closeTo(-0.5, 1e-9));
+        expect(moved.hitboxDepth - relinked.hitboxDepth, closeTo(0.25, 1e-9));
+        store.dispose();
+      },
+    );
 
     test(
       'addComponent generates readable unique ids and selects the result',

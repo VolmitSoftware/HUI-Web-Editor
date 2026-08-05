@@ -41,6 +41,7 @@ CanvasItem _item({
       shape: const IconShape.text(lines: 1, maxLineChars: 4),
       anchor: WorldPoint(hitbox.x, hitbox.y),
       depth: 0,
+      hitboxDepth: 0,
       hitbox: hitbox,
       visual: visual,
       clickable: true,

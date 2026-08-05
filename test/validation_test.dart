@@ -648,6 +648,33 @@ void main() {
       );
     });
 
+    test('accepts an offset-only detached hitbox', () {
+      final HuiButtonData data = HuiButtonData(
+        0.05,
+        const <HuiAction>[],
+        HuiTextIcon('x'),
+        HuiHitbox(null, null, Vec3(0.5, -0.25, 0.75), HuiHitboxAnchor.menu),
+      );
+      expect(
+        validateHuiMenu(_menu(<HuiComponent>[_component('a', data)])),
+        isEmpty,
+      );
+    });
+
+    test('rejects a partial custom size and non-finite offset', () {
+      final HuiButtonData data = HuiButtonData(
+        0.05,
+        const <HuiAction>[],
+        HuiTextIcon('x'),
+        HuiHitbox(1, null, Vec3(double.nan, 0, 0)),
+      );
+      final List<HuiIssue> issues = validateHuiMenu(
+        _menu(<HuiComponent>[_component('a', data)]),
+      );
+      expect(_has(issues, HuiSeverity.error, 'supplied together'), isTrue);
+      expect(_has(issues, HuiSeverity.error, 'finite numbers'), isTrue);
+    });
+
     test('warns when an icon is null', () {
       expect(
         _has(

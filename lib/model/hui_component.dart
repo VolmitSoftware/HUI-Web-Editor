@@ -35,27 +35,57 @@ sealed class HuiComponentData {
   }
 }
 
+enum HuiHitboxAnchor { button, menu }
+
 class HuiHitbox {
-  double width;
-  double height;
+  double? width;
+  double? height;
+  Vec3 offset;
+  HuiHitboxAnchor anchor;
   Map<String, dynamic> extras = <String, dynamic>{};
 
-  HuiHitbox(this.width, this.height);
+  HuiHitbox([
+    this.width,
+    this.height,
+    Vec3? offset,
+    this.anchor = HuiHitboxAnchor.button,
+  ]) : offset = offset ?? Vec3.zero();
+
+  bool get hasCustomSize => width != null && height != null;
+
+  bool get isDefault =>
+      !hasCustomSize &&
+      offset == Vec3.zero() &&
+      anchor == HuiHitboxAnchor.button;
 
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
-    'width': width,
-    'height': height,
+    if (width != null) 'width': width,
+    if (height != null) 'height': height,
+    if (offset != Vec3.zero()) 'offset': offset.toJson(),
+    if (anchor != HuiHitboxAnchor.button) 'anchor': anchor.name,
   }, extras);
 
-  HuiHitbox copy() => HuiHitbox(width, height)..extras = huiDeepCopyMap(extras);
+  HuiHitbox copy() =>
+      HuiHitbox(width, height, offset.copy(), anchor)
+        ..extras = huiDeepCopyMap(extras);
 
-  static const Set<String> _known = <String>{'width', 'height'};
+  static const Set<String> _known = <String>{
+    'width',
+    'height',
+    'offset',
+    'anchor',
+  };
 
   static HuiHitbox? fromJsonOrNull(Object? raw, {required String path}) {
     if (raw == null) return null;
     final Map<String, dynamic> map = huiReadObject(raw, path);
-    return HuiHitbox(huiReadDouble(map, 'width'), huiReadDouble(map, 'height'))
-      ..extras = huiCollectExtras(map, _known);
+    final String anchor = huiReadString(map, 'anchor', fallback: 'button');
+    return HuiHitbox(
+      huiReadDoubleOrNull(map, 'width'),
+      huiReadDoubleOrNull(map, 'height'),
+      Vec3.fromJson(map['offset'], path: '$path.offset'),
+      anchor == 'menu' ? HuiHitboxAnchor.menu : HuiHitboxAnchor.button,
+    )..extras = huiCollectExtras(map, _known);
   }
 }
 

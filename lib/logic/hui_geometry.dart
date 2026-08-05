@@ -11,7 +11,12 @@ library;
 import 'dart:math' as math;
 
 import '../model/hui_component.dart'
-    show HuiButtonData, HuiComponent, HuiHitbox;
+    show
+        HuiButtonData,
+        HuiComponent,
+        HuiComponentData,
+        HuiHitbox,
+        HuiHitboxAnchor;
 import '../model/vec3.dart' show Vec3;
 import 'viewport_math.dart' show WorldBounds, WorldPoint;
 
@@ -250,13 +255,14 @@ HuiRect hitboxAt({
   bool trueRender = true,
 }) {
   final double scale = _safeScale(uiScale);
+  final bool customSize = override?.hasCustomSize ?? false;
   if (shape.isItem) {
-    final double width = override == null
+    final double width = !customSize
         ? huiItemSize * scale
-        : _safeDimension(override.width) * scale;
-    final double height = override == null
+        : _safeDimension(override!.width!) * scale;
+    final double height = !customSize
         ? huiItemSize * scale
-        : _safeDimension(override.height) * scale;
+        : _safeDimension(override!.height!) * scale;
     return HuiRect(
       x: anchorX,
       y: anchorY - huiItemHitboxDrop * scale,
@@ -267,14 +273,14 @@ HuiRect hitboxAt({
   final double lineHeight = huiLineHeight * scale;
   final int lines = math.max(0, shape.lines);
   final int chars = math.max(0, shape.maxLineChars);
-  final double width = override == null
+  final double width = !customSize
       ? chars * lineHeight / 2
-      : _safeDimension(override.width) * scale;
-  final double height = override == null
+      : _safeDimension(override!.width!) * scale;
+  final double height = !customSize
       ? shape.kind == IconShapeKind.image
             ? math.max(0, lines - 1) * lineHeight
             : lines * lineHeight
-      : _safeDimension(override.height) * scale;
+      : _safeDimension(override!.height!) * scale;
   return HuiRect(
     x: anchorX,
     y: anchorY - (trueRender ? huiTextTrueRenderBias * scale : 0),
@@ -359,17 +365,73 @@ HuiRect hitboxFor({
     uiScale: uiScale,
     menuOffset: menuOffset,
   );
-  return hitboxAt(
+  final HuiHitbox? hitbox = switch (component.data) {
+    HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+    _ => null,
+  };
+  final HuiRect automatic = hitboxAt(
     anchorX: anchor.x,
     anchorY: anchor.y,
     uiScale: uiScale,
     shape: shape,
-    override: switch (component.data) {
-      HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
-      _ => null,
-    },
+    override: hitbox,
     trueRender: trueRender,
   );
+  if (hitbox == null) return automatic;
+  final double scale = _safeScale(uiScale);
+  if (hitbox.anchor == HuiHitboxAnchor.menu) {
+    final HuiRect runtimeAutomatic = trueRender
+        ? automatic
+        : hitboxAt(
+            anchorX: anchor.x,
+            anchorY: anchor.y,
+            uiScale: uiScale,
+            shape: shape,
+            override: hitbox,
+            trueRender: true,
+          );
+    return HuiRect(
+      x: (menuOffset?.x ?? 0) + hitbox.offset.x * scale,
+      y: (menuOffset?.y ?? 0) +
+          hitbox.offset.y * scale +
+          automatic.y -
+          runtimeAutomatic.y,
+      w: automatic.w,
+      h: automatic.h,
+    );
+  }
+  return HuiRect(
+    x: automatic.x + hitbox.offset.x * scale,
+    y: automatic.y + hitbox.offset.y * scale,
+    w: automatic.w,
+    h: automatic.h,
+  );
+}
+
+double hitboxDepthFor({
+  required HuiComponent component,
+  required double uiScale,
+  Vec3? menuOffset,
+}) {
+  final double scale = _safeScale(uiScale);
+  final HuiComponentData data = component.data;
+  if (data is! HuiButtonData || data.hitbox == null) {
+    return depthFor(
+      component: component,
+      uiScale: uiScale,
+      menuOffset: menuOffset,
+    );
+  }
+  final HuiHitbox hitbox = data.hitbox!;
+  if (hitbox.anchor == HuiHitboxAnchor.menu) {
+    return (menuOffset?.z ?? 0) + hitbox.offset.z * scale;
+  }
+  return depthFor(
+        component: component,
+        uiScale: uiScale,
+        menuOffset: menuOffset,
+      ) +
+      hitbox.offset.z * scale;
 }
 
 /// [visualBoundsAt] for a component, using its offset as the anchor.

@@ -14,6 +14,7 @@ import '../../logic/canvas_scene.dart';
 import '../../logic/hui_geometry.dart';
 import '../../logic/multi_select.dart';
 import '../../logic/viewport_math.dart';
+import '../../model/model.dart';
 import '../../state/editor_store.dart' show HuiBackdropMode;
 import '../render/canvas_assets.dart';
 import '../render/canvas_brush.dart';
@@ -128,6 +129,7 @@ class CanvasPainter {
     if (options.showHitboxes) {
       _paintHitboxes(brush, scene);
     }
+    _paintSelectedButtonHitboxes(brush, scene, options);
     _paintOverlapOutlines(brush, scene);
 
     paintMenuCenter(brush, scene.menuOffset, labelled: options.showAnchors);
@@ -163,6 +165,42 @@ class CanvasPainter {
         brush.stroke = brush.palette.hitboxPassive;
       }
       brush.strokeWorldRect(box);
+    }
+    brush.restore();
+  }
+
+  void _paintSelectedButtonHitboxes(
+    CanvasBrush brush,
+    CanvasScene scene,
+    CanvasFrameOptions options,
+  ) {
+    if (options.selectedIds.isEmpty) return;
+    brush.save();
+    for (final String id in options.selectedIds) {
+      final CanvasItem? item = scene.byId(id);
+      if (item == null || item.component.data is! HuiButtonData) continue;
+      final HuiRect box = item.hitbox;
+      if (box.w <= 0 || box.h <= 0) continue;
+      brush.clearDash();
+      brush.fill = brush.palette.hitbox;
+      brush.alpha = 0.1;
+      brush.fillWorldRect(box);
+      brush.alpha = 1;
+      brush.lineWidth = id == options.selectedId ? 2 : 1.4;
+      brush.stroke = brush.palette.hitbox;
+      brush.strokeWorldRect(box);
+      if (item.visual.x != box.x || item.visual.y != box.y) {
+        brush.dash(<double>[3, 4]);
+        brush.linePx(
+          brush.sx(item.visual.x),
+          brush.sy(item.visual.y),
+          brush.sx(box.x),
+          brush.sy(box.y),
+        );
+        brush.clearDash();
+      }
+      brush.fill = brush.palette.hitbox;
+      brush.dot(box.x, box.y, id == options.selectedId ? 3.5 : 2.5);
     }
     brush.restore();
   }

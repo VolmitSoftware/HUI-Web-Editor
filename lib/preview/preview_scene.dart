@@ -252,7 +252,7 @@ PreviewScene buildPreviewScene({
       PreviewQuad(
         item: item,
         anchor: lift(item.anchor.x, item.anchor.y, item.depth),
-        planeCenter: lift(item.hitbox.x, item.hitbox.y, item.depth),
+        planeCenter: lift(item.hitbox.x, item.hitbox.y, item.hitboxDepth),
         visualCenter: lift(item.visual.x, item.visual.y, item.depth),
         facingYawDeg: openYawDeg,
         normal: normal,

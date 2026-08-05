@@ -1024,6 +1024,7 @@ class _PreviewStageState extends State<PreviewStage>
 
   PreviewOverlayFlags _overlayFlags() {
     final EditorStore store = _store;
+    final HuiComponentData? selectedData = store.selected?.data;
     return PreviewOverlayFlags(
       groundGrid: store.previewShowGroundGrid,
       center: store.previewShowCenter,
@@ -1031,6 +1032,7 @@ class _PreviewStageState extends State<PreviewStage>
       normals: store.previewShowNormals,
       anchors: store.previewShowAnchors,
       range: store.previewShowDistanceSphere,
+      selectedButtonId: selectedData is HuiButtonData ? store.selectedId : null,
     );
   }
 

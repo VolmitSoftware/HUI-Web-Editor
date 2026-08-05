@@ -6,7 +6,7 @@
 /// straight to the canvas and to the DOM readouts, never through `setState`.
 part of 'canvas_viewport.dart';
 
-enum _DragMode { none, pan, component, marquee }
+enum _DragMode { none, pan, component, hitbox, marquee }
 
 /// Buttons the browser reports on `PointerEvent.button`. Secondary is 2 and is
 /// deliberately absent: the canvas answers it with `contextmenu` only.
@@ -136,14 +136,20 @@ extension _CanvasInteractions on _CanvasViewportState {
 
     final bool forcePan = pointer.button == _middleButton || _spaceHeld;
     final WorldPoint world = _worldPoint(_lastClientX, _lastClientY);
-    final CanvasItem? hit =
-        forcePan ? null : _currentScene.hitTest(world.x, world.y);
+    final CanvasItem? selectedHitbox = forcePan
+        ? null
+        : _selectedDetachedHitboxTarget(world);
+    final CanvasItem? hit = forcePan
+        ? null
+        : selectedHitbox ?? _currentScene.hitTest(world.x, world.y);
 
     if (forcePan) {
       _dragMode = _DragMode.pan;
       _dragComponentId = null;
     } else if (hit == null) {
       _beginMarquee(pointer, world);
+    } else if (selectedHitbox != null || _isDetachedHitboxTarget(hit, world)) {
+      _beginHitboxDrag(hit, world);
     } else {
       _beginComponentDrag(pointer, hit, world);
     }
@@ -214,6 +220,50 @@ extension _CanvasInteractions on _CanvasViewportState {
     _showReadout(hit.component.offset);
   }
 
+  CanvasItem? _selectedDetachedHitboxTarget(WorldPoint world) {
+    final String? id = component.store.selectedId;
+    if (id == null) return null;
+    final CanvasItem? item = _currentScene.byId(id);
+    return item != null && _isDetachedHitboxTarget(item, world) ? item : null;
+  }
+
+  bool _isDetachedHitboxTarget(CanvasItem item, WorldPoint world) {
+    final HuiComponentData data = item.component.data;
+    if (data is! HuiButtonData || data.hitbox?.anchor != HuiHitboxAnchor.menu) {
+      return false;
+    }
+    final HuiRect box = item.hitbox;
+    final double tolerance = _viewport.pixelsToBlocks(7);
+    if (!box.inflate(tolerance).contains(world.x, world.y)) return false;
+    if (box.contains(world.x, world.y) &&
+        !item.visual.contains(world.x, world.y)) {
+      return true;
+    }
+    final double edgeDistance = math.min(
+      math.min((world.x - box.left).abs(), (world.x - box.right).abs()),
+      math.min((world.y - box.bottom).abs(), (world.y - box.top).abs()),
+    );
+    return edgeDistance <= tolerance;
+  }
+
+  void _beginHitboxDrag(CanvasItem hit, WorldPoint world) {
+    final EditorStore store = component.store;
+    if (store.isSelected(hit.id)) {
+      store.addToSelection(hit.id);
+    } else {
+      store.select(hit.id);
+    }
+    final HuiComponentData data = hit.component.data;
+    if (data is! HuiButtonData || data.hitbox == null) return;
+    _dragMode = _DragMode.hitbox;
+    _dragComponentId = hit.id;
+    _grabOffsetX = world.x - hit.hitbox.x;
+    _grabOffsetY = world.y - hit.hitbox.y;
+    _hitboxDragStart = data.hitbox!.offset.copy();
+    store.beginDrag();
+    _showReadout(_hitboxDragStart!);
+  }
+
   /// Snapshots what the drag moves. Re-run after an alt-duplicate, because by
   /// then the selection is a different set of components.
   void _captureDragStart() {
@@ -261,6 +311,8 @@ extension _CanvasInteractions on _CanvasViewportState {
         _setCursorReadout(_worldPoint(clientX, clientY));
       case _DragMode.component:
         _dragComponentTo(clientX, clientY);
+      case _DragMode.hitbox:
+        _dragHitboxTo(clientX, clientY);
       case _DragMode.marquee:
         _dragMarqueeTo(clientX, clientY);
     }
@@ -333,6 +385,26 @@ extension _CanvasInteractions on _CanvasViewportState {
     if (landed != null) _showReadout(landed);
   }
 
+  void _dragHitboxTo(double clientX, double clientY) {
+    final String? id = _dragComponentId;
+    final Vec3? start = _hitboxDragStart;
+    if (id == null || start == null) return;
+    final EditorStore store = component.store;
+    final CanvasScene scene = _currentScene;
+    final WorldPoint world = _worldPoint(clientX, clientY);
+    _setCursorReadout(world);
+    final double scale = scene.uiScale > 0 ? scene.uiScale : 1;
+    final Vec3 offset = Vec3(
+      store.snapValue((world.x - _grabOffsetX - scene.menuOffset.x) / scale),
+      store.snapValue((world.y - _grabOffsetY - scene.menuOffset.y) / scale),
+      start.z,
+    );
+    final HuiComponentData? data = store.menu.componentById(id)?.data;
+    if (data is HuiButtonData && data.hitbox?.offset == offset) return;
+    store.setHitboxOffset(id, offset);
+    _showReadout(offset);
+  }
+
   /// True when at least one member would actually move. A pointer frame that
   /// lands on the same snapped cell must not notify the store, or every
   /// listener in the shell rebuilds sixty times a second for nothing.
@@ -365,7 +437,7 @@ extension _CanvasInteractions on _CanvasViewportState {
     if (!event.isA<web.PointerEvent>()) return;
     final web.PointerEvent pointer = event as web.PointerEvent;
     if (_activePointerId != pointer.pointerId) return;
-    if (_dragMode == _DragMode.component) {
+    if (_dragMode == _DragMode.component || _dragMode == _DragMode.hitbox) {
       component.store.endDrag();
     }
     _activePointerId = null;
@@ -373,6 +445,7 @@ extension _CanvasInteractions on _CanvasViewportState {
     _dragComponentId = null;
     _altDuplicatePending = false;
     _dragStartOffsets = const <String, Vec3>{};
+    _hitboxDragStart = null;
     _dragStartBounds = null;
     _marqueeBase = const <String>{};
     _marquee = null;

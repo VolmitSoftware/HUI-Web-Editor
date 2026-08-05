@@ -257,6 +257,27 @@ void main() {
       expect(encoded, contains('"height": 0.35'));
     });
 
+    test('round-trips detached offset-only geometry', () {
+      final HuiMenu menu = decodeHuiMenu(
+        '{"offset":[0,0,0],"components":[{"id":"a","offset":[1,2,3],'
+        '"data":{"type":"button","highlightModifier":0.05,'
+        '"hitbox":{"offset":[0.5,-0.25,0.75],"anchor":"menu"},'
+        '"actions":[]}}]}',
+      );
+      final HuiHitbox hitbox =
+          (menu.components.single.data as HuiButtonData).hitbox!;
+      expect(hitbox.width, isNull);
+      expect(hitbox.height, isNull);
+      expect(hitbox.offset, Vec3(0.5, -0.25, 0.75));
+      expect(hitbox.anchor, HuiHitboxAnchor.menu);
+
+      final String encoded = encodeHuiMenu(menu);
+      expect(encoded, contains('"offset": [0.5, -0.25, 0.75]'));
+      expect(encoded, contains('"anchor": "menu"'));
+      expect(encoded, isNot(contains('"width"')));
+      expect(encoded, isNot(contains('"height"')));
+    });
+
     test('omitted hitbox remains automatic and stays omitted', () {
       final HuiMenu menu = decodeHuiMenu(
         '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
@@ -267,18 +288,21 @@ void main() {
       expect(encodeHuiMenu(menu), isNot(contains('"hitbox"')));
     });
 
-    test('copy owns independent hitbox dimensions', () {
+    test('copy owns independent hitbox geometry', () {
       final HuiButtonData original = HuiButtonData(
         0.05,
         <HuiAction>[],
         HuiTextIcon('Play'),
-        HuiHitbox(1.25, 0.35),
+        HuiHitbox(1.25, 0.35, Vec3(0.5, -0.25, 0.75), HuiHitboxAnchor.menu),
       );
       final HuiButtonData copy = original.copy();
       copy.hitbox!.width = 2;
+      copy.hitbox!.offset.x = 4;
 
       expect(original.hitbox!.width, 1.25);
+      expect(original.hitbox!.offset.x, 0.5);
       expect(copy.hitbox!.width, 2);
+      expect(copy.hitbox!.anchor, HuiHitboxAnchor.menu);
     });
   });
 

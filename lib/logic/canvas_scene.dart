@@ -38,6 +38,7 @@ class CanvasItem {
     required this.shape,
     required this.anchor,
     required this.depth,
+    required this.hitboxDepth,
     required this.hitbox,
     required this.visual,
     required this.clickable,
@@ -65,6 +66,7 @@ class CanvasItem {
   final IconShape shape;
   final WorldPoint anchor;
   final double depth;
+  final double hitboxDepth;
 
   /// The plugin's collision plane, centred on the rendered icon.
   final HuiRect hitbox;
@@ -548,12 +550,16 @@ CanvasItem _resolveItem({
       uiScale: uiScale,
       menuOffset: menuOffset,
     ),
-    hitbox: hitboxAt(
-      anchorX: anchor.x,
-      anchorY: anchor.y,
+    hitboxDepth: hitboxDepthFor(
+      component: component,
+      uiScale: uiScale,
+      menuOffset: menuOffset,
+    ),
+    hitbox: hitboxFor(
+      component: component,
       uiScale: uiScale,
       shape: hitShape,
-      override: data is HuiButtonData ? data.hitbox : null,
+      menuOffset: menuOffset,
       trueRender: trueRender,
     ),
     visual: visualBoundsAt(

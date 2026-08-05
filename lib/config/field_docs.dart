@@ -130,14 +130,14 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     citation: 'ClickableComponent.java:111-116',
   ),
   'button.hitbox': HuiFieldDoc(
-    title: 'Custom hitbox',
+    title: 'Button hitbox',
     body:
-        'Omit hitbox to derive the click-plane size from the current icon. '
-        'When present, width and height are fixed block dimensions at uiScale '
-        '1 and both are multiplied by the server uiScale. The plane remains '
-        'centred on the rendered icon, and the component offset moves both '
-        'together. Both dimensions must be finite and greater than zero.',
-    citation: 'ClickableComponent.java:123-134',
+        'Width and height are optional, paired block dimensions at uiScale 1. '
+        'Without them the plane follows the icon size. Offset moves the plane '
+        'in right, up and forward axes. The button anchor keeps the plane '
+        'linked to the icon; the menu anchor detaches it so each can move '
+        'independently.',
+    citation: 'ClickableComponent.java:123-160',
   ),
   'toggle.condition': HuiFieldDoc(
     title: 'Condition',

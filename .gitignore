@@ -3,6 +3,8 @@
 build/
 pubspec.lock
 .deps/
+.codegraph/
+.qa/
 
 # OS / IDE
 .DS_Store

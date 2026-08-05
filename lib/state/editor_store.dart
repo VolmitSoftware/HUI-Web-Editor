@@ -694,6 +694,53 @@ class EditorStore extends ChangeNotifier {
   void setComponentOffset(String id, Vec3 offset) =>
       _applyOffset(id, snapVec(offset));
 
+  void setHitboxOffset(String id, Vec3 offset) {
+    final HuiComponent? component = _menu.componentById(id);
+    if (component == null || component.data is! HuiButtonData) return;
+    mutate('move $id hitbox', (HuiMenu menu) {
+      final HuiComponent? edited = menu.componentById(id);
+      final HuiComponentData? rawData = edited?.data;
+      if (rawData is! HuiButtonData) return;
+      final HuiHitbox hitbox = rawData.hitbox ?? HuiHitbox();
+      hitbox.offset = offset.copy();
+      rawData.hitbox = hitbox.isDefault ? null : hitbox;
+    });
+  }
+
+  void setHitboxAnchor(String id, HuiHitboxAnchor anchor) {
+    final HuiComponent? component = _menu.componentById(id);
+    final HuiComponentData? rawData = component?.data;
+    if (rawData is! HuiButtonData) return;
+    final HuiHitboxAnchor currentAnchor =
+        rawData.hitbox?.anchor ?? HuiHitboxAnchor.button;
+    if (currentAnchor == anchor) return;
+    final CanvasItem? current = _runtimeCanvasItem(_menu, id);
+    mutate(
+      anchor == HuiHitboxAnchor.button
+          ? 'link $id hitbox'
+          : 'detach $id hitbox',
+      (HuiMenu menu) {
+        final HuiComponent? edited = menu.componentById(id);
+        final HuiComponentData? editedData = edited?.data;
+        if (editedData is! HuiButtonData) return;
+        final HuiHitbox hitbox = editedData.hitbox ?? HuiHitbox();
+        hitbox
+          ..anchor = anchor
+          ..offset = Vec3.zero();
+        editedData.hitbox = hitbox;
+        final CanvasItem? base = _runtimeCanvasItem(menu, id);
+        if (current != null && base != null) {
+          hitbox.offset = Vec3(
+            _round(current.hitbox.x - base.hitbox.x),
+            _round(current.hitbox.y - base.hitbox.y),
+            _round(current.hitboxDepth - base.hitboxDepth),
+          );
+        }
+        if (hitbox.isDefault) editedData.hitbox = null;
+      },
+    );
+  }
+
   /// Moves several components in ONE undo step.
   ///
   /// Offsets are taken verbatim: a group drag snaps the component under the
@@ -910,6 +957,17 @@ class EditorStore extends ChangeNotifier {
 
   Set<String> _takenIds() =>
       _menu.components.map((HuiComponent c) => c.id).toSet();
+
+  CanvasItem? _runtimeCanvasItem(HuiMenu menu, String id) => buildCanvasScene(
+        menu: menu,
+        uiScale: 1,
+        trueRender: true,
+        togglePreview: togglePreviewFor,
+        textCache: _textCache,
+        images: _images,
+        catalogs: _catalogs,
+        charCache: _charCache,
+      ).byId(id);
 
   /// `button-2` duplicates as `button-3` and `slot-1` as `slot-2`: an existing
   /// numeric suffix is incremented, never dropped, because the number is just

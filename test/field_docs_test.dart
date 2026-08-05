@@ -126,9 +126,10 @@ void main() {
       expect(body('button.highlightModifier'), contains('stays fixed'));
     });
 
-    test('button hitbox documents linked positioning and scaling', () {
+    test('button hitbox documents both anchors and scaling', () {
       expect(body('button.hitbox'), contains('uiScale'));
-      expect(body('button.hitbox'), contains('moves both together'));
+      expect(body('button.hitbox'), contains('linked'));
+      expect(body('button.hitbox'), contains('detaches'));
     });
 
     test('a toggle condition is sampled once, at open', () {

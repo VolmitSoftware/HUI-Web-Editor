@@ -212,35 +212,65 @@ class ComponentInspector extends StatelessWidget {
     return InspectorSection(
       title: 'Hitbox',
       description:
-          'The component offset moves the icon and click plane together.',
+          'The click plane is always shown while this button is selected.',
       children: <Widget>[
         HuiSwitchRow(
-          label: 'Custom size',
-          value: hitbox != null,
+          label: 'Move with button',
+          value: hitbox?.anchor != HuiHitboxAnchor.menu,
           trailing: const HuiFieldHelp('button.hitbox'),
-          help: hitbox == null
+          help: hitbox?.anchor == HuiHitboxAnchor.menu
+              ? 'Detached: drag the button and outlined plane independently.'
+              : 'Linked: moving the button carries its click plane.',
+          onChanged: (bool linked) => store.setHitboxAnchor(
+            _id,
+            linked ? HuiHitboxAnchor.button : HuiHitboxAnchor.menu,
+          ),
+        ),
+        HuiField(
+          label: hitbox?.anchor == HuiHitboxAnchor.menu
+              ? 'From the menu centre'
+              : 'From the button',
+          trailing: const HuiFieldHelp('button.hitbox'),
+          help: 'Right, up and forward in blocks at uiScale 1.',
+          control: dom.div(<Widget>[
+            HuiVec3Field(
+              value: hitbox?.offset ?? Vec3.zero(),
+              onChanged: (Vec3 value) => store.setHitboxOffset(_id, value),
+            ),
+            HuiInlineIssues(_issuesFor('.hitbox.offset')),
+          ]),
+        ),
+        HuiSwitchRow(
+          label: 'Custom size',
+          value: hitbox?.hasCustomSize ?? false,
+          trailing: const HuiFieldHelp('button.hitbox'),
+          help: !(hitbox?.hasCustomSize ?? false)
               ? 'Automatic: follows the rendered icon and resizes when it changes.'
-              : 'Fixed dimensions at uiScale 1; the plane stays centred on the icon.',
+              : 'Fixed dimensions in blocks at uiScale 1.',
           onChanged: (bool enabled) => store.editComponent(
             _id,
             enabled ? 'enable custom hitbox' : 'use automatic hitbox',
             (HuiComponent edited) {
               final HuiComponentData editedData = edited.data;
               if (editedData is HuiButtonData) {
-                editedData.hitbox = enabled
-                    ? HuiHitbox(huiDefaultHitboxWidth, huiDefaultHitboxHeight)
-                    : null;
+                final HuiHitbox editedHitbox = editedData.hitbox ?? HuiHitbox();
+                editedHitbox
+                  ..width = enabled ? huiDefaultHitboxWidth : null
+                  ..height = enabled ? huiDefaultHitboxHeight : null;
+                editedData.hitbox = editedHitbox.isDefault
+                    ? null
+                    : editedHitbox;
               }
             },
           ),
         ),
-        if (hitbox != null) ...<Widget>[
+        if (hitbox?.hasCustomSize ?? false) ...<Widget>[
           HuiField(
             label: 'Width',
             required: true,
             control: dom.div(<Widget>[
               HuiNumberField(
-                value: hitbox.width,
+                value: hitbox!.width!,
                 min: 0.01,
                 step: 0.05,
                 suffix: 'blocks',
@@ -257,7 +287,7 @@ class ComponentInspector extends StatelessWidget {
             required: true,
             control: dom.div(<Widget>[
               HuiNumberField(
-                value: hitbox.height,
+                value: hitbox.height!,
                 min: 0.01,
                 step: 0.05,
                 suffix: 'blocks',
