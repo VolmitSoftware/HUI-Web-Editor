@@ -10,3 +10,5 @@ pubspec.lock
 
 # Packaging output
 builder_static.zip
+
+service-account.json
