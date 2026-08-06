@@ -415,8 +415,8 @@ class HuiCatalogs {
   /// One URL, and the build always ships a file there — an empty catalog when
   /// nobody has exported one. Probing a second, usually-absent URL would print
   /// a red 404 in every visitor's console on every load, which reads as a
-  /// broken app. `/holoui items export` overwrites this asset in the bundle it
-  /// serves, so the self-hosted editor still fills in automatically.
+  /// broken app. The hosted bundle ships an empty
+  /// catalog; per-server ids arrive via manual import in the settings dialog.
   static const List<String> customItemUrlCandidates = <String>[
     'assets/catalog/custom-items.json',
   ];

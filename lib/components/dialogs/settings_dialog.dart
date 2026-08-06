@@ -151,9 +151,8 @@ class SettingsDialog extends StatelessWidget {
           <Widget>[
             Text(
               'Run /holoui items export on your server, then import '
-              'plugins/holoui/custom-items.json here. The self-hosted editor '
-              'picks the file up on its own; this is for the public site. The '
-              'server is still the only thing that can confirm an id.',
+              'plugins/holoui/custom-items.json here. The server is still '
+              'the only thing that can confirm an id.',
             ),
           ],
         ),
