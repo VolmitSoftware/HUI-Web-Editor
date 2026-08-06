@@ -8,11 +8,13 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
+import '../../config/preview_templates.dart';
 import '../../config/templates.dart';
-import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'dialog_parts.dart';
+
+enum _TemplateKind { menu, preview }
 
 class TemplatesDialog extends StatefulWidget {
   const TemplatesDialog({
@@ -31,24 +33,42 @@ class TemplatesDialog extends StatefulWidget {
 }
 
 class _TemplatesDialogState extends State<TemplatesDialog> {
-  String _selectedId = huiTemplates.first.id;
+  _TemplateKind _kind = _TemplateKind.menu;
+  String _selectedMenuId = huiTemplates.first.id;
+  String _selectedPreviewId = huiPreviewTemplates.first.id;
 
   @override
   void didUpdateComponent(TemplatesDialog oldComponent) {
     super.didUpdateComponent(oldComponent);
     if (!oldComponent.isOpen && component.isOpen) {
-      _selectedId = huiTemplates.first.id;
+      // Opening on top of a container-preview document starts the picker on
+      // the matching tab: a menu template would just create an unrelated
+      // second document.
+      _kind =
+          component.store.isPreviewDoc ? _TemplateKind.preview : _TemplateKind.menu;
+      _selectedMenuId = huiTemplates.first.id;
+      _selectedPreviewId = huiPreviewTemplates.first.id;
     }
   }
 
   void _apply() {
-    final HuiTemplate? template = huiTemplateById(_selectedId);
-    if (template == null) return;
-    final HuiMenu menu = template.build();
-    component.store.createDocumentFromMenu(template.id, menu);
-    toast.success(
-      'Created "${template.id}" from the ${template.name} template',
-    );
+    switch (_kind) {
+      case _TemplateKind.menu:
+        final HuiTemplate? template = huiTemplateById(_selectedMenuId);
+        if (template == null) return;
+        component.store.createDocumentFromMenu(template.id, template.build());
+        toast.success(
+          'Created "${template.id}" from the ${template.name} template',
+        );
+      case _TemplateKind.preview:
+        final HuiPreviewTemplate? template =
+            huiPreviewTemplateById(_selectedPreviewId);
+        if (template == null) return;
+        component.store.createDocumentFromPreview(template.id, template.build());
+        toast.success(
+          'Created "${template.id}" from the ${template.name} template',
+        );
+    }
     component.onClose();
   }
 
@@ -78,62 +98,117 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
   Widget _body() => dom.div(
         classes: 'hui-dialog-body hui-stagger',
         <Widget>[
-          const dom.p(
+          dom.div(
+            styles: const dom.Styles(
+              raw: <String, String>{'margin-bottom': '12px'},
+            ),
+            <Widget>[
+              ArcaneToggleGroup(
+                value: _kind.name,
+                variant: ToggleGroupVariant.outline,
+                size: ToggleGroupSize.sm,
+                onChanged: (String? value) {
+                  if (value == null) return;
+                  setState(() => _kind = _TemplateKind.values.byName(value));
+                },
+                items: const <ToggleGroupItem>[
+                  ToggleGroupItem(value: 'menu', child: Text('Menu')),
+                  ToggleGroupItem(
+                    value: 'preview',
+                    child: Text('Container preview'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          dom.p(
             classes: 'hui-dialog-note',
             <Widget>[
               Text(
-                'Every template is valid as-is: sounds carry a category and a '
-                'volume, commands carry a source, and no template references an '
-                'image you do not have. It opens as a new document, so your '
-                'current menu is untouched.',
+                _kind == _TemplateKind.menu
+                    ? 'Every template is valid as-is: sounds carry a category '
+                        'and a volume, commands carry a source, and no '
+                        'template references an image you do not have. It '
+                        'opens as a new document, so your current one is '
+                        'untouched.'
+                    : 'Every template parses and builds clean against the '
+                        'category it targets, with zero build errors. It '
+                        'opens as a new document, so your current one is '
+                        'untouched.',
               ),
             ],
           ),
           dom.div(
             classes: 'hui-option-grid',
-            <Widget>[
-              for (final HuiTemplate template in huiTemplates) _card(template),
-            ],
+            _kind == _TemplateKind.menu
+                ? <Widget>[for (final HuiTemplate t in huiTemplates) _menuCard(t)]
+                : <Widget>[
+                    for (final HuiPreviewTemplate t in huiPreviewTemplates)
+                      _previewCard(t),
+                  ],
           ),
         ],
       );
 
-  Widget _card(HuiTemplate template) {
-    final bool selected = template.id == _selectedId;
-    return dom.button(
-      classes: classNames(<String?>[
-        'hui-option-card',
-        'hui-lift',
-        selected ? 'is-selected' : null,
-      ]),
-      attributes: <String, String>{
-        'type': 'button',
-        'aria-pressed': selected ? 'true' : 'false',
-      },
-      events: <String, void Function(Object)>{
-        'click': (Object _) => setState(() => _selectedId = template.id),
-        'dblclick': (Object _) {
-          setState(() => _selectedId = template.id);
-          _apply();
+  Widget _menuCard(HuiTemplate template) => _card(
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        highlights: template.highlights,
+        selected: template.id == _selectedMenuId,
+        onSelect: () => setState(() => _selectedMenuId = template.id),
+      );
+
+  Widget _previewCard(HuiPreviewTemplate template) => _card(
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        highlights: template.highlights,
+        selected: template.id == _selectedPreviewId,
+        onSelect: () => setState(() => _selectedPreviewId = template.id),
+      );
+
+  Widget _card({
+    required String id,
+    required String name,
+    required String description,
+    required List<String> highlights,
+    required bool selected,
+    required void Function() onSelect,
+  }) =>
+      dom.button(
+        classes: classNames(<String?>[
+          'hui-option-card',
+          'hui-lift',
+          selected ? 'is-selected' : null,
+        ]),
+        attributes: <String, String>{
+          'type': 'button',
+          'aria-pressed': selected ? 'true' : 'false',
         },
-      },
-      <Widget>[
-        dom.div(
-          classes: 'hui-option-card-head',
-          <Widget>[
-            dom.strong(<Widget>[Text(template.name)]),
-            dom.code(
-              classes: 'hui-option-card-id',
-              <Widget>[Text('${template.id}.json')],
-            ),
-          ],
-        ),
-        dom.p(
-          classes: 'hui-option-card-text',
-          <Widget>[Text(template.description)],
-        ),
-        HuiChips(labels: template.highlights),
-      ],
-    );
-  }
+        events: <String, void Function(Object)>{
+          'click': (Object _) => onSelect(),
+          'dblclick': (Object _) {
+            onSelect();
+            _apply();
+          },
+        },
+        <Widget>[
+          dom.div(
+            classes: 'hui-option-card-head',
+            <Widget>[
+              dom.strong(<Widget>[Text(name)]),
+              dom.code(
+                classes: 'hui-option-card-id',
+                <Widget>[Text('$id.json')],
+              ),
+            ],
+          ),
+          dom.p(
+            classes: 'hui-option-card-text',
+            <Widget>[Text(description)],
+          ),
+          HuiChips(labels: highlights),
+        ],
+      );
 }

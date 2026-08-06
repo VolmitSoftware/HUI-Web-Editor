@@ -5,6 +5,13 @@
 /// way out. Images are shipped as a zip whose entry names are exactly the paths
 /// stored in the JSON, so unzipping into `plugins/holoui/images/` resolves every
 /// icon without renaming anything.
+///
+/// A container-preview document exports as a bare `<name>.json` download —
+/// there is no images zip (the format has no image icons at all) and no
+/// per-document permission node (`plugins/holoui/previews/` files carry no id
+/// of their own; only `holoui.preview` gates seeing any of them). [EditorStore]
+/// already picks the right JSON shape for [EditorStore.exportJson], so this
+/// dialog only has to pick the right BODY for the active [EditorStore.docKind].
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
@@ -82,7 +89,8 @@ class _ExportDialogState extends State<ExportDialog> {
     final bool copied = await copyText(_store.exportJson());
     if (!mounted) return;
     if (copied) {
-      toast.success('Menu JSON copied to the clipboard');
+      toast.success('${_store.isPreviewDoc ? 'Document' : 'Menu'} JSON copied '
+          'to the clipboard');
     } else {
       toast.error('The browser refused clipboard access. Use Download instead.');
     }
@@ -104,7 +112,7 @@ class _ExportDialogState extends State<ExportDialog> {
         id: 'hui-export-dialog',
         isOpen: component.isOpen,
         onClose: component.onClose,
-        title: 'Export menu',
+        title: _store.isPreviewDoc ? 'Export preview' : 'Export menu',
         maxWidth: 720,
         actions: <Widget>[
           Button(
@@ -122,12 +130,13 @@ class _ExportDialogState extends State<ExportDialog> {
         children: <Widget>[
           ListenableBuilder(
             listenable: _store,
-            builder: (BuildContext inner) => _body(),
+            builder: (BuildContext inner) =>
+                _store.isPreviewDoc ? _previewBody() : _menuBody(),
           ),
         ],
       );
 
-  Widget _body() {
+  Widget _menuBody() {
     final ImageLibrary? library = _images;
     final Set<String> used = huiUsedImagePaths(_store.menu);
     final int missing = library == null
@@ -253,6 +262,98 @@ class _ExportDialogState extends State<ExportDialog> {
           title: 'Preview',
           description: '${json.length} characters, '
               '${_store.menu.components.length} components.',
+          children: <Widget>[
+            HuiCodeBlock(text: json, scroll: true),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _previewBody() {
+    final String json = _store.exportJson();
+    final int elementCount = _store.previewDoc?.elements.length ?? 0;
+
+    return dom.div(
+      classes: 'hui-dialog-body hui-stagger',
+      <Widget>[
+        HuiDialogSection(
+          title: 'File name',
+          description: 'Only used to name the file on disk and in error logs '
+              '— unlike a menu, a container-preview document carries no id of '
+              'its own.',
+          children: <Widget>[
+            HuiField(
+              label: 'File name',
+              help: 'Lowercase letters, digits, underscore and hyphen. '
+                  'Anything else is replaced.',
+              control: TextInput(
+                value: _name,
+                size: ComponentSize.sm,
+                fullWidth: true,
+                placeholder: huiDefaultMenuId,
+                onInput: (String value) => setState(() => _name = value),
+                onBlur: _commitName,
+                attributes: const <String, String>{
+                  'aria-label': 'File name',
+                  'autocomplete': 'off',
+                  'spellcheck': 'false',
+                },
+              ),
+            ),
+            HuiCodeBlock(text: '$huiPreviewFolder$_fileName'),
+          ],
+        ),
+        HuiDialogSection(
+          title: 'Download',
+          description: 'The document, ready to drop into $huiPreviewFolder. '
+              'There is no images zip: the preview format has no image icons.',
+          children: <Widget>[
+            dom.div(
+              classes: 'hui-dialog-actions',
+              <Widget>[
+                Button(
+                  variant: ButtonVariant.primary,
+                  size: ButtonSize.small,
+                  onPressed: _downloadJson,
+                  icon: ArcaneIcon.download(size: IconSize.sm),
+                  label: 'Download $_fileName',
+                ),
+                Button(
+                  variant: ButtonVariant.outline,
+                  size: ButtonSize.small,
+                  onPressed: _copyJson,
+                  icon: ArcaneIcon.clipboardCopy(size: IconSize.sm),
+                  label: 'Copy JSON',
+                ),
+              ],
+            ),
+          ],
+        ),
+        HuiDialogSection(
+          title: 'Install on your server',
+          description: 'Previews are not menus: they draw automatically, with '
+              'no open command.',
+          children: <Widget>[
+            HuiSteps(
+              steps: <String>[
+                'Drop $_fileName into $huiPreviewFolder — the folder is flat, '
+                    'files in subfolders are never registered.',
+                'Editing, adding or deleting a file there takes effect within '
+                    'a few ticks: no reload command and no restart.',
+                'Grant holoui.preview to whoever should see it (operators '
+                    'have it by default); a viewer without it sees the locked '
+                    'document instead.',
+                'It draws automatically over any block or entity its `match` '
+                    'names — there is no open command for a preview.',
+              ],
+            ),
+          ],
+        ),
+        HuiDialogSection(
+          title: 'Preview',
+          description: '${json.length} characters, $elementCount element'
+              '${elementCount == 1 ? '' : 's'}.',
           children: <Widget>[
             HuiCodeBlock(text: json, scroll: true),
           ],

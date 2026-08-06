@@ -1,0 +1,125 @@
+{
+  "match": {
+    "blocks": ["FURNACE", "BLAST_FURNACE", "SMOKER"],
+    "priority": 10,
+    "vars": {
+      "style": "furnace",
+      "segments": 8,
+      "wellColor": "#FF15151B",
+      "fill": "#FFF2A535",
+      "pulseBright": "#FFFFD978",
+      "pulseDim": "#FF8A5E1E",
+      "chase": "#FF9A5E22",
+      "idle": "#FF2A2A33",
+      "flame0": "#FFE2641E",
+      "flame1": "#FFF2A535",
+      "flame2": "#FFF7D14C",
+      "smoke0": "#FF5E5E66",
+      "smoke1": "#FF8A8A92",
+      "smoke2": "#FFB8B8C0",
+      "activeItemKey": "holoui.preview.state.smelting_item",
+      "activeKey": "holoui.preview.state.smelting",
+      "stateColor": "<#F2A535>",
+      "surgeColor": "<#FFD978>",
+      "titleKey": "holoui.preview.theme.title.furnace",
+      "accent": "#F2A535"
+    }
+  },
+  "variants": [
+    {
+      "blocks": ["BLAST_FURNACE"],
+      "vars": {
+        "style": "blast",
+        "fill": "#FF6FB8E8",
+        "pulseBright": "#FFE8F7FF",
+        "pulseDim": "#FF2E5E80",
+        "chase": "#FF4FA8D8",
+        "idle": "#FF23262E",
+        "flame0": "#FF4FA8E8",
+        "flame1": "#FF8ED4FF",
+        "flame2": "#FFE8F7FF",
+        "activeItemKey": "holoui.preview.state.blasting_item",
+        "activeKey": "holoui.preview.state.blasting",
+        "stateColor": "<#6FB8E8>",
+        "surgeColor": "<#E8F7FF>",
+        "titleKey": "holoui.preview.theme.title.blast_furnace",
+        "accent": "#6FEAEA"
+      }
+    },
+    {
+      "blocks": ["SMOKER"],
+      "vars": {
+        "style": "smoker",
+        "fill": "#FFC8893A",
+        "pulseBright": "#FFF2C878",
+        "pulseDim": "#FF6E4A1E",
+        "chase": "#FF8A6234",
+        "idle": "#FF2A2A33",
+        "flame0": "#FFE25822",
+        "flame1": "#FFF2A535",
+        "flame2": "#FFC23B22",
+        "activeItemKey": "holoui.preview.state.smoking_item",
+        "activeKey": "holoui.preview.state.smoking",
+        "stateColor": "<#C8893A>",
+        "surgeColor": "<#F2C878>",
+        "titleKey": "holoui.preview.theme.title.smoker",
+        "accent": "#F2D451"
+      }
+    }
+  ],
+  "card": {
+    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    { "type": "slot", "x": -40, "y": 10, "size": 18, "index": 0 },
+    { "type": "slot", "x": -40, "y": -10, "size": 18, "index": 1 },
+    { "type": "slot", "x": 40, "y": 10, "size": 18, "index": 2 },
+    {
+      "type": "cell",
+      "repeat": { "count": "vars.segments", "var": "i" },
+      "x": "-24 + i * 7",
+      "y": 10,
+      "size": 5,
+      "color": "cookTime > 0 && cookTimeTotal > 0 ? (i < floor(cookTime / cookTimeTotal * vars.segments) ? (surge.active ? (mod(floor(cookTime / 2) + i, 2) == 0 ? vars.pulseBright : vars.fill) : vars.fill) : (i == floor(cookTime / cookTimeTotal * vars.segments) ? (mod(floor(cookTime / 4), 2) == 0 ? vars.pulseBright : vars.pulseDim) : vars.wellColor)) : (burnTime > 0 && i == mod(floor(burnTime / 4), vars.segments) ? vars.chase : vars.wellColor)"
+    },
+    {
+      "type": "cell",
+      "visible": "vars.style != 'blast'",
+      "x": -20,
+      "y": -10,
+      "size": 12,
+      "color": "burnTime > 0 ? palette([vars.flame0, vars.flame1, vars.flame2], floor(burnTime / (surge.active ? 2 : 4))) : vars.idle"
+    },
+    {
+      "type": "cell",
+      "visible": "vars.style == 'blast'",
+      "repeat": { "count": 3, "var": "vent" },
+      "x": "-20 + vent * 8",
+      "y": -10,
+      "size": 6,
+      "color": "burnTime > 0 ? palette([vars.flame0, vars.flame1, vars.flame2], floor(burnTime / (surge.active ? 2 : 4)) + vent) : vars.idle"
+    },
+    {
+      "type": "cell",
+      "visible": "vars.style == 'smoker'",
+      "repeat": { "count": 2, "var": "wisp" },
+      "x": "wisp == 0 ? -8 : 2",
+      "y": -10,
+      "size": "wisp == 0 ? 8 : 6",
+      "color": "burnTime > 0 ? palette([vars.smoke0, vars.smoke1, vars.smoke2], floor(burnTime / (surge.active ? 2 : 4)) + wisp + 1) : vars.idle"
+    },
+    {
+      "type": "label",
+      "x": 0,
+      "y": -32,
+      "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? readable(item(0)) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('holoui.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('holoui.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('holoui.preview.state.no_input') : '&7' + lang('holoui.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('holoui.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
+    },
+    {
+      "type": "label",
+      "x": 0,
+      "y": -46,
+      "text": "(burnTime > 0 ? '&e' + lang('holoui.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('holoui.preview.stat.fuel_ready') : '&8' + lang('holoui.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('holoui.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('holoui.preview.stat.xp_zero') + '</dark_gray>') : '')"
+    }
+  ]
+}

@@ -21,3 +21,6 @@ firebase-debug.*.log
 
 # Local credentials
 service-account.json
+
+# Agent tooling scratch
+.superpowers/

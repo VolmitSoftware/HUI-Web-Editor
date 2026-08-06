@@ -1,0 +1,54 @@
+{
+  "categories": {
+    "universal": {
+      "time": { "type": "number", "description": "Current world game time in ticks (a wall-clock tick count when the target has no world)." },
+      "blockType": { "type": "string", "description": "Material name of the previewed block, or the material an entity maps to; empty when neither is present." },
+      "customName": { "type": "string", "description": "Player-given name of the previewed container or entity, or empty when unset." }
+    },
+    "inventory": {
+      "inventory.size": { "type": "number", "description": "Number of slots in the previewed inventory." },
+      "inventory.occupied": { "type": "number", "description": "Number of non-empty slots in the previewed inventory." }
+    },
+    "furnace": {
+      "cookTime": { "type": "number", "description": "Ticks the current smelt has been cooking." },
+      "cookTimeTotal": { "type": "number", "description": "Ticks required to finish the current smelt." },
+      "burnTime": { "type": "number", "description": "Ticks of fuel remaining in the furnace." },
+      "fuelSeconds": { "type": "number", "description": "Fuel remaining in whole seconds (burnTime divided by 20)." },
+      "bankedXp": { "type": "number", "description": "Total experience banked from recipes used, or -1 on a server without getRecipesUsed." },
+      "lit": { "type": "boolean", "description": "True while the furnace has fuel burning." },
+      "surge.active": { "type": "boolean", "description": "True while a detected speed-up (e.g. a hopper-fed boost) is still within its hold window." },
+      "surge.gain": { "type": "number", "description": "Seconds of cook-time progress gained beyond real elapsed time during the last detected surge." }
+    },
+    "brewing": {
+      "brewTime": { "type": "number", "description": "Ticks remaining until the current brew finishes." },
+      "brewTotal": { "type": "number", "description": "Fixed total tick length of a brew (400)." },
+      "fuelLevel": { "type": "number", "description": "Blaze powder charges remaining in the brewing stand." },
+      "maxFuel": { "type": "number", "description": "Maximum blaze powder charge level (20)." },
+      "surge.active": { "type": "boolean", "description": "True while a detected speed-up is still within its hold window." },
+      "surge.gain": { "type": "number", "description": "Seconds of brew-time progress gained beyond real elapsed time during the last detected surge." }
+    },
+    "beehive": {
+      "bees": { "type": "number", "description": "Bees currently inside the hive." },
+      "maxBees": { "type": "number", "description": "Maximum bee occupancy of the hive." },
+      "honey": { "type": "number", "description": "Current honey level of the hive." },
+      "maxHoney": { "type": "number", "description": "Maximum honey level of the hive." }
+    },
+    "cauldron": {
+      "level": { "type": "number", "description": "Current fluid level of the cauldron." },
+      "maxLevel": { "type": "number", "description": "Maximum fluid level of the cauldron." },
+      "fluid": { "type": "string", "description": "Fluid the cauldron holds: empty, water, lava, or powder_snow." }
+    },
+    "jukebox": {
+      "playing": { "type": "boolean", "description": "True while a loaded record is playing." },
+      "record": { "type": "string", "description": "Readable name of the loaded record, or empty when none is loaded." }
+    }
+  },
+  "functions": {
+    "lang": { "args": ["key: string", "...args: any"], "returns": "string", "description": "Resolves a localization key, binding positional arguments onto its placeholder names in order." },
+    "count": { "args": ["slot: number"], "returns": "number", "description": "Item count in the given inventory slot, or 0 when empty, out of range, or there is no inventory." },
+    "occupied": { "args": ["slot: number"], "returns": "boolean", "description": "True when the given inventory slot holds a non-empty item stack." },
+    "item": { "args": ["slot: number"], "returns": "string", "description": "Material id in the given inventory slot, or empty string when empty, out of range, or there is no inventory." },
+    "plain": { "args": ["text: string"], "returns": "string", "description": "Strips legacy '&' color and format codes from text, leaving everything else untouched." },
+    "readable": { "args": ["id: string"], "returns": "string", "description": "Converts an ENUM_STYLE id into Title Case display text, e.g. IRON_ORE becomes Iron Ore." }
+  }
+}

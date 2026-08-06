@@ -635,7 +635,14 @@ class _CanvasViewportState extends State<CanvasViewport> {
 
   void _paint() {
     final web.HTMLCanvasElement? canvas = _canvas;
-    if (canvas == null || _viewport.widthPx <= 0) return;
+    // Gated on [_hasArea], not on the viewport size. The stored size is
+    // deliberately NOT zeroed when the cell hides (it is the framing to restore
+    // when it comes back), so `widthPx` reads stale-positive the whole time the
+    // canvas is invisible. Without this guard every store notification from
+    // whichever surface IS visible — a preview-card drag fires one per pointer
+    // move — rebuilt a whole `CanvasScene` off the menu and painted it into a
+    // canvas with no box at all.
+    if (canvas == null || !_hasArea || _viewport.widthPx <= 0) return;
     final web.RenderingContext? raw = canvas.getContext('2d');
     if (raw == null) return;
     final web.CanvasRenderingContext2D ctx =

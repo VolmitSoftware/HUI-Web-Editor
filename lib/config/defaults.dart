@@ -207,6 +207,35 @@ HuiComponent createDefaultComponent({
   createDefaultComponentData(type),
 );
 
+/// One-line descriptions for the preview element list's "add" menu.
+const Map<String, String> previewElementTypeDescriptions = <String, String>{
+  'panel': 'A flat rectangle. Needs width, height and color.',
+  'cell': 'A small square well, the building block of a grid. Needs size and '
+      'color.',
+  'slot': 'Draws one inventory item. Needs size and the slot index to read.',
+  'label': 'Minecraft-formatted text. Needs an expression that returns a '
+      'string.',
+};
+
+/// Default payload for a freshly added preview element of [type]. Chosen so a
+/// brand new element already validates clean against [validatePreviewDoc]:
+/// every required field for that type is present, and every color is a valid
+/// literal.
+HuiPreviewElement createDefaultPreviewElement(String type) {
+  const String defaultColor = '#FF2B2B33';
+  switch (type) {
+    case 'panel':
+      return HuiPreviewElement('panel', width: 40, height: 20, color: defaultColor);
+    case 'slot':
+      return HuiPreviewElement('slot', size: 18, index: 0);
+    case 'label':
+      return HuiPreviewElement('label', text: "'Label'");
+    case 'cell':
+    default:
+      return HuiPreviewElement('cell', size: 8, color: defaultColor);
+  }
+}
+
 /// `button`, then `button-2`, `button-3`... Readable ids matter: they are what
 /// the Java API addresses and what the rail shows.
 String uniqueComponentId(String base, Set<String> taken) {

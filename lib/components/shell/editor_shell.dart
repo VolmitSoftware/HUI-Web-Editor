@@ -13,6 +13,7 @@
 ///   child: EditorShell(
 ///     rail: const ComponentsRail(),
 ///     canvas: const CanvasViewport(),
+///     previewCard: const PreviewCardViewport(),
 ///     preview: const PreviewView(),
 ///     inspector: const InspectorPane(),
 ///     codeEditor: const CodeEditorView(),
@@ -49,6 +50,7 @@ class EditorShell extends StatefulWidget {
   const EditorShell({
     required this.rail,
     required this.canvas,
+    required this.previewCard,
     required this.preview,
     required this.inspector,
     required this.codeEditor,
@@ -70,6 +72,10 @@ class EditorShell extends StatefulWidget {
 
   final Widget rail;
   final Widget canvas;
+
+  /// The pixel-space container-preview surface. Mounted in every view and
+  /// hidden by CSS, exactly like [canvas]; see [_CenterArea].
+  final Widget previewCard;
 
   /// Mounted only while the preview view is active; see [_CenterArea].
   final Widget preview;
@@ -378,6 +384,7 @@ class _EditorShellState extends State<EditorShell> {
               _CenterArea(
                 store: store,
                 canvas: component.canvas,
+                previewCard: component.previewCard,
                 preview: component.preview,
                 codeEditor: component.codeEditor,
               ),
@@ -484,27 +491,34 @@ class _EditorShellState extends State<EditorShell> {
   }
 }
 
-/// Visual / preview / code / split. Rebuilds only when the view actually
-/// changes, not on every store notification.
+/// Visual / preview / code / split for a menu, card / code for a container
+/// preview. Rebuilds only when the view actually changes, not on every store
+/// notification.
 ///
-/// The canvas cell is child 0 in all four arms and is only ever hidden by CSS,
-/// never unmounted. Anything else destroys `_CanvasViewportState` on a view
-/// switch — Jaspr replaces a child whose runtimeType changed — which resets
-/// zoom and pan and throws away every decoded bitmap and the font calibration.
-/// The code and preview cells are genuinely unmounted when inactive, for
+/// The canvas cell is child 0 in every arm and the card cell child 1, and both
+/// are only ever hidden by CSS, never unmounted. Anything else destroys their
+/// state on a view switch — Jaspr replaces a child whose runtimeType changed —
+/// which resets zoom and pan and throws away the font calibration and every
+/// decoded bitmap. Both surfaces gate their clocks on having a box to draw
+/// into, so a hidden one costs nothing.
+///
+/// The code and preview cells ARE genuinely unmounted when inactive, for
 /// opposite reasons that land in the same place: a live [CodeEditorView]
-/// re-serializes the whole document on every store notification, and a live
-/// preview keeps a rAF loop and a 50 ms simulation timer running.
+/// re-serializes the whole document on every store notification, and a live 3D
+/// preview keeps a rAF loop and a 50 ms simulation timer running with no
+/// equivalent gate.
 class _CenterArea extends StatelessWidget {
   const _CenterArea({
     required this.store,
     required this.canvas,
+    required this.previewCard,
     required this.preview,
     required this.codeEditor,
   });
 
   final EditorStore store;
   final Widget canvas;
+  final Widget previewCard;
   final Widget preview;
   final Widget codeEditor;
 
@@ -518,9 +532,14 @@ class _CenterArea extends StatelessWidget {
             EditorView.preview => 'hui-pane hui-center is-preview',
             EditorView.code => 'hui-pane hui-center is-code',
             EditorView.split => 'hui-pane hui-center is-split',
+            EditorView.previewCard => 'hui-pane hui-center is-preview-card',
           },
           <Widget>[
             dom.div(classes: 'hui-split-cell', <Widget>[canvas]),
+            dom.div(
+              classes: 'hui-split-cell is-preview-card',
+              <Widget>[previewCard],
+            ),
             if (view == EditorView.preview)
               dom.div(
                 classes: 'hui-split-cell is-preview',

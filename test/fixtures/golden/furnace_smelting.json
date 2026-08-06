@@ -1,0 +1,21 @@
+[
+  {"type":"panel","x":0,"y":-8,"z":0,"width":170,"height":107,"color":"#CCF2A535"},
+  {"type":"panel","x":0,"y":-8,"z":1,"width":164,"height":101,"color":"#F21B1B22"},
+  {"type":"panel","x":0,"y":0,"z":2,"width":106,"height":46,"color":"#FF33333E"},
+  {"type":"panel","x":0,"y":33,"z":3,"width":164,"height":17,"color":"#E6F2A535"},
+  {"type":"label","x":0,"y":33,"z":6,"text":{"bold":true,"color":"white","text":"Furnace"},"background":"#00000000"},
+  {"type":"slot","x":-40,"y":10,"z":4,"size":18,"wellColor":"#FF15151B","slot":0},
+  {"type":"slot","x":-40,"y":-10,"z":4,"size":18,"wellColor":"#FF15151B","slot":1},
+  {"type":"slot","x":40,"y":10,"z":4,"size":18,"wellColor":"#FF15151B","slot":2},
+  {"type":"cell","x":-24,"y":10,"z":4,"size":5,"color":"#FFF2A535"},
+  {"type":"cell","x":-17,"y":10,"z":4,"size":5,"color":"#FFF2A535"},
+  {"type":"cell","x":-10,"y":10,"z":4,"size":5,"color":"#FFF2A535"},
+  {"type":"cell","x":-3,"y":10,"z":4,"size":5,"color":"#FFF2A535"},
+  {"type":"cell","x":4,"y":10,"z":4,"size":5,"color":"#FF8A5E1E"},
+  {"type":"cell","x":11,"y":10,"z":4,"size":5,"color":"#FF15151B"},
+  {"type":"cell","x":18,"y":10,"z":4,"size":5,"color":"#FF15151B"},
+  {"type":"cell","x":25,"y":10,"z":4,"size":5,"color":"#FF15151B"},
+  {"type":"cell","x":-20,"y":-10,"z":4,"size":12,"color":"#FFE2641E"},
+  {"type":"label","x":0,"y":-32,"z":6,"text":{"color":"#F2A535","text":"Smelting Iron Ore 50%"},"background":"#00000000"},
+  {"type":"label","x":0,"y":-46,"z":6,"text":{"color":"yellow","extra":[{"color":"dark_gray","text":"  •  "},{"color":"green","text":"XP +1.5"}],"text":"Fuel 15s"},"background":"#00000000"}
+]

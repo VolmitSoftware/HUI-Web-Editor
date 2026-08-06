@@ -7,6 +7,7 @@ import 'components/dialogs/dialogs.dart';
 import 'components/inspector/inspector.dart';
 import 'components/panels/panels.dart';
 import 'components/preview/preview_view.dart';
+import 'components/preview_card/preview_card.dart';
 import 'components/shell/shell.dart';
 import 'services/catalogs.dart';
 import 'services/image_library.dart';
@@ -147,6 +148,11 @@ class _AppState extends State<App> {
             canvas: CanvasViewport(
               store: _store,
               images: _images,
+              catalogs: _catalogs,
+              status: _status,
+            ),
+            previewCard: PreviewCardViewport(
+              store: _store,
               catalogs: _catalogs,
               status: _status,
             ),

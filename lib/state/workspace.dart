@@ -25,19 +25,40 @@ String? defaultStorageRead(String key) => StorageService.read(key);
 bool defaultStorageWrite(String key, String value) =>
     StorageService.write(key, value);
 
-/// One saved menu document. [name] is the sanitized menu id, which is also the
-/// export file base name; [json] is the encoded menu.
+/// Which model a stored document holds. `menu` is the original and default
+/// kind; `containerPreview` was added for the HoloUI container-preview JSON
+/// editor.
+enum WorkspaceDocKind {
+  menu,
+  containerPreview;
+
+  /// Falls back to [menu] for anything that is not one of its own names —
+  /// including `null`, which is exactly what a document saved before this
+  /// field existed reads back as. Never breaks on legacy storage.
+  static WorkspaceDocKind fromName(Object? raw) {
+    for (final WorkspaceDocKind value in values) {
+      if (value.name == raw) return value;
+    }
+    return WorkspaceDocKind.menu;
+  }
+}
+
+/// One saved document. [name] is the sanitized id, which is also the export
+/// file base name; [json] is the encoded document, in the shape [kind] says it
+/// is.
 class WorkspaceDoc {
   WorkspaceDoc({
     required this.id,
     required this.name,
     required this.json,
     required this.updatedAt,
+    this.kind = WorkspaceDocKind.menu,
   });
 
   final String id;
   String name;
   String json;
+  WorkspaceDocKind kind;
 
   /// Epoch milliseconds, monotonically increasing within a session so the
   /// "recent documents" order is stable even for edits in the same millisecond.
@@ -48,6 +69,7 @@ class WorkspaceDoc {
         'name': name,
         'json': json,
         'updatedAt': updatedAt,
+        'kind': kind.name,
       };
 
   /// Null when the entry is unusable; the caller skips it.
@@ -71,6 +93,10 @@ class WorkspaceDoc {
       name: name is String && name.isNotEmpty ? name : huiDefaultMenuId,
       json: json,
       updatedAt: updatedAt is num ? updatedAt.toInt() : 0,
+      // Absent on every document saved before this field existed; reading it
+      // as `menu` is the null-tolerant default that keeps legacy storage
+      // opening exactly as it always has.
+      kind: WorkspaceDocKind.fromName(raw['kind']),
     );
   }
 }
@@ -184,12 +210,17 @@ class Workspace extends ChangeNotifier {
   }
 
   /// Adds a document and makes it active.
-  WorkspaceDoc create({required String name, required String json}) {
+  WorkspaceDoc create({
+    required String name,
+    required String json,
+    WorkspaceDocKind kind = WorkspaceDocKind.menu,
+  }) {
     final WorkspaceDoc doc = WorkspaceDoc(
       id: _newId(),
       name: sanitizeMenuId(name),
       json: json,
       updatedAt: _stamp(),
+      kind: kind,
     );
     _docs.add(doc);
     _activeId = doc.id;
@@ -232,8 +263,10 @@ class Workspace extends ChangeNotifier {
   }
 
   /// Writes the live document back. Returns false when there is no active
-  /// document or the browser refused the write.
-  bool updateActive({String? name, String? json}) {
+  /// document or the browser refused the write. [kind] only needs passing
+  /// when an import replaced the document with a different kind of content;
+  /// omitting it leaves the stored kind untouched.
+  bool updateActive({String? name, String? json, WorkspaceDocKind? kind}) {
     final WorkspaceDoc? doc = active;
     if (doc == null) return false;
     bool changed = false;
@@ -243,6 +276,10 @@ class Workspace extends ChangeNotifier {
     }
     if (json != null && json != doc.json) {
       doc.json = json;
+      changed = true;
+    }
+    if (kind != null && kind != doc.kind) {
+      doc.kind = kind;
       changed = true;
     }
     if (!changed) return true;

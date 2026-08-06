@@ -18,6 +18,8 @@ import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 
 import '../config/defaults.dart';
 import '../logic/canvas_scene.dart';
+import '../logic/preview_doc_validation.dart';
+import '../logic/preview_sim_controls.dart';
 import '../logic/validation.dart';
 import '../model/model.dart';
 import '../preview/preview_types.dart';
@@ -26,7 +28,11 @@ import '../services/image_library.dart';
 import 'undo_stack.dart';
 import 'workspace.dart';
 
-enum EditorView { visual, preview, code, split }
+/// Which surface the centre pane shows. [previewCard] is the pixel-space
+/// container-preview editor and is only ever reachable while a
+/// container-preview document is open; the other four are the menu editor's and
+/// are only reachable while a menu is. See [EditorStore.availableViews].
+enum EditorView { visual, preview, code, split, previewCard }
 
 /// Canvas background treatment. Lives in the store because the settings dialog
 /// persists it and the status bar reflects it.
@@ -45,6 +51,12 @@ class EditorStore extends ChangeNotifier {
         _catalogs = catalogs ?? HuiCatalogs.empty(),
         _images = images {
     _images?.addListener(_onImagesChanged);
+    // The controller's own notifications are simulation state, not document
+    // state: they must repaint the preview-card surface exactly like any
+    // other store notification, but must never touch `previewRevision`,
+    // undo, dirty tracking or autosave. Forwarding into `_notify` gives
+    // every existing `store.addListener` call site that for free.
+    previewSim.addListener(_notify);
     _menu = createDefaultMenu();
     if (autoLoad) {
       _loadPreferences();
@@ -69,6 +81,40 @@ class EditorStore extends ChangeNotifier {
 
   late HuiMenu _menu;
   String _menuId = huiDefaultMenuId;
+
+  /// Which model [_menu]/[_previewDoc] the active document actually holds.
+  /// Every menu-editing method below (`mutate`, `replaceMenu`) requires
+  /// [WorkspaceDocKind.menu] and is a documented no-op otherwise; the
+  /// container-preview document has its own write path ([mutatePreview]) with
+  /// the same undo, autosave and notification mechanics. Menus are entirely
+  /// unaffected: this field starts and stays at [WorkspaceDocKind.menu] unless
+  /// a preview document is explicitly opened, created or imported.
+  WorkspaceDocKind _docKind = WorkspaceDocKind.menu;
+
+  /// The active container-preview document, or null while [docKind] is
+  /// [WorkspaceDocKind.menu]. Always written through [_setPreviewDoc].
+  HuiPreviewDoc? _previewDoc;
+
+  /// Bumped on every change to [_previewDoc], whether it was swapped wholesale
+  /// or edited in place.
+  int _previewRevision = 0;
+
+  /// The one [PreviewSim] the preview-card viewport and the simulation panel
+  /// (task E8) share — see [PreviewSimController]'s own doc comment for why
+  /// it lives here rather than inside either widget. Its notifications are
+  /// simulation state, deliberately kept OFF [_previewRevision]: a pinned
+  /// override or a tick must repaint the card without marking the document
+  /// dirty, without an undo step, and without invalidating the viewport's
+  /// revision-keyed memo of the document's own category/vars resolution.
+  final PreviewSimController previewSim = PreviewSimController();
+
+  /// Index into `previewDoc.elements` of the selected element, or null.
+  ///
+  /// Deliberately separate from [_selection]: a preview element has no id to
+  /// address it by — the format identifies elements by position alone — so the
+  /// two selection models cannot share a representation. Only one of them is
+  /// ever meaningful, decided by [_docKind].
+  int? _previewSelection;
 
   /// Insertion-ordered: the LAST id is the primary, which is what every
   /// single-select call site reads through [selectedId].
@@ -123,10 +169,44 @@ class EditorStore extends ChangeNotifier {
   // --- document -------------------------------------------------------------
 
   /// Read-only handle on the document. Write through [mutate] so the change is
-  /// undoable, validated and saved.
+  /// undoable, validated and saved. Meaningless while [isPreviewDoc] is true —
+  /// still a valid, harmless [HuiMenu] (never null), just not the active
+  /// document.
   HuiMenu get menu => _menu;
 
   List<HuiComponent> get components => _menu.components;
+
+  /// Which model the active document holds.
+  WorkspaceDocKind get docKind => _docKind;
+
+  bool get isPreviewDoc => _docKind == WorkspaceDocKind.containerPreview;
+
+  /// The active container-preview document, or null while [isPreviewDoc] is
+  /// false.
+  HuiPreviewDoc? get previewDoc => _previewDoc;
+
+  /// Monotonic counter over every change to [previewDoc] — an edit, an undo, a
+  /// code commit, an import, a document switch.
+  ///
+  /// The card surface rebuilds its scene on every simulation tick but derives
+  /// its simulated category, its variant `vars` (which compiles a RegExp per
+  /// glob) and its animation gate from the DOCUMENT, which changes far more
+  /// rarely. Those three are memoized against this, so a steady frame does none
+  /// of that work. A revision, not a hash: the model is mutable and edited in
+  /// place, so identity proves nothing and hashing it every frame would cost
+  /// more than it saved.
+  int get previewRevision => _previewRevision;
+
+  /// The one place [_previewDoc] is assigned, so no swap can be made without
+  /// the revision moving with it.
+  void _setPreviewDoc(HuiPreviewDoc? doc) {
+    _previewDoc = doc;
+    _previewRevision++;
+  }
+
+  /// Every write path below (`mutate`, `replaceMenu`, `applyCode`) requires
+  /// this to keep the guarantee that [_menu] is really the live document.
+  bool get _menuWritable => _docKind == WorkspaceDocKind.menu;
 
   /// Export file base name, always sanitized.
   String get menuId => _menuId;
@@ -239,10 +319,49 @@ class EditorStore extends ChangeNotifier {
 
   EditorView get view => _view;
 
+  /// Rejects a view the active document kind has no surface for, landing on
+  /// that kind's default instead. A keyboard shortcut, the command palette and
+  /// the switcher all route through here, so none of them can strand a preview
+  /// document on the component canvas.
   set view(EditorView value) {
-    if (_view == value) return;
-    _view = value;
+    final EditorView next =
+        availableViews.contains(value) ? value : availableViews.first;
+    if (_view == next) return;
+    _view = next;
     _savePreference();
+  }
+
+  /// The views the active document kind actually has a surface for, in the
+  /// order the switcher lists them. First entry is that kind's default.
+  ///
+  /// A menu keeps the original four untouched. A container-preview document
+  /// has neither components to lay out nor a 3D scene to fly around, so it
+  /// gets the pixel card surface and the raw JSON.
+  List<EditorView> get availableViews =>
+      isPreviewDoc ? _previewDocViews : _menuDocViews;
+
+  static const List<EditorView> _menuDocViews = <EditorView>[
+    EditorView.visual,
+    EditorView.preview,
+    EditorView.code,
+    EditorView.split,
+  ];
+
+  static const List<EditorView> _previewDocViews = <EditorView>[
+    EditorView.previewCard,
+    EditorView.code,
+  ];
+
+  /// Called after every document adoption: the stored view belongs to whichever
+  /// document was open when it was saved, and the new one may not have it.
+  void _coerceView() {
+    if (availableViews.contains(_view)) return;
+    _view = availableViews.first;
+    // No `_savePreference`: every caller notifies once it has finished
+    // adopting, and a second notification mid-adoption would rebuild the shell
+    // against a half-swapped document.
+    _preferencesDirty = true;
+    _scheduleSave();
   }
 
   double get previewUiScale => _previewUiScale;
@@ -430,6 +549,18 @@ class EditorStore extends ChangeNotifier {
       .where((HuiIssue issue) => issue.componentId == componentId)
       .toList();
 
+  /// Every issue whose path names element [index] specifically — the preview
+  /// counterpart of [issuesFor], since a preview element has no id to key by.
+  List<HuiIssue> issuesForPreviewElement(int index) {
+    final String prefix = 'elements[$index]';
+    return _issues
+        .where(
+          (HuiIssue issue) =>
+              issue.path == prefix || issue.path.startsWith('$prefix.'),
+        )
+        .toList();
+  }
+
   /// Clickable hitbox pairs that intersect in the resolved scene. One left
   /// click fires every one of them (`MenuSessionManager.java:170-203`), which
   /// is why validation is handed the list.
@@ -443,13 +574,31 @@ class EditorStore extends ChangeNotifier {
   /// Swaps in the catalogs once they finish loading and re-runs validation.
   void setCatalogs(HuiCatalogs value) {
     _catalogs = value;
-    _issues = _validate();
+    _refreshIssues();
     _notify();
   }
 
   void refreshValidation() {
-    _issues = _validate();
+    _refreshIssues();
     _notify();
+  }
+
+  /// Recomputes [_issues] against whichever document is active. Menu-mode
+  /// resolves a fresh [CanvasScene] the way it always has; preview-mode runs
+  /// [validatePreviewDoc] against the live catalogs. Neither branch throws, so
+  /// every call site can run this unconditionally.
+  void _refreshIssues() {
+    if (_menuWritable) {
+      _issues = _validate();
+      return;
+    }
+    final HuiPreviewDoc? doc = _previewDoc;
+    _issues = doc == null
+        ? const <HuiIssue>[]
+        : validatePreviewDoc(
+            doc,
+            knownMaterials: _catalogs.loaded ? _catalogs.materialKeys : null,
+          );
   }
 
   // --- history --------------------------------------------------------------
@@ -464,8 +613,10 @@ class EditorStore extends ChangeNotifier {
 
   String? get redoLabel => _undo.redoLabel;
 
-  /// The only write path into the document.
+  /// The only write path into a menu document. A no-op while [isPreviewDoc] is
+  /// true; that document is written through [mutatePreview].
   void mutate(String label, void Function(HuiMenu menu) fn) {
+    if (!_menuWritable) return;
     final String before = _snapshot();
     final int countBefore = _menu.components.length;
     fn(_menu);
@@ -484,13 +635,223 @@ class EditorStore extends ChangeNotifier {
     _afterChange();
   }
 
-  /// Replaces the whole document in one undoable step.
+  /// Replaces the whole document in one undoable step. A no-op while
+  /// [isPreviewDoc] is true; see [mutate].
   void replaceMenu(String label, HuiMenu next) {
+    if (!_menuWritable) return;
     final String before = _snapshot();
     _menu = next;
     _pruneSelection();
     _pushUndo(label, before, coalesce: false);
     _afterChange();
+  }
+
+  // --- container-preview document -------------------------------------------
+
+  /// The only write path into a container-preview document, and the exact twin
+  /// of [mutate]: snapshot, run, compare, push one undo entry, revalidate,
+  /// autosave, notify. A no-op while [isPreviewDoc] is false.
+  ///
+  /// The two paths are deliberately separate rather than one generic method
+  /// over `Object`: the callbacks take different models, and a single entry
+  /// point would have to be typed loosely enough that a menu edit could be
+  /// handed a preview document at runtime.
+  void mutatePreview(String label, void Function(HuiPreviewDoc doc) fn) {
+    final HuiPreviewDoc? doc = _previewDoc;
+    if (doc == null) return;
+    final String before = _snapshot();
+    final int countBefore = doc.elements.length;
+    fn(doc);
+    final String after = _snapshot();
+    if (after == before) {
+      _notify();
+      return;
+    }
+    // Edited in place, so nothing assigned [_previewDoc] and the revision has
+    // to be moved by hand — the counter is what every consumer memoizes on.
+    _previewRevision++;
+    // Same rule as [mutate]: adding or removing an element is its own step
+    // however fast it follows the last one, a field edit is not.
+    _pushUndo(
+      label,
+      before,
+      coalesce: countBefore == doc.elements.length,
+    );
+    _prunePreviewSelection();
+    _afterChange();
+  }
+
+  /// Edits one element by index — the preview counterpart of [editComponent].
+  /// An index the document does not have is ignored, so a stale pointer gesture
+  /// can never write to the wrong element.
+  void editPreviewElement(
+    int index,
+    String label,
+    void Function(HuiPreviewElement element) fn,
+  ) {
+    final HuiPreviewDoc? doc = _previewDoc;
+    if (doc == null || index < 0 || index >= doc.elements.length) return;
+    mutatePreview(label, (HuiPreviewDoc edited) {
+      if (index < edited.elements.length) fn(edited.elements[index]);
+    });
+  }
+
+  /// Replaces the whole container-preview document in one undoable step.
+  void replacePreviewDoc(String label, HuiPreviewDoc next) {
+    if (!isPreviewDoc) return;
+    final String before = _snapshot();
+    _setPreviewDoc(next);
+    _pushUndo(label, before, coalesce: false);
+    _prunePreviewSelection();
+    _afterChange();
+  }
+
+  /// Index into `previewDoc.elements` of the selected element, or null.
+  int? get previewSelectedIndex => _previewSelection;
+
+  HuiPreviewElement? get previewSelectedElement {
+    final int? index = _previewSelection;
+    final HuiPreviewDoc? doc = _previewDoc;
+    if (index == null || doc == null || index >= doc.elements.length) {
+      return null;
+    }
+    return doc.elements[index];
+  }
+
+  /// Selects one element by index; null clears. An index the document does not
+  /// have is ignored, the rule [select] applies to an unknown component id.
+  void selectPreviewElement(int? index) {
+    if (index != null) {
+      final HuiPreviewDoc? doc = _previewDoc;
+      if (doc == null || index < 0 || index >= doc.elements.length) return;
+    }
+    if (_previewSelection == index) return;
+    _previewSelection = index;
+    _notify();
+  }
+
+  /// Elements are addressed by position, so a step that shortened the list can
+  /// leave the selection pointing past the end. Dropped rather than clamped:
+  /// silently re-selecting a different element is worse than selecting none.
+  ///
+  /// This only catches the "now out of range" case. It cannot fix DRIFT — a
+  /// selection that stays numerically in range but now names a different
+  /// element because something was removed or moved earlier in the list —
+  /// because [mutatePreview] runs this generically after every mutation and
+  /// has no idea which index (if any) was removed or moved. [deletePreviewElement]
+  /// and [reorderPreviewElement] compute the correct remapped index BEFORE
+  /// calling [mutatePreview] and re-apply it with [selectPreviewElement]
+  /// afterward, which is what actually keeps the selection glued to the
+  /// element it named rather than to a numeric slot.
+  void _prunePreviewSelection() {
+    final int? index = _previewSelection;
+    if (index == null) return;
+    final HuiPreviewDoc? doc = _previewDoc;
+    if (doc != null && index < doc.elements.length) return;
+    _previewSelection = null;
+  }
+
+  /// Where selection [p] lands after element [removedIndex] is deleted: gone
+  /// if it named the removed element, shifted down by one if it named
+  /// anything after it, unchanged otherwise.
+  static int? _remapSelectionAfterRemoval(int? p, int removedIndex) {
+    if (p == null) return null;
+    if (p == removedIndex) return null;
+    return p > removedIndex ? p - 1 : p;
+  }
+
+  /// Where selection [p] lands after the element at [from] is moved to [to]
+  /// via a remove-then-insert (what [reorderPreviewElement] does): the moved
+  /// element's own selection follows it to [to]; everything strictly between
+  /// the two endpoints shifts one slot the other way; everything else is
+  /// unaffected. Deliberately NOT "select whatever moved" — a reorder
+  /// triggered on a row that is not the current selection must leave the
+  /// actual selection exactly where it visually is, which may or may not be
+  /// the row that moved.
+  static int? _remapSelectionAfterMove(int? p, int from, int to) {
+    if (p == null) return null;
+    if (p == from) return to;
+    if (from < to) {
+      // Moved later: everything strictly between shifts one earlier.
+      return (p > from && p <= to) ? p - 1 : p;
+    }
+    // Moved earlier: everything strictly between shifts one later.
+    return (p >= to && p < from) ? p + 1 : p;
+  }
+
+  // --- preview element list operations ---------------------------------
+
+  /// Appends a new element of [type] (defaulting to `cell` for an unknown
+  /// name) and selects it — the preview counterpart of [addComponent]. A
+  /// no-op while [isPreviewDoc] is false.
+  void addPreviewElement(String type) {
+    final HuiPreviewDoc? doc = _previewDoc;
+    if (doc == null) return;
+    final String normalized =
+        previewElementTypes.contains(type) ? type : 'cell';
+    final HuiPreviewElement element = createDefaultPreviewElement(normalized);
+    final int newIndex = doc.elements.length;
+    mutatePreview('add $normalized', (HuiPreviewDoc edited) {
+      edited.elements.add(element);
+    });
+    selectPreviewElement(newIndex);
+  }
+
+  /// Deep-copies element [index] directly after itself and selects the copy —
+  /// the preview counterpart of [duplicateComponent].
+  void duplicatePreviewElement(int index) {
+    final HuiPreviewDoc? doc = _previewDoc;
+    if (doc == null || index < 0 || index >= doc.elements.length) return;
+    final HuiPreviewElement copy = doc.elements[index].copy();
+    mutatePreview('duplicate element', (HuiPreviewDoc edited) {
+      if (index < edited.elements.length) {
+        edited.elements.insert(index + 1, copy);
+      }
+    });
+    selectPreviewElement(index + 1);
+  }
+
+  /// Moves element [index] to [newIndex] — the preview counterpart of
+  /// [reorder]. Click order is paint order for these elements (later entries
+  /// draw in front at equal `z`), so reordering is a document edit like it is
+  /// for a menu component.
+  ///
+  /// The selection is remapped by position, not forced onto whichever element
+  /// moved: the row tools sit on every row, so this can just as easily be
+  /// called on a row that is not the current selection, and that selection
+  /// must stay exactly where it visually is.
+  void reorderPreviewElement(int index, int newIndex) {
+    final HuiPreviewDoc? doc = _previewDoc;
+    if (doc == null) return;
+    final int length = doc.elements.length;
+    if (index < 0 || index >= length) return;
+    final int clamped = newIndex.clamp(0, length - 1);
+    if (clamped == index) return;
+    final int? remapped = _remapSelectionAfterMove(_previewSelection, index, clamped);
+    mutatePreview('reorder element', (HuiPreviewDoc edited) {
+      final HuiPreviewElement moved = edited.elements.removeAt(index);
+      edited.elements.insert(clamped, moved);
+    });
+    selectPreviewElement(remapped);
+  }
+
+  /// Removes element [index] — the preview counterpart of [deleteComponent].
+  /// Delete lives only here (not on the card surface), so it always goes
+  /// through the rail's own confirm step.
+  ///
+  /// Deleting an earlier element shifts every later one down by one position;
+  /// without remapping, a selection on one of them would silently keep
+  /// pointing at its old numeric slot — now occupied by a different element —
+  /// while the inspector, keyed on that same index, would go on showing (and
+  /// editing) draft state for the element that used to be there.
+  void deletePreviewElement(int index) {
+    final HuiPreviewDoc? doc = _previewDoc;
+    if (doc == null || index < 0 || index >= doc.elements.length) return;
+    final int? remapped = _remapSelectionAfterRemoval(_previewSelection, index);
+    mutatePreview('delete element', (HuiPreviewDoc edited) {
+      if (index < edited.elements.length) edited.elements.removeAt(index);
+    });
+    selectPreviewElement(remapped);
   }
 
   /// Canvas drags call [beginDrag] on pointer down and [endDrag] on pointer up
@@ -812,11 +1173,32 @@ class EditorStore extends ChangeNotifier {
 
   // --- import / export ------------------------------------------------------
 
-  String exportJson() => encodeHuiMenu(_menu);
+  /// The active document's JSON, in whichever shape [docKind] says it is.
+  String exportJson() =>
+      isPreviewDoc ? encodeHuiPreviewDoc(_previewDoc!) : encodeHuiMenu(_menu);
 
-  /// Replaces the document with [content]. Parse failures report through
-  /// [onError] and leave the current document untouched.
+  /// Replaces the active document with [content], auto-detecting whether it
+  /// is a HoloUI menu or a container-preview document via
+  /// [looksLikePreviewDoc]. Only malformed JSON is refused: a well-formed
+  /// document of either shape always replaces the current one, reporting
+  /// through [onInfo]. A parse failure reports through [onError] and leaves
+  /// the current document untouched.
   void importJson(String name, String content) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(content);
+    } catch (_) {
+      _fail('That file could not be read as JSON.');
+      return;
+    }
+    if (looksLikePreviewDoc(decoded)) {
+      _importPreviewJson(name, content);
+    } else {
+      _importMenuJson(name, content);
+    }
+  }
+
+  void _importMenuJson(String name, String content) {
     final HuiMenu parsed;
     try {
       parsed = decodeHuiMenu(content);
@@ -830,21 +1212,64 @@ class EditorStore extends ChangeNotifier {
     _lastError = null;
     _codeError = null;
     _selection.clear();
+    _previewSelection = null;
     _togglePreviewState.clear();
     final String importedId = menuIdFromFileName(name);
+    final bool wasMenu = _docKind == WorkspaceDocKind.menu;
     final String before = _snapshot();
+    _docKind = WorkspaceDocKind.menu;
+    _setPreviewDoc(null);
     _menu = parsed;
     _menuId = importedId;
-    _pushUndo('import $importedId', before, coalesce: false);
+    _coerceView();
+    if (wasMenu) {
+      _pushUndo('import $importedId', before, coalesce: false);
+    } else {
+      // Every entry on the stack is a snapshot of ONE document kind, and
+      // `_applySnapshot` decodes it as whichever kind is open — so a step that
+      // crosses the two can never be pushed. Starting fresh matches what
+      // opening a different document already does.
+      _undo.clear();
+      _clearCoalesce();
+    }
+    _afterChange();
+    onInfo?.call('Imported $importedId.');
+  }
+
+  void _importPreviewJson(String name, String content) {
+    final HuiPreviewDoc parsed;
+    try {
+      parsed = decodeHuiPreviewDoc(content);
+    } on HuiFormatException catch (e) {
+      _fail('${e.message} (at ${e.path})');
+      return;
+    } catch (_) {
+      _fail('That file could not be read as a container-preview document.');
+      return;
+    }
+    _lastError = null;
+    _codeError = null;
+    _selection.clear();
+    _previewSelection = null;
+    _togglePreviewState.clear();
+    final String importedId = menuIdFromFileName(name);
+    _undo.clear();
+    _clearCoalesce();
+    _docKind = WorkspaceDocKind.containerPreview;
+    _setPreviewDoc(parsed);
+    _menuId = importedId;
+    _coerceView();
     _afterChange();
     onInfo?.call('Imported $importedId.');
   }
 
   String? get codeError => _codeError;
 
-  /// Code-editor commit. Returns false and keeps the text when it does not
-  /// parse, so the editor can show the error without losing the user's typing.
+  /// Code-editor commit, in whichever shape [docKind] says the document is.
+  /// Returns false and keeps the text when it does not parse, so the editor can
+  /// show the error without losing the user's typing.
   bool applyCode(String text) {
+    if (isPreviewDoc) return _applyPreviewCode(text);
     final HuiMenu parsed;
     try {
       parsed = decodeHuiMenu(text);
@@ -871,6 +1296,57 @@ class EditorStore extends ChangeNotifier {
     return true;
   }
 
+  /// The container-preview arm of [applyCode].
+  ///
+  /// Text that is not a preview document is REFUSED rather than decoded: the
+  /// preview decoder is lenient by design (an object with no `elements` key
+  /// reads back as a document with no elements), so pasting a menu file in
+  /// would silently empty the card instead of failing. [looksLikePreviewDoc] is
+  /// the same shape check the importer routes on.
+  bool _applyPreviewCode(String text) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(text);
+    } catch (_) {
+      _codeError = 'That is not valid JSON.';
+      _notify();
+      return false;
+    }
+    if (!looksLikePreviewDoc(decoded)) {
+      _codeError = 'That is not a container-preview document: it needs an '
+          '"elements" list and no "components".';
+      _notify();
+      return false;
+    }
+    final HuiPreviewDoc parsed;
+    try {
+      parsed = HuiPreviewDoc.fromJson(decoded);
+    } on HuiFormatException catch (e) {
+      _codeError = '${e.message} (at ${e.path})';
+      _notify();
+      return false;
+    } catch (_) {
+      // Mirrors the menu arm's own fallback above: `HuiFormatException` is
+      // the decoder's documented failure mode, not its only possible one, and
+      // an uncaught exception here would crash the whole store notification
+      // chain instead of reporting a code error the user can fix.
+      _codeError = 'That is not valid container-preview JSON.';
+      _notify();
+      return false;
+    }
+    _codeError = null;
+    final String before = _snapshot();
+    if (encodeHuiPreviewDoc(parsed) == before) {
+      _notify();
+      return true;
+    }
+    _setPreviewDoc(parsed);
+    _pushUndo('code edit', before);
+    _prunePreviewSelection();
+    _afterChange();
+    return true;
+  }
+
   // --- documents ------------------------------------------------------------
 
   String? get lastError => _lastError;
@@ -890,13 +1366,35 @@ class EditorStore extends ChangeNotifier {
     flushAutosave();
     final HuiMenu next = from ?? createDefaultMenu();
     final String id = sanitizeMenuId(name ?? huiDefaultMenuId);
-    workspace.create(name: id, json: encodeHuiMenu(next));
-    _adopt(next, id);
+    workspace.create(
+      name: id,
+      json: encodeHuiMenu(next),
+      kind: WorkspaceDocKind.menu,
+    );
+    _adoptMenu(next, id);
   }
 
   /// Templates apply as a brand new document.
   void createDocumentFromMenu(String name, HuiMenu template) =>
       newDocument(name: name, from: template);
+
+  /// Starts a new container-preview document in its own workspace entry —
+  /// the preview counterpart of [newDocument].
+  void newPreviewDocument({String? name, HuiPreviewDoc? from}) {
+    flushAutosave();
+    final HuiPreviewDoc next = from ?? HuiPreviewDoc();
+    final String id = sanitizeMenuId(name ?? huiDefaultMenuId);
+    workspace.create(
+      name: id,
+      json: encodeHuiPreviewDoc(next),
+      kind: WorkspaceDocKind.containerPreview,
+    );
+    _adoptPreview(next, id);
+  }
+
+  /// Templates apply as a brand new document.
+  void createDocumentFromPreview(String name, HuiPreviewDoc template) =>
+      newPreviewDocument(name: name, from: template);
 
   bool openDocument(String docId) {
     if (docId == workspace.activeId) return true;
@@ -929,7 +1427,7 @@ class EditorStore extends ChangeNotifier {
     _autosaveTimer = null;
     bool saved = false;
     if (_documentDirty) {
-      workspace.updateActive(name: _menuId, json: _snapshot());
+      workspace.updateActive(name: _menuId, json: _snapshot(), kind: _docKind);
       _documentDirty = false;
       saved = true;
     }
@@ -949,6 +1447,8 @@ class EditorStore extends ChangeNotifier {
     _autosaveTimer?.cancel();
     _autosaveTimer = null;
     _images?.removeListener(_onImagesChanged);
+    previewSim.removeListener(_notify);
+    previewSim.dispose();
     _disposed = true;
     super.dispose();
   }
@@ -984,7 +1484,12 @@ class EditorStore extends ChangeNotifier {
     return uniqueComponentId(root, taken);
   }
 
-  String _snapshot() => encodeHuiMenu(_menu);
+  /// The active document, encoded in whichever shape [docKind] says it is.
+  /// Menu-editing call sites only ever run while [_menuWritable] is true, so
+  /// they always see the `encodeHuiMenu` branch; the preview branch is what
+  /// lets [flushAutosave] persist a preview document too.
+  String _snapshot() =>
+      isPreviewDoc ? encodeHuiPreviewDoc(_previewDoc!) : encodeHuiMenu(_menu);
 
   /// Blocks are authored to two or three decimals; killing float noise keeps
   /// exported JSON and snapshot comparisons stable.
@@ -1054,20 +1559,32 @@ class EditorStore extends ChangeNotifier {
   }
 
   void _afterChange() {
-    _issues = _validate();
+    _refreshIssues();
     _documentDirty = true;
     _scheduleSave();
     _notify();
   }
 
+  /// Restores one history entry, in whichever shape the active document is.
+  /// The stack only ever holds snapshots of the document that is open — every
+  /// kind switch clears it — so the branch here can never read a menu snapshot
+  /// into a preview document or the other way round.
   bool _applySnapshot(String snapshot) {
     try {
-      _menu = decodeHuiMenu(snapshot);
+      if (isPreviewDoc) {
+        _setPreviewDoc(decodeHuiPreviewDoc(snapshot));
+      } else {
+        _menu = decodeHuiMenu(snapshot);
+      }
     } on HuiFormatException catch (e) {
       _fail('Could not restore that step: ${e.message}');
       return false;
     }
-    _pruneSelection();
+    if (isPreviewDoc) {
+      _prunePreviewSelection();
+    } else {
+      _pruneSelection();
+    }
     _afterChange();
     return true;
   }
@@ -1088,7 +1605,7 @@ class EditorStore extends ChangeNotifier {
     // A re-uploaded path keeps its name but changes its pixels, and the plane
     // character count is memoized by path, so the memo has to go.
     _charCache.clear();
-    _issues = _validate();
+    if (_menuWritable) _issues = _validate();
     _notify();
   }
 
@@ -1112,10 +1629,23 @@ class EditorStore extends ChangeNotifier {
     final WorkspaceDoc? doc = workspace.active;
     if (doc == null) {
       final HuiMenu fresh = createDefaultMenu();
-      workspace.create(name: huiDefaultMenuId, json: encodeHuiMenu(fresh));
-      _adopt(fresh, huiDefaultMenuId);
+      workspace.create(
+        name: huiDefaultMenuId,
+        json: encodeHuiMenu(fresh),
+        kind: WorkspaceDocKind.menu,
+      );
+      _adoptMenu(fresh, huiDefaultMenuId);
       return;
     }
+    switch (doc.kind) {
+      case WorkspaceDocKind.menu:
+        _adoptActiveMenuDocument(doc);
+      case WorkspaceDocKind.containerPreview:
+        _adoptActivePreviewDocument(doc);
+    }
+  }
+
+  void _adoptActiveMenuDocument(WorkspaceDoc doc) {
     HuiMenu menu;
     String? failure;
     try {
@@ -1129,7 +1659,7 @@ class EditorStore extends ChangeNotifier {
       failure = 'The saved document "${doc.name}" was unreadable and was '
           'replaced with a new menu.';
     }
-    _adopt(menu, doc.name);
+    _adoptMenu(menu, doc.name);
     if (failure != null) {
       _lastError = failure;
       onError?.call(failure);
@@ -1137,16 +1667,59 @@ class EditorStore extends ChangeNotifier {
     }
   }
 
-  void _adopt(HuiMenu menu, String menuId) {
+  void _adoptActivePreviewDocument(WorkspaceDoc doc) {
+    HuiPreviewDoc previewDoc;
+    String? failure;
+    try {
+      previewDoc = decodeHuiPreviewDoc(doc.json);
+    } on HuiFormatException catch (e) {
+      previewDoc = HuiPreviewDoc();
+      failure = 'The saved document "${doc.name}" was unreadable '
+          '(${e.message}) and was replaced with a blank preview document.';
+    } catch (_) {
+      previewDoc = HuiPreviewDoc();
+      failure = 'The saved document "${doc.name}" was unreadable and was '
+          'replaced with a blank preview document.';
+    }
+    _adoptPreview(previewDoc, doc.name);
+    if (failure != null) {
+      _lastError = failure;
+      onError?.call(failure);
+      _notify();
+    }
+  }
+
+  void _adoptMenu(HuiMenu menu, String menuId) {
+    _docKind = WorkspaceDocKind.menu;
+    _setPreviewDoc(null);
     _menu = menu;
     _menuId = sanitizeMenuId(menuId);
     _selection.clear();
+    _previewSelection = null;
+    _coerceView();
     _codeError = null;
     _togglePreviewState.clear();
     _clearCoalesce();
     _undo.clear();
     _documentDirty = false;
-    _issues = _validate();
+    _refreshIssues();
+    _notify();
+  }
+
+  /// The preview counterpart of [_adoptMenu].
+  void _adoptPreview(HuiPreviewDoc doc, String docId) {
+    _docKind = WorkspaceDocKind.containerPreview;
+    _setPreviewDoc(doc);
+    _menuId = sanitizeMenuId(docId);
+    _selection.clear();
+    _previewSelection = null;
+    _coerceView();
+    _codeError = null;
+    _togglePreviewState.clear();
+    _clearCoalesce();
+    _undo.clear();
+    _documentDirty = false;
+    _refreshIssues();
     _notify();
   }
 

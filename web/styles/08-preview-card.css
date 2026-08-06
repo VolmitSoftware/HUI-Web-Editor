@@ -1,0 +1,93 @@
+/* 08-preview-card.css — the container-preview card surface.
+   Owned by: agent-preview-card. Later numbered files override earlier ones.
+
+   The surface deliberately REUSES the component canvas's chrome classes
+   (`.hui-canvas`, `.hui-canvas-toolbar`, `.hui-canvas-stage`,
+   `.hui-canvas-surface`, `.hui-canvas-readout`, `.hui-canvas-hint`) rather than
+   cloning three hundred lines of 03-canvas.css under new names. The two
+   surfaces are the same object — a control strip, an artboard and a hint row —
+   and a second copy of that layout could only drift from the first. Everything
+   in this file is what the card surface has that the canvas does not.
+
+   Contract with the Dart side (lib/components/preview_card/):
+   - the card cell is mounted in EVERY view and hidden here, never unmounted:
+     `_PreviewCardViewportState` keeps zoom, pan and the font calibration, and
+     gates every clock on having a box to draw into.
+   - `.hui-preview-card-issues` is written imperatively; `is-visible` is toggled
+     from Dart, never from CSS. */
+
+/* ---- cell visibility ---- */
+
+/* Hidden by default in every view, shown only in its own. `.hui-center.is-code`
+   already hides it through the `:not(.is-code)` rule in 02-shell.css; this
+   covers the other three. */
+.hui-split-cell.is-preview-card { display: none; }
+
+.hui-center.is-preview-card > .hui-split-cell.is-preview-card { display: block; }
+.hui-center.is-preview-card > .hui-split-cell:not(.is-preview-card) { display: none; }
+
+/* ---- surface ---- */
+
+/* The card is drawn at an integer scale, so nothing between the backing store
+   and the screen may resample it. */
+.hui-preview-card-stage .hui-canvas-surface {
+  image-rendering: pixelated;
+}
+
+/* ---- simulated-state chip ---- */
+
+.hui-preview-sim-label {
+  padding: 0 4px 0 2px;
+  white-space: nowrap;
+}
+
+.hui-preview-sim-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--hui-border) 82%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hui-accent) 10%, transparent);
+  color: var(--hui-text);
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---- build issues ----
+   Top-left of the stage, opposite the drag readout at the bottom-left, so a
+   drag never covers the reason the card looks wrong. One line: the strip
+   carries the first failure and a count, and the rest is the inspector's job. */
+
+.hui-preview-card-issues {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--hui-danger) 45%, transparent);
+  border-radius: var(--hui-radius);
+  background: color-mix(in srgb, var(--hui-panel) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(1.15);
+  color: var(--hui-text);
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  /* The same `rise` gesture the drag readout uses, and the same tokens — which
+     is what puts it under 06-motion.css's single reduced-motion switch. */
+  transform: translateY(-4px);
+  transition:
+    opacity var(--hui-dur-2) var(--hui-ease-out),
+    transform var(--hui-dur-2) var(--hui-ease-out);
+}
+
+.hui-preview-card-issues.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

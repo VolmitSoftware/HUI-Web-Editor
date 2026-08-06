@@ -1,0 +1,112 @@
+{
+  "match": {
+    "blocks": ["CHEST", "TRAPPED_CHEST", "BARREL"],
+    "priority": 10,
+    "vars": {
+      "cols": 9,
+      "maxRows": 6,
+      "titleKey": "holoui.preview.theme.title.chest",
+      "titleArg": "",
+      "accent": "#F2A535"
+    }
+  },
+  "variants": [
+    {
+      "blocks": ["TRAPPED_CHEST"],
+      "vars": { "titleKey": "holoui.preview.theme.title.trapped_chest", "accent": "#EC6464" }
+    },
+    {
+      "blocks": ["BARREL"],
+      "vars": { "titleKey": "holoui.preview.theme.title.barrel", "accent": "#F2D451" }
+    },
+    {
+      "blocks": ["*COPPER_CHEST"],
+      "vars": { "titleKey": "holoui.preview.theme.title.copper_chest", "accent": "#F2A535" }
+    },
+    {
+      "blocks": ["WHITE_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "White", "accent": "#CBD0D9" }
+    },
+    {
+      "blocks": ["ORANGE_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Orange", "accent": "#F2A535" }
+    },
+    {
+      "blocks": ["MAGENTA_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Magenta", "accent": "#EC88EC" }
+    },
+    {
+      "blocks": ["LIGHT_BLUE_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Light Blue", "accent": "#6FEAEA" }
+    },
+    {
+      "blocks": ["YELLOW_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Yellow", "accent": "#F2D451" }
+    },
+    {
+      "blocks": ["LIME_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Lime", "accent": "#6FE06F" }
+    },
+    {
+      "blocks": ["PINK_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Pink", "accent": "#EC88EC" }
+    },
+    {
+      "blocks": ["GRAY_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Gray", "accent": "#6E747E" }
+    },
+    {
+      "blocks": ["LIGHT_GRAY_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Light Gray", "accent": "#A6ACB6" }
+    },
+    {
+      "blocks": ["CYAN_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Cyan", "accent": "#3AC4C4" }
+    },
+    {
+      "blocks": ["PURPLE_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
+    },
+    {
+      "blocks": ["BLUE_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Blue", "accent": "#5E82FF" }
+    },
+    {
+      "blocks": ["BROWN_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Brown", "accent": "#F2A535" }
+    },
+    {
+      "blocks": ["GREEN_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Green", "accent": "#3FB84F" }
+    },
+    {
+      "blocks": ["RED_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Red", "accent": "#EC6464" }
+    },
+    {
+      "blocks": ["BLACK_SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Black", "accent": "#202028" }
+    },
+    {
+      "blocks": ["SHULKER_BOX"],
+      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
+    }
+  ],
+  "card": {
+    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    {
+      "type": "slot",
+      "repeat": {
+        "count": "min(vars.cols * clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows), inventory.size)",
+        "var": "i"
+      },
+      "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
+      "y": "round(((clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows) - 1) / 2 - floor(i / vars.cols)) * 20)",
+      "size": 18,
+      "index": "i"
+    }
+  ]
+}

@@ -31,6 +31,12 @@ HuiMenu decodeHuiMenu(String json) {
 
 String encodeHuiMenu(HuiMenu menu) => _writeValue(menu.toJson(), 0);
 
+/// Pretty-prints an already-decoded JSON tree in this file's canonical style
+/// (2-space indent, integral doubles without a trailing `.0`, inline numeric
+/// arrays). Shared by every model's `encode*` function, not just
+/// [encodeHuiMenu].
+String huiWriteJson(Object? value) => _writeValue(value, 0);
+
 HuiMenu cloneHuiMenu(HuiMenu menu) =>
     HuiMenu.fromJson(huiDeepCopy(menu.toJson()));
 
@@ -62,13 +68,16 @@ String huiReadTypeTag(Map<String, dynamic> raw, String path) {
 /// filters null-typed constants out of its map before reading
 /// (`MenuIconType.java:31-32`, `EnumType.java:38-39,82-85`).
 Never huiUnknownType(String type, String path) => throw HuiFormatException(
-      'Unknown type: $type. HoloUI rejects the whole menu file when a '
-      'component, icon or action type is not one it knows',
-      path,
-    );
+  'Unknown type: $type. HoloUI rejects the whole menu file when a '
+  'component, icon or action type is not one it knows',
+  path,
+);
 
-String huiReadString(Map<String, dynamic> raw, String key,
-    {String fallback = ''}) {
+String huiReadString(
+  Map<String, dynamic> raw,
+  String key, {
+  String fallback = '',
+}) {
   final Object? value = raw[key];
   if (value == null) return fallback;
   if (value is String) return value;
@@ -76,8 +85,11 @@ String huiReadString(Map<String, dynamic> raw, String key,
   return fallback;
 }
 
-double huiReadDouble(Map<String, dynamic> raw, String key,
-    {double fallback = 0}) {
+double huiReadDouble(
+  Map<String, dynamic> raw,
+  String key, {
+  double fallback = 0,
+}) {
   return huiReadDoubleOrNull(raw, key) ?? fallback;
 }
 
@@ -119,7 +131,9 @@ List<String> huiReadStringList(Object? raw) => huiReadList(raw)
     .toList();
 
 Map<String, dynamic> huiCollectExtras(
-    Map<String, dynamic> raw, Set<String> consumed) {
+  Map<String, dynamic> raw,
+  Set<String> consumed,
+) {
   final Map<String, dynamic> out = <String, dynamic>{};
   raw.forEach((String key, Object? value) {
     if (!consumed.contains(key)) out[key] = huiDeepCopy(value);
@@ -129,7 +143,9 @@ Map<String, dynamic> huiCollectExtras(
 
 /// Re-emits preserved unknown keys after the known ones; known keys win.
 Map<String, dynamic> huiMergeExtras(
-    Map<String, dynamic> known, Map<String, dynamic> extras) {
+  Map<String, dynamic> known,
+  Map<String, dynamic> extras,
+) {
   if (extras.isEmpty) return known;
   extras.forEach((String key, Object? value) {
     if (!known.containsKey(key)) known[key] = huiDeepCopy(value);
@@ -141,7 +157,8 @@ Object? huiDeepCopy(Object? value) {
   if (value is Map) {
     final Map<String, dynamic> out = <String, dynamic>{};
     value.forEach(
-        (Object? key, Object? v) => out[key.toString()] = huiDeepCopy(v));
+      (Object? key, Object? v) => out[key.toString()] = huiDeepCopy(v),
+    );
     return out;
   }
   if (value is List) {

@@ -10,6 +10,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../logic/preview_sim.dart';
 import 'storage_service.dart';
 
 /// One material registry entry.
@@ -237,6 +238,134 @@ class HuiCustomItemCatalog {
   }
 }
 
+/// One variable a preview document can read, as the plugin documents it.
+class PreviewVariableEntry {
+  const PreviewVariableEntry(this.name, this.type, this.description);
+
+  /// Dotted name exactly as an expression writes it: `inventory.size`.
+  final String name;
+
+  /// `number`, `string` or `boolean` — the three runtime types the expression
+  /// language has.
+  final String type;
+
+  final String description;
+
+  @override
+  String toString() => 'PreviewVariableEntry($name: $type)';
+}
+
+/// One function a preview document can call.
+class PreviewFunctionEntry {
+  const PreviewFunctionEntry({
+    required this.name,
+    required this.args,
+    required this.returns,
+    required this.description,
+  });
+
+  final String name;
+
+  /// Signature fragments as written in the catalog: `slot: number`.
+  final List<String> args;
+
+  final String returns;
+  final String description;
+
+  @override
+  String toString() => 'PreviewFunctionEntry($name)';
+}
+
+/// The preview variable contract, decoded from `preview-variables.json`.
+///
+/// The asset is `HoloUi/src/test/resources/preview-variables.json` copied
+/// verbatim; the plugin pins it against `PreviewStateAdapters.catalog()` and
+/// the editor pins `PreviewSim` against it in turn, so the three cannot drift
+/// apart silently. Consumers get variable pickers and inline documentation out
+/// of it, and must keep working when it is missing.
+class HuiPreviewVariableCatalog {
+  const HuiPreviewVariableCatalog._(this._categories, this.functions);
+
+  final Map<String, List<PreviewVariableEntry>> _categories;
+
+  /// Documented functions, in file order.
+  final List<PreviewFunctionEntry> functions;
+
+  static const HuiPreviewVariableCatalog empty = HuiPreviewVariableCatalog._(
+    <String, List<PreviewVariableEntry>>{},
+    <PreviewFunctionEntry>[],
+  );
+
+  bool get isEmpty => _categories.isEmpty && functions.isEmpty;
+
+  /// Group names in file order: `universal`, `inventory`, then one per
+  /// container category.
+  List<String> get categoryNames => _categories.keys.toList();
+
+  List<PreviewVariableEntry> variables(String category) =>
+      _categories[category] ?? const <PreviewVariableEntry>[];
+
+  PreviewVariableEntry? variable(String category, String name) {
+    for (final PreviewVariableEntry entry in variables(category)) {
+      if (entry.name == name) return entry;
+    }
+    return null;
+  }
+
+  /// Decodes the contract file. Never throws; a malformed or missing asset
+  /// degrades to [empty] and every picker falls back to free text.
+  static HuiPreviewVariableCatalog parse(String body) {
+    final Object? decoded = _decode(body);
+    if (decoded is! Map<String, Object?>) return empty;
+    final Map<String, List<PreviewVariableEntry>> categories =
+        <String, List<PreviewVariableEntry>>{};
+    final Object? rawCategories = decoded['categories'];
+    if (rawCategories is Map<String, Object?>) {
+      for (final MapEntry<String, Object?> group in rawCategories.entries) {
+        final Object? members = group.value;
+        if (members is! Map<String, Object?>) continue;
+        final List<PreviewVariableEntry> entries = <PreviewVariableEntry>[];
+        for (final MapEntry<String, Object?> member in members.entries) {
+          final Object? fields = member.value;
+          if (fields is! Map<String, Object?>) continue;
+          final Object? type = fields['type'];
+          if (type is! String || type.isEmpty) continue;
+          final Object? description = fields['description'];
+          entries.add(PreviewVariableEntry(
+            member.key,
+            type,
+            description is String ? description : '',
+          ));
+        }
+        if (entries.isNotEmpty) categories[group.key] = entries;
+      }
+    }
+
+    final List<PreviewFunctionEntry> functions = <PreviewFunctionEntry>[];
+    final Object? rawFunctions = decoded['functions'];
+    if (rawFunctions is Map<String, Object?>) {
+      for (final MapEntry<String, Object?> function in rawFunctions.entries) {
+        final Object? fields = function.value;
+        if (fields is! Map<String, Object?>) continue;
+        final Object? args = fields['args'];
+        final Object? returns = fields['returns'];
+        final Object? description = fields['description'];
+        functions.add(PreviewFunctionEntry(
+          name: function.key,
+          args: <String>[
+            if (args is List<Object?>)
+              for (final Object? arg in args)
+                if (arg is String) arg,
+          ],
+          returns: returns is String ? returns : '',
+          description: description is String ? description : '',
+        ));
+      }
+    }
+    return HuiPreviewVariableCatalog._(categories, functions);
+  }
+}
+
 /// Immutable snapshot of both catalogs.
 class HuiCatalogs {
   const HuiCatalogs._({
@@ -246,6 +375,8 @@ class HuiCatalogs {
     required List<String> sounds,
     required Set<String> soundKeys,
     required this.customItems,
+    required this.previewVariables,
+    required this.previewLang,
     required this.loaded,
   })  : _materials = materials,
         _materialIndex = materialIndex,
@@ -262,6 +393,14 @@ class HuiCatalogs {
   /// Empty unless the server exported one; see [HuiCustomItemCatalog].
   final HuiCustomItemCatalog customItems;
 
+  /// The preview variable contract. Empty when the asset is missing, which
+  /// costs the preview surfaces their pickers and documentation, nothing else.
+  final HuiPreviewVariableCatalog previewVariables;
+
+  /// English message templates for the simulated `lang()`. Empty renders every
+  /// key as itself, exactly as the plugin does for an unknown id.
+  final PreviewLangCatalog previewLang;
+
   /// False when either asset failed to fetch or parse. Consumers should keep
   /// working: validation degrades to "no catalog" (unknown keys are not
   /// flagged) and pickers fall back to free text.
@@ -269,6 +408,9 @@ class HuiCatalogs {
 
   static const String itemsAssetUrl = 'assets/catalog/items.json';
   static const String soundsAssetUrl = 'assets/catalog/sounds.json';
+  static const String previewVariablesAssetUrl =
+      'assets/catalog/preview-variables.json';
+  static const String previewLangAssetUrl = 'assets/catalog/preview-lang-en.json';
 
   /// One URL, and the build always ships a file there — an empty catalog when
   /// nobody has exported one. Probing a second, usually-absent URL would print
@@ -286,14 +428,20 @@ class HuiCatalogs {
   static Future<HuiCatalogs> load({
     String itemsUrl = itemsAssetUrl,
     String soundsUrl = soundsAssetUrl,
+    String previewVariablesUrl = previewVariablesAssetUrl,
+    String previewLangUrl = previewLangAssetUrl,
     List<String> customItemUrls = customItemUrlCandidates,
   }) async {
     final List<String?> bodies = await Future.wait<String?>(<Future<String?>>[
       _fetch(itemsUrl),
       _fetch(soundsUrl),
+      _fetch(previewVariablesUrl),
+      _fetch(previewLangUrl),
     ]);
     final String? itemsBody = bodies[0];
     final String? soundsBody = bodies[1];
+    final String? previewVariablesBody = bodies[2];
+    final String? previewLangBody = bodies[3];
     final List<MaterialEntry> materials =
         itemsBody == null ? const <MaterialEntry>[] : parseMaterials(itemsBody);
     final List<String> sounds =
@@ -303,6 +451,12 @@ class HuiCatalogs {
       materials: materials,
       sounds: sounds,
       customItems: await loadCustomItems(customItemUrls),
+      previewVariables: previewVariablesBody == null
+          ? HuiPreviewVariableCatalog.empty
+          : HuiPreviewVariableCatalog.parse(previewVariablesBody),
+      previewLang: previewLangBody == null
+          ? PreviewLangCatalog.empty
+          : PreviewLangCatalog.parse(previewLangBody),
       loaded: ok,
     );
   }
@@ -337,6 +491,8 @@ class HuiCatalogs {
     required List<String> sounds,
     required bool loaded,
     HuiCustomItemCatalog? customItems,
+    HuiPreviewVariableCatalog previewVariables = HuiPreviewVariableCatalog.empty,
+    PreviewLangCatalog previewLang = PreviewLangCatalog.empty,
   }) {
     final Map<String, MaterialEntry> index = <String, MaterialEntry>{};
     for (final MaterialEntry entry in materials) {
@@ -349,6 +505,8 @@ class HuiCatalogs {
       sounds: List<String>.unmodifiable(sounds),
       soundKeys: Set<String>.unmodifiable(sounds),
       customItems: customItems ?? HuiCustomItemCatalog.empty(),
+      previewVariables: previewVariables,
+      previewLang: previewLang,
       loaded: loaded,
     );
   }
@@ -362,6 +520,8 @@ class HuiCatalogs {
         sounds: _sounds,
         soundKeys: _soundKeys,
         customItems: catalog,
+        previewVariables: previewVariables,
+        previewLang: previewLang,
         loaded: loaded,
       );
 

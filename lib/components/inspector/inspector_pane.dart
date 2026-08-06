@@ -15,9 +15,12 @@ import '../../model/model.dart';
 import '../../services/catalogs.dart';
 import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
+import '../panels/preview_sim_panel.dart';
 import 'component_inspector.dart';
 import 'inspector_session.dart';
 import 'menu_inspector.dart';
+import 'preview_element_editor.dart';
+import 'preview_match_editor.dart';
 
 /// Dispatched by the canvas on a double click (`canvas_interactions.dart:274`).
 const String huiInspectorFocusEvent = 'hui-inspector-focus';
@@ -125,30 +128,57 @@ class _InspectorPaneState extends State<InspectorPane> {
   @override
   Widget build(BuildContext context) {
     final EditorStore store = component.store;
-    final HuiCatalogs catalogs =
-        huiFreshestCatalogs(store.catalogs, component.catalogs);
-    final HuiComponent? selected = store.selected;
     // The shell already renders the scrolling `<aside class="hui-pane
     // hui-inspector">` cell around this slot, so the pane root is a plain
     // filler div: no second scroll container, no second border.
     return dom.div(
       classes: 'hui-inspector-pane',
-      <Widget>[
-        if (selected == null)
-          MenuInspector(store: store)
-        else
-          ComponentInspector(
-            // Keyed by id so switching selection rebuilds the id draft state
-            // instead of carrying the previous component's text across.
-            key: ValueKey<String>('inspector-${selected.id}'),
-            store: store,
-            images: component.images,
-            catalogs: catalogs,
-            catalogsLoading: component.catalogs == null && !catalogs.loaded,
-            session: _session,
-            target: selected,
-          ),
-      ],
+      <Widget>[if (store.isPreviewDoc) ..._previewBody(store) else ..._menuBody(store)],
     );
+  }
+
+  List<Widget> _previewBody(EditorStore store) {
+    final List<Widget> body = <Widget>[
+      // The simulation panel is the previewCard view's own HUD-ish chrome
+      // (task E8): meaningless in the code view of the same document, where
+      // there is nothing to animate.
+      if (store.view == EditorView.previewCard)
+        PreviewSimPanel(store: store, catalogs: component.catalogs),
+    ];
+    final int? index = store.previewSelectedIndex;
+    final HuiPreviewElement? element = store.previewSelectedElement;
+    if (index == null || element == null) {
+      body.add(PreviewMatchEditor(store: store));
+    } else {
+      // Keyed by index so switching selection rebuilds local draft state
+      // instead of carrying the previous element's text across.
+      body.add(PreviewElementEditor(
+        key: ValueKey<int>(index),
+        store: store,
+        index: index,
+        element: element,
+      ));
+    }
+    return body;
+  }
+
+  List<Widget> _menuBody(EditorStore store) {
+    final HuiCatalogs catalogs =
+        huiFreshestCatalogs(store.catalogs, component.catalogs);
+    final HuiComponent? selected = store.selected;
+    if (selected == null) return <Widget>[MenuInspector(store: store)];
+    return <Widget>[
+      ComponentInspector(
+        // Keyed by id so switching selection rebuilds the id draft state
+        // instead of carrying the previous component's text across.
+        key: ValueKey<String>('inspector-${selected.id}'),
+        store: store,
+        images: component.images,
+        catalogs: catalogs,
+        catalogsLoading: component.catalogs == null && !catalogs.loaded,
+        session: _session,
+        target: selected,
+      ),
+    ];
   }
 }

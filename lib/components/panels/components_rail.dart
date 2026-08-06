@@ -22,6 +22,7 @@ import '../../services/catalogs.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'drag_data.dart';
+import 'preview_elements_rail.dart';
 
 class ComponentsRail extends StatefulWidget {
   const ComponentsRail({required this.store, super.key});
@@ -188,13 +189,19 @@ class _ComponentsRailState extends State<ComponentsRail> {
   // The shell already renders the scrolling `<aside class="hui-pane hui-rail">`
   // cell around this slot with its own `aria-label`, so the rail root is a
   // plain filler div: no second landmark, no second border, no second scroller.
+  //
+  // A container-preview document delegates whole to [PreviewElementsRail]:
+  // elements have no id, no drag reorder and no right-click menu, so sharing
+  // this state class's id-keyed bookkeeping would only be friction.
   @override
   Widget build(BuildContext context) => dom.div(
         classes: 'hui-rail-pane',
         <Widget>[
           ListenableBuilder(
             listenable: _store,
-            builder: (BuildContext inner) => _body(),
+            builder: (BuildContext inner) => _store.isPreviewDoc
+                ? PreviewElementsRail(store: _store)
+                : _body(),
           ),
         ],
       );

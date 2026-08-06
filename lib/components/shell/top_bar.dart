@@ -64,6 +64,10 @@ class _TopBarState extends State<TopBar> {
       ..write('|')
       ..write(_store.view.name)
       ..write('|')
+      // The switcher's item set is a function of the document kind, so the bar
+      // has to rebuild when the kind changes even if nothing else did.
+      ..write(_store.docKind.name)
+      ..write('|')
       ..write(_store.canUndo)
       ..write(_store.canRedo)
       ..write('|')
@@ -110,7 +114,11 @@ class _TopBarState extends State<TopBar> {
           dom.div(
             classes: 'hui-bar-group hui-bar-center',
             <Widget>[
-              ViewSwitcher(view: _store.view, onChanged: _intents.setView),
+              ViewSwitcher(
+                view: _store.view,
+                views: _store.availableViews,
+                onChanged: _intents.setView,
+              ),
             ],
           ),
           dom.div(
