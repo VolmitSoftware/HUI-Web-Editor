@@ -1,9 +1,9 @@
 /// Static Minecraft material and sound catalogs plus the placeholder cheat
 /// sheet, loaded from `web/assets/catalog/` at boot.
 ///
-/// The URLs are relative on purpose: the bundle is served both from Undertow at
-/// `/` (the plugin's self-hosted builder) and from `https://holoui.volmit.com/`,
-/// so nothing may hard-code an origin or a leading slash.
+/// The URLs are relative on purpose so the bundle works from any origin
+/// (the hosted site today, local static serving during development) — nothing
+/// may hard-code an origin or a leading slash.
 library;
 
 import 'dart:convert';
