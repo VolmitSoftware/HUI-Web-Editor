@@ -50,10 +50,14 @@ class StatusBar extends StatelessWidget {
             selector: _saveSignature,
             builder: (BuildContext context, String signature) => _saveNote(),
           ),
-          const dom.span(
+          // Not const: constant span instances skip attribute patching, which
+          // drops the tooltip (same shape as the footer above).
+          // ignore: prefer_const_constructors
+          dom.span(
             classes: 'hui-status-item hui-status-version',
-            attributes: <String, String>{'title': 'Editor build'},
-            <Widget>[Text(huiBuildBadge)],
+            attributes: const <String, String>{'title': 'Editor build'},
+            // ignore: prefer_const_literals_to_create_immutables
+            <Widget>[const Text(huiBuildBadge)],
           ),
         ],
       );
