@@ -34,8 +34,6 @@ The hosted editor is deployed to [holoui.volmitsoftware.com](https://holoui.volm
 
 The editor is deployed to https://holoui.volmitsoftware.com on every push to `master` (`.github/workflows/firebase-hosting.yml`). There are no releases: the plugin's `/holoui builder` command simply links players to the hosted editor.
 
-- Locally: `tool/package_builder_static.sh` builds and packages the ZIP.
-- CI: pushing a bare-semver tag runs `.github/workflows/release.yml`, which builds and attaches `builder_static.zip` to the release.
 
 ## Architecture
 
