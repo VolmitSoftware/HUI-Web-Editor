@@ -5,6 +5,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show Listenable;
 
+import '../../config/build_info.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/class_names.dart';
@@ -48,6 +49,11 @@ class StatusBar extends StatelessWidget {
             listenable: Listenable.merge(<Listenable?>[store, store.workspace]),
             selector: _saveSignature,
             builder: (BuildContext context, String signature) => _saveNote(),
+          ),
+          const dom.span(
+            classes: 'hui-status-item hui-status-version',
+            attributes: <String, String>{'title': 'Editor build'},
+            <Widget>[Text(huiBuildBadge)],
           ),
         ],
       );

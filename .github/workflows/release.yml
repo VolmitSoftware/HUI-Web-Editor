@@ -30,7 +30,14 @@ jobs:
       - name: Build
         run: |
           dart pub get
-          dart run jaspr_cli:jaspr build
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            HUI_VERSION="$GITHUB_REF_NAME"
+          else
+            HUI_VERSION="$(sed -n 's/^version: //p' pubspec.yaml)"
+          fi
+          dart run jaspr_cli:jaspr build \
+            --dart-define=HUI_VERSION="$HUI_VERSION" \
+            --dart-define=HUI_COMMIT="${GITHUB_SHA:0:7}"
 
       - name: Package builder_static.zip
         run: |
@@ -46,3 +53,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: builder_static.zip
+
+      - name: Explain why nothing was published
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          {
+            echo "## No release published"
+            echo "This run was not triggered by a tag, so the built builder_static.zip was NOT attached to any release."
+            echo "To publish for servers: push a bare-semver tag (no 'v' prefix), e.g."
+            echo '```'
+            echo "git tag 3.1.0 && git push origin 3.1.0"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning title=No release published::Manual runs only build. Push a bare-semver tag (e.g. 3.1.0) to publish builder_static.zip for the plugin."

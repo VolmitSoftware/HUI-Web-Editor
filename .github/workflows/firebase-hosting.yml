@@ -67,7 +67,11 @@ jobs:
         run: dart test
 
       - name: Build
-        run: dart run jaspr_cli:jaspr build
+        run: |
+          HUI_VERSION="$(sed -n 's/^version: //p' pubspec.yaml)"
+          dart run jaspr_cli:jaspr build \
+            --dart-define=HUI_VERSION="$HUI_VERSION" \
+            --dart-define=HUI_COMMIT="${GITHUB_SHA:0:7}"
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3

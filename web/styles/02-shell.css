@@ -309,6 +309,16 @@ body.hui-resizing * { cursor: col-resize !important; }
   letter-spacing: 0.01em;
 }
 .hui-status-item.is-muted { color: var(--hui-muted); }
+.hui-status-version {
+  padding: 2px 8px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius);
+  background: color-mix(in srgb, var(--hui-panel-soft) 60%, transparent);
+  color: var(--hui-muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
 .hui-status-item.is-error { color: var(--hui-danger); }
 .hui-status-item.is-hint {
   max-width: 44ch;
