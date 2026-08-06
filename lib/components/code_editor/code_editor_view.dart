@@ -13,13 +13,17 @@
 /// Rule 3 is implemented with a remount key: browsers ignore writes to a
 /// textarea's child text node once the value is dirty, so an external change
 /// bumps `_syncGeneration` and the element is rebuilt from scratch. That remount
-/// is expensive enough (it drops the pane's scroll position) that external
-/// changes arriving in a burst — a canvas drag fires one per pointermove — are
-/// coalesced; see [_CodeEditorViewState._onStoreChanged].
+/// is expensive enough (a whole document's worth of DOM, and the caret and
+/// selection go with it) that external changes arriving in a burst — a canvas
+/// drag fires one per pointermove — are coalesced; see
+/// [_CodeEditorViewState._onStoreChanged].
 ///
 /// Highlighting is a `<pre>` of coloured spans laid out underneath a
-/// transparent textarea. Both carry identical font metrics and padding and the
-/// pre mirrors the textarea's scroll, so the two stay glued together.
+/// transparent textarea. Both carry identical font metrics and padding, and
+/// `.hui-code-input` is sized to the pre — as wide as the longest line and as
+/// tall as the document — so the textarea over it covers every line and
+/// neither layer can scroll on its own. All scrolling belongs to
+/// `.hui-code-body`, which moves both layers and the gutter as one.
 library;
 
 import 'dart:async';
@@ -31,7 +35,6 @@ import 'package:jaspr/jaspr.dart' show Component, ListenableBuilder, ValueKey;
 import '../../logic/validation.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
-import 'code_dom.dart';
 import 'json_highlight.dart';
 
 class CodeEditorView extends StatefulWidget {
@@ -49,12 +52,6 @@ class CodeEditorView extends StatefulWidget {
 const Duration huiCodeAdoptQuiet = Duration(milliseconds: 250);
 
 class _CodeEditorViewState extends State<CodeEditorView> {
-  static int _instances = 0;
-
-  late final String _uid = 'hui-code-${_instances++}';
-  String get _areaId => '$_uid-area';
-  String get _highlightId => '$_uid-highlight';
-
   late String _text;
   late String _lastStoreJson;
   late List<JsonToken> _tokens;
@@ -67,9 +64,6 @@ class _CodeEditorViewState extends State<CodeEditorView> {
 
   Timer? _adoptTimer;
   DateTime? _lastExternalAt;
-  void Function()? _unbindScroll;
-  int _boundGeneration = -1;
-  bool _postFramePending = false;
 
   EditorStore get _store => component.store;
 
@@ -79,7 +73,6 @@ class _CodeEditorViewState extends State<CodeEditorView> {
     _lastStoreJson = _store.exportJson();
     _setText(_lastStoreJson);
     _store.addListener(_onStoreChanged);
-    _schedulePostFrame();
   }
 
   @override
@@ -96,8 +89,6 @@ class _CodeEditorViewState extends State<CodeEditorView> {
   void dispose() {
     _adoptTimer?.cancel();
     _adoptTimer = null;
-    _unbindScroll?.call();
-    _unbindScroll = null;
     _store.removeListener(_onStoreChanged);
     super.dispose();
   }
@@ -157,20 +148,6 @@ class _CodeEditorViewState extends State<CodeEditorView> {
     setState(_adoptStoreText);
   }
 
-  /// The textarea is re-created whenever [_syncGeneration] changes, taking the
-  /// scroll listener with it, so the mirror is re-bound after every such frame.
-  void _schedulePostFrame() {
-    if (_postFramePending) return;
-    _postFramePending = true;
-    context.binding.addPostFrameCallback(() {
-      _postFramePending = false;
-      if (!mounted || _boundGeneration == _syncGeneration) return;
-      _unbindScroll?.call();
-      _unbindScroll = bindScrollMirror(_areaId, _highlightId);
-      if (_unbindScroll != null) _boundGeneration = _syncGeneration;
-    });
-  }
-
   int get _lineCount {
     int lines = 1;
     for (int i = 0; i < _text.length; i++) {
@@ -181,7 +158,6 @@ class _CodeEditorViewState extends State<CodeEditorView> {
 
   @override
   Widget build(BuildContext context) {
-    _schedulePostFrame();
     return dom.div(
       classes: 'hui-code',
       <Widget>[
@@ -253,26 +229,17 @@ class _CodeEditorViewState extends State<CodeEditorView> {
                 dom.span(classes: 'hui-code-line', <Widget>[Text('$line')]),
             ],
           ),
-          // The wrapper is what stretches; the pre inside it is in normal flow
-          // and therefore what gives the pair its height, and the textarea is
-          // laid over it. Both must agree on font, padding and wrapping or the
-          // colours slide off the glyphs.
+          // The pre inside the wrapper is in normal flow and therefore what
+          // gives the pair both its width and its height; the textarea is laid
+          // over it at 100% x 100%. Both must agree on font, padding and
+          // wrapping or the colours slide off the glyphs.
           dom.div(
             classes: 'hui-code-input',
-            styles: const dom.Styles(
-              raw: <String, String>{
-                'position': 'relative',
-                'flex': '1 1 auto',
-                'min-width': '0',
-                'align-self': 'stretch',
-              },
-            ),
             <Widget>[
               _highlightLayer(),
               dom.textarea(
                 <Widget>[Component.text(_text)],
                 key: ValueKey<int>(_syncGeneration),
-                id: _areaId,
                 classes: 'hui-code-area',
                 rows: _lineCount,
                 onInput: _onInput,
@@ -320,22 +287,19 @@ class _CodeEditorViewState extends State<CodeEditorView> {
           // so the pre never comes up one line shorter than the textarea.
           const Component.text('\u200B'),
         ],
-        id: _highlightId,
         classes: 'hui-code-highlight',
         attributes: const <String, String>{'aria-hidden': 'true'},
         styles: const dom.Styles(
           raw: <String, String>{
             'margin': '0',
-            // The top and left padding must match `.hui-code-area` exactly or
-            // the colours slide off the glyphs; the extra at the bottom is
-            // room for the textarea's own horizontal scrollbar, which would
-            // otherwise eat the last line.
-            'padding': '12px 16px 26px',
+            // Must match `.hui-code-area` exactly or the colours slide off the
+            // glyphs — and it is this padding that the wrapper, and through it
+            // the textarea, is measured from.
+            'padding': '12px 16px',
             'font': 'inherit',
             'line-height': 'inherit',
             'white-space': 'pre',
             'tab-size': '2',
-            'overflow': 'hidden',
             'pointer-events': 'none',
             'color': 'var(--hui-text)',
           },

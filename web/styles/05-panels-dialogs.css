@@ -522,32 +522,37 @@
 
 .hui-code-error-text { color: var(--hui-text); }
 
-/* The textarea owns the horizontal scroll and never scrolls vertically, so the
-   gutter beside it stays aligned line for line without any JS sync. */
+/* This element owns both scroll axes. Everything inside it is sized to the
+   document rather than to the pane, so no layer ever scrolls on its own and
+   the gutter, the highlight and the textarea cannot drift apart. */
 .hui-code-body {
   display: flex;
   flex: 1 1 auto;
   align-items: flex-start;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: auto;
   overscroll-behavior: contain;
   font-family: var(--font-mono);
   font-size: .8rem;
   line-height: 1.55;
 }
 
+/* Pinned to the left edge while the body scrolls sideways, and at least as
+   tall as the pane so its background never stops partway down a short file. */
 .hui-code-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 2;
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
+  min-height: 100%;
   padding: 12px 10px 12px 12px;
   border-right: 1px solid var(--hui-border-soft);
   background: var(--hui-panel);
   color: color-mix(in srgb, var(--hui-muted) 75%, transparent);
   text-align: right;
   user-select: none;
-  align-self: stretch;
 }
 
 .hui-code-line {
@@ -555,16 +560,23 @@
   white-space: pre;
 }
 
+/* Wide as the longest line and tall as the document — the pre inside sets
+   both — so the textarea laid over it at 100% x 100% covers every line and
+   has nothing to scroll. Grows to fill the pane when the file is small. */
+.hui-code-input {
+  position: relative;
+  flex: 1 0 auto;
+  width: max-content;
+  min-height: 100%;
+}
+
 .hui-code-area {
-  flex: 1 1 auto;
-  min-width: 0;
   padding: 12px 16px;
   border: 0;
   background: transparent;
   color: var(--hui-text);
   font: inherit;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   resize: none;
   white-space: pre;
   tab-size: 2;
