@@ -32,7 +32,7 @@ dart run jaspr_cli:jaspr build      # static output in build/jaspr/
 
 The hosted editor is deployed to [holoui.volmitsoftware.com](https://holoui.volmitsoftware.com/) on Firebase Hosting by `.github/workflows/firebase-hosting.yml` after every push to `master`. The workflow analyzes and tests the project before building, deploying, and verifying the custom-domain bundle. It requires the `FIREBASE_SERVICE_ACCOUNT_HOLOUI_EDITOR` repository secret.
 
-HoloUI also self-hosts this editor: `/holoui builder start` downloads the **latest GitHub release** asset named exactly `builder_static.zip` (with `index.html` at the ZIP root) and serves it from the game server. The release tag must be **bare semver** (`3.0.0`, never `v3.0.0` — the plugin's semver parser rejects a `v` prefix).
+The editor is deployed to https://holoui.volmitsoftware.com on every push to `master` (`.github/workflows/firebase-hosting.yml`). There are no releases: the plugin's `/holoui builder` command simply links players to the hosted editor.
 
 - Locally: `tool/package_builder_static.sh` builds and packages the ZIP.
 - CI: pushing a bare-semver tag runs `.github/workflows/release.yml`, which builds and attaches `builder_static.zip` to the release.
@@ -46,7 +46,7 @@ lib/services/     localStorage, image library, catalogs, file transfer, clipboar
 lib/state/        EditorStore (undo/redo, autosave), multi-doc workspace
 lib/components/   shell (top bar, shortcuts, palette), canvas, inspector, panels, dialogs
 web/assets/       fonts (Geist, lucide, Minecraft), item/sound catalogs, backdrop, brand
-tool/             builder_static.zip packaging
+tool/             asset extraction scripts
 ```
 
 The format contract was derived from the plugin's Java parsing code (`art.arcane.holoui.config.*` via VolmLib's Gson setup), not from the shipped JSON schema, which has drifted. Where the two disagree, this editor follows the code.
