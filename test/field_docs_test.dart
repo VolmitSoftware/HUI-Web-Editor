@@ -11,6 +11,7 @@ import 'package:test/test.dart';
 
 /// Every key the inspector mounts help for.
 const List<String> _contractKeys = <String>[
+  'menu.id',
   'menu.offset',
   'menu.lockPosition',
   'menu.followPlayer',
@@ -30,6 +31,7 @@ const List<String> _contractKeys = <String>[
   'icon.item.customModelValue',
   'icon.customItem.provider',
   'icon.customItem.item',
+  'icon.customItem.count',
   'icon.textImage.path',
   'icon.animated.source',
   'icon.animated.speed',
@@ -155,17 +157,20 @@ void main() {
       expect(body('icon.animated.speed'), contains('50 ms'));
     });
 
-    test('an omitted command source dispatches from the console', () {
+    test('an omitted command source dispatches as the player', () {
       expect(body('action.command.source'), contains('console'));
-      expect(body('action.command.source'), contains('omitt'));
+      expect(body('action.command.source'), contains('omitted key'));
+      expect(body('action.command.source'), contains('clicking player'));
     });
 
-    test('a sound with no category throws', () {
-      expect(body('action.sound.source'), contains('throws'));
+    test('a sound with no category plays on master', () {
+      expect(body('action.sound.source'), contains('master'));
+      expect(body('action.sound.source'), contains('optional'));
     });
 
-    test('the sound volume default of 0 is silence', () {
-      expect(body('action.sound.volume'), contains('0'));
+    test('an omitted sound volume is 1 and an explicit 0 is silence', () {
+      expect(body('action.sound.volume'), contains('is 1'));
+      expect(body('action.sound.volume'), contains('0 is silence'));
     });
   });
 }

@@ -27,112 +27,110 @@ class ItemIconEditor extends StatelessWidget {
   final void Function(String label, HuiItemIcon icon) onChanged;
   final List<HuiIssue> issues;
 
-  List<HuiIssue> _issuesFor(String suffix) => issues
-      .where((HuiIssue issue) => issue.path.endsWith(suffix))
-      .toList();
+  List<HuiIssue> _issuesFor(String suffix) =>
+      issues.where((HuiIssue issue) => issue.path.endsWith(suffix)).toList();
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-icon-item',
+    classes: 'hui-icon-item',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'flex-direction': 'column',
+        'gap': '12px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      HuiField(
+        label: 'Material',
+        required: true,
+        help: 'Lowercase registry key. An unknown one blocks the open.',
+        control: dom.div(<Widget>[
+          RegistryPicker(
+            value: icon.item,
+            placeholder: 'diamond_sword',
+            browseLabel: 'Browse items',
+            searchPlaceholder: 'Search 1691 materials',
+            catalogAvailable: catalogs.materials.isNotEmpty,
+            textureFor: catalogs.textureFor,
+            search: (String query, int limit) => catalogs
+                .searchMaterials(query, limit: limit)
+                .map(
+                  (MaterialEntry entry) =>
+                      RegistryOption(entry.key, entry.texture),
+                )
+                .toList(),
+            onChanged: (String value) => onChanged(
+              'item material',
+              HuiItemIcon(value, icon.count, icon.customModelValue)
+                ..extras = huiDeepCopyMap(icon.extras),
+            ),
+          ),
+          HuiInlineIssues(_issuesFor('.item')),
+        ]),
+      ),
+      dom.div(
+        classes: 'hui-icon-item-numbers',
         styles: const dom.Styles(
           raw: <String, String>{
-            'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '12px',
+            'display': 'grid',
+            'grid-template-columns': 'repeat(2, minmax(0, 1fr))',
+            'gap': '10px',
             'min-width': '0',
           },
         ),
         <Widget>[
           HuiField(
-            label: 'Material',
-            required: true,
-            help: 'Lowercase registry key. An unknown one blocks the open.',
-            control: dom.div(<Widget>[
-              RegistryPicker(
-                value: icon.item,
-                placeholder: 'diamond_sword',
-                browseLabel: 'Browse items',
-                searchPlaceholder: 'Search 1691 materials',
-                catalogAvailable: catalogs.materials.isNotEmpty,
-                textureFor: catalogs.textureFor,
-                search: (String query, int limit) => catalogs
-                    .searchMaterials(query, limit: limit)
-                    .map((MaterialEntry entry) =>
-                        RegistryOption(entry.key, entry.texture))
-                    .toList(),
-                onChanged: (String value) => onChanged(
-                  'item material',
-                  HuiItemIcon(value, icon.count, icon.customModelValue)
-                    ..extras = huiDeepCopyMap(icon.extras),
-                ),
+            label: 'Count',
+            control: HuiNumberField(
+              value: icon.count.toDouble(),
+              min: 1,
+              max: 99,
+              step: 1,
+              integer: true,
+              onChanged: (double value) => onChanged(
+                'item count',
+                HuiItemIcon(icon.item, value.round(), icon.customModelValue)
+                  ..extras = huiDeepCopyMap(icon.extras),
               ),
-              HuiInlineIssues(_issuesFor('.item')),
-            ]),
-          ),
-          dom.div(
-            classes: 'hui-icon-item-numbers',
-            styles: const dom.Styles(
-              raw: <String, String>{
-                'display': 'grid',
-                'grid-template-columns': 'repeat(2, minmax(0, 1fr))',
-                'gap': '10px',
-                'min-width': '0',
-              },
             ),
-            <Widget>[
-              HuiField(
-                label: 'Count',
-                control: HuiNumberField(
-                  value: icon.count.toDouble(),
-                  min: 1,
-                  max: 99,
-                  step: 1,
-                  integer: true,
-                  onChanged: (double value) => onChanged(
-                    'item count',
-                    HuiItemIcon(
-                      icon.item,
-                      value.round(),
-                      icon.customModelValue,
-                    )..extras = huiDeepCopyMap(icon.extras),
-                  ),
-                ),
-              ),
-              HuiField(
-                label: 'Model value',
-                control: HuiNumberField(
-                  value: icon.customModelValue.toDouble(),
-                  min: 0,
-                  step: 1,
-                  integer: true,
-                  onChanged: (double value) => onChanged(
-                    'item custom model value',
-                    HuiItemIcon(icon.item, icon.count, value.round())
-                      ..extras = huiDeepCopyMap(icon.extras),
-                  ),
-                ),
-              ),
-            ],
           ),
-          const HuiMore(
-            summary: 'Count, model value and item size',
-            children: <Widget>[
-              HuiNote(
-                'A count above 1 adds a bold white number under the item and '
-                'lifts the item slightly.',
+          HuiField(
+            label: 'Model value',
+            control: HuiNumberField(
+              value: icon.customModelValue.toDouble(),
+              min: 0,
+              step: 1,
+              integer: true,
+              onChanged: (double value) => onChanged(
+                'item custom model value',
+                HuiItemIcon(icon.item, icon.count, value.round())
+                  ..extras = huiDeepCopyMap(icon.extras),
               ),
-              HuiNote(
-                'The model value is exported as customModelValue. The old '
-                'editor and the shipped schema wrote customModelData, which the '
-                'plugin ignores.',
-              ),
-              HuiNote(
-                'Items render at roughly 0.75 blocks square and are the only '
-                'icon type with a fixed size: uiScale is the only thing that '
-                'changes it.',
-              ),
-            ],
+            ),
           ),
         ],
-      );
+      ),
+      const HuiMore(
+        summary: 'Count, model value and item size',
+        children: <Widget>[
+          HuiNote(
+            'A count above 1 adds a bold white number under the item and '
+            'lifts the item slightly.',
+          ),
+          HuiNote(
+            'The model value is exported as customModelValue. The old '
+            'editor wrote customModelData, which the plugin ignores; '
+            'importing such a file moves the value over.',
+          ),
+          HuiNote(
+            'Items render at roughly 0.75 blocks square and are the only '
+            'icon type with a fixed size: uiScale is the only thing that '
+            'changes it.',
+          ),
+        ],
+      ),
+    ],
+  );
 }

@@ -587,9 +587,7 @@ void main() {
       expect(scene.byId('nope'), isNull);
     });
 
-    test('duplicate ids keep both quads; byId resolves the first', () {
-      // The plugin renders both but only registers the first
-      // (`MenuSession.java:79` putIfAbsent).
+    test('duplicate ids keep only the first quad', () {
       final PreviewScene scene = _scene(
         _menu(
           components: <HuiComponent>[
@@ -598,7 +596,7 @@ void main() {
           ],
         ),
       );
-      expect(scene.quads.length, 2);
+      expect(scene.quads.length, 1);
       expectVec(scene.byId('dup')!.anchor, PVec3.zero);
     });
   });

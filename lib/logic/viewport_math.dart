@@ -1,7 +1,7 @@
 /// Pure viewport transform math for the HoloUI canvas.
 ///
 /// World frame: Minecraft block space as authored in a menu file.
-/// `x` grows to the player's right, `y` grows UP (0 = player feet level),
+/// `x` grows to the player's right, `y` grows UP (0 = the player's feet),
 /// `z` is depth away from the camera and is not part of the 2-D mapping.
 ///
 /// Screen frame: CSS pixels measured from the canvas element's top-left,
@@ -95,18 +95,18 @@ class WorldBounds {
   double get centerY => (minY + maxY) / 2;
 
   WorldBounds expand(double blocks) => WorldBounds(
-        minX: minX - blocks,
-        minY: minY - blocks,
-        maxX: maxX + blocks,
-        maxY: maxY + blocks,
-      );
+    minX: minX - blocks,
+    minY: minY - blocks,
+    maxX: maxX + blocks,
+    maxY: maxY + blocks,
+  );
 
   WorldBounds union(WorldBounds other) => WorldBounds(
-        minX: math.min(minX, other.minX),
-        minY: math.min(minY, other.minY),
-        maxX: math.max(maxX, other.maxX),
-        maxY: math.max(maxY, other.maxY),
-      );
+    minX: math.min(minX, other.minX),
+    minY: math.min(minY, other.minY),
+    maxX: math.max(maxX, other.maxX),
+    maxY: math.max(maxY, other.maxY),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -151,12 +151,11 @@ class CanvasTransform {
     double maxZoom = huiMaxZoom,
     double maxPanX = double.infinity,
     double maxPanY = double.infinity,
-  }) =>
-      CanvasTransform(
-        zoom: clampZoom(zoom, minZoom: minZoom, maxZoom: maxZoom),
-        panX: _clampAbs(panX, maxPanX),
-        panY: _clampAbs(panY, maxPanY),
-      );
+  }) => CanvasTransform(
+    zoom: clampZoom(zoom, minZoom: minZoom, maxZoom: maxZoom),
+    panX: _clampAbs(panX, maxPanX),
+    panY: _clampAbs(panY, maxPanY),
+  );
 
   /// Zoom so that the world point currently under ([anchorX], [anchorY]) stays
   /// under it. Anchor coordinates are CSS pixels relative to the canvas CENTRE
@@ -171,11 +170,18 @@ class CanvasTransform {
     double maxPanY = double.infinity,
   }) {
     final double oldZoom = clampZoom(zoom, minZoom: minZoom, maxZoom: maxZoom);
-    final double nextZoom =
-        clampZoom(requestedZoom, minZoom: minZoom, maxZoom: maxZoom);
+    final double nextZoom = clampZoom(
+      requestedZoom,
+      minZoom: minZoom,
+      maxZoom: maxZoom,
+    );
     if (oldZoom <= 0) {
-      return CanvasTransform(zoom: nextZoom, panX: panX, panY: panY)
-          .clamp(minZoom: minZoom, maxZoom: maxZoom, maxPanX: maxPanX, maxPanY: maxPanY);
+      return CanvasTransform(zoom: nextZoom, panX: panX, panY: panY).clamp(
+        minZoom: minZoom,
+        maxZoom: maxZoom,
+        maxPanX: maxPanX,
+        maxPanY: maxPanY,
+      );
     }
     final double ratio = nextZoom / oldZoom;
     return CanvasTransform(
@@ -199,16 +205,15 @@ class CanvasTransform {
     double maxZoom = huiMaxZoom,
     double maxPanX = double.infinity,
     double maxPanY = double.infinity,
-  }) =>
-      zoomAtPoint(
-        requestedZoom: zoom * factor,
-        anchorX: anchorX,
-        anchorY: anchorY,
-        minZoom: minZoom,
-        maxZoom: maxZoom,
-        maxPanX: maxPanX,
-        maxPanY: maxPanY,
-      );
+  }) => zoomAtPoint(
+    requestedZoom: zoom * factor,
+    anchorX: anchorX,
+    anchorY: anchorY,
+    minZoom: minZoom,
+    maxZoom: maxZoom,
+    maxPanX: maxPanX,
+    maxPanY: maxPanY,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -319,9 +324,9 @@ class HuiViewport {
 
   /// Same as [worldToScreen] but in backing-store pixels.
   ScreenPoint worldToDevice(double blockX, double blockY) => ScreenPoint(
-        worldToScreenX(blockX) * devicePixelRatio,
-        worldToScreenY(blockY) * devicePixelRatio,
-      );
+    worldToScreenX(blockX) * devicePixelRatio,
+    worldToScreenY(blockY) * devicePixelRatio,
+  );
 
   double screenToWorldX(double screenX) => (screenX - originX) / pixelsPerBlock;
 
@@ -336,42 +341,38 @@ class HuiViewport {
 
   /// World rectangle currently covered by the canvas (grid culling).
   WorldBounds get visibleWorld => WorldBounds(
-        minX: screenToWorldX(0),
-        minY: screenToWorldY(heightPx),
-        maxX: screenToWorldX(widthPx),
-        maxY: screenToWorldY(0),
-      );
+    minX: screenToWorldX(0),
+    minY: screenToWorldY(heightPx),
+    maxX: screenToWorldX(widthPx),
+    maxY: screenToWorldY(0),
+  );
 
   /// Pan limit in CSS pixels for the current zoom.
   double get maxPanPixels => huiPanLimitBlocks * pixelsPerBlock;
 
   HuiViewport withTransform(CanvasTransform next) => HuiViewport(
-        widthPx: widthPx,
-        heightPx: heightPx,
-        devicePixelRatio: devicePixelRatio,
-        basePixelsPerBlock: basePixelsPerBlock,
-        transform: next,
-      );
+    widthPx: widthPx,
+    heightPx: heightPx,
+    devicePixelRatio: devicePixelRatio,
+    basePixelsPerBlock: basePixelsPerBlock,
+    transform: next,
+  );
 
   HuiViewport resized({
     required double widthPx,
     required double heightPx,
     double? devicePixelRatio,
-  }) =>
-      HuiViewport(
-        widthPx: widthPx,
-        heightPx: heightPx,
-        devicePixelRatio: devicePixelRatio ?? this.devicePixelRatio,
-        basePixelsPerBlock: basePixelsPerBlock,
-        transform: transform,
-      );
+  }) => HuiViewport(
+    widthPx: widthPx,
+    heightPx: heightPx,
+    devicePixelRatio: devicePixelRatio ?? this.devicePixelRatio,
+    basePixelsPerBlock: basePixelsPerBlock,
+    transform: transform,
+  );
 
   HuiViewport panByPixels(double dx, double dy) => withTransform(
-        transform.panBy(dx, dy).clamp(
-              maxPanX: maxPanPixels,
-              maxPanY: maxPanPixels,
-            ),
-      );
+    transform.panBy(dx, dy).clamp(maxPanX: maxPanPixels, maxPanY: maxPanPixels),
+  );
 
   /// Zoom keeping the world point under a canvas-local pixel stationary.
   /// [screenX] / [screenY] are CSS pixels from the canvas top-left.
@@ -397,19 +398,18 @@ class HuiViewport {
     required double factor,
     required double screenX,
     required double screenY,
-  }) =>
-      zoomAtScreenPoint(
-        requestedZoom: transform.zoom * factor,
-        screenX: screenX,
-        screenY: screenY,
-      );
+  }) => zoomAtScreenPoint(
+    requestedZoom: transform.zoom * factor,
+    screenX: screenX,
+    screenY: screenY,
+  );
 
   /// Zoom about the canvas centre (toolbar buttons, keyboard `+` / `-`).
   HuiViewport zoomAtCenter(double requestedZoom) => zoomAtScreenPoint(
-        requestedZoom: requestedZoom,
-        screenX: widthPx / 2,
-        screenY: heightPx / 2,
-      );
+    requestedZoom: requestedZoom,
+    screenX: widthPx / 2,
+    screenY: heightPx / 2,
+  );
 
   HuiViewport zoomByAtCenter(double factor) =>
       zoomAtCenter(transform.zoom * factor);
@@ -417,10 +417,14 @@ class HuiViewport {
   /// Fit [bounds] into the canvas with [paddingPx] of breathing room and centre
   /// it. Degenerate (zero-size) bounds keep the current zoom.
   HuiViewport zoomToFit(WorldBounds bounds, {double paddingPx = 32}) {
-    final double availableWidth =
-        math.max(widthPx - paddingPx * 2, _minPixelsPerBlock);
-    final double availableHeight =
-        math.max(heightPx - paddingPx * 2, _minPixelsPerBlock);
+    final double availableWidth = math.max(
+      widthPx - paddingPx * 2,
+      _minPixelsPerBlock,
+    );
+    final double availableHeight = math.max(
+      heightPx - paddingPx * 2,
+      _minPixelsPerBlock,
+    );
     final double base = basePixelsPerBlock > 0
         ? basePixelsPerBlock
         : huiDefaultPixelsPerBlock;
@@ -451,12 +455,12 @@ class HuiViewport {
 
   /// Centre a world point without changing the zoom.
   HuiViewport centerOn(double blockX, double blockY) => withTransform(
-        CanvasTransform(
-          zoom: transform.zoom,
-          panX: -blockX * pixelsPerBlock,
-          panY: blockY * pixelsPerBlock,
-        ).clamp(maxPanX: maxPanPixels, maxPanY: maxPanPixels),
-      );
+    CanvasTransform(
+      zoom: transform.zoom,
+      panX: -blockX * pixelsPerBlock,
+      panY: blockY * pixelsPerBlock,
+    ).clamp(maxPanX: maxPanPixels, maxPanY: maxPanPixels),
+  );
 
   HuiViewport reset() => withTransform(CanvasTransform.identity);
 
@@ -471,12 +475,12 @@ class HuiViewport {
 
   @override
   int get hashCode => Object.hash(
-        widthPx,
-        heightPx,
-        devicePixelRatio,
-        basePixelsPerBlock,
-        transform,
-      );
+    widthPx,
+    heightPx,
+    devicePixelRatio,
+    basePixelsPerBlock,
+    transform,
+  );
 
   @override
   String toString() =>

@@ -13,6 +13,7 @@ import '../../logic/validation.dart';
 import '../../model/model.dart';
 import '../../services/catalogs.dart';
 import '../common/common.dart';
+import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'registry_picker.dart';
 
@@ -46,7 +47,7 @@ class CustomItemIconEditor extends StatelessWidget {
         count ?? icon.count,
       )..extras = huiDeepCopyMap(icon.extras);
 
-  /// Auto-detect first, then the adapters in registration order. A provider the
+  /// Auto-detect first, then the adapters in declaration order. A provider the
   /// file already names but this build has no adapter for is kept as an option
   /// so opening the inspector cannot silently rewrite it.
   List<ArcaneSelectOption> get _providerOptions {
@@ -99,85 +100,88 @@ class CustomItemIconEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-icon-custom',
-        <Widget>[
-          HuiField(
-            label: 'Provider',
-            help: 'Auto-detect asks every installed provider in order and '
-                'takes the first hit.',
-            control: dom.div(<Widget>[
-              ArcaneSelect(
-                value: icon.provider,
-                size: ComponentSize.sm,
-                fullWidth: true,
-                options: _providerOptions,
-                onChange: (String value) =>
-                    onChanged('item provider', _with(provider: value)),
-              ),
-              HuiInlineIssues(_issuesFor('.provider')),
-            ]),
+    classes: 'hui-icon-custom',
+    <Widget>[
+      HuiField(
+        label: 'Provider',
+        help:
+            'Auto-detect asks every installed provider in activation order and '
+            'takes the first hit.',
+        control: dom.div(<Widget>[
+          ArcaneSelect(
+            value: icon.provider,
+            size: ComponentSize.sm,
+            fullWidth: true,
+            options: _providerOptions,
+            onChange: (String value) =>
+                onChanged('item provider', _with(provider: value)),
           ),
-          HuiField(
-            label: 'Item id',
-            required: true,
-            help: _info == null
-                ? 'Exactly as the plugin that owns the item spells it.'
-                : '${_info!.idFormat}. Example: ${_info!.example}',
-            control: dom.div(<Widget>[
-              RegistryPicker(
-                value: icon.item,
-                placeholder: _info?.example ?? 'myitems:ruby',
-                browseLabel: 'Browse catalog',
-                searchPlaceholder: 'Search the exported catalog',
-                emptyMessage: 'No match in the exported catalog. The id is '
-                    'still used as typed.',
-                catalogAvailable: _catalogCount > 0,
-                lowercase: false,
-                textureFor: _textureFor,
-                search: _search,
-                onChanged: (String value) =>
-                    onChanged('custom item id', _with(item: value)),
-              ),
-              HuiInlineIssues(_issuesFor('.item')),
-            ]),
+          HuiInlineIssues(_issuesFor('.provider')),
+        ]),
+      ),
+      HuiField(
+        label: 'Item id',
+        required: true,
+        help: _info == null
+            ? 'Exactly as the plugin that owns the item spells it.'
+            : '${_info!.idFormat}. Example: ${_info!.example}',
+        control: dom.div(<Widget>[
+          RegistryPicker(
+            value: icon.item,
+            placeholder: _info?.example ?? 'myitems:ruby',
+            browseLabel: 'Browse catalog',
+            searchPlaceholder: 'Search the exported catalog',
+            emptyMessage:
+                'No match in the exported catalog. The id is '
+                'still used as typed.',
+            catalogAvailable: _catalogCount > 0,
+            lowercase: false,
+            textureFor: _textureFor,
+            search: _search,
+            onChanged: (String value) =>
+                onChanged('custom item id', _with(item: value)),
           ),
-          HuiField(
-            label: 'Count',
-            control: dom.div(<Widget>[
-              HuiNumberField(
-                value: icon.count.toDouble(),
-                min: 1,
-                max: 99,
-                step: 1,
-                integer: true,
-                onChanged: (double value) =>
-                    onChanged('custom item count', _with(count: value.round())),
-              ),
-              HuiInlineIssues(_issuesFor('.count')),
-            ]),
+          HuiInlineIssues(_issuesFor('.item')),
+        ]),
+      ),
+      HuiField(
+        label: 'Count',
+        trailing: const HuiFieldHelp('icon.customItem.count'),
+        control: dom.div(<Widget>[
+          HuiNumberField(
+            value: icon.count.toDouble(),
+            min: 1,
+            max: 99,
+            step: 1,
+            integer: true,
+            onChanged: (double value) =>
+                onChanged('custom item count', _with(count: value.round())),
           ),
-          _catalogNote(),
-          const HuiMore(
-            summary: 'How custom items resolve',
-            children: <Widget>[
-              HuiNote(
-                'The server asks the provider plugin for the item when the '
-                'menu opens and renders whatever stack it hands back, textures '
-                'and model data included.',
-              ),
-              HuiNote(
-                'Ids are case-sensitive for most providers, so they are stored '
-                'exactly as typed.',
-              ),
-              HuiNote(
-                'If the provider is missing or the id is unknown, HoloUI logs '
-                'a warning naming both and draws its magenta/black '
-                'placeholder. The rest of the menu still opens.',
-              ),
-            ],
+          HuiInlineIssues(_issuesFor('.count')),
+        ]),
+      ),
+      _catalogNote(),
+      const HuiMore(
+        summary: 'How custom items resolve',
+        children: <Widget>[
+          HuiNote(
+            'The server asks the provider plugin for the item when the '
+            'menu opens and renders whatever stack it hands back, textures '
+            'and model data included.',
+          ),
+          HuiNote(
+            'Ids are case-sensitive for most providers, so they are stored '
+            'exactly as typed.',
+          ),
+          HuiNote(
+            'If the provider is missing or the id is unknown, HoloUI logs '
+            'a warning naming both and draws its magenta/black '
+            'placeholder. The rest of the menu still opens.',
           ),
         ],
-      );
+      ),
+    ],
+  );
 
   Widget _catalogNote() {
     if (_catalog.isEmpty) {
@@ -191,7 +195,7 @@ class CustomItemIconEditor extends StatelessWidget {
     return HuiNote(
       '$count item${count == 1 ? '' : 's'} in the catalog exported from your '
       'server${icon.provider == huiAutoItemProvider ? '' : ' for '
-          '${_info?.label ?? icon.provider}'}. Ids missing from it are not '
+                '${_info?.label ?? icon.provider}'}. Ids missing from it are not '
       'errors - only the server can confirm one.',
     );
   }

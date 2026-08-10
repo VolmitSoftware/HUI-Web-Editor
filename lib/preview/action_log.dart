@@ -1,10 +1,10 @@
 /// What a simulated click actually does, recorded rather than performed.
 ///
 /// The preview never plays a sound and never runs a command; it logs what the
-/// server would have done. That makes the log the place where the format's two
-/// silent traps become visible: a command whose `source` is anything other than
-/// the exact token `player` is dispatched from the CONSOLE
-/// (`CommandMenuAction.java:34-40`), and a sound left at the format's default
+/// server would have done. That makes the log the place where the format's
+/// silent traps become visible: a command whose `source` is the exact token
+/// `server` is dispatched from the CONSOLE with no permission check against the
+/// clicking player (`CommandMenuAction.java:34-40`), and an explicit
 /// `volume: 0` is played inaudibly (`SoundMenuAction.java:30-32`).
 ///
 /// Pure and DOM-free: the log dock renders these, it does not define them.
@@ -20,21 +20,11 @@ sealed class LoggedAction {
 /// A `command` action as `CommandMenuAction.execute` would run it.
 class LoggedCommand extends LoggedAction {
   LoggedCommand({required String command, required String? source})
-      : command = _stripOneLeadingSlash(command),
-        rawSource = source ?? '',
-        sourceOmitted = source == null || source.trim().isEmpty;
+    : command = _stripOneLeadingSlash(command),
+      rawSource = source ?? '';
 
-  /// [sourceOmitted] has to be handed in: the decoder rewrites a blank `source`
-  /// to `server` (`HuiCommandAction._readSource`), so the model alone cannot
-  /// tell an absent key from an explicit one.
-  factory LoggedCommand.from(
-    HuiCommandAction action, {
-    bool sourceOmitted = false,
-  }) =>
-      LoggedCommand(
-        command: action.command,
-        source: sourceOmitted ? null : action.source,
-      );
+  factory LoggedCommand.from(HuiCommandAction action) =>
+      LoggedCommand(command: action.command, source: action.source);
 
   /// The command as dispatched — `CommandMenuAction.java:35` strips exactly one
   /// leading `/`, so `//me` reaches the dispatcher as `/me`.
@@ -43,24 +33,25 @@ class LoggedCommand extends LoggedAction {
   /// The authored spelling, kept verbatim so the log can quote what is wrong.
   final String rawSource;
 
-  /// The `source` key was absent (or blank) in the file.
-  final bool sourceOmitted;
-
-  /// Gson maps `MenuActionCommandSource` by `@SerializedName`, so `player` is
-  /// the only spelling that yields `PLAYER`; `CommandMenuAction.java:36-39`
-  /// sends every other value — including null — down the console branch.
-  bool get asPlayer => rawSource == 'player';
+  /// Canonical editor values are `player` and `server`. Directly constructed
+  /// logs also recognize Gson's Java enum spelling `GLOBAL`.
+  bool get asPlayer => rawSource != 'server' && rawSource != 'GLOBAL';
 
   bool get asConsole => !asPlayer;
 
   /// Whether the spelling is one the format defines at all. An unrecognized
-  /// value reaches the console today, but it does so by falling off the end of
-  /// the enum lookup rather than by intent, so the log calls it out separately
-  /// from a deliberate `server`.
-  bool get sourceRecognized => huiCommandSources.contains(rawSource);
+  /// value takes the player default by falling off the end of the enum lookup
+  /// rather than by intent, so the log calls it out separately from a
+  /// deliberate `player`.
+  bool get sourceRecognized =>
+      huiCommandSources.contains(rawSource) ||
+      rawSource == 'PLAYER' ||
+      rawSource == 'GLOBAL';
 
-  static String _stripOneLeadingSlash(String raw) =>
-      raw.startsWith('/') ? raw.substring(1) : raw;
+  static String _stripOneLeadingSlash(String raw) {
+    final String trimmed = raw.trim();
+    return trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
+  }
 }
 
 /// A `sound` action as `SoundMenuAction.execute` would play it.
@@ -73,11 +64,11 @@ class LoggedSound extends LoggedAction {
   });
 
   factory LoggedSound.from(HuiSoundAction action) => LoggedSound(
-        key: action.sound,
-        category: action.source,
-        volume: action.volume,
-        pitch: action.pitch,
-      );
+    key: action.sound,
+    category: action.source,
+    volume: action.volume,
+    pitch: action.pitch,
+  );
 
   /// Lowercase namespaced registry key; uppercase enum names parse to null.
   final String key;
@@ -87,12 +78,12 @@ class LoggedSound extends LoggedAction {
   final double volume;
   final double pitch;
 
-  /// `volume` is a Java `float` with no default in the data class, so an
-  /// omitted key is 0 and the click is silent.
+  /// An omitted `volume` defaults to 1, so silence only happens when the file
+  /// writes 0 itself.
   bool get inaudible => volume == 0;
 
-  /// `SoundMenuAction.java:31` dereferences `data.source()` without a guard, so
-  /// an absent source is not a silent sound — it is an NPE on click.
+  /// An absent category defaults to `master`, so this is only ever true for an
+  /// action the editor built with an empty one.
   bool get categoryMissing => category.trim().isEmpty;
 }
 
@@ -107,10 +98,10 @@ enum ActionLogTrigger {
   toggleToFalse;
 
   String get label => switch (this) {
-        ActionLogTrigger.button => 'click',
-        ActionLogTrigger.toggleToTrue => 'toggle → true',
-        ActionLogTrigger.toggleToFalse => 'toggle → false',
-      };
+    ActionLogTrigger.button => 'click',
+    ActionLogTrigger.toggleToTrue => 'toggle → true',
+    ActionLogTrigger.toggleToFalse => 'toggle → false',
+  };
 }
 
 /// One component firing on one click.
@@ -134,17 +125,27 @@ class ActionLogEntry {
 }
 
 LoggedAction loggedActionFrom(HuiAction action) => switch (action) {
-      HuiCommandAction() => LoggedCommand.from(action),
-      HuiSoundAction() => LoggedSound.from(action),
-    };
+  HuiCommandAction() => LoggedCommand.from(action),
+  HuiSoundAction() => LoggedSound.from(action),
+};
 
-List<LoggedAction> loggedActionsFrom(Iterable<HuiAction> actions) =>
-    actions.map(loggedActionFrom).toList(growable: false);
+List<LoggedAction> loggedActionsFrom(Iterable<HuiAction> actions) => actions
+    .where(
+      (HuiAction action) =>
+          action is! HuiCommandAction || _hasUsableCommand(action.command),
+    )
+    .map(loggedActionFrom)
+    .toList(growable: false);
+
+bool _hasUsableCommand(String command) {
+  final String trimmed = command.trim();
+  return trimmed.isNotEmpty && trimmed != '/';
+}
 
 String describeLoggedAction(LoggedAction action) => switch (action) {
-      LoggedCommand() => _describeCommand(action),
-      LoggedSound() => _describeSound(action),
-    };
+  LoggedCommand() => _describeCommand(action),
+  LoggedSound() => _describeSound(action),
+};
 
 String describeActionLogEntry(ActionLogEntry entry) {
   final String body = entry.actions.isEmpty
@@ -155,30 +156,20 @@ String describeActionLogEntry(ActionLogEntry entry) {
 
 String _describeCommand(LoggedCommand command) {
   final String target = command.asPlayer ? 'player' : 'console';
-  final String note = command.asPlayer
+  final String note = command.rawSource.isEmpty || command.sourceRecognized
       ? ''
-      : command.sourceOmitted
-          ? ' (source omitted)'
-          : command.sourceRecognized
-              ? ''
-              : ' (source "${command.rawSource}" is not player or server)';
+      : ' (source "${command.rawSource}" is not player or server)';
   return 'run "${command.command}" as $target$note';
 }
 
 String _describeSound(LoggedSound sound) {
-  final String source =
-      sound.categoryMissing ? 'source missing' : sound.category;
-  final String note = sound.categoryMissing
-      ? ' — a null source NPEs on click'
-      : sound.inaudible
-          ? ' — inaudible'
-          : '';
+  final String source = sound.categoryMissing ? 'master' : sound.category;
+  final String note = sound.inaudible ? ' — inaudible' : '';
   return 'play "${sound.key}" ($source) '
       'volume ${_number(sound.volume)}, pitch ${_number(sound.pitch)}$note';
 }
 
 /// Whole values read as whole numbers; `1.0` in a log row is noise.
-String _number(double value) =>
-    value == value.roundToDouble() && value.isFinite
-        ? value.toStringAsFixed(0)
-        : value.toString();
+String _number(double value) => value == value.roundToDouble() && value.isFinite
+    ? value.toStringAsFixed(0)
+    : value.toString();

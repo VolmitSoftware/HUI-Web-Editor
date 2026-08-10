@@ -3,8 +3,8 @@ import 'json_codec.dart';
 /// The only two action types in the format.
 const List<String> huiActionTypes = <String>['command', 'sound'];
 
-/// `MenuActionCommandSource` serialized names. A null/unknown source behaves
-/// as `server` in-game, so the editor always emits one of these.
+/// `MenuActionCommandSource` serialized names. Gson also accepts the Java enum
+/// names `PLAYER` and `GLOBAL`; imports canonicalize those spellings.
 const List<String> huiCommandSources = <String>['player', 'server'];
 
 /// `SoundSource` serialized names, in declaration order.
@@ -63,28 +63,17 @@ class HuiCommandAction extends HuiAction {
   String command;
   String source;
 
-  /// Holds `source` when the imported file carried none; see
-  /// [HuiMenu.absentKeys]. `_readSource` normalises an absent source to
-  /// `server`, which is indistinguishable from an explicit one, so the flag is
-  /// the only way validation can tell the user their command was silently
-  /// running from the console. Never serialized, and cleared by any re-decode
-  /// because the export always writes the key.
-  Set<String> absentKeys = <String>{};
-
   HuiCommandAction([this.command = '', this.source = 'player']);
 
   @override
   String get type => 'command';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{
-          'type': 'command',
-          'source': source,
-          'command': command,
-        },
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'command',
+    'source': source,
+    'command': command,
+  }, extras);
 
   @override
   HuiCommandAction copy() =>
@@ -92,22 +81,22 @@ class HuiCommandAction extends HuiAction {
 
   static const Set<String> _known = <String>{'type', 'source', 'command'};
 
-  static HuiCommandAction fromMap(Map<String, dynamic> map) => HuiCommandAction(
-        huiReadString(map, 'command'),
-        _readSource(map),
-      )
-        ..extras = huiCollectExtras(map, _known)
-        ..absentKeys = <String>{
-          if (huiReadString(map, 'source').isEmpty) 'source',
-        };
+  static HuiCommandAction fromMap(Map<String, dynamic> map) =>
+      HuiCommandAction(huiReadString(map, 'command'), _readSource(map))
+        ..extras = huiCollectExtras(map, _known);
 
-  /// An absent or blank source is null to Gson, which runs the command as the
-  /// console. Reading it as `server` keeps that behaviour and keeps the export
+  /// An absent or blank source is null to Gson, which the plugin defaults to
+  /// `player`. Reading it as `player` keeps that behaviour and keeps the export
   /// from carrying an empty string where the format expects an enum token.
   /// Unknown non-empty values are kept verbatim so validation can flag them.
   static String _readSource(Map<String, dynamic> map) {
     final String source = huiReadString(map, 'source');
-    return source.isEmpty ? 'server' : source;
+    return switch (source) {
+      '' => 'player',
+      'PLAYER' => 'player',
+      'GLOBAL' => 'server',
+      _ => source,
+    };
   }
 }
 
@@ -115,7 +104,8 @@ class HuiSoundAction extends HuiAction {
   /// Lowercase registry key, e.g. `ui.button.click`.
   String sound;
 
-  /// One of [huiSoundSources]; a null source NPEs the menu open.
+  /// One of [huiSoundSources]; an absent or unknown source defaults to
+  /// `master`.
   String source;
   double volume;
   double pitch;
@@ -131,20 +121,18 @@ class HuiSoundAction extends HuiAction {
   String get type => 'sound';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{
-          'type': 'sound',
-          'sound': sound,
-          'source': source,
-          'volume': volume,
-          'pitch': pitch,
-        },
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'sound',
+    'sound': sound,
+    'source': source,
+    'volume': volume,
+    'pitch': pitch,
+  }, extras);
 
   @override
-  HuiSoundAction copy() => HuiSoundAction(sound, source, volume, pitch)
-    ..extras = huiDeepCopyMap(extras);
+  HuiSoundAction copy() =>
+      HuiSoundAction(sound, source, volume, pitch)
+        ..extras = huiDeepCopyMap(extras);
 
   static const Set<String> _known = <String>{
     'type',
@@ -154,12 +142,26 @@ class HuiSoundAction extends HuiAction {
     'pitch',
   };
 
-  // Java zero-values (0 volume/pitch) are preserved on import so the round trip
-  // stays lossless; validation flags them.
+  // Absent keys take the plugin's defaults - master, 1.0, 1.0 - while an
+  // explicit 0 volume or pitch is preserved so the round trip stays lossless;
+  // validation flags those.
   static HuiSoundAction fromMap(Map<String, dynamic> map) => HuiSoundAction(
-        huiReadString(map, 'sound'),
-        huiReadString(map, 'source'),
-        huiReadDouble(map, 'volume'),
-        huiReadDouble(map, 'pitch'),
-      )..extras = huiCollectExtras(map, _known);
+    huiReadString(map, 'sound'),
+    _readSource(map),
+    huiReadDouble(map, 'volume', fallback: 1),
+    huiReadDouble(map, 'pitch', fallback: 1),
+  )..extras = huiCollectExtras(map, _known);
+
+  /// An absent or blank category is null to Gson and the plugin falls back to
+  /// `master`. Unknown non-empty values are kept verbatim so validation can
+  /// flag the spelling.
+  static String _readSource(Map<String, dynamic> map) {
+    final String source = huiReadString(map, 'source');
+    if (source.isEmpty) return 'master';
+    final String lowercase = source.toLowerCase();
+    if (source == source.toUpperCase() && huiSoundSources.contains(lowercase)) {
+      return lowercase;
+    }
+    return source;
+  }
 }

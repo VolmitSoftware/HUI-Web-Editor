@@ -47,9 +47,9 @@ class EditorStore extends ChangeNotifier {
     ImageLibrary? images,
     this.autosaveDelay = const Duration(milliseconds: 500),
     bool autoLoad = true,
-  })  : workspace = workspace ?? Workspace(),
-        _catalogs = catalogs ?? HuiCatalogs.empty(),
-        _images = images {
+  }) : workspace = workspace ?? Workspace(),
+       _catalogs = catalogs ?? HuiCatalogs.empty(),
+       _images = images {
     _images?.addListener(_onImagesChanged);
     // The controller's own notifications are simulation state, not document
     // state: they must repaint the preview-card surface exactly like any
@@ -119,7 +119,9 @@ class EditorStore extends ChangeNotifier {
   /// Insertion-ordered: the LAST id is the primary, which is what every
   /// single-select call site reads through [selectedId].
   final Set<String> _selection = <String>{};
-  late final Set<String> _selectionView = UnmodifiableSetView<String>(_selection);
+  late final Set<String> _selectionView = UnmodifiableSetView<String>(
+    _selection,
+  );
   EditorView _view = EditorView.visual;
   double _previewUiScale = 1;
   bool _showHitboxes = false;
@@ -243,9 +245,9 @@ class EditorStore extends ChangeNotifier {
   /// Document order, not selection order: align, distribute and duplicate all
   /// need the components laid out the way the file declares them.
   List<HuiComponent> get selectedComponents => <HuiComponent>[
-        for (final HuiComponent component in _menu.components)
-          if (_selection.contains(component.id)) component,
-      ];
+    for (final HuiComponent component in _menu.components)
+      if (_selection.contains(component.id)) component,
+  ];
 
   bool isSelected(String id) => _selection.contains(id);
 
@@ -324,8 +326,9 @@ class EditorStore extends ChangeNotifier {
   /// the switcher all route through here, so none of them can strand a preview
   /// document on the component canvas.
   set view(EditorView value) {
-    final EditorView next =
-        availableViews.contains(value) ? value : availableViews.first;
+    final EditorView next = availableViews.contains(value)
+        ? value
+        : availableViews.first;
     if (_view == next) return;
     _view = next;
     _savePreference();
@@ -417,8 +420,9 @@ class EditorStore extends ChangeNotifier {
   double get gridSize => _gridSize;
 
   set gridSize(double value) {
-    final double clamped =
-        value.isFinite && value > 0 ? value.clamp(0.01, 1).toDouble() : 0.05;
+    final double clamped = value.isFinite && value > 0
+        ? value.clamp(0.01, 1).toDouble()
+        : 0.05;
     if (clamped == _gridSize) return;
     _gridSize = clamped;
     _savePreference();
@@ -627,11 +631,7 @@ class EditorStore extends ChangeNotifier {
     }
     // Adding or removing a component is a step in its own right, however fast
     // it follows the last one; field edits are not.
-    _pushUndo(
-      label,
-      before,
-      coalesce: countBefore == _menu.components.length,
-    );
+    _pushUndo(label, before, coalesce: countBefore == _menu.components.length);
     _afterChange();
   }
 
@@ -672,11 +672,7 @@ class EditorStore extends ChangeNotifier {
     _previewRevision++;
     // Same rule as [mutate]: adding or removing an element is its own step
     // however fast it follows the last one, a field edit is not.
-    _pushUndo(
-      label,
-      before,
-      coalesce: countBefore == doc.elements.length,
-    );
+    _pushUndo(label, before, coalesce: countBefore == doc.elements.length);
     _prunePreviewSelection();
     _afterChange();
   }
@@ -787,8 +783,9 @@ class EditorStore extends ChangeNotifier {
   void addPreviewElement(String type) {
     final HuiPreviewDoc? doc = _previewDoc;
     if (doc == null) return;
-    final String normalized =
-        previewElementTypes.contains(type) ? type : 'cell';
+    final String normalized = previewElementTypes.contains(type)
+        ? type
+        : 'cell';
     final HuiPreviewElement element = createDefaultPreviewElement(normalized);
     final int newIndex = doc.elements.length;
     mutatePreview('add $normalized', (HuiPreviewDoc edited) {
@@ -827,7 +824,11 @@ class EditorStore extends ChangeNotifier {
     if (index < 0 || index >= length) return;
     final int clamped = newIndex.clamp(0, length - 1);
     if (clamped == index) return;
-    final int? remapped = _remapSelectionAfterMove(_previewSelection, index, clamped);
+    final int? remapped = _remapSelectionAfterMove(
+      _previewSelection,
+      index,
+      clamped,
+    );
     mutatePreview('reorder element', (HuiPreviewDoc edited) {
       final HuiPreviewElement moved = edited.elements.removeAt(index);
       edited.elements.insert(clamped, moved);
@@ -887,8 +888,9 @@ class EditorStore extends ChangeNotifier {
   /// Adds a component of [type] with sensible defaults at the first free slot
   /// and selects it. Returns the new id.
   String? addComponent(String type, {Vec3? offset, String? id}) {
-    final String normalized =
-        huiComponentTypes.contains(type) ? type : 'decoration';
+    final String normalized = huiComponentTypes.contains(type)
+        ? type
+        : 'decoration';
     final String newId = uniqueComponentId(id ?? normalized, _takenIds());
     final Vec3 place = offset ?? nextFreeOffset(_menu);
     _selection
@@ -971,11 +973,10 @@ class EditorStore extends ChangeNotifier {
   /// Deletes one row per id in [ids], in a single undo step.
   ///
   /// Index-based for the same reason [deleteComponent] is: duplicate ids are
-  /// legal in this format (`MenuSession.java:79` dedupes only the addressing
-  /// map) and a selection is a set, so it can name a duplicated id exactly
-  /// once. An id-keyed bulk delete therefore removed rows the user never
-  /// selected — which is what the canvas used to do while the rail and the
-  /// shell did not.
+  /// legal in the document even though the runtime ignores later namesakes,
+  /// and a selection is a set, so it can name a duplicated id exactly once. An
+  /// id-keyed bulk delete therefore removed rows the user never selected —
+  /// which is what the canvas used to do while the rail and the shell did not.
   ///
   /// Indices are resolved against the list as it stands and removed descending,
   /// because re-resolving each id after a removal reads a list that has already
@@ -1313,7 +1314,8 @@ class EditorStore extends ChangeNotifier {
       return false;
     }
     if (!looksLikePreviewDoc(decoded)) {
-      _codeError = 'That is not a container-preview document: it needs an '
+      _codeError =
+          'That is not a container-preview document: it needs an '
           '"elements" list and no "components".';
       _notify();
       return false;
@@ -1459,15 +1461,15 @@ class EditorStore extends ChangeNotifier {
       _menu.components.map((HuiComponent c) => c.id).toSet();
 
   CanvasItem? _runtimeCanvasItem(HuiMenu menu, String id) => buildCanvasScene(
-        menu: menu,
-        uiScale: 1,
-        trueRender: true,
-        togglePreview: togglePreviewFor,
-        textCache: _textCache,
-        images: _images,
-        catalogs: _catalogs,
-        charCache: _charCache,
-      ).byId(id);
+    menu: menu,
+    uiScale: 1,
+    trueRender: true,
+    togglePreview: togglePreviewFor,
+    textCache: _textCache,
+    images: _images,
+    catalogs: _catalogs,
+    charCache: _charCache,
+  ).byId(id);
 
   /// `button-2` duplicates as `button-3` and `slot-1` as `slot-2`: an existing
   /// numeric suffix is incremented, never dropped, because the number is just
@@ -1592,8 +1594,8 @@ class EditorStore extends ChangeNotifier {
   /// Selection is deliberately not part of the undo snapshot: a restored step
   /// drops ids the restored document no longer has rather than resurrecting an
   /// old selection.
-  void _pruneSelection() => _selection
-      .removeWhere((String id) => _menu.componentById(id) == null);
+  void _pruneSelection() =>
+      _selection.removeWhere((String id) => _menu.componentById(id) == null);
 
   void _fail(String message) {
     _lastError = message;
@@ -1652,11 +1654,13 @@ class EditorStore extends ChangeNotifier {
       menu = decodeHuiMenu(doc.json);
     } on HuiFormatException catch (e) {
       menu = createDefaultMenu();
-      failure = 'The saved document "${doc.name}" was unreadable '
+      failure =
+          'The saved document "${doc.name}" was unreadable '
           '(${e.message}) and was replaced with a new menu.';
     } catch (_) {
       menu = createDefaultMenu();
-      failure = 'The saved document "${doc.name}" was unreadable and was '
+      failure =
+          'The saved document "${doc.name}" was unreadable and was '
           'replaced with a new menu.';
     }
     _adoptMenu(menu, doc.name);
@@ -1674,11 +1678,13 @@ class EditorStore extends ChangeNotifier {
       previewDoc = decodeHuiPreviewDoc(doc.json);
     } on HuiFormatException catch (e) {
       previewDoc = HuiPreviewDoc();
-      failure = 'The saved document "${doc.name}" was unreadable '
+      failure =
+          'The saved document "${doc.name}" was unreadable '
           '(${e.message}) and was replaced with a blank preview document.';
     } catch (_) {
       previewDoc = HuiPreviewDoc();
-      failure = 'The saved document "${doc.name}" was unreadable and was '
+      failure =
+          'The saved document "${doc.name}" was unreadable and was '
           'replaced with a blank preview document.';
     }
     _adoptPreview(previewDoc, doc.name);
@@ -1746,14 +1752,19 @@ class EditorStore extends ChangeNotifier {
     _previewShowNormals = _readBool(decoded['previewShowNormals'], false);
     _previewShowAnchors = _readBool(decoded['previewShowAnchors'], false);
     _previewShowCenter = _readBool(decoded['previewShowCenter'], true);
-    _previewShowDistanceSphere =
-        _readBool(decoded['previewShowDistanceSphere'], false);
+    _previewShowDistanceSphere = _readBool(
+      decoded['previewShowDistanceSphere'],
+      false,
+    );
     _previewShowGroundGrid = _readBool(decoded['previewShowGroundGrid'], true);
     _previewLogOpen = _readBool(decoded['previewLogOpen'], true);
-    _previewBannerDismissed =
-        _readBool(decoded['previewBannerDismissed'], false);
-    _previewCameraMode =
-        PreviewCameraMode.fromName(decoded['previewCameraMode']);
+    _previewBannerDismissed = _readBool(
+      decoded['previewBannerDismissed'],
+      false,
+    );
+    _previewCameraMode = PreviewCameraMode.fromName(
+      decoded['previewCameraMode'],
+    );
   }
 
   void _writePreferences() {

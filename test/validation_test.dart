@@ -146,7 +146,7 @@ void main() {
         _has(
           validateHuiMenu(_withAction(HuiCommandAction('/a', 'console'))),
           HuiSeverity.warning,
-          'not one of the two spellings',
+          'not recognized',
         ),
         isTrue,
       );
@@ -191,26 +191,23 @@ void main() {
       );
     });
 
-    test('flags a missing or unknown sound source as an error', () {
+    test('a missing sound source is silent: the plugin defaults it', () {
       expect(
-        _has(
-          validateHuiMenu(
-            _withAction(HuiSoundAction('ui.button.click', '', 1, 1)),
-          ),
-          HuiSeverity.error,
-          'Sound source',
+        validateHuiMenu(
+          _withAction(HuiSoundAction('ui.button.click', '', 1, 1)),
         ),
-        isTrue,
+        isEmpty,
       );
+    });
+
+    test('warns that an unknown sound source falls back to master', () {
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withAction(HuiSoundAction('ui.button.click', 'sfx', 1, 1)),
+      );
+      expect(_has(issues, HuiSeverity.warning, 'Sound source'), isTrue);
       expect(
-        _has(
-          validateHuiMenu(
-            _withAction(HuiSoundAction('ui.button.click', 'sfx', 1, 1)),
-          ),
-          HuiSeverity.error,
-          'Sound source',
-        ),
-        isTrue,
+        _matching(issues, HuiSeverity.warning, 'Sound source').single.message,
+        contains('master'),
       );
     });
 
@@ -333,21 +330,12 @@ void main() {
       );
     });
 
-    test('warns on a provider id that only differs in case', () {
-      final List<HuiIssue> issues = validateHuiMenu(
-        _withIcon(HuiCustomItemIcon('ItemsAdder', 'myitems:ruby', 1)),
-      );
+    test('provider lookup is case-insensitive and trims whitespace', () {
       expect(
-        _has(issues, HuiSeverity.warning, 'Unknown item provider'),
-        isTrue,
-      );
-      expect(
-        _matching(
-          issues,
-          HuiSeverity.warning,
-          'Unknown item provider',
-        ).single.fix,
-        contains('itemsadder'),
+        validateHuiMenu(
+          _withIcon(HuiCustomItemIcon('  ItemsAdder  ', 'myitems:ruby', 1)),
+        ),
+        isEmpty,
       );
     });
 
@@ -438,26 +426,21 @@ void main() {
 
   group('animated icons', () {
     test('flags an empty source list as an error', () {
-      expect(
-        _has(
-          validateHuiMenu(_withIcon(HuiAnimatedImageIcon(<String>[], 2))),
-          HuiSeverity.error,
-          'no frames',
-        ),
-        isTrue,
-      );
+      final HuiIssue issue = _matching(
+        validateHuiMenu(_withIcon(HuiAnimatedImageIcon(<String>[], 2))),
+        HuiSeverity.error,
+        'no frames',
+      ).single;
+      expect(issue.message, contains('missing-icon placeholder'));
+      expect(issue.message, isNot(contains('throws')));
     });
 
-    test('flags speed below 1 as an error', () {
+    test('accepts speed zero because runtime treats it as every tick', () {
       expect(
-        _has(
-          validateHuiMenu(
-            _withIcon(HuiAnimatedImageIcon(<String>['a.png'], 0)),
-          ),
-          HuiSeverity.error,
-          'every tick',
-        ),
-        isTrue,
+        validateHuiMenu(
+          _withIcon(HuiAnimatedImageIcon(<String>['a.png'], 0)),
+        ).where((HuiIssue issue) => issue.path.endsWith('.speed')),
+        isEmpty,
       );
     });
 
@@ -530,31 +513,9 @@ void main() {
   });
 
   group('text icons', () {
-    test('warns about the broken &n and &k legacy codes', () {
-      expect(
-        _has(
-          validateHuiMenu(_withIcon(HuiTextIcon('&nHello'))),
-          HuiSeverity.warning,
-          'render literally',
-        ),
-        isTrue,
-      );
-      expect(
-        _has(
-          validateHuiMenu(_withIcon(HuiTextIcon('&kHello'))),
-          HuiSeverity.warning,
-          'render literally',
-        ),
-        isTrue,
-      );
-      expect(
-        _has(
-          validateHuiMenu(_withIcon(HuiTextIcon('&lHello'))),
-          HuiSeverity.warning,
-          'render literally',
-        ),
-        isFalse,
-      );
+    test('accepts &n and &k legacy codes', () {
+      expect(validateHuiMenu(_withIcon(HuiTextIcon('&nHello'))), isEmpty);
+      expect(validateHuiMenu(_withIcon(HuiTextIcon('&kHello'))), isEmpty);
     });
 
     test('reports placeholders in text as info', () {
@@ -723,6 +684,33 @@ void main() {
         _has(validateHuiMenu(menu), HuiSeverity.warning, 'maxDistance'),
         isFalse,
       );
+    });
+
+    test('rejects non-finite exported menu and action numbers', () {
+      final HuiMenu menu =
+          _menu(<HuiComponent>[
+              _component(
+                'a',
+                HuiButtonData(double.nan, <HuiAction>[
+                  HuiSoundAction(
+                    'ui.button.click',
+                    'master',
+                    double.infinity,
+                    double.nan,
+                  ),
+                ], HuiTextIcon('x')),
+              )..offset = Vec3(double.infinity, 0, 0),
+            ])
+            ..offset = Vec3(0, double.nan, 0)
+            ..maxDistance = double.infinity;
+      final List<HuiIssue> issues = validateHuiMenu(menu);
+
+      expect(_has(issues, HuiSeverity.error, 'Menu offset'), isTrue);
+      expect(_has(issues, HuiSeverity.error, 'Component offset'), isTrue);
+      expect(_has(issues, HuiSeverity.error, 'maxDistance'), isTrue);
+      expect(_has(issues, HuiSeverity.error, 'highlightModifier'), isTrue);
+      expect(_has(issues, HuiSeverity.error, 'Volume'), isTrue);
+      expect(_has(issues, HuiSeverity.error, 'Pitch'), isTrue);
     });
 
     test('carries the owning component id on nested issues', () {
@@ -1014,27 +1002,12 @@ void main() {
   });
 
   group('command source', () {
-    test('an omitted source is a warning: the command runs as the console', () {
-      final List<HuiIssue> issues = validateHuiMenu(_withCommand('/warp shop'));
-      final HuiIssue issue = _matching(
-        issues,
-        HuiSeverity.warning,
-        'no source',
-      ).single;
-      expect(issue.path, 'components[0].data.actions[0].source');
-      expect(issue.componentId, 'a');
-      expect(issue.message, contains('console'));
+    test('an omitted source is silent: the command runs as the player', () {
+      expect(validateHuiMenu(_withCommand('/warp shop')), isEmpty);
     });
 
     test('a blank source reads the same way as an omitted one', () {
-      expect(
-        _has(
-          validateHuiMenu(_withCommand('/a', source: '')),
-          HuiSeverity.warning,
-          'no source',
-        ),
-        isTrue,
-      );
+      expect(validateHuiMenu(_withCommand('/a', source: '')), isEmpty);
     });
 
     test('an explicit server source is silent', () {
@@ -1045,40 +1018,31 @@ void main() {
       expect(validateHuiMenu(_withCommand('/a', source: 'player')), isEmpty);
     });
 
-    test('an unrecognised source is a Gson-version warning, not this one', () {
+    test('an unrecognised source reports the player fallback', () {
       final List<HuiIssue> issues = validateHuiMenu(
         _withCommand('/a', source: 'console'),
       );
+      expect(_has(issues, HuiSeverity.warning, 'not recognized'), isTrue);
       expect(
-        _has(issues, HuiSeverity.warning, 'not one of the two spellings'),
-        isTrue,
+        _matching(issues, HuiSeverity.warning, 'not recognized').single.message,
+        contains('player default'),
       );
-      expect(_has(issues, HuiSeverity.warning, 'no source'), isFalse);
     });
 
-    test('the unrecognised-source warning does not assert console dispatch', () {
-      // HoloUi shades no Gson and registers no enum adapter, so "PLAYER"
-      // resolves to the player on Gson >= 2.10 and to null (console) on 2.8.x.
-      final HuiIssue issue = _matching(
-        validateHuiMenu(_withCommand('/a', source: 'PLAYER')),
-        HuiSeverity.warning,
-        'not one of the two spellings',
-      ).single;
-      expect(issue.message, contains('Gson'));
+    test('canonical imported enum spellings are not flagged', () {
+      for (final String source in <String>['player', 'server']) {
+        expect(validateHuiMenu(_withCommand('/a', source: source)), isEmpty);
+      }
     });
 
     test('an action built in the editor is never flagged', () {
       expect(
-        _has(
-          validateHuiMenu(_withAction(HuiCommandAction('/a', 'server'))),
-          HuiSeverity.warning,
-          'no source',
-        ),
-        isFalse,
+        validateHuiMenu(_withAction(HuiCommandAction('/a', 'server'))),
+        isEmpty,
       );
     });
 
-    test('re-importing the repaired export clears the note', () {
+    test('re-importing the export leaves nothing to report', () {
       final HuiMenu repaired = decodeHuiMenu(encodeHuiMenu(_withCommand('/a')));
       expect(validateHuiMenu(repaired), isEmpty);
     });
@@ -1201,36 +1165,19 @@ void main() {
       }
     });
 
-    test('an absent source produces this warning and not the generic one', () {
-      final List<HuiIssue> issues = validateHuiMenu(
-        _withCommand('/holoui open shop'),
-      );
-      final HuiIssue issue = _matching(
-        issues,
-        HuiSeverity.warning,
-        'only works for a player',
-      ).single;
-      expect(issue.message, contains('no source'));
-      expect(
-        issues.where((HuiIssue i) => i.path.endsWith('.source')),
-        hasLength(1),
-      );
+    test('an absent source is not flagged: it runs as the player', () {
+      expect(validateHuiMenu(_withCommand('/holoui open shop')), isEmpty);
     });
 
-    test('an unrecognised source keeps its Gson warning instead', () {
-      // "PLAYER" may well resolve to the player, so claiming a no-op would be
-      // a lie; only server and absent are certainly console.
+    test('an unrecognised source keeps its fallback warning instead', () {
       final List<HuiIssue> issues = validateHuiMenu(
-        _withCommand('/holoui close', source: 'PLAYER'),
+        _withCommand('/holoui close', source: 'console'),
       );
       expect(
         _has(issues, HuiSeverity.warning, 'only works for a player'),
         isFalse,
       );
-      expect(
-        _has(issues, HuiSeverity.warning, 'not one of the two spellings'),
-        isTrue,
-      );
+      expect(_has(issues, HuiSeverity.warning, 'not recognized'), isTrue);
     });
   });
 

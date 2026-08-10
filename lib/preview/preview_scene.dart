@@ -161,8 +161,8 @@ class PreviewScene {
 
   bool get isEmpty => quads.isEmpty;
 
-  /// First quad with this id. Duplicate ids all render, but only the first is
-  /// addressable (`MenuSession.java:79` uses `putIfAbsent`).
+  /// The quad with this id. Scene construction applies the runtime's first-wins
+  /// component rule, so a duplicated id has only one quad.
   PreviewQuad? byId(String id) {
     for (final PreviewQuad quad in quads) {
       if (quad.id == id) return quad;
@@ -221,7 +221,8 @@ PreviewScene buildPreviewScene({
     canvas == null || canvas.uiScale == uiScale,
     'a supplied canvas scene must have been built at the same uiScale',
   );
-  final CanvasScene resolved = canvas ??
+  final CanvasScene resolved =
+      canvas ??
       buildCanvasScene(
         menu: menu,
         uiScale: uiScale,
@@ -247,8 +248,11 @@ PreviewScene buildPreviewScene({
   PVec3 lift(double x, double y, double z) =>
       PVec3(x, y, z).rotateAroundY(PVec3.zero, angle) + anchorFeet;
 
-  final List<PreviewQuad> quads = <PreviewQuad>[
-    for (final CanvasItem item in resolved.items)
+  final List<PreviewQuad> quads = <PreviewQuad>[];
+  final Set<String> componentIds = <String>{};
+  for (final CanvasItem item in resolved.items) {
+    if (!componentIds.add(item.id)) continue;
+    quads.add(
       PreviewQuad(
         item: item,
         anchor: lift(item.anchor.x, item.anchor.y, item.depth),
@@ -259,7 +263,8 @@ PreviewScene buildPreviewScene({
         right: right,
         highlightModifier: _highlightModifier(item.component.data),
       ),
-  ];
+    );
+  }
 
   return PreviewScene(
     quads: List<PreviewQuad>.unmodifiable(quads),
@@ -307,7 +312,7 @@ List<String> hoveredClickableIds({
 /// Decorations have no highlight of any kind; both clickable types carry a raw,
 /// unclamped modifier.
 double _highlightModifier(HuiComponentData data) => switch (data) {
-      HuiButtonData() => data.highlightModifier,
-      HuiToggleData() => data.highlightModifier,
-      HuiDecorationData() => 0,
-    };
+  HuiButtonData() => data.highlightModifier,
+  HuiToggleData() => data.highlightModifier,
+  HuiDecorationData() => 0,
+};

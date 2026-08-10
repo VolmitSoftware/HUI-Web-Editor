@@ -2,10 +2,10 @@
 ///
 /// This is where the editor teaches the runtime rather than the schema. Every
 /// body is a fact read out of the HoloUi source, and the ones worth the screen
-/// space are the traps: the keys the shipped JSON schema spells wrong, the
-/// defaults that mean silence, and the fields whose value the plugin overwrites
-/// a tick later. The citation is the line that proves it, so a future reader can
-/// check the claim instead of trusting it.
+/// space are the traps: the keys older files spell wrong, the values that mean
+/// silence, and the fields whose value the plugin overwrites a tick later. The
+/// citation is the line that proves it, so a future reader can check the claim
+/// instead of trusting it.
 ///
 /// Keys are the contract the inspector looks docs up by; see
 /// `test/field_docs_test.dart` for the list it must cover.
@@ -49,7 +49,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'the format either - writing one is silently ignored. Renaming the file '
         'renames the menu, and with it the /holoui open argument and the '
         'holoui.open.<id> permission node a player needs to open it.',
-    citation: 'ConfigManager.java:214',
+    citation: 'ConfigManager.java:258-260',
   ),
   'menu.lockPosition': HuiFieldDoc(
     title: 'Lock position',
@@ -90,10 +90,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'menu.closeOnTeleport': HuiFieldDoc(
     title: 'Close on teleport',
     body:
-        'Closes on any teleport - commands, portals, other plugins. The '
-        'shipped JSON schema does not list this key but the plugin reads it. '
-        'Even with it off, a teleport that leaves the menu\'s world closes the '
-        'session anyway.',
+        'Closes on any teleport - commands, portals, other plugins. Even with '
+        'it off, a teleport that leaves the menu\'s world closes the session '
+        'anyway.',
     citation: 'MenuSessionManager.java:151-159',
   ),
 
@@ -102,10 +101,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Component id',
     body:
         'How the Java API addresses this component. Duplicates are not '
-        'rejected: a second component with the same id still renders and still '
-        'clicks, it just never enters the lookup map, so API calls only ever '
-        'reach the first one.',
-    citation: 'MenuSession.java:79',
+        'rejected by the JSON parser, but the plugin keeps only the first '
+        'component with an id. Later duplicates do not render, tick or click.',
+    citation: 'MenuSession.java:76-91',
   ),
   'component.offset': HuiFieldDoc(
     title: 'Component offset',
@@ -180,9 +178,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'A lowercase namespaced key such as diamond_sword or '
         'minecraft:diamond_sword. The uppercase enum spelling DIAMOND_SWORD '
-        'parses to null and then crashes when the icon is built: the value goes '
-        'through a namespaced-key registry lookup, not an enum valueOf.',
-    citation: 'RegistryTypeAdapter.java:25-32',
+        'does not resolve through the namespaced-key registry. HoloUI logs that '
+        'icon failure and draws the missing-icon checkerboard instead.',
+    citation: 'MenuIcon.java:64-83',
   ),
   'icon.item.count': HuiFieldDoc(
     title: 'Count',
@@ -191,27 +189,27 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'way to render an empty stack. Above 1 the plugin spawns a second '
         'display below the item showing a bold white count, which widens what '
         'the icon draws but not its hitbox.',
-    citation: 'ItemMenuIcon.java:60',
+    citation: 'ItemMenuIcon.java:72-105',
   ),
   'icon.item.customModelValue': HuiFieldDoc(
     title: 'Custom model value',
     body:
-        'The key is customModelValue. The shipped JSON schema calls it '
-        'customModelData, which the plugin does not read at all - a file using '
-        'the schema spelling silently gets no custom model. It is written onto '
-        'the item meta unconditionally, including 0, so leaving it at 0 still '
-        'stamps custom model data 0 on the stack.',
-    citation: 'ItemIconData.java:29',
+        'The key is customModelValue. Files written against the old editor or '
+        'the pre-3.0 schema call it customModelData, which the plugin does not '
+        'read at all - importing one moves the value onto the key that works. '
+        'It is written onto the item meta unconditionally, including 0, so '
+        'leaving it at 0 still stamps custom model data 0 on the stack.',
+    citation: 'ItemMenuIcon.java:72-77',
   ),
   'icon.customItem.provider': HuiFieldDoc(
     title: 'Provider',
     body:
         'Which custom-item plugin resolves the id. Blank or auto tries every '
-        'installed provider in registration order and takes the first hit, '
+        'installed provider in activation order and takes the first hit, '
         'which is fine while ids are unique and ambiguous the moment two '
         'plugins define the same one. Naming the provider is faster and leaves '
-        'nothing to chance.',
-    citation: 'ItemProviderRegistry.java:48-59',
+        'nothing to chance. Provider names are trimmed and case-insensitive.',
+    citation: 'ItemProviderRegistry.java:113-130',
   ),
   'icon.customItem.item': HuiFieldDoc(
     title: 'Custom item id',
@@ -221,7 +219,15 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'exactly as written. The editor cannot check it because resolution '
         'happens on the server; an id nothing recognises falls back to the '
         'missing-icon checkerboard rather than failing the menu.',
-    citation: 'ItemProviderRegistry.java:48-59',
+    citation: 'ItemProviderRegistry.java:125-144',
+  ),
+  'icon.customItem.count': HuiFieldDoc(
+    title: 'Custom item count',
+    body:
+        'Stack size applied after the provider returns the item. Values below 1 '
+        'become 1. Values above 1 add the same count label used by vanilla item '
+        'icons; keep the value within the client stack limit.',
+    citation: 'ItemMenuIcon.java:90-105',
   ),
   'icon.textImage.path': HuiFieldDoc(
     title: 'Image path',
@@ -231,25 +237,26 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'text displays of 64 characters each; fully transparent pixels are left '
         'blank. A path that does not resolve renders the magenta and black '
         'checkerboard instead of failing the menu.',
-    citation: 'TextImageMenuIcon.java:43-50',
+    citation: 'TextImageMenuIcon.java:86-110',
   ),
   'icon.animated.source': HuiFieldDoc(
     title: 'Frames',
     body:
-        'The key is source and it holds the list of frame paths. The shipped '
-        'JSON schema calls it path, which the plugin does not read - a file '
-        'using the schema spelling loads with no frames. Frames are '
-        'bottom-padded to the tallest one, so mixed sizes stay anchored at the '
-        'top, and an empty list crashes the menu open.',
-    citation: 'AnimatedImageData.java:24',
+        'The key is source and it holds the list of frame paths. Files written '
+        'against the pre-3.0 schema call it path, which the plugin does not '
+        'read - importing one moves the frames onto the key that works. Frames '
+        'are bottom-padded to the tallest one, so mixed sizes stay anchored at '
+        'the top. An empty list is logged as an icon failure and replaced with '
+        'the missing-icon checkerboard.',
+    citation: 'MenuIcon.java:64-83',
   ),
   'icon.animated.speed': HuiFieldDoc(
     title: 'Speed',
     body:
         'Ticks between frames, not milliseconds. One tick is 50 ms, so 2 is '
-        '100 ms a frame and 20 is one frame a second. There is no per-frame '
-        'duration, no ping-pong and no play-once: the list loops forever at '
-        'this one interval.',
+        '100 ms a frame and 20 is one frame a second. Zero and negative values '
+        'advance every tick, the same as 1. There is no per-frame duration, '
+        'ping-pong or play-once: the list loops forever at this one interval.',
     citation: 'AnimatedTextImageMenuIcon.java:52-60',
   ),
   'icon.text.text': HuiFieldDoc(
@@ -271,18 +278,18 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'The leading slash is optional - the plugin strips it. Commands are '
         'never placeholder-expanded, so %player_name% arrives at the command '
-        'handler literally. A missing command throws on click.',
+        'handler literally. A missing, blank or just-slash command is logged '
+        'and dropped when the menu is compiled.',
     citation: 'CommandMenuAction.java:34-40',
   ),
   'action.command.source': HuiFieldDoc(
     title: 'Run as',
     body:
-        'Only the exact value player runs the command as the clicking player, '
-        'with their permissions. Everything else - an unknown value, and an '
-        'omitted key - dispatches from the console instead, with full '
-        'privileges and no permission check against the player. That is the '
-        'trap: leaving source out is not "as the player", it is "as the '
-        'console". Write server when you mean the console, so the file says so.',
+        'server dispatches from the console, with full privileges and no '
+        'permission check against the player. player and an omitted key run as '
+        'the clicking player. Gson also accepts the Java enum names GLOBAL and '
+        'PLAYER; the editor converts those to server and player on import. Any '
+        'other spelling uses the player default and is reported by validation.',
     citation: 'CommandMenuAction.java:34-40',
   ),
   'action.sound.sound': HuiFieldDoc(
@@ -291,34 +298,33 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'A lowercase namespaced key such as ui.button.click; the uppercase '
         'enum spelling parses to null. It plays at the clicking player\'s own '
         'location and only to them - nobody standing nearby hears it.',
-    citation: 'SoundMenuAction.java:30-32',
+    citation: 'SoundMenuAction.java:28-41',
   ),
   'action.sound.source': HuiFieldDoc(
     title: 'Category',
     body:
         'Which client volume slider applies: master, music, record, weather, '
-        'block, hostile, neutral, player, ambient or voice. It is required, and '
-        'not just for the sound - a missing or unrecognised category throws on '
-        'click, and the plugin catches that per component, so every remaining '
-        'action in the same list is skipped.',
-    citation: 'SoundMenuAction.java:30-32',
+        'block, hostile, neutral, player, ambient or voice. It is optional - a '
+        'missing or unrecognised category plays the sound on master rather '
+        'than failing the click. Gson also accepts uppercase Java enum names '
+        'such as MUSIC; the editor converts them to their lowercase spelling.',
+    citation: 'SoundActionData.java:33-42',
   ),
   'action.sound.volume': HuiFieldDoc(
     title: 'Volume',
     body:
-        'The format default is 0, which is silence - a sound action that '
-        'leaves volume out plays nothing at all, which is why the editor always '
-        'writes it. Above 1 Minecraft extends how far the sound carries rather '
-        'than making it louder.',
-    citation: 'SoundActionData.java:24-25',
+        'Omitted, this is 1, the sound as recorded. Writing 0 is silence, so a '
+        'zero here is a mute the file asked for rather than a default. Above 1 '
+        'Minecraft extends how far the sound carries rather than making it '
+        'louder.',
+    citation: 'SoundActionData.java:37-42',
   ),
   'action.sound.pitch': HuiFieldDoc(
     title: 'Pitch',
     body:
-        'Playback speed, which the client clamps to 0.5 to 2.0. The format '
-        'default is 0, so a pitch left out is clamped up to 0.5: the deepest, '
-        'slowest version of the sound rather than the sound as recorded. Write '
-        '1 for as recorded.',
-    citation: 'SoundActionData.java:24-25',
+        'Playback speed, which the client clamps to 0.5 to 2.0. Omitted, this '
+        'is 1, the sound as recorded. Writing 0 is clamped up to 0.5: the '
+        'deepest, slowest version of the sound.',
+    citation: 'SoundActionData.java:37-42',
   ),
 };

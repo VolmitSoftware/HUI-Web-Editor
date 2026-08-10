@@ -647,23 +647,13 @@ class _PreviewStageState extends State<PreviewStage>
 
   /// The feet to hand the simulation this tick.
   ///
-  /// `MenuSessionManager.java:104-131` range-tests the ATTEMPTED destination
-  /// and does it *before* the `lockPosition` branch — but that branch then
-  /// `return`s, so `followPlayer` never runs on a frozen move. A frozen session
-  /// is therefore tested against a step it never takes and re-centres on
-  /// nothing. `PreviewSimulation.tick` folds both stages into one call, so the
-  /// destination is handed over only when it is the one deciding the outcome.
+  /// `MenuSessionManager.handleMovement` freezes a locked move before range or
+  /// follow handling. `PreviewSimulation.tick` therefore receives the standing
+  /// position for a locked session and the proposed destination otherwise.
   PVec3 _tickFeet(PVec3 standing, PVec3? attempted) {
     if (attempted == null) return standing;
-    if (!_sim.lockPosition || !_sim.isOpen) return attempted;
-    return huiWithinMaxDistance(
-          playerFeet: attempted,
-          center: _sim.center,
-          maxDistance: _sim.maxDistance,
-          menuOffset: _sim.menuOffset,
-        )
-        ? standing
-        : attempted;
+    if (_sim.lockPosition && _sim.isOpen) return standing;
+    return attempted;
   }
 
   /// Everything a frame can observe, in one string. A stable signature is what
@@ -832,9 +822,7 @@ class _PreviewStageState extends State<PreviewStage>
             ..write('c')
             ..write(action.command)
             ..write('/')
-            ..write(action.source)
-            ..write('/')
-            ..write(action.absentKeys.contains('source'));
+            ..write(action.source);
         case HuiSoundAction():
           buffer
             ..write('s')
@@ -970,7 +958,7 @@ class _PreviewStageState extends State<PreviewStage>
   void _fireClick() {
     final List<ActionLogEntry> fired = _sim.click();
     if (fired.isEmpty) return;
-    _pose.log.addAll(huiMarkOmittedCommandSources(fired, _store.menu));
+    _pose.log.addAll(fired);
     // A toggle just swapped its icon; the scene resolves toggle faces through
     // the simulation, so it has to be re-laid out.
     _canvasDirty = true;

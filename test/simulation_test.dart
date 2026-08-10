@@ -1,10 +1,10 @@
 /// The preview's runtime state machine and the action-log model it emits.
 ///
 /// Every expectation here is a HoloUi behaviour a reasonable implementation
-/// would smooth over: overlapping hitboxes all fire, a wrong-case command
-/// source silently becomes a console dispatch, `volume: 0` is the format
-/// default and is silent, and the range test is deliberately loosened by the
-/// menu offset. Each is cited to the Java that produces it.
+/// would smooth over: overlapping hitboxes all fire, command source controls
+/// player-versus-console dispatch, an explicit `volume: 0` is silent, and the
+/// range test is deliberately loosened by the menu offset. Each is cited to the
+/// Java that produces it.
 library;
 
 import 'package:holoui_editor/model/model.dart';
@@ -271,9 +271,7 @@ void main() {
       );
     });
 
-    test('a duplicate id fires once per component, not once per id', () {
-      // MenuSession.java:79 dedupes only the addressing map via putIfAbsent; the
-      // component list — which the click snapshot walks — keeps both.
+    test('a duplicate id keeps only the first component', () {
       final PreviewSimulation sim = _sim(
         _menu(<HuiComponent>[
           _button('twin', actions: <HuiAction>[_command('first')]),
@@ -284,15 +282,8 @@ void main() {
       sim.tick(hoveredClickableIds: <String>{'twin'}, playerFeet: PVec3.zero);
       final List<ActionLogEntry> fired = sim.click();
 
-      expect(fired.length, 2);
-      expect(
-        fired
-            .map(
-              (ActionLogEntry e) => (e.actions.single as LoggedCommand).command,
-            )
-            .toList(),
-        <String>['first', 'second'],
-      );
+      expect(fired.length, 1);
+      expect((fired.single.actions.single as LoggedCommand).command, 'first');
     });
 
     test('decorations never fire even when named as hovered', () {
@@ -424,7 +415,7 @@ void main() {
       expect(sim.toggleStateFor('lamp'), isFalse);
     });
 
-    test('two toggles sharing an id keep independent state', () {
+    test('a later toggle sharing an id is ignored', () {
       final PreviewSimulation sim = _sim(
         _menu(<HuiComponent>[_toggle('twin'), _toggle('twin')]),
         initialToggleState: (String _) => false,
@@ -433,14 +424,8 @@ void main() {
       sim.tick(hoveredClickableIds: <String>{'twin'}, playerFeet: PVec3.zero);
       final List<ActionLogEntry> fired = sim.click();
 
-      expect(fired.length, 2);
-      expect(
-        fired.map((ActionLogEntry e) => e.trigger).toList(),
-        <ActionLogTrigger>[
-          ActionLogTrigger.toggleToTrue,
-          ActionLogTrigger.toggleToTrue,
-        ],
-      );
+      expect(fired.length, 1);
+      expect(fired.single.trigger, ActionLogTrigger.toggleToTrue);
     });
   });
 
@@ -515,7 +500,7 @@ void main() {
       );
     });
 
-    test('a closed session stops locking movement', () {
+    test('lockPosition keeps a proposed move from closing the session', () {
       final PreviewSimulation sim = _sim(
         _menu(
           <HuiComponent>[_button('a')],
@@ -530,13 +515,11 @@ void main() {
         playerFeet: const PVec3(50, 0, 0),
       );
 
-      expect(sim.isOpen, isFalse);
-      expect(sim.movementLocked, isFalse);
+      expect(sim.isOpen, isTrue);
+      expect(sim.movementLocked, isTrue);
     });
 
-    test('lockPosition does not exempt a session from the range test', () {
-      // MenuSessionManager.java:104-127 evaluates isValid(e.getTo()) BEFORE the
-      // freeze rewrite, so a frozen session can still close on range.
+    test('lockPosition freezes before the range test', () {
       final PreviewSimulation sim = _sim(
         _menu(
           <HuiComponent>[_button('a')],
@@ -551,7 +534,8 @@ void main() {
         playerFeet: const PVec3(0, 0, 9),
       );
 
-      expect(result.closedThisTick, PreviewCloseReason.movedOutOfRange);
+      expect(result.closedThisTick, isNull);
+      expect(result.center, PVec3.zero);
     });
   });
 
@@ -729,29 +713,28 @@ void main() {
   });
 
   group('command dispatch resolution', () {
-    test('only the exact token "player" runs as the player', () {
-      // CommandMenuAction.java:34-40 tests `data.source() == PLAYER` and falls
-      // through to the console for everything else. The enum's JSON spelling is
+    test('server and the Java enum name GLOBAL run from the console', () {
+      // CommandMenuAction.java:34-40 dispatches from the console only for
+      // GLOBAL; every other value, including a null from an absent or unknown
+      // spelling, takes the `player` default. The enum's JSON spelling is
       // @SerializedName("player") / @SerializedName("server").
       expect(LoggedCommand(command: 'heal', source: 'player').asPlayer, isTrue);
       expect(
         LoggedCommand(command: 'heal', source: 'server').asPlayer,
         isFalse,
       );
+      expect(LoggedCommand(command: 'heal', source: 'PLAYER').asPlayer, isTrue);
       expect(
-        LoggedCommand(command: 'heal', source: 'PLAYER').asPlayer,
+        LoggedCommand(command: 'heal', source: 'GLOBAL').asPlayer,
         isFalse,
       );
-      expect(
-        LoggedCommand(command: 'heal', source: 'Player').asPlayer,
-        isFalse,
-      );
+      expect(LoggedCommand(command: 'heal', source: 'Player').asPlayer, isTrue);
       expect(
         LoggedCommand(command: 'heal', source: 'nonsense').asPlayer,
-        isFalse,
+        isTrue,
       );
-      expect(LoggedCommand(command: 'heal', source: null).asPlayer, isFalse);
-      expect(LoggedCommand(command: 'heal', source: '').asPlayer, isFalse);
+      expect(LoggedCommand(command: 'heal', source: null).asPlayer, isTrue);
+      expect(LoggedCommand(command: 'heal', source: '').asPlayer, isTrue);
     });
 
     test('asConsole is the exact complement of asPlayer', () {
@@ -770,22 +753,16 @@ void main() {
       }
     });
 
-    test('an absent or blank source reads as omitted', () {
+    test('an absent source keeps an empty raw spelling', () {
+      expect(LoggedCommand(command: 'heal', source: null).rawSource, '');
+      expect(LoggedCommand(command: 'heal', source: '  ').rawSource, '  ');
       expect(
-        LoggedCommand(command: 'heal', source: null).sourceOmitted,
-        isTrue,
-      );
-      expect(
-        LoggedCommand(command: 'heal', source: '  ').sourceOmitted,
-        isTrue,
-      );
-      expect(
-        LoggedCommand(command: 'heal', source: 'server').sourceOmitted,
-        isFalse,
+        LoggedCommand(command: 'heal', source: 'server').rawSource,
+        'server',
       );
     });
 
-    test('only the two format spellings count as recognized', () {
+    test('canonical and Java enum spellings count as recognized', () {
       expect(
         LoggedCommand(command: 'heal', source: 'player').sourceRecognized,
         isTrue,
@@ -796,7 +773,11 @@ void main() {
       );
       expect(
         LoggedCommand(command: 'heal', source: 'PLAYER').sourceRecognized,
-        isFalse,
+        isTrue,
+      );
+      expect(
+        LoggedCommand(command: 'heal', source: 'GLOBAL').sourceRecognized,
+        isTrue,
       );
       expect(
         LoggedCommand(command: 'heal', source: null).sourceRecognized,
@@ -805,13 +786,29 @@ void main() {
     });
 
     test('one leading slash is stripped, exactly as the runtime does', () {
-      // CommandMenuAction.java:35 strips a single leading '/'.
+      // CommandMenuAction trims the declaration and strips one leading '/'.
       expect(LoggedCommand(command: '/heal', source: 'player').command, 'heal');
       expect(
         LoggedCommand(command: '//heal', source: 'player').command,
         '/heal',
       );
       expect(LoggedCommand(command: 'heal', source: 'player').command, 'heal');
+      expect(
+        LoggedCommand(command: '  /heal  ', source: 'player').command,
+        'heal',
+      );
+    });
+
+    test('invalid command actions are dropped from the runtime log', () {
+      final List<LoggedAction> logged = loggedActionsFrom(<HuiAction>[
+        HuiCommandAction('', 'player'),
+        HuiCommandAction('   ', 'player'),
+        HuiCommandAction('/', 'server'),
+        HuiCommandAction('/heal', 'player'),
+      ]);
+
+      expect(logged.length, 1);
+      expect((logged.single as LoggedCommand).command, 'heal');
     });
 
     test('converting a model action preserves the raw source spelling', () {
@@ -820,20 +817,8 @@ void main() {
       );
       expect(cmd.command, 'heal');
       expect(cmd.rawSource, 'PLAYER');
-      expect(cmd.asPlayer, isFalse);
-      expect(cmd.sourceOmitted, isFalse);
-    });
-
-    test('a converter caller may declare the key was absent in the file', () {
-      // The decoder rewrites a blank source to `server`
-      // (hui_actions.dart HuiCommandAction._readSource), so absence has to be
-      // handed in from outside.
-      final LoggedCommand cmd = LoggedCommand.from(
-        HuiCommandAction('heal', 'server'),
-        sourceOmitted: true,
-      );
-      expect(cmd.sourceOmitted, isTrue);
-      expect(cmd.asConsole, isTrue);
+      expect(cmd.asPlayer, isTrue);
+      expect(cmd.sourceRecognized, isTrue);
     });
 
     test('the whole resolution table, end to end through the machine', () {
@@ -857,9 +842,9 @@ void main() {
 
       expect(
         fired.map((LoggedAction a) => (a as LoggedCommand).asPlayer).toList(),
-        <bool>[true, false, false, false, false],
+        <bool>[true, false, true, true, true],
       );
-      expect((fired[4] as LoggedCommand).sourceOmitted, isTrue);
+      expect((fired[4] as LoggedCommand).rawSource, '');
     });
   });
 
@@ -887,8 +872,7 @@ void main() {
       );
     });
 
-    test('a blank category is flagged: a null source NPEs on click', () {
-      // SoundMenuAction.java:31 calls data.source().getCategory().
+    test('a blank logged category is detectable for the master fallback', () {
       expect(
         const LoggedSound(
           key: 's',
@@ -953,11 +937,11 @@ void main() {
       );
       expect(
         describeLoggedAction(LoggedCommand(command: 'heal', source: null)),
-        'run "heal" as console (source omitted)',
+        'run "heal" as player',
       );
       expect(
         describeLoggedAction(LoggedCommand(command: 'heal', source: 'PLAYER')),
-        'run "heal" as console (source "PLAYER" is not player or server)',
+        'run "heal" as player',
       );
     });
 
@@ -993,8 +977,7 @@ void main() {
             pitch: 1,
           ),
         ),
-        'play "ui.button.click" (source missing) volume 1, pitch 1 '
-        '— a null source NPEs on click',
+        'play "ui.button.click" (master) volume 1, pitch 1',
       );
     });
 

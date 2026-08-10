@@ -117,8 +117,6 @@ class PreviewSimulation {
             ? (initialToggleState?.call(clickable.id) ?? true)
             : null,
       );
-      // MenuSession.java:79 builds the id map with putIfAbsent, so a duplicate
-      // id resolves to the first component that claimed it.
       _highlightById.putIfAbsent(
         clickable.id,
         () => clickable.highlightModifier,
@@ -187,12 +185,14 @@ class PreviewSimulation {
 
     _tickCount++;
 
+    if (lockPosition) {
+      _advanceHover(hoveredClickableIds);
+      return _result(playerFeet: openFeet, closedThisTick: null);
+    }
+
     // The runtime hangs the range test off PlayerMoveEvent, which also fires on
-    // look-only changes, so it runs effectively every tick. Two orderings from
-    // MenuSessionManager.java:104-131 are load-bearing and reproduced here: it
-    // is evaluated against the centre the menu STILL has, before followPlayer
-    // re-anchors it, and it runs before the lockPosition freeze — a frozen
-    // session is not exempt.
+    // look-only changes. It is evaluated against the centre the menu still has
+    // before followPlayer re-anchors it.
     if (!huiWithinMaxDistance(
       playerFeet: playerFeet,
       center: _center,
@@ -295,7 +295,9 @@ class PreviewSimulation {
 
   static List<SimClickable> _collectClickables(HuiMenu menu) {
     final List<SimClickable> out = <SimClickable>[];
+    final Set<String> ids = <String>{};
     for (final HuiComponent component in menu.components) {
+      if (!ids.add(component.id)) continue;
       switch (component.data) {
         case HuiButtonData(
           :final double highlightModifier,

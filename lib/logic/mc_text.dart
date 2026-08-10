@@ -1,16 +1,7 @@
 /// Minecraft text parsing for the HoloUI editor preview.
 ///
-/// Mirrors the plugin pipeline in `util/common/TextUtils.java` exactly:
-///
-///   1. `ChatColor.translateAlternateColorCodes('&', text)` turns `&<code>`
-///      into `§<lowercase code>`.
-///   2. every `§<code>` is string-replaced with `<bungeeName>`.
-///   3. the result is handed to MiniMessage.
-///
-/// Step 2 produces two tags MiniMessage does not know: `&n` becomes
-/// `<underline>` (MiniMessage wants `underlined`/`u`) and `&k` becomes
-/// `<magic>` (MiniMessage wants `obfuscated`/`obf`). Both survive as literal
-/// text in game. That bug is reproduced here on purpose, with a warning.
+/// Mirrors the plugin pipeline in `util/common/TextUtils.java`: legacy `&` and
+/// `§` codes are converted to valid MiniMessage tags before parsing.
 ///
 /// Line splitting happens BEFORE parsing (`TextMenuIcon` splits on `\n` and
 /// parses each line on its own), so tag state never carries across lines.
@@ -85,17 +76,18 @@ class McSpan {
   int get color => rgb ?? mcDefaultTextColor;
 
   /// True when any decoration is set.
-  bool get isStyled => bold || italic || underlined || strikethrough || obfuscated;
+  bool get isStyled =>
+      bold || italic || underlined || strikethrough || obfuscated;
 
   McSpan withText(String value) => McSpan(
-        text: value,
-        rgb: rgb,
-        bold: bold,
-        italic: italic,
-        underlined: underlined,
-        strikethrough: strikethrough,
-        obfuscated: obfuscated,
-      );
+    text: value,
+    rgb: rgb,
+    bold: bold,
+    italic: italic,
+    underlined: underlined,
+    strikethrough: strikethrough,
+    obfuscated: obfuscated,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -109,7 +101,15 @@ class McSpan {
       other.obfuscated == obfuscated;
 
   @override
-  int get hashCode => Object.hash(text, rgb, bold, italic, underlined, strikethrough, obfuscated);
+  int get hashCode => Object.hash(
+    text,
+    rgb,
+    bold,
+    italic,
+    underlined,
+    strikethrough,
+    obfuscated,
+  );
 
   @override
   String toString() {
@@ -192,16 +192,7 @@ List<String> _splitLines(String raw) {
   return parts.sublist(0, end);
 }
 
-const int _ampersand = 0x26;
-const int _sectionSign = 0xA7;
-
-/// Bukkit's `ChatColor.ALL_CODES`, as code units.
-final Set<int> _legacyCodeUnits =
-    Set<int>.unmodifiable('0123456789AaBbCcDdEeFfKkLlMmNnOoRrXx'.codeUnits);
-
-/// Bukkit `ChatColor` -> `color.asBungee().getName()`. `n` and `k` produce tags
-/// MiniMessage does not know; that is the in-game bug.
-const Map<String, String> _sectionCodeTags = <String, String>{
+const Map<String, String> _legacyCodeTags = <String, String>{
   '0': 'black',
   '1': 'dark_blue',
   '2': 'dark_green',
@@ -218,47 +209,20 @@ const Map<String, String> _sectionCodeTags = <String, String>{
   'd': 'light_purple',
   'e': 'yellow',
   'f': 'white',
-  'k': 'magic',
+  'k': 'obfuscated',
   'l': 'bold',
   'm': 'strikethrough',
-  'n': 'underline',
+  'n': 'underlined',
   'o': 'italic',
   'r': 'reset',
 };
 
-String _legacyToMiniMessage(String line) => _replaceSectionCodes(_translateAmpersands(line));
-
-/// `ChatColor.translateAlternateColorCodes('&', text)` character for character,
-/// including its inability to escape and its trailing-character blind spot.
-String _translateAmpersands(String line) {
-  if (line.length < 2) {
-    return line;
-  }
-  final List<int> units = List<int>.of(line.codeUnits);
-  for (int i = 0; i < units.length - 1; i++) {
-    if (units[i] != _ampersand) {
-      continue;
-    }
-    final int next = units[i + 1];
-    if (!_legacyCodeUnits.contains(next)) {
-      continue;
-    }
-    units[i] = _sectionSign;
-    units[i + 1] = (next >= 0x41 && next <= 0x5A) ? next + 32 : next;
-  }
-  return String.fromCharCodes(units);
-}
-
-/// Unmapped codes (only `§x` in practice) stay literal, exactly as the
-/// plugin's replacement map leaves them.
-String _replaceSectionCodes(String line) {
-  if (!line.contains('§')) {
-    return line;
-  }
+String _legacyToMiniMessage(String line) {
   final StringBuffer out = StringBuffer();
   for (int i = 0; i < line.length; i++) {
-    if (line.codeUnitAt(i) == _sectionSign && i + 1 < line.length) {
-      final String? tag = _sectionCodeTags[line[i + 1]];
+    final String prefix = line[i];
+    if ((prefix == '&' || prefix == '§') && i + 1 < line.length) {
+      final String? tag = _legacyCodeTags[line[i + 1].toLowerCase()];
       if (tag != null) {
         out.write('<$tag>');
         i++;
@@ -302,7 +266,8 @@ class _TagNode extends _Node {
   final bool closing;
 
   /// Lowercased `name:arg:arg`, the key MiniMessage matches closing tags on.
-  String get key => args.isEmpty ? name : '$name:${args.join(':')}'.toLowerCase();
+  String get key =>
+      args.isEmpty ? name : '$name:${args.join(':')}'.toLowerCase();
 }
 
 final RegExp _tagNamePattern = RegExp(r'^[a-z0-9_#!./-]+$');
@@ -428,14 +393,6 @@ bool _isKnownTag(_TagNode tag) {
 }
 
 String _unknownTagWarning(_TagNode tag) {
-  if (!tag.closing && tag.args.isEmpty && tag.name == 'underline') {
-    return 'Legacy code &n becomes <underline>, which MiniMessage does not recognise - '
-        'it renders as literal text in game. Use <underlined> or <u> instead.';
-  }
-  if (!tag.closing && tag.args.isEmpty && tag.name == 'magic') {
-    return 'Legacy code &k becomes <magic>, which MiniMessage does not recognise - '
-        'it renders as literal text in game. Use <obfuscated> or <obf> instead.';
-  }
   return 'Unknown tag ${tag.raw} renders as literal text.';
 }
 
@@ -464,7 +421,8 @@ int? _parseHex(String value) {
   return int.tryParse(digits, radix: 16);
 }
 
-int? _parseColorArg(String value) => value.startsWith('#') ? _parseHex(value) : mcNamedColor(value);
+int? _parseColorArg(String value) =>
+    value.startsWith('#') ? _parseHex(value) : mcNamedColor(value);
 
 int _lerpRgb(int from, int to, double t) {
   final double clamped = t < 0 ? 0 : (t > 1 ? 1 : t);
@@ -474,7 +432,8 @@ int _lerpRgb(int from, int to, double t) {
   return r << 16 | g << 8 | b;
 }
 
-int _lerpChannel(int from, int to, double t) => (from + t * (to - from)).round();
+int _lerpChannel(int from, int to, double t) =>
+    (from + t * (to - from)).round();
 
 class _GradientRun {
   _GradientRun(this.stops, this.phase);
@@ -584,7 +543,8 @@ class _Style {
       other.obfuscated == obfuscated;
 
   @override
-  int get hashCode => Object.hash(rgb, bold, italic, underlined, strikethrough, obfuscated);
+  int get hashCode =>
+      Object.hash(rgb, bold, italic, underlined, strikethrough, obfuscated);
 }
 
 _Frame? _resolveOpen(_TagNode tag) {
@@ -668,7 +628,11 @@ _Style _resolveStyle(List<_Frame> stack) {
 
 /// Characters a gradient will colour: everything up to its own closing tag, a
 /// `<reset>`, the close of an enclosing tag, or the end of the line.
-int _countGradientChars(List<_Node> nodes, int openIndex, List<String> ancestorKeys) {
+int _countGradientChars(
+  List<_Node> nodes,
+  int openIndex,
+  List<String> ancestorKeys,
+) {
   int depth = 0;
   int count = 0;
   for (int i = openIndex + 1; i < nodes.length; i++) {
@@ -712,15 +676,17 @@ List<McSpan> _render(List<_Node> nodes, Set<String> warnings) {
       return;
     }
     final _Style style = current!;
-    spans.add(McSpan(
-      text: buffer.toString(),
-      rgb: style.rgb,
-      bold: style.bold,
-      italic: style.italic,
-      underlined: style.underlined,
-      strikethrough: style.strikethrough,
-      obfuscated: style.obfuscated,
-    ));
+    spans.add(
+      McSpan(
+        text: buffer.toString(),
+        rgb: style.rgb,
+        bold: style.bold,
+        italic: style.italic,
+        underlined: style.underlined,
+        strikethrough: style.strikethrough,
+        obfuscated: style.obfuscated,
+      ),
+    );
     buffer.clear();
   }
 
@@ -763,7 +729,9 @@ List<McSpan> _render(List<_Node> nodes, Set<String> warnings) {
       continue;
     }
     if (tag.closing) {
-      final int index = stack.lastIndexWhere((_Frame frame) => _tagCloses(tag.key, frame.key));
+      final int index = stack.lastIndexWhere(
+        (_Frame frame) => _tagCloses(tag.key, frame.key),
+      );
       if (index < 0) {
         warnings.add('Closing tag ${tag.raw} has no matching opening tag.');
         continue;

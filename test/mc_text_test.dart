@@ -25,18 +25,31 @@ const Map<String, int> legacyColors = <String, int>{
 
 McSpan onlySpan(String raw) {
   final McTextResult result = parseMcText(raw);
-  expect(result.lines, hasLength(1), reason: 'expected exactly one line for "$raw"');
-  expect(result.lines.first, hasLength(1), reason: 'expected exactly one span for "$raw"');
+  expect(
+    result.lines,
+    hasLength(1),
+    reason: 'expected exactly one line for "$raw"',
+  );
+  expect(
+    result.lines.first,
+    hasLength(1),
+    reason: 'expected exactly one span for "$raw"',
+  );
   return result.lines.first.first;
 }
 
 List<McSpan> onlyLine(String raw) {
   final McTextResult result = parseMcText(raw);
-  expect(result.lines, hasLength(1), reason: 'expected exactly one line for "$raw"');
+  expect(
+    result.lines,
+    hasLength(1),
+    reason: 'expected exactly one line for "$raw"',
+  );
   return result.lines.first;
 }
 
-List<int> colorsOf(List<McSpan> spans) => spans.map((McSpan s) => s.rgb ?? -1).toList();
+List<int> colorsOf(List<McSpan> spans) =>
+    spans.map((McSpan s) => s.rgb ?? -1).toList();
 
 void main() {
   group('legacy colour codes', () {
@@ -49,10 +62,13 @@ void main() {
       });
     });
 
-    test('uppercase legacy codes are lowercased like translateAlternateColorCodes', () {
-      expect(onlySpan('&CX').rgb, 0xFF5555);
-      expect(onlySpan('&AX').rgb, 0x55FF55);
-    });
+    test(
+      'uppercase legacy codes are lowercased like translateAlternateColorCodes',
+      () {
+        expect(onlySpan('&CX').rgb, 0xFF5555);
+        expect(onlySpan('&AX').rgb, 0x55FF55);
+      },
+    );
 
     test('raw section-sign codes are translated too', () {
       expect(onlySpan('${section}cX').rgb, 0xFF5555);
@@ -95,23 +111,19 @@ void main() {
     });
   });
 
-  group('broken legacy codes (&n and &k)', () {
-    test('&n renders the literal text <underline> and warns', () {
+  group('legacy underline and obfuscated codes', () {
+    test('&n enables underline', () {
       final McTextResult result = parseMcText('&nUnder');
-      expect(result.lines.first.single.text, '<underline>Under');
-      expect(result.lines.first.single.underlined, isFalse);
-      expect(result.warnings, hasLength(1));
-      expect(result.warnings.single, contains('&n'));
-      expect(result.warnings.single, contains('<underlined>'));
+      expect(result.lines.first.single.text, 'Under');
+      expect(result.lines.first.single.underlined, isTrue);
+      expect(result.warnings, isEmpty);
     });
 
-    test('&k renders the literal text <magic> and warns', () {
+    test('&k enables obfuscated text', () {
       final McTextResult result = parseMcText('&kSpooky');
-      expect(result.lines.first.single.text, '<magic>Spooky');
-      expect(result.lines.first.single.obfuscated, isFalse);
-      expect(result.warnings, hasLength(1));
-      expect(result.warnings.single, contains('&k'));
-      expect(result.warnings.single, contains('<obfuscated>'));
+      expect(result.lines.first.single.text, 'Spooky');
+      expect(result.lines.first.single.obfuscated, isTrue);
+      expect(result.warnings, isEmpty);
     });
 
     test('a hand-written <underline> tag gets the same treatment', () {
@@ -120,15 +132,18 @@ void main() {
       expect(result.warnings, hasLength(1));
     });
 
-    test('repeated broken codes warn only once', () {
+    test('repeated legacy codes stack their styles', () {
       final McTextResult result = parseMcText('&na&nb&kc');
-      expect(result.warnings, hasLength(2));
+      expect(result.warnings, isEmpty);
+      expect(result.lines.first.last.obfuscated, isTrue);
+      expect(result.lines.first.last.underlined, isTrue);
     });
 
-    test('the literal tag text still takes the surrounding colour', () {
+    test('legacy colour and underline stack', () {
       final McSpan span = onlySpan('&c&nX');
-      expect(span.text, '<underline>X');
+      expect(span.text, 'X');
       expect(span.rgb, 0xFF5555);
+      expect(span.underlined, isTrue);
     });
   });
 
@@ -183,9 +198,9 @@ void main() {
       expect(onlySpan('<obf>X').obfuscated, isTrue);
     });
 
-    test('obfuscated is only reachable through MiniMessage, never &k', () {
+    test('obfuscated is available through MiniMessage and &k', () {
       expect(onlySpan('<obfuscated>hidden').obfuscated, isTrue);
-      expect(parseMcText('&khidden').lines.first.single.obfuscated, isFalse);
+      expect(parseMcText('&khidden').lines.first.single.obfuscated, isTrue);
     });
   });
 
@@ -237,14 +252,24 @@ void main() {
 
   group('gradients', () {
     test('two stops interpolate per character', () {
-      final List<McSpan> spans = onlyLine('<gradient:#000000:#ffffff>abcde</gradient>');
+      final List<McSpan> spans = onlyLine(
+        '<gradient:#000000:#ffffff>abcde</gradient>',
+      );
       expect(spans, hasLength(5));
       expect(spans.map((McSpan s) => s.text).join(), 'abcde');
-      expect(colorsOf(spans), <int>[0x000000, 0x404040, 0x808080, 0xBFBFBF, 0xFFFFFF]);
+      expect(colorsOf(spans), <int>[
+        0x000000,
+        0x404040,
+        0x808080,
+        0xBFBFBF,
+        0xFFFFFF,
+      ]);
     });
 
     test('three stops walk each segment', () {
-      final List<McSpan> spans = onlyLine('<gradient:red:green:blue>abc</gradient>');
+      final List<McSpan> spans = onlyLine(
+        '<gradient:red:green:blue>abc</gradient>',
+      );
       expect(colorsOf(spans), <int>[0xFF5555, 0x55FF55, 0x5555FF]);
     });
 
@@ -253,17 +278,30 @@ void main() {
     });
 
     test('decorations nested in a gradient keep the gradient colour', () {
-      final List<McSpan> spans = onlyLine('<gradient:#000000:#ffffff>ab<bold>cde</bold></gradient>');
+      final List<McSpan> spans = onlyLine(
+        '<gradient:#000000:#ffffff>ab<bold>cde</bold></gradient>',
+      );
       expect(spans, hasLength(5));
-      expect(colorsOf(spans), <int>[0x000000, 0x404040, 0x808080, 0xBFBFBF, 0xFFFFFF]);
+      expect(colorsOf(spans), <int>[
+        0x000000,
+        0x404040,
+        0x808080,
+        0xBFBFBF,
+        0xFFFFFF,
+      ]);
       expect(spans[2].bold, isTrue);
       expect(spans[0].bold, isFalse);
     });
 
-    test('an inner solid colour overrides the gradient but still consumes it', () {
-      final List<McSpan> spans = onlyLine('<gradient:#000000:#ffffff>a<red>b</red>c</gradient>');
-      expect(colorsOf(spans), <int>[0x000000, 0xFF5555, 0xFFFFFF]);
-    });
+    test(
+      'an inner solid colour overrides the gradient but still consumes it',
+      () {
+        final List<McSpan> spans = onlyLine(
+          '<gradient:#000000:#ffffff>a<red>b</red>c</gradient>',
+        );
+        expect(colorsOf(spans), <int>[0x000000, 0xFF5555, 0xFFFFFF]);
+      },
+    );
 
     test('a gradient without stops defaults to white to black', () {
       final List<McSpan> spans = onlyLine('<gradient>ab</gradient>');
@@ -277,13 +315,17 @@ void main() {
     });
 
     test('a trailing numeric phase argument is accepted', () {
-      final List<McSpan> spans = onlyLine('<gradient:#000000:#ffffff:0.5>abcde</gradient>');
+      final List<McSpan> spans = onlyLine(
+        '<gradient:#000000:#ffffff:0.5>abcde</gradient>',
+      );
       expect(spans, hasLength(5));
       expect(spans.first.rgb, isNot(0x000000));
     });
 
     test('text after the gradient closes is unaffected', () {
-      final List<McSpan> spans = onlyLine('<gradient:#000000:#888888>ab</gradient>tail');
+      final List<McSpan> spans = onlyLine(
+        '<gradient:#000000:#888888>ab</gradient>tail',
+      );
       expect(spans, hasLength(3));
       expect(colorsOf(spans), <int>[0x000000, 0x888888, 0xFFFFFF]);
       expect(spans.last.text, 'tail');
@@ -347,7 +389,7 @@ void main() {
 
     test('warnings are collected across every line', () {
       final McTextResult result = parseMcText('&na\n<nope>b');
-      expect(result.warnings, hasLength(2));
+      expect(result.warnings, hasLength(1));
     });
   });
 

@@ -510,7 +510,7 @@ void main() {
       expect(huiIconTypes, contains('customItem'));
     });
 
-    test('reads provider, item and count verbatim', () {
+    test('reads provider, item and count', () {
       final HuiCustomItemIcon icon = iconOf(
         decodeHuiMenu(
           iconJson(
@@ -524,6 +524,21 @@ void main() {
       expect(icon.count, 4);
       expect(icon.type, 'customItem');
     });
+
+    test(
+      'normalizes provider case and surrounding whitespace like runtime',
+      () {
+        final HuiMenu menu = decodeHuiMenu(
+          iconJson(
+            '{"type":"customItem","provider":"  ItemsAdder  ",'
+            '"item":"myitems:ruby"}',
+          ),
+        );
+        final HuiCustomItemIcon icon = iconOf(menu);
+        expect(icon.provider, 'itemsadder');
+        expect(encodeHuiMenu(menu), contains('"provider": "itemsadder"'));
+      },
+    );
 
     test('preserves the case of an id the provider defines uppercase', () {
       final HuiCustomItemIcon icon = iconOf(
@@ -653,7 +668,7 @@ void main() {
     });
   });
 
-  group('stale schema keys', () {
+  group('legacy keys', () {
     test('an animated icon authored with path migrates onto source', () {
       final HuiMenu menu = decodeHuiMenu(
         '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
@@ -670,15 +685,15 @@ void main() {
       expect(out, isNot(contains('"path"')));
     });
 
-    test('a command action without a source imports as server', () {
+    test('a command action without a source imports as player', () {
       final HuiMenu menu = decodeHuiMenu(
         '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
         '"data":{"type":"button","actions":[{"type":"command",'
         '"command":"/x"}]}}]}',
       );
       final HuiButtonData data = menu.components.single.data as HuiButtonData;
-      expect((data.actions.single as HuiCommandAction).source, 'server');
-      expect(encodeHuiMenu(menu), contains('"source": "server"'));
+      expect((data.actions.single as HuiCommandAction).source, 'player');
+      expect(encodeHuiMenu(menu), contains('"source": "player"'));
     });
 
     test('an unknown command source is kept for validation to flag', () {
@@ -692,78 +707,113 @@ void main() {
     });
   });
 
-  group('absent command source', () {
-    HuiCommandAction only(HuiMenu menu) =>
+  group('action defaults on import', () {
+    HuiCommandAction onlyCommand(HuiMenu menu) =>
         (menu.components.single.data as HuiButtonData).actions.single
             as HuiCommandAction;
+
+    HuiSoundAction onlySound(HuiMenu menu) =>
+        (menu.components.single.data as HuiButtonData).actions.single
+            as HuiSoundAction;
 
     String document(String action) =>
         '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
         '"data":{"type":"button","actions":[$action]}}]}';
 
-    test('the absent key is recorded so validation can report it', () {
+    test('an absent or blank command source reads as the player default', () {
       expect(
-        only(
+        onlyCommand(
           decodeHuiMenu(document('{"type":"command","command":"/x"}')),
-        ).absentKeys,
-        <String>{'source'},
+        ).source,
+        'player',
       );
       expect(
-        only(
+        onlyCommand(
           decodeHuiMenu(
             document('{"type":"command","command":"/x","source":""}'),
           ),
-        ).absentKeys,
-        <String>{'source'},
+        ).source,
+        'player',
       );
     });
 
-    test('an explicit source records nothing', () {
+    test('an explicit command source survives verbatim', () {
       for (final String source in <String>['player', 'server', 'console']) {
         expect(
-          only(
+          onlyCommand(
             decodeHuiMenu(
               document('{"type":"command","command":"/x","source":"$source"}'),
             ),
-          ).absentKeys,
-          isEmpty,
+          ).source,
+          source,
           reason: source,
         );
       }
     });
 
-    test('the flag never reaches the export', () {
-      final String absent = encodeHuiMenu(
-        decodeHuiMenu(
-          document(
-            '{"type":"command",'
-            '"command":"/x"}',
+    test('Java command enum names import as canonical JSON spellings', () {
+      expect(
+        onlyCommand(
+          decodeHuiMenu(
+            document('{"type":"command","command":"/x","source":"PLAYER"}'),
           ),
-        ),
+        ).source,
+        'player',
+      );
+      expect(
+        onlyCommand(
+          decodeHuiMenu(
+            document('{"type":"command","command":"/x","source":"GLOBAL"}'),
+          ),
+        ).source,
+        'server',
+      );
+    });
+
+    test('an omitted source exports the same file as an explicit player', () {
+      final String absent = encodeHuiMenu(
+        decodeHuiMenu(document('{"type":"command","command":"/x"}')),
       );
       final String explicit = encodeHuiMenu(
         decodeHuiMenu(
-          document('{"type":"command","command":"/x","source":"server"}'),
+          document('{"type":"command","command":"/x","source":"player"}'),
         ),
       );
       expect(absent, explicit);
-      expect(absent, isNot(contains('absent')));
     });
 
-    test('re-decoding the export clears the flag', () {
-      final HuiMenu repaired = decodeHuiMenu(
-        encodeHuiMenu(
-          decodeHuiMenu(document('{"type":"command","command":"/x"}')),
+    test('absent sound keys read as master, volume 1 and pitch 1', () {
+      final HuiSoundAction sound = onlySound(
+        decodeHuiMenu(document('{"type":"sound","sound":"ui.button.click"}')),
+      );
+      expect(sound.source, 'master');
+      expect(sound.volume, 1);
+      expect(sound.pitch, 1);
+    });
+
+    test('an explicit zero volume or pitch is preserved', () {
+      final HuiSoundAction sound = onlySound(
+        decodeHuiMenu(
+          document(
+            '{"type":"sound","sound":"ui.button.click","source":"music",'
+            '"volume":0,"pitch":0}',
+          ),
         ),
       );
-      expect(only(repaired).absentKeys, isEmpty);
+      expect(sound.source, 'music');
+      expect(sound.volume, 0);
+      expect(sound.pitch, 0);
     });
 
-    test('copy() drops it, exactly like a component offset', () {
-      final HuiCommandAction original = only(
-        decodeHuiMenu(document('{"type":"command","command":"/x"}')),
+    test('Java sound enum names import as canonical lowercase spellings', () {
+      final HuiSoundAction sound = onlySound(
+        decodeHuiMenu(
+          document(
+            '{"type":"sound","sound":"ui.button.click","source":"MUSIC"}',
+          ),
+        ),
       );
-      expect(original.copy().absentKeys, isEmpty);
+      expect(sound.source, 'music');
     });
   });
 
@@ -887,9 +937,6 @@ void main() {
     });
 
     test('the unknown-type message says the whole file fails to load', () {
-      // fontImage and itemStack are declared by MenuIconType but carry a null
-      // data class, so EnumType filters them out of its type map and the file
-      // is rejected exactly like a typo would be.
       for (final String type in <String>['fontImage', 'itemStack']) {
         expect(
           () => decodeHuiMenu(

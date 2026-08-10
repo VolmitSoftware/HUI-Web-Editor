@@ -21,7 +21,6 @@ import 'dart:collection';
 
 import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 
-import '../../model/model.dart';
 import '../../preview/action_log.dart';
 import '../../preview/preview_types.dart';
 
@@ -317,63 +316,3 @@ class PreviewPose extends ChangeNotifier {
 /// The one session. Held at top level so unmounting the preview view — which
 /// the shell does on every switch away — costs nothing but the DOM.
 final PreviewPose huiPreviewPose = PreviewPose();
-
-/// Restores the "source omitted" flag the decoder erases.
-///
-/// `HuiCommandAction._readSource` normalises both an absent and a blank
-/// `source` to `server`, so the model alone cannot tell an omitted key from an
-/// explicit console dispatch — and the distinction matters, because omitting
-/// the key is the format's sharpest edge (`CommandMenuAction.java:34-40`).
-/// T1.4 added `absentKeys` for exactly this; the simulation builds its entries
-/// from `HuiAction`s alone and has no menu to consult, so the re-marking
-/// happens here, where the menu is at hand.
-///
-/// Index matching is guarded: an entry whose action count does not line up with
-/// the component's list is returned untouched rather than mis-labelled.
-List<ActionLogEntry> huiMarkOmittedCommandSources(
-  List<ActionLogEntry> entries,
-  HuiMenu menu,
-) {
-  if (entries.isEmpty) return entries;
-  return <ActionLogEntry>[
-    for (final ActionLogEntry entry in entries)
-      _remark(entry, _sourceActions(entry, menu)),
-  ];
-}
-
-List<HuiAction>? _sourceActions(ActionLogEntry entry, HuiMenu menu) {
-  for (final HuiComponent component in menu.components) {
-    if (component.id != entry.componentId) continue;
-    return switch ((component.data, entry.trigger)) {
-      (HuiButtonData data, ActionLogTrigger.button) => data.actions,
-      (HuiToggleData data, ActionLogTrigger.toggleToTrue) => data.trueActions,
-      (HuiToggleData data, ActionLogTrigger.toggleToFalse) => data.falseActions,
-      _ => null,
-    };
-  }
-  return null;
-}
-
-ActionLogEntry _remark(ActionLogEntry entry, List<HuiAction>? source) {
-  if (source == null || source.length != entry.actions.length) return entry;
-  bool changed = false;
-  final List<LoggedAction> actions = <LoggedAction>[];
-  for (int i = 0; i < source.length; i++) {
-    final HuiAction action = source[i];
-    if (action is HuiCommandAction &&
-        action.absentKeys.contains('source') &&
-        entry.actions[i] is LoggedCommand) {
-      actions.add(LoggedCommand.from(action, sourceOmitted: true));
-      changed = true;
-    } else {
-      actions.add(entry.actions[i]);
-    }
-  }
-  if (!changed) return entry;
-  return ActionLogEntry(
-    tick: entry.tick,
-    componentId: entry.componentId,
-    trigger: entry.trigger,
-    actions: List<LoggedAction>.unmodifiable(actions),
-  );
-}

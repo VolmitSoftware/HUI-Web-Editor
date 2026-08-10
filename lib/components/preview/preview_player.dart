@@ -13,14 +13,10 @@
 ///    normal a hovered icon jumps along toward them, the anchor a bitmap hangs
 ///    off, and the sphere the session closes at when they walk out of it.
 ///
-/// The one runtime rule that lives here rather than in the simulation: the
-/// range check is a `PlayerMoveEvent` handler and it reads the move
-/// DESTINATION (`MenuSessionManager.java:104-131`), *before* the `lockPosition`
-/// branch rewrites that destination back to where the player already was. So
-/// movement is proposed ([PreviewInput.attemptedFeet]) and committed separately
-/// ([PreviewInput.commitFeet]); the stage decides whether the runtime would
-/// have let the step stand. A frozen player is still range-tested on the step
-/// they never take.
+/// Movement is proposed ([PreviewInput.attemptedFeet]) and committed separately
+/// ([PreviewInput.commitFeet]). The stage rejects a locked move before the
+/// simulation's range and follow handling, matching
+/// `MenuSessionManager.handleMovement`.
 ///
 /// Nothing here schedules a frame of its own. Every handler ends in
 /// [PreviewInputHost.onInputChanged], and a held movement key keeps the stage's

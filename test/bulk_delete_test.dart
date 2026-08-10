@@ -1,10 +1,9 @@
 /// Bulk delete on [EditorStore].
 ///
-/// The HoloUi format permits two components with the same id — `MenuSession`
-/// dedupes only its addressing map, and the component list `snapshotClick`
-/// walks keeps both (`MenuSession.java:79`). Deletion therefore has to be
-/// index-based: the selection is a set, so it can name a duplicated id only
-/// once, and removing every namesake takes rows the user never selected.
+/// The HoloUi format can contain two components with the same id, although the
+/// runtime keeps only the first. Editor deletion still has to be index-based:
+/// the selection is a set, so it can name a duplicated id only once, and
+/// removing every namesake takes rows the user never selected.
 library;
 
 import 'package:holoui_editor/config/defaults.dart';
@@ -25,13 +24,13 @@ class _FakeStorage {
 }
 
 EditorStore _store() => EditorStore(
-      workspace: Workspace(
-        read: _FakeStorage().read,
-        write: _FakeStorage().write,
-        autoLoad: true,
-      ),
-      autosaveDelay: Duration.zero,
-    );
+  workspace: Workspace(
+    read: _FakeStorage().read,
+    write: _FakeStorage().write,
+    autoLoad: true,
+  ),
+  autosaveDelay: Duration.zero,
+);
 
 /// Ids as authored, in document order.
 List<String> _ids(EditorStore store) =>
@@ -48,7 +47,11 @@ EditorStore _seeded(List<String> ids) {
       ..clear()
       ..addAll(<HuiComponent>[
         for (final String id in ids)
-          HuiComponent(id, Vec3(0, 0, 0), createDefaultComponentData('decoration')),
+          HuiComponent(
+            id,
+            Vec3(0, 0, 0),
+            createDefaultComponentData('decoration'),
+          ),
       ]);
   });
   return store;

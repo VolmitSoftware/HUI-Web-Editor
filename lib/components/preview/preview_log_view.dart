@@ -126,275 +126,232 @@ class _PreviewLogViewState extends State<PreviewLogView> {
   // --- chrome ----------------------------------------------------------------
 
   Widget _splitter() => dom.div(
-        id: _splitterId,
-        classes: 'hui-preview-log-splitter',
-        attributes: <String, String>{
-          'role': 'separator',
-          'aria-orientation': 'horizontal',
-          'aria-label': 'Resize the action log',
-          'aria-valuemin': huiPreviewLogMinHeight.round().toString(),
-          'aria-valuenow': _heightPx.round().toString(),
-          'aria-valuetext': '${_heightPx.round()} pixels tall',
-          'tabindex': '0',
-        },
-        const <Widget>[
-          dom.span(
-            classes: 'hui-preview-log-grip',
-            attributes: <String, String>{'aria-hidden': 'true'},
-            <Widget>[],
-          ),
-        ],
-      );
+    id: _splitterId,
+    classes: 'hui-preview-log-splitter',
+    attributes: <String, String>{
+      'role': 'separator',
+      'aria-orientation': 'horizontal',
+      'aria-label': 'Resize the action log',
+      'aria-valuemin': huiPreviewLogMinHeight.round().toString(),
+      'aria-valuenow': _heightPx.round().toString(),
+      'aria-valuetext': '${_heightPx.round()} pixels tall',
+      'tabindex': '0',
+    },
+    const <Widget>[
+      dom.span(
+        classes: 'hui-preview-log-grip',
+        attributes: <String, String>{'aria-hidden': 'true'},
+        <Widget>[],
+      ),
+    ],
+  );
 
-  Widget _head() => dom.div(
-        classes: 'hui-preview-log-head',
-        <Widget>[
-          const dom.span(
-            classes: 'hui-eyebrow',
-            <Widget>[Component.text('action log')],
+  Widget _head() => dom.div(classes: 'hui-preview-log-head', <Widget>[
+    const dom.span(classes: 'hui-eyebrow', <Widget>[
+      Component.text('action log'),
+    ]),
+    dom.span(classes: 'hui-preview-log-count', <Widget>[
+      Component.text(_countText()),
+    ]),
+    dom.div(classes: 'hui-preview-log-headtools', <Widget>[
+      if (!_pinned && _log.isNotEmpty)
+        ArcaneTooltip(
+          text: 'Jump back to the newest entry and follow it again',
+          // Opens leftward: these two sit hard against the dock's right
+          // edge, and a top-positioned bubble hangs past it — clipped by
+          // `.hui-preview`'s overflow, and it widens the dock's scroll
+          // width on the way out.
+          position: FloatingPosition.left,
+          child: Button(
+            icon: ArcaneIcon.arrowDownToLine(size: IconSize.sm),
+            label: 'Newest',
+            variant: ButtonVariant.ghost,
+            size: ButtonSize.sm,
+            type: ButtonType.button,
+            attributes: const <String, String>{
+              'aria-label': 'Scroll to the newest entry',
+            },
+            onPressed: () {
+              _scrollToTail();
+              setState(() => _pinned = true);
+            },
           ),
-          dom.span(
-            classes: 'hui-preview-log-count',
-            <Widget>[Component.text(_countText())],
-          ),
-          dom.div(classes: 'hui-preview-log-headtools', <Widget>[
-            if (!_pinned && _log.isNotEmpty)
-              ArcaneTooltip(
-                text: 'Jump back to the newest entry and follow it again',
-                // Opens leftward: these two sit hard against the dock's right
-                // edge, and a top-positioned bubble hangs past it — clipped by
-                // `.hui-preview`'s overflow, and it widens the dock's scroll
-                // width on the way out.
-                position: FloatingPosition.left,
-                child: Button(
-                  icon: ArcaneIcon.arrowDownToLine(size: IconSize.sm),
-                  label: 'Newest',
-                  variant: ButtonVariant.ghost,
-                  size: ButtonSize.sm,
-                  type: ButtonType.button,
-                  attributes: const <String, String>{
-                    'aria-label': 'Scroll to the newest entry',
-                  },
-                  onPressed: () {
-                    _scrollToTail();
-                    setState(() => _pinned = true);
-                  },
-                ),
-              ),
-            ArcaneTooltip(
-              text: 'Close the log dock',
-              position: FloatingPosition.left,
-              child: Button(
-                icon: ArcaneIcon.x(size: IconSize.sm),
-                variant: ButtonVariant.ghost,
-                size: ButtonSize.iconSm,
-                type: ButtonType.button,
-                attributes: const <String, String>{
-                  'aria-label': 'Close the action log',
-                },
-                onPressed: () => _store.previewLogOpen = false,
-              ),
-            ),
-          ]),
-        ],
-      );
+        ),
+      ArcaneTooltip(
+        text: 'Close the log dock',
+        position: FloatingPosition.left,
+        child: Button(
+          icon: ArcaneIcon.x(size: IconSize.sm),
+          variant: ButtonVariant.ghost,
+          size: ButtonSize.iconSm,
+          type: ButtonType.button,
+          attributes: const <String, String>{
+            'aria-label': 'Close the action log',
+          },
+          onPressed: () => _store.previewLogOpen = false,
+        ),
+      ),
+    ]),
+  ]);
 
   String _countText() {
     if (_log.isEmpty) return 'nothing fired yet';
-    final String dropped =
-        _log.droppedCount > 0 ? ' · ${_log.droppedCount} dropped' : '';
+    final String dropped = _log.droppedCount > 0
+        ? ' · ${_log.droppedCount} dropped'
+        : '';
     return '${_log.length} ${_log.length == 1 ? 'entry' : 'entries'}$dropped';
   }
 
-  Widget _empty() => const dom.p(
-        classes: 'hui-preview-log-empty',
-        <Widget>[
-          Component.text('Left-click a component in the preview. Every hovered '
-              'hitbox fires, so overlapping components all appear here, in '
-              'declaration order.'),
-        ],
-      );
+  Widget _empty() => const dom.p(classes: 'hui-preview-log-empty', <Widget>[
+    Component.text(
+      'Left-click a component in the preview. Every hovered '
+      'hitbox fires, so overlapping components all appear here, in '
+      'declaration order.',
+    ),
+  ]);
 
   // --- rows ------------------------------------------------------------------
 
   Widget _rows(List<List<ActionLogEntry>> groups) => dom.div(
-        id: _rowsId,
-        classes: 'hui-preview-log-rows',
-        attributes: const <String, String>{'tabindex': '0'},
-        <Widget>[
-          for (int i = 0; i < groups.length; i++)
-            _group(groups[i], newest: i == groups.length - 1),
-        ],
-      );
+    id: _rowsId,
+    classes: 'hui-preview-log-rows',
+    attributes: const <String, String>{'tabindex': '0'},
+    <Widget>[
+      for (int i = 0; i < groups.length; i++)
+        _group(groups[i], newest: i == groups.length - 1),
+    ],
+  );
 
   /// One click. The header is the teaching surface: N components firing from a
   /// single left click is the overlap lesson, stated every time it happens.
-  Widget _group(List<ActionLogEntry> entries, {required bool newest}) => dom.div(
+  Widget _group(List<ActionLogEntry> entries, {required bool newest}) =>
+      dom.div(
         // Only the newest group carries the entrance, so an append animates the
         // arrival and leaves everything above it alone.
-        classes: 'hui-preview-log-group${newest ? ' is-newest hui-anim-in' : ''}',
+        classes:
+            'hui-preview-log-group${newest ? ' is-newest hui-anim-in' : ''}',
         <Widget>[
           dom.div(classes: 'hui-preview-log-grouphead', <Widget>[
-            dom.span(
-              classes: 'hui-preview-log-tick',
-              <Widget>[Component.text('#${entries.first.tick}')],
-            ),
+            dom.span(classes: 'hui-preview-log-tick', <Widget>[
+              Component.text('#${entries.first.tick}'),
+            ]),
             if (entries.length > 1)
-              dom.span(
-                classes: 'hui-preview-log-groupnote',
-                <Widget>[
-                  Component.text('${entries.length} components fired on one '
-                      'click, in declaration order'),
-                ],
-              ),
+              dom.span(classes: 'hui-preview-log-groupnote', <Widget>[
+                Component.text(
+                  '${entries.length} components fired on one '
+                  'click, in declaration order',
+                ),
+              ]),
           ]),
           for (final ActionLogEntry entry in entries) _row(entry),
         ],
       );
 
-  Widget _row(ActionLogEntry entry) => dom.div(
-        classes: 'hui-preview-log-row',
-        <Widget>[
-          dom.div(classes: 'hui-preview-log-meta', <Widget>[
-            dom.span(
-              classes: 'hui-preview-log-id',
-              <Widget>[Component.text(entry.componentId)],
-            ),
-            dom.span(
-              classes: 'hui-preview-log-trigger',
-              <Widget>[Component.text(entry.trigger.label)],
-            ),
+  Widget _row(ActionLogEntry entry) =>
+      dom.div(classes: 'hui-preview-log-row', <Widget>[
+        dom.div(classes: 'hui-preview-log-meta', <Widget>[
+          dom.span(classes: 'hui-preview-log-id', <Widget>[
+            Component.text(entry.componentId),
           ]),
-          if (entry.actions.isEmpty)
-            const dom.div(
-              classes: 'hui-preview-log-action is-empty',
-              <Widget>[Component.text('no actions — it still fired')],
-            )
-          else
-            for (final LoggedAction action in entry.actions) _action(action),
-        ],
-      );
+          dom.span(classes: 'hui-preview-log-trigger', <Widget>[
+            Component.text(entry.trigger.label),
+          ]),
+        ]),
+        if (entry.actions.isEmpty)
+          const dom.div(classes: 'hui-preview-log-action is-empty', <Widget>[
+            Component.text('no actions — it still fired'),
+          ])
+        else
+          for (final LoggedAction action in entry.actions) _action(action),
+      ]);
 
   Widget _action(LoggedAction action) => switch (action) {
-        LoggedCommand() => _command(action),
-        LoggedSound() => _sound(action),
-      };
+    LoggedCommand() => _command(action),
+    LoggedSound() => _sound(action),
+  };
 
   /// A command, with its dispatch spelled out.
   ///
-  /// `as console` is emphasised because it is the format's sharpest edge: only
-  /// the exact token `player` reaches the player, and everything else —
-  /// including an absent key — falls down the console branch
-  /// (`CommandMenuAction.java:34-40`).
+  /// `as console` is emphasised because it is the dispatch that ignores the
+  /// clicking player's permissions.
   Widget _command(LoggedCommand command) {
-    final bool omitted = command.sourceOmitted;
-    // An unrecognized spelling is NOT an assertion of console: from Gson 2.10
-    // the enum adapter falls back to matching the constant's own toString, so
-    // "PLAYER" resolves and runs as the player, while 2.8.x resolves it to null
-    // and runs from the console. The chip says so rather than picking a side.
-    final bool uncertain = !omitted && !command.asPlayer &&
-        !command.sourceRecognized;
+    final bool unknown =
+        command.rawSource.isNotEmpty && !command.sourceRecognized;
     return dom.div(
-      classes: 'hui-preview-log-action is-command'
+      classes:
+          'hui-preview-log-action is-command'
           '${command.asConsole ? ' is-console' : ''}',
       <Widget>[
-        const dom.span(
-          classes: 'hui-preview-log-verb',
-          <Widget>[Component.text('run')],
-        ),
-        dom.code(
-          classes: 'hui-preview-log-cmd',
-          <Widget>[Component.text('/${command.command}')],
-        ),
+        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text('run'),
+        ]),
+        dom.code(classes: 'hui-preview-log-cmd', <Widget>[
+          Component.text('/${command.command}'),
+        ]),
         dom.span(
-          classes: 'hui-preview-log-dispatch'
+          classes:
+              'hui-preview-log-dispatch'
               '${command.asPlayer ? ' is-player' : ' is-console'}'
-              '${uncertain ? ' is-uncertain' : ''}',
+              '${unknown ? ' is-uncertain' : ''}',
           attributes: <String, String>{
             'title': command.asPlayer
-                ? 'source is the exact token "player", the only spelling that '
-                    'dispatches as the player.'
+                ? 'Anything but the exact token "server" dispatches as the '
+                      'clicking player, with their own permissions.'
                 : 'Dispatched from the server console, so the player\'s own '
-                    'permissions never apply.',
+                      'permissions never apply.',
           },
           <Widget>[
-            Component.text(
-              command.asPlayer
-                  ? 'as player'
-                  : uncertain
-                      ? 'as console?'
-                      : 'as console',
-            ),
+            Component.text(command.asPlayer ? 'as player' : 'as console'),
           ],
         ),
-        if (omitted)
-          _badge(
-            'source omitted',
-            'is-omitted',
-            'The source key is absent from the file. The decoder normalises '
-                'that to "server", so nothing downstream can tell it from an '
-                'explicit console dispatch — but the file did not say it. An '
-                'absent source is reliably console on every Gson version.',
-          ),
-        if (uncertain)
+        if (unknown)
           _badge(
             'source "${command.rawSource}"',
             'is-unknown',
-            'Not a spelling the format defines. Where it dispatches depends on '
-                'the server\'s Gson version: from 2.10 the enum adapter falls '
-                'back to matching the constant\'s toString, so "PLAYER" '
-                'resolves and runs as the player; on 2.8.x it resolves to null '
-                'and runs from the console.',
+            'Not a spelling HoloUI defines. It resolves to null and the command '
+                'uses the player default.',
           ),
       ],
     );
   }
 
-  Widget _sound(LoggedSound sound) => dom.div(
-        classes: 'hui-preview-log-action is-sound',
-        <Widget>[
-          const dom.span(
-            classes: 'hui-preview-log-verb',
-            <Widget>[Component.text('play')],
-          ),
-          dom.code(
-            classes: 'hui-preview-log-cmd',
-            <Widget>[Component.text(sound.key)],
-          ),
-          dom.span(
-            classes: 'hui-preview-log-soundmeta',
-            <Widget>[
-              Component.text(sound.categoryMissing
-                  ? 'volume ${_number(sound.volume)} · '
+  Widget _sound(LoggedSound sound) =>
+      dom.div(classes: 'hui-preview-log-action is-sound', <Widget>[
+        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text('play'),
+        ]),
+        dom.code(classes: 'hui-preview-log-cmd', <Widget>[
+          Component.text(sound.key),
+        ]),
+        dom.span(classes: 'hui-preview-log-soundmeta', <Widget>[
+          Component.text(
+            sound.categoryMissing
+                ? 'master · volume ${_number(sound.volume)} · '
                       'pitch ${_number(sound.pitch)}'
-                  : '${sound.category} · volume ${_number(sound.volume)} · '
-                      'pitch ${_number(sound.pitch)}'),
-            ],
+                : '${sound.category} · volume ${_number(sound.volume)} · '
+                      'pitch ${_number(sound.pitch)}',
           ),
-          if (sound.inaudible)
-            _badge(
-              'inaudible',
-              'is-inaudible',
-              'volume is a Java float with no default in the data class, so an '
-                  'omitted volume is 0 and the click is silent.',
-            ),
-          if (sound.categoryMissing)
-            _badge(
-              'source missing',
-              'is-error',
-              'SoundMenuAction.java:31 reads data.source() with no guard, so '
-                  'the click throws. MenuSessionManager catches per component, '
-                  'which means every action after this one in the list is '
-                  'skipped and a toggle never reaches its state flip.',
-            ),
-        ],
-      );
+        ]),
+        if (sound.inaudible)
+          _badge(
+            'inaudible',
+            'is-inaudible',
+            'An omitted volume defaults to 1, so a volume of 0 is one the '
+                'file wrote itself, and the click is silent.',
+          ),
+        if (sound.categoryMissing)
+          _badge(
+            'source defaulted',
+            'is-omitted',
+            'No category on the action, so the plugin plays it on master.',
+          ),
+      ]);
 
   Widget _badge(String text, String modifier, String title) => dom.span(
-        classes: 'hui-preview-log-badge $modifier',
-        attributes: <String, String>{'title': title},
-        <Widget>[Component.text(text)],
-      );
+    classes: 'hui-preview-log-badge $modifier',
+    attributes: <String, String>{'title': title},
+    <Widget>[Component.text(text)],
+  );
 
   /// Consecutive entries sharing a tick came from one click.
   static List<List<ActionLogEntry>> _groups(List<ActionLogEntry> entries) {
@@ -412,8 +369,8 @@ class _PreviewLogViewState extends State<PreviewLogView> {
   /// Whole values read as whole numbers; `1.0` in a log row is noise.
   static String _number(double value) =>
       value == value.roundToDouble() && value.isFinite
-          ? value.toStringAsFixed(0)
-          : value.toString();
+      ? value.toStringAsFixed(0)
+      : value.toString();
 
   // --- DOM wiring ------------------------------------------------------------
 
@@ -490,118 +447,95 @@ class _PreviewLogViewState extends State<PreviewLogView> {
       }
     }
 
-    bind(
-      splitter,
-      'pointerdown',
-      (web.Event event) {
-        if (!event.isA<web.PointerEvent>()) return;
-        final web.PointerEvent typed = event as web.PointerEvent;
-        if (typed.button != 0) return;
-        event.preventDefault();
-        dockBottom = dock.getBoundingClientRect().bottom;
-        maxHeight = _maxHeight(dock);
-        pointer = typed.pointerId;
-        try {
-          splitter.setPointerCapture(pointer);
-        } catch (_) {}
-        try {
-          web.document.body?.classList.add('hui-resizing-row');
-        } catch (_) {}
-        splitter.focus();
-      },
-      passive: false,
-    );
+    bind(splitter, 'pointerdown', (web.Event event) {
+      if (!event.isA<web.PointerEvent>()) return;
+      final web.PointerEvent typed = event as web.PointerEvent;
+      if (typed.button != 0) return;
+      event.preventDefault();
+      dockBottom = dock.getBoundingClientRect().bottom;
+      maxHeight = _maxHeight(dock);
+      pointer = typed.pointerId;
+      try {
+        splitter.setPointerCapture(pointer);
+      } catch (_) {}
+      try {
+        web.document.body?.classList.add('hui-resizing-row');
+      } catch (_) {}
+      splitter.focus();
+    }, passive: false);
 
-    bind(
-      splitter,
-      'pointermove',
-      (web.Event event) {
-        if (pointer < 0 || !event.isA<web.PointerEvent>()) return;
-        event.preventDefault();
-        // The dock grows upward, so the height is whatever is left between the
-        // pointer and the bottom edge the dock is pinned to.
-        _writeHeight(
-          _clamp(dockBottom - _jsDouble(event as JSObject, 'clientY'), maxHeight),
-        );
-      },
-      passive: false,
-    );
+    bind(splitter, 'pointermove', (web.Event event) {
+      if (pointer < 0 || !event.isA<web.PointerEvent>()) return;
+      event.preventDefault();
+      // The dock grows upward, so the height is whatever is left between the
+      // pointer and the bottom edge the dock is pinned to.
+      _writeHeight(
+        _clamp(dockBottom - _jsDouble(event as JSObject, 'clientY'), maxHeight),
+      );
+    }, passive: false);
 
     bind(splitter, 'pointerup', (web.Event _) => endDrag());
     bind(splitter, 'pointercancel', (web.Event _) => endDrag());
 
-    bind(
-      splitter,
-      'dblclick',
-      (web.Event event) {
-        event.preventDefault();
-        _resetHeight();
-      },
-      passive: false,
-    );
+    bind(splitter, 'dblclick', (web.Event event) {
+      event.preventDefault();
+      _resetHeight();
+    }, passive: false);
 
-    bind(
-      splitter,
-      'keydown',
-      (web.Event event) {
-        if (!event.isA<web.KeyboardEvent>()) return;
-        final web.KeyboardEvent typed = event as web.KeyboardEvent;
-        const List<String> handled = <String>[
-          'ArrowUp',
-          'ArrowDown',
-          'Home',
-          'End',
-        ];
-        if (!handled.contains(typed.key)) return;
-        event.preventDefault();
-        // The shell's document-level binder turns arrows into a component
-        // nudge; a focused separator has to keep them.
-        event.stopPropagation();
-        final double step = typed.shiftKey
-            ? huiPreviewLogKeyStepCoarse
-            : huiPreviewLogKeyStep;
-        final double max = _maxHeight(dock);
-        final double current = _number0(dock, 'offsetHeight');
-        final double next = switch (typed.key) {
-          'ArrowUp' => current + step,
-          'ArrowDown' => current - step,
-          'Home' => huiPreviewLogMinHeight,
-          _ => max,
-        };
-        final double clamped = _clamp(next, max);
-        _writeHeight(clamped);
-        if (clamped != _heightPx) setState(() => _heightPx = clamped);
-      },
-      passive: false,
-    );
+    bind(splitter, 'keydown', (web.Event event) {
+      if (!event.isA<web.KeyboardEvent>()) return;
+      final web.KeyboardEvent typed = event as web.KeyboardEvent;
+      const List<String> handled = <String>[
+        'ArrowUp',
+        'ArrowDown',
+        'Home',
+        'End',
+      ];
+      if (!handled.contains(typed.key)) return;
+      event.preventDefault();
+      // The shell's document-level binder turns arrows into a component
+      // nudge; a focused separator has to keep them.
+      event.stopPropagation();
+      final double step = typed.shiftKey
+          ? huiPreviewLogKeyStepCoarse
+          : huiPreviewLogKeyStep;
+      final double max = _maxHeight(dock);
+      final double current = _number0(dock, 'offsetHeight');
+      final double next = switch (typed.key) {
+        'ArrowUp' => current + step,
+        'ArrowDown' => current - step,
+        'Home' => huiPreviewLogMinHeight,
+        _ => max,
+      };
+      final double clamped = _clamp(next, max);
+      _writeHeight(clamped);
+      if (clamped != _heightPx) setState(() => _heightPx = clamped);
+    }, passive: false);
 
     // Captured on the dock, not bound to the row scroller: `scroll` does not
     // bubble, but it still runs the capture phase — and the row container is
     // recreated whenever the log crosses between its empty state and its rows,
     // so a listener bound directly to it would silently go stale.
-    bind(
-      dock,
-      'scroll',
-      (web.Event event) {
-        final web.HTMLElement? rows = _element(_rowsId);
-        if (rows == null) return;
-        final double distance = _number0(rows, 'scrollHeight') -
-            _number0(rows, 'scrollTop') -
-            _number0(rows, 'clientHeight');
-        final bool pinned = distance <= huiPreviewLogPinSlack;
-        if (pinned == _pinned) return;
-        setState(() => _pinned = pinned);
-      },
-      capture: true,
-    );
+    bind(dock, 'scroll', (web.Event event) {
+      final web.HTMLElement? rows = _element(_rowsId);
+      if (rows == null) return;
+      final double distance =
+          _number0(rows, 'scrollHeight') -
+          _number0(rows, 'scrollTop') -
+          _number0(rows, 'clientHeight');
+      final bool pinned = distance <= huiPreviewLogPinSlack;
+      if (pinned == _pinned) return;
+      setState(() => _pinned = pinned);
+    }, capture: true);
 
     return () {
       for (final (
             web.EventTarget target,
             String type,
             JSFunction listener,
-            bool capture
-          ) in bound) {
+            bool capture,
+          )
+          in bound) {
         target.removeEventListener(
           type,
           listener,
@@ -637,17 +571,20 @@ class _PreviewLogViewState extends State<PreviewLogView> {
 
   double _clamp(double raw, double max) {
     if (!raw.isFinite) return huiPreviewLogDefaultHeight;
-    return math.min(math.max(raw, huiPreviewLogMinHeight),
-        math.max(max, huiPreviewLogMinHeight));
+    return math.min(
+      math.max(raw, huiPreviewLogMinHeight),
+      math.max(max, huiPreviewLogMinHeight),
+    );
   }
 
   /// An inline custom property on `<html>`: Jaspr renders nothing above `<body>`
   /// so no rebuild can stomp it, which is what lets a drag skip `setState`.
   void _writeHeight(double px) {
     try {
-      (web.document.documentElement as web.HTMLElement?)
-          ?.style
-          .setProperty(huiPreviewLogHeightVar, '${px.round()}px');
+      (web.document.documentElement as web.HTMLElement?)?.style.setProperty(
+        huiPreviewLogHeightVar,
+        '${px.round()}px',
+      );
     } catch (_) {}
     try {
       _element(_splitterId)
@@ -658,9 +595,9 @@ class _PreviewLogViewState extends State<PreviewLogView> {
 
   void _resetHeight() {
     try {
-      (web.document.documentElement as web.HTMLElement?)
-          ?.style
-          .removeProperty(huiPreviewLogHeightVar);
+      (web.document.documentElement as web.HTMLElement?)?.style.removeProperty(
+        huiPreviewLogHeightVar,
+      );
     } catch (_) {}
     if (_heightPx != huiPreviewLogDefaultHeight) {
       setState(() => _heightPx = huiPreviewLogDefaultHeight);

@@ -63,10 +63,10 @@ String huiReadTypeTag(Map<String, dynamic> raw, String path) {
 
 /// `EnumType.read` throws `JsonParseException` and `ConfigManager.loadConfig`
 /// catches it around the whole document, so one bad discriminator costs the
-/// entire menu — worth saying out loud. `fontImage` and `itemStack` land here
-/// too: `MenuIconType` declares them with a null data class, and `EnumType`
-/// filters null-typed constants out of its map before reading
-/// (`MenuIconType.java:31-32`, `EnumType.java:38-39,82-85`).
+/// entire menu — worth saying out loud. `itemStack` lands here too:
+/// `MenuIconType` declares it with a null data class, and `EnumType` filters
+/// null-typed constants out of its map before reading (`MenuIconType.java:31`,
+/// `EnumType.java:38-39,82-85`).
 Never huiUnknownType(String type, String path) => throw HuiFormatException(
   'Unknown type: $type. HoloUI rejects the whole menu file when a '
   'component, icon or action type is not one it knows',

@@ -33,25 +33,25 @@ enum IconSlot { icon, trueIcon, falseIcon }
 
 extension IconSlotNames on IconSlot {
   String get jsonKey => switch (this) {
-        IconSlot.icon => 'icon',
-        IconSlot.trueIcon => 'trueIcon',
-        IconSlot.falseIcon => 'falseIcon',
-      };
+    IconSlot.icon => 'icon',
+    IconSlot.trueIcon => 'trueIcon',
+    IconSlot.falseIcon => 'falseIcon',
+  };
 
   String get label => switch (this) {
-        IconSlot.icon => 'Icon',
-        IconSlot.trueIcon => 'True icon',
-        IconSlot.falseIcon => 'False icon',
-      };
+    IconSlot.icon => 'Icon',
+    IconSlot.trueIcon => 'True icon',
+    IconSlot.falseIcon => 'False icon',
+  };
 }
 
 /// Reads the icon a slot currently holds.
 HuiIcon? readIconSlot(HuiComponentData data, IconSlot slot) => switch (data) {
-      final HuiButtonData button => button.icon,
-      final HuiDecorationData decoration => decoration.icon,
-      final HuiToggleData toggle =>
-        slot == IconSlot.falseIcon ? toggle.falseIcon : toggle.trueIcon,
-    };
+  final HuiButtonData button => button.icon,
+  final HuiDecorationData decoration => decoration.icon,
+  final HuiToggleData toggle =>
+    slot == IconSlot.falseIcon ? toggle.falseIcon : toggle.trueIcon,
+};
 
 /// Writes an icon back into a slot. Slot/type pairs that do not exist are
 /// ignored rather than thrown: the inspector only renders slots the type has.
@@ -85,7 +85,11 @@ const Map<String, List<String>> huiIconTypeDocKeys = <String, List<String>>{
     'icon.item.count',
     'icon.item.customModelValue',
   ],
-  'customItem': <String>['icon.customItem.provider', 'icon.customItem.item'],
+  'customItem': <String>[
+    'icon.customItem.provider',
+    'icon.customItem.item',
+    'icon.customItem.count',
+  ],
 };
 
 class IconEditor extends StatelessWidget {
@@ -159,169 +163,152 @@ class IconEditor extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => dom.div(
-        classes: 'hui-icon-editor',
-        <Widget>[
-          InspectorSection(
-            title: slot.label,
-            trailing: icon == null
-                ? null
-                : HuiArmedButton(
-                    label: 'Remove icon',
-                    armedLabel: 'Remove',
-                    icon: ArcaneIcon.trash2(size: IconSize.sm),
-                    iconOnly: true,
-                    onConfirm: () {
-                      session.rememberIcon(_sessionKey, icon);
-                      _write('clear ${slot.label.toLowerCase()}', null);
-                    },
-                  ),
-            children: <Widget>[
-              if (icon == null) _emptyState() else ..._body(),
-            ],
-          ),
-        ],
-      );
+  Widget build(BuildContext context) =>
+      dom.div(classes: 'hui-icon-editor', <Widget>[
+        InspectorSection(
+          title: slot.label,
+          trailing: icon == null
+              ? null
+              : HuiArmedButton(
+                  label: 'Remove icon',
+                  armedLabel: 'Remove',
+                  icon: ArcaneIcon.trash2(size: IconSize.sm),
+                  iconOnly: true,
+                  onConfirm: () {
+                    session.rememberIcon(_sessionKey, icon);
+                    _write('clear ${slot.label.toLowerCase()}', null);
+                  },
+                ),
+          children: <Widget>[if (icon == null) _emptyState() else ..._body()],
+        ),
+      ]);
 
   List<Widget> _body() => <Widget>[
-        HuiSegmented(
-          value: icon!.type,
-          onChanged: _switchType,
-          segments: <HuiSegment>[
-            HuiSegment(
-              value: 'text',
-              label: 'Text',
-              icon: ArcaneIcon.baseline(size: IconSize.sm),
-              hint: huiIconTypeDescriptions['text'],
-            ),
-            HuiSegment(
-              value: 'textImage',
-              label: 'Image',
-              icon: ArcaneIcon.image(size: IconSize.sm),
-              hint: huiIconTypeDescriptions['textImage'],
-            ),
-            HuiSegment(
-              value: 'animatedTextImage',
-              label: 'Animated',
-              icon: ArcaneIcon.film(size: IconSize.sm),
-              hint: huiIconTypeDescriptions['animatedTextImage'],
-            ),
-            HuiSegment(
-              value: 'item',
-              label: 'Item',
-              icon: ArcaneIcon.package(size: IconSize.sm),
-              hint: huiIconTypeDescriptions['item'],
-            ),
-            HuiSegment(
-              value: 'customItem',
-              label: 'Custom',
-              icon: ArcaneIcon.boxes(size: IconSize.sm),
-              hint: huiIconTypeDescriptions['customItem'],
-            ),
-          ],
+    HuiSegmented(
+      value: icon!.type,
+      onChanged: _switchType,
+      segments: <HuiSegment>[
+        HuiSegment(
+          value: 'text',
+          label: 'Text',
+          icon: ArcaneIcon.baseline(size: IconSize.sm),
+          hint: huiIconTypeDescriptions['text'],
         ),
-        HuiHelpCluster(
-          huiIconTypeDocKeys[icon!.type] ?? const <String>[],
-          label: 'Fields',
+        HuiSegment(
+          value: 'textImage',
+          label: 'Image',
+          icon: ArcaneIcon.image(size: IconSize.sm),
+          hint: huiIconTypeDescriptions['textImage'],
         ),
-        switch (icon!) {
-          final HuiTextIcon text => TextIconEditor(
-              // Keyed by field id so flipping a toggle from the true slot to
-              // the false slot remounts the textarea. Without it the state is
-              // reused, the user-dirty DOM field keeps the previous slot's text
-              // and the next keystroke writes it into the other slot.
-              key: ValueKey<String>(_fieldId),
-              fieldId: _fieldId,
-              text: text.text,
-              issues: _issuesEndingWith('.text'),
-              label: 'Text',
-              onChanged: (String label, String value) => _write(
-                label,
-                HuiTextIcon(value)..extras = huiDeepCopyMap(text.extras),
-              ),
-            ),
-          final HuiTextImageIcon image => _ImageIconEditor(
-              icon: image,
-              images: images,
-              inputId: '$_fieldId-upload',
-              issues: _issuesEndingWith('.path'),
-              onChanged: _write,
-            ),
-          final HuiAnimatedImageIcon animated => _AnimatedIconEditor(
-              icon: animated,
-              images: images,
-              inputId: '$_fieldId-upload',
-              issues: _slotIssues,
-              onChanged: _write,
-            ),
-          final HuiItemIcon item => dom.div(
-              classes: 'hui-icon-item',
-              <Widget>[
-                if (catalogsLoading) const HuiSkeletonRows(rows: 2),
-                ItemIconEditor(
-                  icon: item,
-                  catalogs: catalogs,
-                  issues: _slotIssues,
-                  onChanged: (String label, HuiItemIcon next) =>
-                      _write(label, next),
-                ),
-              ],
-            ),
-          final HuiCustomItemIcon custom => dom.div(
-              classes: 'hui-icon-custom',
-              <Widget>[
-                if (catalogsLoading) const HuiSkeletonRows(rows: 2),
-                CustomItemIconEditor(
-                  icon: custom,
-                  catalogs: catalogs,
-                  issues: _slotIssues,
-                  onChanged: (String label, HuiCustomItemIcon next) =>
-                      _write(label, next),
-                ),
-              ],
-            ),
-        },
-        ExtrasEditor(
-          title: 'Icon',
-          extras: icon!.extras,
-          onChanged: _writeExtras,
+        HuiSegment(
+          value: 'animatedTextImage',
+          label: 'Animated',
+          icon: ArcaneIcon.film(size: IconSize.sm),
+          hint: huiIconTypeDescriptions['animatedTextImage'],
         ),
-      ];
-
-  Widget _emptyState() => dom.div(
-        classes: 'hui-icon-empty',
-        <Widget>[
-          HuiEmptyState(
-            icon: ArcaneIcon.imageOff(size: IconSize.md),
-            title: 'No icon',
-            body: 'HoloUI draws its magenta checker here, and a button keeps '
-                'its hitbox. Pick a type to start one.',
-            tone: HuiNoteTone.warning,
-            actions: <Widget>[
-              for (final String type in huiIconTypes)
-                Button(
-                  variant: ButtonVariant.outline,
-                  size: ButtonSize.sm,
-                  onPressed: () => _write(
-                    'add ${slot.label.toLowerCase()}',
-                    session.recallIcon(_sessionKey, type) ??
-                        createDefaultIcon(type),
-                  ),
-                  child: Text(_typeLabel(type)),
-                ),
-            ],
+        HuiSegment(
+          value: 'item',
+          label: 'Item',
+          icon: ArcaneIcon.package(size: IconSize.sm),
+          hint: huiIconTypeDescriptions['item'],
+        ),
+        HuiSegment(
+          value: 'customItem',
+          label: 'Custom',
+          icon: ArcaneIcon.boxes(size: IconSize.sm),
+          hint: huiIconTypeDescriptions['customItem'],
+        ),
+      ],
+    ),
+    HuiHelpCluster(
+      huiIconTypeDocKeys[icon!.type] ?? const <String>[],
+      label: 'Fields',
+    ),
+    switch (icon!) {
+      final HuiTextIcon text => TextIconEditor(
+        // Keyed by field id so flipping a toggle from the true slot to
+        // the false slot remounts the textarea. Without it the state is
+        // reused, the user-dirty DOM field keeps the previous slot's text
+        // and the next keystroke writes it into the other slot.
+        key: ValueKey<String>(_fieldId),
+        fieldId: _fieldId,
+        text: text.text,
+        issues: _issuesEndingWith('.text'),
+        label: 'Text',
+        onChanged: (String label, String value) => _write(
+          label,
+          HuiTextIcon(value)..extras = huiDeepCopyMap(text.extras),
+        ),
+      ),
+      final HuiTextImageIcon image => _ImageIconEditor(
+        icon: image,
+        images: images,
+        inputId: '$_fieldId-upload',
+        issues: _issuesEndingWith('.path'),
+        onChanged: _write,
+      ),
+      final HuiAnimatedImageIcon animated => _AnimatedIconEditor(
+        icon: animated,
+        images: images,
+        inputId: '$_fieldId-upload',
+        issues: _slotIssues,
+        onChanged: _write,
+      ),
+      final HuiItemIcon item => dom.div(classes: 'hui-icon-item', <Widget>[
+        if (catalogsLoading) const HuiSkeletonRows(rows: 2),
+        ItemIconEditor(
+          icon: item,
+          catalogs: catalogs,
+          issues: _slotIssues,
+          onChanged: (String label, HuiItemIcon next) => _write(label, next),
+        ),
+      ]),
+      final HuiCustomItemIcon custom =>
+        dom.div(classes: 'hui-icon-custom', <Widget>[
+          if (catalogsLoading) const HuiSkeletonRows(rows: 2),
+          CustomItemIconEditor(
+            icon: custom,
+            catalogs: catalogs,
+            issues: _slotIssues,
+            onChanged: (String label, HuiCustomItemIcon next) =>
+                _write(label, next),
           ),
-        ],
-      );
+        ]),
+    },
+    ExtrasEditor(title: 'Icon', extras: icon!.extras, onChanged: _writeExtras),
+  ];
+
+  Widget _emptyState() => dom.div(classes: 'hui-icon-empty', <Widget>[
+    HuiEmptyState(
+      icon: ArcaneIcon.imageOff(size: IconSize.md),
+      title: 'No icon',
+      body:
+          'HoloUI draws its magenta checker here, and a button keeps '
+          'its hitbox. Pick a type to start one.',
+      tone: HuiNoteTone.warning,
+      actions: <Widget>[
+        for (final String type in huiIconTypes)
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.sm,
+            onPressed: () => _write(
+              'add ${slot.label.toLowerCase()}',
+              session.recallIcon(_sessionKey, type) ?? createDefaultIcon(type),
+            ),
+            child: Text(_typeLabel(type)),
+          ),
+      ],
+    ),
+  ]);
 
   static String _typeLabel(String type) => switch (type) {
-        'text' => 'Text',
-        'textImage' => 'Image',
-        'animatedTextImage' => 'Animated',
-        'item' => 'Item',
-        'customItem' => 'Custom item',
-        _ => type,
-      };
+    'text' => 'Text',
+    'textImage' => 'Image',
+    'animatedTextImage' => 'Animated',
+    'item' => 'Item',
+    'customItem' => 'Custom item',
+    _ => type,
+  };
 }
 
 class _ImageIconEditor extends StatelessWidget {
@@ -340,100 +327,92 @@ class _ImageIconEditor extends StatelessWidget {
   final List<HuiIssue> issues;
 
   void _setPath(String path) => onChanged(
-        'image path',
-        HuiTextImageIcon(path)..extras = huiDeepCopyMap(icon.extras),
-      );
+    'image path',
+    HuiTextImageIcon(path)..extras = huiDeepCopyMap(icon.extras),
+  );
 
   /// One source pixel is one character cell wide and one text line tall.
   static String _blocks(int pixels) =>
       (pixels * huiCharCell).toStringAsFixed(2);
 
-  Widget _imagePreview(StoredImage stored) => dom.div(
-        classes: 'hui-image-preview',
-        <Widget>[
-          dom.img(
-            src: stored.dataUri,
-            alt: stored.path,
-            styles: const dom.Styles(
-              raw: <String, String>{'image-rendering': 'pixelated'},
-            ),
+  Widget _imagePreview(StoredImage stored) =>
+      dom.div(classes: 'hui-image-preview', <Widget>[
+        dom.img(
+          src: stored.dataUri,
+          alt: stored.path,
+          styles: const dom.Styles(
+            raw: <String, String>{'image-rendering': 'pixelated'},
           ),
-        ],
-      );
+        ),
+      ]);
 
   @override
   Widget build(BuildContext context) {
     final StoredImage? stored = images.byPath(icon.path);
-    return dom.div(
-      classes: 'hui-icon-image',
-      <Widget>[
-        HuiField(
-          label: 'Path',
-          required: true,
-          trailing: const HuiFieldHelp('icon.textImage.path'),
-          help: 'Relative to plugins/holoui/images/.',
-          control: dom.div(<Widget>[
-            TextInput(
-              value: icon.path,
-              size: ComponentSize.sm,
-              fullWidth: true,
-              placeholder: 'logo.png',
-              onInput: _setPath,
-              attributes: const <String, String>{
-                'autocomplete': 'off',
-                'spellcheck': 'false',
-              },
-            ),
-            HuiInlineIssues(issues),
-          ]),
-        ),
-        if (stored != null) ...<Widget>[
-          _imagePreview(stored),
-          HuiDetailRow(
-            'Source size',
-            '${stored.width}x${stored.height} px '
-                '(${stored.width} chars wide, ${stored.height} lines tall)',
+    return dom.div(classes: 'hui-icon-image', <Widget>[
+      HuiField(
+        label: 'Path',
+        required: true,
+        trailing: const HuiFieldHelp('icon.textImage.path'),
+        help: 'Relative to plugins/holoui/images/.',
+        control: dom.div(<Widget>[
+          TextInput(
+            value: icon.path,
+            size: ComponentSize.sm,
+            fullWidth: true,
+            placeholder: 'logo.png',
+            onInput: _setPath,
+            attributes: const <String, String>{
+              'autocomplete': 'off',
+              'spellcheck': 'false',
+            },
           ),
-          HuiDetailRow(
-            'In-game size',
-            '${_blocks(stored.width)} x ${_blocks(stored.height)} blocks '
-                'at uiScale 1',
-          ),
-        ],
-        dom.div(
-          classes: 'hui-icon-image-library',
-          <Widget>[
-            const HuiEyebrow('Image library'),
-            ImagePickerGrid(
-              images: images,
-              selected: icon.path,
-              onPicked: _setPath,
-            ),
-            ImageUploadButton(
-              images: images,
-              inputId: inputId,
-              onAdded: (List<String> paths) {
-                if (paths.isNotEmpty) _setPath(paths.first);
-              },
-            ),
-          ],
+          HuiInlineIssues(issues),
+        ]),
+      ),
+      if (stored != null) ...<Widget>[
+        _imagePreview(stored),
+        HuiDetailRow(
+          'Source size',
+          '${stored.width}x${stored.height} px '
+              '(${stored.width} chars wide, ${stored.height} lines tall)',
         ),
-        const HuiMore(
-          summary: 'Path rules and image cost',
-          children: <Widget>[
-            HuiNote(
-              'No leading slash, no "..", no drive letters - the path is read '
-              'inside plugins/holoui/images/ and nowhere else.',
-            ),
-            HuiNote(
-              'HoloUI draws one character per source pixel with no resizing, so '
-              'a 64x64 image becomes 64 text displays of 64 characters. Keep '
-              'images small.',
-            ),
-          ],
+        HuiDetailRow(
+          'In-game size',
+          '${_blocks(stored.width)} x ${_blocks(stored.height)} blocks '
+              'at uiScale 1',
         ),
       ],
-    );
+      dom.div(classes: 'hui-icon-image-library', <Widget>[
+        const HuiEyebrow('Image library'),
+        ImagePickerGrid(
+          images: images,
+          selected: icon.path,
+          onPicked: _setPath,
+        ),
+        ImageUploadButton(
+          images: images,
+          inputId: inputId,
+          onAdded: (List<String> paths) {
+            if (paths.isNotEmpty) _setPath(paths.first);
+          },
+        ),
+      ]),
+      const HuiMore(
+        summary: 'Path rules and image cost',
+        children: <Widget>[
+          HuiNote(
+            'No leading slash, no "..", no drive letters - the path is read '
+            'inside plugins/holoui/images/ and nowhere else.',
+          ),
+          HuiNote(
+            'HoloUI draws one character per source pixel with no resizing, so '
+            'a 64x64 image becomes 64 text displays of 64 characters. Keep '
+            'images small.',
+          ),
+        ],
+      ),
+    ]);
   }
 }
 
@@ -474,8 +453,8 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
       component.onChanged(label, _with(source, speed ?? _icon.speed));
 
   void _toggleStaged(String path) => setState(() {
-        if (!_staged.remove(path)) _staged.add(path);
-      });
+    if (!_staged.remove(path)) _staged.add(path);
+  });
 
   void _addStaged() {
     if (_staged.isEmpty) return;
@@ -499,9 +478,9 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
       _emit('remove frame', <String>[..._source]..removeAt(index));
 
   void _duplicateFrame(int index) => _emit(
-        'duplicate frame',
-        <String>[..._source]..insert(index + 1, _source[index]),
-      );
+    'duplicate frame',
+    <String>[..._source]..insert(index + 1, _source[index]),
+  );
 
   void _reverse() =>
       _emit('reverse frames', _source.reversed.toList(growable: false));
@@ -532,234 +511,195 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
   Widget build(BuildContext context) {
     final int speed = _icon.speed;
     final int ms = (speed < 1 ? 1 : speed) * 50;
-    return dom.div(
-      classes: 'hui-icon-animated',
-      <Widget>[
-        InspectorSection(
-          title: 'Frames',
-          description: 'Played in this order and looped.',
-          trailing: dom.div(
-            classes: 'hui-frame-tools',
-            <Widget>[
-              HuiIconButton(
-                icon: ArcaneIcon.arrowUpDown(size: IconSize.sm),
-                label: 'Reverse frame order',
-                disabled: _source.length < 2,
-                onPressed: _reverse,
-              ),
-              const HuiFieldHelp('icon.animated.source'),
-              dom.span(
-                classes: 'hui-count-chip',
-                <Widget>[Text('${_source.length}')],
-              ),
-            ],
+    return dom.div(classes: 'hui-icon-animated', <Widget>[
+      InspectorSection(
+        title: 'Frames',
+        description: 'Played in this order and looped.',
+        trailing: dom.div(classes: 'hui-frame-tools', <Widget>[
+          HuiIconButton(
+            icon: ArcaneIcon.arrowUpDown(size: IconSize.sm),
+            label: 'Reverse frame order',
+            disabled: _source.length < 2,
+            onPressed: _reverse,
           ),
-          children: <Widget>[
-            if (_source.isEmpty)
-              HuiEmptyState(
-                icon: ArcaneIcon.triangleAlert(size: IconSize.md),
-                title: 'No frames',
-                body: 'An animated icon with an empty source list throws while '
-                    'the menu is opening, so the whole menu fails to open. Add '
-                    'at least one frame.',
-                tone: HuiNoteTone.danger,
-              )
-            else
-              HuiReorderList(
-                itemCount: _source.length,
-                handleLabel: 'Drag to reorder frames',
-                classes: 'hui-frame-list',
-                onReorder: _reorder,
-                itemBuilder: _frameRow,
-              ),
-            HuiInlineIssues(
-              component.issues
-                  .where((HuiIssue issue) => issue.path.contains('.source'))
-                  .toList(),
-            ),
-          ],
-        ),
-        if (_source.isNotEmpty)
-          AnimatedIconPreview(
-            images: component.images,
-            frames: _source,
-            speed: speed,
-          ),
-        _library(),
-        HuiField(
-          label: 'Speed',
-          required: true,
-          help: 'Ticks per frame, at 20 ticks per second.',
-          trailing: dom.div(
-            classes: 'hui-field-tools',
-            <Widget>[
-              dom.span(
-                classes: 'hui-unit-chip',
-                <Widget>[Text('${speed}t = ${ms}ms per frame')],
-              ),
-              const HuiFieldHelp('icon.animated.speed'),
-            ],
-          ),
-          control: dom.div(<Widget>[
-            HuiNumberField(
-              value: speed.toDouble(),
-              min: 1,
-              step: 1,
-              integer: true,
-              onChanged: (double value) => _emit(
-                'animation speed',
-                <String>[..._source],
-                value.round(),
-              ),
-            ),
-            HuiInlineIssues(
-              component.issues
-                  .where((HuiIssue issue) => issue.path.endsWith('.speed'))
-                  .toList(),
-            ),
+          const HuiFieldHelp('icon.animated.source'),
+          dom.span(classes: 'hui-count-chip', <Widget>[
+            Text('${_source.length}'),
           ]),
-        ),
-        const HuiMore(
-          summary: 'Frame padding and tick limits',
-          children: <Widget>[
-            HuiNote(
-              'Every frame is padded to the tallest frame with blank rows.',
+        ]),
+        children: <Widget>[
+          if (_source.isEmpty)
+            HuiEmptyState(
+              icon: ArcaneIcon.triangleAlert(size: IconSize.md),
+              title: 'No frames',
+              body:
+                  'An animated icon with an empty source list falls back to '
+                  'the missing-icon placeholder in game. Add at least one '
+                  'frame.',
+              tone: HuiNoteTone.danger,
+            )
+          else
+            HuiReorderList(
+              itemCount: _source.length,
+              handleLabel: 'Drag to reorder frames',
+              classes: 'hui-frame-list',
+              onReorder: _reorder,
+              itemBuilder: _frameRow,
             ),
-            HuiNote(
-              '1 tick is the fastest the plugin can go; 0 or less also advances '
-              'every tick.',
-            ),
-          ],
+          HuiInlineIssues(
+            component.issues
+                .where((HuiIssue issue) => issue.path.contains('.source'))
+                .toList(),
+          ),
+        ],
+      ),
+      if (_source.isNotEmpty)
+        AnimatedIconPreview(
+          images: component.images,
+          frames: _source,
+          speed: speed,
         ),
-      ],
-    );
+      _library(),
+      HuiField(
+        label: 'Speed',
+        required: true,
+        help: 'Ticks per frame, at 20 ticks per second.',
+        trailing: dom.div(classes: 'hui-field-tools', <Widget>[
+          dom.span(classes: 'hui-unit-chip', <Widget>[
+            Text('${speed}t = ${ms}ms per frame'),
+          ]),
+          const HuiFieldHelp('icon.animated.speed'),
+        ]),
+        control: dom.div(<Widget>[
+          HuiNumberField(
+            value: speed.toDouble(),
+            min: 1,
+            step: 1,
+            integer: true,
+            onChanged: (double value) =>
+                _emit('animation speed', <String>[..._source], value.round()),
+          ),
+          HuiInlineIssues(
+            component.issues
+                .where((HuiIssue issue) => issue.path.endsWith('.speed'))
+                .toList(),
+          ),
+        ]),
+      ),
+      const HuiMore(
+        summary: 'Frame padding and tick limits',
+        children: <Widget>[
+          HuiNote(
+            'Every frame is padded to the tallest frame with blank rows.',
+          ),
+          HuiNote(
+            '1 tick is the fastest the plugin can go; 0 or less also advances '
+            'every tick.',
+          ),
+        ],
+      ),
+    ]);
   }
 
-  Widget _library() => dom.div(
-        classes: 'hui-icon-animated-library',
-        <Widget>[
-          const HuiEyebrow('Add from library'),
-          const HuiNote(
-            'Click images to line them up, then add them in one go. The same '
-            'image can be used in more than one frame.',
-          ),
-          ImagePickerGrid(
-            images: component.images,
-            selected: _staged.isEmpty ? null : _staged.last,
-            onPicked: _toggleStaged,
-          ),
-          if (_staged.isNotEmpty) _stagedTray(),
-          ImageUploadButton(
-            images: component.images,
-            inputId: component.inputId,
-            onAdded: _addFrames,
-          ),
-        ],
-      );
+  Widget _library() => dom.div(classes: 'hui-icon-animated-library', <Widget>[
+    const HuiEyebrow('Add from library'),
+    const HuiNote(
+      'Click images to line them up, then add them in one go. The same '
+      'image can be used in more than one frame.',
+    ),
+    ImagePickerGrid(
+      images: component.images,
+      selected: _staged.isEmpty ? null : _staged.last,
+      onPicked: _toggleStaged,
+    ),
+    if (_staged.isNotEmpty) _stagedTray(),
+    ImageUploadButton(
+      images: component.images,
+      inputId: component.inputId,
+      onAdded: _addFrames,
+    ),
+  ]);
 
-  Widget _stagedTray() => dom.div(
-        classes: 'hui-frame-staged',
-        <Widget>[
-          dom.div(
-            classes: 'hui-frame-staged-chips',
-            <Widget>[
-              for (int i = 0; i < _staged.length; i++)
-                dom.button(
-                  classes: 'hui-frame-staged-chip',
-                  attributes: <String, String>{
-                    'type': 'button',
-                    'aria-label': 'Remove ${_staged[i]} from the queue',
-                  },
-                  events: dom.events<Null>(
-                    onClick: () => _toggleStaged(_staged[i]),
-                  ),
-                  <Widget>[
-                    Text('${i + 1}. ${_staged[i]}'),
-                    ArcaneIcon.x(size: IconSize.sm),
-                  ],
-                ),
-            ],
-          ),
-          dom.div(
-            classes: 'hui-frame-staged-actions',
-            <Widget>[
-              Button(
-                variant: ButtonVariant.primary,
-                size: ButtonSize.sm,
-                icon: ArcaneIcon.plus(size: IconSize.sm),
-                onPressed: _addStaged,
-                child: Text(_staged.length == 1
-                    ? 'Add 1 frame'
-                    : 'Add ${_staged.length} frames'),
-              ),
-              Button(
-                variant: ButtonVariant.ghost,
-                size: ButtonSize.sm,
-                onPressed: () => setState(_staged.clear),
-                child: const Text('Clear'),
-              ),
-            ],
-          ),
-        ],
-      );
+  Widget _stagedTray() => dom.div(classes: 'hui-frame-staged', <Widget>[
+    dom.div(classes: 'hui-frame-staged-chips', <Widget>[
+      for (int i = 0; i < _staged.length; i++)
+        dom.button(
+          classes: 'hui-frame-staged-chip',
+          attributes: <String, String>{
+            'type': 'button',
+            'aria-label': 'Remove ${_staged[i]} from the queue',
+          },
+          events: dom.events<Null>(onClick: () => _toggleStaged(_staged[i])),
+          <Widget>[
+            Text('${i + 1}. ${_staged[i]}'),
+            ArcaneIcon.x(size: IconSize.sm),
+          ],
+        ),
+    ]),
+    dom.div(classes: 'hui-frame-staged-actions', <Widget>[
+      Button(
+        variant: ButtonVariant.primary,
+        size: ButtonSize.sm,
+        icon: ArcaneIcon.plus(size: IconSize.sm),
+        onPressed: _addStaged,
+        child: Text(
+          _staged.length == 1 ? 'Add 1 frame' : 'Add ${_staged.length} frames',
+        ),
+      ),
+      Button(
+        variant: ButtonVariant.ghost,
+        size: ButtonSize.sm,
+        onPressed: () => setState(_staged.clear),
+        child: const Text('Clear'),
+      ),
+    ]),
+  ]);
 
   Widget _frameRow(int index) {
     final String path = _source[index];
     final StoredImage? stored = component.images.byPath(path);
-    return dom.div(
-      classes: 'hui-frame-row',
-      <Widget>[
-        dom.span(
-          classes: 'hui-frame-index',
-          <Widget>[Text('${index + 1}')],
-        ),
-        dom.span(
-          classes: 'hui-frame-thumb',
-          <Widget>[
-            if (stored != null)
-              dom.img(
-                src: stored.dataUri,
-                alt: '',
-                styles: const dom.Styles(
-                  raw: <String, String>{'image-rendering': 'pixelated'},
-                ),
-              )
-            else
-              const dom.span(classes: 'hui-frame-thumb-missing', <Widget>[]),
-          ],
-        ),
-        dom.div(
-          classes: 'hui-frame-path',
-          <Widget>[
-            TextInput(
-              value: path,
-              size: ComponentSize.sm,
-              fullWidth: true,
-              onInput: (String value) => _setFrame(index, value),
-              attributes: const <String, String>{
-                'autocomplete': 'off',
-                'spellcheck': 'false',
-              },
+    return dom.div(classes: 'hui-frame-row', <Widget>[
+      dom.span(classes: 'hui-frame-index', <Widget>[Text('${index + 1}')]),
+      dom.span(classes: 'hui-frame-thumb', <Widget>[
+        if (stored != null)
+          dom.img(
+            src: stored.dataUri,
+            alt: '',
+            styles: const dom.Styles(
+              raw: <String, String>{'image-rendering': 'pixelated'},
             ),
-          ],
+          )
+        else
+          const dom.span(classes: 'hui-frame-thumb-missing', <Widget>[]),
+      ]),
+      dom.div(classes: 'hui-frame-path', <Widget>[
+        TextInput(
+          value: path,
+          size: ComponentSize.sm,
+          fullWidth: true,
+          onInput: (String value) => _setFrame(index, value),
+          attributes: const <String, String>{
+            'autocomplete': 'off',
+            'spellcheck': 'false',
+          },
         ),
-        HuiIconButton(
-          icon: ArcaneIcon.copy(size: IconSize.sm),
-          label: 'Duplicate frame ${index + 1}',
-          onPressed: () => _duplicateFrame(index),
-        ),
-        HuiRowTools(
-          onMoveUp: index == 0 ? null : () => _moveFrame(index, -1),
-          onMoveDown:
-              index == _source.length - 1 ? null : () => _moveFrame(index, 1),
-          onRemove: () => _removeFrame(index),
-          removeLabel: 'Remove frame ${index + 1}',
-        ),
-      ],
-    );
+      ]),
+      HuiIconButton(
+        icon: ArcaneIcon.copy(size: IconSize.sm),
+        label: 'Duplicate frame ${index + 1}',
+        onPressed: () => _duplicateFrame(index),
+      ),
+      HuiRowTools(
+        onMoveUp: index == 0 ? null : () => _moveFrame(index, -1),
+        onMoveDown: index == _source.length - 1
+            ? null
+            : () => _moveFrame(index, 1),
+        onRemove: () => _removeFrame(index),
+        removeLabel: 'Remove frame ${index + 1}',
+      ),
+    ]);
   }
 }
-
 
 /// Inline playback of an animated icon at the real tick rate.
 ///
@@ -826,48 +766,37 @@ class _AnimatedIconPreviewState extends State<AnimatedIconPreview> {
 
   @override
   Widget build(BuildContext context) {
-    final int index =
-        component.frames.isEmpty ? 0 : _frame % component.frames.length;
+    final int index = component.frames.isEmpty
+        ? 0
+        : _frame % component.frames.length;
     final StoredImage? stored = component.frames.isEmpty
         ? null
         : component.images.byPath(component.frames[index]);
-    return dom.div(
-      classes: 'hui-animated-preview',
-      <Widget>[
-        dom.div(
-          classes: 'hui-animated-preview-frame',
-          <Widget>[
-            if (stored != null)
-              dom.img(
-                src: stored.dataUri,
-                alt: stored.path,
-                styles: const dom.Styles(
-                  raw: <String, String>{'image-rendering': 'pixelated'},
-                ),
-              )
-            else
-              const dom.span(classes: 'hui-frame-thumb-missing', <Widget>[]),
-          ],
-        ),
-        dom.div(
-          classes: 'hui-animated-preview-meta',
-          <Widget>[
-            HuiIconButton(
-              icon: _playing
-                  ? ArcaneIcon.pause(size: IconSize.sm)
-                  : ArcaneIcon.play(size: IconSize.sm),
-              label: _playing ? 'Pause preview' : 'Play preview',
-              onPressed: _togglePlay,
+    return dom.div(classes: 'hui-animated-preview', <Widget>[
+      dom.div(classes: 'hui-animated-preview-frame', <Widget>[
+        if (stored != null)
+          dom.img(
+            src: stored.dataUri,
+            alt: stored.path,
+            styles: const dom.Styles(
+              raw: <String, String>{'image-rendering': 'pixelated'},
             ),
-            dom.span(
-              classes: 'hui-animated-preview-count',
-              <Widget>[
-                Text('frame ${index + 1} of ${component.frames.length}'),
-              ],
-            ),
-          ],
+          )
+        else
+          const dom.span(classes: 'hui-frame-thumb-missing', <Widget>[]),
+      ]),
+      dom.div(classes: 'hui-animated-preview-meta', <Widget>[
+        HuiIconButton(
+          icon: _playing
+              ? ArcaneIcon.pause(size: IconSize.sm)
+              : ArcaneIcon.play(size: IconSize.sm),
+          label: _playing ? 'Pause preview' : 'Play preview',
+          onPressed: _togglePlay,
         ),
-      ],
-    );
+        dom.span(classes: 'hui-animated-preview-count', <Widget>[
+          Text('frame ${index + 1} of ${component.frames.length}'),
+        ]),
+      ]),
+    ]);
   }
 }

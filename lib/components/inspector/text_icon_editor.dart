@@ -113,9 +113,7 @@ class _TextIconEditorState extends State<TextIconEditor> {
       label: 'Underlined',
       open: '<underlined>',
       close: '</underlined>',
-      hint: 'MiniMessage <underlined>. Do not use &n: the plugin turns it into '
-          '<underline>, which MiniMessage does not know, and it renders as '
-          'literal text in game.',
+      hint: 'MiniMessage <underlined>. Legacy &n.',
     ),
     _TagAction(
       label: 'Strikethrough',
@@ -127,14 +125,14 @@ class _TextIconEditorState extends State<TextIconEditor> {
       label: 'Obfuscated',
       open: '<obfuscated>',
       close: '</obfuscated>',
-      hint: 'Scrambling text. Do not use &k: the plugin turns it into <magic>, '
-          'which renders as literal text in game.',
+      hint: 'Scrambling text. Legacy &k.',
     ),
     _TagAction(
       label: 'Gradient',
       open: '<gradient:#ffffff:#5599ff>',
       close: '</gradient>',
-      hint: 'Interpolates colour across the wrapped characters. Add more '
+      hint:
+          'Interpolates colour across the wrapped characters. Add more '
           'colours by appending :#rrggbb.',
     ),
     _TagAction(
@@ -187,7 +185,9 @@ class _TextIconEditorState extends State<TextIconEditor> {
 
   static String _normalizeHex(String raw) {
     final String trimmed = raw.trim().toLowerCase();
-    final String body = trimmed.startsWith('#') ? trimmed.substring(1) : trimmed;
+    final String body = trimmed.startsWith('#')
+        ? trimmed.substring(1)
+        : trimmed;
     if (body.length != 6) return '';
     for (int i = 0; i < body.length; i++) {
       if (!'0123456789abcdef'.contains(body[i])) return '';
@@ -196,96 +196,78 @@ class _TextIconEditorState extends State<TextIconEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => dom.div(
-        classes: 'hui-text-editor',
-        <Widget>[
-          HuiField(
-            label: component.label,
-            help: 'One stacked line per line break; each is parsed on its own.',
-            control: dom.div(
-              classes: 'hui-text-editor-control',
-              <Widget>[
-                _toolbar(),
-                TextArea(
-                  id: _fieldId,
-                  value: _text,
-                  rows: 4,
-                  fullWidth: true,
-                  resize: TextAreaResize.vertical,
-                  placeholder: '&6&lShop\n&7Click to browse',
-                  onInput: (String raw) => _push('text', raw),
-                ),
-                HuiInlineIssues(component.issues),
-              ],
+  Widget build(BuildContext context) =>
+      dom.div(classes: 'hui-text-editor', <Widget>[
+        HuiField(
+          label: component.label,
+          help: 'One stacked line per line break; each is parsed on its own.',
+          control: dom.div(classes: 'hui-text-editor-control', <Widget>[
+            _toolbar(),
+            TextArea(
+              id: _fieldId,
+              value: _text,
+              rows: 4,
+              fullWidth: true,
+              resize: TextAreaResize.vertical,
+              placeholder: '&6&lShop\n&7Click to browse',
+              onInput: (String raw) => _push('text', raw),
             ),
-          ),
-          dom.div(
-            classes: 'hui-text-preview-block',
-            <Widget>[
-              const HuiEyebrow('In-game preview'),
-              McTextPreview(raw: _text),
-            ],
-          ),
-          const HuiMore(
-            summary: 'Legacy formatting codes',
-            children: <Widget>[
-              HuiNote(
-                'Legacy codes work too: &0-&f for colour, &l bold, &m '
-                'strikethrough, &o italic, &r reset.',
-              ),
-              HuiNote(
-                '&n and &k are broken upstream - the plugin rewrites them to '
-                '<underline> and <magic>, which MiniMessage does not '
-                'recognise, so they show up as literal text.',
-                tone: HuiNoteTone.warning,
-              ),
-            ],
-          ),
-        ],
-      );
-
-  Widget _toolbar() => dom.div(
-        classes: 'hui-text-toolbar',
-        <Widget>[
-          _colorControl(),
-          for (final _TagAction tag in _tags)
-            ArcaneTooltip(
-              text: tag.hint,
-              child: dom.button(
-                classes: 'hui-text-tag',
-                attributes: <String, String>{
-                  'type': 'button',
-                  'aria-label': 'Insert ${tag.label}',
-                },
-                events: <String, EventCallback>{'click': (_) => _apply(tag)},
-                <Widget>[Text(tag.label)],
-              ),
-            ),
-        ],
-      );
-
-  Widget _colorControl() => ArcaneTooltip(
-        text: 'Insert a <#rrggbb> colour tag at the caret. Everything after it '
-            'takes that colour until the next colour tag or <reset>.',
-        child: dom.label(
-          classes: 'hui-text-color',
-          <Widget>[
-            ArcaneIcon.palette(size: IconSize.sm),
-            Component.element(
-              tag: 'input',
-              classes: 'hui-text-color-input',
-              attributes: const <String, String>{
-                'type': 'color',
-                'value': '#ffaa00',
-                'aria-label': 'Insert a colour tag',
-              },
-              // `event` is jaspr's `EventCallback` argument; its type is left to
-              // inference so this file never imports `package:web`.
-              events: <String, EventCallback>{
-                'input': (event) => _insertColor(domInputValue(event.target)),
-              },
+            HuiInlineIssues(component.issues),
+          ]),
+        ),
+        dom.div(classes: 'hui-text-preview-block', <Widget>[
+          const HuiEyebrow('In-game preview'),
+          McTextPreview(raw: _text),
+        ]),
+        const HuiMore(
+          summary: 'Legacy formatting codes',
+          children: <Widget>[
+            HuiNote(
+              'Legacy codes work too: &0-&f for colour, &k obfuscated, '
+              '&l bold, &m strikethrough, &n underlined, &o italic, '
+              '&r reset.',
             ),
           ],
         ),
-      );
+      ]);
+
+  Widget _toolbar() => dom.div(classes: 'hui-text-toolbar', <Widget>[
+    _colorControl(),
+    for (final _TagAction tag in _tags)
+      ArcaneTooltip(
+        text: tag.hint,
+        child: dom.button(
+          classes: 'hui-text-tag',
+          attributes: <String, String>{
+            'type': 'button',
+            'aria-label': 'Insert ${tag.label}',
+          },
+          events: <String, EventCallback>{'click': (_) => _apply(tag)},
+          <Widget>[Text(tag.label)],
+        ),
+      ),
+  ]);
+
+  Widget _colorControl() => ArcaneTooltip(
+    text:
+        'Insert a <#rrggbb> colour tag at the caret. Everything after it '
+        'takes that colour until the next colour tag or <reset>.',
+    child: dom.label(classes: 'hui-text-color', <Widget>[
+      ArcaneIcon.palette(size: IconSize.sm),
+      Component.element(
+        tag: 'input',
+        classes: 'hui-text-color-input',
+        attributes: const <String, String>{
+          'type': 'color',
+          'value': '#ffaa00',
+          'aria-label': 'Insert a colour tag',
+        },
+        // `event` is jaspr's `EventCallback` argument; its type is left to
+        // inference so this file never imports `package:web`.
+        events: <String, EventCallback>{
+          'input': (event) => _insertColor(domInputValue(event.target)),
+        },
+      ),
+    ]),
+  );
 }

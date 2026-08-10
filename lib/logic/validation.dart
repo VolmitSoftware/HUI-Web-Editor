@@ -29,9 +29,8 @@ class HuiIssue {
   String toString() => '${severity.name.toUpperCase()} $path: $message';
 }
 
-/// Semantic validation against the Java parser's real behaviour (not the stale
-/// shipped JSON schema). Catalog sets are optional: when omitted, catalog
-/// membership is not checked.
+/// Semantic validation against the Java parser's real behaviour. Catalog sets
+/// are optional: when omitted, catalog membership is not checked.
 ///
 /// [overlaps] carries intersecting clickable hitbox pairs from an already
 /// resolved scene, because overlap is a geometry question the validator has no
@@ -88,10 +87,8 @@ final RegExp _whitespacePattern = RegExp(r'\s+');
 /// through `list(sender)` before the Player check (`HoloCommand.java:94-97`),
 /// so a bare `open` genuinely does work from the console.
 String? huiPlayerOnlySubcommand(String command) {
-  // The plugin strips one leading slash and nothing else
-  // (`CommandMenuAction.java:35`); the trim is for the author, not the parser.
-  final String body = (command.startsWith('/') ? command.substring(1) : command)
-      .trim();
+  final String trimmed = command.trim();
+  final String body = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
   final List<String> tokens = body
       .split(_whitespacePattern)
       .where((String token) => token.isNotEmpty)
@@ -109,10 +106,6 @@ String? huiPlayerOnlySubcommand(String command) {
 final RegExp _idPattern = RegExp(r'^[A-Za-z0-9_.-]+$');
 final RegExp _registryKeyPattern = RegExp(r'^([a-z0-9_.-]+:)?[a-z0-9_./-]+$');
 final RegExp _placeholderPattern = RegExp(r'%[^%\s]+%');
-
-/// `&n`/`&k` (and their section-sign equivalents) translate to `<underline>` /
-/// `<magic>`, which MiniMessage does not recognise.
-final RegExp _brokenLegacyPattern = RegExp('&[nNkK]|§[nk]');
 
 class _Validator {
   _Validator({
@@ -175,8 +168,17 @@ class _Validator {
       );
     }
 
+    _validateFiniteVector(menu.offset, 'offset', 'Menu offset');
+
     final double? maxDistance = menu.maxDistance;
-    if (maxDistance != null &&
+    if (maxDistance != null && !maxDistance.isFinite) {
+      _add(
+        HuiSeverity.error,
+        'maxDistance',
+        'maxDistance must be a finite number',
+        fix: 'Use a finite distance, or clear it for unlimited',
+      );
+    } else if (maxDistance != null &&
         (maxDistance < 0 || maxDistance > huiMaxDistanceCeiling)) {
       _add(
         HuiSeverity.warning,
@@ -247,6 +249,7 @@ class _Validator {
         fix: 'Position the component on the canvas or in the inspector',
       );
     }
+    _validateFiniteVector(component.offset, '$path.offset', 'Component offset');
 
     final String id = component.id;
     if (id.isEmpty) {
@@ -279,8 +282,8 @@ class _Validator {
         _add(
           HuiSeverity.warning,
           '$path.id',
-          'Duplicate component id "$id": later duplicates are unaddressable by '
-              'the API but still render and still click',
+          'Duplicate component id "$id": the plugin keeps the first component '
+              'and ignores later duplicates',
           fix: 'Rename this component to a unique id',
         );
       }
@@ -322,7 +325,14 @@ class _Validator {
   }
 
   void _validateHighlight(double value, String path) {
-    if (value < 0 || value > 1) {
+    if (!value.isFinite) {
+      _add(
+        HuiSeverity.error,
+        '$path.highlightModifier',
+        'highlightModifier must be a finite number',
+        fix: 'Use a finite value between 0 and 1 (0.05 is typical)',
+      );
+    } else if (value < 0 || value > 1) {
       _add(
         HuiSeverity.warning,
         '$path.highlightModifier',
@@ -336,6 +346,17 @@ class _Validator {
             'blocks along the plane normal, so large values push the icon '
             'through the player and negative ones push it away',
         fix: 'Use a value between 0 and 1 (0.05 is typical)',
+      );
+    }
+  }
+
+  void _validateFiniteVector(Vec3 value, String path, String label) {
+    if (!value.x.isFinite || !value.y.isFinite || !value.z.isFinite) {
+      _add(
+        HuiSeverity.error,
+        path,
+        '$label components must be finite numbers',
+        fix: 'Set finite right, up and forward offsets',
       );
     }
   }
@@ -401,22 +422,13 @@ class _Validator {
           _add(
             HuiSeverity.error,
             '$path.source',
-            'Animated icon has no frames; the plugin throws while opening the '
-                'menu',
+            'Animated icon has no frames; the plugin logs the icon failure and '
+                'draws the magenta/black missing-icon placeholder',
             fix: 'Add at least one frame image',
           );
         }
         for (int i = 0; i < animated.source.length; i++) {
           _validateImagePath(animated.source[i], '$path.source[$i]');
-        }
-        if (animated.speed < 1) {
-          _add(
-            HuiSeverity.error,
-            '$path.speed',
-            'Speed below 1 advances a frame every tick (20 frames per '
-                'second), exactly like speed 1',
-            fix: 'Use 2 or more ticks per frame for a readable animation',
-          );
         }
       case final HuiItemIcon item:
         _validateMaterial(item.item, '$path.item');
@@ -447,19 +459,16 @@ class _Validator {
       );
     }
 
-    final String provider = icon.provider.trim();
+    final String provider = icon.provider.trim().toLowerCase();
     if (provider.isNotEmpty &&
         provider != huiAutoItemProvider &&
         !huiCustomItemProviders.contains(provider)) {
-      final String lowered = provider.toLowerCase();
       _add(
         HuiSeverity.warning,
         '$path.provider',
         'Unknown item provider "$provider"; HoloUI has no adapter for it and '
             'the icon will not resolve',
-        fix: huiCustomItemProviders.contains(lowered)
-            ? 'Provider ids are lowercase: use $lowered'
-            : 'Use one of ${huiCustomItemProviders.join(", ")}, or auto',
+        fix: 'Use one of ${huiCustomItemProviders.join(", ")}, or auto',
       );
     }
 
@@ -511,15 +520,6 @@ class _Validator {
       }
     }
 
-    if (_brokenLegacyPattern.hasMatch(text)) {
-      _add(
-        HuiSeverity.warning,
-        path,
-        '&n and &k translate to invalid MiniMessage tags and render literally '
-        'in-game as <underline> / <magic>',
-        fix: 'Use <u>...</u> or <obf>...</obf> instead',
-      );
-    }
     if (_placeholderPattern.hasMatch(text)) {
       _add(
         HuiSeverity.info,
@@ -532,7 +532,7 @@ class _Validator {
   }
 
   void _validateImagePath(String path, String jsonPath) {
-    if (path.isEmpty) {
+    if (path.trim().isEmpty) {
       _add(
         HuiSeverity.error,
         jsonPath,
@@ -599,7 +599,8 @@ class _Validator {
       _add(
         HuiSeverity.error,
         path,
-        'Material key is empty; the plugin fails to open the menu',
+        'Material key is empty; the icon falls back to the missing-icon '
+        'placeholder',
         fix: 'Pick a material such as diamond_sword',
       );
       return;
@@ -608,8 +609,9 @@ class _Validator {
       _add(
         HuiSeverity.error,
         path,
-        'Material key must be lowercase: NamespacedKey rejects uppercase and '
-        'the item resolves to null',
+        'Material key must be lowercase: NamespacedKey rejects uppercase, so '
+        'the item resolves to null and the icon falls back to the '
+        'missing-icon placeholder',
         fix: 'Use ${material.toLowerCase()}',
       );
       return;
@@ -653,7 +655,7 @@ class _Validator {
       _add(
         HuiSeverity.error,
         '$path.command',
-        'Command is empty; the plugin throws when the button is clicked',
+        'Command is empty; the plugin logs the invalid action and drops it',
         fix: 'Enter a command, for example /warp shop',
       );
     } else if (action.command.contains('%')) {
@@ -664,51 +666,26 @@ class _Validator {
             'verbatim',
       );
     }
-    // `CommandMenuAction.execute` dispatches as the player only for an exact
-    // PLAYER enum match; `server` and an absent key both reach the console
-    // sender (`CommandMenuAction.java:34-40`). An absent key is normalised to
-    // `server` on import, so the flag is what tells those two apart.
-    final bool sourceAbsent = action.absentKeys.contains('source');
-    final bool consoleForCertain = sourceAbsent || action.source == 'server';
+    // Imported Java enum names have already been canonicalized. A genuinely
+    // unknown spelling resolves to null and takes the player default.
+    final bool consoleForCertain = action.source == 'server';
     final String? playerOnly = huiPlayerOnlySubcommand(action.command);
 
-    // The specific failure beats the generic one: an absent source on a
-    // player-only subcommand would otherwise raise two warnings that say
-    // roughly the same thing and neither of them the useful part.
     if (playerOnly != null && consoleForCertain) {
       _add(
         HuiSeverity.warning,
         '$path.source',
-        '"holoui $playerOnly" only works for a player, and this action runs '
-            'from the console (${sourceAbsent ? 'the file gave it no source' : 'source "server"'}), '
-            'so clicking does nothing but print a player-only notice to the '
-            'server log',
+        '"holoui $playerOnly" only works for a player, and source "server" '
+            'runs this action from the console, so clicking does nothing but '
+            'print a player-only notice to the server log',
         fix: 'Set the source to "player"',
       );
-    } else if (sourceAbsent) {
-      _add(
-        HuiSeverity.warning,
-        '$path.source',
-        'The imported file gave this command no source, so HoloUI ran it from '
-            'the console. It was read as "server" and the export now writes '
-            'that explicitly',
-        fix:
-            'Switch the source to "player" if the command was meant to run as '
-            'the clicking player',
-      );
     } else if (!huiCommandSources.contains(action.source)) {
-      // HoloUi shades no Gson and registers no adapter for
-      // `MenuActionCommandSource`, so an odd spelling is resolved by whatever
-      // Gson the server ships: 2.10+ falls back to matching `toString()`, so
-      // "PLAYER" reaches the player, while 2.8.x leaves the field null and the
-      // command runs from the console. Neither outcome can be asserted here.
       _add(
         HuiSeverity.warning,
         '$path.source',
-        'Command source "${action.source}" is not one of the two spellings '
-            'HoloUI declares, and no Gson adapter is registered for them, so '
-            'whether it resolves to the player or falls through to the console '
-            'depends on the server\'s Gson version',
+        'Command source "${action.source}" is not recognized; HoloUI resolves '
+            'it to null and uses the player default',
         fix: 'Use "player" or "server"',
       );
     }
@@ -751,29 +728,47 @@ class _Validator {
       }
     }
 
-    if (!huiSoundSources.contains(action.source)) {
+    // An absent or unknown category is null to Gson and the plugin plays the
+    // sound on master, so a bad spelling costs the category, not the click.
+    if (action.source.trim().isNotEmpty &&
+        !huiSoundSources.contains(action.source)) {
       _add(
-        HuiSeverity.error,
+        HuiSeverity.warning,
         '$path.source',
-        'Sound source is required and must be one of '
-            '${huiSoundSources.join(", ")}',
+        'Sound source "${action.source}" is not one of '
+            '${huiSoundSources.join(", ")}, so the sound falls back to master',
         fix: 'Pick a sound category, for example master',
       );
     }
 
-    if (action.volume == 0) {
+    if (!action.volume.isFinite) {
+      _add(
+        HuiSeverity.error,
+        '$path.volume',
+        'Volume must be a finite number',
+        fix: 'Use a finite volume such as 1',
+      );
+    } else if (action.volume == 0) {
       _add(
         HuiSeverity.warning,
         '$path.volume',
-        'Volume 0 is inaudible; the plugin defaults a missing volume to 0',
+        'Volume 0 is inaudible; an omitted volume would default to 1',
         fix: 'Set the volume to 1',
       );
     }
-    if (action.pitch == 0) {
+    if (!action.pitch.isFinite) {
+      _add(
+        HuiSeverity.error,
+        '$path.pitch',
+        'Pitch must be a finite number',
+        fix: 'Use a finite pitch such as 1',
+      );
+    } else if (action.pitch == 0) {
       _add(
         HuiSeverity.warning,
         '$path.pitch',
-        'Pitch 0 is invalid; the plugin defaults a missing pitch to 0',
+        'Pitch 0 is clamped up to 0.5 by the client; an omitted pitch would '
+            'default to 1',
         fix: 'Set the pitch to 1',
       );
     } else if (action.pitch < 0.5 || action.pitch > 2.0) {

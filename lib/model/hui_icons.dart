@@ -1,7 +1,7 @@
 import 'json_codec.dart';
 
-/// The five JSON-authorable icon types. `fontImage` and `itemStack` exist in
-/// the plugin enum but map to a null class, so they are unparseable.
+/// The five JSON-authorable icon types. `itemStack` exists in the plugin enum
+/// but maps to a null class, so it is API-only and unparseable.
 const List<String> huiIconTypes = <String>[
   'text',
   'textImage',
@@ -10,9 +10,9 @@ const List<String> huiIconTypes = <String>[
   'customItem',
 ];
 
-/// Provider ids the plugin ships adapters for, in registration order — which is
-/// also the order `auto` probes them in. These strings are part of the file
-/// format, not a UI list.
+/// Provider ids the plugin ships adapters for, in declaration order. Runtime
+/// `auto` resolution uses the order in which available providers activated.
+/// These strings are part of the file format, not a UI list.
 const List<String> huiCustomItemProviders = <String>[
   'craftengine',
   'itemsadder',
@@ -26,7 +26,7 @@ const List<String> huiCustomItemProviders = <String>[
   'headdatabase',
 ];
 
-/// Sentinel `provider`: try every ready provider in registration order.
+/// Sentinel `provider`: try every ready provider in activation order.
 const String huiAutoItemProvider = 'auto';
 
 sealed class HuiIcon {
@@ -72,10 +72,8 @@ class HuiTextIcon extends HuiIcon {
   String get type => 'text';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{'type': 'text', 'text': text},
-        extras,
-      );
+  Map<String, dynamic> toJson() =>
+      huiMergeExtras(<String, dynamic>{'type': 'text', 'text': text}, extras);
 
   @override
   HuiTextIcon copy() => HuiTextIcon(text)..extras = huiDeepCopyMap(extras);
@@ -96,10 +94,10 @@ class HuiTextImageIcon extends HuiIcon {
   String get type => 'textImage';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{'type': 'textImage', 'path': path},
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'textImage',
+    'path': path,
+  }, extras);
 
   @override
   HuiTextImageIcon copy() =>
@@ -119,29 +117,26 @@ class HuiAnimatedImageIcon extends HuiIcon {
   int speed;
 
   HuiAnimatedImageIcon([List<String>? source, this.speed = 1])
-      : source = source ?? <String>[];
+    : source = source ?? <String>[];
 
   @override
   String get type => 'animatedTextImage';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{
-          'type': 'animatedTextImage',
-          'source': List<String>.from(source),
-          'speed': speed,
-        },
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'animatedTextImage',
+    'source': List<String>.from(source),
+    'speed': speed,
+  }, extras);
 
   @override
   HuiAnimatedImageIcon copy() =>
       HuiAnimatedImageIcon(List<String>.from(source), speed)
         ..extras = huiDeepCopyMap(extras);
 
-  // `path` is consumed, not preserved: the stale shipped schema names the frame
-  // list `path`, which Gson ignores. Importing migrates it onto `source` rather
-  // than exporting a file that carries both.
+  // `path` is consumed, not preserved: the pre-3.0 schema named the frame list
+  // `path`, which Gson ignores. Importing migrates it onto `source` rather than
+  // exporting a file that carries both.
   static const Set<String> _known = <String>{'type', 'source', 'speed', 'path'};
 
   static HuiAnimatedImageIcon fromMap(Map<String, dynamic> map) =>
@@ -157,7 +152,7 @@ class HuiItemIcon extends HuiIcon {
   int count;
 
   /// The record field has no `@SerializedName`, so the JSON key is literally
-  /// `customModelValue` (the shipped schema's `customModelData` is ignored).
+  /// `customModelValue`; the pre-3.0 `customModelData` is ignored by Gson.
   int customModelValue;
 
   HuiItemIcon([this.item = '', this.count = 1, this.customModelValue = 0]);
@@ -166,22 +161,20 @@ class HuiItemIcon extends HuiIcon {
   String get type => 'item';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{
-          'type': 'item',
-          'item': item,
-          'count': count,
-          'customModelValue': customModelValue,
-        },
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'item',
+    'item': item,
+    'count': count,
+    'customModelValue': customModelValue,
+  }, extras);
 
   @override
-  HuiItemIcon copy() => HuiItemIcon(item, count, customModelValue)
-    ..extras = huiDeepCopyMap(extras);
+  HuiItemIcon copy() =>
+      HuiItemIcon(item, count, customModelValue)
+        ..extras = huiDeepCopyMap(extras);
 
-  // `customModelData` is consumed, not preserved: the stale shipped schema and
-  // the old editor wrote that key, which Gson ignores. Importing migrates the
+  // `customModelData` is consumed, not preserved: the old editor and the
+  // pre-3.0 schema wrote that key, which Gson ignores. Importing migrates the
   // value onto the key the plugin actually reads instead of exporting both.
   static const Set<String> _known = <String>{
     'type',
@@ -192,15 +185,13 @@ class HuiItemIcon extends HuiIcon {
   };
 
   static HuiItemIcon fromMap(Map<String, dynamic> map) => HuiItemIcon(
-        huiReadString(map, 'item'),
-        huiReadInt(map, 'count'),
-        huiReadInt(
-          map,
-          map['customModelValue'] == null
-              ? 'customModelData'
-              : 'customModelValue',
-        ),
-      )..extras = huiCollectExtras(map, _known);
+    huiReadString(map, 'item'),
+    huiReadInt(map, 'count'),
+    huiReadInt(
+      map,
+      map['customModelValue'] == null ? 'customModelData' : 'customModelValue',
+    ),
+  )..extras = huiCollectExtras(map, _known);
 }
 
 /// An item owned by a custom-item plugin (ItemsAdder, Oraxen, MMOItems, ...).
@@ -227,19 +218,16 @@ class HuiCustomItemIcon extends HuiIcon {
   String get type => 'customItem';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(
-        <String, dynamic>{
-          'type': 'customItem',
-          'provider': provider,
-          'item': item,
-          'count': count,
-        },
-        extras,
-      );
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'customItem',
+    'provider': provider,
+    'item': item,
+    'count': count,
+  }, extras);
 
   @override
-  HuiCustomItemIcon copy() => HuiCustomItemIcon(provider, item, count)
-    ..extras = huiDeepCopyMap(extras);
+  HuiCustomItemIcon copy() =>
+      HuiCustomItemIcon(provider, item, count)..extras = huiDeepCopyMap(extras);
 
   static const Set<String> _known = <String>{
     'type',
@@ -251,7 +239,7 @@ class HuiCustomItemIcon extends HuiIcon {
   static HuiCustomItemIcon fromMap(Map<String, dynamic> map) {
     // Both defaults mirror the plugin: a blank provider means "try them all",
     // and `setAmount(count > 0 ? count : 1)` makes 0 and 1 the same stack.
-    final String provider = huiReadString(map, 'provider').trim();
+    final String provider = huiReadString(map, 'provider').trim().toLowerCase();
     final int count = huiReadInt(map, 'count');
     return HuiCustomItemIcon(
       provider.isEmpty ? huiAutoItemProvider : provider,

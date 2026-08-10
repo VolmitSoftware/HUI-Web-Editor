@@ -23,7 +23,7 @@ class McTextPreview extends StatelessWidget {
 
   final String raw;
 
-  /// Parser warnings (unknown tags, `&n`/`&k`) listed under the preview.
+  /// Parser warnings for unknown tags listed under the preview.
   final bool showWarnings;
 
   /// Line count and longest-line character count, which drive the hitbox.
@@ -39,54 +39,38 @@ class McTextPreview extends StatelessWidget {
     return dom.div(
       classes: classNames(<String?>['hui-mc-preview', classes]),
       <Widget>[
-        dom.div(
-          classes: 'hui-mc-preview-surface',
-          <Widget>[
-            if (result.lines.isEmpty)
-              const dom.div(
-                classes: 'hui-mc-line is-empty',
-                <Widget>[Text('(empty)')],
-              )
-            else
-              for (final List<McSpan> line in result.lines) _line(line),
-          ],
-        ),
+        dom.div(classes: 'hui-mc-preview-surface', <Widget>[
+          if (result.lines.isEmpty)
+            const dom.div(classes: 'hui-mc-line is-empty', <Widget>[
+              Text('(empty)'),
+            ])
+          else
+            for (final List<McSpan> line in result.lines) _line(line),
+        ]),
         if (showMetrics)
-          dom.p(
-            classes: 'hui-mc-preview-metrics',
-            <Widget>[
-              Text(
-                '${result.lineCount} '
-                '${result.lineCount == 1 ? 'line' : 'lines'} · longest '
-                '${result.maxLineLength} '
-                '${result.maxLineLength == 1 ? 'char' : 'chars'}',
-              ),
-            ],
-          ),
+          dom.p(classes: 'hui-mc-preview-metrics', <Widget>[
+            Text(
+              '${result.lineCount} '
+              '${result.lineCount == 1 ? 'line' : 'lines'} · longest '
+              '${result.maxLineLength} '
+              '${result.maxLineLength == 1 ? 'char' : 'chars'}',
+            ),
+          ]),
         if (showWarnings && result.hasWarnings)
-          dom.ul(
-            classes: 'hui-mc-preview-warnings',
-            <Widget>[
-              for (final String warning in result.warnings)
-                dom.li(<Widget>[Text(warning)]),
-            ],
-          ),
+          dom.ul(classes: 'hui-mc-preview-warnings', <Widget>[
+            for (final String warning in result.warnings)
+              dom.li(<Widget>[Text(warning)]),
+          ]),
       ],
     );
   }
 
-  Widget _line(List<McSpan> spans) => dom.div(
-        classes: 'hui-mc-line',
-        <Widget>[
-          if (spans.isEmpty)
-            const dom.span(
-              classes: 'hui-mc-span is-blank',
-              <Widget>[Text(' ')],
-            )
-          else
-            for (final McSpan span in spans) _span(span),
-        ],
-      );
+  Widget _line(List<McSpan> spans) => dom.div(classes: 'hui-mc-line', <Widget>[
+    if (spans.isEmpty)
+      const dom.span(classes: 'hui-mc-span is-blank', <Widget>[Text(' ')])
+    else
+      for (final McSpan span in spans) _span(span),
+  ]);
 
   Widget _span(McSpan span) {
     final List<String> decorations = <String>[
@@ -103,8 +87,7 @@ class McTextPreview extends StatelessWidget {
           'color': hex(span.color),
           if (span.bold) 'font-weight': '700',
           if (span.italic) 'font-style': 'italic',
-          if (decorations.isNotEmpty)
-            'text-decoration': decorations.join(' '),
+          if (decorations.isNotEmpty) 'text-decoration': decorations.join(' '),
         },
       ),
       <Widget>[Text(span.text)],
