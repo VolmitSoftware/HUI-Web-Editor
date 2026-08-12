@@ -153,8 +153,11 @@ class IconSpriteRasterizer {
     required double uiScale,
     required int obfuscationTick,
   }) {
-    final HuiRect local =
-        spriteExtentFor(item, uiScale: uiScale, trueRender: trueRender);
+    final HuiRect local = spriteExtentFor(
+      item,
+      uiScale: uiScale,
+      trueRender: trueRender,
+    );
     if (local.w <= 0 || local.h <= 0) return null;
     final HuiRect extent = local.translate(item.anchor.x, item.anchor.y);
     final double scale = _fittedScale(extent, pxPerBlock);
@@ -189,11 +192,7 @@ class IconSpriteRasterizer {
       obfuscationTick: obfuscationTick,
     ).paint(item);
 
-    return IconSprite(
-      canvas: canvas,
-      localRect: local,
-      pixelsPerBlock: scale,
-    );
+    return IconSprite(canvas: canvas, localRect: local, pixelsPerBlock: scale);
   }
 
   double _fittedScale(HuiRect extent, double requested) {

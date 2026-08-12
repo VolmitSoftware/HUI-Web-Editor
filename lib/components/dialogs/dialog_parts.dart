@@ -28,18 +28,15 @@ class HuiDialogSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.section(
-        classes: classNames(<String?>['hui-dialog-section', classes]),
-        <Widget>[
-          dom.div(
-            classes: 'hui-dialog-section-heading',
-            <Widget>[
-              dom.strong(<Widget>[Text(title)]),
-              if (description != null) dom.span(<Widget>[Text(description!)]),
-            ],
-          ),
-          dom.div(classes: 'hui-dialog-section-body', children),
-        ],
-      );
+    classes: classNames(<String?>['hui-dialog-section', classes]),
+    <Widget>[
+      dom.div(classes: 'hui-dialog-section-heading', <Widget>[
+        dom.strong(<Widget>[Text(title)]),
+        if (description != null) dom.span(<Widget>[Text(description!)]),
+      ]),
+      dom.div(classes: 'hui-dialog-section-body', children),
+    ],
+  );
 }
 
 /// Monospace block used for paths, commands and JSON previews. Text goes in as
@@ -58,13 +55,13 @@ class HuiCodeBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.pre(
-        classes: classNames(<String?>[
-          'hui-codeblock',
-          scroll ? 'is-scroll' : null,
-          classes,
-        ]),
-        <Widget>[Component.text(text)],
-      );
+    classes: classNames(<String?>[
+      'hui-codeblock',
+      scroll ? 'is-scroll' : null,
+      classes,
+    ]),
+    <Widget>[Component.text(text)],
+  );
 }
 
 /// Numbered instruction list; the numbers are drawn by CSS counters.
@@ -75,12 +72,10 @@ class HuiSteps extends StatelessWidget {
   final String classes;
 
   @override
-  Widget build(BuildContext context) => dom.ol(
-        classes: classNames(<String?>['hui-steps', classes]),
-        <Widget>[
-          for (final String step in steps) dom.li(<Widget>[Text(step)]),
-        ],
-      );
+  Widget build(BuildContext context) =>
+      dom.ol(classes: classNames(<String?>['hui-steps', classes]), <Widget>[
+        for (final String step in steps) dom.li(<Widget>[Text(step)]),
+      ]);
 }
 
 /// Small labelled chip row, used for template highlights and format facts.
@@ -91,13 +86,11 @@ class HuiChips extends StatelessWidget {
   final String classes;
 
   @override
-  Widget build(BuildContext context) => dom.div(
-        classes: classNames(<String?>['hui-chips', classes]),
-        <Widget>[
-          for (final String label in labels)
-            dom.span(classes: 'hui-chip', <Widget>[Text(label)]),
-        ],
-      );
+  Widget build(BuildContext context) =>
+      dom.div(classes: classNames(<String?>['hui-chips', classes]), <Widget>[
+        for (final String label in labels)
+          dom.span(classes: 'hui-chip', <Widget>[Text(label)]),
+      ]);
 }
 
 /// Shimmering placeholder for content that is still being read.
@@ -131,29 +124,30 @@ class HuiSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: classNames(<String?>['hui-skeleton-group', classes]),
-        attributes: <String, String>{
-          'role': 'status',
-          'aria-live': 'polite',
-          'aria-busy': 'true',
-          'aria-label': label,
-        },
-        <Widget>[
-          if (block)
-            const dom.div(
-              classes: 'hui-skeleton hui-skeleton-block',
-              attributes: <String, String>{'aria-hidden': 'true'},
-              <Widget>[],
-            ),
-          for (int i = 0; i < lines; i++)
-            dom.div(
-              classes: 'hui-skeleton hui-skeleton-line'
-                  '${i == 0 ? ' is-tall' : _widths[i % _widths.length]}',
-              attributes: const <String, String>{'aria-hidden': 'true'},
-              const <Widget>[],
-            ),
-        ],
-      );
+    classes: classNames(<String?>['hui-skeleton-group', classes]),
+    attributes: <String, String>{
+      'role': 'status',
+      'aria-live': 'polite',
+      'aria-busy': 'true',
+      'aria-label': label,
+    },
+    <Widget>[
+      if (block)
+        const dom.div(
+          classes: 'hui-skeleton hui-skeleton-block',
+          attributes: <String, String>{'aria-hidden': 'true'},
+          <Widget>[],
+        ),
+      for (int i = 0; i < lines; i++)
+        dom.div(
+          classes:
+              'hui-skeleton hui-skeleton-line'
+              '${i == 0 ? ' is-tall' : _widths[i % _widths.length]}',
+          attributes: const <String, String>{'aria-hidden': 'true'},
+          const <Widget>[],
+        ),
+    ],
+  );
 }
 
 /// Every image path the menu references, in document order.
@@ -174,7 +168,9 @@ Set<String> huiUsedImagePaths(HuiMenu menu) {
         }
       case HuiTextIcon():
       case HuiItemIcon():
+      case HuiBlockIcon():
       case HuiCustomItemIcon():
+      case HuiEntityIcon():
         return;
     }
   }
@@ -219,7 +215,9 @@ bool huiRepointImagePaths(HuiMenu menu, String from, String to) {
         }
       case HuiTextIcon():
       case HuiItemIcon():
+      case HuiBlockIcon():
       case HuiCustomItemIcon():
+      case HuiEntityIcon():
         return;
     }
   }

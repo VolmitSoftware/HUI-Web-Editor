@@ -62,7 +62,7 @@ const double huiItemCountLabelOffset = 0.37;
 /// `TextImageMenuIcon.MISSING` is an 8x8 black/magenta checker.
 const int huiMissingIconSize = 8;
 
-enum IconShapeKind { text, image, item }
+enum IconShapeKind { text, image, item, block, entity }
 
 /// The measured shape of an icon, computed by the caller from the parsed text,
 /// the decoded image or the item stack. Geometry never parses anything itself.
@@ -82,6 +82,8 @@ class IconShape {
 
   /// Stack amount; only `== 1` versus `> 1` matters to the geometry.
   final int itemCount;
+  final double entityWidth;
+  final double entityHeight;
 
   const IconShape._({
     required this.kind,
@@ -90,6 +92,8 @@ class IconShape {
     required this.isItem,
     required this.isBlockItem,
     required this.itemCount,
+    required this.entityWidth,
+    required this.entityHeight,
   });
 
   const IconShape.text({required int lines, required int maxLineChars})
@@ -100,6 +104,8 @@ class IconShape {
         isItem: false,
         isBlockItem: false,
         itemCount: 1,
+        entityWidth: 0,
+        entityHeight: 0,
       );
 
   /// `textImage` / `animatedTextImage`: one row per image pixel row.
@@ -111,6 +117,8 @@ class IconShape {
         isItem: false,
         isBlockItem: false,
         itemCount: 1,
+        entityWidth: 0,
+        entityHeight: 0,
       );
 
   const IconShape.item({int count = 1, bool isBlockItem = false})
@@ -121,6 +129,32 @@ class IconShape {
         isItem: true,
         isBlockItem: isBlockItem,
         itemCount: count,
+        entityWidth: 0,
+        entityHeight: 0,
+      );
+
+  const IconShape.entity({required double width, required double height})
+    : this._(
+        kind: IconShapeKind.entity,
+        lines: 1,
+        maxLineChars: 0,
+        isItem: false,
+        isBlockItem: false,
+        itemCount: 1,
+        entityWidth: width,
+        entityHeight: height,
+      );
+
+  const IconShape.block()
+    : this._(
+        kind: IconShapeKind.block,
+        lines: 1,
+        maxLineChars: 0,
+        isItem: false,
+        isBlockItem: true,
+        itemCount: 1,
+        entityWidth: 0,
+        entityHeight: 0,
       );
 
   /// Shape of the missing-icon placeholder drawn for a null or broken icon.
@@ -132,11 +166,17 @@ class IconShape {
         isItem: false,
         isBlockItem: false,
         itemCount: 1,
+        entityWidth: 0,
+        entityHeight: 0,
       );
 
   int get rows => lines;
 
   int get columns => maxLineChars;
+
+  bool get isEntity => kind == IconShapeKind.entity;
+
+  bool get isBlock => kind == IconShapeKind.block;
 
   @override
   bool operator ==(Object other) =>
@@ -145,11 +185,20 @@ class IconShape {
       other.lines == lines &&
       other.maxLineChars == maxLineChars &&
       other.isBlockItem == isBlockItem &&
-      other.itemCount == itemCount;
+      other.itemCount == itemCount &&
+      other.entityWidth == entityWidth &&
+      other.entityHeight == entityHeight;
 
   @override
-  int get hashCode =>
-      Object.hash(kind, lines, maxLineChars, isBlockItem, itemCount);
+  int get hashCode => Object.hash(
+    kind,
+    lines,
+    maxLineChars,
+    isBlockItem,
+    itemCount,
+    entityWidth,
+    entityHeight,
+  );
 
   @override
   String toString() =>
@@ -253,15 +302,19 @@ HuiRect hitboxAt({
   required IconShape shape,
   HuiHitbox? override,
   bool trueRender = true,
+  double scaleX = 1,
+  double scaleY = 1,
 }) {
   final double scale = _safeScale(uiScale);
+  final double iconScaleX = _safeScale(scaleX);
+  final double iconScaleY = _safeScale(scaleY);
   final bool customSize = override?.hasCustomSize ?? false;
   if (shape.isItem) {
     final double width = !customSize
-        ? huiItemSize * scale
+        ? huiItemSize * scale * iconScaleX
         : _safeDimension(override!.width!) * scale;
     final double height = !customSize
-        ? huiItemSize * scale
+        ? huiItemSize * scale * iconScaleY
         : _safeDimension(override!.height!) * scale;
     return HuiRect(
       x: anchorX,
@@ -270,11 +323,40 @@ HuiRect hitboxAt({
       h: height,
     );
   }
-  final double lineHeight = huiLineHeight * scale;
+  if (shape.isBlock) {
+    final double width = !customSize
+        ? huiItemSize * scale * iconScaleX
+        : _safeDimension(override!.width!) * scale;
+    final double height = !customSize
+        ? huiItemSize * scale * iconScaleY
+        : _safeDimension(override!.height!) * scale;
+    return HuiRect(
+      x: anchorX,
+      y: anchorY - huiItemHitboxDrop * scale,
+      w: width,
+      h: height,
+    );
+  }
+  if (shape.isEntity) {
+    final double width = !customSize
+        ? _safeDimension(shape.entityWidth) * scale
+        : _safeDimension(override!.width!) * scale;
+    final double height = !customSize
+        ? _safeDimension(shape.entityHeight) * scale
+        : _safeDimension(override!.height!) * scale;
+    return HuiRect(
+      x: anchorX,
+      y: anchorY + _safeDimension(shape.entityHeight) * scale / 2,
+      w: width,
+      h: height,
+    );
+  }
+  final double lineHeight = huiLineHeight * scale * iconScaleY;
+  final double characterWidth = huiLineHeight * scale * iconScaleX;
   final int lines = math.max(0, shape.lines);
   final int chars = math.max(0, shape.maxLineChars);
   final double width = !customSize
-      ? chars * lineHeight / 2
+      ? chars * characterWidth / 2
       : _safeDimension(override!.width!) * scale;
   final double height = !customSize
       ? shape.kind == IconShapeKind.image
@@ -283,7 +365,7 @@ HuiRect hitboxAt({
       : _safeDimension(override!.height!) * scale;
   return HuiRect(
     x: anchorX,
-    y: anchorY - (trueRender ? huiTextTrueRenderBias * scale : 0),
+    y: anchorY - (trueRender ? huiTextTrueRenderBias * scale * iconScaleY : 0),
     w: width,
     h: height,
   );
@@ -299,30 +381,51 @@ HuiRect visualBoundsAt({
   required double uiScale,
   required IconShape shape,
   bool trueRender = false,
+  double scaleX = 1,
+  double scaleY = 1,
 }) {
   final double scale = _safeScale(uiScale);
+  final double iconScaleX = _safeScale(scaleX);
+  final double iconScaleY = _safeScale(scaleY);
   if (shape.isItem) {
-    final double size = huiItemSize * scale;
+    final double width = huiItemSize * scale * iconScaleX;
+    final double height = huiItemSize * scale * iconScaleY;
     final double drop = trueRender
         ? itemTrueRenderBias(
                 count: shape.itemCount,
                 isBlockItem: shape.isBlockItem,
+                scaleY: iconScaleY,
               ) *
               scale
         : 0;
-    return HuiRect(x: anchorX, y: anchorY - drop, w: size, h: size);
+    return HuiRect(x: anchorX, y: anchorY - drop, w: width, h: height);
+  }
+  if (shape.isBlock) {
+    return HuiRect(
+      x: anchorX,
+      y: anchorY - (trueRender ? huiItemHitboxDrop * scale : 0),
+      w: huiItemSize * scale * iconScaleX,
+      h: huiItemSize * scale * iconScaleY,
+    );
+  }
+  if (shape.isEntity) {
+    final double width = _safeDimension(shape.entityWidth) * scale;
+    final double height = _safeDimension(shape.entityHeight) * scale;
+    return HuiRect(x: anchorX, y: anchorY + height / 2, w: width, h: height);
   }
   final int lines = math.max(0, shape.lines);
   final int chars = math.max(0, shape.maxLineChars);
   final double cellWidth = shape.kind == IconShapeKind.image
       ? huiCharCell
       : huiTextCharWidth;
-  final double drop = trueRender ? huiTextTrueRenderBias * scale : 0;
+  final double drop = trueRender
+      ? huiTextTrueRenderBias * scale * iconScaleY
+      : 0;
   return HuiRect(
     x: anchorX,
     y: anchorY - drop,
-    w: chars * cellWidth * scale,
-    h: lines * huiLineHeight * scale,
+    w: chars * cellWidth * scale * iconScaleX,
+    h: lines * huiLineHeight * scale * iconScaleY,
   );
 }
 
@@ -359,6 +462,8 @@ HuiRect hitboxFor({
   required IconShape shape,
   Vec3? menuOffset,
   bool trueRender = true,
+  double scaleX = 1,
+  double scaleY = 1,
 }) {
   final WorldPoint anchor = anchorFor(
     component: component,
@@ -376,6 +481,8 @@ HuiRect hitboxFor({
     shape: shape,
     override: hitbox,
     trueRender: trueRender,
+    scaleX: scaleX,
+    scaleY: scaleY,
   );
   if (hitbox == null) return automatic;
   final double scale = _safeScale(uiScale);
@@ -389,10 +496,13 @@ HuiRect hitboxFor({
             shape: shape,
             override: hitbox,
             trueRender: true,
+            scaleX: scaleX,
+            scaleY: scaleY,
           );
     return HuiRect(
       x: (menuOffset?.x ?? 0) + hitbox.offset.x * scale,
-      y: (menuOffset?.y ?? 0) +
+      y:
+          (menuOffset?.y ?? 0) +
           hitbox.offset.y * scale +
           automatic.y -
           runtimeAutomatic.y,
@@ -441,6 +551,8 @@ HuiRect visualBoundsFor({
   required IconShape shape,
   bool trueRender = false,
   Vec3? menuOffset,
+  double scaleX = 1,
+  double scaleY = 1,
 }) {
   final WorldPoint anchor = anchorFor(
     component: component,
@@ -453,6 +565,8 @@ HuiRect visualBoundsFor({
     uiScale: uiScale,
     shape: shape,
     trueRender: trueRender,
+    scaleX: scaleX,
+    scaleY: scaleY,
   );
 }
 
@@ -464,11 +578,15 @@ HuiRect visualBoundsFor({
 /// calls `rotate` immediately and `rotate` teleports the display to
 /// `this.position + BLOCK_OFFSET * scale`, rotated about the anchor (which
 /// preserves y), dropping the `scaledTagSize` term the spawn location carried.
-double itemTrueRenderBias({required int count, required bool isBlockItem}) {
+double itemTrueRenderBias({
+  required int count,
+  required bool isBlockItem,
+  double scaleY = 1,
+}) {
   if (isBlockItem) {
     return huiBlockDisplayOffset;
   }
-  return huiLineHeight +
+  return huiLineHeight * _safeScale(scaleY) +
       huiItemDisplayOffset +
       (count == 1 ? huiSingleItemCountOffset : 0);
 }
@@ -482,18 +600,25 @@ double textLineCenterY({
   required int lineIndex,
   required int lineCount,
   bool trueRender = false,
+  double scaleY = 1,
 }) {
   final double scale = _safeScale(uiScale);
-  final double lineHeight = huiLineHeight * scale;
+  final double iconScaleY = _safeScale(scaleY);
+  final double lineHeight = huiLineHeight * scale * iconScaleY;
   final int count = math.max(1, lineCount);
   final double y = anchorY + ((count - 1) / 2 - lineIndex) * lineHeight;
-  return trueRender ? y - huiTextTrueRenderBias * scale : y;
+  return trueRender ? y - huiTextTrueRenderBias * scale * iconScaleY : y;
 }
 
 /// Centre y of the stack-count label drawn under an item icon when count > 1.
-double itemCountLabelY({required double anchorY, required double uiScale}) {
+double itemCountLabelY({
+  required double anchorY,
+  required double uiScale,
+  double scaleY = 1,
+}) {
   final double scale = _safeScale(uiScale);
-  return anchorY - (huiLineHeight + huiItemCountLabelOffset) * scale;
+  return anchorY -
+      (huiLineHeight * _safeScale(scaleY) + huiItemCountLabelOffset) * scale;
 }
 
 double _safeScale(double uiScale) =>

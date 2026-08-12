@@ -223,10 +223,10 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
   RegExpMatch? get _tokenMatch => previewTrailingExprToken.firstMatch(_text);
 
   List<String> _suggestions() => previewSuggestExprTokens(
-        _text,
-        declaredVars: component.declaredVars,
-        scope: component.scope,
-      );
+    _text,
+    declaredVars: component.declaredVars,
+    scope: component.scope,
+  );
 
   void _selectSuggestion(String suggestion) {
     final RegExpMatch? match = _tokenMatch;
@@ -242,14 +242,17 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> suggestions = _showSuggestions ? _suggestions() : const <String>[];
+    final List<String> suggestions = _showSuggestions
+        ? _suggestions()
+        : const <String>[];
     final List<HuiIssue> combined = <HuiIssue>[
       ...component.issues,
       for (final String name in _categoryHints)
         HuiIssue(
           severity: HuiSeverity.info,
           path: component.label,
-          message: '$name is not published while previewing this category; '
+          message:
+              '$name is not published while previewing this category; '
               'it reads as unresolved there.',
         ),
     ];
@@ -285,82 +288,83 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
   }
 
   Widget _errorBlock() => dom.div(
-        classes: 'hui-expr-error',
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'margin-top': '4px',
-            'font-size': '0.72rem',
-            'color': 'var(--hui-danger, var(--destructive))',
-          },
+    classes: 'hui-expr-error',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'margin-top': '4px',
+        'font-size': '0.72rem',
+        'color': 'var(--hui-danger, var(--destructive))',
+      },
+    ),
+    <Widget>[
+      Text(_syntaxError!),
+      if (_syntaxPosition != previewNoPosition &&
+          _syntaxPosition <= _text.length)
+        dom.pre(
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'margin': '2px 0 0',
+              'padding': '0',
+              'font-family': 'var(--font-mono, ui-monospace, monospace)',
+              'font-size': '0.7rem',
+              'line-height': '1.2',
+              'white-space': 'pre',
+              'overflow-x': 'auto',
+            },
+          ),
+          <Widget>[Component.text('${' ' * _syntaxPosition}^')],
         ),
-        <Widget>[
-          Text(_syntaxError!),
-          if (_syntaxPosition != previewNoPosition && _syntaxPosition <= _text.length)
-            dom.pre(
-              styles: const dom.Styles(
-                raw: <String, String>{
-                  'margin': '2px 0 0',
-                  'padding': '0',
-                  'font-family': 'var(--font-mono, ui-monospace, monospace)',
-                  'font-size': '0.7rem',
-                  'line-height': '1.2',
-                  'white-space': 'pre',
-                  'overflow-x': 'auto',
-                },
-              ),
-              <Widget>[Component.text('${' ' * _syntaxPosition}^')],
-            ),
-        ],
-      );
+    ],
+  );
 
   Widget _suggestionList(List<String> suggestions) => dom.div(
-        classes: 'hui-expr-suggestions',
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'position': 'absolute',
-            'z-index': '30',
-            'top': '100%',
-            'left': '0',
-            'right': '0',
-            'margin-top': '2px',
-            'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '1px',
-            'padding': '4px',
-            'border': '1px solid var(--hui-border)',
-            'border-radius': 'var(--hui-radius)',
-            'background': 'var(--hui-surface-raised)',
-            'box-shadow': 'var(--hui-shadow-sm)',
-            'max-height': '160px',
-            'overflow-y': 'auto',
+    classes: 'hui-expr-suggestions',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'position': 'absolute',
+        'z-index': '30',
+        'top': '100%',
+        'left': '0',
+        'right': '0',
+        'margin-top': '2px',
+        'display': 'flex',
+        'flex-direction': 'column',
+        'gap': '1px',
+        'padding': '4px',
+        'border': '1px solid var(--hui-border)',
+        'border-radius': 'var(--hui-radius)',
+        'background': 'var(--hui-surface-raised)',
+        'box-shadow': 'var(--hui-shadow-sm)',
+        'max-height': '160px',
+        'overflow-y': 'auto',
+      },
+    ),
+    attributes: const <String, String>{'role': 'listbox'},
+    <Widget>[
+      for (final String suggestion in suggestions)
+        dom.button(
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'display': 'block',
+              'width': '100%',
+              'padding': '4px 6px',
+              'border': '0',
+              'border-radius': 'calc(var(--hui-radius) - 3px)',
+              'background': 'transparent',
+              'color': 'var(--hui-text)',
+              'text-align': 'left',
+              'font': 'inherit',
+              'font-family': 'var(--font-mono, ui-monospace, monospace)',
+              'font-size': '0.74rem',
+              'cursor': 'pointer',
+            },
+          ),
+          attributes: const <String, String>{'type': 'button'},
+          events: <String, void Function(Object)>{
+            'click': (Object _) => _selectSuggestion(suggestion),
           },
+          <Widget>[Text(suggestion)],
         ),
-        attributes: const <String, String>{'role': 'listbox'},
-        <Widget>[
-          for (final String suggestion in suggestions)
-            dom.button(
-              styles: const dom.Styles(
-                raw: <String, String>{
-                  'display': 'block',
-                  'width': '100%',
-                  'padding': '4px 6px',
-                  'border': '0',
-                  'border-radius': 'calc(var(--hui-radius) - 3px)',
-                  'background': 'transparent',
-                  'color': 'var(--hui-text)',
-                  'text-align': 'left',
-                  'font': 'inherit',
-                  'font-family': 'var(--font-mono, ui-monospace, monospace)',
-                  'font-size': '0.74rem',
-                  'cursor': 'pointer',
-                },
-              ),
-              attributes: const <String, String>{'type': 'button'},
-              events: <String, void Function(Object)>{
-                'click': (Object _) => _selectSuggestion(suggestion),
-              },
-              <Widget>[Text(suggestion)],
-            ),
-        ],
-      );
+    ],
+  );
 }

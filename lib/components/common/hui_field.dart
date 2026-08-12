@@ -43,97 +43,98 @@ class HuiField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: classNames(<String?>[
-          'hui-field',
-          inline ? 'is-inline' : null,
-          error != null ? 'is-invalid' : null,
-          classes,
-        ]),
-        styles: dom.Styles(
+    classes: classNames(<String?>[
+      'hui-field',
+      inline ? 'is-inline' : null,
+      error != null ? 'is-invalid' : null,
+      classes,
+    ]),
+    styles: dom.Styles(
+      raw: <String, String>{
+        'display': inline ? 'grid' : 'flex',
+        if (inline)
+          'grid-template-columns': 'minmax(90px, .38fr) minmax(0, 1fr)',
+        if (inline) 'align-items': 'center',
+        if (!inline) 'flex-direction': 'column',
+        'gap': inline ? '10px' : '6px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      dom.div(
+        classes: 'hui-field-head',
+        styles: const dom.Styles(
           raw: <String, String>{
-            'display': inline ? 'grid' : 'flex',
-            if (inline) 'grid-template-columns': 'minmax(90px, .38fr) minmax(0, 1fr)',
-            if (inline) 'align-items': 'center',
-            if (!inline) 'flex-direction': 'column',
-            'gap': inline ? '10px' : '6px',
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'space-between',
+            'gap': '8px',
             'min-width': '0',
           },
         ),
         <Widget>[
-          dom.div(
-            classes: 'hui-field-head',
+          dom.label(
+            classes: 'hui-field-label',
             styles: const dom.Styles(
               raw: <String, String>{
-                'display': 'flex',
-                'align-items': 'center',
-                'justify-content': 'space-between',
-                'gap': '8px',
-                'min-width': '0',
+                'font-size': '0.78rem',
+                'font-weight': '600',
+                'letter-spacing': '-0.01em',
+                'color': 'var(--foreground)',
               },
             ),
             <Widget>[
-              dom.label(
-                classes: 'hui-field-label',
-                styles: const dom.Styles(
-                  raw: <String, String>{
-                    'font-size': '0.78rem',
-                    'font-weight': '600',
-                    'letter-spacing': '-0.01em',
-                    'color': 'var(--foreground)',
-                  },
-                ),
-                <Widget>[
-                  Text(label),
-                  if (required)
-                    const dom.span(
-                      classes: 'hui-field-required',
-                      styles: dom.Styles(
-                        raw: <String, String>{
-                          'color': 'var(--destructive)',
-                          'margin-left': '3px',
-                        },
-                      ),
-                      <Widget>[Text('*')],
-                    ),
-                ],
-              ),
-              if (trailing != null)
-                dom.div(classes: 'hui-field-trailing', <Widget>[trailing!]),
-            ],
-          ),
-          dom.div(
-            classes: 'hui-field-control',
-            styles: const dom.Styles(raw: <String, String>{'min-width': '0'}),
-            <Widget>[
-              control,
-              if (help != null)
-                dom.p(
-                  classes: 'hui-field-help',
-                  styles: const dom.Styles(
+              Text(label),
+              if (required)
+                const dom.span(
+                  classes: 'hui-field-required',
+                  styles: dom.Styles(
                     raw: <String, String>{
-                      'font-size': '0.74rem',
-                      'line-height': '1.35',
-                      'margin': '5px 0 0',
-                      'color': 'var(--muted-foreground)',
-                    },
-                  ),
-                  <Widget>[Text(help!)],
-                ),
-              if (error != null)
-                dom.p(
-                  classes: 'hui-field-error',
-                  styles: const dom.Styles(
-                    raw: <String, String>{
-                      'font-size': '0.74rem',
-                      'line-height': '1.35',
-                      'margin': '4px 0 0',
                       'color': 'var(--destructive)',
+                      'margin-left': '3px',
                     },
                   ),
-                  <Widget>[Text(error!)],
+                  <Widget>[Text('*')],
                 ),
             ],
           ),
+          if (trailing != null)
+            dom.div(classes: 'hui-field-trailing', <Widget>[trailing!]),
         ],
-      );
+      ),
+      dom.div(
+        classes: 'hui-field-control',
+        styles: const dom.Styles(raw: <String, String>{'min-width': '0'}),
+        <Widget>[
+          control,
+          if (help != null)
+            dom.p(
+              classes: 'hui-field-help',
+              styles: const dom.Styles(
+                raw: <String, String>{
+                  'font-size': '0.74rem',
+                  'line-height': '1.35',
+                  'margin': '5px 0 0',
+                  'color': 'var(--muted-foreground)',
+                },
+              ),
+              <Widget>[Text(help!)],
+            ),
+          if (error != null)
+            dom.p(
+              classes: 'hui-field-error',
+              styles: const dom.Styles(
+                raw: <String, String>{
+                  'font-size': '0.74rem',
+                  'line-height': '1.35',
+                  'margin': '4px 0 0',
+                  'color': 'var(--destructive)',
+                },
+              ),
+              <Widget>[Text(error!)],
+            ),
+        ],
+      ),
+    ],
+  );
 }

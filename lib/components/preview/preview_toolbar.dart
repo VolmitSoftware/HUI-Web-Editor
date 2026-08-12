@@ -47,8 +47,9 @@ class _Overlay {
 const List<_Overlay> _overlays = <_Overlay>[
   _Overlay(
     label: 'Collision planes',
-    hint: 'The rectangle a click is tested against. It re-aims at your eye '
-        'every tick while the icon never turns (ClickableComponent.java:60-62).',
+    hint:
+        'The rectangle a click is tested against. It uses the icon\'s fixed, '
+        'vertical, horizontal or center billboard rule.',
     read: _readPlanes,
     write: _writePlanes,
   ),
@@ -60,20 +61,24 @@ const List<_Overlay> _overlays = <_Overlay>[
   ),
   _Overlay(
     label: 'Anchors',
-    hint: 'The offset point each icon hangs from, before its own vertical '
+    hint:
+        'The offset point each icon hangs from, before its own vertical '
         'anchor and the one-nametag spawn drop.',
     read: _readAnchors,
     write: _writeAnchors,
   ),
   _Overlay(
     label: 'Menu centre',
-    hint: 'Feet plus the menu offset — the point maxDistance is measured to.',
+    hint:
+        'Current anchor plus the transformed menu offset — the point '
+        'maxDistance is measured to.',
     read: _readCenter,
     write: _writeCenter,
   ),
   _Overlay(
     label: 'maxDistance sphere',
-    hint: 'The shell the menu closes outside of, loosened by the menu offset '
+    hint:
+        'The shell the menu closes outside of, loosened by the menu offset '
         '(MenuSession.java:147-151).',
     read: _readSphere,
     write: _writeSphere,
@@ -107,11 +112,7 @@ void _writeGround(EditorStore store, bool value) =>
     store.previewShowGroundGrid = value;
 
 class PreviewToolbar extends StatefulWidget {
-  const PreviewToolbar({
-    required this.store,
-    required this.pose,
-    super.key,
-  });
+  const PreviewToolbar({required this.store, required this.pose, super.key});
 
   final EditorStore store;
   final PreviewPose pose;
@@ -143,107 +144,87 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
     if (_overlaysOpen == open) return;
     setState(() => _overlaysOpen = open);
     context.binding.addPostFrameCallback(() {
-      final web.Element? target =
-          web.document.getElementById(open ? _menuId : _triggerId);
+      final web.Element? target = web.document.getElementById(
+        open ? _menuId : _triggerId,
+      );
       (target as web.HTMLElement?)?.focus();
     });
   }
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-preview-toolbar',
-        attributes: const <String, String>{
-          'role': 'toolbar',
-          'aria-label': 'Preview controls',
-        },
-        <Widget>[
-          _group('icons face', _facingControls()),
-          _group(null, _cameraControls()),
-          _group(null, <Widget>[_playPauseControl()]),
-          _group(null, <Widget>[_scaleControl()]),
-          _group(null, <Widget>[_overlaysControl()]),
-          _group(null, _logControls()),
-        ],
-      );
+    classes: 'hui-preview-toolbar',
+    attributes: const <String, String>{
+      'role': 'toolbar',
+      'aria-label': 'Preview controls',
+    },
+    <Widget>[
+      _group('icon facing', <Widget>[_billboardHelp()]),
+      _group(null, _cameraControls()),
+      _group(null, <Widget>[_playPauseControl()]),
+      _group(null, <Widget>[_scaleControl()]),
+      _group(null, <Widget>[_overlaysControl()]),
+      _group(null, _logControls()),
+    ],
+  );
 
-  Widget _group(String? eyebrow, List<Widget> children) => dom.div(
-        classes: 'hui-preview-toolgroup',
-        <Widget>[
-          if (eyebrow != null)
-            dom.span(
-              classes: 'hui-eyebrow hui-preview-tool-label',
-              <Widget>[Component.text(eyebrow)],
-            ),
-          ...children,
-        ],
-      );
+  Widget _group(String? eyebrow, List<Widget> children) =>
+      dom.div(classes: 'hui-preview-toolgroup', <Widget>[
+        if (eyebrow != null)
+          dom.span(classes: 'hui-eyebrow hui-preview-tool-label', <Widget>[
+            Component.text(eyebrow),
+          ]),
+        ...children,
+      ]);
 
-  /// The sharpest edge the preview exists to teach, so it leads the strip.
-  List<Widget> _facingControls() => <Widget>[
-        for (final PreviewFacingMode mode in PreviewFacingMode.values)
-          ArcaneTooltip(
-            text: mode.summary,
-            child: Button(
-              // Keyed on the state it reports: Arcane's Button renders its
-              // `attributes` one build behind, so an unkeyed aria-pressed is
-              // always the previous value.
-              key: ValueKey<String>('facing-${mode.name}-${_pose.facing == mode}'),
-              label: mode.label,
-              variant: _pose.facing == mode
-                  ? ButtonVariant.secondary
-                  : ButtonVariant.ghost,
-              size: ButtonSize.sm,
-              type: ButtonType.button,
-              attributes: <String, String>{
-                'aria-pressed': '${_pose.facing == mode}',
-                'aria-label': 'Icon facing: ${mode.label}. ${mode.summary}',
-              },
-              onPressed: () => _pose.facing = mode,
-            ),
-          ),
-        // Where the in-stage note's long copy went. The note itself is one
-        // line and closes for good; this is how the detail stays reachable
-        // without a box sitting on top of the menu.
-        HuiHelpPopover(
-          title: 'Icon facing: ${_pose.facing.label}',
-          body: _pose.facing.explanation,
-          triggerLabel: 'Why ${_pose.facing.label} facing looks like this',
-          align: HuiFieldHelpAlign.start,
-        ),
-      ];
+  Widget _billboardHelp() => const HuiHelpPopover(
+    title: 'Runtime billboard facing',
+    body:
+        'Fixed icons use the menu yaw, pitch and roll. Vertical icons yaw '
+        'toward the viewer while keeping world up. Horizontal icons keep the '
+        'menu-right axis and pitch toward the viewer. Center icons fully face '
+        'the viewer. Click planes use the same rule. A static menu keeps its '
+        'open pose; followPlayer updates its position and yaw as the player '
+        'moves or looks.',
+    triggerLabel: 'How runtime billboard facing works',
+    align: HuiFieldHelpAlign.start,
+  );
 
   List<Widget> _cameraControls() => <Widget>[
-        _modeButton(
-          mode: PreviewCameraMode.orbit,
-          label: 'Orbit',
-          icon: ArcaneIcon.orbit(size: IconSize.sm),
-          tooltip: 'Orbit camera: drag to turn around the menu, scroll to '
-              'dolly, space-drag to pan',
-        ),
-        _modeButton(
-          mode: PreviewCameraMode.player,
-          label: 'Player',
-          icon: ArcaneIcon.user(size: IconSize.sm),
-          tooltip: 'Player camera: the view from eye height, 1.62 blocks above '
-              'the feet the menu is anchored to',
-        ),
-        _action(
-          icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
-          label: 'Reset view',
-          tooltip: 'Reset to the open position - where the player was standing '
-              'and looking when the menu opened (0)',
-          onPressed: () => _pose.controller?.resetCamera(),
-        ),
-        _action(
-          icon: ArcaneIcon.rotate3d(size: IconSize.sm),
-          label: 'Reopen here',
-          tooltip: 'Open a fresh session from where the camera is now. The new '
-              'yaw becomes the menu\'s one and only rotation, and the log '
-              'starts over - the runtime has no reopen either, it builds a new '
-              'MenuSession',
-          onPressed: () => _pose.controller?.reopenHere(),
-        ),
-      ];
+    _modeButton(
+      mode: PreviewCameraMode.orbit,
+      label: 'Orbit',
+      icon: ArcaneIcon.orbit(size: IconSize.sm),
+      tooltip:
+          'Orbit camera: drag to turn around the menu, scroll to '
+          'dolly, space-drag to pan',
+    ),
+    _modeButton(
+      mode: PreviewCameraMode.player,
+      label: 'Player',
+      icon: ArcaneIcon.user(size: IconSize.sm),
+      tooltip:
+          'Player camera: the view from eye height, 1.62 blocks above '
+          'the feet the menu is anchored to',
+    ),
+    _action(
+      icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
+      label: 'Reset view',
+      tooltip:
+          'Reset to the open position - where the player was standing '
+          'and looking when the menu opened (0)',
+      onPressed: () => _pose.controller?.resetCamera(),
+    ),
+    _action(
+      icon: ArcaneIcon.rotate3d(size: IconSize.sm),
+      label: 'Reopen here',
+      tooltip:
+          'Open a fresh session from where the camera is now. The new '
+          'yaw becomes the menu\'s open facing, and the log starts over. '
+          'A followPlayer menu can turn with the player after opening',
+      onPressed: () => _pose.controller?.reopenHere(),
+    ),
+  ];
 
   Widget _modeButton({
     required PreviewCameraMode mode,
@@ -278,35 +259,31 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
   /// same store field all three do.
   Widget _scaleControl() {
     final String value = _store.previewUiScale.toStringAsFixed(2);
-    return dom.div(
-      classes: 'hui-preview-scale',
-      <Widget>[
-        const dom.span(
-          classes: 'hui-eyebrow hui-preview-tool-label',
-          <Widget>[Component.text('uiScale')],
-        ),
-        dom.input<num>(
-          type: dom.InputType.range,
-          classes: 'hui-range hui-preview-scale-range',
-          value: value,
-          // No setState: the store notifies and the ListenableBuilder that
-          // wraps this strip rebuilds it, exactly as the canvas toolbar does.
-          onInput: (num next) =>
-              _store.previewUiScale = (next.toDouble() * 100).round() / 100,
-          attributes: const <String, String>{
-            'min': '0.25',
-            'max': '4',
-            'step': '0.05',
-            'aria-label': 'Server uiScale. Multiplies every component offset '
-                'and every icon size, but never the menu offset',
-          },
-        ),
-        dom.span(
-          classes: 'hui-preview-scale-value',
-          <Widget>[Component.text('${value}x')],
-        ),
-      ],
-    );
+    return dom.div(classes: 'hui-preview-scale', <Widget>[
+      const dom.span(classes: 'hui-eyebrow hui-preview-tool-label', <Widget>[
+        Component.text('uiScale'),
+      ]),
+      dom.input<num>(
+        type: dom.InputType.range,
+        classes: 'hui-range hui-preview-scale-range',
+        value: value,
+        // No setState: the store notifies and the ListenableBuilder that
+        // wraps this strip rebuilds it, exactly as the canvas toolbar does.
+        onInput: (num next) =>
+            _store.previewUiScale = (next.toDouble() * 100).round() / 100,
+        attributes: const <String, String>{
+          'min': '0.25',
+          'max': '4',
+          'step': '0.05',
+          'aria-label':
+              'Server uiScale. Multiplies every component offset '
+              'and every icon size, but never the menu offset',
+        },
+      ),
+      dom.span(classes: 'hui-preview-scale-value', <Widget>[
+        Component.text('${value}x'),
+      ]),
+    ]);
   }
 
   /// The preview's own playback switch, the pointer half of `K`.
@@ -323,7 +300,8 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
           ? ArcaneIcon.pause(size: IconSize.sm)
           : ArcaneIcon.play(size: IconSize.sm),
       label: playing ? 'Pause' : 'Play',
-      tooltip: 'Preview clock (K): animated frames advance and obfuscated '
+      tooltip:
+          'Preview clock (K): animated frames advance and obfuscated '
           'glyphs scramble every 50 ms. Paused, the stage schedules nothing; '
           'hover and clicks still run',
       active: playing,
@@ -355,14 +333,16 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
           : null,
       <Widget>[
         ArcaneTooltip(
-          text: 'Overlays: what the runtime measures against, drawn in the '
+          text:
+              'Overlays: what the runtime measures against, drawn in the '
               'scene',
           child: Button(
             id: _triggerId,
             key: ValueKey<String>('overlays-$_overlaysOpen-$on'),
             icon: ArcaneIcon.layers(size: IconSize.sm),
-            variant:
-                _overlaysOpen ? ButtonVariant.secondary : ButtonVariant.ghost,
+            variant: _overlaysOpen
+                ? ButtonVariant.secondary
+                : ButtonVariant.ghost,
             size: ButtonSize.sm,
             type: ButtonType.button,
             attributes: <String, String>{
@@ -379,17 +359,13 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
               'data-arcane-interactive': 'true',
             },
             onPressed: () => _setOverlaysOpen(!_overlaysOpen),
-            child: dom.span(
-              classes: 'hui-preview-overlays-trigger',
-              <Widget>[
-                _toolLabel('Overlays'),
-                if (on > 0)
-                  dom.span(
-                    classes: 'hui-count-chip',
-                    <Widget>[Component.text('$on')],
-                  ),
-              ],
-            ),
+            child: dom.span(classes: 'hui-preview-overlays-trigger', <Widget>[
+              _toolLabel('Overlays'),
+              if (on > 0)
+                dom.span(classes: 'hui-count-chip', <Widget>[
+                  Component.text('$on'),
+                ]),
+            ]),
           ),
         ),
         if (_overlaysOpen) ..._overlaysMenu(),
@@ -398,32 +374,30 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
   }
 
   List<Widget> _overlaysMenu() => <Widget>[
-        // A transparent full-viewport layer under the menu: one click anywhere
-        // closes it. Rendered by the same condition as the menu, so unlike a
-        // document listener it cannot outlive it.
-        dom.div(
-          classes: 'hui-preview-overlaymenu-scrim',
-          attributes: const <String, String>{'aria-hidden': 'true'},
-          events: <String, EventCallback>{
-            'pointerdown': (Object _) => _setOverlaysOpen(false),
-          },
-          const <Widget>[],
-        ),
-        dom.div(
-          id: _menuId,
-          classes: 'hui-preview-overlaymenu hui-anim-in',
-          attributes: const <String, String>{
-            'role': 'menu',
-            'aria-label': 'Preview overlays',
-            // Focused on open; see [_setOverlaysOpen]. Never reachable by Tab,
-            // which is what -1 buys over 0.
-            'tabindex': '-1',
-          },
-          <Widget>[
-            for (final _Overlay overlay in _overlays) _overlayItem(overlay),
-          ],
-        ),
-      ];
+    // A transparent full-viewport layer under the menu: one click anywhere
+    // closes it. Rendered by the same condition as the menu, so unlike a
+    // document listener it cannot outlive it.
+    dom.div(
+      classes: 'hui-preview-overlaymenu-scrim',
+      attributes: const <String, String>{'aria-hidden': 'true'},
+      events: <String, EventCallback>{
+        'pointerdown': (Object _) => _setOverlaysOpen(false),
+      },
+      const <Widget>[],
+    ),
+    dom.div(
+      id: _menuId,
+      classes: 'hui-preview-overlaymenu hui-anim-in',
+      attributes: const <String, String>{
+        'role': 'menu',
+        'aria-label': 'Preview overlays',
+        // Focused on open; see [_setOverlaysOpen]. Never reachable by Tab,
+        // which is what -1 buys over 0.
+        'tabindex': '-1',
+      },
+      <Widget>[for (final _Overlay overlay in _overlays) _overlayItem(overlay)],
+    ),
+  ];
 
   Widget _overlayItem(_Overlay overlay) {
     final bool on = overlay.read(_store);
@@ -449,60 +423,57 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
           <Widget>[if (on) ArcaneIcon.check(size: IconSize.sm)],
         ),
         dom.span(classes: 'hui-preview-overlaymenu-text', <Widget>[
-          dom.span(
-            classes: 'hui-preview-overlaymenu-label',
-            <Widget>[Component.text(overlay.label)],
-          ),
-          dom.span(
-            classes: 'hui-preview-overlaymenu-hint',
-            <Widget>[Component.text(overlay.hint)],
-          ),
+          dom.span(classes: 'hui-preview-overlaymenu-label', <Widget>[
+            Component.text(overlay.label),
+          ]),
+          dom.span(classes: 'hui-preview-overlaymenu-hint', <Widget>[
+            Component.text(overlay.hint),
+          ]),
         ]),
       ],
     );
   }
 
   List<Widget> _logControls() => <Widget>[
-        _toggle(
-          icon: ArcaneIcon.terminal(size: IconSize.sm),
-          label: 'Log',
-          tooltip: 'Action log: what each simulated click would have run',
-          active: _store.previewLogOpen,
-          onPressed: () => _store.previewLogOpen = !_store.previewLogOpen,
-        ),
-        ArcaneTooltip(
-          text: 'Clear the action log',
-          child: Button(
-            icon: ArcaneIcon.trash2(size: IconSize.sm),
-            variant: ButtonVariant.ghost,
-            size: ButtonSize.sm,
-            type: ButtonType.button,
-            disabled: _pose.log.isEmpty,
-            attributes: const <String, String>{'aria-label': 'Clear log'},
-            onPressed: _pose.log.clear,
-            child: _toolLabel('Clear log'),
-          ),
-        ),
-      ];
+    _toggle(
+      icon: ArcaneIcon.terminal(size: IconSize.sm),
+      label: 'Log',
+      tooltip: 'Action log: what each simulated click would have run',
+      active: _store.previewLogOpen,
+      onPressed: () => _store.previewLogOpen = !_store.previewLogOpen,
+    ),
+    ArcaneTooltip(
+      text: 'Clear the action log',
+      child: Button(
+        icon: ArcaneIcon.trash2(size: IconSize.sm),
+        variant: ButtonVariant.ghost,
+        size: ButtonSize.sm,
+        type: ButtonType.button,
+        disabled: _pose.log.isEmpty,
+        attributes: const <String, String>{'aria-label': 'Clear log'},
+        onPressed: _pose.log.clear,
+        child: _toolLabel('Clear log'),
+      ),
+    ),
+  ];
 
   Widget _action({
     required Widget icon,
     required String label,
     required String tooltip,
     required void Function() onPressed,
-  }) =>
-      ArcaneTooltip(
-        text: tooltip,
-        child: Button(
-          icon: icon,
-          variant: ButtonVariant.ghost,
-          size: ButtonSize.sm,
-          type: ButtonType.button,
-          attributes: <String, String>{'aria-label': label},
-          onPressed: onPressed,
-          child: _toolLabel(label),
-        ),
-      );
+  }) => ArcaneTooltip(
+    text: tooltip,
+    child: Button(
+      icon: icon,
+      variant: ButtonVariant.ghost,
+      size: ButtonSize.sm,
+      type: ButtonType.button,
+      attributes: <String, String>{'aria-label': label},
+      onPressed: onPressed,
+      child: _toolLabel(label),
+    ),
+  );
 
   Widget _toggle({
     required Widget icon,
@@ -510,28 +481,27 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
     required String tooltip,
     required bool active,
     required void Function() onPressed,
-  }) =>
-      ArcaneTooltip(
-        text: tooltip,
-        child: Button(
-          key: ValueKey<String>('toggle-$label-$active'),
-          icon: icon,
-          variant: active ? ButtonVariant.secondary : ButtonVariant.ghost,
-          size: ButtonSize.sm,
-          type: ButtonType.button,
-          attributes: <String, String>{
-            'aria-pressed': '$active',
-            'aria-label': label,
-          },
-          onPressed: onPressed,
-          child: _toolLabel(label),
-        ),
-      );
+  }) => ArcaneTooltip(
+    text: tooltip,
+    child: Button(
+      key: ValueKey<String>('toggle-$label-$active'),
+      icon: icon,
+      variant: active ? ButtonVariant.secondary : ButtonVariant.ghost,
+      size: ButtonSize.sm,
+      type: ButtonType.button,
+      attributes: <String, String>{
+        'aria-pressed': '$active',
+        'aria-label': label,
+      },
+      onPressed: onPressed,
+      child: _toolLabel(label),
+    ),
+  );
 
   /// Text the stylesheet may drop when the preview cell is narrow. Never the
   /// only description of a control.
   static Widget _toolLabel(String text) => dom.span(
-        classes: 'hui-preview-tool-label',
-        <Widget>[Component.text(text)],
-      );
+    classes: 'hui-preview-tool-label',
+    <Widget>[Component.text(text)],
+  );
 }

@@ -52,6 +52,7 @@ class EditorShell extends StatefulWidget {
     required this.canvas,
     required this.previewCard,
     required this.preview,
+    required this.board,
     required this.inspector,
     required this.codeEditor,
     required this.overlays,
@@ -64,6 +65,7 @@ class EditorShell extends StatefulWidget {
     this.onOpenHelp,
     this.onOpenSettings,
     this.onOpenValidation,
+    this.syncBar,
     this.onCloseOverlay,
     this.onToggleTheme,
     this.darkMode = true,
@@ -79,6 +81,7 @@ class EditorShell extends StatefulWidget {
 
   /// Mounted only while the preview view is active; see [_CenterArea].
   final Widget preview;
+  final Widget board;
   final Widget inspector;
   final Widget codeEditor;
 
@@ -98,6 +101,7 @@ class EditorShell extends StatefulWidget {
   final void Function()? onOpenHelp;
   final void Function()? onOpenSettings;
   final void Function()? onOpenValidation;
+  final Widget? syncBar;
 
   /// Escape handler for whichever dialog or sheet the owner has open.
   final void Function()? onCloseOverlay;
@@ -122,6 +126,7 @@ class _EditorShellState extends State<EditorShell> {
   bool _tourChecked = false;
   bool _shortcutsOpen = false;
   bool _shortcutsLeaving = false;
+
   /// Bumped on every open and close so a dismissal already in flight cannot
   /// unmount a surface the user has since re-opened.
   int _dismissSeq = 0;
@@ -202,18 +207,18 @@ class _EditorShellState extends State<EditorShell> {
   }
 
   ShellIntents _buildIntents(EditorStore store) => ShellIntents(
-        store: store,
-        requestDeleteSelected: _armDelete,
-        openPalette: _openPalette,
-        onOpenImport: component.onOpenImport,
-        onOpenExport: component.onOpenExport,
-        onOpenImages: component.onOpenImages,
-        onOpenTemplates: component.onOpenTemplates,
-        onOpenHelp: component.onOpenHelp,
-        onOpenSettings: component.onOpenSettings,
-        onOpenValidation: component.onOpenValidation,
-        onToggleTheme: component.onToggleTheme,
-      );
+    store: store,
+    requestDeleteSelected: _armDelete,
+    openPalette: _openPalette,
+    onOpenImport: component.onOpenImport,
+    onOpenExport: component.onOpenExport,
+    onOpenImages: component.onOpenImages,
+    onOpenTemplates: component.onOpenTemplates,
+    onOpenHelp: component.onOpenHelp,
+    onOpenSettings: component.onOpenSettings,
+    onOpenValidation: component.onOpenValidation,
+    onToggleTheme: component.onToggleTheme,
+  );
 
   void _openPalette() {
     if (_paletteOpen) return;
@@ -361,45 +366,42 @@ class _EditorShellState extends State<EditorShell> {
       onCloseOverlay: _escapeOverlay,
       child: dom.div(
         id: 'hui-shell',
-        classes: 'hui-shell',
+        classes: component.syncBar == null ? 'hui-shell' : 'hui-shell has-sync',
         <Widget>[
-          TopBar(
-            intents: intents,
-            apple: _apple,
-            darkMode: component.darkMode,
-          ),
-          dom.div(
-            classes: 'hui-shell-body',
-            <Widget>[
-              dom.aside(
-                classes: 'hui-pane hui-rail',
-                attributes: const <String, String>{'aria-label': 'Components'},
-                <Widget>[component.rail],
-              ),
-              PaneSplitter(
-                side: PaneSide.rail,
-                layout: _panes,
-                onCommit: _commitPanes,
-              ),
-              _CenterArea(
-                store: store,
-                canvas: component.canvas,
-                previewCard: component.previewCard,
-                preview: component.preview,
-                codeEditor: component.codeEditor,
-              ),
-              PaneSplitter(
-                side: PaneSide.inspector,
-                layout: _panes,
-                onCommit: _commitPanes,
-              ),
-              dom.aside(
-                classes: 'hui-pane hui-inspector',
-                attributes: const <String, String>{'aria-label': 'Inspector'},
-                <Widget>[component.inspector],
-              ),
-            ],
-          ),
+          TopBar(intents: intents, apple: _apple, darkMode: component.darkMode),
+          if (component.syncBar != null) component.syncBar!,
+          dom.div(classes: 'hui-shell-body', <Widget>[
+            dom.aside(
+              classes: 'hui-pane hui-rail',
+              attributes: const <String, String>{
+                'aria-label': 'Library and document contents',
+              },
+              <Widget>[component.rail],
+            ),
+            PaneSplitter(
+              side: PaneSide.rail,
+              layout: _panes,
+              onCommit: _commitPanes,
+            ),
+            _CenterArea(
+              store: store,
+              canvas: component.canvas,
+              previewCard: component.previewCard,
+              preview: component.preview,
+              board: component.board,
+              codeEditor: component.codeEditor,
+            ),
+            PaneSplitter(
+              side: PaneSide.inspector,
+              layout: _panes,
+              onCommit: _commitPanes,
+            ),
+            dom.aside(
+              classes: 'hui-pane hui-inspector',
+              attributes: const <String, String>{'aria-label': 'Inspector'},
+              <Widget>[component.inspector],
+            ),
+          ]),
           StatusBar(
             store: store,
             status: component.status,
@@ -513,6 +515,7 @@ class _CenterArea extends StatelessWidget {
     required this.canvas,
     required this.previewCard,
     required this.preview,
+    required this.board,
     required this.codeEditor,
   });
 
@@ -520,39 +523,36 @@ class _CenterArea extends StatelessWidget {
   final Widget canvas;
   final Widget previewCard;
   final Widget preview;
+  final Widget board;
   final Widget codeEditor;
 
   @override
   Widget build(BuildContext context) => StoreSelector<EditorView>(
-        listenable: store,
-        selector: () => store.view,
-        builder: (BuildContext context, EditorView view) => dom.section(
-          classes: switch (view) {
-            EditorView.visual => 'hui-pane hui-center is-visual',
-            EditorView.preview => 'hui-pane hui-center is-preview',
-            EditorView.code => 'hui-pane hui-center is-code',
-            EditorView.split => 'hui-pane hui-center is-split',
-            EditorView.previewCard => 'hui-pane hui-center is-preview-card',
-          },
-          <Widget>[
-            dom.div(classes: 'hui-split-cell', <Widget>[canvas]),
-            dom.div(
-              classes: 'hui-split-cell is-preview-card',
-              <Widget>[previewCard],
-            ),
-            if (view == EditorView.preview)
-              dom.div(
-                classes: 'hui-split-cell is-preview',
-                <Widget>[preview],
-              ),
-            if (view == EditorView.code || view == EditorView.split)
-              dom.div(
-                classes: 'hui-split-cell is-code',
-                <Widget>[codeEditor],
-              ),
-          ],
-        ),
-      );
+    listenable: store,
+    selector: () => store.view,
+    builder: (BuildContext context, EditorView view) => dom.section(
+      classes: switch (view) {
+        EditorView.visual => 'hui-pane hui-center is-visual',
+        EditorView.preview => 'hui-pane hui-center is-preview',
+        EditorView.code => 'hui-pane hui-center is-code',
+        EditorView.split => 'hui-pane hui-center is-split',
+        EditorView.previewCard => 'hui-pane hui-center is-preview-card',
+        EditorView.board => 'hui-pane hui-center is-board',
+      },
+      <Widget>[
+        dom.div(classes: 'hui-split-cell', <Widget>[canvas]),
+        dom.div(classes: 'hui-split-cell is-preview-card', <Widget>[
+          previewCard,
+        ]),
+        if (view == EditorView.preview)
+          dom.div(classes: 'hui-split-cell is-preview', <Widget>[preview]),
+        if (view == EditorView.board)
+          dom.div(classes: 'hui-split-cell is-board', <Widget>[board]),
+        if (view == EditorView.code || view == EditorView.split)
+          dom.div(classes: 'hui-split-cell is-code', <Widget>[codeEditor]),
+      ],
+    ),
+  );
 }
 
 class _DropOverlay extends StatelessWidget {
@@ -560,16 +560,13 @@ class _DropOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-dropzone',
-        attributes: const <String, String>{'aria-hidden': 'true'},
-        <Widget>[
-          dom.div(
-            classes: 'hui-dropzone-card',
-            <Widget>[
-              ArcaneIcon.upload(size: IconSize.lg),
-              const dom.p(<Widget>[Text('Drop a menu .json or PNG images')]),
-            ],
-          ),
-        ],
-      );
+    classes: 'hui-dropzone',
+    attributes: const <String, String>{'aria-hidden': 'true'},
+    <Widget>[
+      dom.div(classes: 'hui-dropzone-card', <Widget>[
+        ArcaneIcon.upload(size: IconSize.lg),
+        const dom.p(<Widget>[Text('Drop a menu .json or PNG images')]),
+      ]),
+    ],
+  );
 }

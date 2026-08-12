@@ -13,18 +13,13 @@
 /// overlay that exists because somebody is standing somewhere. This file owns
 /// the frame loop, the scene resolution, the icon quads and the readouts.
 ///
-/// Two clocks, and the difference between them is the whole preview:
+/// Two clocks drive the preview:
 ///
-///  * The **quads are frozen.** Their world position and their facing were
-///    fixed at open (`MenuSession.java:119-122`, `MenuComponent.java:142-144`);
-///    billboarding is always FIXED (`MenuIcon.java:112-114`). Orbiting cannot
-///    move them, which is why the camera matrix is written to exactly one
-///    element and never touches a quad.
-///  * The **collision planes re-aim every tick** at the eye
-///    (`ClickableComponent.java:60-62`). That is what `hoveredClickableIds`
-///    recomputes per tick, and why hovering changes as you orbit even though
-///    nothing moved. Turning the plane overlay on is how that becomes visible:
-///    the rectangles swing, the icons do not.
+///  * Static menu transforms stay at their open pose. `followPlayer` updates
+///    the anchor and facing yaw with the simulated player.
+///  * Every icon and click plane honors its display style: fixed uses the menu
+///    transform, vertical keeps world up, horizontal keeps menu right, and
+///    center fully faces the viewer.
 ///
 /// Idle costs nothing. Both clocks are dirty-gated: with no animated icon, no
 /// obfuscated span, no held movement key and no input, the timer cancels itself
@@ -68,8 +63,8 @@ const double huiPreviewSpritePxPerBlock = huiPreviewPxPerBlock * 2;
 /// Slack left around the framed content when the camera resets, in blocks.
 const double huiPreviewFrameMargin = 0.5;
 
-/// Placeholders resolve once, at open, on the server (`TextUtils.parse` via
-/// PlaceholderAPI) — the editor cannot expand them and must not pretend to.
+/// PlaceholderAPI values cannot be expanded in the editor, so their source
+/// tokens remain visible while the preview reports the configured refresh.
 final RegExp huiPlaceholderPattern = RegExp(r'%[^%\s]+%');
 
 class PreviewStage extends StatefulWidget {
@@ -153,7 +148,6 @@ class _PreviewStageState extends State<PreviewStage>
   bool _crosshairVisible = false;
   String _liveSignature = '';
   String _cameraTransform = '';
-  PreviewFacingMode _renderedFacing = PreviewFacingMode.inGame;
   bool _renderedPaused = false;
   int _renderedSession = -1;
 
@@ -186,7 +180,6 @@ class _PreviewStageState extends State<PreviewStage>
     _pose.addListener(_onPoseChanged);
     component.images.addListener(_onImagesChanged);
     _pose.controller = this;
-    _renderedFacing = _pose.facing;
     _renderedPaused = _pose.paused;
     _renderedSession = _pose.sessionId;
     _schedulePostFrame();
@@ -243,8 +236,8 @@ class _PreviewStageState extends State<PreviewStage>
       'aria-label':
           'HoloUI menu preview. Drag to orbit, scroll to dolly, '
           'space or middle-drag to pan, 0 resets to the open position, '
-          'left click fires every hovered component, 1 to 6 toggle overlays, '
-          'F switches icon facing. In Player mode WASD walks and clicking '
+          'left or right click fires the nearest hovered component, 1 to 6 '
+          'toggle overlays. In Player mode WASD walks and clicking '
           'takes the pointer for mouselook.',
     },
     <Widget>[
@@ -262,10 +255,7 @@ class _PreviewStageState extends State<PreviewStage>
           const <Widget>[],
         ),
         const dom.span(classes: 'hui-preview-hint-item', <Widget>[
-          Component.text(
-            'Left click fires every hovered hitbox, in '
-            'declaration order',
-          ),
+          Component.text('Left or right click fires the nearest hitbox'),
         ]),
         const dom.span(
           classes: 'hui-preview-hint-item hui-preview-hint-note',
@@ -418,6 +408,7 @@ class _PreviewStageState extends State<PreviewStage>
 
   @override
   void onInputChanged() {
+    if (_store.menu.followPlayer && _playerMode) _liftDirty = true;
     _wake();
     _markDirty();
   }
@@ -426,12 +417,12 @@ class _PreviewStageState extends State<PreviewStage>
   void onInputReset() => resetCamera();
 
   @override
-  void onInputClick() {
+  void onInputClick(String trigger) {
     onInputEngaged();
-    _fireClick();
+    _fireClick(trigger);
   }
 
-  /// The facing note retires itself the moment the preview is being USED. The
+  /// The billboard note retires itself the moment the preview is being used. The
   /// setter is a no-op once set, so a 60 fps drag costs one comparison.
   @override
   void onInputEngaged() => _store.previewBannerDismissed = true;
@@ -458,10 +449,6 @@ class _PreviewStageState extends State<PreviewStage>
         store.previewShowDistanceSphere = !store.previewShowDistanceSphere;
       case '6':
         store.previewShowGroundGrid = !store.previewShowGroundGrid;
-      case 'f':
-        _pose.facing = _pose.facing == PreviewFacingMode.inGame
-            ? PreviewFacingMode.intent
-            : PreviewFacingMode.inGame;
       case 'k':
         _pose.paused = !_pose.paused;
     }
@@ -476,17 +463,15 @@ class _PreviewStageState extends State<PreviewStage>
   }
 
   void _onPoseChanged() {
-    // Only a facing flip, a pause or a reopen needs work here; the per-tick
-    // readouts live on `pose.live`, which this state does not listen to.
-    final bool facingChanged = _renderedFacing != _pose.facing;
+    // Only a pause or a reopen needs work here; the per-tick readouts live on
+    // `pose.live`, which this state does not listen to.
     final bool sessionChanged = _renderedSession != _pose.sessionId;
     final bool pauseChanged = _renderedPaused != _pose.paused;
-    if (!facingChanged && !sessionChanged && !pauseChanged) return;
-    _renderedFacing = _pose.facing;
+    if (!sessionChanged && !pauseChanged) return;
     _renderedSession = _pose.sessionId;
     _renderedPaused = _pose.paused;
     if (sessionChanged) _canvasDirty = true;
-    if (facingChanged || sessionChanged) _liftDirty = true;
+    if (sessionChanged) _liftDirty = true;
     // Unpausing has to restart a timer that cancelled itself while paused.
     _wake();
     _markDirty();
@@ -592,6 +577,7 @@ class _PreviewStageState extends State<PreviewStage>
     final PVec3 eye = basis.position;
 
     Set<String> hovered = const <String>{};
+    String? nearest;
     final (double, double)? aim = _input.rayPoint();
     if (aim != null && _widthPx > 0 && _heightPx > 0 && _sim.isOpen) {
       final LookRay ray = rayThrough(
@@ -603,15 +589,18 @@ class _PreviewStageState extends State<PreviewStage>
         perspectivePx: huiPreviewPerspectivePx,
       );
       hovered = hoveredClickableIds(scene: preview, ray: ray, eye: eye).toSet();
+      nearest = nearestClickableId(scene: preview, ray: ray, eye: eye);
     }
 
     final PVec3 standing = _playerFeet;
     final PVec3? attempted = _input.attemptedFeet(huiAnimationTick);
     final PVec3 previousCenter = _sim.center;
+    final double previousFacingYaw = _sim.facingYawDeg;
 
     final PreviewTickResult result = _sim.tick(
       hoveredClickableIds: hovered,
       playerFeet: _tickFeet(standing, attempted),
+      playerYawDeg: _playerYaw,
     );
 
     // The freeze rewrites the destination back to the origin
@@ -622,10 +611,16 @@ class _PreviewStageState extends State<PreviewStage>
       _liftDirty = true;
       _wake();
     }
-    if (result.center != previousCenter) _liftDirty = true;
+    if (result.center != previousCenter ||
+        _sim.facingYawDeg != previousFacingYaw) {
+      _liftDirty = true;
+    }
     if (result.closedThisTick != null) _canvasDirty = true;
 
-    final String? primary = result.hoveredIds.isEmpty
+    final String? primary =
+        nearest != null && result.hoveredIds.contains(nearest)
+        ? nearest
+        : result.hoveredIds.isEmpty
         ? null
         : result.hoveredIds.first;
     final int ticks = primary == null ? 0 : _sim.hoverTicksFor(primary);
@@ -647,9 +642,9 @@ class _PreviewStageState extends State<PreviewStage>
 
   /// The feet to hand the simulation this tick.
   ///
-  /// `MenuSessionManager.handleMovement` freezes a locked move before range or
-  /// follow handling. `PreviewSimulation.tick` therefore receives the standing
-  /// position for a locked session and the proposed destination otherwise.
+  /// `MenuSessionManager.handleMovement` freezes a locked move before range
+  /// handling. Follow still receives its look yaw, but its position remains at
+  /// the standing feet.
   PVec3 _tickFeet(PVec3 standing, PVec3? attempted) {
     if (attempted == null) return standing;
     if (_sim.lockPosition && _sim.isOpen) return standing;
@@ -672,6 +667,8 @@ class _PreviewStageState extends State<PreviewStage>
           ..write('|')
           ..write(_sim.center)
           ..write('|')
+          ..write(_sim.facingYawDeg)
+          ..write('|')
           ..write(_playerFeet)
           ..write('|')
           ..write(_input.pointerLocked))
@@ -683,6 +680,7 @@ class _PreviewStageState extends State<PreviewStage>
   PreviewSimulation _newSimulation() => PreviewSimulation(
     menu: component.store.menu,
     openFeet: component.pose.openFeet,
+    openYawDeg: component.pose.openYawDeg,
     initialToggleState: component.store.togglePreviewFor,
   );
 
@@ -734,10 +732,8 @@ class _PreviewStageState extends State<PreviewStage>
       uiScale: canvas.uiScale,
       openFeet: _pose.openFeet,
       openYawDeg: _pose.openYawDeg,
-      // The UNROTATED centre: `MenuSession`'s own `centerPoint`, which is what
-      // followPlayer walks and what the range check reads. Feeding it
-      // `scene.center` would rotate the layout twice.
-      currentCenter: _sim.center,
+      facingYawDeg: _menuFacingYaw,
+      anchorFeet: _sim.anchorFeet,
       canvas: canvas,
     );
   }
@@ -833,6 +829,34 @@ class _PreviewStageState extends State<PreviewStage>
             ..write(action.volume)
             ..write('/')
             ..write(action.pitch);
+        case HuiMessageAction():
+          buffer
+            ..write('m')
+            ..write(action.message);
+        case HuiTeleportAction():
+          buffer
+            ..write('t')
+            ..write(action.world)
+            ..write('/')
+            ..write(action.x)
+            ..write('/')
+            ..write(action.y)
+            ..write('/')
+            ..write(action.z)
+            ..write('/')
+            ..write(action.yaw)
+            ..write('/')
+            ..write(action.pitch);
+        case HuiConnectAction():
+          buffer
+            ..write('x')
+            ..write(action.server);
+        case HuiNavigateAction():
+          buffer
+            ..write('n')
+            ..write(action.mode)
+            ..write('/')
+            ..write(action.target);
       }
     }
   }
@@ -845,6 +869,13 @@ class _PreviewStageState extends State<PreviewStage>
 
   double get _viewYawDegrees =>
       _playerMode ? _pose.player.yawDegrees : _pose.orbit.yawDegrees;
+
+  double get _playerYaw =>
+      _playerMode ? _pose.player.yawDegrees : _pose.openYawDeg;
+
+  double get _menuFacingYaw => _store.menu.followPlayer && _playerMode
+      ? _pose.player.yawDegrees
+      : _sim.facingYawDeg;
 
   /// Where the simulated player is standing.
   ///
@@ -901,10 +932,9 @@ class _PreviewStageState extends State<PreviewStage>
     perspective.append(camera);
     _overlays.build(camera);
 
-    // No transform of its own: `cssQuadMatrix` already carries the player
-    // anchor and the frozen open-yaw rotation, baked in by `preview_scene`, so
-    // a group transform here would apply the rotation twice. It exists to keep
-    // quad reconciliation to one parent.
+    // No transform of its own: each quad matrix already carries its absolute
+    // world position and billboard orientation. The group only gives quad
+    // reconciliation one stable parent.
     final web.HTMLElement group = huiPreviewElement('hui-preview-menu');
     _menuGroup = group;
     camera.append(group);
@@ -955,8 +985,11 @@ class _PreviewStageState extends State<PreviewStage>
     _markDirty();
   }
 
-  void _fireClick() {
-    final List<ActionLogEntry> fired = _sim.click();
+  void _fireClick(String trigger) {
+    final List<ActionLogEntry> fired = _sim.click(
+      trigger: trigger,
+      componentId: _currentClickTarget(),
+    );
     if (fired.isEmpty) return;
     _pose.log.addAll(fired);
     // A toggle just swapped its icon; the scene resolves toggle faces through
@@ -964,6 +997,28 @@ class _PreviewStageState extends State<PreviewStage>
     _canvasDirty = true;
     _wake();
     _markDirty();
+  }
+
+  String? _currentClickTarget() {
+    final PreviewScene? preview = _preview;
+    final (double, double)? aim = _input.rayPoint();
+    if (preview == null ||
+        aim == null ||
+        _widthPx <= 0 ||
+        _heightPx <= 0 ||
+        !_sim.isOpen) {
+      return null;
+    }
+    final CameraBasis basis = _basis();
+    final LookRay ray = rayThrough(
+      basis: basis,
+      viewportWidth: _widthPx,
+      viewportHeight: _heightPx,
+      pointerX: aim.$1,
+      pointerY: aim.$2,
+      perspectivePx: huiPreviewPerspectivePx,
+    );
+    return nearestClickableId(scene: preview, ray: ray, eye: basis.position);
   }
 
   // --- rendering -------------------------------------------------------------
@@ -1090,9 +1145,7 @@ class _PreviewStageState extends State<PreviewStage>
     // its click plane follows the same rendered centre.
     final HuiRect extent = sprite.localRect;
 
-    // Hover push along the plane's CURRENT normal: the plane re-aims at the
-    // eye every tick, so the direction an icon leans is a live value even
-    // though the icon's own facing is frozen.
+    // Hover push follows the collision plane's current billboard orientation.
     PVec3 position = preview.lift(
       quad.item.anchor.x + extent.x,
       quad.item.anchor.y + extent.y,
@@ -1109,8 +1162,9 @@ class _PreviewStageState extends State<PreviewStage>
           );
     }
 
+    final PlaneAim visualAim = aimQuadVisual(quad, position, eye);
     final String transform =
-        '${cssMatrix3d(cssQuadMatrix(position: position, facingYawDegrees: _facingYawFor(quad, preview.openYawDeg), pxPerBlock: huiPreviewPxPerBlock))} translate(-50%,-50%)';
+        '${cssMatrix3d(cssPlaneMatrix(visualAim, pxPerBlock: huiPreviewPxPerBlock))} translate(-50%,-50%)';
     huiPreviewWriteTransform(
       node.root,
       transform,
@@ -1127,27 +1181,6 @@ class _PreviewStageState extends State<PreviewStage>
     node.root.classList.toggle('is-decoration', !quad.clickable);
   }
 
-  /// The whole icon-facing bug, in one function.
-  ///
-  /// `billboardMode()` is FIXED for every icon (`MenuIcon.java:112-114`) and
-  /// `MenuSession.rotate` — the only caller path into `MenuIcon.rotate` — has
-  /// no caller of its own, so text, image and animated displays spawn at world
-  /// yaw 0 (`MenuIcon.java:129-131`) and are never turned. `ItemMenuIcon.spawn`
-  /// is the exception: it yaws item displays at the player directly
-  /// (`ItemMenuIcon.java:117-120`). Component POSITIONS are rotated either way
-  /// (`MenuComponent.java:142-144`), so the layout follows the player while the
-  /// glyphs do not.
-  double _facingYawFor(PreviewQuad quad, double openYawDeg) =>
-      switch (_pose.facing) {
-        PreviewFacingMode.intent => openYawDeg,
-        PreviewFacingMode.inGame => switch (quad.item.kind) {
-          CanvasIconKind.item || CanvasIconKind.customItem => openYawDeg,
-          CanvasIconKind.text ||
-          CanvasIconKind.image ||
-          CanvasIconKind.missing => 0,
-        },
-      };
-
   /// Raw authored text, not the parsed spans: a placeholder is a source-file
   /// fact, and `%player_name%` survives MiniMessage parsing unchanged anyway.
   String? _placeholderTextOf(CanvasItem item) {
@@ -1157,7 +1190,16 @@ class _PreviewStageState extends State<PreviewStage>
       icon.text,
     );
     if (found.isEmpty) return null;
-    return found.map((RegExpMatch match) => match.group(0)!).join(' ');
+    final String tokens = found
+        .map((RegExpMatch match) => match.group(0)!)
+        .join(' ');
+    final int refreshTicks = icon.refreshTicks ?? 10;
+    return refreshTicks == 0
+        ? '$tokens: placeholder text resolves initially on the server, then '
+              'stays frozen because refreshTicks is 0. The editor has no '
+              'PlaceholderAPI, so it is drawn verbatim.'
+        : '$tokens: server refresh cadence is $refreshTicks ticks. The '
+              'editor has no PlaceholderAPI, so it is drawn verbatim.';
   }
 
   void _renderCrosshair() {
@@ -1173,21 +1215,22 @@ class _PreviewStageState extends State<PreviewStage>
     final web.HTMLElement? hint = _hint;
     if (hint == null) return;
     final String text = _playerMode
-        ? 'WASD walks - click takes the pointer, Esc releases - 0 returns to '
-              'the open spot - 1-6 overlays - F facing - K pause'
-        : 'Drag orbits - scroll dollies - space-drag pans - 0 resets - '
-              '1-6 overlays - F facing - K pause';
+        ? 'WASD walks - left/right click activates, Shift selects sneak '
+              'bindings - Esc releases - 0 returns to the open spot - '
+              '1-6 overlays - K pause'
+        : 'Drag orbits - right click activates, Shift selects sneak bindings '
+              '- scroll dollies - space-drag pans - 0 resets - 1-6 overlays '
+              '- K pause';
     if (hint.textContent == text) return;
     hint.textContent = text;
   }
 
-  /// The scene's one teaching label: which facing mode is on, and whatever the
-  /// current mode or overlay needs said in words rather than geometry.
+  /// The scene's one teaching label and situational runtime notes.
   ///
-  /// The facing line is one sentence and closes for good — by its own button or
+  /// The billboard line is one sentence and closes for good — by its own button or
   /// by the first drag, dolly or click, because someone driving the stage has
   /// stopped reading it. The long version lives behind the toolbar's facing
-  /// help, next to the mode buttons it describes. The situational notes below
+  /// help beside the preview controls. The situational notes below
   /// are NOT dismissible: they report state the user turned on, and vanish
   /// when it is turned off.
   ///
@@ -1196,29 +1239,37 @@ class _PreviewStageState extends State<PreviewStage>
   void _renderBanner() {
     final web.HTMLElement? banner = _banner;
     if (banner == null) return;
-    final PreviewFacingMode facing = _pose.facing;
     final bool locked = _input.pointerLocked;
     final bool sphere = _store.previewShowDistanceSphere;
     final bool paused = _pose.paused;
     final bool dismissed = _store.previewBannerDismissed;
+    final bool follows = _store.menu.followPlayer;
     final String range = sphere ? huiPreviewRangeSummary(_sim) : '';
     // `pointerLockAvailable` belongs in the signature: it flips asynchronously,
     // from a `pointerlockerror` that changes no other value here, and without
     // it the banner keeps telling a browser that already refused to click and
     // take the pointer.
     final String signature =
-        '${facing.name}|$_playerMode|$locked|$paused|'
+        '$_playerMode|$locked|$paused|$follows|'
         '$range|${_input.pointerLockAvailable}|$dismissed';
     if (banner.getAttribute('data-signature') == signature) return;
     banner.setAttribute('data-signature', signature);
-    banner.setAttribute('data-mode', facing.name);
     _clear(banner);
     if (!dismissed) {
       final web.HTMLElement head = huiPreviewElement('hui-preview-banner-head');
-      head.append(_text('hui-preview-banner-mode', facing.label));
+      head.append(_text('hui-preview-banner-mode', 'Runtime billboards'));
       head.append(_bannerCloseButton());
       banner.append(head);
-      banner.append(_text('hui-preview-banner-body', facing.headline));
+      banner.append(
+        _text(
+          'hui-preview-banner-body',
+          follows
+              ? 'Icons honor fixed, vertical, horizontal and center facing. '
+                    'Follow player also updates the menu position and yaw.'
+              : 'Icons honor fixed, vertical, horizontal and center facing; '
+                    'their click planes use the same billboard rule.',
+        ),
+      );
     }
     if (paused) {
       _note(
@@ -1253,7 +1304,7 @@ class _PreviewStageState extends State<PreviewStage>
     banner.classList.toggle('is-hidden', banner.childElementCount == 0);
   }
 
-  /// Closes the facing note for good. The stage swallows pointerdown to start
+  /// Closes the billboard note for good. The stage swallows pointerdown to start
   /// a drag, so the press is stopped here before it becomes a camera move.
   web.HTMLElement _bannerCloseButton() {
     final web.HTMLButtonElement button =
@@ -1262,11 +1313,10 @@ class _PreviewStageState extends State<PreviewStage>
       ..className = 'hui-preview-banner-close'
       ..type = 'button'
       ..textContent = '×';
-    button.setAttribute('aria-label', 'Dismiss the icon facing note');
+    button.setAttribute('aria-label', 'Dismiss the billboard note');
     button.setAttribute(
       'title',
-      'Dismiss. The full explanation stays in the toolbar, beside In-game / '
-          'Intent.',
+      'Dismiss. The full billboard explanation stays in the preview toolbar.',
     );
     button.addEventListener(
       'pointerdown',
@@ -1349,17 +1399,13 @@ class _QuadNode extends PreviewSizedNode {
     ctx.drawImage(sprite.canvas, 0, 0, width.toDouble(), height.toDouble());
   }
 
-  void setPlaceholder(String? found) {
-    if (found == null) {
+  void setPlaceholder(String? explanation) {
+    if (explanation == null) {
       placeholder.classList.toggle('is-hidden', true);
       root.removeAttribute('title');
       return;
     }
     placeholder.classList.toggle('is-hidden', false);
-    root.setAttribute(
-      'title',
-      '$found resolves once, at open, on the server. The editor has no '
-          'PlaceholderAPI, so it is drawn verbatim.',
-    );
+    root.setAttribute('title', explanation);
   }
 }

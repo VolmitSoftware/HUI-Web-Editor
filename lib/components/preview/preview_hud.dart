@@ -67,9 +67,8 @@ class PreviewHud extends StatelessWidget {
     );
   }
 
-  /// The first hovered clickable in declaration order, plus how many are
-  /// stacked behind it — because a single left click fires every one of them
-  /// (`SessionHolder.java:145-159`).
+  /// The nearest hovered clickable plus how many ray intersections sit behind
+  /// it.
   Widget _hovered(PreviewLiveState live) {
     final String? id = live.hoveredId;
     final int behind = live.hoveredIds > 1 ? live.hoveredIds - 1 : 0;
@@ -77,10 +76,8 @@ class PreviewHud extends StatelessWidget {
       label: 'hovered',
       value: id ?? 'nothing',
       muted: id == null,
-      note: behind == 0
-          ? null
-          : '+$behind behind — one click fires all ${live.hoveredIds}',
-      noteIsWarning: true,
+      note: behind == 0 ? null : '+$behind behind — only the nearest fires',
+      noteIsWarning: false,
     );
   }
 
@@ -125,7 +122,8 @@ class PreviewHud extends StatelessWidget {
   Widget _follows() => _item(
     label: 'follow',
     value: 'on',
-    note: 'followPlayer recentres the menu as the player walks',
+    note:
+        'followPlayer recentres and turns the menu as the player moves or looks',
   );
 
   Widget _item({

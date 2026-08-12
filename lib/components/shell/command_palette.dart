@@ -117,8 +117,9 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
   @override
   Widget build(BuildContext context) {
     final List<ShellAction> matches = _matches;
-    final int selected =
-        matches.isEmpty ? -1 : _index.clamp(0, matches.length - 1);
+    final int selected = matches.isEmpty
+        ? -1
+        : _index.clamp(0, matches.length - 1);
     return dom.div(
       classes: 'hui-cmd-scrim',
       events: dom.events<Null>(onClick: component.onClose),
@@ -133,53 +134,44 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
           events: <String, EventCallback>{
             'click': (Object? event) => domStopPropagation(event),
           },
-          <Widget>[
-            _searchRow(),
-            _list(matches, selected),
-            _footer(),
-          ],
+          <Widget>[_searchRow(), _list(matches, selected), _footer()],
         ),
       ],
     );
   }
 
-  Widget _searchRow() => dom.div(
-        classes: 'hui-cmd-search',
-        <Widget>[
-          ArcaneIcon.search(size: IconSize.sm),
-          dom.input<String>(
-            type: dom.InputType.text,
-            id: _inputId,
-            classes: 'hui-cmd-input',
-            attributes: const <String, String>{
-              'placeholder': 'Search commands',
-              'aria-label': 'Search commands',
-              'autofocus': '',
-              'autocomplete': 'off',
-              'spellcheck': 'false',
-            },
-            onInput: (String value) => setState(() {
-              _query = value;
-              _index = 0;
-            }),
-            events: <String, EventCallback>{'keydown': _onKeyDown},
-          ),
-          ArcaneKbd.combo(shortcutKeys('Esc', apple: component.apple),
-              size: ComponentSize.sm),
-        ],
-      );
+  Widget _searchRow() => dom.div(classes: 'hui-cmd-search', <Widget>[
+    ArcaneIcon.search(size: IconSize.sm),
+    dom.input<String>(
+      type: dom.InputType.text,
+      id: _inputId,
+      classes: 'hui-cmd-input',
+      attributes: const <String, String>{
+        'placeholder': 'Search commands',
+        'aria-label': 'Search commands',
+        'autofocus': '',
+        'autocomplete': 'off',
+        'spellcheck': 'false',
+      },
+      onInput: (String value) => setState(() {
+        _query = value;
+        _index = 0;
+      }),
+      events: <String, EventCallback>{'keydown': _onKeyDown},
+    ),
+    ArcaneKbd.combo(
+      shortcutKeys('Esc', apple: component.apple),
+      size: ComponentSize.sm,
+    ),
+  ]);
 
   Widget _list(List<ShellAction> matches, int selected) {
     if (matches.isEmpty) {
-      return dom.div(
-        classes: 'hui-cmd-list',
-        <Widget>[
-          dom.p(
-            classes: 'hui-cmd-empty',
-            <Widget>[Text('No commands match "${_query.trim()}".')],
-          ),
-        ],
-      );
+      return dom.div(classes: 'hui-cmd-list', <Widget>[
+        dom.p(classes: 'hui-cmd-empty', <Widget>[
+          Text('No commands match "${_query.trim()}".'),
+        ]),
+      ]);
     }
     final List<Widget> rows = <Widget>[];
     String? group;
@@ -187,9 +179,7 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
       final ShellAction action = matches[i];
       if (action.group != group) {
         group = action.group;
-        rows.add(
-          dom.div(classes: 'hui-cmd-heading', <Widget>[Text(group)]),
-        );
+        rows.add(dom.div(classes: 'hui-cmd-heading', <Widget>[Text(group)]));
       }
       rows.add(_row(action, i == selected));
     }
@@ -203,7 +193,10 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
   Widget _row(ShellAction action, bool active) {
     final String? shortcut = action.shortcut;
     return dom.div(
-      classes: classNames(<String?>['hui-cmd-item', active ? 'is-active' : null]),
+      classes: classNames(<String?>[
+        'hui-cmd-item',
+        active ? 'is-active' : null,
+      ]),
       attributes: <String, String>{
         'role': 'option',
         'aria-selected': active ? 'true' : 'false',
@@ -211,10 +204,9 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
       },
       events: dom.events<Null>(onClick: () => _run(action)),
       <Widget>[
-        dom.span(
-          classes: 'hui-cmd-icon',
-          <Widget>[if (action.icon != null) action.icon!],
-        ),
+        dom.span(classes: 'hui-cmd-icon', <Widget>[
+          if (action.icon != null) action.icon!,
+        ]),
         dom.span(classes: 'hui-cmd-label', <Widget>[Text(action.label)]),
         if (shortcut != null)
           ArcaneKbd.combo(
@@ -225,12 +217,9 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
     );
   }
 
-  Widget _footer() => const dom.div(
-        classes: 'hui-cmd-footer',
-        <Widget>[
-          dom.span(<Widget>[Text('Up / Down to browse')]),
-          dom.span(<Widget>[Text('Enter to run')]),
-          dom.span(<Widget>[Text('Esc to close')]),
-        ],
-      );
+  Widget _footer() => const dom.div(classes: 'hui-cmd-footer', <Widget>[
+    dom.span(<Widget>[Text('Up / Down to browse')]),
+    dom.span(<Widget>[Text('Enter to run')]),
+    dom.span(<Widget>[Text('Esc to close')]),
+  ]);
 }

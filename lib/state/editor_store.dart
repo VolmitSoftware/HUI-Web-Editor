@@ -27,12 +27,14 @@ import '../services/catalogs.dart';
 import '../services/image_library.dart';
 import 'undo_stack.dart';
 import 'workspace.dart';
+import 'workspace_board.dart';
+import 'workspace_bundle.dart';
 
 /// Which surface the centre pane shows. [previewCard] is the pixel-space
 /// container-preview editor and is only ever reachable while a
 /// container-preview document is open; the other four are the menu editor's and
 /// are only reachable while a menu is. See [EditorStore.availableViews].
-enum EditorView { visual, preview, code, split, previewCard }
+enum EditorView { visual, preview, code, split, previewCard, board }
 
 /// Canvas background treatment. Lives in the store because the settings dialog
 /// persists it and the status bar reflects it.
@@ -51,6 +53,7 @@ class EditorStore extends ChangeNotifier {
        _catalogs = catalogs ?? HuiCatalogs.empty(),
        _images = images {
     _images?.addListener(_onImagesChanged);
+    this.workspace.addListener(_onWorkspaceChanged);
     // The controller's own notifications are simulation state, not document
     // state: they must repaint the preview-card surface exactly like any
     // other store notification, but must never touch `previewRevision`,
@@ -158,6 +161,7 @@ class EditorStore extends ChangeNotifier {
 
   Timer? _autosaveTimer;
   bool _documentDirty = false;
+  bool _documentPersistedInWorkspace = false;
   bool _preferencesDirty = false;
   DateTime? _lastSavedAt;
   bool _dragActive = false;
@@ -167,6 +171,10 @@ class EditorStore extends ChangeNotifier {
   bool _disposed = false;
   String? _lastError;
   String? _codeError;
+  String? _preservedMenuSource;
+  int _documentRevision = 0;
+  int? _pendingDocumentRevision;
+  int? _pendingWorkspaceRevision;
 
   // --- document -------------------------------------------------------------
 
@@ -182,6 +190,16 @@ class EditorStore extends ChangeNotifier {
   WorkspaceDocKind get docKind => _docKind;
 
   bool get isPreviewDoc => _docKind == WorkspaceDocKind.containerPreview;
+
+  bool get isBoardDoc => _docKind == WorkspaceDocKind.board;
+
+  bool get canTransferDocument => !isBoardDoc;
+
+  WorkspaceBoardDecodeResult? get activeBoard {
+    if (!isBoardDoc) return null;
+    final WorkspaceDoc? doc = workspace.active;
+    return doc == null ? null : decodeWorkspaceBoard(doc.json);
+  }
 
   /// The active container-preview document, or null while [isPreviewDoc] is
   /// false.
@@ -218,10 +236,12 @@ class EditorStore extends ChangeNotifier {
   String get exportFileName => '$_menuId.json';
 
   void setMenuId(String value) {
+    if (isBoardDoc) return;
     final String sanitized = sanitizeMenuId(value);
     if (sanitized == _menuId) return;
     _menuId = sanitized;
     _documentDirty = true;
+    _documentRevision++;
     _scheduleSave();
     _notify();
   }
@@ -340,8 +360,11 @@ class EditorStore extends ChangeNotifier {
   /// A menu keeps the original four untouched. A container-preview document
   /// has neither components to lay out nor a 3D scene to fly around, so it
   /// gets the pixel card surface and the raw JSON.
-  List<EditorView> get availableViews =>
-      isPreviewDoc ? _previewDocViews : _menuDocViews;
+  List<EditorView> get availableViews => switch (_docKind) {
+    WorkspaceDocKind.menu => _menuDocViews,
+    WorkspaceDocKind.containerPreview => _previewDocViews,
+    WorkspaceDocKind.board => _boardDocViews,
+  };
 
   static const List<EditorView> _menuDocViews = <EditorView>[
     EditorView.visual,
@@ -354,6 +377,8 @@ class EditorStore extends ChangeNotifier {
     EditorView.previewCard,
     EditorView.code,
   ];
+
+  static const List<EditorView> _boardDocViews = <EditorView>[EditorView.board];
 
   /// Called after every document adoption: the stored view belongs to whichever
   /// document was open when it was saved, and the new one may not have it.
@@ -565,9 +590,8 @@ class EditorStore extends ChangeNotifier {
         .toList();
   }
 
-  /// Clickable hitbox pairs that intersect in the resolved scene. One left
-  /// click fires every one of them (`MenuSessionManager.java:170-203`), which
-  /// is why validation is handed the list.
+  /// Clickable hitbox pairs that intersect in the resolved scene. Nearest-hit
+  /// arbitration can hide one behind another, so validation receives the list.
   List<CanvasOverlap> get overlapPairs =>
       _scene?.overlaps ?? const <CanvasOverlap>[];
 
@@ -622,12 +646,16 @@ class EditorStore extends ChangeNotifier {
   void mutate(String label, void Function(HuiMenu menu) fn) {
     if (!_menuWritable) return;
     final String before = _snapshot();
+    final String beforeSemantic = encodeHuiMenu(_menu);
     final int countBefore = _menu.components.length;
     fn(_menu);
-    final String after = _snapshot();
-    if (after == before) {
+    final String afterSemantic = encodeHuiMenu(_menu);
+    if (afterSemantic == beforeSemantic) {
       _notify();
       return;
+    }
+    if (_preservedMenuSource != null) {
+      _menu = decodeHuiMenu(afterSemantic);
     }
     // Adding or removing a component is a step in its own right, however fast
     // it follows the last one; field edits are not.
@@ -870,6 +898,7 @@ class EditorStore extends ChangeNotifier {
   }
 
   bool performUndo() {
+    if (isBoardDoc) return false;
     _clearCoalesce();
     final String? restored = _undo.undo(_snapshot());
     if (restored == null) return false;
@@ -877,6 +906,7 @@ class EditorStore extends ChangeNotifier {
   }
 
   bool performRedo() {
+    if (isBoardDoc) return false;
     _clearCoalesce();
     final String? restored = _undo.redo(_snapshot());
     if (restored == null) return false;
@@ -1017,7 +1047,8 @@ class EditorStore extends ChangeNotifier {
     if (_selection.length != before) _notify();
   }
 
-  /// Order is click-dispatch order, so reordering is a real document change.
+  /// Order is serialized, controls rendering ties, and breaks equal-distance
+  /// click intersections, so reordering is a real document change.
   void reorder(String id, int newIndex) {
     final int index = _menu.indexOfComponent(id);
     if (index < 0) return;
@@ -1175,8 +1206,25 @@ class EditorStore extends ChangeNotifier {
   // --- import / export ------------------------------------------------------
 
   /// The active document's JSON, in whichever shape [docKind] says it is.
-  String exportJson() =>
-      isPreviewDoc ? encodeHuiPreviewDoc(_previewDoc!) : encodeHuiMenu(_menu);
+  String exportJson() {
+    if (isBoardDoc) {
+      throw StateError('Board metadata is editor-only and cannot be exported.');
+    }
+    return isPreviewDoc
+        ? encodeHuiPreviewDoc(_previewDoc!)
+        : _preservedMenuSource ?? encodeHuiMenu(_menu);
+  }
+
+  String formattedJson() {
+    if (isBoardDoc) {
+      throw StateError(
+        'Board metadata is editor-only and cannot be formatted.',
+      );
+    }
+    return isPreviewDoc
+        ? encodeHuiPreviewDoc(_previewDoc!)
+        : encodeHuiMenu(_menu);
+  }
 
   /// Replaces the active document with [content], auto-detecting whether it
   /// is a HoloUI menu or a container-preview document via
@@ -1185,6 +1233,10 @@ class EditorStore extends ChangeNotifier {
   /// through [onInfo]. A parse failure reports through [onError] and leaves
   /// the current document untouched.
   void importJson(String name, String content) {
+    if (isBoardDoc) {
+      _fail('Open a menu or preview document before importing runtime JSON.');
+      return;
+    }
     final Object? decoded;
     try {
       decoded = jsonDecode(content);
@@ -1233,7 +1285,7 @@ class EditorStore extends ChangeNotifier {
       _undo.clear();
       _clearCoalesce();
     }
-    _afterChange();
+    _afterChange(menuSource: content);
     onInfo?.call('Imported $importedId.');
   }
 
@@ -1270,6 +1322,7 @@ class EditorStore extends ChangeNotifier {
   /// Returns false and keeps the text when it does not parse, so the editor can
   /// show the error without losing the user's typing.
   bool applyCode(String text) {
+    if (isBoardDoc) return false;
     if (isPreviewDoc) return _applyPreviewCode(text);
     final HuiMenu parsed;
     try {
@@ -1285,15 +1338,14 @@ class EditorStore extends ChangeNotifier {
     }
     _codeError = null;
     final String before = _snapshot();
-    final String after = encodeHuiMenu(parsed);
-    if (after == before) {
+    if (text == before) {
       _notify();
       return true;
     }
     _menu = parsed;
     _pruneSelection();
     _pushUndo('code edit', before);
-    _afterChange();
+    _afterChange(menuSource: text);
     return true;
   }
 
@@ -1361,19 +1413,108 @@ class EditorStore extends ChangeNotifier {
 
   DateTime? get lastSavedAt => _lastSavedAt;
 
-  bool get hasUnsavedChanges => _documentDirty || _preferencesDirty;
+  bool get hasUnsavedChanges =>
+      _documentDirty || _preferencesDirty || workspace.hasUnsavedChanges;
+
+  Future<bool> retryAutosave() async {
+    final bool documentWasPending = _documentDirty;
+    flushAutosave();
+    if (!workspace.hasUnsavedChanges) return !hasUnsavedChanges;
+    final bool saved = await workspace.retrySave();
+    if (!saved) {
+      _notify();
+      return false;
+    }
+    if (documentWasPending && _documentPersistedInWorkspace) {
+      _documentDirty = false;
+      _documentPersistedInWorkspace = false;
+    }
+    _lastSavedAt = DateTime.now();
+    _notify();
+    return !hasUnsavedChanges;
+  }
 
   /// Starts a new document in its own workspace entry.
-  void newDocument({String? name, HuiMenu? from}) {
+  bool newDocument({
+    String? name,
+    String? runtimeId,
+    HuiMenu? from,
+    String? folderId,
+  }) {
+    if (!workspace.canWrite) {
+      _fail(
+        workspace.lastError ??
+            'The workspace is protected from overwrite until it is recovered.',
+      );
+      return false;
+    }
     flushAutosave();
     final HuiMenu next = from ?? createDefaultMenu();
-    final String id = sanitizeMenuId(name ?? huiDefaultMenuId);
+    final String title = name ?? huiDefaultMenuId;
+    final String id = sanitizeMenuId(runtimeId ?? title);
     workspace.create(
-      name: id,
+      title: title,
+      runtimeId: id,
       json: encodeHuiMenu(next),
       kind: WorkspaceDocKind.menu,
+      folderId: folderId,
     );
     _adoptMenu(next, id);
+    return true;
+  }
+
+  bool newMenuDocumentFromJson({
+    required String name,
+    required String runtimeId,
+    required String json,
+    String? folderId,
+  }) {
+    if (!workspace.canWrite) {
+      _fail(
+        workspace.lastError ??
+            'The workspace is protected from overwrite until it is recovered.',
+      );
+      return false;
+    }
+    final HuiMenu parsed;
+    try {
+      parsed = decodeHuiMenu(json);
+    } on HuiFormatException catch (error) {
+      _fail('${error.message} (at ${error.path})');
+      return false;
+    } catch (_) {
+      _fail('That handoff could not be read as HoloUI menu JSON.');
+      return false;
+    }
+    flushAutosave();
+    final String id = sanitizeMenuId(runtimeId);
+    workspace.create(
+      title: name,
+      runtimeId: id,
+      json: json,
+      kind: WorkspaceDocKind.menu,
+      folderId: folderId,
+    );
+    _adoptMenu(parsed, id, source: json);
+    return true;
+  }
+
+  Future<bool> importBundle(WorkspaceBundle bundle) async {
+    flushAutosave();
+    final WorkspaceBundleImportResult result = await importWorkspaceBundle(
+      bundle,
+      workspace,
+      _images,
+    );
+    if (!result.isSuccess) {
+      _fail(result.error ?? 'The workspace bundle could not be imported.');
+      return false;
+    }
+    _documentDirty = false;
+    _documentPersistedInWorkspace = false;
+    _preferencesDirty = false;
+    _adoptActiveDocument();
+    return true;
   }
 
   /// Templates apply as a brand new document.
@@ -1382,16 +1523,65 @@ class EditorStore extends ChangeNotifier {
 
   /// Starts a new container-preview document in its own workspace entry —
   /// the preview counterpart of [newDocument].
-  void newPreviewDocument({String? name, HuiPreviewDoc? from}) {
+  void newPreviewDocument({
+    String? name,
+    HuiPreviewDoc? from,
+    String? folderId,
+  }) {
+    if (!workspace.canWrite) {
+      _fail(
+        workspace.lastError ??
+            'The workspace is protected from overwrite until it is recovered.',
+      );
+      return;
+    }
     flushAutosave();
     final HuiPreviewDoc next = from ?? HuiPreviewDoc();
-    final String id = sanitizeMenuId(name ?? huiDefaultMenuId);
+    final String title = name ?? huiDefaultMenuId;
+    final String id = sanitizeMenuId(title);
     workspace.create(
-      name: id,
+      title: title,
+      runtimeId: id,
       json: encodeHuiPreviewDoc(next),
       kind: WorkspaceDocKind.containerPreview,
+      folderId: folderId,
     );
     _adoptPreview(next, id);
+  }
+
+  void newBoardDocument({
+    String? name,
+    String? folderId,
+    String? scopeFolderId,
+  }) {
+    if (!workspace.canWrite) {
+      _fail(
+        workspace.lastError ??
+            'The workspace is protected from overwrite until it is recovered.',
+      );
+      return;
+    }
+    flushAutosave();
+    workspace.create(
+      title: name ?? 'Flow board',
+      runtimeId: null,
+      json: encodeWorkspaceBoard(
+        WorkspaceBoardData(scopeFolderId: scopeFolderId),
+      ),
+      kind: WorkspaceDocKind.board,
+      folderId: folderId,
+    );
+    _adoptActiveDocument();
+  }
+
+  bool updateBoard(WorkspaceBoardData board) {
+    if (!isBoardDoc) return false;
+    final bool saved = workspace.updateActive(
+      json: encodeWorkspaceBoard(board),
+    );
+    if (saved) _lastSavedAt = DateTime.now();
+    _notify();
+    return saved;
   }
 
   /// Templates apply as a brand new document.
@@ -1399,6 +1589,8 @@ class EditorStore extends ChangeNotifier {
       newPreviewDocument(name: name, from: template);
 
   bool openDocument(String docId) {
+    final WorkspaceDoc? target = workspace.byId(docId);
+    if (target == null) return false;
     if (docId == workspace.activeId) return true;
     flushAutosave();
     if (!workspace.switchTo(docId)) return false;
@@ -1411,6 +1603,7 @@ class EditorStore extends ChangeNotifier {
     if (!workspace.delete(docId)) return false;
     if (wasActive) {
       _documentDirty = false;
+      _documentPersistedInWorkspace = false;
       _adoptActiveDocument();
     } else {
       _notify();
@@ -1421,26 +1614,32 @@ class EditorStore extends ChangeNotifier {
   /// Writes pending changes immediately. Called by the debounce timer, before a
   /// document switch, and on dispose.
   ///
-  /// The notification at the end is load-bearing: the dirty flags and
-  /// [lastSavedAt] only change here, and the status bar reads exactly those, so
-  /// without it "Saving..." never clears.
   void flushAutosave({bool notify = true}) {
     _autosaveTimer?.cancel();
     _autosaveTimer = null;
-    bool saved = false;
+    bool changed = false;
     if (_documentDirty) {
-      workspace.updateActive(name: _menuId, json: _snapshot(), kind: _docKind);
-      _documentDirty = false;
-      saved = true;
+      final int editorRevision = _documentRevision;
+      final bool documentSaved = workspace.updateActive(
+        runtimeId: _menuId,
+        json: _snapshot(),
+        kind: _docKind,
+      );
+      if (documentSaved) {
+        _documentPersistedInWorkspace = true;
+        _pendingDocumentRevision = editorRevision;
+        _pendingWorkspaceRevision = workspace.saveRevision;
+        changed = _finishPendingDocumentSave() || changed;
+      }
     }
     if (_preferencesDirty) {
-      _writePreferences();
-      _preferencesDirty = false;
-      saved = true;
+      if (_writePreferences()) {
+        _preferencesDirty = false;
+        changed = true;
+      }
     }
-    if (!saved) return;
-    _lastSavedAt = DateTime.now();
-    if (notify) _notify();
+    if (changed) _lastSavedAt = DateTime.now();
+    if (notify && (changed || _documentDirty || _preferencesDirty)) _notify();
   }
 
   @override
@@ -1449,6 +1648,7 @@ class EditorStore extends ChangeNotifier {
     _autosaveTimer?.cancel();
     _autosaveTimer = null;
     _images?.removeListener(_onImagesChanged);
+    workspace.removeListener(_onWorkspaceChanged);
     previewSim.removeListener(_notify);
     previewSim.dispose();
     _disposed = true;
@@ -1490,8 +1690,16 @@ class EditorStore extends ChangeNotifier {
   /// Menu-editing call sites only ever run while [_menuWritable] is true, so
   /// they always see the `encodeHuiMenu` branch; the preview branch is what
   /// lets [flushAutosave] persist a preview document too.
-  String _snapshot() =>
-      isPreviewDoc ? encodeHuiPreviewDoc(_previewDoc!) : encodeHuiMenu(_menu);
+  String _snapshot() {
+    if (isBoardDoc) {
+      throw StateError(
+        'Board metadata does not use the runtime snapshot path.',
+      );
+    }
+    return isPreviewDoc
+        ? encodeHuiPreviewDoc(_previewDoc!)
+        : _preservedMenuSource ?? encodeHuiMenu(_menu);
+  }
 
   /// Blocks are authored to two or three decimals; killing float noise keeps
   /// exported JSON and snapshot comparisons stable.
@@ -1560,9 +1768,11 @@ class EditorStore extends ChangeNotifier {
     _coalesceAt = null;
   }
 
-  void _afterChange() {
+  void _afterChange({String? menuSource}) {
+    if (_menuWritable) _preservedMenuSource = menuSource;
     _refreshIssues();
     _documentDirty = true;
+    _documentRevision++;
     _scheduleSave();
     _notify();
   }
@@ -1587,7 +1797,7 @@ class EditorStore extends ChangeNotifier {
     } else {
       _pruneSelection();
     }
-    _afterChange();
+    _afterChange(menuSource: isPreviewDoc ? null : snapshot);
     return true;
   }
 
@@ -1611,6 +1821,29 @@ class EditorStore extends ChangeNotifier {
     _notify();
   }
 
+  void _onWorkspaceChanged() {
+    final bool saved = _finishPendingDocumentSave();
+    if (saved) {
+      _lastSavedAt = DateTime.now();
+      _notify();
+      return;
+    }
+    if (workspace.lastError != null || workspace.requiresReload) _notify();
+  }
+
+  bool _finishPendingDocumentSave() {
+    final int? editorRevision = _pendingDocumentRevision;
+    final int? workspaceRevision = _pendingWorkspaceRevision;
+    if (editorRevision == null || workspaceRevision == null) return false;
+    if (workspace.persistedRevision < workspaceRevision) return false;
+    _pendingDocumentRevision = null;
+    _pendingWorkspaceRevision = null;
+    if (editorRevision != _documentRevision) return false;
+    _documentDirty = false;
+    _documentPersistedInWorkspace = false;
+    return true;
+  }
+
   void _scheduleSave() {
     _autosaveTimer?.cancel();
     _autosaveTimer = Timer(autosaveDelay, flushAutosave);
@@ -1631,8 +1864,13 @@ class EditorStore extends ChangeNotifier {
     final WorkspaceDoc? doc = workspace.active;
     if (doc == null) {
       final HuiMenu fresh = createDefaultMenu();
+      if (workspace.isLoadProtected) {
+        _adoptMenu(fresh, huiDefaultMenuId);
+        return;
+      }
       workspace.create(
-        name: huiDefaultMenuId,
+        title: huiDefaultMenuId,
+        runtimeId: huiDefaultMenuId,
         json: encodeHuiMenu(fresh),
         kind: WorkspaceDocKind.menu,
       );
@@ -1644,6 +1882,8 @@ class EditorStore extends ChangeNotifier {
         _adoptActiveMenuDocument(doc);
       case WorkspaceDocKind.containerPreview:
         _adoptActivePreviewDocument(doc);
+      case WorkspaceDocKind.board:
+        _adoptBoard(doc);
     }
   }
 
@@ -1655,15 +1895,15 @@ class EditorStore extends ChangeNotifier {
     } on HuiFormatException catch (e) {
       menu = createDefaultMenu();
       failure =
-          'The saved document "${doc.name}" was unreadable '
+          'The saved document "${doc.title}" was unreadable '
           '(${e.message}) and was replaced with a new menu.';
     } catch (_) {
       menu = createDefaultMenu();
       failure =
-          'The saved document "${doc.name}" was unreadable and was '
+          'The saved document "${doc.title}" was unreadable and was '
           'replaced with a new menu.';
     }
-    _adoptMenu(menu, doc.name);
+    _adoptMenu(menu, doc.runtimeId!, source: failure == null ? doc.json : null);
     if (failure != null) {
       _lastError = failure;
       onError?.call(failure);
@@ -1679,15 +1919,15 @@ class EditorStore extends ChangeNotifier {
     } on HuiFormatException catch (e) {
       previewDoc = HuiPreviewDoc();
       failure =
-          'The saved document "${doc.name}" was unreadable '
+          'The saved document "${doc.title}" was unreadable '
           '(${e.message}) and was replaced with a blank preview document.';
     } catch (_) {
       previewDoc = HuiPreviewDoc();
       failure =
-          'The saved document "${doc.name}" was unreadable and was '
+          'The saved document "${doc.title}" was unreadable and was '
           'replaced with a blank preview document.';
     }
-    _adoptPreview(previewDoc, doc.name);
+    _adoptPreview(previewDoc, doc.runtimeId!);
     if (failure != null) {
       _lastError = failure;
       onError?.call(failure);
@@ -1695,10 +1935,11 @@ class EditorStore extends ChangeNotifier {
     }
   }
 
-  void _adoptMenu(HuiMenu menu, String menuId) {
+  void _adoptMenu(HuiMenu menu, String menuId, {String? source}) {
     _docKind = WorkspaceDocKind.menu;
     _setPreviewDoc(null);
     _menu = menu;
+    _preservedMenuSource = source;
     _menuId = sanitizeMenuId(menuId);
     _selection.clear();
     _previewSelection = null;
@@ -1708,6 +1949,9 @@ class EditorStore extends ChangeNotifier {
     _clearCoalesce();
     _undo.clear();
     _documentDirty = false;
+    _documentPersistedInWorkspace = false;
+    _pendingDocumentRevision = null;
+    _pendingWorkspaceRevision = null;
     _refreshIssues();
     _notify();
   }
@@ -1715,6 +1959,7 @@ class EditorStore extends ChangeNotifier {
   /// The preview counterpart of [_adoptMenu].
   void _adoptPreview(HuiPreviewDoc doc, String docId) {
     _docKind = WorkspaceDocKind.containerPreview;
+    _preservedMenuSource = null;
     _setPreviewDoc(doc);
     _menuId = sanitizeMenuId(docId);
     _selection.clear();
@@ -1725,7 +1970,30 @@ class EditorStore extends ChangeNotifier {
     _clearCoalesce();
     _undo.clear();
     _documentDirty = false;
+    _documentPersistedInWorkspace = false;
+    _pendingDocumentRevision = null;
+    _pendingWorkspaceRevision = null;
     _refreshIssues();
+    _notify();
+  }
+
+  void _adoptBoard(WorkspaceDoc doc) {
+    _docKind = WorkspaceDocKind.board;
+    _preservedMenuSource = null;
+    _setPreviewDoc(null);
+    _menuId = doc.title;
+    _selection.clear();
+    _previewSelection = null;
+    _coerceView();
+    _codeError = null;
+    _togglePreviewState.clear();
+    _clearCoalesce();
+    _undo.clear();
+    _documentDirty = false;
+    _documentPersistedInWorkspace = false;
+    _pendingDocumentRevision = null;
+    _pendingWorkspaceRevision = null;
+    _issues = const <HuiIssue>[];
     _notify();
   }
 
@@ -1767,30 +2035,56 @@ class EditorStore extends ChangeNotifier {
     );
   }
 
-  void _writePreferences() {
-    workspace.write(
-      preferencesKey,
-      jsonEncode(<String, dynamic>{
-        'view': _view.name,
-        'previewUiScale': _previewUiScale,
-        'gridSize': _gridSize,
-        'showHitboxes': _showHitboxes,
-        'showAnchors': _showAnchors,
-        'showGrid': _showGrid,
-        'snapToGrid': _snapToGrid,
-        'trueRender': _trueRender,
-        'backdrop': _backdrop.name,
-        'previewShowPlanes': _previewShowPlanes,
-        'previewShowNormals': _previewShowNormals,
-        'previewShowAnchors': _previewShowAnchors,
-        'previewShowCenter': _previewShowCenter,
-        'previewShowDistanceSphere': _previewShowDistanceSphere,
-        'previewShowGroundGrid': _previewShowGroundGrid,
-        'previewLogOpen': _previewLogOpen,
-        'previewBannerDismissed': _previewBannerDismissed,
-        'previewCameraMode': _previewCameraMode.name,
-      }),
-    );
+  bool _writePreferences() => workspace.write(
+    preferencesKey,
+    jsonEncode(<String, dynamic>{
+      'view': _view.name,
+      'previewUiScale': _previewUiScale,
+      'gridSize': _gridSize,
+      'showHitboxes': _showHitboxes,
+      'showAnchors': _showAnchors,
+      'showGrid': _showGrid,
+      'snapToGrid': _snapToGrid,
+      'trueRender': _trueRender,
+      'backdrop': _backdrop.name,
+      'previewShowPlanes': _previewShowPlanes,
+      'previewShowNormals': _previewShowNormals,
+      'previewShowAnchors': _previewShowAnchors,
+      'previewShowCenter': _previewShowCenter,
+      'previewShowDistanceSphere': _previewShowDistanceSphere,
+      'previewShowGroundGrid': _previewShowGroundGrid,
+      'previewLogOpen': _previewLogOpen,
+      'previewBannerDismissed': _previewBannerDismissed,
+      'previewCameraMode': _previewCameraMode.name,
+    }),
+  );
+
+  void resetLocalPreferences() {
+    _view = EditorView.visual;
+    _previewUiScale = 1;
+    _showHitboxes = false;
+    _showAnchors = true;
+    _showGrid = true;
+    _snapToGrid = true;
+    _trueRender = false;
+    _gridSize = 0.05;
+    _backdrop = HuiBackdropMode.image;
+    _animationsPlaying = true;
+    _previewShowPlanes = false;
+    _previewShowNormals = false;
+    _previewShowAnchors = false;
+    _previewShowCenter = true;
+    _previewShowDistanceSphere = false;
+    _previewShowGroundGrid = true;
+    _previewLogOpen = true;
+    _previewBannerDismissed = false;
+    _previewCameraMode = PreviewCameraMode.orbit;
+    _preferencesDirty = false;
+    _catalogs = _catalogs.withCustomItems(HuiCustomItemCatalog.empty());
+    _charCache.clear();
+    _coerceView();
+    _refreshIssues();
+    _notify();
   }
 
   static EditorView _viewFromName(Object? raw) {

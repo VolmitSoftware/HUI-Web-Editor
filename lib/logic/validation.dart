@@ -1,6 +1,7 @@
+import '../config/defaults.dart' show validateMenuId;
 import '../model/model.dart';
 import '../services/catalogs.dart';
-import 'canvas_scene.dart' show CanvasOverlap;
+import 'canvas_scene.dart' show CanvasOverlap, huiIsBlockLikeMaterial;
 import 'hui_geometry.dart' show huiLineHeight;
 import 'mc_text.dart' show parseMcText;
 
@@ -75,9 +76,13 @@ const Set<String> _huiCommandRoots = <String>{
   'hu',
 };
 
-/// Subcommands that return early unless the sender is a `Player`
-/// (`HoloCommand.java:99-102,115-118,133-136`).
-const Set<String> _huiPlayerOnlySubcommands = <String>{'open', 'back', 'close'};
+/// Subcommands that return early unless the sender is a `Player`.
+const Set<String> _huiPlayerOnlySubcommands = <String>{
+  'open',
+  'back',
+  'close',
+  'move',
+};
 
 final RegExp _whitespacePattern = RegExp(r'\s+');
 
@@ -105,7 +110,10 @@ String? huiPlayerOnlySubcommand(String command) {
 
 final RegExp _idPattern = RegExp(r'^[A-Za-z0-9_.-]+$');
 final RegExp _registryKeyPattern = RegExp(r'^([a-z0-9_.-]+:)?[a-z0-9_./-]+$');
+final RegExp _worldKeyPattern = RegExp(r'^[a-z0-9._-]+:[a-z0-9/._-]+$');
+final RegExp _proxyServerPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$');
 final RegExp _placeholderPattern = RegExp(r'%[^%\s]+%');
+final RegExp _argbColorPattern = RegExp(r'^#[0-9A-Fa-f]{8}$');
 
 class _Validator {
   _Validator({
@@ -212,10 +220,8 @@ class _Validator {
     _validateOverlaps(menu);
   }
 
-  /// One issue per pair, anchored on the first component: a left click fires
-  /// every clickable whose plane is under the crosshair, in declaration order
-  /// (`MenuSessionManager.java:170-203`), so an accidental overlap silently
-  /// doubles up actions.
+  /// One issue per pair, anchored on the first component: nearest-hit
+  /// arbitration can hide the farther clickable across their shared region.
   void _validateOverlaps(HuiMenu menu) {
     for (final CanvasOverlap overlap in overlaps) {
       final int index = menu.indexOfComponent(overlap.firstId);
@@ -227,8 +233,8 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         'components[$index]',
-        'Hitbox overlaps "${overlap.secondId}": one left click fires every '
-            'component under the crosshair, so both run their actions',
+        'Hitbox overlaps "${overlap.secondId}": only the nearest component '
+            'fires, so one can hide the other across this region',
         fix: 'Move or shrink one of them, or make one a decoration',
       );
     }
@@ -412,9 +418,33 @@ class _Validator {
       );
       return;
     }
+    if (icon is HuiEntityIcon && icon.extras.containsKey('style')) {
+      _add(
+        HuiSeverity.error,
+        '$path.style',
+        'Entity icons do not accept display-entity style metadata',
+        fix: 'Remove style; use entity width and height for its footprint',
+      );
+    } else {
+      _validateIconStyle(icon.style, '$path.style');
+    }
     switch (icon) {
       case final HuiTextIcon text:
-        _validateText(text.text, '$path.text', clickable: clickable);
+        _validateText(
+          text.text,
+          '$path.text',
+          clickable: clickable,
+          refreshTicks: text.refreshTicks,
+        );
+        final int? refreshTicks = text.refreshTicks;
+        if (refreshTicks != null && (refreshTicks < 0 || refreshTicks > 1200)) {
+          _add(
+            HuiSeverity.error,
+            '$path.refreshTicks',
+            'Placeholder refresh must be between 0 and 1200 ticks',
+            fix: 'Use 10 for twice-per-second updates, or 0 to disable them',
+          );
+        }
       case final HuiTextImageIcon image:
         _validateImagePath(image.path, '$path.path');
       case final HuiAnimatedImageIcon animated:
@@ -432,9 +462,101 @@ class _Validator {
         }
       case final HuiItemIcon item:
         _validateMaterial(item.item, '$path.item');
+      case final HuiBlockIcon block:
+        _validateBlock(block, path);
       case final HuiCustomItemIcon custom:
         _validateCustomItem(custom, path);
+      case final HuiEntityIcon entity:
+        _validateEntity(entity, path);
     }
+  }
+
+  void _validateIconStyle(HuiIconStyle? style, String path) {
+    if (style == null) return;
+    if (!huiIconBillboards.contains(style.billboard)) {
+      _add(
+        HuiSeverity.error,
+        '$path.billboard',
+        'Unknown billboard mode "${style.billboard}"',
+        fix: 'Use fixed, vertical, horizontal or center',
+      );
+    }
+    if (!huiIconTextAlignments.contains(style.textAlignment)) {
+      _add(
+        HuiSeverity.error,
+        '$path.textAlignment',
+        'Unknown text alignment "${style.textAlignment}"',
+        fix: 'Use center, left or right',
+      );
+    }
+    _validateArgb(style.backgroundArgb, '$path.backgroundArgb');
+    if (style.glowColor != null) {
+      _validateArgb(style.glowColor!, '$path.glowColor');
+    }
+    _validateStyleNumber(
+      style.textOpacity.toDouble(),
+      '$path.textOpacity',
+      0,
+      255,
+    );
+    _validateStyleNumber(
+      style.lineWidth.toDouble(),
+      '$path.lineWidth',
+      1,
+      16384,
+    );
+    if ((style.blockLight == null) != (style.skyLight == null)) {
+      _add(
+        HuiSeverity.error,
+        path,
+        'blockLight and skyLight must be supplied together',
+        fix: 'Set both brightness values, or remove both',
+      );
+    }
+    if (style.blockLight != null) {
+      _validateStyleNumber(
+        style.blockLight!.toDouble(),
+        '$path.blockLight',
+        0,
+        15,
+      );
+    }
+    if (style.skyLight != null) {
+      _validateStyleNumber(style.skyLight!.toDouble(), '$path.skyLight', 0, 15);
+    }
+    _validateStyleNumber(style.viewRange, '$path.viewRange', 0.01, 64);
+    _validateStyleNumber(style.shadowRadius, '$path.shadowRadius', 0, 64);
+    _validateStyleNumber(style.shadowStrength, '$path.shadowStrength', 0, 1);
+    _validateStyleNumber(style.cullingWidth, '$path.cullingWidth', 0, 4096);
+    _validateStyleNumber(style.cullingHeight, '$path.cullingHeight', 0, 4096);
+    _validateStyleNumber(style.scaleX, '$path.scaleX', 0.01, 64);
+    _validateStyleNumber(style.scaleY, '$path.scaleY', 0.01, 64);
+    _validateStyleNumber(style.scaleZ, '$path.scaleZ', 0.01, 64);
+  }
+
+  void _validateArgb(String value, String path) {
+    if (_argbColorPattern.hasMatch(value)) return;
+    _add(
+      HuiSeverity.error,
+      path,
+      'ARGB color must use exactly eight hexadecimal digits',
+      fix: 'Use #AARRGGBB, for example #80000000',
+    );
+  }
+
+  void _validateStyleNumber(
+    double value,
+    String path,
+    double minimum,
+    double maximum,
+  ) {
+    if (value.isFinite && value >= minimum && value <= maximum) return;
+    _add(
+      HuiSeverity.error,
+      path,
+      'Display style value must be finite and between $minimum and $maximum',
+      fix: 'Set a value in the supported range',
+    );
   }
 
   /// The editor cannot see the server's plugins, so nothing here except a blank
@@ -500,7 +622,112 @@ class _Validator {
     }
   }
 
-  void _validateText(String text, String path, {required bool clickable}) {
+  void _validateEntity(HuiEntityIcon icon, String path) {
+    final String key = icon.entity.trim();
+    if (key.isEmpty) {
+      _add(
+        HuiSeverity.error,
+        '$path.entity',
+        'Entity type is empty',
+        fix: 'Pick a spawnable living entity such as minecraft:parrot',
+      );
+      _validateEntityDimension(icon.width, '$path.width', 'width');
+      _validateEntityDimension(icon.height, '$path.height', 'height');
+      return;
+    }
+    if (key != icon.entity || key != key.toLowerCase()) {
+      _add(
+        HuiSeverity.error,
+        '$path.entity',
+        'Entity type must be lowercase with no surrounding whitespace',
+        fix: 'Use ${key.toLowerCase()}',
+      );
+    }
+    if (!_registryKeyPattern.hasMatch(key)) {
+      _add(
+        HuiSeverity.error,
+        '$path.entity',
+        'Entity type must be a lowercase namespaced registry id',
+        fix: 'Use an id such as minecraft:parrot',
+      );
+    } else if (!huiSpawnableLivingEntityTypes.contains(
+      key.contains(':') ? key : 'minecraft:$key',
+    )) {
+      _add(
+        HuiSeverity.error,
+        '$path.entity',
+        'Entity type is not a supported spawnable living entity',
+        fix: 'Pick one from the entity browser',
+      );
+    }
+    _validateEntityDimension(icon.width, '$path.width', 'width');
+    _validateEntityDimension(icon.height, '$path.height', 'height');
+  }
+
+  void _validateBlock(HuiBlockIcon icon, String path) {
+    final String key = icon.block;
+    if (key.isEmpty) {
+      _add(
+        HuiSeverity.error,
+        '$path.block',
+        'Block material is empty',
+        fix: 'Pick a block such as minecraft:stone',
+      );
+      return;
+    }
+    if (key != key.trim() || key != key.toLowerCase()) {
+      _add(
+        HuiSeverity.error,
+        '$path.block',
+        'Block material must be lowercase with no surrounding whitespace',
+        fix: 'Use ${key.trim().toLowerCase()}',
+      );
+    }
+    if (!_registryKeyPattern.hasMatch(key) || !key.contains(':')) {
+      _add(
+        HuiSeverity.error,
+        '$path.block',
+        'Block material must be a lowercase namespaced registry id',
+        fix: 'Use an id such as minecraft:stone',
+      );
+      return;
+    }
+    final Set<String>? known = knownMaterials;
+    if (known != null && !_inCatalog(key, known)) {
+      _add(
+        HuiSeverity.error,
+        '$path.block',
+        'Block material "$key" is not in the material catalog',
+        fix: 'Pick a known Bukkit block material',
+      );
+      return;
+    }
+    if (!huiIsBlockLikeMaterial(key)) {
+      _add(
+        HuiSeverity.error,
+        '$path.block',
+        'Material "$key" is not a block',
+        fix: 'Pick a block from the block browser',
+      );
+    }
+  }
+
+  void _validateEntityDimension(double value, String path, String label) {
+    if (value.isFinite && value > 0 && value <= 64) return;
+    _add(
+      HuiSeverity.error,
+      path,
+      'Entity $label must be finite, greater than 0, and at most 64 blocks',
+      fix: 'Set a positive $label between 0 and 64 blocks',
+    );
+  }
+
+  void _validateText(
+    String text,
+    String path, {
+    required bool clickable,
+    required int? refreshTicks,
+  }) {
     // Plain length never exceeds raw length (parsing only strips tags), so a
     // short field can skip the parse entirely — this runs on every keystroke.
     if (clickable && text.length >= huiWideTextHitboxChars) {
@@ -521,11 +748,16 @@ class _Validator {
     }
 
     if (_placeholderPattern.hasMatch(text)) {
+      final bool frozen = refreshTicks == 0;
       _add(
         HuiSeverity.info,
         path,
-        'Uses a PlaceholderAPI placeholder: it is expanded once when the menu '
-        'opens and requires PlaceholderAPI on the server',
+        frozen
+            ? 'Uses a PlaceholderAPI placeholder: it is expanded when the '
+                  'icon opens and then frozen because refreshTicks is 0'
+            : 'Uses a live PlaceholderAPI placeholder: it refreshes every '
+                  '${refreshTicks ?? 10} ticks and requires PlaceholderAPI on '
+                  'the server',
         fix: null,
       );
     }
@@ -641,12 +873,140 @@ class _Validator {
     for (int i = 0; i < actions.length; i++) {
       final HuiAction action = actions[i];
       final String actionPath = '$path[$i]';
+      if (!huiActionTriggers.contains(action.trigger)) {
+        _add(
+          HuiSeverity.error,
+          '$actionPath.trigger',
+          'Action trigger "${action.trigger}" is not recognized',
+          fix: 'Use ${huiActionTriggers.join(", ")}',
+        );
+      }
       switch (action) {
         case final HuiCommandAction command:
           _validateCommand(command, actionPath);
         case final HuiSoundAction sound:
           _validateSound(sound, actionPath);
+        case final HuiMessageAction message:
+          _validateMessage(message, actionPath);
+        case final HuiTeleportAction teleport:
+          _validateTeleport(teleport, actionPath);
+        case final HuiConnectAction connect:
+          _validateConnect(connect, actionPath);
+        case final HuiNavigateAction navigation:
+          _validateNavigation(navigation, actionPath);
+          if (_hasMatchingActionAfter(actions, i, navigation.trigger)) {
+            _add(
+              HuiSeverity.warning,
+              actionPath,
+              'Navigation stops later actions with the same click trigger',
+              fix: 'Move navigation after actions bound to the same trigger',
+            );
+          }
       }
+    }
+  }
+
+  bool _hasMatchingActionAfter(
+    List<HuiAction> actions,
+    int index,
+    String navigationTrigger,
+  ) {
+    for (int next = index + 1; next < actions.length; next++) {
+      final String nextTrigger = actions[next].trigger;
+      if (navigationTrigger == 'any' ||
+          nextTrigger == 'any' ||
+          nextTrigger == navigationTrigger) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _validateMessage(HuiMessageAction action, String path) {
+    if (action.message.trim().isEmpty) {
+      _add(
+        HuiSeverity.error,
+        '$path.message',
+        'Message is empty; the plugin logs the invalid action and drops it',
+        fix: 'Enter the MiniMessage text sent to the clicking player',
+      );
+    }
+    final String lowercase = action.message.toLowerCase();
+    if (lowercase.contains('<click:') || lowercase.contains('<insert:')) {
+      _add(
+        HuiSeverity.warning,
+        '$path.message',
+        'Message click and insertion events are stripped by the runtime',
+        fix: 'Keep MiniMessage formatting, but remove interactive tags',
+      );
+    }
+  }
+
+  void _validateTeleport(HuiTeleportAction action, String path) {
+    if (action.world.length > 255 || !_worldKeyPattern.hasMatch(action.world)) {
+      _add(
+        HuiSeverity.error,
+        '$path.world',
+        'World must be an explicit lowercase namespace:key',
+        fix: 'Use a loaded world key such as minecraft:overworld',
+      );
+    }
+    _validateActionNumber(action.x, '$path.x', 'Teleport X');
+    _validateActionNumber(action.y, '$path.y', 'Teleport Y');
+    _validateActionNumber(action.z, '$path.z', 'Teleport Z');
+    _validateActionNumber(action.yaw, '$path.yaw', 'Teleport yaw');
+    _validateActionNumber(action.pitch, '$path.pitch', 'Teleport pitch');
+  }
+
+  void _validateConnect(HuiConnectAction action, String path) {
+    if (!_proxyServerPattern.hasMatch(action.server)) {
+      _add(
+        HuiSeverity.error,
+        '$path.server',
+        'Proxy server name must be 1-64 letters, numbers, dots, underscores, or hyphens',
+        fix: 'Enter the exact server name configured on BungeeCord or Velocity',
+      );
+    }
+  }
+
+  void _validateActionNumber(double value, String path, String label) {
+    if (!value.isFinite) {
+      _add(
+        HuiSeverity.error,
+        path,
+        '$label must be a finite number',
+        fix: 'Enter a normal numeric value',
+      );
+    }
+  }
+
+  void _validateNavigation(HuiNavigateAction action, String path) {
+    if (!huiNavigationModes.contains(action.mode)) {
+      _add(
+        HuiSeverity.error,
+        '$path.mode',
+        'Navigation mode "${action.mode}" is not recognized',
+        fix: 'Use ${huiNavigationModes.join(", ")}',
+      );
+    }
+    if (action.requiresTarget && action.target.trim().isEmpty) {
+      _add(
+        HuiSeverity.error,
+        '$path.target',
+        'Push and replace navigation require a target menu',
+        fix: 'Choose the menu page this action should open',
+      );
+    }
+    final String? targetProblem = action.requiresTarget
+        ? validateMenuId(action.target)
+        : null;
+    if (targetProblem != null && action.target.trim().isNotEmpty) {
+      _add(
+        HuiSeverity.error,
+        '$path.target',
+        targetProblem,
+        fix: 'Use a canonical id such as shops/confirm',
+      );
     }
   }
 

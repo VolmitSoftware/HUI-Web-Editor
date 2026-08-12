@@ -1,0 +1,36 @@
+{
+  "protocol": 1,
+  "sessionId": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "status": "pending",
+  "expiresAt": "2026-08-12T13:00:00.000Z",
+  "baseRevision": "sha256:2aa4fe1c28da72bfe69d18272631c12a324e279ac9169f257a4fb21b257e3317",
+  "snapshot": {
+    "format": "holoui-sync-project",
+    "version": 1,
+    "kind": "menu",
+    "subjectId": "main",
+    "menus": [{"id": "main", "json": "{\"components\":[]}"}],
+    "images": [],
+    "constraints": {"subjectId": "main", "menuIds": ["main"], "imagePaths": [], "newImagePrefix": "sync/menus/main/", "allowDeletes": false},
+    "warnings": [],
+    "baseRevision": "sha256:2aa4fe1c28da72bfe69d18272631c12a324e279ac9169f257a4fb21b257e3317"
+  },
+  "publication": {
+    "revision": 1,
+    "baseRevision": "sha256:2aa4fe1c28da72bfe69d18272631c12a324e279ac9169f257a4fb21b257e3317",
+    "snapshot": {
+      "format": "holoui-sync-project",
+      "version": 1,
+      "kind": "menu",
+      "subjectId": "main",
+      "menus": [{"id": "main", "json": "{\"components\":[],\"followPlayer\":true}"}],
+      "images": [],
+      "constraints": {"subjectId": "main", "menuIds": ["main"], "imagePaths": [], "newImagePrefix": "sync/menus/main/", "allowDeletes": false},
+      "warnings": [],
+      "baseRevision": "sha256:ec18b7610a5df4a0e172be9a5d8bec0b25c2927d84327908bd3f6c3e7a46d3cd"
+    },
+    "publishedAt": "2026-08-12T12:05:00.000Z",
+    "state": "pending",
+    "ack": null
+  }
+}

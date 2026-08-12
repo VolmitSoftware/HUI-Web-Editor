@@ -83,17 +83,34 @@ class PreviewCardPainter {
     ctx.fillRect(0, 0, view.widthPx, view.heightPx);
     if (options.showGrid) _paintGrid(ctx, view, palette);
 
-    final List<double> labelWidths =
-        List<double>.filled(scene.items.length, 0, growable: false);
+    final List<double> labelWidths = List<double>.filled(
+      scene.items.length,
+      0,
+      growable: false,
+    );
     for (final int index in previewPaintOrder(scene)) {
       final CardItem item = scene.items[index];
       switch (item) {
         case CardPanel():
-          _paintRect(ctx, view, item.x, item.y, item.width, item.height,
-              item.color);
+          _paintRect(
+            ctx,
+            view,
+            item.x,
+            item.y,
+            item.width,
+            item.height,
+            item.color,
+          );
         case CardCell():
           _paintRect(
-              ctx, view, item.x, item.y, item.size, item.size, item.color);
+            ctx,
+            view,
+            item.x,
+            item.y,
+            item.size,
+            item.size,
+            item.color,
+          );
         case CardSlot():
           _paintSlot(ctx, view, item, palette);
         case CardLabel():
@@ -127,10 +144,20 @@ class PreviewCardPainter {
     _stroke(ctx, palette.gridMajor);
     _gridLines(ctx, view, previewGridMajorPx);
     _stroke(ctx, palette.axis);
-    _line(ctx, _crisp(view.toScreenX(0)), 0, _crisp(view.toScreenX(0)),
-        view.heightPx);
-    _line(ctx, 0, _crisp(view.toScreenY(0)), view.widthPx,
-        _crisp(view.toScreenY(0)));
+    _line(
+      ctx,
+      _crisp(view.toScreenX(0)),
+      0,
+      _crisp(view.toScreenX(0)),
+      view.heightPx,
+    );
+    _line(
+      ctx,
+      0,
+      _crisp(view.toScreenY(0)),
+      view.widthPx,
+      _crisp(view.toScreenY(0)),
+    );
     ctx.restore();
   }
 
@@ -180,8 +207,7 @@ class PreviewCardPainter {
     CardSlot slot,
     CanvasPalette palette,
   ) {
-    _paintRect(
-        ctx, view, slot.x, slot.y, slot.size, slot.size, slot.wellColor);
+    _paintRect(ctx, view, slot.x, slot.y, slot.size, slot.size, slot.wellColor);
     final double size = (slot.size * view.zoom).toDouble();
     final double left = view.toScreenX(slot.x - slot.size / 2);
     final double top = view.toScreenY(slot.y + slot.size / 2);
@@ -200,7 +226,8 @@ class PreviewCardPainter {
     _fill(ctx, palette.labelBackground);
     ctx.fillRect(left + 2, top + 2, size - 4, size - 4);
     if (size >= 22) {
-      ctx.font = '600 ${math.min(11, size / 3.4).toStringAsFixed(1)}px '
+      ctx.font =
+          '600 ${math.min(11, size / 3.4).toStringAsFixed(1)}px '
           '"Geist", ui-sans-serif, system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -253,7 +280,8 @@ class PreviewCardPainter {
     for (final McSpan span in label.text) {
       _setMinecraftFont(ctx, fontSize, span.italic);
       // Minecraft widens every GLYPH of a bold run by one pixel, not the run.
-      final double width = ctx.measureText(span.text).width +
+      final double width =
+          ctx.measureText(span.text).width +
           (span.bold ? fontPixel * span.text.runes.length : 0);
       advances.add(width);
       total += width;
@@ -283,8 +311,15 @@ class PreviewCardPainter {
       _setMinecraftFont(ctx, fontSize, span.italic);
       _fill(ctx, rgbCss(span.color));
       if (span.bold) {
-        _fillBoldRun(ctx, span.text, x, baselineY, fontSize, span.italic,
-            fontPixel);
+        _fillBoldRun(
+          ctx,
+          span.text,
+          x,
+          baselineY,
+          fontSize,
+          span.italic,
+          fontPixel,
+        );
       } else {
         ctx.fillText(span.text, x, baselineY);
       }
@@ -292,8 +327,12 @@ class PreviewCardPainter {
         ctx.fillRect(x, baselineY + fontPixel, advances[i], fontPixel);
       }
       if (span.strikethrough) {
-        ctx.fillRect(x, baselineY - huiBaselineOffsetPixels * fontPixel,
-            advances[i], fontPixel);
+        ctx.fillRect(
+          x,
+          baselineY - huiBaselineOffsetPixels * fontPixel,
+          advances[i],
+          fontPixel,
+        );
       }
       x += advances[i];
     }
@@ -362,8 +401,10 @@ class PreviewCardPainter {
     _strokeBox(
       ctx,
       view,
-      previewItemBox(scene.items[index],
-          labelWidth: _widthAt(labelWidths, index)),
+      previewItemBox(
+        scene.items[index],
+        labelWidth: _widthAt(labelWidths, index),
+      ),
     );
     ctx.restore();
   }
@@ -465,7 +506,8 @@ class PreviewCardPainter {
     double sizePx,
     bool italic,
   ) {
-    ctx.font = '${italic ? 'italic ' : ''}${sizePx.toStringAsFixed(2)}px '
+    ctx.font =
+        '${italic ? 'italic ' : ''}${sizePx.toStringAsFixed(2)}px '
         '"Minecraftia", "Geist Mono", monospace';
   }
 

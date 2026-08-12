@@ -54,46 +54,48 @@ const List<String> previewSimCategories = <String>[
 /// `PreviewStateAdapters.sample`: the universal group always, the inventory
 /// group whenever the target has an inventory, and the group named by the
 /// category itself.
-const Map<String, List<String>> previewSimCategoryGroups = <String, List<String>>{
-  'chest': <String>['universal', 'inventory'],
-  'furnace': <String>['universal', 'inventory', 'furnace'],
-  'brewing': <String>['universal', 'inventory', 'brewing'],
-  'beehive': <String>['universal', 'beehive'],
-  'cauldron': <String>['universal', 'cauldron'],
-  'jukebox': <String>['universal', 'inventory', 'jukebox'],
-  'enderChest': <String>['universal', 'inventory'],
-  'entity': <String>['universal', 'inventory'],
-  'statics': <String>['universal'],
-};
+const Map<String, List<String>> previewSimCategoryGroups =
+    <String, List<String>>{
+      'chest': <String>['universal', 'inventory'],
+      'furnace': <String>['universal', 'inventory', 'furnace'],
+      'brewing': <String>['universal', 'inventory', 'brewing'],
+      'beehive': <String>['universal', 'beehive'],
+      'cauldron': <String>['universal', 'cauldron'],
+      'jukebox': <String>['universal', 'inventory', 'jukebox'],
+      'enderChest': <String>['universal', 'inventory'],
+      'entity': <String>['universal', 'inventory'],
+      'statics': <String>['universal'],
+    };
 
 /// The variable names each catalog group carries, in catalog order. Pinned
 /// against the shipped catalog file by the sync gate; this is the sim's own
 /// declaration of what it publishes, so an extra or missing name fails there.
-const Map<String, List<String>> previewSimGroupVariables = <String, List<String>>{
-  'universal': <String>['time', 'blockType', 'customName'],
-  'inventory': <String>['inventory.size', 'inventory.occupied'],
-  'furnace': <String>[
-    'cookTime',
-    'cookTimeTotal',
-    'burnTime',
-    'fuelSeconds',
-    'bankedXp',
-    'lit',
-    'surge.active',
-    'surge.gain',
-  ],
-  'brewing': <String>[
-    'brewTime',
-    'brewTotal',
-    'fuelLevel',
-    'maxFuel',
-    'surge.active',
-    'surge.gain',
-  ],
-  'beehive': <String>['bees', 'maxBees', 'honey', 'maxHoney'],
-  'cauldron': <String>['level', 'maxLevel', 'fluid'],
-  'jukebox': <String>['playing', 'record'],
-};
+const Map<String, List<String>> previewSimGroupVariables =
+    <String, List<String>>{
+      'universal': <String>['time', 'blockType', 'customName'],
+      'inventory': <String>['inventory.size', 'inventory.occupied'],
+      'furnace': <String>[
+        'cookTime',
+        'cookTimeTotal',
+        'burnTime',
+        'fuelSeconds',
+        'bankedXp',
+        'lit',
+        'surge.active',
+        'surge.gain',
+      ],
+      'brewing': <String>[
+        'brewTime',
+        'brewTotal',
+        'fuelLevel',
+        'maxFuel',
+        'surge.active',
+        'surge.gain',
+      ],
+      'beehive': <String>['bees', 'maxBees', 'honey', 'maxHoney'],
+      'cauldron': <String>['level', 'maxLevel', 'fluid'],
+      'jukebox': <String>['playing', 'record'],
+    };
 
 /// [PreviewSim.variableNames] without needing a live instance: which names a
 /// category publishes never depends on any simulated state, only on the
@@ -105,10 +107,10 @@ const Map<String, List<String>> previewSimGroupVariables = <String, List<String>
 /// category" hint, should call this directly instead of allocating an
 /// instance solely to read it off.
 List<String> previewCategoryVariableNames(String category) => <String>[
-      for (final String group
-          in previewSimCategoryGroups[category] ?? const <String>['universal'])
-        ...previewSimGroupVariables[group] ?? const <String>[],
-    ];
+  for (final String group
+      in previewSimCategoryGroups[category] ?? const <String>['universal'])
+    ...previewSimGroupVariables[group] ?? const <String>[],
+];
 
 /// Every published variable whose value [PreviewSim.tick] moves.
 ///
@@ -176,7 +178,9 @@ class PreviewLangCatalog {
   /// Message id to English template.
   final Map<String, String> messages;
 
-  static const PreviewLangCatalog empty = PreviewLangCatalog(<String, String>{});
+  static const PreviewLangCatalog empty = PreviewLangCatalog(
+    <String, String>{},
+  );
 
   bool get isEmpty => messages.isEmpty;
 
@@ -215,8 +219,9 @@ class PreviewLangCatalog {
     final List<String> names = orderedPlaceholders(template);
     final Map<String, String> bound = <String, String>{};
     for (int index = 0; index < args.length; index++) {
-      final String name =
-          index < names.length ? names[index] : '$_langArgPrefix$index';
+      final String name = index < names.length
+          ? names[index]
+          : '$_langArgPrefix$index';
       // Values are inserted as untrusted text, so a container name can never
       // smuggle in colour codes.
       bound[name] = _sanitizeUntrusted(previewStringify(args[index]));
@@ -294,7 +299,7 @@ Object? _decodeJson(String body) {
 /// `PreviewStateContext` does.
 class PreviewSim implements PExprScope {
   PreviewSim(this.category, {PreviewLangCatalog? lang})
-      : lang = lang ?? PreviewLangCatalog.empty {
+    : lang = lang ?? PreviewLangCatalog.empty {
     reset();
   }
 
@@ -363,8 +368,8 @@ class PreviewSim implements PExprScope {
   /// expression evaluator goes through [variable] instead and allocates
   /// nothing.
   Map<String, Object> snapshot() => <String, Object>{
-        for (final String name in variableNames) name: variable(name)!,
-      };
+    for (final String name in variableNames) name: variable(name)!,
+  };
 
   /// Restores the category's canned state, dropping any surge but keeping
   /// [vars] and [overrides].
@@ -386,7 +391,8 @@ class PreviewSim implements PExprScope {
     // A surge is progress beyond the real elapsed ticks, which is exactly what
     // `surge.gain` reports; adding it here keeps the number the label renders
     // and the motion on screen telling the same story.
-    final double advance = gameTicks + (surgeActive ? surgeGain * _ticksPerSecond : 0);
+    final double advance =
+        gameTicks + (surgeActive ? surgeGain * _ticksPerSecond : 0);
     switch (category) {
       case 'furnace':
         if (cookTimeTotal > 0) {
@@ -534,7 +540,9 @@ class PreviewSim implements PExprScope {
   int _occupiedSlots() {
     int occupied = 0;
     for (final SimSlotItem item in slotItems) {
-      if (!item.isEmpty && item.slot >= 0 && item.slot < inventorySize) occupied++;
+      if (!item.isEmpty && item.slot >= 0 && item.slot < inventorySize) {
+        occupied++;
+      }
     }
     return occupied;
   }
@@ -546,12 +554,16 @@ class PreviewSim implements PExprScope {
   String _lang(List<Object?> args) {
     if (args.isEmpty) {
       throw const PExprException(
-          'lang expects at least 1 argument (the message key), got 0', previewNoPosition);
+        'lang expects at least 1 argument (the message key), got 0',
+        previewNoPosition,
+      );
     }
     final Object? key = args.first;
     if (key is! String) {
       throw const PExprException(
-          'lang argument 1 (key) must be a string', previewNoPosition);
+        'lang argument 1 (key) must be a string',
+        previewNoPosition,
+      );
     }
     return lang.render(key, args.sublist(1));
   }
@@ -560,11 +572,16 @@ class PreviewSim implements PExprScope {
   SimSlotItem? _slotItem(String name, List<Object?> args) {
     if (args.length != 1) {
       throw PExprException(
-          '$name expects 1 argument(s), got ${args.length}', previewNoPosition);
+        '$name expects 1 argument(s), got ${args.length}',
+        previewNoPosition,
+      );
     }
     final Object? index = args.first;
     if (index is! double) {
-      throw PExprException('$name argument 1 must be a number', previewNoPosition);
+      throw PExprException(
+        '$name argument 1 must be a number',
+        previewNoPosition,
+      );
     }
     if (inventorySize <= 0 || !index.isFinite) return null;
     final double floored = index.floorToDouble();

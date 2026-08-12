@@ -13,51 +13,50 @@ import 'package:test/test.dart';
 /// [rows] is one string per pixel row: `#` opaque, `.` fully transparent,
 /// `~` half transparent (which the plugin also blanks).
 ImagePixels _pixels(List<String> rows) => ImagePixels(
-      width: rows.isEmpty ? 0 : rows.first.length,
-      height: rows.length,
-      rows: <List<int>>[
-        for (final String row in rows)
-          <int>[
-            for (int x = 0; x < row.length; x++)
-              switch (row[x]) {
-                '#' => 0xFFFF0000,
-                '~' => 0x80FF0000,
-                _ => 0x00000000,
-              },
-          ],
+  width: rows.isEmpty ? 0 : rows.first.length,
+  height: rows.length,
+  rows: <List<int>>[
+    for (final String row in rows)
+      <int>[
+        for (int x = 0; x < row.length; x++)
+          switch (row[x]) {
+            '#' => 0xFFFF0000,
+            '~' => 0x80FF0000,
+            _ => 0x00000000,
+          },
       ],
-    );
+  ],
+);
 
 CanvasItem _item({
   required String id,
   required int index,
   required HuiRect hitbox,
   required HuiRect visual,
-}) =>
-    CanvasItem(
-      component: HuiComponent(id, Vec3(0, 0, 0), HuiButtonData()),
-      index: index,
-      kind: CanvasIconKind.text,
-      shape: const IconShape.text(lines: 1, maxLineChars: 4),
-      anchor: WorldPoint(hitbox.x, hitbox.y),
-      depth: 0,
-      hitboxDepth: 0,
-      hitbox: hitbox,
-      visual: visual,
-      clickable: true,
-      isToggle: false,
-      toggleShowsTrue: false,
-    );
+}) => CanvasItem(
+  component: HuiComponent(id, Vec3(0, 0, 0), HuiButtonData()),
+  index: index,
+  kind: CanvasIconKind.text,
+  shape: const IconShape.text(lines: 1, maxLineChars: 4),
+  anchor: WorldPoint(hitbox.x, hitbox.y),
+  depth: 0,
+  hitboxDepth: 0,
+  hitbox: hitbox,
+  visual: visual,
+  clickable: true,
+  isToggle: false,
+  toggleShowsTrue: false,
+);
 
 CanvasScene _scene(List<CanvasItem> items) => CanvasScene(
-      items: items,
-      // Equal depth, so the draw order is declaration order.
-      drawOrder: List<CanvasItem>.of(items),
-      overlaps: const <CanvasOverlap>[],
-      menuOffset: Vec3(0, 0, 0),
-      uiScale: 1,
-      trueRender: true,
-    );
+  items: items,
+  // Equal depth, so the draw order is declaration order.
+  drawOrder: List<CanvasItem>.of(items),
+  overlaps: const <CanvasOverlap>[],
+  menuOffset: Vec3(0, 0, 0),
+  uiScale: 1,
+  trueRender: true,
+);
 
 void main() {
   group('imageRowChars', () {
@@ -76,10 +75,7 @@ void main() {
     });
 
     test('takes the widest row of a mixed image', () {
-      expect(
-        imageRowChars(_pixels(<String>['####', '##..', '....'])),
-        8,
-      );
+      expect(imageRowChars(_pixels(<String>['####', '##..', '....'])), 8);
     });
 
     test('measures an eight opaque plus eight transparent row as 24', () {
@@ -270,8 +266,9 @@ void main() {
     });
 
     test('renders without a catalog at all', () {
-      final CanvasItem item =
-          build(HuiCustomItemIcon('auto', 'myitems:ruby', 1));
+      final CanvasItem item = build(
+        HuiCustomItemIcon('auto', 'myitems:ruby', 1),
+      );
       expect(item.kind, CanvasIconKind.customItem);
       expect(item.itemTexture, isNull);
     });
@@ -279,6 +276,77 @@ void main() {
     test('a blank id falls back to the missing-icon placeholder', () {
       final CanvasItem item = build(HuiCustomItemIcon('auto', '  ', 1));
       expect(item.kind, CanvasIconKind.missing);
+    });
+  });
+
+  group('entity icons', () {
+    CanvasItem build(HuiEntityIcon icon) => buildCanvasScene(
+      menu: HuiMenu(
+        offset: Vec3.zero(),
+        components: <HuiComponent>[
+          HuiComponent('entity', Vec3.zero(), HuiDecorationData(icon)),
+        ],
+      ),
+      uiScale: 1,
+      trueRender: true,
+      togglePreview: (String _) => true,
+      textCache: McTextCache(),
+    ).items.single;
+
+    test('uses the authored footprint above the feet anchor', () {
+      final CanvasItem item = build(
+        HuiEntityIcon('minecraft:parrot', 0.5, 0.9),
+      );
+
+      expect(item.kind, CanvasIconKind.entity);
+      expect(item.entityKey, 'minecraft:parrot');
+      expect(item.visual, const HuiRect(x: 0, y: 0.45, w: 0.5, h: 0.9));
+      expect(item.hitbox, item.visual);
+    });
+
+    test('unsafe entity types resolve to the missing placeholder', () {
+      expect(
+        build(HuiEntityIcon('minecraft:item')).kind,
+        CanvasIconKind.missing,
+      );
+      expect(
+        build(HuiEntityIcon('minecraft:player')).kind,
+        CanvasIconKind.missing,
+      );
+    });
+  });
+
+  group('block icons', () {
+    CanvasItem build(HuiBlockIcon icon) => buildCanvasScene(
+      menu: HuiMenu(
+        offset: Vec3.zero(),
+        components: <HuiComponent>[
+          HuiComponent('block', Vec3.zero(), HuiDecorationData(icon)),
+        ],
+      ),
+      uiScale: 1,
+      trueRender: true,
+      togglePreview: (String _) => true,
+      textCache: McTextCache(),
+    ).items.single;
+
+    test('uses item-comparable automatic geometry and material identity', () {
+      final CanvasItem item = build(HuiBlockIcon('minecraft:stone'));
+
+      expect(item.kind, CanvasIconKind.block);
+      expect(item.itemKey, 'minecraft:stone');
+      expect(item.visual.w, closeTo(0.75, 0.000001));
+      expect(item.visual.h, closeTo(0.75, 0.000001));
+      expect(item.visual.y, closeTo(-0.05, 0.000001));
+      expect(item.hitbox.w, closeTo(0.75, 0.000001));
+      expect(item.hitbox.h, closeTo(0.75, 0.000001));
+    });
+
+    test('non-block materials resolve to the missing placeholder', () {
+      expect(
+        build(HuiBlockIcon('minecraft:diamond_sword')).kind,
+        CanvasIconKind.missing,
+      );
     });
   });
 }

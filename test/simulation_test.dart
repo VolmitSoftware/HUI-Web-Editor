@@ -1,7 +1,7 @@
 /// The preview's runtime state machine and the action-log model it emits.
 ///
 /// Every expectation here is a HoloUi behaviour a reasonable implementation
-/// would smooth over: overlapping hitboxes all fire, command source controls
+/// would smooth over: the nearest hitbox wins, command source controls
 /// player-versus-console dispatch, an explicit `volume: 0` is silent, and the
 /// range test is deliberately loosened by the menu offset. Each is cited to the
 /// Java that produces it.
@@ -60,10 +60,12 @@ HuiMenu _menu(
 PreviewSimulation _sim(
   HuiMenu menu, {
   PVec3 openFeet = PVec3.zero,
+  double openYawDeg = 0,
   bool Function(String id)? initialToggleState,
 }) => PreviewSimulation(
   menu: menu,
   openFeet: openFeet,
+  openYawDeg: openYawDeg,
   initialToggleState: initialToggleState,
 );
 
@@ -119,6 +121,18 @@ void main() {
 
       expect(sim.center, const PVec3(11, 66, -2));
       expect(sim.menuOffset, const PVec3(1, 2, 3));
+    });
+
+    test('the open yaw transforms the menu offset around the player', () {
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[_button('a')], offset: Vec3(0, 1, 3)),
+        openFeet: const PVec3(10, 64, -5),
+        openYawDeg: 90,
+      );
+
+      expect(sim.center, const PVec3(13, 65, -5));
+      expect(sim.anchorFeet, const PVec3(10, 64, -5));
+      expect(sim.facingYawDeg, 90);
     });
 
     test('toggle state is seeded by the caller, defaulting to true', () {
@@ -237,11 +251,7 @@ void main() {
   });
 
   group('click dispatch', () {
-    test('every hovered clickable fires, in declaration order', () {
-      // The whole reason the preview exists: MenuSessionManager.dispatchClick
-      // walks SessionHolder.snapshotClick's list and calls onClick on EVERY
-      // selected component (SessionHolder.java:145-159). Overlapping hitboxes
-      // are not deduplicated.
+    test('only the nearest event-time target fires', () {
       final PreviewSimulation sim = _sim(
         _menu(<HuiComponent>[
           _button('one', actions: <HuiAction>[_command('say one')]),
@@ -254,21 +264,10 @@ void main() {
         hoveredClickableIds: <String>{'three', 'two', 'one'},
         playerFeet: PVec3.zero,
       );
-      final List<ActionLogEntry> fired = sim.click();
+      final List<ActionLogEntry> fired = sim.click(componentId: 'two');
 
-      expect(fired.map((ActionLogEntry e) => e.componentId).toList(), <String>[
-        'one',
-        'two',
-        'three',
-      ]);
-      expect(
-        fired
-            .map(
-              (ActionLogEntry e) => (e.actions.single as LoggedCommand).command,
-            )
-            .toList(),
-        <String>['say one', 'say two', 'say three'],
-      );
+      expect(fired.single.componentId, 'two');
+      expect((fired.single.actions.single as LoggedCommand).command, 'say two');
     });
 
     test('a duplicate id keeps only the first component', () {
@@ -312,8 +311,6 @@ void main() {
     });
 
     test('a clickable with no actions still logs that it fired', () {
-      // The overlap lesson needs the empty entry: it is how the log shows that
-      // three hitboxes were hit even when two of them do nothing.
       final PreviewSimulation sim = _sim(_menu(<HuiComponent>[_button('a')]));
       sim.tick(hoveredClickableIds: <String>{'a'}, playerFeet: PVec3.zero);
 
@@ -321,6 +318,39 @@ void main() {
       expect(fired.single.componentId, 'a');
       expect(fired.single.actions, isEmpty);
       expect(fired.single.trigger, ActionLogTrigger.button);
+      expect(fired.single.clickTrigger, 'left_click');
+    });
+
+    test('each click runs only its exact and any-trigger actions', () {
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _button(
+            'bound',
+            actions: <HuiAction>[
+              HuiCommandAction('say any', 'player', 'any'),
+              HuiCommandAction('say left', 'player', 'left_click'),
+              HuiCommandAction('say right', 'player', 'right_click'),
+              HuiCommandAction(
+                'say sneak right',
+                'player',
+                'shift_right_click',
+              ),
+            ],
+          ),
+        ]),
+      );
+      sim.tick(hoveredClickableIds: <String>{'bound'}, playerFeet: PVec3.zero);
+
+      final ActionLogEntry fired = sim.click(trigger: 'right_click').single;
+
+      expect(fired.clickTrigger, 'right_click');
+      expect(
+        fired.actions
+            .cast<LoggedCommand>()
+            .map((LoggedCommand action) => action.command)
+            .toList(),
+        <String>['say any', 'say right'],
+      );
     });
 
     test('entries carry the tick they fired on', () {
@@ -331,14 +361,12 @@ void main() {
       expect(sim.click().single.tick, 2);
     });
 
-    test('clicking uses the previous tick\'s hover set, not a live one', () {
-      // isSelected() is last tick's state; the click handler only reads it
-      // (MenuSessionManager.java:170-183).
+    test('an event-time target does not depend on the prior hover state', () {
       final PreviewSimulation sim = _sim(_menu(<HuiComponent>[_button('a')]));
       sim.tick(hoveredClickableIds: <String>{'a'}, playerFeet: PVec3.zero);
       sim.tick(hoveredClickableIds: const <String>{}, playerFeet: PVec3.zero);
 
-      expect(sim.click(), isEmpty);
+      expect(sim.click(componentId: 'a').single.componentId, 'a');
     });
   });
 
@@ -427,6 +455,30 @@ void main() {
       expect(fired.length, 1);
       expect(fired.single.trigger, ActionLogTrigger.toggleToTrue);
     });
+
+    test('only a matching navigation prevents the toggle transition', () {
+      final PreviewSimulation sim = _sim(
+        _menu(<HuiComponent>[
+          _toggle(
+            'lamp',
+            trueActions: <HuiAction>[
+              HuiNavigateAction('right-menu', 'push', 'right_click'),
+              HuiCommandAction('lamp on', 'player', 'left_click'),
+            ],
+          ),
+        ]),
+        initialToggleState: (String _) => false,
+      );
+      sim.tick(hoveredClickableIds: <String>{'lamp'}, playerFeet: PVec3.zero);
+
+      final ActionLogEntry right = sim.click(trigger: 'right_click').single;
+      expect(right.actions.single, isA<LoggedNavigation>());
+      expect(sim.toggleStateFor('lamp'), isFalse);
+
+      final ActionLogEntry left = sim.click(trigger: 'left_click').single;
+      expect((left.actions.single as LoggedCommand).command, 'lamp on');
+      expect(sim.toggleStateFor('lamp'), isTrue);
+    });
   });
 
   group('menu centre', () {
@@ -445,9 +497,6 @@ void main() {
     });
 
     test('followPlayer recentres on the walking player', () {
-      // MenuSession.move re-anchors centerPoint on the new location
-      // (MenuSession.java:103-109), driven from PlayerMoveEvent
-      // (MenuSessionManager.java:129-131).
       final PreviewSimulation sim = _sim(
         _menu(
           <HuiComponent>[_button('a')],
@@ -464,6 +513,28 @@ void main() {
 
       expect(result.center, const PVec3(3, 1, 2));
       expect(sim.center, const PVec3(3, 1, 2));
+    });
+
+    test('followPlayer turns the menu with the current player yaw', () {
+      final PreviewSimulation sim = _sim(
+        _menu(
+          <HuiComponent>[_button('a')],
+          offset: Vec3(0, 1, 2),
+          followPlayer: true,
+        ),
+        openFeet: PVec3.zero,
+        openYawDeg: 15,
+      );
+
+      final PreviewTickResult result = sim.tick(
+        hoveredClickableIds: const <String>{},
+        playerFeet: const PVec3(3, 0, 4),
+        playerYawDeg: 90,
+      );
+
+      expect(sim.anchorFeet, const PVec3(3, 0, 4));
+      expect(sim.facingYawDeg, 90);
+      expect(result.center, const PVec3(5, 1, 4));
     });
 
     test('reports the distance from the feet to the centre', () {
@@ -536,6 +607,29 @@ void main() {
 
       expect(result.closedThisTick, isNull);
       expect(result.center, PVec3.zero);
+    });
+
+    test('lockPosition with followPlayer still turns on a look event', () {
+      final PreviewSimulation sim = _sim(
+        _menu(
+          <HuiComponent>[_button('a')],
+          offset: Vec3(0, 0, 2),
+          followPlayer: true,
+          lockPosition: true,
+        ),
+        openFeet: const PVec3(4, 0, 5),
+      );
+
+      final PreviewTickResult result = sim.tick(
+        hoveredClickableIds: const <String>{},
+        playerFeet: const PVec3(40, 0, 50),
+        playerYawDeg: 90,
+      );
+
+      expect(sim.anchorFeet, const PVec3(4, 0, 5));
+      expect(sim.facingYawDeg, 90);
+      expect(result.center, const PVec3(6, 0, 5));
+      expect(result.movementLocked, isTrue);
     });
   });
 
@@ -668,7 +762,7 @@ void main() {
     });
 
     test('followPlayer is tested against the pre-recentre centre', () {
-      // The move handler runs isValid(e.getTo()) before MenuSession.move
+      // The move handler runs isValid(e.getTo()) before MenuSession.follow
       // (MenuSessionManager.java:104-131), so a following menu is measured from
       // where it still is — which is why walking never closes one.
       final PreviewSimulation sim = _sim(
@@ -988,12 +1082,13 @@ void main() {
             tick: 7,
             componentId: 'confirm',
             trigger: ActionLogTrigger.button,
+            clickTrigger: 'left_click',
             actions: <LoggedAction>[
               LoggedCommand(command: 'heal', source: 'player'),
             ],
           ),
         ),
-        '#7 confirm (click): run "heal" as player',
+        '#7 confirm (click, left click): run "heal" as player',
       );
       expect(
         describeActionLogEntry(
@@ -1001,10 +1096,11 @@ void main() {
             tick: 7,
             componentId: 'lamp',
             trigger: ActionLogTrigger.toggleToTrue,
+            clickTrigger: 'shift_right_click',
             actions: <LoggedAction>[],
           ),
         ),
-        '#7 lamp (toggle → true): no actions',
+        '#7 lamp (toggle → true, sneak + right click): no actions',
       );
     });
 
@@ -1015,6 +1111,7 @@ void main() {
             tick: 1,
             componentId: 'a',
             trigger: ActionLogTrigger.toggleToFalse,
+            clickTrigger: 'right_click',
             actions: <LoggedAction>[
               LoggedCommand(command: 'x', source: 'server'),
               const LoggedSound(
@@ -1026,9 +1123,74 @@ void main() {
             ],
           ),
         ),
-        '#1 a (toggle → false): run "x" as console; '
+        '#1 a (toggle → false, right click): run "x" as console; '
         'play "s" (block) volume 1, pitch 1',
       );
     });
+
+    test('navigation is logged and stops later actions', () {
+      final List<LoggedAction> actions = loggedActionsFrom(<HuiAction>[
+        HuiSoundAction('ui.button.click', 'master', 1, 1),
+        HuiNavigateAction('shops/confirm', 'push'),
+        HuiCommandAction('say unreachable', 'server'),
+      ]);
+
+      expect(actions.length, 2);
+      expect(actions.last, isA<LoggedNavigation>());
+      expect(
+        describeLoggedAction(actions.last),
+        'push navigation to "shops/confirm"',
+      );
+    });
+
+    test('unmatched navigation does not stop a matching later action', () {
+      final List<LoggedAction> actions = loggedActionsFrom(<HuiAction>[
+        HuiNavigateAction('right-menu', 'push', 'right_click'),
+        HuiCommandAction('say left', 'server', 'left_click'),
+      ], clickTrigger: 'left_click');
+
+      expect(actions.single, isA<LoggedCommand>());
+      expect((actions.single as LoggedCommand).command, 'say left');
+    });
+
+    test('typed player interactions are logged in declaration order', () {
+      final List<LoggedAction> actions = loggedActionsFrom(<HuiAction>[
+        HuiMessageAction('<green>Hello %player%</green>'),
+        HuiTeleportAction('minecraft:overworld', 1, 64, -2, 90, 0),
+        HuiConnectAction('lobby-1'),
+      ]);
+
+      expect(actions, <Matcher>[
+        isA<LoggedMessage>(),
+        isA<LoggedTeleport>(),
+        isA<LoggedConnect>(),
+      ]);
+      expect(
+        describeLoggedAction(actions[0]),
+        'message player "<green>Hello %player%</green>"',
+      );
+      expect(
+        describeLoggedAction(actions[1]),
+        'teleport player to minecraft:overworld 1 64 -2 (yaw 90, pitch 0)',
+      );
+      expect(
+        describeLoggedAction(actions[2]),
+        'connect player to proxy server "lobby-1"',
+      );
+    });
+
+    test(
+      'runtime-invalid typed interactions are omitted from the preview log',
+      () {
+        expect(
+          loggedActionsFrom(<HuiAction>[
+            HuiMessageAction(' '),
+            HuiTeleportAction('world', 0, 64, 0, 0, 0),
+            HuiConnectAction('bad server'),
+          ]),
+          isEmpty,
+        );
+      },
+    );
   });
 }

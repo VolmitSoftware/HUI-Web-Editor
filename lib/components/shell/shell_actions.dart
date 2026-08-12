@@ -43,8 +43,7 @@ class ShellAction {
   final List<String> keywords;
   final bool enabled;
 
-  String get haystack =>
-      '$label ${keywords.join(' ')} $group'.toLowerCase();
+  String get haystack => '$label ${keywords.join(' ')} $group'.toLowerCase();
 }
 
 const String shellGroupFile = 'File';
@@ -81,6 +80,7 @@ List<ShellAction> buildShellActions(
       label: 'Import menu JSON',
       icon: ArcaneIcon.upload(size: IconSize.sm),
       keywords: const <String>['open', 'load', 'file'],
+      enabled: store.canTransferDocument,
       run: () => intents.importMenu(),
     ),
     ShellAction(
@@ -90,6 +90,7 @@ List<ShellAction> buildShellActions(
       icon: ArcaneIcon.download(size: IconSize.sm),
       shortcut: huiShortcutSpec('file.export'),
       keywords: const <String>['save', 'download', 'json'],
+      enabled: store.canTransferDocument,
       run: intents.exportMenu,
     ),
     ShellAction(
@@ -98,6 +99,7 @@ List<ShellAction> buildShellActions(
       label: 'Copy menu JSON',
       icon: ArcaneIcon.copy(size: IconSize.sm),
       keywords: const <String>['clipboard'],
+      enabled: store.canTransferDocument,
       run: () => intents.copyJson(),
     ),
     ShellAction(
@@ -225,6 +227,7 @@ List<ShellAction> buildShellActions(
         label: 'Add ${_typeLabel(type)}',
         icon: ArcaneIcon.plus(size: IconSize.sm),
         keywords: <String>[type, 'component', 'new'],
+        enabled: store.docKind == WorkspaceDocKind.menu,
         run: () => intents.addComponent(type),
       ),
     ShellAction(
@@ -233,6 +236,7 @@ List<ShellAction> buildShellActions(
       label: 'Visual editor',
       icon: ArcaneIcon.eye(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.visual'),
+      enabled: store.availableViews.contains(EditorView.visual),
       run: () => intents.setView(EditorView.visual),
     ),
     ShellAction(
@@ -242,6 +246,7 @@ List<ShellAction> buildShellActions(
       icon: ArcaneIcon.rotate3d(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.preview'),
       keywords: const <String>['3d', 'player', 'simulate', 'stage'],
+      enabled: store.availableViews.contains(EditorView.preview),
       run: () => intents.setView(EditorView.preview),
     ),
     ShellAction(
@@ -250,6 +255,7 @@ List<ShellAction> buildShellActions(
       label: 'Code editor',
       icon: ArcaneIcon.code(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.code'),
+      enabled: store.availableViews.contains(EditorView.code),
       run: () => intents.setView(EditorView.code),
     ),
     ShellAction(
@@ -258,6 +264,7 @@ List<ShellAction> buildShellActions(
       label: 'Split view',
       icon: ArcaneIcon.layers(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.split'),
+      enabled: store.availableViews.contains(EditorView.split),
       run: () => intents.setView(EditorView.split),
     ),
     ShellAction(
@@ -273,6 +280,7 @@ List<ShellAction> buildShellActions(
       group: shellGroupCanvas,
       label: store.showGrid ? 'Hide block grid' : 'Show block grid',
       icon: ArcaneIcon.grid3x3(size: IconSize.sm),
+      enabled: store.docKind == WorkspaceDocKind.menu,
       run: intents.toggleGrid,
     ),
     ShellAction(
@@ -281,6 +289,7 @@ List<ShellAction> buildShellActions(
       label: store.snapToGrid ? 'Disable snapping' : 'Enable snapping',
       icon: ArcaneIcon.magnet(size: IconSize.sm),
       keywords: const <String>['grid', 'align'],
+      enabled: store.docKind == WorkspaceDocKind.menu,
       run: intents.toggleSnap,
     ),
     ShellAction(
@@ -289,6 +298,7 @@ List<ShellAction> buildShellActions(
       label: store.showHitboxes ? 'Hide hitboxes' : 'Show hitboxes',
       icon: ArcaneIcon.square(size: IconSize.sm),
       keywords: const <String>['click', 'bounds'],
+      enabled: store.docKind == WorkspaceDocKind.menu,
       run: intents.toggleHitboxes,
     ),
     ShellAction(
@@ -297,6 +307,7 @@ List<ShellAction> buildShellActions(
       label: store.showAnchors ? 'Hide anchors' : 'Show anchors',
       icon: ArcaneIcon.mousePointer(size: IconSize.sm),
       keywords: const <String>['offset', 'origin'],
+      enabled: store.docKind == WorkspaceDocKind.menu,
       run: intents.toggleAnchors,
     ),
     ShellAction(
@@ -307,6 +318,7 @@ List<ShellAction> buildShellActions(
           : 'Show true in-game positions',
       icon: ArcaneIcon.maximize(size: IconSize.sm),
       keywords: const <String>['bias', 'offset', 'display entity'],
+      enabled: store.docKind == WorkspaceDocKind.menu,
       run: intents.toggleTrueRender,
     ),
     ShellAction(
@@ -315,6 +327,7 @@ List<ShellAction> buildShellActions(
       label: 'Show validation issues',
       icon: ArcaneIcon.triangleAlert(size: IconSize.sm),
       keywords: const <String>['errors', 'warnings', 'problems'],
+      enabled: !store.isBoardDoc,
       run: intents.openValidation,
     ),
     ShellAction(
@@ -361,7 +374,7 @@ List<ShellAction> buildShellActions(
       ShellAction(
         id: 'doc.${doc.id}',
         group: shellGroupDocuments,
-        label: 'Open ${doc.name}',
+        label: 'Open ${doc.title}',
         icon: ArcaneIcon.files(size: IconSize.sm),
         keywords: const <String>['switch', 'document', 'workspace'],
         run: () => intents.openDocument(doc.id),
@@ -372,10 +385,10 @@ List<ShellAction> buildShellActions(
 }
 
 String _typeLabel(String type) => switch (type) {
-      'button' => 'button (clickable)',
-      'toggle' => 'toggle (two states)',
-      _ => 'decoration (display only)',
-    };
+  'button' => 'button (clickable)',
+  'toggle' => 'toggle (two states)',
+  _ => 'decoration (display only)',
+};
 
 /// "selected component" reads as though only one is selected when eight are,
 /// and the commands act on all of them.
@@ -386,28 +399,68 @@ String _selectionNoun(int selected) =>
 /// up horizontally, and the other way round.
 final List<(String, String, HuiAlign, Widget)> _alignments =
     <(String, String, HuiAlign, Widget)>[
-  ('left', 'Align left edges', HuiAlign.left,
-      ArcaneIcon.alignStartVertical(size: IconSize.sm)),
-  ('centerX', 'Align horizontal centres', HuiAlign.centerX,
-      ArcaneIcon.alignCenterVertical(size: IconSize.sm)),
-  ('right', 'Align right edges', HuiAlign.right,
-      ArcaneIcon.alignEndVertical(size: IconSize.sm)),
-  ('top', 'Align top edges', HuiAlign.top,
-      ArcaneIcon.alignStartHorizontal(size: IconSize.sm)),
-  ('middleY', 'Align vertical centres', HuiAlign.middleY,
-      ArcaneIcon.alignCenterHorizontal(size: IconSize.sm)),
-  ('bottom', 'Align bottom edges', HuiAlign.bottom,
-      ArcaneIcon.alignEndHorizontal(size: IconSize.sm)),
-];
+      (
+        'left',
+        'Align left edges',
+        HuiAlign.left,
+        ArcaneIcon.alignStartVertical(size: IconSize.sm),
+      ),
+      (
+        'centerX',
+        'Align horizontal centres',
+        HuiAlign.centerX,
+        ArcaneIcon.alignCenterVertical(size: IconSize.sm),
+      ),
+      (
+        'right',
+        'Align right edges',
+        HuiAlign.right,
+        ArcaneIcon.alignEndVertical(size: IconSize.sm),
+      ),
+      (
+        'top',
+        'Align top edges',
+        HuiAlign.top,
+        ArcaneIcon.alignStartHorizontal(size: IconSize.sm),
+      ),
+      (
+        'middleY',
+        'Align vertical centres',
+        HuiAlign.middleY,
+        ArcaneIcon.alignCenterHorizontal(size: IconSize.sm),
+      ),
+      (
+        'bottom',
+        'Align bottom edges',
+        HuiAlign.bottom,
+        ArcaneIcon.alignEndHorizontal(size: IconSize.sm),
+      ),
+    ];
 
 final List<(String, String, HuiZOrder, Widget)> _depths =
     <(String, String, HuiZOrder, Widget)>[
-  ('forward', 'Bring forward', HuiZOrder.forward,
-      ArcaneIcon.arrowUp(size: IconSize.sm)),
-  ('backward', 'Send backward', HuiZOrder.backward,
-      ArcaneIcon.arrowDown(size: IconSize.sm)),
-  ('toFront', 'Bring to front', HuiZOrder.toFront,
-      ArcaneIcon.bringToFront(size: IconSize.sm)),
-  ('toBack', 'Send to back', HuiZOrder.toBack,
-      ArcaneIcon.sendToBack(size: IconSize.sm)),
-];
+      (
+        'forward',
+        'Bring forward',
+        HuiZOrder.forward,
+        ArcaneIcon.arrowUp(size: IconSize.sm),
+      ),
+      (
+        'backward',
+        'Send backward',
+        HuiZOrder.backward,
+        ArcaneIcon.arrowDown(size: IconSize.sm),
+      ),
+      (
+        'toFront',
+        'Bring to front',
+        HuiZOrder.toFront,
+        ArcaneIcon.bringToFront(size: IconSize.sm),
+      ),
+      (
+        'toBack',
+        'Send to back',
+        HuiZOrder.toBack,
+        ArcaneIcon.sendToBack(size: IconSize.sm),
+      ),
+    ];

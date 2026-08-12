@@ -16,11 +16,14 @@ class MapScope extends PExprScope {
   Object? variable(String dottedName) => vars[dottedName];
 
   @override
-  Object? call(String name, List<Object?> args) => previewStdFunction(name, args);
+  Object? call(String name, List<Object?> args) =>
+      previewStdFunction(name, args);
 }
 
-Object eval(String source, [Map<String, Object?> vars = const <String, Object?>{}]) =>
-    evalPreviewExpr(parsePreviewExpr(source), MapScope(vars));
+Object eval(
+  String source, [
+  Map<String, Object?> vars = const <String, Object?>{},
+]) => evalPreviewExpr(parsePreviewExpr(source), MapScope(vars));
 
 double evalNum(String source) => eval(source) as double;
 
@@ -29,9 +32,11 @@ String evalStr(String source) => eval(source) as String;
 void expectParseError(String source, String message, int position) {
   expect(
     () => parsePreviewExpr(source),
-    throwsA(isA<PExprException>()
-        .having((PExprException e) => e.message, 'message', message)
-        .having((PExprException e) => e.position, 'position', position)),
+    throwsA(
+      isA<PExprException>()
+          .having((PExprException e) => e.message, 'message', message)
+          .having((PExprException e) => e.position, 'position', position),
+    ),
     reason: source,
   );
 }
@@ -39,9 +44,15 @@ void expectParseError(String source, String message, int position) {
 void expectEvalError(String source, String message) {
   expect(
     () => eval(source),
-    throwsA(isA<PExprException>()
-        .having((PExprException e) => e.message, 'message', message)
-        .having((PExprException e) => e.position, 'position', previewNoPosition)),
+    throwsA(
+      isA<PExprException>()
+          .having((PExprException e) => e.message, 'message', message)
+          .having(
+            (PExprException e) => e.position,
+            'position',
+            previewNoPosition,
+          ),
+    ),
     reason: source,
   );
 }
@@ -54,12 +65,17 @@ void main() {
 
     test('256 nested parens are rejected at the cap, not by the stack', () {
       expectParseError(
-          '${'(' * 256}1${')' * 256}', 'expression too deeply nested', 256);
+        '${'(' * 256}1${')' * 256}',
+        'expression too deeply nested',
+        256,
+      );
     });
 
     test('5000 nested parens raise PExprException instead of overflowing', () {
-      expect(() => parsePreviewExpr('${'(' * 5000}1${')' * 5000}'),
-          throwsA(isA<PExprException>()));
+      expect(
+        () => parsePreviewExpr('${'(' * 5000}1${')' * 5000}'),
+        throwsA(isA<PExprException>()),
+      );
     });
 
     test('unary chains share the same cap', () {
@@ -74,7 +90,10 @@ void main() {
       expectParseError('a.b(1)', 'call names cannot be dotted', 0);
       // The same name without the call is a perfectly good dotted variable.
       expect(eval('a.b', <String, Object?>{'a.b': 4.0}), 4.0);
-      expect(eval('surge.active.x', <String, Object?>{'surge.active.x': true}), isTrue);
+      expect(
+        eval('surge.active.x', <String, Object?>{'surge.active.x': true}),
+        isTrue,
+      );
     });
 
     test('only the four documented escapes are accepted', () {
@@ -158,7 +177,10 @@ void main() {
     test('&& and || short-circuit past a would-be error', () {
       expect(eval('false && (1 / 0 == 0)'), isFalse);
       expect(eval('true || (1 / 0 == 0)'), isTrue);
-      expect(() => eval('true && (1 / 0 == 0)'), throwsA(isA<PExprException>()));
+      expect(
+        () => eval('true && (1 / 0 == 0)'),
+        throwsA(isA<PExprException>()),
+      );
     });
 
     test('+ concatenates as soon as either side is a string', () {
@@ -184,9 +206,14 @@ void main() {
       expect(evalBool(parsePreviewExpr('lit'), scope), isTrue);
       expect(evalString(parsePreviewExpr('54.0'), scope), '54');
       expect(evalColor(parsePreviewExpr('#F00'), scope), 0xFFFF0000);
-      expect(evalColor(parsePreviewExpr('alpha(0 - 1, 128)'), scope), 0x80FFFFFF);
-      expect(() => evalNumber(parsePreviewExpr('lit'), scope),
-          throwsA(isA<PExprException>()));
+      expect(
+        evalColor(parsePreviewExpr('alpha(0 - 1, 128)'), scope),
+        0x80FFFFFF,
+      );
+      expect(
+        () => evalNumber(parsePreviewExpr('lit'), scope),
+        throwsA(isA<PExprException>()),
+      );
     });
   });
 
@@ -213,25 +240,31 @@ void main() {
       expect(evalNum('round(0 - 0.0)').isNegative, isFalse);
     });
 
-    test('numbers stringify through the integral rule then Double.toString', () {
-      expect(evalStr('str(54.0)'), '54');
-      expect(evalStr('str(0 - 0.0)'), '0');
-      expect(evalStr('str(0.5)'), '0.5');
-      expect(evalStr('str(0.001)'), '0.001');
-      expect(evalStr('str(9999999.5)'), '9999999.5');
-      // Outside [1e-3, 1e7) Java switches to scientific notation.
-      expect(evalStr('str(0.0001)'), '1.0E-4');
-      expect(evalStr('str(0.00001)'), '1.0E-5');
-      expect(evalStr('str(10000000.5)'), '1.00000005E7');
-      expect(evalStr('str(123456789.25)'), '1.2345678925E8');
-      expect(evalStr("'x' + 0.0001"), 'x1.0E-4');
-      expect(evalStr('str(1 / 3)'), '0.3333333333333333');
-      expect(evalStr('str(0.1 + 0.2)'), '0.30000000000000004');
-      // Integral values render through a saturating (long) cast.
-      expect(evalStr('str(9007199254740993)'), '9007199254740992');
-      expect(evalStr('str(99999999999999999999)'), '9223372036854775807');
-      expect(evalStr('str(0 - 99999999999999999999)'), '-9223372036854775808');
-    });
+    test(
+      'numbers stringify through the integral rule then Double.toString',
+      () {
+        expect(evalStr('str(54.0)'), '54');
+        expect(evalStr('str(0 - 0.0)'), '0');
+        expect(evalStr('str(0.5)'), '0.5');
+        expect(evalStr('str(0.001)'), '0.001');
+        expect(evalStr('str(9999999.5)'), '9999999.5');
+        // Outside [1e-3, 1e7) Java switches to scientific notation.
+        expect(evalStr('str(0.0001)'), '1.0E-4');
+        expect(evalStr('str(0.00001)'), '1.0E-5');
+        expect(evalStr('str(10000000.5)'), '1.00000005E7');
+        expect(evalStr('str(123456789.25)'), '1.2345678925E8');
+        expect(evalStr("'x' + 0.0001"), 'x1.0E-4');
+        expect(evalStr('str(1 / 3)'), '0.3333333333333333');
+        expect(evalStr('str(0.1 + 0.2)'), '0.30000000000000004');
+        // Integral values render through a saturating (long) cast.
+        expect(evalStr('str(9007199254740993)'), '9007199254740992');
+        expect(evalStr('str(99999999999999999999)'), '9223372036854775807');
+        expect(
+          evalStr('str(0 - 99999999999999999999)'),
+          '-9223372036854775808',
+        );
+      },
+    );
 
     test('fixed rounds the shortest decimal half-up, as String.format does', () {
       // 1.005 is really 1.00499999999999989; Java rounds the printed form.
@@ -255,8 +288,14 @@ void main() {
       // str() runs the integral rule through a long, which has no signed zero.
       expect(evalStr('str(-0.0)'), '0');
       // Past 1e21 Dart's toStringAsFixed gives up and returns "1e+21".
-      expect(evalStr('fixed(100000000000000000000, 2)'), '100000000000000000000.00');
-      expect(evalStr('fixed(999999999999999999990, 3)'), '1000000000000000000000.000');
+      expect(
+        evalStr('fixed(100000000000000000000, 2)'),
+        '100000000000000000000.00',
+      );
+      expect(
+        evalStr('fixed(999999999999999999990, 3)'),
+        '1000000000000000000000.000',
+      );
     });
   });
 
@@ -264,7 +303,10 @@ void main() {
     test('colour channels survive a negative or oversized input', () {
       expect(evalNum('alpha(0 - 1, 128)'), 0x80FFFFFF.toDouble());
       expect(evalNum('mix(0 - 1, #FFFFFFFF, 0.5)'), 0xFFFFFFFF.toDouble());
-      expect(evalNum('mix(#FF000000, #FFFFFFFF, 0.333)'), 0xFF555555.toDouble());
+      expect(
+        evalNum('mix(#FF000000, #FFFFFFFF, 0.333)'),
+        0xFF555555.toDouble(),
+      );
       expect(evalNum('rgb(0.5, 254.5, 255.5)'), 0xFF01FFFF.toDouble());
       expect(evalNum('argb(127.5, 128.5, 0, 255)'), 0x808100FF.toDouble());
       expect(evalNum('alpha(#FF102030, 255.4)'), 0xFF102030.toDouble());
@@ -274,7 +316,10 @@ void main() {
       expect(evalNum('palette([1,2,3], -0.5)'), 3.0);
       expect(evalNum('palette([1,2,3], 3.9)'), 1.0);
       expect(evalNum('palette([10,20,30], -4)'), 30.0);
-      expectEvalError("palette([1,'x'], 1)", 'palette list entries must be numbers');
+      expectEvalError(
+        "palette([1,'x'], 1)",
+        'palette list entries must be numbers',
+      );
     });
 
     test('readable follows Java split, dropping only trailing empties', () {

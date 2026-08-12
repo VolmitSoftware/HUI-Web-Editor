@@ -129,8 +129,8 @@ HuiComponent _commandButton(
 // Layout note for every template below: a text line is 0.21875 blocks tall and
 // roughly `characters * 0.109` blocks wide (the plugin's own CollisionPlane
 // maths), and an item is a 0.75 block square. Rows are spaced so neither the
-// drawn icons nor the click planes touch — overlapping clickables all fire on
-// a single click.
+// drawn icons nor the click planes touch — a nearer overlap can hide the one
+// behind it from the event-time click ray.
 HuiMenu buildWelcomeTemplate() => _menu(<HuiComponent>[
   _text('title', 0, 1.05, '&6&lWelcome, traveller!\n&7Choose where to go'),
   _commandButton(

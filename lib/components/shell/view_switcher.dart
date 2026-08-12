@@ -28,38 +28,40 @@ class ViewSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-view-switcher',
-        attributes: const <String, String>{'aria-label': 'Editor view'},
-        <Widget>[
-          ArcaneToggleGroup(
-            id: 'hui-view-switcher',
-            value: view.name,
-            variant: ToggleGroupVariant.outline,
-            size: ToggleGroupSize.sm,
-            onChanged: _onChanged,
-            items: <ToggleGroupItem>[
-              for (final EditorView value in views)
-                _item(value, _labelOf(value), _iconOf(value)),
-            ],
-          ),
+    classes: 'hui-view-switcher',
+    attributes: const <String, String>{'aria-label': 'Editor view'},
+    <Widget>[
+      ArcaneToggleGroup(
+        id: 'hui-view-switcher',
+        value: view.name,
+        variant: ToggleGroupVariant.outline,
+        size: ToggleGroupSize.sm,
+        onChanged: _onChanged,
+        items: <ToggleGroupItem>[
+          for (final EditorView value in views)
+            _item(value, _labelOf(value), _iconOf(value)),
         ],
-      );
+      ),
+    ],
+  );
 
   static String _labelOf(EditorView value) => switch (value) {
-        EditorView.visual => 'Visual',
-        EditorView.preview => 'Preview',
-        EditorView.code => 'Code',
-        EditorView.split => 'Split',
-        EditorView.previewCard => 'Card',
-      };
+    EditorView.visual => 'Visual',
+    EditorView.preview => 'Preview',
+    EditorView.code => 'Code',
+    EditorView.split => 'Split',
+    EditorView.previewCard => 'Card',
+    EditorView.board => 'Board',
+  };
 
   static Widget _iconOf(EditorView value) => switch (value) {
-        EditorView.visual => ArcaneIcon.eye(size: IconSize.sm),
-        EditorView.preview => ArcaneIcon.rotate3d(size: IconSize.sm),
-        EditorView.code => ArcaneIcon.code(size: IconSize.sm),
-        EditorView.split => ArcaneIcon.columns2(size: IconSize.sm),
-        EditorView.previewCard => ArcaneIcon.layoutGrid(size: IconSize.sm),
-      };
+    EditorView.visual => ArcaneIcon.eye(size: IconSize.sm),
+    EditorView.preview => ArcaneIcon.rotate3d(size: IconSize.sm),
+    EditorView.code => ArcaneIcon.code(size: IconSize.sm),
+    EditorView.split => ArcaneIcon.columns2(size: IconSize.sm),
+    EditorView.previewCard => ArcaneIcon.layoutGrid(size: IconSize.sm),
+    EditorView.board => ArcaneIcon.workflow(size: IconSize.sm),
+  };
 
   void _onChanged(String? value) {
     for (final EditorView candidate in views) {
@@ -73,12 +75,9 @@ class ViewSwitcher extends StatelessWidget {
   ToggleGroupItem _item(EditorView value, String label, Widget icon) =>
       ToggleGroupItem(
         value: value.name,
-        child: dom.span(
-          classes: 'hui-view-switcher-item',
-          <Widget>[
-            icon,
-            dom.span(classes: 'hui-view-label', <Widget>[Text(label)]),
-          ],
-        ),
+        child: dom.span(classes: 'hui-view-switcher-item', <Widget>[
+          icon,
+          dom.span(classes: 'hui-view-label', <Widget>[Text(label)]),
+        ]),
       );
 }

@@ -101,8 +101,7 @@ class _HuiReorderListState extends State<HuiReorderList> {
   void _measure() {
     final List<double> midpoints = <double>[];
     for (int i = 0; i < component.itemCount; i++) {
-      final web.Element? row =
-          web.document.getElementById('$_uid-row-$i');
+      final web.Element? row = web.document.getElementById('$_uid-row-$i');
       if (row == null) return;
       final web.DOMRect rect = row.getBoundingClientRect();
       midpoints.add(rect.top + rect.height / 2);
@@ -143,8 +142,10 @@ class _HuiReorderListState extends State<HuiReorderList> {
     _release(from);
     // The slot counts gaps, so everything past the source shifts down by one
     // when the row is lifted out.
-    final int to = (_slot > from ? _slot - 1 : _slot)
-        .clamp(0, component.itemCount - 1);
+    final int to = (_slot > from ? _slot - 1 : _slot).clamp(
+      0,
+      component.itemCount - 1,
+    );
     setState(() {
       _dragIndex = null;
       _midpoints = const <double>[];
@@ -186,43 +187,43 @@ class _HuiReorderListState extends State<HuiReorderList> {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        id: _uid,
-        classes: classNames(<String?>[
-          'hui-reorder',
-          _dragIndex != null ? 'is-dragging' : null,
-          component.classes,
-        ]),
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '4px',
-            'min-width': '0',
-          },
-        ),
-        <Widget>[
-          for (int i = 0; i < component.itemCount; i++) ...<Widget>[
-            _line(i),
-            _row(i),
-          ],
-          _line(component.itemCount),
-        ],
-      );
+    id: _uid,
+    classes: classNames(<String?>[
+      'hui-reorder',
+      _dragIndex != null ? 'is-dragging' : null,
+      component.classes,
+    ]),
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'flex-direction': 'column',
+        'gap': '4px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      for (int i = 0; i < component.itemCount; i++) ...<Widget>[
+        _line(i),
+        _row(i),
+      ],
+      _line(component.itemCount),
+    ],
+  );
 
   Widget _line(int slot) => dom.div(
-        classes: classNames(<String?>[
-          'hui-reorder-line',
-          _showLine(slot) ? 'is-active' : null,
-        ]),
-        styles: dom.Styles(
-          raw: <String, String>{
-            'height': '2px',
-            'border-radius': '2px',
-            'background': _showLine(slot) ? 'var(--primary)' : 'transparent',
-          },
-        ),
-        const <Widget>[],
-      );
+    classes: classNames(<String?>[
+      'hui-reorder-line',
+      _showLine(slot) ? 'is-active' : null,
+    ]),
+    styles: dom.Styles(
+      raw: <String, String>{
+        'height': '2px',
+        'border-radius': '2px',
+        'background': _showLine(slot) ? 'var(--primary)' : 'transparent',
+      },
+    ),
+    const <Widget>[],
+  );
 
   Widget _row(int index) {
     final bool dragging = _dragIndex == index;
@@ -255,33 +256,33 @@ class _HuiReorderListState extends State<HuiReorderList> {
   }
 
   Widget _handleWidget(int index) => dom.span(
-        id: _handleId(index),
-        classes: 'hui-reorder-handle',
-        attributes: <String, String>{
-          'aria-hidden': 'true',
-          'title': component.handleLabel,
-        },
-        styles: dom.Styles(
-          raw: <String, String>{
-            'display': 'inline-flex',
-            'align-items': 'center',
-            'justify-content': 'center',
-            'flex': '0 0 auto',
-            'width': '20px',
-            'align-self': 'stretch',
-            'color': 'var(--muted-foreground)',
-            'cursor': _dragIndex == index ? 'grabbing' : 'grab',
-            // Without this the browser treats the drag as a scroll and the
-            // pointer stream stops mid-gesture on touch and trackpads.
-            'touch-action': 'none',
-          },
-        ),
-        events: <String, EventCallback>{
-          'pointerdown': (Object? event) => _onDown(index, event),
-          'pointermove': _onMove,
-          'pointerup': _onUp,
-          'pointercancel': _onCancel,
-        },
-        <Widget>[ArcaneIcon.gripVertical(size: IconSize.sm)],
-      );
+    id: _handleId(index),
+    classes: 'hui-reorder-handle',
+    attributes: <String, String>{
+      'aria-hidden': 'true',
+      'title': component.handleLabel,
+    },
+    styles: dom.Styles(
+      raw: <String, String>{
+        'display': 'inline-flex',
+        'align-items': 'center',
+        'justify-content': 'center',
+        'flex': '0 0 auto',
+        'width': '20px',
+        'align-self': 'stretch',
+        'color': 'var(--muted-foreground)',
+        'cursor': _dragIndex == index ? 'grabbing' : 'grab',
+        // Without this the browser treats the drag as a scroll and the
+        // pointer stream stops mid-gesture on touch and trackpads.
+        'touch-action': 'none',
+      },
+    ),
+    events: <String, EventCallback>{
+      'pointerdown': (Object? event) => _onDown(index, event),
+      'pointermove': _onMove,
+      'pointerup': _onUp,
+      'pointercancel': _onCancel,
+    },
+    <Widget>[ArcaneIcon.gripVertical(size: IconSize.sm)],
+  );
 }

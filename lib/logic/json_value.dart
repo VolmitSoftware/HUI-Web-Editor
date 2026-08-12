@@ -33,8 +33,9 @@ class JsonParseResult {
 /// JSON number grammar, widened to the forms people actually type: a leading
 /// `+`, a leading zero and a bare `.5` are all accepted. Hex is deliberately
 /// not, because `int.parse` would take `0x10` and JSON has no such literal.
-final RegExp _numberPattern =
-    RegExp(r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$');
+final RegExp _numberPattern = RegExp(
+  r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$',
+);
 
 /// Text safe to show without quotes: it survives a [parseJsonValue] round trip
 /// unchanged.

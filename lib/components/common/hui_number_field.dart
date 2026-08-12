@@ -155,13 +155,13 @@ class _HuiNumberFieldState extends State<HuiNumberField> {
   }
 
   Widget _stepButton(String label, Widget icon, int direction) => Button(
-        variant: ButtonVariant.outline,
-        size: ButtonSize.iconSm,
-        disabled: component.disabled,
-        onPressed: component.disabled ? null : () => _step(direction),
-        attributes: <String, String>{'aria-label': label},
-        child: icon,
-      );
+    variant: ButtonVariant.outline,
+    size: ButtonSize.iconSm,
+    disabled: component.disabled,
+    onPressed: component.disabled ? null : () => _step(direction),
+    attributes: <String, String>{'aria-label': label},
+    child: icon,
+  );
 
   @override
   Widget build(BuildContext context) {

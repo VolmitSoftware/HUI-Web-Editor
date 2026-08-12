@@ -1,12 +1,8 @@
 /// Camera, ray and collision-plane math for the 3D preview.
 ///
-/// Every assertion here is a port of a specific line of the plugin; the
-/// citations are the point of the file. The three that are easiest to "fix"
-/// into wrongness — the frozen open yaw, the per-tick plane re-aim, and the
-/// tick-1-versus-tick-2 hover push — are pinned hardest.
+/// The menu transform, four runtime billboard modes, picking and CSS matrices
+/// are pinned independently so visual quads and click planes cannot drift.
 library;
-
-import 'dart:math' as math;
 
 import 'package:holoui_editor/preview/projection.dart';
 import 'package:holoui_editor/preview/preview_types.dart';
@@ -48,28 +44,53 @@ void main() {
     });
   });
 
-  group('open-yaw rotation', () {
-    // `MenuSession.java:120` captures `initialY = -yaw`, and
-    // `MenuComponent.java:142-144` rotates by that, so the authoring-frame
-    // rotation angle is the NEGATED player yaw.
-    test('rotation angle is the negated open yaw in radians', () {
-      expect(huiOpenYawRadians(90), closeTo(-math.pi / 2, 1e-12));
-      expect(huiOpenYawRadians(-45), closeTo(math.pi / 4, 1e-12));
-    });
-
-    test('rotating +z by the open yaw lands on the look direction', () {
+  group('menu transform', () {
+    test('yaw turns authoring forward into the player look direction', () {
       for (final double yaw in <double>[0, 30, 90, 137.5, 180, 270, -60]) {
-        final PVec3 rotated = const PVec3(
-          0,
-          0,
-          2,
-        ).rotateAroundY(PVec3.zero, huiOpenYawRadians(yaw));
         expectVec(
-          rotated,
-          huiLookDirection(yawDegrees: yaw) * 2,
+          huiMenuVector(PVec3.forward, facingYawDegrees: yaw),
+          huiLookDirection(yawDegrees: yaw),
           epsilon: 1e-9,
         );
       }
+    });
+
+    test('pitch and roll use the runtime roll-pitch-yaw order', () {
+      expectVec(
+        huiMenuVector(PVec3.right, facingYawDegrees: 0, rollDegrees: 90),
+        const PVec3(0, -1, 0),
+        epsilon: 1e-9,
+      );
+      expectVec(
+        huiMenuVector(PVec3.forward, facingYawDegrees: 0, pitchDegrees: 90),
+        const PVec3(0, -1, 0),
+        epsilon: 1e-9,
+      );
+      expectVec(
+        huiMenuVector(
+          const PVec3(1, 2, 3),
+          facingYawDegrees: 90,
+          pitchDegrees: 90,
+          rollDegrees: 90,
+        ),
+        const PVec3(-1, -3, -2),
+        epsilon: 1e-9,
+      );
+    });
+
+    test('the transformed basis stays orthonormal', () {
+      final PlaneAim plane = fixedMenuPlane(
+        center: const PVec3(2, 3, 4),
+        facingYawDegrees: 73,
+        pitchDegrees: -21,
+        rollDegrees: 14,
+      );
+      expect(plane.normal.length, closeTo(1, 1e-12));
+      expect(plane.right.length, closeTo(1, 1e-12));
+      expect(plane.up.length, closeTo(1, 1e-12));
+      expect(plane.normal.dot(plane.right), closeTo(0, 1e-12));
+      expect(plane.normal.dot(plane.up), closeTo(0, 1e-12));
+      expect(plane.right.dot(plane.up), closeTo(0, 1e-12));
     });
   });
 
@@ -262,29 +283,102 @@ void main() {
       expectVec(aim.up, const PVec3(0, 1, 0));
     });
 
-    test('an eye directly above degenerates exactly like the runtime', () {
-      // `MathHelper.getRotationFromDirection` takes its `x == 0 && z == 0`
-      // branch: yaw 0, pitch +90, which `CollisionPlane.java:60-62` turns into
-      // normal +y, right +x, up +z.
+    test('an eye directly above keeps a stable marker basis', () {
       final PlaneAim aim = aimPlaneAt(PVec3.zero, const PVec3(0, 9, 0));
       expectVec(aim.normal, const PVec3(0, 1, 0));
       expectVec(aim.right, const PVec3(1, 0, 0));
       expectVec(aim.up, const PVec3(0, 0, 1));
     });
 
-    test('an eye directly below flips the normal and the up axis', () {
+    test('an eye directly below flips the marker normal and up axis', () {
       final PlaneAim aim = aimPlaneAt(PVec3.zero, const PVec3(0, -9, 0));
       expectVec(aim.normal, const PVec3(0, -1, 0));
       expectVec(aim.right, const PVec3(1, 0, 0));
       expectVec(aim.up, const PVec3(0, 0, -1));
     });
 
-    test('re-aims every time the eye moves — this is the whole point', () {
+    test('fully faces each supplied eye position', () {
       const PVec3 center = PVec3(0, 1.5, 3);
       final PlaneAim first = aimPlaneAt(center, const PVec3(0, 1.5, 0));
       final PlaneAim second = aimPlaneAt(center, const PVec3(6, 1.5, 3));
       expectVec(first.normal, const PVec3(0, 0, -1));
       expectVec(second.normal, const PVec3(1, 0, 0));
+    });
+  });
+
+  group('runtime billboard orientation', () {
+    final PlaneAim fixed = fixedMenuPlane(
+      center: const PVec3(1, 2, 3),
+      facingYawDegrees: 38,
+      pitchDegrees: 17,
+      rollDegrees: -9,
+    );
+
+    test('fixed preserves all menu axes', () {
+      final PlaneAim aimed = orientBillboardPlane(
+        fixed: fixed,
+        billboard: 'fixed',
+        viewer: const PVec3(8, 9, -2),
+      );
+      expect(identical(aimed, fixed), isTrue);
+    });
+
+    test('vertical faces viewer in yaw and keeps world up', () {
+      const PVec3 viewer = PVec3(8, 9, -2);
+      final PlaneAim aimed = orientBillboardPlane(
+        fixed: fixed,
+        billboard: 'vertical',
+        viewer: viewer,
+      );
+      expectVec(
+        aimed.normal,
+        PVec3(
+          viewer.x - fixed.center.x,
+          0,
+          viewer.z - fixed.center.z,
+        ).normalized,
+      );
+      expectVec(aimed.up, PVec3.up);
+    });
+
+    test('horizontal preserves menu right and removes that viewer axis', () {
+      const PVec3 viewer = PVec3(8, 9, -2);
+      final PVec3 toViewer = viewer - fixed.center;
+      final PlaneAim aimed = orientBillboardPlane(
+        fixed: fixed,
+        billboard: 'horizontal',
+        viewer: viewer,
+      );
+      expectVec(aimed.right, fixed.right);
+      expectVec(
+        aimed.normal,
+        (toViewer - fixed.right * toViewer.dot(fixed.right)).normalized,
+      );
+    });
+
+    test('center fully faces the viewer', () {
+      const PVec3 viewer = PVec3(8, 9, -2);
+      final PlaneAim aimed = orientBillboardPlane(
+        fixed: fixed,
+        billboard: 'center',
+        viewer: viewer,
+      );
+      expectVec(aimed.normal, (viewer - fixed.center).normalized);
+    });
+
+    test('degenerate viewer positions preserve the fixed plane', () {
+      for (final String billboard in <String>[
+        'vertical',
+        'horizontal',
+        'center',
+      ]) {
+        final PlaneAim aimed = orientBillboardPlane(
+          fixed: fixed,
+          billboard: billboard,
+          viewer: fixed.center,
+        );
+        expect(identical(aimed, fixed), isTrue, reason: billboard);
+      }
     });
   });
 
@@ -297,6 +391,7 @@ void main() {
 
     test('a ray through the centre hits', () {
       expect(rayHitsPlane(rayTo(center), aim, 1, 1), isTrue);
+      expect(rayPlaneIntersectionDistance(rayTo(center), aim, 1, 1), 4);
     });
 
     test('the edge test is strict: exactly half-width misses', () {
@@ -336,7 +431,7 @@ void main() {
       expect(rayHitsPlane(away, aim, 4, 4), isFalse);
     });
 
-    test('a ray parallel to the plane misses (proj == 0)', () {
+    test('a ray parallel to the plane misses inside the runtime epsilon', () {
       final LookRay parallel = LookRay.normalized(eye, const PVec3(1, 0, 0));
       expect(rayHitsPlane(parallel, aim, 4, 4), isFalse);
     });
@@ -368,7 +463,7 @@ void main() {
       }
     });
 
-    test('follows the re-aimed normal, not the frozen quad facing', () {
+    test('follows the resolved plane normal', () {
       final PlaneAim sideways = aimPlaneAt(
         const PVec3(0, 0, 4),
         const PVec3(9, 0, 4),
@@ -379,9 +474,8 @@ void main() {
 
   group('matrix helpers', () {
     test('identity is the multiplicative unit', () {
-      final List<double> m = cssQuadMatrix(
-        position: const PVec3(1, 2, 3),
-        facingYawDegrees: 42,
+      final List<double> m = cssPlaneMatrix(
+        fixedMenuPlane(center: const PVec3(1, 2, 3), facingYawDegrees: 42),
         pxPerBlock: 100,
       );
       expect(huiMultiplyMatrix(huiIdentityMatrix(), m), m);
@@ -389,9 +483,8 @@ void main() {
     });
 
     test('transformPoint applies translation and rotation', () {
-      final List<double> m = cssQuadMatrix(
-        position: const PVec3(1, 2, 3),
-        facingYawDegrees: 0,
+      final List<double> m = cssPlaneMatrix(
+        fixedMenuPlane(center: const PVec3(1, 2, 3), facingYawDegrees: 0),
         pxPerBlock: 10,
       );
       // css = (S x, -S y, -S z).
@@ -443,11 +536,10 @@ void main() {
     });
   });
 
-  group('cssQuadMatrix', () {
+  group('cssPlaneMatrix for fixed menu planes', () {
     test('yaw 0 is a pure translation with the y and z axes flipped', () {
-      final List<double> m = cssQuadMatrix(
-        position: const PVec3(2, 3, 4),
-        facingYawDegrees: 0,
+      final List<double> m = cssPlaneMatrix(
+        fixedMenuPlane(center: const PVec3(2, 3, 4), facingYawDegrees: 0),
         pxPerBlock: 50,
       );
       expect(m.sublist(0, 3), <double>[1, 0, 0]);
@@ -458,9 +550,8 @@ void main() {
 
     test('the quad normal is the reverse of the open-yaw look direction', () {
       for (final double yaw in <double>[0, 45, 90, 180, 270]) {
-        final List<double> m = cssQuadMatrix(
-          position: PVec3.zero,
-          facingYawDegrees: yaw,
+        final List<double> m = cssPlaneMatrix(
+          fixedMenuPlane(center: PVec3.zero, facingYawDegrees: yaw),
           pxPerBlock: 1,
         );
         // The css +z column is the quad's outward face; map it back to the
@@ -474,9 +565,8 @@ void main() {
       const double yaw = 63;
       const PVec3 position = PVec3(1, 2, 3);
       final PVec3 eye = position - huiLookDirection(yawDegrees: yaw) * 5;
-      final List<double> quad = cssQuadMatrix(
-        position: position,
-        facingYawDegrees: yaw,
+      final List<double> quad = cssPlaneMatrix(
+        fixedMenuPlane(center: position, facingYawDegrees: yaw),
         pxPerBlock: 40,
       );
       final List<double> plane = cssPlaneMatrix(

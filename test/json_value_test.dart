@@ -67,9 +67,12 @@ void main() {
       expect(parseJsonValue('Infinity').value, 'Infinity');
     });
 
-    test('an overflowing exponent stays text rather than becoming Infinity', () {
-      expect(parseJsonValue('1e999').value, '1e999');
-    });
+    test(
+      'an overflowing exponent stays text rather than becoming Infinity',
+      () {
+        expect(parseJsonValue('1e999').value, '1e999');
+      },
+    );
   });
 
   group('parseJsonValue strings', () {
@@ -113,8 +116,11 @@ void main() {
     });
 
     test('reads an array', () {
-      expect(parseJsonValue('[1, "two", null]').value,
-          <Object?>[1, 'two', null]);
+      expect(parseJsonValue('[1, "two", null]').value, <Object?>[
+        1,
+        'two',
+        null,
+      ]);
     });
 
     test('a broken object is an error, not bare text', () {
@@ -188,7 +194,10 @@ void main() {
       '{not an object',
       'ends with a dot.',
       '%player_name%',
-      <String, Object?>{'a': 1, 'b': <Object?>[true, null]},
+      <String, Object?>{
+        'a': 1,
+        'b': <Object?>[true, null],
+      },
       <Object?>[1, 'two', 3.5],
     ];
 
@@ -202,9 +211,11 @@ void main() {
 
     test('every formatted value is encodable, so export can never fail', () {
       for (final Object? value in values) {
-        expect(() => jsonEncode(parseJsonValue(formatJsonValue(value)).value),
-            returnsNormally,
-            reason: '$value');
+        expect(
+          () => jsonEncode(parseJsonValue(formatJsonValue(value)).value),
+          returnsNormally,
+          reason: '$value',
+        );
       }
     });
   });

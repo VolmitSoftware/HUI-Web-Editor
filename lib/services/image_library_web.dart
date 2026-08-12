@@ -12,7 +12,12 @@ import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
 
-typedef DecodedImageFile = ({String name, String dataUri, int width, int height});
+typedef DecodedImageFile = ({
+  String name,
+  String dataUri,
+  int width,
+  int height,
+});
 
 typedef DecodedPixels = ({int width, int height, List<int> argb});
 
@@ -61,11 +66,15 @@ Future<DecodedPixels?> readImagePixels(String dataUri) async {
       return null;
     }
     context.drawImage(image, 0, 0);
-    final Uint8ClampedList rgba = context.getImageData(0, 0, width, height).data.toDart;
+    final Uint8ClampedList rgba = context
+        .getImageData(0, 0, width, height)
+        .data
+        .toDart;
     final List<int> argb = List<int>.filled(width * height, 0);
     for (int pixel = 0; pixel < argb.length; pixel++) {
       final int i = pixel * 4;
-      argb[pixel] = (rgba[i + 3] << 24) |
+      argb[pixel] =
+          (rgba[i + 3] << 24) |
           (rgba[i] << 16) |
           (rgba[i + 1] << 8) |
           rgba[i + 2];
@@ -88,7 +97,8 @@ web.CanvasRenderingContext2D? _context(int width, int height) {
 }
 
 Future<web.HTMLImageElement> _loadImage(String src) {
-  final Completer<web.HTMLImageElement> completer = Completer<web.HTMLImageElement>();
+  final Completer<web.HTMLImageElement> completer =
+      Completer<web.HTMLImageElement>();
   final web.HTMLImageElement image = web.HTMLImageElement();
   late final JSFunction onLoad;
   late final JSFunction onError;

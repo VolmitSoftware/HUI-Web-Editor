@@ -131,170 +131,164 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
           'min-width': '0',
         },
       ),
-      <Widget>[
-        _summary(count),
-        if (_open) _body(),
-      ],
+      <Widget>[_summary(count), if (_open) _body()],
     );
   }
 
   Widget _summary(int count) => Button(
-        variant: ButtonVariant.ghost,
-        size: ButtonSize.sm,
-        fullWidth: true,
-        onPressed: () => setState(() => _open = !_open),
-        attributes: <String, String>{
-          'aria-expanded': _open ? 'true' : 'false',
-          'aria-label': component.title,
-          // The legacy accordion binder claims every `button[aria-expanded]`
-          // in a one-shot 100ms scan, then flips `aria-expanded` itself and
-          // writes `display` onto the button's next sibling — this body, whose
-          // visibility Dart owns. `data-arcane-interactive` is the binder's own
-          // opt-out (accordion_scripts.dart:8), and unlike the CSS guard below
-          // it also stops the attribute flip.
-          'data-arcane-interactive': 'true',
+    variant: ButtonVariant.ghost,
+    size: ButtonSize.sm,
+    fullWidth: true,
+    onPressed: () => setState(() => _open = !_open),
+    attributes: <String, String>{
+      'aria-expanded': _open ? 'true' : 'false',
+      'aria-label': component.title,
+      // The legacy accordion binder claims every `button[aria-expanded]`
+      // in a one-shot 100ms scan, then flips `aria-expanded` itself and
+      // writes `display` onto the button's next sibling — this body, whose
+      // visibility Dart owns. `data-arcane-interactive` is the binder's own
+      // opt-out (accordion_scripts.dart:8), and unlike the CSS guard below
+      // it also stops the attribute flip.
+      'data-arcane-interactive': 'true',
+    },
+    icon: _open
+        ? ArcaneIcon.chevronUp(size: IconSize.sm)
+        : ArcaneIcon.chevronDown(size: IconSize.sm),
+    child: dom.span(
+      classes: 'hui-extras-summary',
+      styles: const dom.Styles(
+        raw: <String, String>{
+          'display': 'inline-flex',
+          'align-items': 'center',
+          'gap': '6px',
+          'min-width': '0',
         },
-        icon: _open
-            ? ArcaneIcon.chevronUp(size: IconSize.sm)
-            : ArcaneIcon.chevronDown(size: IconSize.sm),
-        child: dom.span(
-          classes: 'hui-extras-summary',
-          styles: const dom.Styles(
-            raw: <String, String>{
-              'display': 'inline-flex',
-              'align-items': 'center',
-              'gap': '6px',
-              'min-width': '0',
-            },
-          ),
-          <Widget>[
-            Text(component.title),
-            dom.span(
-              classes: 'hui-count-chip',
-              <Widget>[Text('$count')],
-            ),
-          ],
-        ),
-      );
+      ),
+      <Widget>[
+        Text(component.title),
+        dom.span(classes: 'hui-count-chip', <Widget>[Text('$count')]),
+      ],
+    ),
+  );
 
   Widget _body() => dom.div(
-        classes: 'hui-extras-body',
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '10px',
-            'min-width': '0',
-          },
-        ),
-        <Widget>[
-          _note(),
-          if (component.extras.isEmpty)
-            _empty()
-          else
-            for (final String key in component.extras.keys.toList()) _row(key),
-          const HuiDivider(),
-          _addRow(),
-        ],
-      );
+    classes: 'hui-extras-body',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'flex-direction': 'column',
+        'gap': '10px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      _note(),
+      if (component.extras.isEmpty)
+        _empty()
+      else
+        for (final String key in component.extras.keys.toList()) _row(key),
+      const HuiDivider(),
+      _addRow(),
+    ],
+  );
 
   /// The one thing a reader has to know before touching this section.
   Widget _note() => const dom.p(
-        classes: 'hui-extras-note',
-        styles: dom.Styles(
-          raw: <String, String>{
-            'margin': '0',
-            'font-size': '0.72rem',
-            'line-height': '1.45',
-            'color': 'var(--muted-foreground)',
-          },
-        ),
-        <Widget>[
-          Text(
-            'HoloUi ignores keys it does not recognise, so nothing here changes '
-            'anything in game. The editor keeps them and writes them back on '
-            'export, which is why an imported file never loses what it arrived '
-            'with.',
-          ),
-        ],
-      );
+    classes: 'hui-extras-note',
+    styles: dom.Styles(
+      raw: <String, String>{
+        'margin': '0',
+        'font-size': '0.72rem',
+        'line-height': '1.45',
+        'color': 'var(--muted-foreground)',
+      },
+    ),
+    <Widget>[
+      Text(
+        'HoloUi ignores keys it does not recognise, so nothing here changes '
+        'anything in game. The editor keeps them and writes them back on '
+        'export, which is why an imported file never loses what it arrived '
+        'with.',
+      ),
+    ],
+  );
 
   Widget _empty() => const dom.p(
-        classes: 'hui-extras-empty',
-        styles: dom.Styles(
-          raw: <String, String>{
-            'margin': '0',
-            'font-size': '0.74rem',
-            'color': 'var(--muted-foreground)',
-          },
-        ),
-        <Widget>[Text('No extra keys on this object.')],
-      );
+    classes: 'hui-extras-empty',
+    styles: dom.Styles(
+      raw: <String, String>{
+        'margin': '0',
+        'font-size': '0.74rem',
+        'color': 'var(--muted-foreground)',
+      },
+    ),
+    <Widget>[Text('No extra keys on this object.')],
+  );
 
   Widget _row(String key) => HuiField(
-        label: key,
-        classes: 'hui-extras-row',
-        error: _errors[key],
-        help: 'Bare text is a string; quote it to keep a literal like true or 7.',
-        trailing: Button(
-          variant: ButtonVariant.ghost,
-          size: ButtonSize.iconSm,
-          onPressed: () => _remove(key),
-          attributes: <String, String>{'aria-label': 'Remove $key'},
-          child: ArcaneIcon.trash2(size: IconSize.sm),
-        ),
-        control: TextInput(
-          value: _valueText(key),
+    label: key,
+    classes: 'hui-extras-row',
+    error: _errors[key],
+    help: 'Bare text is a string; quote it to keep a literal like true or 7.',
+    trailing: Button(
+      variant: ButtonVariant.ghost,
+      size: ButtonSize.iconSm,
+      onPressed: () => _remove(key),
+      attributes: <String, String>{'aria-label': 'Remove $key'},
+      child: ArcaneIcon.trash2(size: IconSize.sm),
+    ),
+    control: TextInput(
+      value: _valueText(key),
+      size: ComponentSize.sm,
+      fullWidth: true,
+      placeholder: 'value',
+      onInput: (String value) => _editValue(key, value),
+      attributes: const <String, String>{
+        'autocomplete': 'off',
+        'spellcheck': 'false',
+      },
+    ),
+  );
+
+  Widget _addRow() => HuiField(
+    label: 'Add a key',
+    error: _newKeyError,
+    control: dom.div(
+      classes: 'hui-extras-add',
+      styles: const dom.Styles(
+        raw: <String, String>{
+          'display': 'grid',
+          'grid-template-columns': 'minmax(0, 1fr) auto',
+          'align-items': 'center',
+          'gap': '8px',
+          'min-width': '0',
+        },
+      ),
+      <Widget>[
+        TextInput(
+          value: _newKey,
           size: ComponentSize.sm,
           fullWidth: true,
-          placeholder: 'value',
-          onInput: (String value) => _editValue(key, value),
+          placeholder: 'myPluginKey',
+          onInput: (String value) {
+            _newKey = value;
+            if (_newKeyError != null) {
+              setState(() => _newKeyError = null);
+            }
+          },
           attributes: const <String, String>{
             'autocomplete': 'off',
             'spellcheck': 'false',
           },
         ),
-      );
-
-  Widget _addRow() => HuiField(
-        label: 'Add a key',
-        error: _newKeyError,
-        control: dom.div(
-          classes: 'hui-extras-add',
-          styles: const dom.Styles(
-            raw: <String, String>{
-              'display': 'grid',
-              'grid-template-columns': 'minmax(0, 1fr) auto',
-              'align-items': 'center',
-              'gap': '8px',
-              'min-width': '0',
-            },
-          ),
-          <Widget>[
-            TextInput(
-              value: _newKey,
-              size: ComponentSize.sm,
-              fullWidth: true,
-              placeholder: 'myPluginKey',
-              onInput: (String value) {
-                _newKey = value;
-                if (_newKeyError != null) {
-                  setState(() => _newKeyError = null);
-                }
-              },
-              attributes: const <String, String>{
-                'autocomplete': 'off',
-                'spellcheck': 'false',
-              },
-            ),
-            Button(
-              variant: ButtonVariant.outline,
-              size: ButtonSize.sm,
-              icon: ArcaneIcon.plus(size: IconSize.sm),
-              onPressed: _add,
-              child: const Text('Add'),
-            ),
-          ],
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          icon: ArcaneIcon.plus(size: IconSize.sm),
+          onPressed: _add,
+          child: const Text('Add'),
         ),
-      );
+      ],
+    ),
+  );
 }

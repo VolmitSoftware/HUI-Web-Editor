@@ -56,17 +56,17 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'Rewrites every movement back to where the player stood and zeroes '
         'their velocity, for as long as the menu is open. They can still look '
-        'around and click; they cannot walk. It also means follow player never '
-        'gets anything to follow.',
+        'around and click; they cannot walk. Positional following has nowhere '
+        'to go, but follow player can still turn the menu with their yaw.',
     citation: 'MenuSessionManager.java:115-127',
   ),
   'menu.followPlayer': HuiFieldDoc(
     title: 'Follow player',
     body:
-        'Re-centres the whole menu on the player on every move, respawn and '
-        'teleport, keeping the facing it opened with. Off, the menu stays where '
-        'it spawned and the player can walk away from it - until max distance '
-        'closes it.',
+        'Re-centres the whole menu on the player and updates its facing yaw on '
+        'every move or look change, respawn and teleport. Off, the menu keeps '
+        'its open pose and the player can walk away from it - until max '
+        'distance closes it.',
     citation: 'MenuSessionManager.java:129-131',
   ),
   'menu.maxDistance': HuiFieldDoc(
@@ -121,10 +121,10 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Highlight modifier',
     body:
         'How far the icon moves toward the player while the look ray remains '
-        'inside its hitbox. The click plane itself stays fixed so the hover '
-        'does not chase the player\'s crosshair. On exit the icon teleports '
-        'straight back; there is no easing. Values loaded from JSON are never '
-        'clamped, only the Java API clamps them to 0 to 1.',
+        'inside its hitbox. The click plane centre stays fixed while hovered; '
+        'its orientation still follows the icon billboard. On exit the icon '
+        'teleports straight back; there is no easing. Values loaded from JSON '
+        'are never clamped, only the Java API clamps them to 0 to 1.',
     citation: 'ClickableComponent.java:111-116',
   ),
   'button.hitbox': HuiFieldDoc(
@@ -264,12 +264,56 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'A newline splits it into one text display per line. Ampersand codes, '
         'legacy section codes and full MiniMessage tags all work, and '
-        'PlaceholderAPI runs over it - once, when the icon is created. Nothing '
-        're-resolves afterwards, so a placeholder shows whatever it meant at '
-        'open for the rest of the session. Note the hitbox is a character '
+        'PlaceholderAPI runs over it when the icon is created and then on its '
+        'configured refresh interval. Note the hitbox is a character '
         'count, not a glyph measurement: a wide line grabs clicks well past '
         'where the text appears to end.',
     citation: 'TextUtils.java:37-43',
+  ),
+  'icon.text.refreshTicks': HuiFieldDoc(
+    title: 'Placeholder refresh',
+    body:
+        'Ticks between live PlaceholderAPI expansions for text containing a '
+        '%name% token. The omitted default is 10 ticks, or twice per second. '
+        'Zero disables updates after the initial render; the accepted range '
+        'is 0 through 1200. Static text does no periodic work.',
+    citation: 'TextMenuIcon.java:69-81',
+  ),
+  'icon.entity.entity': HuiFieldDoc(
+    title: 'Entity type',
+    body:
+        'A lowercase namespaced Bukkit entity id. HoloUI accepts only '
+        'spawnable living types, renders them entirely through packets, and '
+        'never inserts a real entity into the world. Invalid, player, item, '
+        'projectile, display and interaction types fall back to the missing '
+        'icon without preventing the rest of the menu from opening.',
+    citation: 'EntityIconData.java:62-70',
+  ),
+  'icon.entity.width': HuiFieldDoc(
+    title: 'Entity click width',
+    body:
+        'Width of the automatic click plane and editor silhouette in blocks '
+        'at UI scale 1. It does not resize the client entity model. Omitted '
+        'defaults to 1; values must be greater than 0 and at most 64.',
+    citation: 'EntityIconData.java:54-60',
+  ),
+  'icon.entity.height': HuiFieldDoc(
+    title: 'Entity click height',
+    body:
+        'Height of the automatic click plane and editor silhouette in blocks '
+        'at UI scale 1. The component anchor is the entity\'s feet, so this '
+        'plane is centered half its height above the anchor. Omitted defaults '
+        'to 1; values must be greater than 0 and at most 64.',
+    citation: 'EntityMenuIcon.java:71-79',
+  ),
+  'icon.block.block': HuiFieldDoc(
+    title: 'Block material',
+    body:
+        'A lowercase namespaced Bukkit block material. HoloUI renders its '
+        'default block state as a packet-only block display at 0.75 blocks '
+        'square before UI and display-style scaling. Unknown ids and '
+        'non-block materials fall back to the missing icon.',
+    citation: 'BlockIconData.java:43-54',
   ),
 
   // --- actions --------------------------------------------------------------
@@ -326,5 +370,33 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'is 1, the sound as recorded. Writing 0 is clamped up to 0.5: the '
         'deepest, slowest version of the sound.',
     citation: 'SoundActionData.java:37-42',
+  ),
+  'action.message.message': HuiFieldDoc(
+    title: 'Player message',
+    body:
+        'Parsed as MiniMessage and sent only to the player who clicked. The '
+        'literal %player% becomes that player\'s name, then PlaceholderAPI '
+        'expands any installed placeholders before MiniMessage parsing. A '
+        'blank message is logged and dropped when the component is compiled.',
+    citation: 'MessageMenuAction.java:30-43',
+  ),
+  'action.teleport.world': HuiFieldDoc(
+    title: 'Destination world',
+    body:
+        'Must be an explicit lowercase namespace:key and must already be '
+        'loaded when the player clicks. The runtime never creates or loads a '
+        'world for an action; it schedules on the player entity and uses the '
+        'asynchronous Paper teleport path so cross-region Folia moves remain '
+        'safe.',
+    citation: 'TeleportMenuAction.java:50-78',
+  ),
+  'action.connect.server': HuiFieldDoc(
+    title: 'Proxy server',
+    body:
+        'The exact logical server name configured on a BungeeCord-compatible '
+        'proxy. HoloUI sends only the fixed Connect subchannel for the clicking '
+        'player; whitespace, control characters and arbitrary subchannels are '
+        'rejected when the component is compiled.',
+    citation: 'ConnectMenuAction.java:38-56',
   ),
 };

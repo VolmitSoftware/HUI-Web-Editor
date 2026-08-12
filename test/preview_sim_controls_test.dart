@@ -21,40 +21,56 @@ void main() {
   group('previewSimControlsFor', () {
     test('excludes surge variables from every category', () {
       for (final String category in previewSimCategories) {
-        final List<String> names =
-            previewSimControlsFor(category).map((c) => c.name).toList();
+        final List<String> names = previewSimControlsFor(
+          category,
+        ).map((c) => c.name).toList();
         expect(names, isNot(contains('surge.active')));
         expect(names, isNot(contains('surge.gain')));
       }
     });
 
-    test('every non-surge published variable has a control, in every category', () {
-      final Set<String> published = <String>{
-        for (final List<String> groups in previewSimCategoryGroups.values)
-          for (final String group in groups)
-            ...?previewSimGroupVariables[group],
-      }..removeAll(<String>{'surge.active', 'surge.gain'});
+    test(
+      'every non-surge published variable has a control, in every category',
+      () {
+        final Set<String> published = <String>{
+          for (final List<String> groups in previewSimCategoryGroups.values)
+            for (final String group in groups)
+              ...?previewSimGroupVariables[group],
+        }..removeAll(<String>{'surge.active', 'surge.gain'});
 
-      final Set<String> covered = <String>{
-        for (final String category in previewSimCategories)
-          for (final PreviewSimVarControl control in previewSimControlsFor(category))
-            control.name,
-      };
-      expect(covered, published);
-    });
+        final Set<String> covered = <String>{
+          for (final String category in previewSimCategories)
+            for (final PreviewSimVarControl control in previewSimControlsFor(
+              category,
+            ))
+              control.name,
+        };
+        expect(covered, published);
+      },
+    );
 
     test('a furnace gets cookTime and friends but not brewing fields', () {
-      final List<String> names =
-          previewSimControlsFor('furnace').map((c) => c.name).toList();
-      expect(names, containsAll(<String>['cookTime', 'cookTimeTotal', 'burnTime', 'lit']));
+      final List<String> names = previewSimControlsFor(
+        'furnace',
+      ).map((c) => c.name).toList();
+      expect(
+        names,
+        containsAll(<String>['cookTime', 'cookTimeTotal', 'burnTime', 'lit']),
+      );
       expect(names, isNot(contains('brewTime')));
     });
 
     test('every numeric control has sane bounds', () {
       for (final String category in previewSimCategories) {
-        for (final PreviewSimVarControl control in previewSimControlsFor(category)) {
+        for (final PreviewSimVarControl control in previewSimControlsFor(
+          category,
+        )) {
           if (control.kind != PreviewSimControlKind.number) continue;
-          expect(control.min, lessThanOrEqualTo(control.max), reason: control.name);
+          expect(
+            control.min,
+            lessThanOrEqualTo(control.max),
+            reason: control.name,
+          );
           expect(control.step, greaterThan(0), reason: control.name);
         }
       }
@@ -62,7 +78,9 @@ void main() {
 
     test('every control has a non-empty display label', () {
       for (final String category in previewSimCategories) {
-        for (final PreviewSimVarControl control in previewSimControlsFor(category)) {
+        for (final PreviewSimVarControl control in previewSimControlsFor(
+          category,
+        )) {
           expect(previewSimVarLabel(control.name), isNotEmpty);
         }
       }
@@ -73,24 +91,47 @@ void main() {
     test('only furnace and brewing', () {
       expect(previewSimCategorySupportsSurge('furnace'), isTrue);
       expect(previewSimCategorySupportsSurge('brewing'), isTrue);
-      for (final String category
-          in previewSimCategories.where((c) => c != 'furnace' && c != 'brewing')) {
-        expect(previewSimCategorySupportsSurge(category), isFalse, reason: category);
+      for (final String category in previewSimCategories.where(
+        (c) => c != 'furnace' && c != 'brewing',
+      )) {
+        expect(
+          previewSimCategorySupportsSurge(category),
+          isFalse,
+          reason: category,
+        );
       }
     });
   });
 
   group('previewSimCategorySupportsSlots', () {
     test('every inventory-backed category', () {
-      for (final String category
-          in <String>['chest', 'furnace', 'brewing', 'jukebox', 'enderChest', 'entity']) {
-        expect(previewSimCategorySupportsSlots(category), isTrue, reason: category);
+      for (final String category in <String>[
+        'chest',
+        'furnace',
+        'brewing',
+        'jukebox',
+        'enderChest',
+        'entity',
+      ]) {
+        expect(
+          previewSimCategorySupportsSlots(category),
+          isTrue,
+          reason: category,
+        );
       }
     });
 
     test('categories with no inventory', () {
-      for (final String category in <String>['beehive', 'cauldron', 'statics']) {
-        expect(previewSimCategorySupportsSlots(category), isFalse, reason: category);
+      for (final String category in <String>[
+        'beehive',
+        'cauldron',
+        'statics',
+      ]) {
+        expect(
+          previewSimCategorySupportsSlots(category),
+          isFalse,
+          reason: category,
+        );
       }
     });
   });
@@ -127,16 +168,20 @@ void main() {
     });
 
     test('boolean control coerces a string and passes through a bool', () {
-      const PreviewSimVarControl lit =
-          PreviewSimVarControl('lit', PreviewSimControlKind.boolean);
+      const PreviewSimVarControl lit = PreviewSimVarControl(
+        'lit',
+        PreviewSimControlKind.boolean,
+      );
       expect(previewSimCoerceOverride(lit, true), true);
       expect(previewSimCoerceOverride(lit, 'true'), true);
       expect(previewSimCoerceOverride(lit, 'nope'), false);
     });
 
     test('string control stringifies a non-string input', () {
-      const PreviewSimVarControl blockType =
-          PreviewSimVarControl('blockType', PreviewSimControlKind.string);
+      const PreviewSimVarControl blockType = PreviewSimVarControl(
+        'blockType',
+        PreviewSimControlKind.string,
+      );
       expect(previewSimCoerceOverride(blockType, 'CHEST'), 'CHEST');
       expect(previewSimCoerceOverride(blockType, 5), '5');
     });
@@ -171,8 +216,12 @@ void main() {
 
   group('previewSimSetSlot / previewSimSlotAt', () {
     test('adds a new slot', () {
-      final List<SimSlotItem> items =
-          previewSimSetSlot(const <SimSlotItem>[], 2, material: 'IRON_ORE', count: 4);
+      final List<SimSlotItem> items = previewSimSetSlot(
+        const <SimSlotItem>[],
+        2,
+        material: 'IRON_ORE',
+        count: 4,
+      );
       expect(previewSimSlotAt(items, 2)?.material, 'IRON_ORE');
       expect(previewSimSlotAt(items, 2)?.count, 4);
     });
@@ -209,8 +258,12 @@ void main() {
     });
 
     test('stays sorted by slot index', () {
-      List<SimSlotItem> items =
-          previewSimSetSlot(const <SimSlotItem>[], 3, material: 'A', count: 1);
+      List<SimSlotItem> items = previewSimSetSlot(
+        const <SimSlotItem>[],
+        3,
+        material: 'A',
+        count: 1,
+      );
       items = previewSimSetSlot(items, 1, material: 'B', count: 1);
       expect(items.map((SimSlotItem i) => i.slot), <int>[1, 3]);
     });
@@ -314,14 +367,17 @@ void main() {
       expect(controller.sim.blockType, 'FURNACE');
     });
 
-    test('sync is a no-op when neither the revision nor the category changed', () {
-      final PreviewSimController controller = PreviewSimController();
-      final HuiPreviewDoc doc = _furnaceDoc();
-      controller.sync(doc, 1, PreviewLangCatalog.empty);
-      final PreviewSim first = controller.sim;
-      controller.sync(doc, 1, PreviewLangCatalog.empty);
-      expect(identical(controller.sim, first), isTrue);
-    });
+    test(
+      'sync is a no-op when neither the revision nor the category changed',
+      () {
+        final PreviewSimController controller = PreviewSimController();
+        final HuiPreviewDoc doc = _furnaceDoc();
+        controller.sync(doc, 1, PreviewLangCatalog.empty);
+        final PreviewSim first = controller.sim;
+        controller.sync(doc, 1, PreviewLangCatalog.empty);
+        expect(identical(controller.sim, first), isTrue);
+      },
+    );
 
     test('a document swap resets a manual category pick', () {
       final PreviewSimController controller = PreviewSimController();
@@ -385,11 +441,14 @@ void main() {
       expect(controller.categoryOverride, isNull);
     });
 
-    test('setCategory before any sync still resolves the requested category', () {
-      final PreviewSimController controller = PreviewSimController();
-      controller.setCategory('furnace');
-      expect(controller.category, 'furnace');
-    });
+    test(
+      'setCategory before any sync still resolves the requested category',
+      () {
+        final PreviewSimController controller = PreviewSimController();
+        controller.setCategory('furnace');
+        expect(controller.category, 'furnace');
+      },
+    );
 
     test('every mutator notifies its listeners', () {
       final PreviewSimController controller = PreviewSimController();
@@ -411,8 +470,9 @@ void main() {
     test('reset restores category defaults but keeps a pinned override', () {
       final PreviewSimController controller = PreviewSimController();
       controller.sync(_furnaceDoc(), 0, PreviewLangCatalog.empty);
-      final PreviewSimVarControl cookTime =
-          previewSimControlsFor('furnace').firstWhere((c) => c.name == 'cookTime');
+      final PreviewSimVarControl cookTime = previewSimControlsFor(
+        'furnace',
+      ).firstWhere((c) => c.name == 'cookTime');
       controller.setOverride(cookTime, 42.0);
       controller.reset();
       expect(controller.sim.overrides['cookTime'], 42.0);
@@ -429,7 +489,9 @@ void main() {
     test('setCategory to the value it already has does not notify', () {
       final PreviewSimController controller = PreviewSimController();
       controller.sync(_furnaceDoc(), 0, PreviewLangCatalog.empty);
-      controller.setCategory('furnace'); // already the auto-resolved category...
+      controller.setCategory(
+        'furnace',
+      ); // already the auto-resolved category...
       int notifications = 0;
       controller.addListener(() => notifications++);
       controller.setCategory('furnace');

@@ -66,8 +66,7 @@ void main() {
 
   group('PaneLayout mutation', () {
     test('withWidth only moves the requested side', () {
-      final PaneLayout next =
-          PaneLayout.defaults.withWidth(PaneSide.rail, 300);
+      final PaneLayout next = PaneLayout.defaults.withWidth(PaneSide.rail, 300);
       expect(next.railWidth, 300);
       expect(next.inspectorWidth, PaneLayout.defaultInspectorWidth);
     });
@@ -79,8 +78,7 @@ void main() {
     });
 
     test('resetSide returns that pane to its default', () {
-      const PaneLayout layout =
-          PaneLayout(railWidth: 410, inspectorWidth: 500);
+      const PaneLayout layout = PaneLayout(railWidth: 410, inspectorWidth: 500);
       final PaneLayout next = layout.resetSide(PaneSide.inspector);
       expect(next.inspectorWidth, PaneLayout.defaultInspectorWidth);
       expect(next.railWidth, 410);
@@ -89,8 +87,7 @@ void main() {
 
   group('PaneLayout persistence', () {
     test('round-trips through the storage key', () {
-      const PaneLayout layout =
-          PaneLayout(railWidth: 288, inspectorWidth: 416);
+      const PaneLayout layout = PaneLayout(railWidth: 288, inspectorWidth: 416);
       expect(layout.persist(), isTrue);
       expect(StorageService.read(PaneLayout.storageKey), isNotNull);
       expect(PaneLayout.load(), layout);

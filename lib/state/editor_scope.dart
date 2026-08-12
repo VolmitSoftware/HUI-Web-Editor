@@ -28,9 +28,8 @@ class EditorScope extends InheritedWidget {
     return store;
   }
 
-  static EditorStore? maybeOf(BuildContext context) => context
-      .dependOnInheritedComponentOfExactType<EditorScope>()
-      ?.store;
+  static EditorStore? maybeOf(BuildContext context) =>
+      context.dependOnInheritedComponentOfExactType<EditorScope>()?.store;
 
   @override
   bool updateShouldNotify(EditorScope oldComponent) =>

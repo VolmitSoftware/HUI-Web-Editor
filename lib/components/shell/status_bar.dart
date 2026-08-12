@@ -7,7 +7,9 @@ import 'package:jaspr/jaspr.dart' show Listenable;
 
 import '../../config/build_info.dart';
 import '../../model/model.dart';
+import '../../services/page_reload.dart';
 import '../../state/editor_store.dart';
+import '../../state/workspace.dart';
 import '../common/class_names.dart';
 import 'shell_status.dart';
 import 'store_selector.dart';
@@ -28,51 +30,55 @@ class StatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.footer(
-        classes: 'hui-status',
-        attributes: const <String, String>{
-          'role': 'status',
-          'aria-live': 'polite',
-        },
-        <Widget>[
-          StoreSelector<String>(
-            listenable: store,
-            selector: _documentSignature,
-            builder: (BuildContext context, String signature) =>
-                dom.div(classes: 'hui-status-left', <Widget>[
-              _issuesChip(),
-              _selectionReadout(),
-            ]),
-          ),
-          const dom.div(classes: 'hui-status-spacer', <Widget>[]),
-          _canvasReadout(),
-          StoreSelector<String>(
-            listenable: Listenable.merge(<Listenable?>[store, store.workspace]),
-            selector: _saveSignature,
-            builder: (BuildContext context, String signature) => _saveNote(),
-          ),
-          // Not const: constant span instances skip attribute patching, which
-          // drops the tooltip (same shape as the footer above).
-          // ignore: prefer_const_constructors
-          dom.span(
-            classes: 'hui-status-item hui-status-version',
-            attributes: const <String, String>{'title': 'Editor build'},
-            // ignore: prefer_const_literals_to_create_immutables
-            <Widget>[const Text(huiBuildBadge)],
-          ),
-        ],
-      );
+    classes: 'hui-status',
+    attributes: const <String, String>{'role': 'status', 'aria-live': 'polite'},
+    <Widget>[
+      StoreSelector<String>(
+        listenable: store,
+        selector: _documentSignature,
+        builder: (BuildContext context, String signature) => dom.div(
+          classes: 'hui-status-left',
+          <Widget>[_issuesChip(), _selectionReadout()],
+        ),
+      ),
+      const dom.div(classes: 'hui-status-spacer', <Widget>[]),
+      _canvasReadout(),
+      StoreSelector<String>(
+        listenable: Listenable.merge(<Listenable?>[store, store.workspace]),
+        selector: _saveSignature,
+        builder: (BuildContext context, String signature) => _saveNote(),
+      ),
+      // Not const: constant span instances skip attribute patching, which
+      // drops the tooltip (same shape as the footer above).
+      // ignore: prefer_const_constructors
+      dom.span(
+        classes: 'hui-status-item hui-status-version',
+        attributes: const <String, String>{'title': 'Editor build'},
+        // ignore: prefer_const_literals_to_create_immutables
+        <Widget>[const Text(huiBuildBadge)],
+      ),
+    ],
+  );
 
   // The whole selection, not its size and primary: swapping one member for
   // another leaves both of those unchanged while the hover text changes.
-  String _documentSignature() => '${store.errorCount}|${store.warningCount}|'
+  String _documentSignature() =>
+      '${store.docKind.name}|'
+      '${store.workspace.docs.length}|${store.errorCount}|${store.warningCount}|'
       '${store.infoCount}|${store.selectionIds.join(',')}|'
       '${store.menu.components.length}';
 
-  String _saveSignature() => '${store.hasUnsavedChanges}|'
+  String _saveSignature() =>
+      '${store.hasUnsavedChanges}|'
       '${store.lastSavedAt?.millisecondsSinceEpoch}|'
       '${store.workspace.lastError}';
 
   Widget _issuesChip() {
+    if (store.isBoardDoc) {
+      return const dom.span(classes: 'hui-status-item', <Widget>[
+        Text('Flow diagnostics shown on board'),
+      ]);
+    }
     final int errors = store.errorCount;
     final int warnings = store.warningCount;
     final bool clean = errors == 0 && warnings == 0;
@@ -85,8 +91,8 @@ class StatusBar extends StatelessWidget {
     final Widget icon = clean
         ? ArcaneIcon.circleCheck(size: IconSize.sm)
         : errors > 0
-            ? ArcaneIcon.circleAlert(size: IconSize.sm)
-            : ArcaneIcon.triangleAlert(size: IconSize.sm);
+        ? ArcaneIcon.circleAlert(size: IconSize.sm)
+        : ArcaneIcon.triangleAlert(size: IconSize.sm);
     return dom.span(
       classes: classNames(<String?>[
         'hui-status-chip',
@@ -113,6 +119,14 @@ class StatusBar extends StatelessWidget {
   /// still reachable — they move into the hover text, which is the only place
   /// eight of them fit in a 32px strip.
   Widget _selectionReadout() {
+    if (store.isBoardDoc) {
+      final int menus = store.workspace.docs
+          .where((WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.menu)
+          .length;
+      return dom.span(classes: 'hui-status-item', <Widget>[
+        Text('$menus menu${menus == 1 ? '' : 's'} in workspace'),
+      ]);
+    }
     final int selectedCount = store.selectionIds.length;
     final int count = store.menu.components.length;
     final String text = switch (selectedCount) {
@@ -148,55 +162,63 @@ class StatusBar extends StatelessWidget {
   }
 
   Widget _canvasReadout() {
+    if (store.isBoardDoc) {
+      return const dom.div(classes: 'hui-status-right', <Widget>[]);
+    }
     final ShellStatus? live = status;
     if (live == null) {
       return const dom.div(classes: 'hui-status-right', <Widget>[]);
     }
     return StoreSelector<String>(
       listenable: live,
-      selector: () => '${live.pointerX}|${live.pointerY}|'
+      selector: () =>
+          '${live.pointerX}|${live.pointerY}|'
           '${live.zoom}|${live.hint}',
-      builder: (BuildContext context, String signature) => dom.div(
-        classes: 'hui-status-right',
-        <Widget>[
-          if (live.hint != null)
-            dom.span(
-              classes: 'hui-status-item is-hint',
-              <Widget>[Text(live.hint!)],
-            ),
-          dom.span(
-            classes: 'hui-status-item is-numeric',
-            <Widget>[
+      builder: (BuildContext context, String signature) =>
+          dom.div(classes: 'hui-status-right', <Widget>[
+            if (live.hint != null)
+              dom.span(classes: 'hui-status-item is-hint', <Widget>[
+                Text(live.hint!),
+              ]),
+            dom.span(classes: 'hui-status-item is-numeric', <Widget>[
               Text(
                 live.hasPointer
                     ? 'x ${_block(live.pointerX!)}  y ${_block(live.pointerY!)}'
                     : 'x --  y --',
               ),
-            ],
-          ),
-          dom.span(
-            classes: 'hui-status-item is-numeric',
-            <Widget>[Text('${(live.zoom * 100).round()}%')],
-          ),
-        ],
-      ),
+            ]),
+            dom.span(classes: 'hui-status-item is-numeric', <Widget>[
+              Text('${(live.zoom * 100).round()}%'),
+            ]),
+          ]),
     );
   }
 
   Widget _saveNote() {
     final String? failure = store.workspace.lastError;
     if (failure != null) {
-      return dom.span(
-        classes: 'hui-status-item is-error',
-        <Widget>[Text(failure)],
-      );
+      return dom.span(classes: 'hui-status-item is-error', <Widget>[
+        Text(failure),
+        if (store.workspace.requiresReload)
+          const Button.ghost(
+            size: ButtonSize.sm,
+            label: 'Reload',
+            onPressed: reloadEditorPage,
+          )
+        else if (store.hasUnsavedChanges)
+          Button.ghost(
+            size: ButtonSize.sm,
+            label: 'Retry',
+            onPressed: _retryAutosave,
+          ),
+      ]);
     }
     final DateTime? saved = store.lastSavedAt;
     final String text = store.hasUnsavedChanges
         ? 'Saving…'
         : saved == null
-            ? 'Autosaved locally'
-            : 'Autosaved locally ${_clock(saved)}';
+        ? 'Autosaved locally'
+        : 'Autosaved locally ${_clock(saved)}';
     return dom.span(classes: 'hui-status-item is-muted', <Widget>[Text(text)]);
   }
 
@@ -205,4 +227,13 @@ class StatusBar extends StatelessWidget {
   static String _clock(DateTime time) =>
       '${time.hour.toString().padLeft(2, '0')}:'
       '${time.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _retryAutosave() async {
+    final bool saved = await store.retryAutosave();
+    if (saved) {
+      toast.success('Workspace saved.');
+      return;
+    }
+    toast.error(store.workspace.lastError ?? 'Workspace save failed.');
+  }
 }

@@ -93,9 +93,9 @@ class MenuInspector extends StatelessWidget {
       HuiSwitchRow(
         label: 'Follow player',
         value: _menu.followPlayer,
-        help: 'Re-centres the menu as the player moves.',
+        help: 'Re-centres and turns the menu as the player moves or looks.',
         warning: _menu.lockPosition && _menu.followPlayer
-            ? 'Lock position freezes the player, so this never runs.'
+            ? 'Position stays locked, but look changes can still turn it.'
             : null,
         trailing: const HuiFieldHelp('menu.followPlayer'),
         onChanged: (bool value) => store.mutate(
@@ -114,7 +114,8 @@ class MenuInspector extends StatelessWidget {
           ),
           HuiNote(
             'Lock position rewrites movement back and zeroes velocity every '
-            'tick. Follow player keeps the facing the menu opened with.',
+            'tick. The player can still look; follow player turns the menu '
+            'with that yaw.',
           ),
         ],
       ),

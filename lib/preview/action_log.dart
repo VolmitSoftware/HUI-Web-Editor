@@ -1,7 +1,7 @@
 /// What a simulated click actually does, recorded rather than performed.
 ///
-/// The preview never plays a sound and never runs a command; it logs what the
-/// server would have done. That makes the log the place where the format's
+/// The preview never executes an action; it logs what the server would have
+/// done. That makes the log the place where the format's
 /// silent traps become visible: a command whose `source` is the exact token
 /// `server` is dispatched from the CONSOLE with no permission check against the
 /// clicking player (`CommandMenuAction.java:34-40`), and an explicit
@@ -87,6 +87,66 @@ class LoggedSound extends LoggedAction {
   bool get categoryMissing => category.trim().isEmpty;
 }
 
+class LoggedMessage extends LoggedAction {
+  const LoggedMessage(this.message);
+
+  factory LoggedMessage.from(HuiMessageAction action) =>
+      LoggedMessage(action.message);
+
+  final String message;
+
+  bool get hasStrippedInteractions {
+    final String lowercase = message.toLowerCase();
+    return lowercase.contains('<click:') || lowercase.contains('<insert:');
+  }
+}
+
+class LoggedTeleport extends LoggedAction {
+  const LoggedTeleport({
+    required this.world,
+    required this.x,
+    required this.y,
+    required this.z,
+    required this.yaw,
+    required this.pitch,
+  });
+
+  factory LoggedTeleport.from(HuiTeleportAction action) => LoggedTeleport(
+    world: action.world,
+    x: action.x,
+    y: action.y,
+    z: action.z,
+    yaw: action.yaw,
+    pitch: action.pitch,
+  );
+
+  final String world;
+  final double x;
+  final double y;
+  final double z;
+  final double yaw;
+  final double pitch;
+}
+
+class LoggedConnect extends LoggedAction {
+  const LoggedConnect(this.server);
+
+  factory LoggedConnect.from(HuiConnectAction action) =>
+      LoggedConnect(action.server);
+
+  final String server;
+}
+
+class LoggedNavigation extends LoggedAction {
+  const LoggedNavigation({required this.mode, required this.target});
+
+  factory LoggedNavigation.from(HuiNavigateAction action) =>
+      LoggedNavigation(mode: action.mode, target: action.target);
+
+  final String mode;
+  final String target;
+}
+
 /// Why a component's actions ran.
 ///
 /// Toggles need the direction spelled out because the lists are named for the
@@ -106,52 +166,112 @@ enum ActionLogTrigger {
 
 /// One component firing on one click.
 ///
-/// A single click can produce several of these — every hovered clickable fires
-/// (`SessionHolder.java:145-159`) — so the entry names its component and the
-/// tick it fired on. [actions] may be empty: that an empty component fired at
-/// all is exactly what the overlap lesson needs to show.
+/// One nearest component fired on one click, named with its component, tick,
+/// exact interaction trigger, and filtered action chain.
 class ActionLogEntry {
   const ActionLogEntry({
     required this.tick,
     required this.componentId,
     required this.trigger,
+    required this.clickTrigger,
     required this.actions,
   });
 
   final int tick;
   final String componentId;
   final ActionLogTrigger trigger;
+  final String clickTrigger;
   final List<LoggedAction> actions;
 }
 
 LoggedAction loggedActionFrom(HuiAction action) => switch (action) {
   HuiCommandAction() => LoggedCommand.from(action),
   HuiSoundAction() => LoggedSound.from(action),
+  HuiMessageAction() => LoggedMessage.from(action),
+  HuiTeleportAction() => LoggedTeleport.from(action),
+  HuiConnectAction() => LoggedConnect.from(action),
+  HuiNavigateAction() => LoggedNavigation.from(action),
 };
 
-List<LoggedAction> loggedActionsFrom(Iterable<HuiAction> actions) => actions
-    .where(
-      (HuiAction action) =>
-          action is! HuiCommandAction || _hasUsableCommand(action.command),
-    )
-    .map(loggedActionFrom)
-    .toList(growable: false);
+List<LoggedAction> loggedActionsFrom(
+  Iterable<HuiAction> actions, {
+  String clickTrigger = 'left_click',
+}) {
+  final List<LoggedAction> logged = <LoggedAction>[];
+  for (final HuiAction action in actions) {
+    if (!_matchesClickTrigger(action.trigger, clickTrigger)) continue;
+    if (action is HuiCommandAction && !_hasUsableCommand(action.command)) {
+      continue;
+    }
+    if (action is HuiMessageAction && action.message.trim().isEmpty) {
+      continue;
+    }
+    if (action is HuiTeleportAction && !_hasUsableTeleport(action)) {
+      continue;
+    }
+    if (action is HuiConnectAction && !_hasUsableServer(action.server)) {
+      continue;
+    }
+    logged.add(loggedActionFrom(action));
+    if (action is HuiNavigateAction) break;
+  }
+  return List<LoggedAction>.unmodifiable(logged);
+}
+
+bool _matchesClickTrigger(String binding, String interaction) =>
+    binding == 'any' || binding == interaction;
+
+String actionClickTriggerLabel(String trigger) => switch (trigger) {
+  'left_click' => 'left click',
+  'right_click' => 'right click',
+  'shift_left_click' => 'sneak + left click',
+  'shift_right_click' => 'sneak + right click',
+  'any' => 'any click',
+  _ => trigger,
+};
 
 bool _hasUsableCommand(String command) {
   final String trimmed = command.trim();
   return trimmed.isNotEmpty && trimmed != '/';
 }
 
+final RegExp _loggedWorldKey = RegExp(r'^[a-z0-9._-]+:[a-z0-9/._-]+$');
+final RegExp _loggedServerName = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$');
+
+bool _hasUsableTeleport(HuiTeleportAction action) =>
+    action.world.length <= 255 &&
+    _loggedWorldKey.hasMatch(action.world) &&
+    action.x.isFinite &&
+    action.y.isFinite &&
+    action.z.isFinite &&
+    action.yaw.isFinite &&
+    action.pitch.isFinite;
+
+bool _hasUsableServer(String server) => _loggedServerName.hasMatch(server);
+
 String describeLoggedAction(LoggedAction action) => switch (action) {
   LoggedCommand() => _describeCommand(action),
   LoggedSound() => _describeSound(action),
+  LoggedMessage() =>
+    'message player "${action.message}"'
+        '${action.hasStrippedInteractions ? " (click and insertion events stripped)" : ""}',
+  LoggedTeleport() =>
+    'teleport player to ${action.world} '
+        '${_number(action.x)} ${_number(action.y)} ${_number(action.z)} '
+        '(yaw ${_number(action.yaw)}, pitch ${_number(action.pitch)})',
+  LoggedConnect() => 'connect player to proxy server "${action.server}"',
+  LoggedNavigation() =>
+    action.target.isEmpty
+        ? '${action.mode} navigation'
+        : '${action.mode} navigation to "${action.target}"',
 };
 
 String describeActionLogEntry(ActionLogEntry entry) {
   final String body = entry.actions.isEmpty
       ? 'no actions'
       : entry.actions.map(describeLoggedAction).join('; ');
-  return '#${entry.tick} ${entry.componentId} (${entry.trigger.label}): $body';
+  return '#${entry.tick} ${entry.componentId} '
+      '(${entry.trigger.label}, ${actionClickTriggerLabel(entry.clickTrigger)}): $body';
 }
 
 String _describeCommand(LoggedCommand command) {

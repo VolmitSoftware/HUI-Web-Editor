@@ -50,13 +50,13 @@ void main() {
     });
 
     test('output always passes validation', () {
-      const List<String> inputs = <String>[
-        r'..\..\a:b//c.png',
-        '/',
-        'ok.png',
-      ];
+      const List<String> inputs = <String>[r'..\..\a:b//c.png', '/', 'ok.png'];
       for (final String input in inputs) {
-        expect(validateImagePath(sanitizeImagePath(input)), isNull, reason: input);
+        expect(
+          validateImagePath(sanitizeImagePath(input)),
+          isNull,
+          reason: input,
+        );
       }
     });
   });
@@ -99,7 +99,10 @@ void main() {
   });
 
   group('ImageLibrary', () {
-    String dataUri(List<int> bytes) => 'data:image/png;base64,${base64Encode(bytes)}';
+    const String validPng =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==';
+
+    String dataUri(List<int> _) => validPng;
 
     void seed(List<Map<String, Object>> entries) {
       StorageService.write(ImageLibrary.storageKey, jsonEncode(entries));
@@ -110,14 +113,14 @@ void main() {
         <String, Object>{
           'path': 'icons/shop.png',
           'dataUri': dataUri(<int>[1, 2, 3]),
-          'width': 8,
-          'height': 8,
+          'width': 1,
+          'height': 1,
         },
       ]);
       final ImageLibrary library = ImageLibrary();
       expect(library.images.length, 1);
       expect(library.paths, <String>{'icons/shop.png'});
-      expect(library.byPath('icons/shop.png')!.width, 8);
+      expect(library.byPath('icons/shop.png')!.width, 1);
       expect(library.contains('nope.png'), isFalse);
     });
 
@@ -130,8 +133,18 @@ void main() {
 
     test('rename validates, de-duplicates and persists', () {
       seed(<Map<String, Object>>[
-        <String, Object>{'path': 'a.png', 'dataUri': dataUri(<int>[1]), 'width': 4, 'height': 4},
-        <String, Object>{'path': 'b.png', 'dataUri': dataUri(<int>[2]), 'width': 4, 'height': 4},
+        <String, Object>{
+          'path': 'a.png',
+          'dataUri': dataUri(<int>[1]),
+          'width': 1,
+          'height': 1,
+        },
+        <String, Object>{
+          'path': 'b.png',
+          'dataUri': dataUri(<int>[2]),
+          'width': 1,
+          'height': 1,
+        },
       ]);
       final ImageLibrary library = ImageLibrary();
       expect(library.rename('a.png', 'b.png'), isFalse);
@@ -145,7 +158,12 @@ void main() {
 
     test('rename forces the png extension used by the stored bytes', () {
       seed(<Map<String, Object>>[
-        <String, Object>{'path': 'a.png', 'dataUri': dataUri(<int>[1]), 'width': 4, 'height': 4},
+        <String, Object>{
+          'path': 'a.png',
+          'dataUri': dataUri(<int>[1]),
+          'width': 1,
+          'height': 1,
+        },
       ]);
       final ImageLibrary library = ImageLibrary();
       expect(library.rename('a.png', 'logo.jpg'), isTrue);
@@ -154,8 +172,18 @@ void main() {
 
     test('remove and clear persist', () {
       seed(<Map<String, Object>>[
-        <String, Object>{'path': 'a.png', 'dataUri': dataUri(<int>[1]), 'width': 4, 'height': 4},
-        <String, Object>{'path': 'b.png', 'dataUri': dataUri(<int>[2]), 'width': 4, 'height': 4},
+        <String, Object>{
+          'path': 'a.png',
+          'dataUri': dataUri(<int>[1]),
+          'width': 1,
+          'height': 1,
+        },
+        <String, Object>{
+          'path': 'b.png',
+          'dataUri': dataUri(<int>[2]),
+          'width': 1,
+          'height': 1,
+        },
       ]);
       final ImageLibrary library = ImageLibrary();
       library.remove('a.png');
@@ -166,7 +194,12 @@ void main() {
 
     test('notifies listeners on mutation', () {
       seed(<Map<String, Object>>[
-        <String, Object>{'path': 'a.png', 'dataUri': dataUri(<int>[1]), 'width': 4, 'height': 4},
+        <String, Object>{
+          'path': 'a.png',
+          'dataUri': dataUri(<int>[1]),
+          'width': 1,
+          'height': 1,
+        },
       ]);
       final ImageLibrary library = ImageLibrary();
       int notifications = 0;
@@ -180,8 +213,8 @@ void main() {
         <String, Object>{
           'path': 'icons/shop.png',
           'dataUri': dataUri(<int>[1, 2, 3, 4]),
-          'width': 4,
-          'height': 4,
+          'width': 1,
+          'height': 1,
         },
         <String, Object>{
           'path': 'flat.png',
@@ -193,16 +226,24 @@ void main() {
       final ImageLibrary library = ImageLibrary();
       final List<int> zip = await library.exportZipBytes();
       final Archive archive = ZipDecoder().decodeBytes(Uint8List.fromList(zip));
+      expect(archive.map((ArchiveFile f) => f.name).toList(), <String>[
+        'icons/shop.png',
+        'flat.png',
+      ]);
       expect(
-        archive.map((ArchiveFile f) => f.name).toList(),
-        <String>['icons/shop.png', 'flat.png'],
+        archive.findFile('icons/shop.png')!.readBytes(),
+        base64Decode(validPng.substring(huiNormalizedPngDataUriPrefix.length)),
       );
-      expect(archive.findFile('icons/shop.png')!.readBytes(), <int>[1, 2, 3, 4]);
     });
 
     test('decode is a no-op off-web', () async {
       seed(<Map<String, Object>>[
-        <String, Object>{'path': 'a.png', 'dataUri': dataUri(<int>[1]), 'width': 4, 'height': 4},
+        <String, Object>{
+          'path': 'a.png',
+          'dataUri': dataUri(<int>[1]),
+          'width': 1,
+          'height': 1,
+        },
       ]);
       final ImageLibrary library = ImageLibrary();
       expect(await library.decode('a.png'), isNull);
@@ -217,28 +258,55 @@ void main() {
         <String, Object>{
           'path': 'a.png',
           'dataUri': dataUri(List<int>.filled(64, 7)),
-          'width': 8,
-          'height': 8,
+          'width': 1,
+          'height': 1,
         },
       ]);
       expect(ImageLibrary().estimateUsageBytes(), greaterThan(base));
     });
 
-    test('addFromFiles reports failure off-web without touching storage', () async {
-      final ImageLibrary library = ImageLibrary();
-      final ImageAddOutcome outcome = await library.addFromFiles(<Object>[Object()]);
-      expect(outcome.added, isEmpty);
-      expect(outcome.errors, hasLength(1));
-      expect(outcome.isSuccess, isFalse);
-      expect(library.images, isEmpty);
-      expect(await library.addFromFiles(<Object>[]), same(ImageAddOutcome.empty));
+    test('clear reports a refused write and preserves the live library', () {
+      seed(<Map<String, Object>>[
+        <String, Object>{
+          'path': 'a.png',
+          'dataUri': validPng,
+          'width': 1,
+          'height': 1,
+        },
+      ]);
+      final ImageLibrary library = ImageLibrary(
+        writer: (String key, String value) => false,
+      );
+
+      expect(library.clear(), isFalse);
+      expect(library.paths, <String>{'a.png'});
+      expect(library.lastError, isNotNull);
     });
+
+    test(
+      'addFromFiles reports failure off-web without touching storage',
+      () async {
+        final ImageLibrary library = ImageLibrary();
+        final ImageAddOutcome outcome = await library.addFromFiles(<Object>[
+          Object(),
+        ]);
+        expect(outcome.added, isEmpty);
+        expect(outcome.errors, hasLength(1));
+        expect(outcome.isSuccess, isFalse);
+        expect(library.images, isEmpty);
+        expect(
+          await library.addFromFiles(<Object>[]),
+          same(ImageAddOutcome.empty),
+        );
+      },
+    );
   });
 
   group('HuiCustomItemCatalog', () {
     test('parses the exported shape', () {
-      final HuiCustomItemCatalog? catalog =
-          HuiCustomItemCatalog.parse(_catalogBody);
+      final HuiCustomItemCatalog? catalog = HuiCustomItemCatalog.parse(
+        _catalogBody,
+      );
       expect(catalog, isNotNull);
       expect(catalog!.items.length, 3);
       expect(catalog.providers, <String>['itemsadder', 'mmoitems']);
@@ -280,8 +348,9 @@ void main() {
     });
 
     test('lookup is exact and case-sensitive on the item id', () {
-      final HuiCustomItemCatalog catalog =
-          HuiCustomItemCatalog.parse(_catalogBody)!;
+      final HuiCustomItemCatalog catalog = HuiCustomItemCatalog.parse(
+        _catalogBody,
+      )!;
       expect(catalog.contains('mmoitems', 'SWORD:CUTLASS'), isTrue);
       expect(catalog.contains('mmoitems', 'sword:cutlass'), isFalse);
       expect(catalog.contains('itemsadder', 'myitems:ruby'), isTrue);
@@ -290,8 +359,9 @@ void main() {
     });
 
     test('auto and a blank provider match any provider', () {
-      final HuiCustomItemCatalog catalog =
-          HuiCustomItemCatalog.parse(_catalogBody)!;
+      final HuiCustomItemCatalog catalog = HuiCustomItemCatalog.parse(
+        _catalogBody,
+      )!;
       expect(catalog.contains('auto', 'SWORD:CUTLASS'), isTrue);
       expect(catalog.contains('', 'myitems:ruby'), isTrue);
       expect(catalog.entry('auto', 'SWORD:CUTLASS')!.provider, 'mmoitems');
@@ -299,8 +369,9 @@ void main() {
     });
 
     test('search is case-insensitive, prefix-first and provider-filtered', () {
-      final HuiCustomItemCatalog catalog =
-          HuiCustomItemCatalog.parse(_catalogBody)!;
+      final HuiCustomItemCatalog catalog = HuiCustomItemCatalog.parse(
+        _catalogBody,
+      )!;
       expect(
         catalog.search('ruby').map((CustomItemEntry e) => e.id).toList(),
         <String>['myitems:ruby', 'myitems:ruby_sword'],
@@ -320,8 +391,9 @@ void main() {
     });
 
     test('counts per provider, and everything for auto', () {
-      final HuiCustomItemCatalog catalog =
-          HuiCustomItemCatalog.parse(_catalogBody)!;
+      final HuiCustomItemCatalog catalog = HuiCustomItemCatalog.parse(
+        _catalogBody,
+      )!;
       expect(catalog.countFor('itemsadder'), 2);
       expect(catalog.countFor('mmoitems'), 1);
       expect(catalog.countFor('oraxen'), 0);
@@ -357,8 +429,9 @@ void main() {
         sounds: const <String>['ui.button.click'],
         loaded: true,
       );
-      final HuiCatalogs next =
-          base.withCustomItems(HuiCustomItemCatalog.parse(_catalogBody)!);
+      final HuiCatalogs next = base.withCustomItems(
+        HuiCustomItemCatalog.parse(_catalogBody)!,
+      );
       expect(next.customItems.items.length, 3);
       expect(next.materialKeys, base.materialKeys);
       expect(next.soundKeys, base.soundKeys);
@@ -395,16 +468,14 @@ void main() {
     );
 
     test('keeps the boot snapshot while the store is still empty', () {
-      expect(
-        huiFreshestCatalogs(HuiCatalogs.empty(), loaded),
-        same(loaded),
-      );
+      expect(huiFreshestCatalogs(HuiCatalogs.empty(), loaded), same(loaded));
       expect(huiFreshestCatalogs(loaded, null), same(loaded));
     });
 
     test('prefers the store once it holds anything', () {
-      final HuiCatalogs imported = HuiCatalogs.empty()
-          .withCustomItems(HuiCustomItemCatalog.parse(_catalogBody)!);
+      final HuiCatalogs imported = HuiCatalogs.empty().withCustomItems(
+        HuiCustomItemCatalog.parse(_catalogBody)!,
+      );
       expect(huiFreshestCatalogs(imported, loaded), same(imported));
       expect(huiFreshestCatalogs(loaded, HuiCatalogs.empty()), same(loaded));
     });
@@ -412,10 +483,45 @@ void main() {
 
   group('decodeDataUriBytes', () {
     test('decodes base64 and plain payloads', () {
-      expect(decodeDataUriBytes('data:image/png;base64,${base64Encode(<int>[1, 2])}'), <int>[1, 2]);
+      expect(
+        decodeDataUriBytes(
+          'data:image/png;base64,${base64Encode(<int>[1, 2])}',
+        ),
+        <int>[1, 2],
+      );
       expect(decodeDataUriBytes('data:text/plain,hi'), utf8.encode('hi'));
       expect(decodeDataUriBytes('not-a-data-uri'), isNull);
       expect(decodeDataUriBytes('data:image/png;base64,%%%'), isNull);
+    });
+  });
+
+  group('decodeNormalizedPngData', () {
+    const String valid =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==';
+
+    test('requires canonical PNG bytes and reads IHDR dimensions', () {
+      final StoredPngData? decoded = decodeNormalizedPngData(valid);
+      expect(decoded, isNotNull);
+      expect(decoded!.width, 1);
+      expect(decoded.height, 1);
+      expect(decodeNormalizedPngData('data:text/plain;base64,AA=='), isNull);
+      expect(
+        decodeNormalizedPngData(
+          'data:image/png;base64,${base64Encode(<int>[1, 2, 3])}',
+        ),
+        isNull,
+      );
+    });
+
+    test('stored dimensions must match the PNG header', () {
+      const StoredImage matching = StoredImage(
+        path: 'a.png',
+        dataUri: valid,
+        width: 1,
+        height: 1,
+      );
+      expect(isValidStoredImageData(matching), isTrue);
+      expect(isValidStoredImageData(matching.copyWith(width: 2)), isFalse);
     });
   });
 

@@ -16,6 +16,7 @@ import '../../services/catalogs.dart';
 import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
 import '../panels/preview_sim_panel.dart';
+import 'board_inspector.dart';
 import 'component_inspector.dart';
 import 'inspector_session.dart';
 import 'menu_inspector.dart';
@@ -109,8 +110,9 @@ class _InspectorPaneState extends State<InspectorPane> {
   /// rebuild; more than that would be fighting something else.
   void _takeFocus([bool retry = true]) {
     web.document.querySelector('.hui-inspector')?.scrollTop = 0;
-    final web.Element? field =
-        web.document.getElementById(huiComponentIdFieldId);
+    final web.Element? field = web.document.getElementById(
+      huiComponentIdFieldId,
+    );
     if (field == null) {
       if (retry) web.window.requestAnimationFrame(_retryFocus.toJS);
       return;
@@ -131,10 +133,14 @@ class _InspectorPaneState extends State<InspectorPane> {
     // The shell already renders the scrolling `<aside class="hui-pane
     // hui-inspector">` cell around this slot, so the pane root is a plain
     // filler div: no second scroll container, no second border.
-    return dom.div(
-      classes: 'hui-inspector-pane',
-      <Widget>[if (store.isPreviewDoc) ..._previewBody(store) else ..._menuBody(store)],
-    );
+    return dom.div(classes: 'hui-inspector-pane', <Widget>[
+      if (store.isBoardDoc)
+        BoardInspector(store: store)
+      else if (store.isPreviewDoc)
+        ..._previewBody(store)
+      else
+        ..._menuBody(store),
+    ]);
   }
 
   List<Widget> _previewBody(EditorStore store) {
@@ -152,19 +158,23 @@ class _InspectorPaneState extends State<InspectorPane> {
     } else {
       // Keyed by index so switching selection rebuilds local draft state
       // instead of carrying the previous element's text across.
-      body.add(PreviewElementEditor(
-        key: ValueKey<int>(index),
-        store: store,
-        index: index,
-        element: element,
-      ));
+      body.add(
+        PreviewElementEditor(
+          key: ValueKey<int>(index),
+          store: store,
+          index: index,
+          element: element,
+        ),
+      );
     }
     return body;
   }
 
   List<Widget> _menuBody(EditorStore store) {
-    final HuiCatalogs catalogs =
-        huiFreshestCatalogs(store.catalogs, component.catalogs);
+    final HuiCatalogs catalogs = huiFreshestCatalogs(
+      store.catalogs,
+      component.catalogs,
+    );
     final HuiComponent? selected = store.selected;
     if (selected == null) return <Widget>[MenuInspector(store: store)];
     return <Widget>[

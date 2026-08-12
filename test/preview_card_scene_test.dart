@@ -49,25 +49,33 @@ import 'package:test/test.dart';
 void main() {
   group('golden parity', () {
     for (final _Scenario scenario in _scenarios) {
-      test('${scenario.golden} is reproduced by previews/${scenario.document}',
-          () {
-        final List<String> errors = <String>[];
-        final PreviewCardScene scene = _buildScenario(scenario, errors);
-        expect(errors, isEmpty,
-            reason: 'the shipped document must build without errors');
+      test(
+        '${scenario.golden} is reproduced by previews/${scenario.document}',
+        () {
+          final List<String> errors = <String>[];
+          final PreviewCardScene scene = _buildScenario(scenario, errors);
+          expect(
+            errors,
+            isEmpty,
+            reason: 'the shipped document must build without errors',
+          );
 
-        final List<Map<String, Object?>> actual = _normalizeScene(scene);
-        final List<Map<String, Object?>> expected =
-            _normalizeGolden(_readGolden(scenario.golden));
+          final List<Map<String, Object?>> actual = _normalizeScene(scene);
+          final List<Map<String, Object?>> expected = _normalizeGolden(
+            _readGolden(scenario.golden),
+          );
 
-        if (!_deepEquals(actual, expected)) {
-          fail('${scenario.golden} is not reproduced by '
+          if (!_deepEquals(actual, expected)) {
+            fail(
+              '${scenario.golden} is not reproduced by '
               'previews/${scenario.document}.json'
               '\nfirst difference ${_firstDifference(expected, actual)}'
               '\n--- golden ---\n${_pretty(expected)}'
-              '\n--- document ---\n${_pretty(actual)}');
-        }
-      });
+              '\n--- document ---\n${_pretty(actual)}',
+            );
+          }
+        },
+      );
     }
 
     test('chest_27 carries the full 9x3 grid plus the card chrome', () {
@@ -107,8 +115,10 @@ void main() {
     });
 
     test('an empty document has no extent', () {
-      final PreviewCardScene scene =
-          buildCardScene(HuiPreviewDoc(), PreviewSim('statics'));
+      final PreviewCardScene scene = buildCardScene(
+        HuiPreviewDoc(),
+        PreviewSim('statics'),
+      );
       expect(scene.items, isEmpty);
       expect(scene.widthPx, 0);
       expect(scene.heightPx, 0);
@@ -120,9 +130,15 @@ void main() {
       // CardFramer's `contentTop == Integer.MIN_VALUE` branch: half a well up
       // and down, so the panel is 17 + 6 + 9 tall over 9 + 7 below.
       final PreviewCardScene scene = _framed(<HuiPreviewElement>[]);
-      final List<CardPanel> panels = scene.items.whereType<CardPanel>().toList();
+      final List<CardPanel> panels = scene.items
+          .whereType<CardPanel>()
+          .toList();
       expect(panels.length, 3, reason: 'frame, panel, title bar; no tray');
-      expect(panels[1].width, 164, reason: 'the 82 minimum half width, doubled');
+      expect(
+        panels[1].width,
+        164,
+        reason: 'the 82 minimum half width, doubled',
+      );
       expect(panels[1].height, 48);
       expect(panels[1].color, 0xF21B1B22);
       expect(panels[0].color, 0xCCCBD0D9, reason: 'the default accent at CC');
@@ -138,8 +154,9 @@ void main() {
       final PreviewCardScene withCell = _framed(<HuiPreviewElement>[
         HuiPreviewElement('cell', x: 0, y: 0, size: 8, color: '#FF00FF00'),
       ]);
-      final List<CardPanel> panels =
-          withCell.items.whereType<CardPanel>().toList();
+      final List<CardPanel> panels = withCell.items
+          .whereType<CardPanel>()
+          .toList();
       expect(panels.length, 4);
       expect(panels[2].color, 0xFF33333E, reason: 'the tray');
       expect(panels[2].width, 18 + 4 * 2, reason: 'one well plus tray padding');
@@ -150,8 +167,14 @@ void main() {
       final PreviewCardScene scene = _framed(<HuiPreviewElement>[
         HuiPreviewElement('cell', x: 0, y: 0, size: 8, color: '#FF00FF00'),
       ]);
-      expect(scene.items.map((CardItem i) => i.z).toList(),
-          <int>[0, 1, 2, 3, 6, 4]);
+      expect(scene.items.map((CardItem i) => i.z).toList(), <int>[
+        0,
+        1,
+        2,
+        3,
+        6,
+        4,
+      ]);
     });
 
     test('an unframed card emits bare content', () {
@@ -181,8 +204,11 @@ void main() {
         card: HuiPreviewCard(accent: 'nope'),
         elements: <HuiPreviewElement>[],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       expect(scene.items.whereType<CardPanel>().first.color, 0xCCCBD0D9);
       expect(errors.single, startsWith('card accent:'));
     });
@@ -193,8 +219,11 @@ void main() {
         card: HuiPreviewCard(title: 'nope'),
         elements: <HuiPreviewElement>[],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       expect(scene.items.whereType<CardLabel>().single.text, isEmpty);
       expect(errors.single, startsWith('card title:'));
     });
@@ -207,8 +236,11 @@ void main() {
           HuiPreviewElement('cell', x: 0, y: 0, size: 8, color: '#FF00FF00'),
         ],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       expect(scene.items.length, 1);
       expect(errors.single, startsWith('card framed:'));
     });
@@ -218,8 +250,7 @@ void main() {
     test('z defaults per type', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('panel',
-              width: 10, height: 10, color: '#FF000000'),
+          HuiPreviewElement('panel', width: 10, height: 10, color: '#FF000000'),
           HuiPreviewElement('cell', size: 8, color: '#FF000000'),
           HuiPreviewElement('label', text: "'x'"),
         ],
@@ -246,7 +277,10 @@ void main() {
           HuiPreviewElement('cell', size: 8, color: '#FF010203'),
         ],
       );
-      final CardItem item = buildCardScene(doc, PreviewSim('statics')).items.single;
+      final CardItem item = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+      ).items.single;
       expect(item.x, 0);
       expect(item.y, 0);
     });
@@ -254,10 +288,19 @@ void main() {
     test('coordinates round the Java way, half up', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell', x: 2.5, y: -2.5, size: 8, color: '#FF010203'),
+          HuiPreviewElement(
+            'cell',
+            x: 2.5,
+            y: -2.5,
+            size: 8,
+            color: '#FF010203',
+          ),
         ],
       );
-      final CardItem item = buildCardScene(doc, PreviewSim('statics')).items.single;
+      final CardItem item = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+      ).items.single;
       expect(item.x, 3);
       expect(item.y, -2, reason: 'Math.round(-2.5) is -2, not -3');
     });
@@ -267,25 +310,34 @@ void main() {
     test('binds the loop variable per instance', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
-              x: 'i * 10',
-              size: 8,
-              color: '#FF000000',
-              repeat: HuiPreviewRepeat(count: 4)),
+          HuiPreviewElement(
+            'cell',
+            x: 'i * 10',
+            size: 8,
+            color: '#FF000000',
+            repeat: HuiPreviewRepeat(count: 4),
+          ),
         ],
       );
       final PreviewCardScene scene = buildCardScene(doc, PreviewSim('statics'));
-      expect(scene.items.map((CardItem i) => i.x).toList(), <int>[0, 10, 20, 30]);
+      expect(scene.items.map((CardItem i) => i.x).toList(), <int>[
+        0,
+        10,
+        20,
+        30,
+      ]);
     });
 
     test('honours a named loop variable', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
-              x: 'n * 5',
-              size: 8,
-              color: '#FF000000',
-              repeat: HuiPreviewRepeat(count: 3, varName: 'n')),
+          HuiPreviewElement(
+            'cell',
+            x: 'n * 5',
+            size: 8,
+            color: '#FF000000',
+            repeat: HuiPreviewRepeat(count: 3, varName: 'n'),
+          ),
         ],
       );
       final PreviewCardScene scene = buildCardScene(doc, PreviewSim('statics'));
@@ -296,14 +348,19 @@ void main() {
       for (final Object count in <Object>[0, 0.9, -5]) {
         final HuiPreviewDoc doc = HuiPreviewDoc(
           elements: <HuiPreviewElement>[
-            HuiPreviewElement('cell',
-                size: 8,
-                color: '#FF000000',
-                repeat: HuiPreviewRepeat(count: count)),
+            HuiPreviewElement(
+              'cell',
+              size: 8,
+              color: '#FF000000',
+              repeat: HuiPreviewRepeat(count: count),
+            ),
           ],
         );
-        expect(buildCardScene(doc, PreviewSim('statics')).items, isEmpty,
-            reason: 'count $count');
+        expect(
+          buildCardScene(doc, PreviewSim('statics')).items,
+          isEmpty,
+          reason: 'count $count',
+        );
       }
     });
 
@@ -311,16 +368,21 @@ void main() {
       final List<String> errors = <String>[];
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
-              size: 8,
-              color: '#FF000000',
-              repeat: HuiPreviewRepeat(count: 'time * 2')),
+          HuiPreviewElement(
+            'cell',
+            size: 8,
+            color: '#FF000000',
+            repeat: HuiPreviewRepeat(count: 'time * 2'),
+          ),
         ],
       );
       final PreviewSim sim = PreviewSim('statics');
       // 1234 * 2 = 2468 attempts asked for, 1024 allowed.
-      final PreviewCardScene scene =
-          buildCardScene(doc, sim, onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        sim,
+        onError: errors.add,
+      );
       expect(scene.items.length, 1024);
       expect(errors.single, 'repeat count 2468 exceeds 1024, truncated');
     });
@@ -333,38 +395,45 @@ void main() {
       // all — the budget still counts every attempt.
       final List<HuiPreviewElement> elements = <HuiPreviewElement>[
         for (int i = 0; i < 5; i++)
-          HuiPreviewElement('cell',
-              size: 8,
-              color: '#FF000000',
-              visible: false,
-              repeat: HuiPreviewRepeat(count: 1000)),
+          HuiPreviewElement(
+            'cell',
+            size: 8,
+            color: '#FF000000',
+            visible: false,
+            repeat: HuiPreviewRepeat(count: 1000),
+          ),
         HuiPreviewElement('cell', size: 8, color: '#FF000000'),
       ];
       final PreviewCardScene scene = buildCardScene(
-          HuiPreviewDoc(elements: elements), PreviewSim('statics'),
-          onError: errors.add);
+        HuiPreviewDoc(elements: elements),
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       expect(scene.items, isEmpty);
-      expect(
-          errors,
-          <String>[
-            'repeat of 1000 truncated at the 4096 element cap',
-            'element cap 4096 reached, remaining elements skipped',
-          ]);
+      expect(errors, <String>[
+        'repeat of 1000 truncated at the 4096 element cap',
+        'element cap 4096 reached, remaining elements skipped',
+      ]);
     });
 
     test('a broken repeat count skips the element', () {
       final List<String> errors = <String>[];
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
-              size: 8,
-              color: '#FF000000',
-              repeat: HuiPreviewRepeat(count: 'nope')),
+          HuiPreviewElement(
+            'cell',
+            size: 8,
+            color: '#FF000000',
+            repeat: HuiPreviewRepeat(count: 'nope'),
+          ),
           HuiPreviewElement('cell', size: 8, color: '#FF000000'),
         ],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       expect(scene.items.length, 1, reason: 'the rest of the document renders');
       expect(errors.single, startsWith('cell:'));
     });
@@ -378,8 +447,11 @@ void main() {
           HuiPreviewElement('cell', x: 3, size: 8, color: 'nope'),
         ],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       final CardCell cell = scene.items.single as CardCell;
       expect(cell.x, 3);
       expect(cell.color, 0x00000000);
@@ -393,8 +465,11 @@ void main() {
           HuiPreviewElement('label', x: 3, text: 'nope'),
         ],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       final CardLabel label = scene.items.single as CardLabel;
       expect(label.x, 3);
       expect(label.text, isEmpty);
@@ -405,13 +480,20 @@ void main() {
       final List<String> errors = <String>[];
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('panel',
-              width: 'nope', height: 10, color: '#FF000000'),
+          HuiPreviewElement(
+            'panel',
+            width: 'nope',
+            height: 10,
+            color: '#FF000000',
+          ),
           HuiPreviewElement('cell', size: 8, color: '#FF000000'),
         ],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       expect(scene.items.length, 1);
       expect(scene.items.single, isA<CardCell>());
       expect(errors.single, startsWith('panel:'));
@@ -424,8 +506,11 @@ void main() {
           HuiPreviewElement('panel', width: 10, color: '#FF000000'),
         ],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       expect(scene.items, isEmpty);
       expect(errors.single, contains('height'));
     });
@@ -448,8 +533,11 @@ void main() {
           HuiPreviewElement('slot', size: 18, index: 0),
         ],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       expect(scene.items, isEmpty);
       expect(errors.single, 'slot: target has no inventory');
     });
@@ -457,8 +545,18 @@ void main() {
     test('an invisible element is not emitted', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell', size: 8, color: '#FF000000', visible: false),
-          HuiPreviewElement('cell', size: 8, color: '#FF000000', visible: '1 > 2'),
+          HuiPreviewElement(
+            'cell',
+            size: 8,
+            color: '#FF000000',
+            visible: false,
+          ),
+          HuiPreviewElement(
+            'cell',
+            size: 8,
+            color: '#FF000000',
+            visible: '1 > 2',
+          ),
           HuiPreviewElement('cell', size: 8, color: '#FF000000'),
         ],
       );
@@ -480,34 +578,48 @@ void main() {
   // directly and will eventually put the wrong primitive in one. None of it may
   // reach a `throw` — this pass runs on the per-tick render path.
   group('hostile model input', () {
-    test('a non-finite repeat count truncates at the cap instead of throwing',
-        () {
-      final List<String> errors = <String>[];
-      final HuiPreviewDoc doc = HuiPreviewDoc(
-        elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
+    test(
+      'a non-finite repeat count truncates at the cap instead of throwing',
+      () {
+        final List<String> errors = <String>[];
+        final HuiPreviewDoc doc = HuiPreviewDoc(
+          elements: <HuiPreviewElement>[
+            HuiPreviewElement(
+              'cell',
               size: 8,
               color: '#FF000000',
-              repeat: HuiPreviewRepeat(count: double.infinity)),
-        ],
-      );
-      late final PreviewCardScene scene;
-      expect(() => scene = buildCardScene(doc, PreviewSim('statics'),
-          onError: errors.add), returnsNormally);
-      // Java saturates `(long) Math.floor(inf)` at Long.MAX_VALUE and then
-      // truncates to the 1024 cap; the port lands on the same outcome.
-      expect(scene.items.length, 1024);
-      expect(errors.single,
-          'repeat count 9223372036854775807 exceeds 1024, truncated');
-    });
+              repeat: HuiPreviewRepeat(count: double.infinity),
+            ),
+          ],
+        );
+        late final PreviewCardScene scene;
+        expect(
+          () => scene = buildCardScene(
+            doc,
+            PreviewSim('statics'),
+            onError: errors.add,
+          ),
+          returnsNormally,
+        );
+        // Java saturates `(long) Math.floor(inf)` at Long.MAX_VALUE and then
+        // truncates to the 1024 cap; the port lands on the same outcome.
+        expect(scene.items.length, 1024);
+        expect(
+          errors.single,
+          'repeat count 9223372036854775807 exceeds 1024, truncated',
+        );
+      },
+    );
 
     test('a NaN repeat count emits nothing', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
-              size: 8,
-              color: '#FF000000',
-              repeat: HuiPreviewRepeat(count: double.nan)),
+          HuiPreviewElement(
+            'cell',
+            size: 8,
+            color: '#FF000000',
+            repeat: HuiPreviewRepeat(count: double.nan),
+          ),
         ],
       );
       expect(buildCardScene(doc, PreviewSim('statics')).items, isEmpty);
@@ -522,27 +634,47 @@ void main() {
         ],
       );
       late final PreviewCardScene scene;
-      expect(() => scene = buildCardScene(doc, PreviewSim('statics'),
-          onError: errors.add), returnsNormally);
+      expect(
+        () => scene = buildCardScene(
+          doc,
+          PreviewSim('statics'),
+          onError: errors.add,
+        ),
+        returnsNormally,
+      );
       expect(scene.items.length, 1, reason: 'the rest of the document renders');
-      expect(errors.single,
-          'cell: visible: must be a boolean or a string expression');
+      expect(
+        errors.single,
+        'cell: visible: must be a boolean or a string expression',
+      );
     });
 
     test('a numeric field holding a bool skips the element', () {
       final List<String> errors = <String>[];
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('panel',
-              width: true, height: 10, color: '#FF000000'),
+          HuiPreviewElement(
+            'panel',
+            width: true,
+            height: 10,
+            color: '#FF000000',
+          ),
         ],
       );
       late final PreviewCardScene scene;
-      expect(() => scene = buildCardScene(doc, PreviewSim('statics'),
-          onError: errors.add), returnsNormally);
+      expect(
+        () => scene = buildCardScene(
+          doc,
+          PreviewSim('statics'),
+          onError: errors.add,
+        ),
+        returnsNormally,
+      );
       expect(scene.items, isEmpty);
-      expect(errors.single,
-          'panel: width: must be a number or a string expression');
+      expect(
+        errors.single,
+        'panel: width: must be a number or a string expression',
+      );
     });
 
     test('a cell colour holding a bool renders transparent', () {
@@ -552,8 +684,11 @@ void main() {
           HuiPreviewElement('cell', size: 8, color: true),
         ],
       );
-      final PreviewCardScene scene =
-          buildCardScene(doc, PreviewSim('statics'), onError: errors.add);
+      final PreviewCardScene scene = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        onError: errors.add,
+      );
       expect((scene.items.single as CardCell).color, previewTransparent);
       expect(errors.single, startsWith('cell color:'));
     });
@@ -567,11 +702,19 @@ void main() {
         ],
       );
       late final PreviewCardScene scene;
-      expect(() => scene = buildCardScene(doc, PreviewSim('statics'),
-          onError: errors.add), returnsNormally);
+      expect(
+        () => scene = buildCardScene(
+          doc,
+          PreviewSim('statics'),
+          onError: errors.add,
+        ),
+        returnsNormally,
+      );
       expect(scene.items.length, 1);
-      expect(errors.single,
-          'card framed: card.framed: must be a boolean or a string expression');
+      expect(
+        errors.single,
+        'card framed: card.framed: must be a boolean or a string expression',
+      );
     });
 
     test('every hostile field stays quiet without an error sink', () {
@@ -581,8 +724,12 @@ void main() {
           HuiPreviewElement('cell', size: 8, color: true, visible: 1),
           HuiPreviewElement('panel', width: true, height: 10, color: 1),
           HuiPreviewElement('label', x: <String>['bad'] as Object),
-          HuiPreviewElement('slot',
-              size: 18, index: 0, repeat: HuiPreviewRepeat(count: double.nan)),
+          HuiPreviewElement(
+            'slot',
+            size: 18,
+            index: 0,
+            repeat: HuiPreviewRepeat(count: double.nan),
+          ),
         ],
       );
       expect(() => buildCardScene(doc, PreviewSim('chest')), returnsNormally);
@@ -593,14 +740,18 @@ void main() {
     test('a slot carries the simulated stack, or null when empty', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('slot',
-              size: 18, index: 'i', repeat: HuiPreviewRepeat(count: 5)),
+          HuiPreviewElement(
+            'slot',
+            size: 18,
+            index: 'i',
+            repeat: HuiPreviewRepeat(count: 5),
+          ),
         ],
       );
-      final List<CardSlot> slots = buildCardScene(doc, PreviewSim('chest'))
-          .items
-          .whereType<CardSlot>()
-          .toList();
+      final List<CardSlot> slots = buildCardScene(
+        doc,
+        PreviewSim('chest'),
+      ).items.whereType<CardSlot>().toList();
       expect(slots.length, 5);
       expect(slots[0].item?.material, 'DIAMOND');
       expect(slots[1].item?.material, 'STONE');
@@ -626,16 +777,23 @@ void main() {
     test('a cell colour follows the ticking simulation', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
-              size: 8, color: 'burnTime > 200 ? #FFFF0000 : #FF0000FF'),
+          HuiPreviewElement(
+            'cell',
+            size: 8,
+            color: 'burnTime > 200 ? #FFFF0000 : #FF0000FF',
+          ),
         ],
       );
       final PreviewSim sim = PreviewSim('furnace');
-      expect((buildCardScene(doc, sim).items.single as CardCell).color,
-          0xFFFF0000);
+      expect(
+        (buildCardScene(doc, sim).items.single as CardCell).color,
+        0xFFFF0000,
+      );
       sim.tick(150);
-      expect((buildCardScene(doc, sim).items.single as CardCell).color,
-          0xFF0000FF);
+      expect(
+        (buildCardScene(doc, sim).items.single as CardCell).color,
+        0xFF0000FF,
+      );
     });
   });
 }
@@ -674,22 +832,25 @@ const List<_Scenario> _scenarios = <_Scenario>[
 
 PreviewCardScene _buildScenario(_Scenario scenario, List<String> errors) {
   final HuiPreviewDoc doc = decodeHuiPreviewDoc(
-      File('test/fixtures/previews/${scenario.document}.json')
-          .readAsStringSync());
+    File('test/fixtures/previews/${scenario.document}.json').readAsStringSync(),
+  );
   final PreviewSim sim = PreviewSim(scenario.category, lang: _lang);
-  sim.vars = PreviewSim.parseVars(previewVarsForMaterial(doc, scenario.material));
+  sim.vars = PreviewSim.parseVars(
+    previewVarsForMaterial(doc, scenario.material),
+  );
   return buildCardScene(doc, sim, onError: errors.add);
 }
 
 /// A framed card over [elements], with the document's own accent left absent so
 /// the neutral default applies.
 PreviewCardScene _framed(List<HuiPreviewElement> elements) => buildCardScene(
-      HuiPreviewDoc(card: HuiPreviewCard(), elements: elements),
-      PreviewSim('statics'),
-    );
+  HuiPreviewDoc(card: HuiPreviewCard(), elements: elements),
+  PreviewSim('statics'),
+);
 
 final PreviewLangCatalog _lang = PreviewLangCatalog.parse(
-    File('web/assets/catalog/preview-lang-en.json').readAsStringSync());
+  File('web/assets/catalog/preview-lang-en.json').readAsStringSync(),
+);
 
 // ---------------------------------------------------------------------
 // Golden normalization
@@ -776,14 +937,14 @@ List<Map<String, Object?>> _normalizeScene(PreviewCardScene scene) {
 }
 
 Map<String, Object?> _run(String text, McSpan style) => <String, Object?>{
-      'text': text,
-      'color': style.color,
-      'bold': style.bold,
-      'italic': style.italic,
-      'underlined': style.underlined,
-      'strikethrough': style.strikethrough,
-      'obfuscated': style.obfuscated,
-    };
+  'text': text,
+  'color': style.color,
+  'bold': style.bold,
+  'italic': style.italic,
+  'underlined': style.underlined,
+  'strikethrough': style.strikethrough,
+  'obfuscated': style.obfuscated,
+};
 
 /// Style inherited down an Adventure component tree. Adventure's tri-state
 /// decorations serialize as `true`/`false`/absent; absent means "inherit", and
@@ -806,23 +967,23 @@ class _InheritedStyle {
   final bool obfuscated;
 
   _InheritedStyle merge(Map<String, Object?> node) => _InheritedStyle(
-        color: _componentColor(node['color']) ?? color,
-        bold: _decoration(node['bold']) ?? bold,
-        italic: _decoration(node['italic']) ?? italic,
-        underlined: _decoration(node['underlined']) ?? underlined,
-        strikethrough: _decoration(node['strikethrough']) ?? strikethrough,
-        obfuscated: _decoration(node['obfuscated']) ?? obfuscated,
-      );
+    color: _componentColor(node['color']) ?? color,
+    bold: _decoration(node['bold']) ?? bold,
+    italic: _decoration(node['italic']) ?? italic,
+    underlined: _decoration(node['underlined']) ?? underlined,
+    strikethrough: _decoration(node['strikethrough']) ?? strikethrough,
+    obfuscated: _decoration(node['obfuscated']) ?? obfuscated,
+  );
 
   McSpan asSpan(String text) => McSpan(
-        text: text,
-        rgb: color ?? mcDefaultTextColor,
-        bold: bold,
-        italic: italic,
-        underlined: underlined,
-        strikethrough: strikethrough,
-        obfuscated: obfuscated,
-      );
+    text: text,
+    rgb: color ?? mcDefaultTextColor,
+    bold: bold,
+    italic: italic,
+    underlined: underlined,
+    strikethrough: strikethrough,
+    obfuscated: obfuscated,
+  );
 }
 
 bool? _decoration(Object? raw) => raw is bool ? raw : null;
@@ -838,7 +999,9 @@ int? _componentColor(Object? raw) {
 /// Flattens a Gson-serialized Adventure component into the flat run list
 /// [parseMcText] produces. See the normalization note at the top of this file.
 List<Map<String, Object?>> _flattenComponent(
-    Object? raw, _InheritedStyle inherited) {
+  Object? raw,
+  _InheritedStyle inherited,
+) {
   if (raw is String) {
     return raw.isEmpty
         ? const <Map<String, Object?>>[]
@@ -885,8 +1048,12 @@ bool _deepEquals(Object? a, Object? b) {
 }
 
 String _firstDifference(
-    List<Map<String, Object?>> expected, List<Map<String, Object?>> actual) {
-  final int size = expected.length < actual.length ? expected.length : actual.length;
+  List<Map<String, Object?>> expected,
+  List<Map<String, Object?>> actual,
+) {
+  final int size = expected.length < actual.length
+      ? expected.length
+      : actual.length;
   for (int index = 0; index < size; index++) {
     if (!_deepEquals(expected[index], actual[index])) {
       return '[$index]\n  golden:   ${jsonEncode(expected[index])}'

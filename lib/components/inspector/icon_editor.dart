@@ -18,13 +18,16 @@ import '../../services/catalogs.dart';
 import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
+import 'block_picker.dart';
 import 'custom_item_picker.dart';
+import 'entity_picker.dart';
 import 'extras_editor.dart';
 import 'field_help.dart';
 import 'image_picker_grid.dart';
 import 'inspector_session.dart';
 import 'inspector_widgets.dart';
 import 'item_picker.dart';
+import 'preview_color_swatch.dart';
 import 'reorder_list.dart';
 import 'text_icon_editor.dart';
 
@@ -77,7 +80,7 @@ void writeIconSlot(HuiComponentData data, IconSlot slot, HuiIcon? icon) {
 /// them. Text, item and custom item are edited by widgets this file only
 /// mounts, so their help rides in a [HuiHelpCluster] under the type switch.
 const Map<String, List<String>> huiIconTypeDocKeys = <String, List<String>>{
-  'text': <String>['icon.text.text'],
+  'text': <String>['icon.text.text', 'icon.text.refreshTicks'],
   'textImage': <String>['icon.textImage.path'],
   'animatedTextImage': <String>['icon.animated.source', 'icon.animated.speed'],
   'item': <String>[
@@ -85,10 +88,16 @@ const Map<String, List<String>> huiIconTypeDocKeys = <String, List<String>>{
     'icon.item.count',
     'icon.item.customModelValue',
   ],
+  'block': <String>['icon.block.block'],
   'customItem': <String>[
     'icon.customItem.provider',
     'icon.customItem.item',
     'icon.customItem.count',
+  ],
+  'entity': <String>[
+    'icon.entity.entity',
+    'icon.entity.width',
+    'icon.entity.height',
   ],
 };
 
@@ -153,6 +162,12 @@ class IconEditor extends StatelessWidget {
     });
   }
 
+  void _writeStyle(String label, HuiIconStyle? next) {
+    store.editComponent(componentId, label, (HuiComponent component) {
+      readIconSlot(component.data, slot)?.style = next?.copy();
+    });
+  }
+
   void _switchType(String nextType) {
     final HuiIcon? current = icon;
     if (current != null && current.type == nextType) return;
@@ -213,10 +228,22 @@ class IconEditor extends StatelessWidget {
           hint: huiIconTypeDescriptions['item'],
         ),
         HuiSegment(
+          value: 'block',
+          label: 'Block',
+          icon: ArcaneIcon.package(size: IconSize.sm),
+          hint: huiIconTypeDescriptions['block'],
+        ),
+        HuiSegment(
           value: 'customItem',
           label: 'Custom',
           icon: ArcaneIcon.boxes(size: IconSize.sm),
           hint: huiIconTypeDescriptions['customItem'],
+        ),
+        HuiSegment(
+          value: 'entity',
+          label: 'Entity',
+          icon: ArcaneIcon.user(size: IconSize.sm),
+          hint: huiIconTypeDescriptions['entity'],
         ),
       ],
     ),
@@ -225,21 +252,45 @@ class IconEditor extends StatelessWidget {
       label: 'Fields',
     ),
     switch (icon!) {
-      final HuiTextIcon text => TextIconEditor(
-        // Keyed by field id so flipping a toggle from the true slot to
-        // the false slot remounts the textarea. Without it the state is
-        // reused, the user-dirty DOM field keeps the previous slot's text
-        // and the next keystroke writes it into the other slot.
-        key: ValueKey<String>(_fieldId),
-        fieldId: _fieldId,
-        text: text.text,
-        issues: _issuesEndingWith('.text'),
-        label: 'Text',
-        onChanged: (String label, String value) => _write(
-          label,
-          HuiTextIcon(value)..extras = huiDeepCopyMap(text.extras),
+      final HuiTextIcon text => dom.div(<Widget>[
+        TextIconEditor(
+          // Keyed by field id so flipping a toggle from the true slot to
+          // the false slot remounts the textarea. Without it the state is
+          // reused, the user-dirty DOM field keeps the previous slot's text
+          // and the next keystroke writes it into the other slot.
+          key: ValueKey<String>(_fieldId),
+          fieldId: _fieldId,
+          text: text.text,
+          issues: _issuesEndingWith('.text'),
+          label: 'Text',
+          onChanged: (String label, String value) => _write(
+            label,
+            HuiTextIcon(value, text.style?.copy(), text.refreshTicks)
+              ..extras = huiDeepCopyMap(text.extras),
+          ),
         ),
-      ),
+        HuiField(
+          label: 'Placeholder refresh',
+          help: 'Ticks between live PlaceholderAPI updates; 0 freezes text.',
+          trailing: const HuiFieldHelp('icon.text.refreshTicks'),
+          control: dom.div(<Widget>[
+            HuiNumberField(
+              value: (text.refreshTicks ?? 10).toDouble(),
+              min: 0,
+              max: 1200,
+              step: 1,
+              integer: true,
+              suffix: 'ticks',
+              onChanged: (double value) => _write(
+                'placeholder refresh',
+                HuiTextIcon(text.text, text.style?.copy(), value.round())
+                  ..extras = huiDeepCopyMap(text.extras),
+              ),
+            ),
+            HuiInlineIssues(_issuesEndingWith('.refreshTicks')),
+          ]),
+        ),
+      ]),
       final HuiTextImageIcon image => _ImageIconEditor(
         icon: image,
         images: images,
@@ -263,6 +314,15 @@ class IconEditor extends StatelessWidget {
           onChanged: (String label, HuiItemIcon next) => _write(label, next),
         ),
       ]),
+      final HuiBlockIcon block => dom.div(classes: 'hui-icon-block', <Widget>[
+        if (catalogsLoading) const HuiSkeletonRows(rows: 2),
+        BlockIconEditor(
+          icon: block,
+          catalogs: catalogs,
+          issues: _slotIssues,
+          onChanged: (String label, HuiBlockIcon next) => _write(label, next),
+        ),
+      ]),
       final HuiCustomItemIcon custom =>
         dom.div(classes: 'hui-icon-custom', <Widget>[
           if (catalogsLoading) const HuiSkeletonRows(rows: 2),
@@ -274,7 +334,20 @@ class IconEditor extends StatelessWidget {
                 _write(label, next),
           ),
         ]),
+      final HuiEntityIcon entity => EntityIconEditor(
+        icon: entity,
+        issues: _slotIssues,
+        onChanged: (String label, HuiEntityIcon next) => _write(label, next),
+      ),
     },
+    if (icon is! HuiEntityIcon)
+      _DisplayStyleEditor(
+        style: icon!.style,
+        issues: _slotIssues
+            .where((HuiIssue issue) => issue.path.contains('.style'))
+            .toList(),
+        onChanged: _writeStyle,
+      ),
     ExtrasEditor(title: 'Icon', extras: icon!.extras, onChanged: _writeExtras),
   ];
 
@@ -306,9 +379,370 @@ class IconEditor extends StatelessWidget {
     'textImage' => 'Image',
     'animatedTextImage' => 'Animated',
     'item' => 'Item',
+    'block' => 'Block',
     'customItem' => 'Custom item',
+    'entity' => 'Entity',
     _ => type,
   };
+}
+
+class _DisplayStyleEditor extends StatelessWidget {
+  const _DisplayStyleEditor({
+    required this.style,
+    required this.onChanged,
+    required this.issues,
+  });
+
+  final HuiIconStyle? style;
+  final void Function(String label, HuiIconStyle? style) onChanged;
+  final List<HuiIssue> issues;
+
+  HuiIconStyle _next(void Function(HuiIconStyle style) update) {
+    final HuiIconStyle next = style?.copy() ?? createDefaultIconStyle();
+    update(next);
+    return next;
+  }
+
+  List<ArcaneSelectOption> _options(List<String> values, String current) =>
+      <ArcaneSelectOption>[
+        for (final String value in values)
+          ArcaneSelectOption(label: _label(value), value: value),
+        if (!values.contains(current))
+          ArcaneSelectOption(label: '$current (unknown)', value: current),
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    final HuiIconStyle? current = style;
+    if (current == null) {
+      return InspectorSection(
+        title: 'Display style',
+        description: 'Uses the runtime display-entity defaults.',
+        children: <Widget>[
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.sm,
+            onPressed: () =>
+                onChanged('add display style', createDefaultIconStyle()),
+            child: const Text('Customize display'),
+          ),
+        ],
+      );
+    }
+
+    return InspectorSection(
+      title: 'Display style',
+      description:
+          'Packet display metadata shared by text, image and item icons.',
+      trailing: Button(
+        variant: ButtonVariant.ghost,
+        size: ButtonSize.sm,
+        onPressed: () => onChanged('remove display style', null),
+        child: const Text('Use defaults'),
+      ),
+      children: <Widget>[
+        HuiField(
+          label: 'Billboard',
+          help: 'Fixed follows the menu transform; other modes face viewers.',
+          control: ArcaneSelect(
+            value: current.billboard,
+            size: ComponentSize.sm,
+            fullWidth: true,
+            options: _options(huiIconBillboards, current.billboard),
+            onChange: (String value) => onChanged(
+              'icon billboard',
+              _next((HuiIconStyle next) => next.billboard = value),
+            ),
+          ),
+        ),
+        HuiField(
+          label: 'Non-uniform scale',
+          help: 'Multiplies the menu scale and the automatic click plane.',
+          control: _numberGrid(<Widget>[
+            _number(
+              'X',
+              current.scaleX,
+              0.01,
+              64,
+              (double value) => onChanged(
+                'icon scale X',
+                _next((HuiIconStyle next) => next.scaleX = value),
+              ),
+            ),
+            _number(
+              'Y',
+              current.scaleY,
+              0.01,
+              64,
+              (double value) => onChanged(
+                'icon scale Y',
+                _next((HuiIconStyle next) => next.scaleY = value),
+              ),
+            ),
+            _number(
+              'Z',
+              current.scaleZ,
+              0.01,
+              64,
+              (double value) => onChanged(
+                'icon scale Z',
+                _next((HuiIconStyle next) => next.scaleZ = value),
+              ),
+            ),
+          ]),
+        ),
+        HuiMore(
+          summary: 'Text appearance',
+          children: <Widget>[
+            HuiSwitchRow(
+              label: 'Text shadow',
+              value: current.shadow,
+              onChanged: (bool value) => onChanged(
+                'text shadow',
+                _next((HuiIconStyle next) => next.shadow = value),
+              ),
+            ),
+            HuiSwitchRow(
+              label: 'See through blocks',
+              value: current.seeThrough,
+              onChanged: (bool value) => onChanged(
+                'text see through',
+                _next((HuiIconStyle next) => next.seeThrough = value),
+              ),
+            ),
+            HuiField(
+              label: 'Alignment',
+              control: ArcaneSelect(
+                value: current.textAlignment,
+                size: ComponentSize.sm,
+                fullWidth: true,
+                options: _options(huiIconTextAlignments, current.textAlignment),
+                onChange: (String value) => onChanged(
+                  'text alignment',
+                  _next((HuiIconStyle next) => next.textAlignment = value),
+                ),
+              ),
+            ),
+            _colorField(
+              label: 'Background ARGB',
+              value: current.backgroundArgb,
+              placeholder: '#00000000',
+              onInput: (String value) => onChanged(
+                'text background',
+                _next((HuiIconStyle next) => next.backgroundArgb = value),
+              ),
+            ),
+            HuiField(
+              label: 'Opacity',
+              control: HuiNumberField(
+                value: current.textOpacity.toDouble(),
+                min: 0,
+                max: 255,
+                step: 1,
+                integer: true,
+                onChanged: (double value) => onChanged(
+                  'text opacity',
+                  _next(
+                    (HuiIconStyle next) => next.textOpacity = value.round(),
+                  ),
+                ),
+              ),
+            ),
+            HuiField(
+              label: 'Line width',
+              help: 'Vanilla text-display wrap width in font pixels.',
+              control: HuiNumberField(
+                value: current.lineWidth.toDouble(),
+                min: 1,
+                max: 16384,
+                step: 1,
+                integer: true,
+                onChanged: (double value) => onChanged(
+                  'text line width',
+                  _next((HuiIconStyle next) => next.lineWidth = value.round()),
+                ),
+              ),
+            ),
+          ],
+        ),
+        HuiMore(
+          summary: 'Lighting, shadow and culling',
+          children: <Widget>[
+            HuiSwitchRow(
+              label: 'Override brightness',
+              value: current.hasBrightnessOverride,
+              onChanged: (bool value) => onChanged(
+                'brightness override',
+                _next((HuiIconStyle next) {
+                  next.blockLight = value ? 15 : null;
+                  next.skyLight = value ? 15 : null;
+                }),
+              ),
+            ),
+            if (current.hasBrightnessOverride)
+              _numberGrid(<Widget>[
+                _number(
+                  'Block',
+                  (current.blockLight ?? 15).toDouble(),
+                  0,
+                  15,
+                  (double value) => onChanged(
+                    'block light',
+                    _next(
+                      (HuiIconStyle next) => next.blockLight = value.round(),
+                    ),
+                  ),
+                  integer: true,
+                ),
+                _number(
+                  'Sky',
+                  (current.skyLight ?? 15).toDouble(),
+                  0,
+                  15,
+                  (double value) => onChanged(
+                    'sky light',
+                    _next((HuiIconStyle next) => next.skyLight = value.round()),
+                  ),
+                  integer: true,
+                ),
+              ]),
+            HuiField(
+              label: 'Display view range',
+              help: 'Multiplier applied by the Minecraft client.',
+              control: HuiNumberField(
+                value: current.viewRange,
+                min: 0.01,
+                max: 64,
+                onChanged: (double value) => onChanged(
+                  'display view range',
+                  _next((HuiIconStyle next) => next.viewRange = value),
+                ),
+              ),
+            ),
+            _numberGrid(<Widget>[
+              _number(
+                'Shadow radius',
+                current.shadowRadius,
+                0,
+                64,
+                (double value) => onChanged(
+                  'shadow radius',
+                  _next((HuiIconStyle next) => next.shadowRadius = value),
+                ),
+              ),
+              _number(
+                'Strength',
+                current.shadowStrength,
+                0,
+                1,
+                (double value) => onChanged(
+                  'shadow strength',
+                  _next((HuiIconStyle next) => next.shadowStrength = value),
+                ),
+              ),
+            ]),
+            _numberGrid(<Widget>[
+              _number(
+                'Cull width',
+                current.cullingWidth,
+                0,
+                4096,
+                (double value) => onChanged(
+                  'culling width',
+                  _next((HuiIconStyle next) => next.cullingWidth = value),
+                ),
+              ),
+              _number(
+                'Cull height',
+                current.cullingHeight,
+                0,
+                4096,
+                (double value) => onChanged(
+                  'culling height',
+                  _next((HuiIconStyle next) => next.cullingHeight = value),
+                ),
+              ),
+            ]),
+            HuiSwitchRow(
+              label: 'Glow outline',
+              value: current.glowColor != null,
+              onChanged: (bool value) => onChanged(
+                'glow outline',
+                _next(
+                  (HuiIconStyle next) =>
+                      next.glowColor = value ? '#FFFFFFFF' : null,
+                ),
+              ),
+            ),
+            if (current.glowColor != null)
+              _colorField(
+                label: 'Glow ARGB',
+                value: current.glowColor!,
+                placeholder: '#FFFFFFFF',
+                onInput: (String value) => onChanged(
+                  'glow color',
+                  _next((HuiIconStyle next) => next.glowColor = value),
+                ),
+              ),
+          ],
+        ),
+        HuiInlineIssues(issues),
+      ],
+    );
+  }
+
+  Widget _number(
+    String axis,
+    double value,
+    double minimum,
+    double maximum,
+    void Function(double value) onChanged, {
+    bool integer = false,
+  }) => HuiNumberField(
+    value: value,
+    min: minimum,
+    max: maximum,
+    step: integer ? 1 : 0.05,
+    integer: integer,
+    prefixLabel: axis,
+    onChanged: onChanged,
+  );
+
+  Widget _numberGrid(List<Widget> children) => dom.div(
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'grid',
+        'grid-template-columns': 'repeat(auto-fit, minmax(92px, 1fr))',
+        'gap': '8px',
+      },
+    ),
+    children,
+  );
+
+  Widget _colorField({
+    required String label,
+    required String value,
+    required String placeholder,
+    required void Function(String value) onInput,
+  }) => HuiField(
+    label: label,
+    trailing: previewColorSwatch(value),
+    help: 'Eight hexadecimal digits in #AARRGGBB order.',
+    control: TextInput(
+      value: value,
+      size: ComponentSize.sm,
+      fullWidth: true,
+      placeholder: placeholder,
+      onInput: onInput,
+      attributes: const <String, String>{
+        'autocomplete': 'off',
+        'spellcheck': 'false',
+      },
+    ),
+  );
+
+  static String _label(String value) =>
+      value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';
 }
 
 class _ImageIconEditor extends StatelessWidget {
@@ -328,7 +762,8 @@ class _ImageIconEditor extends StatelessWidget {
 
   void _setPath(String path) => onChanged(
     'image path',
-    HuiTextImageIcon(path)..extras = huiDeepCopyMap(icon.extras),
+    HuiTextImageIcon(path, icon.style?.copy())
+      ..extras = huiDeepCopyMap(icon.extras),
   );
 
   /// One source pixel is one character cell wide and one text line tall.
@@ -446,7 +881,7 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
   List<String> get _source => _icon.source;
 
   HuiAnimatedImageIcon _with(List<String> source, int speed) =>
-      HuiAnimatedImageIcon(source, speed)
+      HuiAnimatedImageIcon(source, speed, _icon.style?.copy())
         ..extras = huiDeepCopyMap(_icon.extras);
 
   void _emit(String label, List<String> source, [int? speed]) =>

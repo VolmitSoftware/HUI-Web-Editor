@@ -23,29 +23,24 @@ HuiComponent _text(
   double y, {
   double z = 0,
   String text = 'AB',
-}) =>
-    HuiComponent(
-      id,
-      Vec3(x, y, z),
-      HuiButtonData(0.05, <HuiAction>[], HuiTextIcon(text)),
-    );
+}) => HuiComponent(
+  id,
+  Vec3(x, y, z),
+  HuiButtonData(0.05, <HuiAction>[], HuiTextIcon(text)),
+);
 
 CanvasScene _scene(
   List<HuiComponent> components, {
   double uiScale = 1,
   Vec3? menuOffset,
   bool trueRender = false,
-}) =>
-    buildCanvasScene(
-      menu: HuiMenu(
-        offset: menuOffset ?? Vec3.zero(),
-        components: components,
-      ),
-      uiScale: uiScale,
-      trueRender: trueRender,
-      togglePreview: (String id) => true,
-      textCache: McTextCache(),
-    );
+}) => buildCanvasScene(
+  menu: HuiMenu(offset: menuOffset ?? Vec3.zero(), components: components),
+  uiScale: uiScale,
+  trueRender: trueRender,
+  togglePreview: (String id) => true,
+  textCache: McTextCache(),
+);
 
 /// A synthetic item with an explicit drawn rect, for the guide and z-order
 /// suites where the icon content is irrelevant.
@@ -54,25 +49,20 @@ CanvasItem _item({
   required int index,
   required HuiRect visual,
   Vec3? offset,
-}) =>
-    CanvasItem(
-      component: HuiComponent(
-        id,
-        offset ?? Vec3.zero(),
-        HuiButtonData(),
-      ),
-      index: index,
-      kind: CanvasIconKind.text,
-      shape: const IconShape.text(lines: 1, maxLineChars: 2),
-      anchor: WorldPoint(visual.x, visual.y),
-      depth: (offset ?? Vec3.zero()).z,
-      hitboxDepth: (offset ?? Vec3.zero()).z,
-      hitbox: visual,
-      visual: visual,
-      clickable: true,
-      isToggle: false,
-      toggleShowsTrue: false,
-    );
+}) => CanvasItem(
+  component: HuiComponent(id, offset ?? Vec3.zero(), HuiButtonData()),
+  index: index,
+  kind: CanvasIconKind.text,
+  shape: const IconShape.text(lines: 1, maxLineChars: 2),
+  anchor: WorldPoint(visual.x, visual.y),
+  depth: (offset ?? Vec3.zero()).z,
+  hitboxDepth: (offset ?? Vec3.zero()).z,
+  hitbox: visual,
+  visual: visual,
+  clickable: true,
+  isToggle: false,
+  toggleShowsTrue: false,
+);
 
 void main() {
   group('idsInMarquee', () {
@@ -102,8 +92,9 @@ void main() {
 
     test('touching edges count as a hit', () {
       // 'AAAA' at the origin draws across x in [-0.3, 0.3].
-      final CanvasScene scene =
-          _scene(<HuiComponent>[_text('a', 0, 0, text: 'AAAA')]);
+      final CanvasScene scene = _scene(<HuiComponent>[
+        _text('a', 0, 0, text: 'AAAA'),
+      ]);
       expect(
         idsInMarquee(
           scene,
@@ -144,8 +135,9 @@ void main() {
     test('tests the drawn outline, not the collision plane', () {
       // 'AAAA' draws to x = 0.3 but its plane only reaches 4 * 0.21875 / 2 / 2
       // = 0.21875, so a band in the gap must still select it.
-      final CanvasScene scene =
-          _scene(<HuiComponent>[_text('a', 0, 0, text: 'AAAA')]);
+      final CanvasScene scene = _scene(<HuiComponent>[
+        _text('a', 0, 0, text: 'AAAA'),
+      ]);
       expect(
         idsInMarquee(
           scene,
@@ -164,9 +156,9 @@ void main() {
   group('alignOffsets', () {
     // 'AB' spans 0.30 blocks, 'ABCD' spans 0.60, both one line tall.
     List<HuiComponent> pair() => <HuiComponent>[
-          _text('a', 0, 0),
-          _text('b', 1, 0, z: 0.13, text: 'ABCD'),
-        ];
+      _text('a', 0, 0),
+      _text('b', 1, 0, z: 0.13, text: 'ABCD'),
+    ];
 
     test('left pulls every outline to the leftmost edge', () {
       final CanvasScene scene = _scene(pair());
@@ -276,13 +268,13 @@ void main() {
       // item drops 1.30875. Two different biases, so aligning the anchors and
       // aligning the drawn rects give different answers.
       List<HuiComponent> mixed() => <HuiComponent>[
-            _text('a', 0, 0),
-            HuiComponent(
-              'b',
-              Vec3(0, 1, 0),
-              HuiButtonData(0.05, <HuiAction>[], HuiItemIcon('stick')),
-            ),
-          ];
+        _text('a', 0, 0),
+        HuiComponent(
+          'b',
+          Vec3(0, 1, 0),
+          HuiButtonData(0.05, <HuiAction>[], HuiItemIcon('stick')),
+        ),
+      ];
       final Map<String, Vec3> biased = alignOffsets(
         scene: _scene(mixed(), trueRender: true),
         ids: <String>['a', 'b'],
@@ -325,11 +317,7 @@ void main() {
         isEmpty,
       );
       expect(
-        alignOffsets(
-          scene: scene,
-          ids: const <String>[],
-          align: HuiAlign.left,
-        ),
+        alignOffsets(scene: scene, ids: const <String>[], align: HuiAlign.left),
         isEmpty,
       );
     });
@@ -472,10 +460,10 @@ void main() {
 
   group('smartGuides', () {
     CanvasItem block(String id, double cx, double cy, {int index = 0}) => _item(
-          id: id,
-          index: index,
-          visual: HuiRect(x: cx, y: cy, w: 2, h: 2),
-        );
+      id: id,
+      index: index,
+      visual: HuiRect(x: cx, y: cy, w: 2, h: 2),
+    );
 
     test('snaps an edge and reports one vertical guide', () {
       final GuideSnap snap = smartGuides(
@@ -551,7 +539,12 @@ void main() {
 
     test('resolves the two axes independently', () {
       final GuideSnap snap = smartGuides(
-        moving: const WorldBounds(minX: 1.02, minY: 3.97, maxX: 3.02, maxY: 5.97),
+        moving: const WorldBounds(
+          minX: 1.02,
+          minY: 3.97,
+          maxX: 3.02,
+          maxY: 5.97,
+        ),
         others: <CanvasItem>[
           block('a', 0, 0),
           // Centre y 4.98 -> the moving centre y 4.97 is 0.01 away.
@@ -565,9 +558,11 @@ void main() {
       expect(snap.snappedY, isTrue);
       expect(
         snap.guides
-            .singleWhere((AlignmentGuide g) =>
-                g.axis == GuideAxis.horizontal &&
-                g.match == GuideMatch.center)
+            .singleWhere(
+              (AlignmentGuide g) =>
+                  g.axis == GuideAxis.horizontal &&
+                  g.match == GuideMatch.center,
+            )
             .position,
         closeTo(4.98, 1e-12),
       );
@@ -587,14 +582,12 @@ void main() {
     test('merges every item sitting on the winning line', () {
       final GuideSnap snap = smartGuides(
         moving: const WorldBounds(minX: 1.02, minY: 5, maxX: 3.02, maxY: 7),
-        others: <CanvasItem>[
-          block('a', 0, 0),
-          block('b', 0, 9, index: 1),
-        ],
+        others: <CanvasItem>[block('a', 0, 0), block('b', 0, 9, index: 1)],
         thresholdBlocks: 0.05,
       );
-      final AlignmentGuide vertical = snap.guides
-          .singleWhere((AlignmentGuide g) => g.axis == GuideAxis.vertical);
+      final AlignmentGuide vertical = snap.guides.singleWhere(
+        (AlignmentGuide g) => g.axis == GuideAxis.vertical,
+      );
       expect(vertical.ids, <String>['a', 'b']);
       expect(vertical.start, closeTo(-1, 1e-12));
       expect(vertical.end, closeTo(10, 1e-12));
@@ -623,25 +616,10 @@ void main() {
 
   group('zOrderOffsets', () {
     List<CanvasItem> stack() => <CanvasItem>[
-          _item(
-            id: 'a',
-            index: 0,
-            visual: HuiRect.zero,
-            offset: Vec3(0, 0, 1),
-          ),
-          _item(
-            id: 'b',
-            index: 1,
-            visual: HuiRect.zero,
-            offset: Vec3(0, 0, 2),
-          ),
-          _item(
-            id: 'c',
-            index: 2,
-            visual: HuiRect.zero,
-            offset: Vec3(0, 0, 3),
-          ),
-        ];
+      _item(id: 'a', index: 0, visual: HuiRect.zero, offset: Vec3(0, 0, 1)),
+      _item(id: 'b', index: 1, visual: HuiRect.zero, offset: Vec3(0, 0, 2)),
+      _item(id: 'c', index: 2, visual: HuiRect.zero, offset: Vec3(0, 0, 3)),
+    ];
 
     test('bring forward subtracts, because larger z paints first', () {
       final Map<String, Vec3> out = zOrderOffsets(
@@ -700,9 +678,8 @@ void main() {
         step: 0.1,
       );
       for (final MapEntry<String, Vec3> entry in out.entries) {
-        components
-            .firstWhere((HuiComponent c) => c.id == entry.key)
-            .offset = entry.value;
+        components.firstWhere((HuiComponent c) => c.id == entry.key).offset =
+            entry.value;
       }
       // Painted last == nearest the camera == what a click hits first.
       expect(_scene(components).drawOrder.last.id, 'c');
@@ -836,8 +813,12 @@ void main() {
 
   group('marqueeRect', () {
     test('normalises whichever way the band was dragged', () {
-      const HuiRect expected =
-          HuiRect.fromEdges(left: -1, bottom: -2, right: 3, top: 4);
+      const HuiRect expected = HuiRect.fromEdges(
+        left: -1,
+        bottom: -2,
+        right: 3,
+        top: 4,
+      );
       expect(marqueeRect(-1, -2, 3, 4), expected);
       expect(marqueeRect(3, 4, -1, -2), expected);
       expect(marqueeRect(-1, 4, 3, -2), expected);
@@ -870,8 +851,7 @@ void main() {
 
     test('unknown ids are skipped, and an all-unknown list is null', () {
       final CanvasScene scene = _scene(<HuiComponent>[_text('a', 0, 0)]);
-      final WorldBounds bounds =
-          outlineBounds(scene, <String>['ghost', 'a'])!;
+      final WorldBounds bounds = outlineBounds(scene, <String>['ghost', 'a'])!;
       expect(bounds.minX, closeTo(-0.15, 1e-12));
       expect(outlineBounds(scene, <String>['ghost']), isNull);
       expect(outlineBounds(scene, const <String>[]), isNull);
@@ -881,10 +861,7 @@ void main() {
   group('shiftOffsets', () {
     test('moves every offset by the same delta', () {
       final Map<String, Vec3> out = shiftOffsets(
-        offsets: <String, Vec3>{
-          'a': Vec3(0, 0, 0),
-          'b': Vec3(1, -2, 0.5),
-        },
+        offsets: <String, Vec3>{'a': Vec3(0, 0, 0), 'b': Vec3(1, -2, 0.5)},
         dx: 0.25,
         dy: -0.5,
       );
@@ -916,23 +893,17 @@ void main() {
   });
 
   group('resolveGroupDrag', () {
-    CanvasScene groupScene({double uiScale = 1}) => _scene(
-          <HuiComponent>[
-            _text('a', 0, 0),
-            _text('b', 1, 0, z: 0.13),
-            _text('c', 5, 0),
-          ],
-          uiScale: uiScale,
-        );
+    CanvasScene groupScene({double uiScale = 1}) => _scene(<HuiComponent>[
+      _text('a', 0, 0),
+      _text('b', 1, 0, z: 0.13),
+      _text('c', 5, 0),
+    ], uiScale: uiScale);
 
     test('applies the grabbed component snapped delta to every member', () {
       final CanvasScene scene = groupScene();
       final GroupDrag drag = resolveGroupDrag(
         scene: scene,
-        startOffsets: <String, Vec3>{
-          'a': Vec3(0, 0, 0),
-          'b': Vec3(1, 0, 0.13),
-        },
+        startOffsets: <String, Vec3>{'a': Vec3(0, 0, 0), 'b': Vec3(1, 0, 0.13)},
         startBounds: outlineBounds(scene, <String>['a', 'b'])!,
         grabbedId: 'a',
         grabbedTarget: Vec3(0.5, 0.25, 0),
@@ -955,7 +926,10 @@ void main() {
         guideThresholdBlocks: 0.05,
       );
       expect(drag.offsets['a']!.x, 1);
-      expect(drag.guides.any((AlignmentGuide g) => g.ids.contains('b')), isTrue);
+      expect(
+        drag.guides.any((AlignmentGuide g) => g.ids.contains('b')),
+        isTrue,
+      );
     });
 
     test('a zero correction still reports its guides', () {
@@ -981,10 +955,7 @@ void main() {
       final CanvasScene scene = groupScene();
       final GroupDrag drag = resolveGroupDrag(
         scene: scene,
-        startOffsets: <String, Vec3>{
-          'a': Vec3(0, 0, 0),
-          'b': Vec3(1, 0, 0.13),
-        },
+        startOffsets: <String, Vec3>{'a': Vec3(0, 0, 0), 'b': Vec3(1, 0, 0.13)},
         startBounds: outlineBounds(scene, <String>['a', 'b'])!,
         grabbedId: 'a',
         grabbedTarget: Vec3(0.02, 0, 0),

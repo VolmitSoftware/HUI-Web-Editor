@@ -6,5 +6,4 @@
 /// touches `package:web`.
 library;
 
-export 'drag_data_stub.dart'
-    if (dart.library.js_interop) 'drag_data_web.dart';
+export 'drag_data_stub.dart' if (dart.library.js_interop) 'drag_data_web.dart';

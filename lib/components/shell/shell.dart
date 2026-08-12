@@ -3,6 +3,7 @@ library;
 
 export 'command_palette.dart';
 export 'editor_shell.dart';
+export 'editor_sync_bar.dart';
 export 'keyboard_shortcuts.dart';
 export 'pane_layout.dart';
 export 'pane_splitter.dart';

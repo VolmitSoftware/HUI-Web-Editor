@@ -15,6 +15,7 @@ import 'package:web/web.dart' as web;
 import '../../logic/canvas_scene.dart';
 import '../../logic/hui_geometry.dart';
 import '../../logic/mc_text.dart';
+import '../../model/model.dart';
 import '../../services/image_library.dart';
 import 'canvas_assets.dart';
 import 'canvas_brush.dart';
@@ -122,6 +123,23 @@ class IconRenderers {
   double get _fontPixelPx => brush.px(_blockPerFontPixel);
 
   void paint(CanvasItem item) {
+    final HuiIconStyle style = item.icon?.style ?? HuiIconStyle();
+    final String? background = _argbCss(style.backgroundArgb);
+    if (background != null &&
+        (item.kind == CanvasIconKind.text ||
+            item.kind == CanvasIconKind.image)) {
+      brush.save();
+      brush.fill = background;
+      brush.fillWorldRect(item.visual);
+      brush.restore();
+    }
+    brush.save();
+    if (item.kind == CanvasIconKind.text ||
+        item.kind == CanvasIconKind.image ||
+        item.kind == CanvasIconKind.missing) {
+      brush.alpha = style.textOpacity / 255;
+    }
+    _applyShadow(style);
     switch (item.kind) {
       case CanvasIconKind.text:
         _paintText(item);
@@ -130,10 +148,33 @@ class IconRenderers {
       // A custom item resolves to a plain ItemStack in game, so it draws
       // exactly where a vanilla item icon would; only the sprite differs.
       case CanvasIconKind.item:
+      case CanvasIconKind.block:
       case CanvasIconKind.customItem:
         _paintItem(item);
+      case CanvasIconKind.entity:
+        _paintEntity(item);
       case CanvasIconKind.missing:
         _paintMissing(item);
+    }
+    brush.restore();
+  }
+
+  void _applyShadow(HuiIconStyle style) {
+    final String? glow = _argbCss(style.glowColor, forceOpaque: true);
+    if (glow != null) {
+      brush.ctx.shadowColor = glow;
+      brush.ctx.shadowBlur = math.max(2, brush.px(0.08));
+      return;
+    }
+    if (!style.shadow && style.shadowStrength <= 0) return;
+    final double strength = style.shadow
+        ? math.max(0.45, style.shadowStrength)
+        : style.shadowStrength;
+    brush.ctx.shadowColor = 'rgba(0, 0, 0, ${strength.clamp(0, 1)})';
+    brush.ctx.shadowBlur = brush.px(style.shadowRadius);
+    if (style.shadow) {
+      brush.ctx.shadowOffsetX = math.max(1, _fontPixelPx);
+      brush.ctx.shadowOffsetY = math.max(1, _fontPixelPx);
     }
   }
 
@@ -142,7 +183,8 @@ class IconRenderers {
   void _paintText(CanvasItem item) {
     final McTextResult? parsed = item.text;
     if (parsed == null || parsed.lineCount == 0) return;
-    final double fontPixel = _fontPixelPx;
+    final HuiIconStyle style = item.icon?.style ?? HuiIconStyle();
+    final double fontPixel = _fontPixelPx * style.scaleY;
     if (fontPixel < 0.35) {
       // Below this the glyphs are sub-pixel mush; a solid bar reads better.
       _paintTooSmall(item);
@@ -151,6 +193,11 @@ class IconRenderers {
     metrics.calibrate(brush.ctx);
     final double fontSize = metrics.fontSizeFor(fontPixel);
     brush.save();
+    final double horizontalRatio = style.scaleX / style.scaleY;
+    final double originX = brush.sx(item.anchor.x);
+    brush.ctx.translate(originX, 0);
+    brush.ctx.scale(horizontalRatio, 1);
+    brush.ctx.translate(-originX, 0);
     brush.textAlign = 'left';
     brush.textBaseline = 'alphabetic';
     for (int line = 0; line < parsed.lineCount; line++) {
@@ -161,6 +208,8 @@ class IconRenderers {
         lineCount: parsed.lineCount,
         fontSize: fontSize,
         fontPixel: fontPixel,
+        horizontalRatio: horizontalRatio,
+        style: style,
       );
     }
     brush.restore();
@@ -173,6 +222,8 @@ class IconRenderers {
     required int lineCount,
     required double fontSize,
     required double fontPixel,
+    required double horizontalRatio,
+    required HuiIconStyle style,
   }) {
     if (spans.isEmpty) return;
     final double centerY = textLineCenterY(
@@ -181,6 +232,7 @@ class IconRenderers {
       lineIndex: lineIndex,
       lineCount: lineCount,
       trueRender: trueRender,
+      scaleY: style.scaleY,
     );
     final double baselineY =
         brush.sy(centerY) + huiBaselineOffsetPixels * fontPixel;
@@ -191,13 +243,21 @@ class IconRenderers {
       brush.setMinecraftFont(fontSize, italic: span.italic);
       // Minecraft widens every GLYPH of a bold run by one font pixel, not the
       // run as a whole, so an N-glyph run is N pixels wider than plain.
-      final double width = brush.measure(span.text) +
+      final double width =
+          brush.measure(span.text) +
           (span.bold ? fontPixel * span.text.runes.length : 0);
       advances.add(width);
       total += width;
     }
 
-    double x = brush.sx(item.anchor.x) - total / 2;
+    final double anchorX = brush.sx(item.anchor.x);
+    final double finalWidth = total * horizontalRatio;
+    final double desiredX = switch (style.textAlignment) {
+      'left' => brush.sx(item.visual.left),
+      'right' => brush.sx(item.visual.right) - finalWidth,
+      _ => anchorX - finalWidth / 2,
+    };
+    double x = anchorX + (desiredX - anchorX) / horizontalRatio;
     for (int i = 0; i < spans.length; i++) {
       final McSpan span = spans[i];
       final double advance = advances[i];
@@ -275,7 +335,13 @@ class IconRenderers {
     final McTextResult? parsed = item.text;
     if (parsed == null) return;
     final List<String> plain = parsed.plainLines;
+    final HuiIconStyle style = item.icon?.style ?? HuiIconStyle();
+    final double horizontalRatio = style.scaleX / style.scaleY;
+    final double originX = brush.sx(item.anchor.x);
     brush.save();
+    brush.ctx.translate(originX, 0);
+    brush.ctx.scale(horizontalRatio, 1);
+    brush.ctx.translate(-originX, 0);
     brush.alpha = 0.75;
     brush.fill = brush.palette.label;
     for (int line = 0; line < parsed.lineCount; line++) {
@@ -285,11 +351,17 @@ class IconRenderers {
         lineIndex: line,
         lineCount: parsed.lineCount,
         trueRender: trueRender,
+        scaleY: style.scaleY,
       );
       final int chars = plain[line].length;
       if (chars == 0) continue;
-      final double width = brush.px(chars * huiTextCharWidth * uiScale);
-      final double height = math.max(1, brush.px(huiLineHeight * uiScale) * 0.6);
+      final double width = brush.px(
+        chars * huiTextCharWidth * uiScale * style.scaleY,
+      );
+      final double height = math.max(
+        1,
+        brush.px(huiLineHeight * uiScale * style.scaleY) * 0.6,
+      );
       brush.fillRectPx(
         brush.sx(item.anchor.x) - width / 2,
         brush.sy(centerY) - height / 2,
@@ -356,26 +428,60 @@ class IconRenderers {
 
   void _paintItem(CanvasItem item) {
     final HuiRect rect = item.visual;
-    final double size = brush.px(rect.w);
-    if (size < 0.5) return;
+    final double width = brush.px(rect.w);
+    final double height = brush.px(rect.h);
+    if (width < 0.5 || height < 0.5) return;
     final double left = brush.sx(rect.left);
     final double top = brush.sy(rect.top);
 
     final String? texture = item.itemTexture;
-    final web.HTMLImageElement? sprite =
-        texture == null ? null : assets.image(texture);
+    final web.HTMLImageElement? sprite = texture == null
+        ? null
+        : assets.image(texture);
     if (sprite != null) {
       brush.save();
       brush.smoothing = false;
-      brush.ctx.drawImage(sprite, left, top, size, size);
+      brush.ctx.drawImage(sprite, left, top, width, height);
       brush.restore();
     } else {
-      _paintItemPlaceholder(item, left, top, size);
+      _paintItemPlaceholder(item, left, top, width, height);
     }
 
     if (item.itemCount > 1) {
       _paintItemCount(item);
     }
+  }
+
+  void _paintEntity(CanvasItem item) {
+    final HuiRect rect = item.visual;
+    final double width = brush.px(rect.w);
+    final double height = brush.px(rect.h);
+    if (width < 0.5 || height < 0.5) return;
+    final double left = brush.sx(rect.left);
+    final double top = brush.sy(rect.top);
+    final double radius = math.min(8, math.min(width, height) * 0.16);
+    brush.save();
+    brush.fill = brush.palette.player;
+    brush.stroke = brush.palette.playerEdge;
+    brush.lineWidth = 1.2;
+    brush.roundedRectPx(left, top, width, height, radius);
+    brush.ctx.fill();
+    brush.ctx.stroke();
+    if (width >= 32 && height >= 24) {
+      final String key = item.entityKey.contains(':')
+          ? item.entityKey.substring(item.entityKey.indexOf(':') + 1)
+          : item.entityKey;
+      brush.setUiFont(math.min(11, math.max(8, width / 8)), bold: true);
+      brush.textAlign = 'center';
+      brush.textBaseline = 'middle';
+      brush.fill = brush.palette.labelMuted;
+      brush.fillTextPx(
+        brush.ellipsize(key.replaceAll('_', ' '), width - 8),
+        left + width / 2,
+        top + height / 2,
+      );
+    }
+    brush.restore();
   }
 
   /// A key with no catalogue sprite is not necessarily invalid — the catalogue
@@ -385,27 +491,34 @@ class IconRenderers {
     CanvasItem item,
     double left,
     double top,
-    double size,
+    double width,
+    double height,
   ) {
     final bool custom = item.kind == CanvasIconKind.customItem;
     brush.save();
     brush.lineWidth = 1.2;
     brush.dash(<double>[5, 4]);
     brush.stroke = brush.palette.placeholder;
-    brush.roundedRectPx(left, top, size, size, math.min(6, size / 4));
+    brush.roundedRectPx(
+      left,
+      top,
+      width,
+      height,
+      math.min(6, math.min(width, height) / 4),
+    );
     brush.ctx.stroke();
     brush.clearDash();
-    if (size >= 28) {
-      final double labelSize = math.min(11, size / 4.5);
+    if (width >= 28 && height >= 28) {
+      final double labelSize = math.min(11, math.min(width, height) / 4.5);
       final double centerY =
-          top + size / 2 + (custom ? -labelSize * 0.45 : 0);
+          top + height / 2 + (custom ? -labelSize * 0.45 : 0);
       brush.setUiFont(labelSize, bold: true);
       brush.textAlign = 'center';
       brush.textBaseline = 'middle';
       brush.fill = brush.palette.labelMuted;
       brush.fillTextPx(
-        brush.ellipsize(item.itemKey, size - 8),
-        left + size / 2,
+        brush.ellipsize(item.itemKey, width - 8),
+        left + width / 2,
         centerY,
       );
       if (custom) {
@@ -416,9 +529,9 @@ class IconRenderers {
         brush.fillTextPx(
           brush.ellipsize(
             item.itemProvider.isEmpty ? 'auto' : item.itemProvider,
-            size - 8,
+            width - 8,
           ),
-          left + size / 2,
+          left + width / 2,
           centerY + labelSize * 1.15,
         );
       }
@@ -427,13 +540,24 @@ class IconRenderers {
   }
 
   void _paintItemCount(CanvasItem item) {
-    final double fontPixel = _fontPixelPx;
+    final HuiIconStyle style = item.icon?.style ?? HuiIconStyle();
+    final double fontPixel = _fontPixelPx * style.scaleY;
     if (fontPixel < 0.5) return;
     metrics.calibrate(brush.ctx);
     final double labelY = trueRender
-        ? itemCountLabelY(anchorY: item.anchor.y, uiScale: uiScale)
-        : item.visual.bottom - huiLineHeight * uiScale * 0.6;
+        ? itemCountLabelY(
+            anchorY: item.anchor.y,
+            uiScale: uiScale,
+            scaleY: style.scaleY,
+          )
+        : item.visual.bottom - huiLineHeight * uiScale * style.scaleY * 0.6;
     brush.save();
+    brush.alpha = style.textOpacity / 255;
+    final double horizontalRatio = style.scaleX / style.scaleY;
+    final double originX = brush.sx(item.anchor.x);
+    brush.ctx.translate(originX, 0);
+    brush.ctx.scale(horizontalRatio, 1);
+    brush.ctx.translate(-originX, 0);
     brush.setMinecraftFont(metrics.fontSizeFor(fontPixel));
     brush.textAlign = 'center';
     brush.textBaseline = 'alphabetic';
@@ -447,4 +571,17 @@ class IconRenderers {
     brush.fillTextPx(text, x + fontPixel, baseline);
     brush.restore();
   }
+}
+
+String? _argbCss(String? value, {bool forceOpaque = false}) {
+  if (value == null || !RegExp(r'^#[0-9A-Fa-f]{8}$').hasMatch(value)) {
+    return null;
+  }
+  final int bits = int.parse(value.substring(1), radix: 16);
+  final int alpha = forceOpaque ? 255 : (bits >> 24) & 0xFF;
+  if (alpha == 0) return null;
+  final int red = (bits >> 16) & 0xFF;
+  final int green = (bits >> 8) & 0xFF;
+  final int blue = bits & 0xFF;
+  return 'rgba($red, $green, $blue, ${(alpha / 255).toStringAsFixed(3)})';
 }

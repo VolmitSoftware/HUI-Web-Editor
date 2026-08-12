@@ -29,6 +29,7 @@ const List<String> _contractKeys = <String>[
   'icon.item.item',
   'icon.item.count',
   'icon.item.customModelValue',
+  'icon.block.block',
   'icon.customItem.provider',
   'icon.customItem.item',
   'icon.customItem.count',
@@ -36,12 +37,19 @@ const List<String> _contractKeys = <String>[
   'icon.animated.source',
   'icon.animated.speed',
   'icon.text.text',
+  'icon.text.refreshTicks',
+  'icon.entity.entity',
+  'icon.entity.width',
+  'icon.entity.height',
   'action.command.command',
   'action.command.source',
   'action.sound.sound',
   'action.sound.source',
   'action.sound.volume',
   'action.sound.pitch',
+  'action.message.message',
+  'action.teleport.world',
+  'action.connect.server',
 ];
 
 /// `File.java:12` or `File.java:12-34`, nothing else.

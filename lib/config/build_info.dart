@@ -5,10 +5,14 @@
 /// falls back to the pubspec version and "local".
 library;
 
-const String huiBuildVersion =
-    String.fromEnvironment('HUI_VERSION', defaultValue: '3.1.0');
+const String huiBuildVersion = String.fromEnvironment(
+  'HUI_VERSION',
+  defaultValue: '3.1.0',
+);
 
-const String huiBuildCommit =
-    String.fromEnvironment('HUI_COMMIT', defaultValue: 'local');
+const String huiBuildCommit = String.fromEnvironment(
+  'HUI_COMMIT',
+  defaultValue: 'local',
+);
 
 const String huiBuildBadge = '$huiBuildVersion-$huiBuildCommit';

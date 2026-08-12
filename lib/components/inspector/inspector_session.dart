@@ -32,8 +32,7 @@ class InspectorSession {
   }
 
   /// The icon [slot] last held for [type], or null when it never held one.
-  HuiIcon? recallIcon(String slot, String type) =>
-      _icons[slot]?[type]?.copy();
+  HuiIcon? recallIcon(String slot, String type) => _icons[slot]?[type]?.copy();
 
   /// Remembers the outgoing icon and returns the incoming one: a cached value
   /// when there is one, otherwise a fresh default seeded from the outgoing
@@ -54,14 +53,19 @@ class InspectorSession {
       return HuiAnimatedImageIcon(
         <String>[current.path],
         huiDefaultAnimationSpeed,
+        current.style?.copy(),
       );
     }
     if (current is HuiAnimatedImageIcon &&
         nextType == 'textImage' &&
         current.source.isNotEmpty) {
-      return HuiTextImageIcon(current.source.first);
+      return HuiTextImageIcon(current.source.first, current.style?.copy());
     }
-    return createDefaultIcon(nextType);
+    final HuiIcon next = createDefaultIcon(nextType);
+    if (next is! HuiEntityIcon) {
+      next.style = current?.style?.copy();
+    }
+    return next;
   }
 
   void rememberAction(String slot, HuiAction? action) {
@@ -75,8 +79,13 @@ class InspectorSession {
   HuiAction switchAction(String slot, HuiAction? current, String nextType) {
     rememberAction(slot, current);
     final HuiAction? cached = recallAction(slot, nextType);
-    if (cached != null) return cached;
-    return createDefaultAction(nextType);
+    if (cached != null) {
+      cached.trigger = current?.trigger ?? cached.trigger;
+      return cached;
+    }
+    final HuiAction next = createDefaultAction(nextType);
+    next.trigger = current?.trigger ?? 'any';
+    return next;
   }
 
   /// Called when a component is renamed so its cached values follow the new id.

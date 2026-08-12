@@ -18,10 +18,17 @@ const List<String> _imageExtensions = <String>[
   '.tiff',
 ];
 
-void downloadText(String fileName, String text, {String mime = 'application/json'}) {
+void downloadText(
+  String fileName,
+  String text, {
+  String mime = 'application/json',
+}) {
   _save(
     fileName,
-    web.Blob(<JSAny>[text.toJS].toJS, web.BlobPropertyBag(type: '$mime;charset=utf-8')),
+    web.Blob(
+      <JSAny>[text.toJS].toJS,
+      web.BlobPropertyBag(type: '$mime;charset=utf-8'),
+    ),
   );
 }
 

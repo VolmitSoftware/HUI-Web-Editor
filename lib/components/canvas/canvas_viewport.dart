@@ -148,8 +148,10 @@ class _CanvasViewportState extends State<CanvasViewport> {
   final McFontMetrics _metrics = McFontMetrics();
   final McTextCache _textCache = McTextCache();
   final ImageCharCache _charCache = ImageCharCache();
-  late final CanvasPainter _painter =
-      CanvasPainter(assets: _assets, metrics: _metrics);
+  late final CanvasPainter _painter = CanvasPainter(
+    assets: _assets,
+    metrics: _metrics,
+  );
 
   HuiViewport _viewport = const HuiViewport(widthPx: 0, heightPx: 0);
   CanvasScene? _scene;
@@ -278,7 +280,8 @@ class _CanvasViewportState extends State<CanvasViewport> {
     attributes: const <String, String>{
       'tabindex': '0',
       'role': 'application',
-      'aria-label': 'HoloUI menu layout canvas. Scroll to zoom, drag to pan, '
+      'aria-label':
+          'HoloUI menu layout canvas. Scroll to zoom, drag to pan, '
           'drag a component to move it.',
     },
     <Widget>[
@@ -287,11 +290,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
         id: _canvasId,
         classes: 'hui-canvas-surface',
       ),
-      dom.div(
-        id: _readoutId,
-        classes: 'hui-canvas-readout',
-        const <Widget>[],
-      ),
+      dom.div(id: _readoutId, classes: 'hui-canvas-readout', const <Widget>[]),
     ],
   );
 
@@ -325,16 +324,22 @@ class _CanvasViewportState extends State<CanvasViewport> {
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
           // Left-drag on empty space is the marquee now; panning is Space-drag
           // or the middle button, which is why the pan verb moved up front.
-          Component.text('Space or middle-drag pans - scroll zooms - 0 resets '
-              '- F fits'),
+          Component.text(
+            'Space or middle-drag pans - scroll zooms - 0 resets '
+            '- F fits',
+          ),
         ]),
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
-          Component.text('Drag empty space to marquee - Shift-click adds - '
-              'Alt-drag copies - arrows nudge'),
+          Component.text(
+            'Drag empty space to marquee - Shift-click adds - '
+            'Alt-drag copies - arrows nudge',
+          ),
         ]),
         dom.span(classes: 'hui-canvas-hint-item hui-canvas-hint-note', <Widget>[
-          Component.text('Icons never turn to face the player (billboard '
-              'FIXED); only the click plane re-aims.'),
+          Component.text(
+            'The 3D preview applies each icon\'s billboard mode '
+            'and keeps its click plane aligned.',
+          ),
         ]),
       ]),
     ]);
@@ -441,7 +446,9 @@ class _CanvasViewportState extends State<CanvasViewport> {
     // Zoom first, then centre: `centerOn` reads `pixelsPerBlock` off its own
     // receiver, so it has to see the zoom this frame arrives at.
     _commitViewport(
-      _viewport.withTransform(CanvasTransform(zoom: zoom)).centerOn(
+      _viewport
+          .withTransform(CanvasTransform(zoom: zoom))
+          .centerOn(
             _lerp(ease.fromX, ease.toX, eased),
             _lerp(ease.fromY, ease.toY, eased),
           ),
@@ -490,8 +497,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
     final web.Element? canvasElement = web.document.getElementById(_canvasId);
     final web.Element? stageElement = web.document.getElementById(_stageId);
     if (canvasElement == null || stageElement == null) return;
-    final web.HTMLCanvasElement canvas =
-        canvasElement as web.HTMLCanvasElement;
+    final web.HTMLCanvasElement canvas = canvasElement as web.HTMLCanvasElement;
     final web.HTMLElement stage = stageElement as web.HTMLElement;
     if (identical(_canvas, canvas) && identical(_stage, stage)) {
       return;
@@ -505,8 +511,11 @@ class _CanvasViewportState extends State<CanvasViewport> {
   }
 
   void _attachListeners(web.HTMLElement stage) {
-    void bind(String type, void Function(web.Event event) handler,
-        {bool passive = true}) {
+    void bind(
+      String type,
+      void Function(web.Event event) handler, {
+      bool passive = true,
+    }) {
       final JSFunction listener = handler.toJS;
       _stageListeners[type] = listener;
       stage.addEventListener(
@@ -534,8 +543,9 @@ class _CanvasViewportState extends State<CanvasViewport> {
 
     // A repaint is all the flip needs: `_reconcileTimers` runs off the paint
     // and is what starts or stops the marching ring.
-    final web.MediaQueryList motion =
-        web.window.matchMedia('(prefers-reduced-motion: reduce)');
+    final web.MediaQueryList motion = web.window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    );
     final JSFunction onMotionChange = ((web.Event _) => _markDirty()).toJS;
     motion.addEventListener('change', onMotionChange);
     _reducedMotionQuery = motion;
@@ -585,14 +595,13 @@ class _CanvasViewportState extends State<CanvasViewport> {
     if (_fontRequested) return;
     _fontRequested = true;
     try {
-      web.document.fonts.load('16px "Minecraftia"').toDart.then<void>(
-        (JSArray<web.FontFace> _) {
-          if (_disposed) return;
-          _metrics.invalidate();
-          _markDirty();
-        },
-        onError: (Object _) {},
-      );
+      web.document.fonts.load('16px "Minecraftia"').toDart.then<void>((
+        JSArray<web.FontFace> _,
+      ) {
+        if (_disposed) return;
+        _metrics.invalidate();
+        _markDirty();
+      }, onError: (Object _) {});
     } catch (_) {
       // Font Loading API unavailable: the fallback metric still renders.
     }
@@ -752,7 +761,8 @@ class _CanvasViewportState extends State<CanvasViewport> {
   /// spend. No selection means no timer, which is what keeps an idle canvas at
   /// zero scheduled frames.
   void _reconcileSelectionMarch() {
-    final bool wanted = _hasArea &&
+    final bool wanted =
+        _hasArea &&
         component.store.selectionIds.isNotEmpty &&
         !_prefersReducedMotion;
     if (!wanted) {

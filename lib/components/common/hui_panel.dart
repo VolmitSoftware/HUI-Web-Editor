@@ -59,61 +59,61 @@ class HuiPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        variant: _variant,
-        fillWidth: true,
-        classes: classNames(<String?>[
-          'hui-panel',
-          nested ? 'is-nested' : null,
-          classes,
-        ]),
-        children: <Widget>[
-          if (title.isNotEmpty || trailing != null)
-            dom.div(
-              classes: 'hui-panel-header',
-              styles: const dom.Styles(
-                raw: <String, String>{
-                  'display': 'flex',
-                  'align-items': 'center',
-                  'justify-content': 'space-between',
-                  'gap': '8px',
-                  'margin-bottom': '10px',
-                },
-              ),
-              <Widget>[
-                if (title.isNotEmpty)
-                  dom.h2(
-                    classes: 'hui-panel-title',
-                    styles: const dom.Styles(
-                      raw: <String, String>{
-                        'font-size': '0.82rem',
-                        'font-weight': '650',
-                        'letter-spacing': '-0.01em',
-                        'margin': '0',
-                        'color': 'var(--foreground)',
-                      },
-                    ),
-                    <Widget>[Text(title)],
-                  )
-                else
-                  const dom.span(<Widget>[]),
-                if (trailing != null)
-                  dom.div(classes: 'hui-panel-trailing', <Widget>[trailing!]),
-              ],
-            ),
-          dom.div(
-            classes: 'hui-panel-body',
-            styles: dom.Styles(
-              raw: <String, String>{
-                'display': 'flex',
-                'flex-direction': 'column',
-                'gap': '${gap}px',
-                'min-width': '0',
-              },
-            ),
-            children,
+    variant: _variant,
+    fillWidth: true,
+    classes: classNames(<String?>[
+      'hui-panel',
+      nested ? 'is-nested' : null,
+      classes,
+    ]),
+    children: <Widget>[
+      if (title.isNotEmpty || trailing != null)
+        dom.div(
+          classes: 'hui-panel-header',
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'display': 'flex',
+              'align-items': 'center',
+              'justify-content': 'space-between',
+              'gap': '8px',
+              'margin-bottom': '10px',
+            },
           ),
-        ],
-      );
+          <Widget>[
+            if (title.isNotEmpty)
+              dom.h2(
+                classes: 'hui-panel-title',
+                styles: const dom.Styles(
+                  raw: <String, String>{
+                    'font-size': '0.82rem',
+                    'font-weight': '650',
+                    'letter-spacing': '-0.01em',
+                    'margin': '0',
+                    'color': 'var(--foreground)',
+                  },
+                ),
+                <Widget>[Text(title)],
+              )
+            else
+              const dom.span(<Widget>[]),
+            if (trailing != null)
+              dom.div(classes: 'hui-panel-trailing', <Widget>[trailing!]),
+          ],
+        ),
+      dom.div(
+        classes: 'hui-panel-body',
+        styles: dom.Styles(
+          raw: <String, String>{
+            'display': 'flex',
+            'flex-direction': 'column',
+            'gap': '${gap}px',
+            'min-width': '0',
+          },
+        ),
+        children,
+      ),
+    ],
+  );
 }
 
 /// Uppercase section label. One of the two typographic signatures of the design
@@ -126,19 +126,19 @@ class HuiEyebrow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.span(
-        classes: classNames(<String?>['hui-eyebrow', classes]),
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'display': 'block',
-            'font-size': '0.7rem',
-            'font-weight': '680',
-            'letter-spacing': '0.08em',
-            'text-transform': 'uppercase',
-            'color': 'var(--muted-foreground)',
-          },
-        ),
-        <Widget>[Text(text)],
-      );
+    classes: classNames(<String?>['hui-eyebrow', classes]),
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'block',
+        'font-size': '0.7rem',
+        'font-weight': '680',
+        'letter-spacing': '0.08em',
+        'text-transform': 'uppercase',
+        'color': 'var(--muted-foreground)',
+      },
+    ),
+    <Widget>[Text(text)],
+  );
 }
 
 /// Hairline divider. Panels separate rows with these, not with nested boxes.
@@ -149,15 +149,14 @@ class HuiDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: classNames(<String?>['hui-divider', classes]),
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'height': '1px',
-            'width': '100%',
-            'background':
-                'color-mix(in srgb, var(--border) 62%, transparent)',
-          },
-        ),
-        const <Widget>[],
-      );
+    classes: classNames(<String?>['hui-divider', classes]),
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'height': '1px',
+        'width': '100%',
+        'background': 'color-mix(in srgb, var(--border) 62%, transparent)',
+      },
+    ),
+    const <Widget>[],
+  );
 }

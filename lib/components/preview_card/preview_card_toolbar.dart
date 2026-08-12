@@ -93,19 +93,20 @@ class PreviewCardToolbar extends StatelessWidget {
             <Widget>[Component.text('sim')],
           ),
           ArcaneTooltip(
-            text: 'Simulated state: $simCategory. The document\'s own match '
+            text:
+                'Simulated state: $simCategory. The document\'s own match '
                 'criteria chose it',
-            child: dom.span(
-              classes: 'hui-preview-sim-chip',
-              <Widget>[Component.text(simCategory)],
-            ),
+            child: dom.span(classes: 'hui-preview-sim-chip', <Widget>[
+              Component.text(simCategory),
+            ]),
           ),
           _toggle(
             icon: store.animationsPlaying
                 ? ArcaneIcon.pause(size: IconSize.sm)
                 : ArcaneIcon.play(size: IconSize.sm),
             label: store.animationsPlaying ? 'Pause' : 'Play',
-            tooltip: 'The simulation advances one game tick every 50 ms, the '
+            tooltip:
+                'The simulation advances one game tick every 50 ms, the '
                 'rate the plugin refreshes a live card at',
             active: store.animationsPlaying,
             onPressed: () => store.animationsPlaying = !store.animationsPlaying,
@@ -130,18 +131,17 @@ class PreviewCardToolbar extends StatelessWidget {
     required Widget icon,
     required String label,
     required void Function() onPressed,
-  }) =>
-      ArcaneTooltip(
-        text: label,
-        child: Button(
-          icon: icon,
-          variant: ButtonVariant.ghost,
-          size: ButtonSize.iconSm,
-          type: ButtonType.button,
-          attributes: <String, String>{'aria-label': label},
-          onPressed: onPressed,
-        ),
-      );
+  }) => ArcaneTooltip(
+    text: label,
+    child: Button(
+      icon: icon,
+      variant: ButtonVariant.ghost,
+      size: ButtonSize.iconSm,
+      type: ButtonType.button,
+      attributes: <String, String>{'aria-label': label},
+      onPressed: onPressed,
+    ),
+  );
 
   Widget _toggle({
     required Widget icon,
@@ -149,23 +149,21 @@ class PreviewCardToolbar extends StatelessWidget {
     required String tooltip,
     required bool active,
     required void Function() onPressed,
-  }) =>
-      ArcaneTooltip(
-        text: tooltip,
-        child: Button(
-          icon: icon,
-          variant: active ? ButtonVariant.secondary : ButtonVariant.ghost,
-          size: ButtonSize.sm,
-          type: ButtonType.button,
-          attributes: <String, String>{
-            'aria-pressed': '$active',
-            'aria-label': label,
-          },
-          onPressed: onPressed,
-          child: dom.span(
-            classes: 'hui-canvas-tool-label',
-            <Widget>[Component.text(label)],
-          ),
-        ),
-      );
+  }) => ArcaneTooltip(
+    text: tooltip,
+    child: Button(
+      icon: icon,
+      variant: active ? ButtonVariant.secondary : ButtonVariant.ghost,
+      size: ButtonSize.sm,
+      type: ButtonType.button,
+      attributes: <String, String>{
+        'aria-pressed': '$active',
+        'aria-label': label,
+      },
+      onPressed: onPressed,
+      child: dom.span(classes: 'hui-canvas-tool-label', <Widget>[
+        Component.text(label),
+      ]),
+    ),
+  );
 }

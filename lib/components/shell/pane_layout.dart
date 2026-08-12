@@ -84,24 +84,20 @@ class PaneLayout {
     PaneSide side,
     double edgeX,
     double viewportWidth,
-  ) =>
-      side == PaneSide.rail ? edgeX : viewportWidth - edgeX - handleWidth;
+  ) => side == PaneSide.rail ? edgeX : viewportWidth - edgeX - handleWidth;
 
   /// Clamps [raw] into the side's hard range, additionally refusing to squeeze
   /// the canvas below [minCanvasWidth] once [viewportWidth] is known.
   ///
   /// A [viewportWidth] of 0 means "not measurable" and only the hard range
   /// applies; a non-finite [raw] leaves the pane where it is.
-  double clampWidth(
-    PaneSide side,
-    double raw, {
-    double viewportWidth = 0,
-  }) {
+  double clampWidth(PaneSide side, double raw, {double viewportWidth = 0}) {
     if (!raw.isFinite) return widthOf(side);
     final double low = minOf(side);
     double high = maxOf(side);
     if (viewportWidth > 0) {
-      final double room = viewportWidth -
+      final double room =
+          viewportWidth -
           widthOf(otherOf(side)) -
           minCanvasWidth -
           (handleWidth * 2);
@@ -113,22 +109,14 @@ class PaneLayout {
     return raw;
   }
 
-  PaneLayout withWidth(
-    PaneSide side,
-    double raw, {
-    double viewportWidth = 0,
-  }) {
+  PaneLayout withWidth(PaneSide side, double raw, {double viewportWidth = 0}) {
     final double value = clampWidth(side, raw, viewportWidth: viewportWidth);
     return side == PaneSide.rail
         ? PaneLayout(railWidth: value, inspectorWidth: inspectorWidth)
         : PaneLayout(railWidth: railWidth, inspectorWidth: value);
   }
 
-  PaneLayout nudged(
-    PaneSide side,
-    double delta, {
-    double viewportWidth = 0,
-  }) =>
+  PaneLayout nudged(PaneSide side, double delta, {double viewportWidth = 0}) =>
       withWidth(side, widthOf(side) + delta, viewportWidth: viewportWidth);
 
   /// Double-clicking a handle lands here.
@@ -137,9 +125,9 @@ class PaneLayout {
   // --- persistence ----------------------------------------------------------
 
   String encode() => jsonEncode(<String, num>{
-        'rail': railWidth.round(),
-        'inspector': inspectorWidth.round(),
-      });
+    'rail': railWidth.round(),
+    'inspector': inspectorWidth.round(),
+  });
 
   /// Never throws: a corrupt or foreign value degrades to [defaults] rather
   /// than leaving the user with no panes.

@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sync.holoui.volmitsoftware.com/schema/http-v1.schema.json",
+  "title": "HoloUI editor sync HTTP envelopes v1",
+  "oneOf": [
+    {"$ref": "#/$defs/createRequest"},
+    {"$ref": "#/$defs/createResponse"},
+    {"$ref": "#/$defs/publishRequest"},
+    {"$ref": "#/$defs/publishResponse"},
+    {"$ref": "#/$defs/sessionResponse"},
+    {"$ref": "#/$defs/publicationResponse"},
+    {"$ref": "#/$defs/ackRequest"},
+    {"$ref": "#/$defs/ackResponse"},
+    {"$ref": "#/$defs/errorResponse"}
+  ],
+  "$defs": {
+    "protocol": {"const": 1},
+    "revision": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "capability": {"type": "string", "pattern": "^[A-Za-z0-9_-]{22,128}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "project": {"$ref": "project-v1.schema.json"},
+    "ack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "message", "serverRevision", "acknowledgedAt"],
+      "properties": {
+        "status": {"enum": ["applied", "conflict", "rejected"]},
+        "message": {"type": "string", "maxLength": 2048},
+        "serverRevision": {"oneOf": [{"$ref": "#/$defs/revision"}, {"type": "null"}]},
+        "acknowledgedAt": {"$ref": "#/$defs/timestamp"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "rejected"}}},
+          "then": {"properties": {"serverRevision": {"type": "null"}}},
+          "else": {"properties": {"serverRevision": {"$ref": "#/$defs/revision"}}}
+        }
+      ]
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "baseRevision", "snapshot", "publishedAt", "state", "ack"],
+      "properties": {
+        "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "baseRevision": {"$ref": "#/$defs/revision"},
+        "snapshot": {"$ref": "#/$defs/project"},
+        "publishedAt": {"$ref": "#/$defs/timestamp"},
+        "state": {"enum": ["pending", "applied", "conflict", "rejected"]},
+        "ack": {"oneOf": [{"$ref": "#/$defs/ack"}, {"type": "null"}]}
+      }
+    },
+    "acceptedPublication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "publishedAt", "state"],
+      "properties": {
+        "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "publishedAt": {"$ref": "#/$defs/timestamp"},
+        "state": {"const": "pending"}
+      }
+    },
+    "polledPublication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "baseRevision", "snapshot", "publishedAt", "state"],
+      "properties": {
+        "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "baseRevision": {"$ref": "#/$defs/revision"},
+        "snapshot": {"$ref": "#/$defs/project"},
+        "publishedAt": {"$ref": "#/$defs/timestamp"},
+        "state": {"const": "pending"}
+      }
+    },
+    "acknowledgedPublication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "state", "ack"],
+      "properties": {
+        "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "state": {"enum": ["applied", "conflict", "rejected"]},
+        "ack": {"$ref": "#/$defs/ack"}
+      }
+    },
+    "createRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "expiresInSeconds", "snapshot"],
+      "properties": {
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "expiresInSeconds": {"type": "integer", "minimum": 60, "maximum": 604800},
+        "snapshot": {"$ref": "#/$defs/project"}
+      }
+    },
+    "createResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "sessionId", "editorToken", "serverToken", "expiresAt", "baseRevision"],
+      "properties": {
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "sessionId": {"$ref": "#/$defs/capability"},
+        "editorToken": {"$ref": "#/$defs/capability"},
+        "serverToken": {"$ref": "#/$defs/capability"},
+        "expiresAt": {"$ref": "#/$defs/timestamp"},
+        "baseRevision": {"$ref": "#/$defs/revision"}
+      }
+    },
+    "publishRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "baseRevision", "snapshot"],
+      "properties": {
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "baseRevision": {"$ref": "#/$defs/revision"},
+        "snapshot": {"$ref": "#/$defs/project"}
+      }
+    },
+    "publishResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "publication"],
+      "properties": {
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "publication": {"$ref": "#/$defs/acceptedPublication"}
+      }
+    },
+    "sessionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "sessionId", "status", "expiresAt", "baseRevision", "snapshot", "publication"],
+      "properties": {
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "sessionId": {"$ref": "#/$defs/capability"},
+        "status": {"enum": ["open", "pending", "applied", "conflict", "rejected"]},
+        "expiresAt": {"$ref": "#/$defs/timestamp"},
+        "baseRevision": {"$ref": "#/$defs/revision"},
+        "snapshot": {"$ref": "#/$defs/project"},
+        "publication": {"oneOf": [{"$ref": "#/$defs/publication"}, {"type": "null"}]}
+      }
+    },
+    "publicationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "sessionId", "publication"],
+      "properties": {
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "sessionId": {"$ref": "#/$defs/capability"},
+        "publication": {"$ref": "#/$defs/polledPublication"}
+      }
+    },
+    "ackRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "status", "message"],
+      "properties": {
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "status": {"enum": ["applied", "conflict", "rejected"]},
+        "message": {"type": "string", "maxLength": 2048},
+        "serverRevision": {"$ref": "#/$defs/revision"},
+        "snapshot": {"$ref": "#/$defs/project"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"enum": ["applied", "conflict"]}}},
+          "then": {"required": ["serverRevision", "snapshot"]},
+          "else": {"not": {"anyOf": [{"required": ["serverRevision"]}, {"required": ["snapshot"]}]}}
+        }
+      ]
+    },
+    "ackResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "baseRevision", "publication"],
+      "properties": {
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "baseRevision": {"$ref": "#/$defs/revision"},
+        "publication": {"$ref": "#/$defs/acknowledgedPublication"}
+      }
+    },
+    "errorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "error"],
+      "properties": {
+        "protocol": {"$ref": "#/$defs/protocol"},
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": {
+            "code": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+            "message": {"type": "string", "minLength": 1, "maxLength": 2048}
+          }
+        }
+      }
+    }
+  }
+}

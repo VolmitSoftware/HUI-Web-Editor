@@ -528,6 +528,37 @@ void main() {
         isTrue,
       );
     });
+
+    test('validates placeholder refresh range', () {
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(HuiTextIcon('Hi', null, -1))),
+          HuiSeverity.error,
+          'between 0 and 1200',
+        ),
+        isTrue,
+      );
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(HuiTextIcon('Hi', null, 1201))),
+          HuiSeverity.error,
+          'between 0 and 1200',
+        ),
+        isTrue,
+      );
+      expect(validateHuiMenu(_withIcon(HuiTextIcon('Hi', null, 0))), isEmpty);
+    });
+
+    test('explains when a placeholder is intentionally frozen', () {
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(HuiTextIcon('Hi %player_name%', null, 0))),
+          HuiSeverity.info,
+          'then frozen',
+        ),
+        isTrue,
+      );
+    });
   });
 
   group('components and menu root', () {
@@ -1061,10 +1092,11 @@ void main() {
       expect(issue.fix, contains('player'));
     });
 
-    test('back and close are always player-only', () {
+    test('back, close, and move are always player-only', () {
       for (final String command in <String>[
         'holoui back',
         '/holoui close',
+        '/holoui move',
         '/holoui back ignored args',
       ]) {
         expect(
@@ -1076,6 +1108,18 @@ void main() {
           isTrue,
           reason: command,
         );
+      }
+    });
+
+    test('move resolves through every root alias', () {
+      for (final String root in <String>[
+        'holoui',
+        'holo',
+        'hui',
+        'holou',
+        'hu',
+      ]) {
+        expect(huiPlayerOnlySubcommand('/$root move'), 'move', reason: root);
       }
     });
 
@@ -1116,6 +1160,7 @@ void main() {
         '/holoui open shop',
         '/holoui back',
         '/holoui close',
+        '/holoui move',
       ]) {
         expect(
           _has(
@@ -1216,6 +1261,310 @@ void main() {
           'file base name',
         ),
         isFalse,
+      );
+    });
+  });
+
+  group('native navigation actions', () {
+    test('push and replace require a target', () {
+      for (final String mode in <String>['push', 'replace']) {
+        expect(
+          _has(
+            validateHuiMenu(_withAction(HuiNavigateAction('', mode))),
+            HuiSeverity.error,
+            'require a target',
+          ),
+          isTrue,
+          reason: mode,
+        );
+      }
+    });
+
+    test('back home and close do not require a target', () {
+      for (final String mode in <String>['back', 'home', 'close']) {
+        expect(
+          validateHuiMenu(_withAction(HuiNavigateAction('', mode))),
+          isEmpty,
+          reason: mode,
+        );
+      }
+    });
+
+    test('navigation warns when a later action matches the same click', () {
+      final HuiMenu menu = _withAction(HuiNavigateAction('next', 'push'));
+      final HuiButtonData data = menu.components.single.data as HuiButtonData;
+      data.actions.add(HuiSoundAction('ui.button.click', 'master', 1, 1));
+
+      expect(
+        _has(validateHuiMenu(menu), HuiSeverity.warning, 'same click trigger'),
+        isTrue,
+      );
+    });
+
+    test(
+      'navigation on another exact trigger does not shadow later actions',
+      () {
+        final HuiMenu menu = _withAction(
+          HuiNavigateAction('next', 'push', 'right_click'),
+        );
+        final HuiButtonData data = menu.components.single.data as HuiButtonData;
+        data.actions.add(
+          HuiSoundAction('ui.button.click', 'master', 1, 1, 'left_click'),
+        );
+
+        expect(
+          _has(
+            validateHuiMenu(menu),
+            HuiSeverity.warning,
+            'same click trigger',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test('unknown click triggers are rejected', () {
+      expect(
+        _has(
+          validateHuiMenu(
+            _withAction(HuiMessageAction('Hello', 'middle_click')),
+          ),
+          HuiSeverity.error,
+          'not recognized',
+        ),
+        isTrue,
+      );
+    });
+
+    test('file-system traversal is rejected as a target id', () {
+      expect(
+        _has(
+          validateHuiMenu(_withAction(HuiNavigateAction('../secret', 'push'))),
+          HuiSeverity.error,
+          'traversal segment',
+        ),
+        isTrue,
+      );
+    });
+
+    test('nested canonical menu ids are valid navigation targets', () {
+      expect(
+        validateHuiMenu(
+          _withAction(HuiNavigateAction('shops/tools/Confirm', 'push')),
+        ),
+        isEmpty,
+      );
+    });
+  });
+
+  group('icon display style', () {
+    test('accepts the complete supported style range', () {
+      final HuiIconStyle style = HuiIconStyle(
+        billboard: 'vertical',
+        shadow: true,
+        seeThrough: true,
+        textAlignment: 'left',
+        backgroundArgb: '#80000000',
+        textOpacity: 127,
+        lineWidth: 100,
+        blockLight: 4,
+        skyLight: 15,
+        viewRange: 2,
+        shadowRadius: 0.5,
+        shadowStrength: 0.75,
+        cullingWidth: 4,
+        cullingHeight: 3,
+        glowColor: '#FFFF0000',
+        scaleX: 2,
+        scaleY: 0.5,
+        scaleZ: 1.5,
+      );
+      expect(validateHuiMenu(_withIcon(HuiTextIcon('styled', style))), isEmpty);
+    });
+
+    test('rejects malformed colors, unpaired light and unsafe scale', () {
+      final HuiIconStyle style = HuiIconStyle(
+        backgroundArgb: '#123456',
+        blockLight: 15,
+        scaleX: 0,
+      );
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withIcon(HuiTextIcon('styled', style)),
+      );
+      expect(_has(issues, HuiSeverity.error, 'eight hexadecimal'), isTrue);
+      expect(_has(issues, HuiSeverity.error, 'supplied together'), isTrue);
+      expect(_has(issues, HuiSeverity.error, 'finite and between'), isTrue);
+    });
+  });
+
+  group('entity icons', () {
+    test('accepts supported living entities and dimensions', () {
+      expect(
+        validateHuiMenu(_withIcon(HuiEntityIcon('minecraft:parrot', 0.5, 0.9))),
+        isEmpty,
+      );
+    });
+
+    test('rejects unsafe types and invalid dimensions', () {
+      final List<HuiIssue> unsafe = validateHuiMenu(
+        _withIcon(HuiEntityIcon('minecraft:item', 1, 1)),
+      );
+      final List<HuiIssue> dimensions = validateHuiMenu(
+        _withIcon(HuiEntityIcon('minecraft:parrot', 0, 65)),
+      );
+
+      expect(_has(unsafe, HuiSeverity.error, 'spawnable living'), isTrue);
+      expect(_has(dimensions, HuiSeverity.error, 'greater than 0'), isTrue);
+      expect(_has(dimensions, HuiSeverity.error, 'at most 64'), isTrue);
+    });
+
+    test('matches Bukkit key parsing and the implicit minecraft namespace', () {
+      expect(
+        validateHuiMenu(_withIcon(HuiEntityIcon('parrot', 0.5, 0.9))),
+        isEmpty,
+      );
+      expect(
+        _has(
+          validateHuiMenu(
+            _withIcon(HuiEntityIcon('MINECRAFT:PARROT', 0.5, 0.9)),
+          ),
+          HuiSeverity.error,
+          'must be lowercase',
+        ),
+        isTrue,
+      );
+      expect(
+        _has(
+          validateHuiMenu(
+            _withIcon(HuiEntityIcon(' minecraft:parrot ', 0.5, 0.9)),
+          ),
+          HuiSeverity.error,
+          'surrounding whitespace',
+        ),
+        isTrue,
+      );
+    });
+
+    test('rejects display style on an entity icon', () {
+      final HuiEntityIcon icon = HuiEntityIcon('minecraft:parrot');
+      icon.extras['style'] = HuiIconStyle().toJson();
+
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(icon)),
+          HuiSeverity.error,
+          'do not accept display-entity style',
+        ),
+        isTrue,
+      );
+    });
+  });
+
+  group('block icons', () {
+    test('accepts a namespaced block and rejects items or malformed keys', () {
+      expect(
+        validateHuiMenu(_withIcon(HuiBlockIcon('minecraft:stone'))),
+        isEmpty,
+      );
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(HuiBlockIcon('minecraft:diamond_sword'))),
+          HuiSeverity.error,
+          'not a block',
+        ),
+        isTrue,
+      );
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(HuiBlockIcon('stone'))),
+          HuiSeverity.error,
+          'namespaced',
+        ),
+        isTrue,
+      );
+    });
+  });
+
+  group('typed interaction actions', () {
+    test('message requires visible content', () {
+      expect(
+        _has(
+          validateHuiMenu(_withAction(HuiMessageAction('   '))),
+          HuiSeverity.error,
+          'Message is empty',
+        ),
+        isTrue,
+      );
+    });
+
+    test('message reports click and insertion tags stripped by runtime', () {
+      expect(
+        _has(
+          validateHuiMenu(
+            _withAction(
+              HuiMessageAction(
+                '<click:open_url:https://example.com>Open</click>',
+              ),
+            ),
+          ),
+          HuiSeverity.warning,
+          'stripped by the runtime',
+        ),
+        isTrue,
+      );
+    });
+
+    test('teleport requires an explicit world key and finite pose', () {
+      expect(
+        _has(
+          validateHuiMenu(
+            _withAction(HuiTeleportAction('world', 0, 64, 0, 0, 0)),
+          ),
+          HuiSeverity.error,
+          'namespace:key',
+        ),
+        isTrue,
+      );
+      expect(
+        _has(
+          validateHuiMenu(
+            _withAction(
+              HuiTeleportAction('minecraft:overworld', double.nan, 64, 0, 0, 0),
+            ),
+          ),
+          HuiSeverity.error,
+          'finite number',
+        ),
+        isTrue,
+      );
+      expect(
+        validateHuiMenu(
+          _withAction(
+            HuiTeleportAction('minecraft:overworld', 1, 64, -2, 90, 0),
+          ),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('connect rejects whitespace and plugin-message injection', () {
+      for (final String server in <String>[
+        'bad server',
+        'lobby\nConnect\nevil',
+      ]) {
+        expect(
+          _has(
+            validateHuiMenu(_withAction(HuiConnectAction(server))),
+            HuiSeverity.error,
+            'Proxy server name',
+          ),
+          isTrue,
+          reason: server,
+        );
+      }
+      expect(
+        validateHuiMenu(_withAction(HuiConnectAction('lobby-1'))),
+        isEmpty,
       );
     });
   });

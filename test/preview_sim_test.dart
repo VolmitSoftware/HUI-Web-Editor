@@ -50,9 +50,12 @@ Object eval(String source, PreviewSim sim) =>
     evalPreviewExpr(parsePreviewExpr(source), sim);
 
 void main() {
-  final HuiPreviewVariableCatalog catalog =
-      HuiPreviewVariableCatalog.parse(readAsset(variablesAssetPath));
-  final PreviewLangCatalog lang = PreviewLangCatalog.parse(readAsset(langAssetPath));
+  final HuiPreviewVariableCatalog catalog = HuiPreviewVariableCatalog.parse(
+    readAsset(variablesAssetPath),
+  );
+  final PreviewLangCatalog lang = PreviewLangCatalog.parse(
+    readAsset(langAssetPath),
+  );
 
   group('variable catalog sync gate', () {
     test('the shipped catalog carries the plugin groups', () {
@@ -71,46 +74,74 @@ void main() {
       );
     });
 
-    test('every catalog group is claimed by at least one simulated category', () {
-      final Set<String> claimed = <String>{
-        for (final List<String> groups in previewSimCategoryGroups.values) ...groups,
-      };
-      expect(claimed, containsAll(catalog.categoryNames));
-      // And nothing is claimed that the catalog does not define.
-      expect(catalog.categoryNames.toSet(), containsAll(claimed));
-    });
+    test(
+      'every catalog group is claimed by at least one simulated category',
+      () {
+        final Set<String> claimed = <String>{
+          for (final List<String> groups in previewSimCategoryGroups.values)
+            ...groups,
+        };
+        expect(claimed, containsAll(catalog.categoryNames));
+        // And nothing is claimed that the catalog does not define.
+        expect(catalog.categoryNames.toSet(), containsAll(claimed));
+      },
+    );
 
     test('every simulated category is one of the contract categories', () {
-      expect(previewSimCategoryGroups.keys, unorderedEquals(previewSimCategories));
+      expect(
+        previewSimCategoryGroups.keys,
+        unorderedEquals(previewSimCategories),
+      );
     });
 
     for (final String category in previewSimCategories) {
-      test('$category resolves every cataloged variable with the right type', () {
-        final PreviewSim sim = PreviewSim(category, lang: lang);
-        for (final String group in previewSimCategoryGroups[category]!) {
-          for (final PreviewVariableEntry entry in catalog.variables(group)) {
-            final Object? value = sim.variable(entry.name);
-            expect(value, isNotNull,
-                reason: '$category does not publish ${entry.name}');
-            switch (entry.type) {
-              case 'number':
-                expect(value, isA<double>(), reason: '${entry.name} in $category');
-              case 'string':
-                expect(value, isA<String>(), reason: '${entry.name} in $category');
-              case 'boolean':
-                expect(value, isA<bool>(), reason: '${entry.name} in $category');
-              default:
-                fail('unhandled catalog type ${entry.type} for ${entry.name}');
+      test(
+        '$category resolves every cataloged variable with the right type',
+        () {
+          final PreviewSim sim = PreviewSim(category, lang: lang);
+          for (final String group in previewSimCategoryGroups[category]!) {
+            for (final PreviewVariableEntry entry in catalog.variables(group)) {
+              final Object? value = sim.variable(entry.name);
+              expect(
+                value,
+                isNotNull,
+                reason: '$category does not publish ${entry.name}',
+              );
+              switch (entry.type) {
+                case 'number':
+                  expect(
+                    value,
+                    isA<double>(),
+                    reason: '${entry.name} in $category',
+                  );
+                case 'string':
+                  expect(
+                    value,
+                    isA<String>(),
+                    reason: '${entry.name} in $category',
+                  );
+                case 'boolean':
+                  expect(
+                    value,
+                    isA<bool>(),
+                    reason: '${entry.name} in $category',
+                  );
+                default:
+                  fail(
+                    'unhandled catalog type ${entry.type} for ${entry.name}',
+                  );
+              }
             }
           }
-        }
-      });
+        },
+      );
 
       test('$category publishes nothing the catalog does not define', () {
         final PreviewSim sim = PreviewSim(category, lang: lang);
         final Set<String> cataloged = <String>{
           for (final String group in previewSimCategoryGroups[category]!)
-            for (final PreviewVariableEntry entry in catalog.variables(group)) entry.name,
+            for (final PreviewVariableEntry entry in catalog.variables(group))
+              entry.name,
         };
         expect(sim.variableNames.toSet(), unorderedEquals(cataloged));
         expect(sim.snapshot().keys.toSet(), unorderedEquals(cataloged));
@@ -121,9 +152,16 @@ void main() {
       final PreviewSim sim = PreviewSim('furnace', lang: lang);
       for (final PreviewFunctionEntry entry in catalog.functions) {
         final List<Object?>? args = functionSampleArgs[entry.name];
-        expect(args, isNotNull, reason: 'no sample arguments for ${entry.name}');
-        expect(sim.call(entry.name, args!), isNotNull,
-            reason: '${entry.name} did not resolve');
+        expect(
+          args,
+          isNotNull,
+          reason: 'no sample arguments for ${entry.name}',
+        );
+        expect(
+          sim.call(entry.name, args!),
+          isNotNull,
+          reason: '${entry.name} did not resolve',
+        );
       }
     });
   });
@@ -230,60 +268,97 @@ void main() {
 
     test('binds positional arguments onto the template placeholders', () {
       expect(
-        sim.call('lang', <Object?>['holoui.preview.state.smelting_item', 'Iron Ore', 42.0]),
+        sim.call('lang', <Object?>[
+          'holoui.preview.state.smelting_item',
+          'Iron Ore',
+          42.0,
+        ]),
         'Smelting Iron Ore 42%',
       );
     });
 
     test('renders numbers through the integral-string rule', () {
-      expect(sim.call('lang', <Object?>['holoui.preview.stat.fuel_seconds', 15.0]), 'Fuel 15s');
-      expect(sim.call('lang', <Object?>['holoui.preview.state.surge_suffix', 1.5]), '  +1.5s');
+      expect(
+        sim.call('lang', <Object?>['holoui.preview.stat.fuel_seconds', 15.0]),
+        'Fuel 15s',
+      );
+      expect(
+        sim.call('lang', <Object?>['holoui.preview.state.surge_suffix', 1.5]),
+        '  +1.5s',
+      );
     });
 
     test('a key with no placeholders ignores extra arguments', () {
-      expect(sim.call('lang', <Object?>['holoui.preview.state.idle', 'unused']), 'Idle');
+      expect(
+        sim.call('lang', <Object?>['holoui.preview.state.idle', 'unused']),
+        'Idle',
+      );
     });
 
     test('an unknown key renders as itself', () {
-      expect(sim.call('lang', <Object?>['holoui.nope.missing']), 'holoui.nope.missing');
+      expect(
+        sim.call('lang', <Object?>['holoui.nope.missing']),
+        'holoui.nope.missing',
+      );
     });
 
     test('an unbound placeholder stays literal', () {
       expect(
-        sim.call('lang', <Object?>['holoui.preview.state.smelting_item', 'Iron Ore']),
+        sim.call('lang', <Object?>[
+          'holoui.preview.state.smelting_item',
+          'Iron Ore',
+        ]),
         'Smelting Iron Ore {percent}%',
       );
     });
 
     test('inserted values are untrusted: section codes are stripped', () {
       expect(
-        sim.call('lang', <Object?>['holoui.preview.theme.title.mobile', '§cRed§r Cart']),
+        sim.call('lang', <Object?>[
+          'holoui.preview.theme.title.mobile',
+          '§cRed§r Cart',
+        ]),
         '&7&lRed Cart',
       );
     });
 
     test('rejects a missing or non-string key', () {
-      expect(() => sim.call('lang', <Object?>[]), throwsA(isA<PExprException>()));
-      expect(() => sim.call('lang', <Object?>[1.0]), throwsA(isA<PExprException>()));
+      expect(
+        () => sim.call('lang', <Object?>[]),
+        throwsA(isA<PExprException>()),
+      );
+      expect(
+        () => sim.call('lang', <Object?>[1.0]),
+        throwsA(isA<PExprException>()),
+      );
     });
 
     test('placeholder scanning dedupes and honours the {{ escape', () {
-      expect(PreviewLangCatalog.orderedPlaceholders('a {x} b {y} c {x}'),
-          <String>['x', 'y']);
-      expect(PreviewLangCatalog.orderedPlaceholders('{{item} {percent}%'),
-          <String>['percent']);
-      expect(PreviewLangCatalog.orderedPlaceholders('no placeholders'), <String>[]);
+      expect(
+        PreviewLangCatalog.orderedPlaceholders('a {x} b {y} c {x}'),
+        <String>['x', 'y'],
+      );
+      expect(
+        PreviewLangCatalog.orderedPlaceholders('{{item} {percent}%'),
+        <String>['percent'],
+      );
+      expect(
+        PreviewLangCatalog.orderedPlaceholders('no placeholders'),
+        <String>[],
+      );
     });
 
     test('a repeated placeholder takes one argument and fills every slot', () {
-      const PreviewLangCatalog twice =
-          PreviewLangCatalog(<String, String>{'k': '{x} and {x}'});
+      const PreviewLangCatalog twice = PreviewLangCatalog(<String, String>{
+        'k': '{x} and {x}',
+      });
       expect(twice.render('k', <Object?>['one']), 'one and one');
     });
 
     test('the {{ escape renders as a literal brace', () {
-      const PreviewLangCatalog escaped =
-          PreviewLangCatalog(<String, String>{'k': '{{x} {y}'});
+      const PreviewLangCatalog escaped = PreviewLangCatalog(<String, String>{
+        'k': '{{x} {y}',
+      });
       expect(escaped.render('k', <Object?>['v']), '{{x} v');
     });
   });
@@ -365,20 +440,23 @@ void main() {
     });
 
     test('a surging furnace gains its extra seconds of cook progress', () {
-      final PreviewSim sim = PreviewSim('furnace', lang: lang)..setSurge(true, gain: 1.0);
+      final PreviewSim sim = PreviewSim('furnace', lang: lang)
+        ..setSurge(true, gain: 1.0);
       sim.tick(20);
       // 20 real ticks plus one second of gained progress.
       expect(sim.variable('cookTime'), 140.0);
     });
 
     test('a surging brew loses its extra seconds off the countdown', () {
-      final PreviewSim sim = PreviewSim('brewing', lang: lang)..setSurge(true, gain: 1.0);
+      final PreviewSim sim = PreviewSim('brewing', lang: lang)
+        ..setSurge(true, gain: 1.0);
       sim.tick(20);
       expect(sim.variable('brewTime'), 160.0);
     });
 
     test('renders the surge suffix the shipped document draws', () {
-      final PreviewSim sim = PreviewSim('furnace', lang: lang)..setSurge(true, gain: 1.5);
+      final PreviewSim sim = PreviewSim('furnace', lang: lang)
+        ..setSurge(true, gain: 1.5);
       const String source =
           "surge.active ? lang('holoui.preview.state.surge_suffix', "
           'surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : \'\'';
@@ -417,10 +495,18 @@ void main() {
 
     test('reject a wrong argument count or type', () {
       final PreviewSim sim = PreviewSim('chest', lang: lang);
-      expect(() => sim.call('count', <Object?>[]), throwsA(isA<PExprException>()));
-      expect(() => sim.call('item', <Object?>['0']), throwsA(isA<PExprException>()));
-      expect(() => sim.call('occupied', <Object?>[0.0, 1.0]),
-          throwsA(isA<PExprException>()));
+      expect(
+        () => sim.call('count', <Object?>[]),
+        throwsA(isA<PExprException>()),
+      );
+      expect(
+        () => sim.call('item', <Object?>['0']),
+        throwsA(isA<PExprException>()),
+      );
+      expect(
+        () => sim.call('occupied', <Object?>[0.0, 1.0]),
+        throwsA(isA<PExprException>()),
+      );
     });
 
     test('the occupied count follows the sample items', () {
@@ -433,28 +519,32 @@ void main() {
   });
 
   group('vars', () {
-    test('colour literals arrive as the numbers an inline literal compiles to', () {
-      final Map<String, Object> vars = PreviewSim.parseVars(<String, Object?>{
-        'accent': '#F2A535',
-        'short': '#ABC',
-        'well': '#FF15151B',
-        'tag': '<#F2A535>',
-        'style': 'furnace',
-        'segments': 8,
-        'framed': true,
-      });
-      expect(vars['accent'], 0xFFF2A535.toDouble());
-      expect(vars['short'], 0xFFAABBCC.toDouble());
-      expect(vars['well'], 0xFF15151B.toDouble());
-      expect(vars['tag'], '<#F2A535>');
-      expect(vars['style'], 'furnace');
-      expect(vars['segments'], 8.0);
-      expect(vars['framed'], true);
-    });
+    test(
+      'colour literals arrive as the numbers an inline literal compiles to',
+      () {
+        final Map<String, Object> vars = PreviewSim.parseVars(<String, Object?>{
+          'accent': '#F2A535',
+          'short': '#ABC',
+          'well': '#FF15151B',
+          'tag': '<#F2A535>',
+          'style': 'furnace',
+          'segments': 8,
+          'framed': true,
+        });
+        expect(vars['accent'], 0xFFF2A535.toDouble());
+        expect(vars['short'], 0xFFAABBCC.toDouble());
+        expect(vars['well'], 0xFF15151B.toDouble());
+        expect(vars['tag'], '<#F2A535>');
+        expect(vars['style'], 'furnace');
+        expect(vars['segments'], 8.0);
+        expect(vars['framed'], true);
+      },
+    );
 
     test('a malformed colour literal stays the raw string', () {
-      final Map<String, Object> vars =
-          PreviewSim.parseVars(<String, Object?>{'broken': '#GG'});
+      final Map<String, Object> vars = PreviewSim.parseVars(<String, Object?>{
+        'broken': '#GG',
+      });
       expect(vars['broken'], '#GG');
     });
 
@@ -492,7 +582,11 @@ void main() {
       expect(sim.variable('cookTime'), 180.0);
       expect(sim.variable('customName'), 'Ore Line');
       sim.tick(20);
-      expect(sim.variable('cookTime'), 180.0, reason: 'a pinned value does not tick');
+      expect(
+        sim.variable('cookTime'),
+        180.0,
+        reason: 'a pinned value does not tick',
+      );
       sim.overrides.remove('cookTime');
       expect(sim.variable('cookTime'), 120.0);
     });
@@ -507,12 +601,22 @@ void main() {
     });
 
     test('matches HoloMessages.java entry for entry', () {
-      expect(lang.template('holoui.preview.state.smelting_item'),
-          'Smelting {item} {percent}%');
-      expect(lang.template('holoui.preview.stat.bees_and_honey'),
-          'Bees {bees}/{maximumBees}   Honey {honey}/{maximumHoney}');
-      expect(lang.template('holoui.preview.state.surge_suffix'), '  +{seconds}s');
-      expect(lang.template('holoui.preview.theme.title.shulker'), '&l{color} Shulker');
+      expect(
+        lang.template('holoui.preview.state.smelting_item'),
+        'Smelting {item} {percent}%',
+      );
+      expect(
+        lang.template('holoui.preview.stat.bees_and_honey'),
+        'Bees {bees}/{maximumBees}   Honey {honey}/{maximumHoney}',
+      );
+      expect(
+        lang.template('holoui.preview.state.surge_suffix'),
+        '  +{seconds}s',
+      );
+      expect(
+        lang.template('holoui.preview.theme.title.shulker'),
+        '&l{color} Shulker',
+      );
       expect(lang.template('holoui.preview.stat.xp_gain'), 'XP +{experience}');
     });
 
@@ -524,7 +628,10 @@ void main() {
 
   group('catalog assets', () {
     test('the variable catalog decodes its descriptions and types', () {
-      final PreviewVariableEntry? cookTime = catalog.variable('furnace', 'cookTime');
+      final PreviewVariableEntry? cookTime = catalog.variable(
+        'furnace',
+        'cookTime',
+      );
       expect(cookTime, isNotNull);
       expect(cookTime!.type, 'number');
       expect(cookTime.description, isNotEmpty);
@@ -538,16 +645,24 @@ void main() {
 
     test('both parsers degrade to empty rather than throwing', () {
       expect(HuiPreviewVariableCatalog.parse('not json').isEmpty, isTrue);
-      expect(HuiPreviewVariableCatalog.parse('{"categories": 7}').isEmpty, isTrue);
+      expect(
+        HuiPreviewVariableCatalog.parse('{"categories": 7}').isEmpty,
+        isTrue,
+      );
       expect(PreviewLangCatalog.parse('not json').isEmpty, isTrue);
       expect(PreviewLangCatalog.parse('{"messages": []}').isEmpty, isTrue);
-      expect(PreviewLangCatalog.parse('{"messages": {"a.b": 7}}').isEmpty, isTrue);
+      expect(
+        PreviewLangCatalog.parse('{"messages": {"a.b": 7}}').isEmpty,
+        isTrue,
+      );
     });
 
     test('a sim with no snapshot still renders keys as themselves', () {
       final PreviewSim sim = PreviewSim('chest');
-      expect(sim.call('lang', <Object?>['holoui.preview.state.idle']),
-          'holoui.preview.state.idle');
+      expect(
+        sim.call('lang', <Object?>['holoui.preview.state.idle']),
+        'holoui.preview.state.idle',
+      );
     });
 
     test('the empty catalogs carry empty preview assets', () {
@@ -571,8 +686,10 @@ void main() {
     test('the shipped variable catalog keeps the contract shape', () {
       final Object? decoded = jsonDecode(readAsset(variablesAssetPath));
       expect(decoded, isA<Map<String, Object?>>());
-      expect((decoded! as Map<String, Object?>).keys,
-          containsAll(<String>['categories', 'functions']));
+      expect(
+        (decoded! as Map<String, Object?>).keys,
+        containsAll(<String>['categories', 'functions']),
+      );
     });
   });
 
@@ -595,7 +712,8 @@ void main() {
         expect(
           moved.difference(previewTickVaryingVariables),
           isEmpty,
-          reason: '$category moved a variable that '
+          reason:
+              '$category moved a variable that '
               'previewTickVaryingVariables does not declare',
         );
       }

@@ -1,7 +1,7 @@
 /// Ordered action list, shared by the button's `actions` and the toggle's
 /// `trueActions` / `falseActions`.
 ///
-/// Only two action types exist in the format. Converting between them parks the
+/// Converting between action types parks the
 /// outgoing shape in the session cache, so flipping command -> sound -> command
 /// gets the command string back.
 library;
@@ -14,6 +14,7 @@ import '../../logic/validation.dart';
 import '../../model/model.dart';
 import '../../services/catalogs.dart';
 import '../../state/editor_store.dart';
+import '../../state/workspace.dart';
 import '../common/common.dart';
 import 'action_presets.dart';
 import 'extras_editor.dart';
@@ -175,9 +176,40 @@ class ActionsEditor extends StatelessWidget {
           onPressed: () => _add('sound'),
           child: const Text('Add sound'),
         ),
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          icon: ArcaneIcon.externalLink(size: IconSize.sm),
+          onPressed: () => _add('navigate'),
+          child: const Text('Add navigation'),
+        ),
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          icon: ArcaneIcon.messageCircle(size: IconSize.sm),
+          onPressed: () => _add('message'),
+          child: const Text('Add message'),
+        ),
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          icon: ArcaneIcon.locateFixed(size: IconSize.sm),
+          onPressed: () => _add('teleport'),
+          child: const Text('Add teleport'),
+        ),
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          icon: ArcaneIcon.share2(size: IconSize.sm),
+          onPressed: () => _add('connect'),
+          child: const Text('Add connect'),
+        ),
       ]),
       if (actions.length > 1)
-        const HuiNote('Run top to bottom, on the same click.'),
+        const HuiNote(
+          'Matching actions run top to bottom. Navigation stops only the '
+          'actions matching that click.',
+        ),
       // One disclosure for the whole list rather than one per row: the
       // semantics are the same for every action in it.
       const HuiMore(
@@ -230,6 +262,30 @@ class ActionsEditor extends StatelessWidget {
               icon: ArcaneIcon.volume2(size: IconSize.sm),
               hint: 'Plays a sound to the clicking player only.',
             ),
+            HuiSegment(
+              value: 'navigate',
+              label: 'Navigate',
+              icon: ArcaneIcon.externalLink(size: IconSize.sm),
+              hint: 'Moves this viewer to another menu page.',
+            ),
+            HuiSegment(
+              value: 'message',
+              label: 'Message',
+              icon: ArcaneIcon.messageCircle(size: IconSize.sm),
+              hint: 'Sends MiniMessage text to the clicking player.',
+            ),
+            HuiSegment(
+              value: 'teleport',
+              label: 'Teleport',
+              icon: ArcaneIcon.locateFixed(size: IconSize.sm),
+              hint: 'Teleports the clicking player to a loaded world.',
+            ),
+            HuiSegment(
+              value: 'connect',
+              label: 'Connect',
+              icon: ArcaneIcon.share2(size: IconSize.sm),
+              hint: 'Moves the clicking player through the server proxy.',
+            ),
           ],
         ),
         HuiRowTools(
@@ -242,6 +298,38 @@ class ActionsEditor extends StatelessWidget {
         ),
       ]),
       dom.div(classes: 'hui-action-row-body', <Widget>[
+        HuiField(
+          label: 'Click trigger',
+          help: 'Any matches left, right, and both sneak-modified clicks.',
+          control: dom.div(<Widget>[
+            ArcaneSelect(
+              value: action.trigger,
+              fullWidth: true,
+              size: ComponentSize.sm,
+              onChange: (String value) {
+                final HuiAction next = action.copy()..trigger = value;
+                _replace(index, 'action click trigger', next);
+              },
+              options: <ArcaneSelectOption>[
+                for (final String trigger in huiActionTriggers)
+                  ArcaneSelectOption(
+                    label: _triggerLabel(trigger),
+                    value: trigger,
+                  ),
+                if (!huiActionTriggers.contains(action.trigger))
+                  ArcaneSelectOption(
+                    label: '${action.trigger} (unknown)',
+                    value: action.trigger,
+                  ),
+              ],
+            ),
+            HuiInlineIssues(
+              _issuesFor(index)
+                  .where((HuiIssue issue) => issue.path.endsWith('.trigger'))
+                  .toList(),
+            ),
+          ]),
+        ),
         switch (action) {
           final HuiCommandAction command => _CommandActionFields(
             action: command,
@@ -253,6 +341,31 @@ class ActionsEditor extends StatelessWidget {
             action: sound,
             catalogs: catalogs,
             catalogsLoading: catalogsLoading,
+            issues: _issuesFor(index),
+            onChanged: (String label, HuiAction next) =>
+                _replace(index, label, next),
+          ),
+          final HuiMessageAction message => _MessageActionFields(
+            action: message,
+            issues: _issuesFor(index),
+            onChanged: (String label, HuiAction next) =>
+                _replace(index, label, next),
+          ),
+          final HuiTeleportAction teleport => _TeleportActionFields(
+            action: teleport,
+            issues: _issuesFor(index),
+            onChanged: (String label, HuiAction next) =>
+                _replace(index, label, next),
+          ),
+          final HuiConnectAction connect => _ConnectActionFields(
+            action: connect,
+            issues: _issuesFor(index),
+            onChanged: (String label, HuiAction next) =>
+                _replace(index, label, next),
+          ),
+          final HuiNavigateAction navigation => _NavigateActionFields(
+            action: navigation,
+            store: store,
             issues: _issuesFor(index),
             onChanged: (String label, HuiAction next) =>
                 _replace(index, label, next),
@@ -271,6 +384,15 @@ class ActionsEditor extends StatelessWidget {
       ]),
     ]);
   }
+
+  static String _triggerLabel(String trigger) => switch (trigger) {
+    'any' => 'Any click',
+    'left_click' => 'Left click',
+    'right_click' => 'Right click',
+    'shift_left_click' => 'Sneak + left click',
+    'shift_right_click' => 'Sneak + right click',
+    _ => trigger,
+  };
 }
 
 class _CommandActionFields extends StatelessWidget {
@@ -284,9 +406,11 @@ class _CommandActionFields extends StatelessWidget {
   final void Function(String label, HuiAction action) onChanged;
   final List<HuiIssue> issues;
 
-  HuiCommandAction _with({String? command, String? source}) =>
-      HuiCommandAction(command ?? action.command, source ?? action.source)
-        ..extras = huiDeepCopyMap(action.extras);
+  HuiCommandAction _with({String? command, String? source}) => HuiCommandAction(
+    command ?? action.command,
+    source ?? action.source,
+    action.trigger,
+  )..extras = huiDeepCopyMap(action.extras);
 
   List<HuiIssue> _issuesEndingWith(String suffix) =>
       issues.where((HuiIssue issue) => issue.path.endsWith(suffix)).toList();
@@ -390,6 +514,7 @@ class _SoundActionFields extends StatelessWidget {
     source ?? action.source,
     volume ?? action.volume,
     pitch ?? action.pitch,
+    action.trigger,
   )..extras = huiDeepCopyMap(action.extras);
 
   List<HuiIssue> _issuesEndingWith(String suffix) =>
@@ -493,6 +618,313 @@ class _SoundActionFields extends StatelessWidget {
             ),
             HuiInlineIssues(_issuesEndingWith('.pitch')),
           ]),
+        ),
+      ]);
+}
+
+class _MessageActionFields extends StatelessWidget {
+  const _MessageActionFields({
+    required this.action,
+    required this.onChanged,
+    required this.issues,
+  });
+
+  final HuiMessageAction action;
+  final void Function(String label, HuiAction action) onChanged;
+  final List<HuiIssue> issues;
+
+  HuiMessageAction _with(String message) =>
+      HuiMessageAction(message, action.trigger)
+        ..extras = huiDeepCopyMap(action.extras);
+
+  @override
+  Widget build(BuildContext context) =>
+      dom.div(classes: 'hui-action-fields', <Widget>[
+        HuiField(
+          label: 'Message',
+          required: true,
+          trailing: const HuiFieldHelp('action.message.message'),
+          help: 'MiniMessage sent only to the clicking player.',
+          control: dom.div(<Widget>[
+            TextArea(
+              value: action.message,
+              rows: 3,
+              fullWidth: true,
+              resize: TextAreaResize.vertical,
+              placeholder: '<gold>Hello %player%</gold>',
+              onInput: (String value) => onChanged('message', _with(value)),
+            ),
+            HuiInlineIssues(
+              issues
+                  .where((HuiIssue issue) => issue.path.endsWith('.message'))
+                  .toList(),
+            ),
+          ]),
+        ),
+      ]);
+}
+
+class _TeleportActionFields extends StatelessWidget {
+  const _TeleportActionFields({
+    required this.action,
+    required this.onChanged,
+    required this.issues,
+  });
+
+  final HuiTeleportAction action;
+  final void Function(String label, HuiAction action) onChanged;
+  final List<HuiIssue> issues;
+
+  HuiTeleportAction _with({
+    String? world,
+    double? x,
+    double? y,
+    double? z,
+    double? yaw,
+    double? pitch,
+  }) => HuiTeleportAction(
+    world ?? action.world,
+    x ?? action.x,
+    y ?? action.y,
+    z ?? action.z,
+    yaw ?? action.yaw,
+    pitch ?? action.pitch,
+    action.trigger,
+  )..extras = huiDeepCopyMap(action.extras);
+
+  List<HuiIssue> _issuesEndingWith(String suffix) =>
+      issues.where((HuiIssue issue) => issue.path.endsWith(suffix)).toList();
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) => dom.div(classes: 'hui-action-fields', <Widget>[
+    HuiField(
+      label: 'World key',
+      required: true,
+      trailing: const HuiFieldHelp('action.teleport.world'),
+      help: 'Exact lowercase namespace:key of an already-loaded world.',
+      control: dom.div(<Widget>[
+        TextInput(
+          value: action.world,
+          size: ComponentSize.sm,
+          fullWidth: true,
+          placeholder: 'minecraft:overworld',
+          onInput: (String value) =>
+              onChanged('teleport world', _with(world: value)),
+          attributes: const <String, String>{
+            'autocomplete': 'off',
+            'spellcheck': 'false',
+          },
+        ),
+        HuiInlineIssues(_issuesEndingWith('.world')),
+      ]),
+    ),
+    _numberField(
+      label: 'X',
+      value: action.x,
+      issueSuffix: '.x',
+      onValue: (double value) => _with(x: value),
+    ),
+    _numberField(
+      label: 'Y',
+      value: action.y,
+      issueSuffix: '.y',
+      onValue: (double value) => _with(y: value),
+    ),
+    _numberField(
+      label: 'Z',
+      value: action.z,
+      issueSuffix: '.z',
+      onValue: (double value) => _with(z: value),
+    ),
+    _numberField(
+      label: 'Yaw',
+      value: action.yaw,
+      issueSuffix: '.yaw',
+      suffix: '°',
+      onValue: (double value) => _with(yaw: value),
+    ),
+    _numberField(
+      label: 'Pitch',
+      value: action.pitch,
+      issueSuffix: '.pitch',
+      suffix: '°',
+      onValue: (double value) => _with(pitch: value),
+    ),
+    const HuiNote(
+      'The runtime uses the player entity scheduler and asynchronous teleport; '
+      'it never loads a missing world or chunk from an action.',
+    ),
+  ]);
+
+  Widget _numberField({
+    required String label,
+    required double value,
+    required String issueSuffix,
+    required HuiTeleportAction Function(double value) onValue,
+    String? suffix,
+  }) => HuiField(
+    label: label,
+    required: true,
+    control: dom.div(<Widget>[
+      HuiNumberField(
+        value: value,
+        step: 1,
+        decimals: 3,
+        suffix: suffix,
+        onChanged: (double next) =>
+            onChanged('teleport ${label.toLowerCase()}', onValue(next)),
+      ),
+      HuiInlineIssues(_issuesEndingWith(issueSuffix)),
+    ]),
+  );
+}
+
+class _ConnectActionFields extends StatelessWidget {
+  const _ConnectActionFields({
+    required this.action,
+    required this.onChanged,
+    required this.issues,
+  });
+
+  final HuiConnectAction action;
+  final void Function(String label, HuiAction action) onChanged;
+  final List<HuiIssue> issues;
+
+  HuiConnectAction _with(String server) =>
+      HuiConnectAction(server, action.trigger)
+        ..extras = huiDeepCopyMap(action.extras);
+
+  @override
+  Widget build(BuildContext context) => dom.div(
+    classes: 'hui-action-fields',
+    <Widget>[
+      HuiField(
+        label: 'Proxy server',
+        required: true,
+        trailing: const HuiFieldHelp('action.connect.server'),
+        help: 'Exact BungeeCord or Velocity configured server name.',
+        control: dom.div(<Widget>[
+          TextInput(
+            value: action.server,
+            size: ComponentSize.sm,
+            fullWidth: true,
+            placeholder: 'lobby',
+            onInput: (String value) => onChanged('proxy server', _with(value)),
+            attributes: const <String, String>{
+              'autocomplete': 'off',
+              'spellcheck': 'false',
+            },
+          ),
+          HuiInlineIssues(
+            issues
+                .where((HuiIssue issue) => issue.path.endsWith('.server'))
+                .toList(),
+          ),
+        ]),
+      ),
+      const HuiNote(
+        'This sends only the fixed BungeeCord Connect message. It cannot open '
+        'a URL or choose an arbitrary plugin-message subchannel.',
+      ),
+    ],
+  );
+}
+
+class _NavigateActionFields extends StatelessWidget {
+  const _NavigateActionFields({
+    required this.action,
+    required this.store,
+    required this.onChanged,
+    required this.issues,
+  });
+
+  final HuiNavigateAction action;
+  final EditorStore store;
+  final void Function(String label, HuiAction action) onChanged;
+  final List<HuiIssue> issues;
+
+  HuiNavigateAction _with({String? target, String? mode}) => HuiNavigateAction(
+    target ?? action.target,
+    mode ?? action.mode,
+    action.trigger,
+  )..extras = huiDeepCopyMap(action.extras);
+
+  List<HuiIssue> _issuesEndingWith(String suffix) =>
+      issues.where((HuiIssue issue) => issue.path.endsWith(suffix)).toList();
+
+  List<RegistryOption> _searchMenus(String query, int limit) {
+    final String normalized = query.trim().toLowerCase();
+    final List<RegistryOption> results = <RegistryOption>[];
+    for (final WorkspaceDoc doc in store.workspace.docs) {
+      final String? runtimeId = doc.runtimeId;
+      if (doc.kind != WorkspaceDocKind.menu || runtimeId == null) continue;
+      if (normalized.isNotEmpty &&
+          !runtimeId.toLowerCase().contains(normalized) &&
+          !doc.title.toLowerCase().contains(normalized)) {
+        continue;
+      }
+      results.add(RegistryOption(runtimeId, null, doc.title));
+      if (results.length >= limit) break;
+    }
+    return results;
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      dom.div(classes: 'hui-action-fields', <Widget>[
+        HuiField(
+          label: 'Mode',
+          required: true,
+          help: 'Push keeps a Back entry; replace swaps without adding one.',
+          control: dom.div(<Widget>[
+            ArcaneSelect(
+              value: action.mode,
+              fullWidth: true,
+              size: ComponentSize.sm,
+              onChange: (String value) =>
+                  onChanged('navigation mode', _with(mode: value)),
+              options: <ArcaneSelectOption>[
+                for (final String mode in huiNavigationModes)
+                  ArcaneSelectOption(label: mode, value: mode),
+                if (!huiNavigationModes.contains(action.mode))
+                  ArcaneSelectOption(
+                    label: '${action.mode} (unknown)',
+                    value: action.mode,
+                  ),
+              ],
+            ),
+            HuiInlineIssues(_issuesEndingWith('.mode')),
+          ]),
+        ),
+        if (action.requiresTarget)
+          HuiField(
+            label: 'Target menu',
+            required: true,
+            help: 'Exact runtime menu id. Folder paths use forward slashes.',
+            control: dom.div(<Widget>[
+              RegistryPicker(
+                value: action.target,
+                placeholder: 'shops/confirm',
+                browseLabel: 'Choose menu',
+                searchPlaceholder: 'Search workspace menus',
+                emptyMessage: 'No matching menu in this workspace.',
+                showThumbnail: false,
+                lowercase: false,
+                catalogAvailable: store.workspace.docs.any(
+                  (WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.menu,
+                ),
+                search: _searchMenus,
+                onChanged: (String value) =>
+                    onChanged('navigation target', _with(target: value)),
+              ),
+              HuiInlineIssues(_issuesEndingWith('.target')),
+            ]),
+          ),
+        const HuiNote(
+          'Navigation is terminal: actions below it in this list do not run.',
+          tone: HuiNoteTone.warning,
         ),
       ]);
 }

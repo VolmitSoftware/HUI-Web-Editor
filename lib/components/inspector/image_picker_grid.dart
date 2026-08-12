@@ -52,8 +52,9 @@ class _ImageUploadButtonState extends State<ImageUploadButton> {
       _message = null;
     });
     final ImageAddOutcome outcome = await component.images.addFromFiles(files);
-    final List<String> paths =
-        outcome.added.map((StoredImage image) => image.path).toList();
+    final List<String> paths = outcome.added
+        .map((StoredImage image) => image.path)
+        .toList();
     if (paths.isNotEmpty) component.onAdded?.call(paths);
     setState(() {
       _busy = false;
@@ -64,47 +65,41 @@ class _ImageUploadButtonState extends State<ImageUploadButton> {
   }
 
   @override
-  Widget build(BuildContext context) => dom.div(
-        classes: 'hui-image-upload',
-        <Widget>[
-          dom.label(
-            classes: classNames(<String?>[
-              'hui-image-upload-button',
-              _busy ? 'is-busy' : null,
-            ]),
-            attributes: <String, String>{'for': component.inputId},
-            <Widget>[
-              ArcaneIcon.upload(size: IconSize.sm),
-              dom.span(<Widget>[
-                Text(_busy ? 'Storing...' : component.label),
-              ]),
-            ],
-          ),
-          Component.element(
-            tag: 'input',
-            id: component.inputId,
-            classes: 'hui-visually-hidden-input',
-            attributes: <String, String>{
-              'type': 'file',
-              'accept': 'image/*',
-              'multiple': 'multiple',
-            },
-            styles: const dom.Styles(
-              raw: <String, String>{
-                'position': 'absolute',
-                'width': '1px',
-                'height': '1px',
-                'opacity': '0',
-                'pointer-events': 'none',
-              },
-            ),
-            events: <String, EventCallback>{
-              'change': (_) => _handleFiles(),
+  Widget build(BuildContext context) =>
+      dom.div(classes: 'hui-image-upload', <Widget>[
+        dom.label(
+          classes: classNames(<String?>[
+            'hui-image-upload-button',
+            _busy ? 'is-busy' : null,
+          ]),
+          attributes: <String, String>{'for': component.inputId},
+          <Widget>[
+            ArcaneIcon.upload(size: IconSize.sm),
+            dom.span(<Widget>[Text(_busy ? 'Storing...' : component.label)]),
+          ],
+        ),
+        Component.element(
+          tag: 'input',
+          id: component.inputId,
+          classes: 'hui-visually-hidden-input',
+          attributes: <String, String>{
+            'type': 'file',
+            'accept': 'image/*',
+            'multiple': 'multiple',
+          },
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'position': 'absolute',
+              'width': '1px',
+              'height': '1px',
+              'opacity': '0',
+              'pointer-events': 'none',
             },
           ),
-          if (_message != null) HuiNote(_message!, tone: HuiNoteTone.warning),
-        ],
-      );
+          events: <String, EventCallback>{'change': (_) => _handleFiles()},
+        ),
+        if (_message != null) HuiNote(_message!, tone: HuiNoteTone.warning),
+      ]);
 }
 
 /// Selectable grid of stored images. [selected] highlights the current path.
@@ -115,8 +110,8 @@ class ImagePickerGrid extends StatelessWidget {
     this.selected,
     this.emptyMessage =
         'No images stored yet. Upload PNGs sized like the pixels you want: '
-            'HoloUI draws one character per pixel, so 8x8 to 32x32 is the '
-            'practical range.',
+        'HoloUI draws one character per pixel, so 8x8 to 32x32 is the '
+        'practical range.',
     super.key,
   });
 
@@ -131,12 +126,9 @@ class ImagePickerGrid extends StatelessWidget {
     if (stored.isEmpty) {
       return HuiNote(emptyMessage);
     }
-    return dom.div(
-      classes: 'hui-image-grid',
-      <Widget>[
-        for (final StoredImage image in stored) _tile(image),
-      ],
-    );
+    return dom.div(classes: 'hui-image-grid', <Widget>[
+      for (final StoredImage image in stored) _tile(image),
+    ]);
   }
 
   Widget _tile(StoredImage image) {
@@ -151,31 +143,22 @@ class ImagePickerGrid extends StatelessWidget {
         'aria-label': '${image.path} (${image.width}x${image.height})',
         if (isSelected) 'aria-current': 'true',
       },
-      events: <String, EventCallback>{
-        'click': (_) => onPicked(image.path),
-      },
+      events: <String, EventCallback>{'click': (_) => onPicked(image.path)},
       <Widget>[
-        dom.span(
-          classes: 'hui-image-tile-frame',
-          <Widget>[
-            dom.img(
-              src: image.dataUri,
-              alt: '',
-              classes: 'hui-image-tile-img',
-              styles: const dom.Styles(
-                raw: <String, String>{'image-rendering': 'pixelated'},
-              ),
+        dom.span(classes: 'hui-image-tile-frame', <Widget>[
+          dom.img(
+            src: image.dataUri,
+            alt: '',
+            classes: 'hui-image-tile-img',
+            styles: const dom.Styles(
+              raw: <String, String>{'image-rendering': 'pixelated'},
             ),
-          ],
-        ),
-        dom.span(
-          classes: 'hui-image-tile-path',
-          <Widget>[Text(image.path)],
-        ),
-        dom.span(
-          classes: 'hui-image-tile-size',
-          <Widget>[Text('${image.width}x${image.height}')],
-        ),
+          ),
+        ]),
+        dom.span(classes: 'hui-image-tile-path', <Widget>[Text(image.path)]),
+        dom.span(classes: 'hui-image-tile-size', <Widget>[
+          Text('${image.width}x${image.height}'),
+        ]),
       ],
     );
   }

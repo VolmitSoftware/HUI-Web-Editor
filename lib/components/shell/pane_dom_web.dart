@@ -102,71 +102,56 @@ void Function() installPaneSplitter({
     onDragEnd();
   }
 
-  bind(
-    'pointerdown',
-    (web.Event event) {
-      if (!event.isA<web.PointerEvent>()) return;
-      final web.PointerEvent pointer = event as web.PointerEvent;
-      if (pointer.button != 0) return;
-      event.preventDefault();
-      // Grabbing the handle anywhere along its 6px must not jump the pane:
-      // track where inside the handle the pointer landed.
-      grabOffset =
-          _jsDouble(pointer as JSObject, 'clientX') - handle.getBoundingClientRect().x;
-      activePointer = pointer.pointerId;
-      try {
-        handle.setPointerCapture(activePointer);
-      } catch (_) {}
-      try {
-        web.document.body?.classList.add('hui-resizing');
-      } catch (_) {}
-      handle.focus();
-    },
-    passive: false,
-  );
+  bind('pointerdown', (web.Event event) {
+    if (!event.isA<web.PointerEvent>()) return;
+    final web.PointerEvent pointer = event as web.PointerEvent;
+    if (pointer.button != 0) return;
+    event.preventDefault();
+    // Grabbing the handle anywhere along its 6px must not jump the pane:
+    // track where inside the handle the pointer landed.
+    grabOffset =
+        _jsDouble(pointer as JSObject, 'clientX') -
+        handle.getBoundingClientRect().x;
+    activePointer = pointer.pointerId;
+    try {
+      handle.setPointerCapture(activePointer);
+    } catch (_) {}
+    try {
+      web.document.body?.classList.add('hui-resizing');
+    } catch (_) {}
+    handle.focus();
+  }, passive: false);
 
-  bind(
-    'pointermove',
-    (web.Event event) {
-      if (activePointer < 0 || !event.isA<web.PointerEvent>()) return;
-      event.preventDefault();
-      onDragMove(_jsDouble(event as JSObject, 'clientX') - grabOffset);
-    },
-    passive: false,
-  );
+  bind('pointermove', (web.Event event) {
+    if (activePointer < 0 || !event.isA<web.PointerEvent>()) return;
+    event.preventDefault();
+    onDragMove(_jsDouble(event as JSObject, 'clientX') - grabOffset);
+  }, passive: false);
 
   bind('pointerup', (web.Event event) => endDrag());
   bind('pointercancel', (web.Event event) => endDrag());
 
-  bind(
-    'dblclick',
-    (web.Event event) {
-      event.preventDefault();
-      onReset();
-    },
-    passive: false,
-  );
+  bind('dblclick', (web.Event event) {
+    event.preventDefault();
+    onReset();
+  }, passive: false);
 
-  bind(
-    'keydown',
-    (web.Event event) {
-      if (!event.isA<web.KeyboardEvent>()) return;
-      final web.KeyboardEvent typed = event as web.KeyboardEvent;
-      const List<String> handled = <String>[
-        'ArrowLeft',
-        'ArrowRight',
-        'Home',
-        'End',
-      ];
-      if (!handled.contains(typed.key)) return;
-      event.preventDefault();
-      // The shell's document-level binder turns arrows into a component nudge;
-      // a focused splitter has to keep them.
-      event.stopPropagation();
-      onKey(typed.key, typed.shiftKey);
-    },
-    passive: false,
-  );
+  bind('keydown', (web.Event event) {
+    if (!event.isA<web.KeyboardEvent>()) return;
+    final web.KeyboardEvent typed = event as web.KeyboardEvent;
+    const List<String> handled = <String>[
+      'ArrowLeft',
+      'ArrowRight',
+      'Home',
+      'End',
+    ];
+    if (!handled.contains(typed.key)) return;
+    event.preventDefault();
+    // The shell's document-level binder turns arrows into a component nudge;
+    // a focused splitter has to keep them.
+    event.stopPropagation();
+    onKey(typed.key, typed.shiftKey);
+  }, passive: false);
 
   return () {
     for (final MapEntry<String, JSFunction> entry in listeners.entries) {

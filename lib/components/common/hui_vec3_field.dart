@@ -49,8 +49,8 @@ class HuiVec3Field extends StatelessWidget {
 
   String? _hint(int index) =>
       index < axisHints.length && axisHints[index].isNotEmpty
-          ? axisHints[index]
-          : null;
+      ? axisHints[index]
+      : null;
 
   Widget _axis(int index, double axisValue, void Function(double) apply) {
     final Widget field = HuiNumberField(
@@ -68,22 +68,19 @@ class HuiVec3Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: classNames(<String?>['hui-vec3', classes]),
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'display': 'grid',
-            'grid-template-columns': 'repeat(3, minmax(0, 1fr))',
-            'gap': '6px',
-            'min-width': '0',
-          },
-        ),
-        <Widget>[
-          _axis(0, value.x,
-              (double v) => onChanged(Vec3(v, value.y, value.z))),
-          _axis(1, value.y,
-              (double v) => onChanged(Vec3(value.x, v, value.z))),
-          _axis(2, value.z,
-              (double v) => onChanged(Vec3(value.x, value.y, v))),
-        ],
-      );
+    classes: classNames(<String?>['hui-vec3', classes]),
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'grid',
+        'grid-template-columns': 'repeat(3, minmax(0, 1fr))',
+        'gap': '6px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      _axis(0, value.x, (double v) => onChanged(Vec3(v, value.y, value.z))),
+      _axis(1, value.y, (double v) => onChanged(Vec3(value.x, v, value.z))),
+      _axis(2, value.z, (double v) => onChanged(Vec3(value.x, value.y, v))),
+    ],
+  );
 }

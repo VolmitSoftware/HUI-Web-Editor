@@ -57,57 +57,42 @@ class _PlaceholderPickerState extends State<PlaceholderPicker> {
         },
         child: Text(component.label),
       ),
-      content: dom.div(
-        classes: 'hui-placeholder-list',
-        <Widget>[
-          const HuiEyebrow('Placeholders'),
-          if (entries.isEmpty)
-            const dom.p(
-              classes: 'hui-placeholder-empty',
-              <Widget>[
-                Text(
-                  'The placeholder catalogue could not be loaded. Type the '
-                  'placeholder by hand, including the surrounding % signs.',
-                ),
-              ],
-            )
-          else
-            for (final (String, String) entry in entries) _row(entry),
-          const dom.p(
-            classes: 'hui-placeholder-foot',
-            <Widget>[
-              Text(
-                'Anything outside HoloUI needs PlaceholderAPI installed on the '
-                'server. Without it the condition string is compared literally.',
-              ),
-            ],
+      content: dom.div(classes: 'hui-placeholder-list', <Widget>[
+        const HuiEyebrow('Placeholders'),
+        if (entries.isEmpty)
+          const dom.p(classes: 'hui-placeholder-empty', <Widget>[
+            Text(
+              'The placeholder catalogue could not be loaded. Type the '
+              'placeholder by hand, including the surrounding % signs.',
+            ),
+          ])
+        else
+          for (final (String, String) entry in entries) _row(entry),
+        const dom.p(classes: 'hui-placeholder-foot', <Widget>[
+          Text(
+            'Anything outside HoloUI needs PlaceholderAPI installed on the '
+            'server. Without it the condition string is compared literally.',
           ),
-        ],
-      ),
+        ]),
+      ]),
     );
   }
 
   Widget _row((String, String) entry) => dom.button(
-        classes: 'hui-placeholder-row',
-        attributes: <String, String>{
-          'type': 'button',
-          'aria-label': 'Use ${entry.$1}',
-        },
-        events: <String, EventCallback>{
-          'click': (_) {
-            setState(() => _open = false);
-            component.onPicked(entry.$1);
-          },
-        },
-        <Widget>[
-          dom.span(
-            classes: 'hui-placeholder-key',
-            <Widget>[Text(entry.$1)],
-          ),
-          dom.span(
-            classes: 'hui-placeholder-desc',
-            <Widget>[Text(entry.$2)],
-          ),
-        ],
-      );
+    classes: 'hui-placeholder-row',
+    attributes: <String, String>{
+      'type': 'button',
+      'aria-label': 'Use ${entry.$1}',
+    },
+    events: <String, EventCallback>{
+      'click': (_) {
+        setState(() => _open = false);
+        component.onPicked(entry.$1);
+      },
+    },
+    <Widget>[
+      dom.span(classes: 'hui-placeholder-key', <Widget>[Text(entry.$1)]),
+      dom.span(classes: 'hui-placeholder-desc', <Widget>[Text(entry.$2)]),
+    ],
+  );
 }

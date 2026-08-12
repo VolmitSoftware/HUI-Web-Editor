@@ -1,10 +1,8 @@
 /// The dockable action log.
 ///
-/// Every simulated click appends one entry per component that fired, and a
-/// single click can fire several — every hovered clickable does
-/// (`SessionHolder.java:145-159`). Entries from one click share a tick and are
-/// grouped under it, in declaration order, because that ordering is the whole
-/// lesson of overlapping hitboxes.
+/// Every simulated click appends the nearest component that fired. Rows retain
+/// the exact left/right and sneak-modified interaction used for action
+/// filtering.
 ///
 /// Two behaviours here are deliberate and load-bearing:
 ///
@@ -204,9 +202,8 @@ class _PreviewLogViewState extends State<PreviewLogView> {
 
   Widget _empty() => const dom.p(classes: 'hui-preview-log-empty', <Widget>[
     Component.text(
-      'Left-click a component in the preview. Every hovered '
-      'hitbox fires, so overlapping components all appear here, in '
-      'declaration order.',
+      'Left- or right-click a component in the preview. The nearest hitbox '
+      'fires; hold Shift to test sneak-bound actions.',
     ),
   ]);
 
@@ -222,8 +219,7 @@ class _PreviewLogViewState extends State<PreviewLogView> {
     ],
   );
 
-  /// One click. The header is the teaching surface: N components firing from a
-  /// single left click is the overlap lesson, stated every time it happens.
+  /// Entries sharing a tick are grouped under one compact heading.
   Widget _group(List<ActionLogEntry> entries, {required bool newest}) =>
       dom.div(
         // Only the newest group carries the entrance, so an append animates the
@@ -238,8 +234,8 @@ class _PreviewLogViewState extends State<PreviewLogView> {
             if (entries.length > 1)
               dom.span(classes: 'hui-preview-log-groupnote', <Widget>[
                 Component.text(
-                  '${entries.length} components fired on one '
-                  'click, in declaration order',
+                  '${entries.length} clicks were recorded before the next '
+                  'simulation tick',
                 ),
               ]),
           ]),
@@ -254,7 +250,10 @@ class _PreviewLogViewState extends State<PreviewLogView> {
             Component.text(entry.componentId),
           ]),
           dom.span(classes: 'hui-preview-log-trigger', <Widget>[
-            Component.text(entry.trigger.label),
+            Component.text(
+              '${entry.trigger.label} · '
+              '${actionClickTriggerLabel(entry.clickTrigger)}',
+            ),
           ]),
         ]),
         if (entry.actions.isEmpty)
@@ -268,7 +267,73 @@ class _PreviewLogViewState extends State<PreviewLogView> {
   Widget _action(LoggedAction action) => switch (action) {
     LoggedCommand() => _command(action),
     LoggedSound() => _sound(action),
+    LoggedMessage() => _message(action),
+    LoggedTeleport() => _teleport(action),
+    LoggedConnect() => _connect(action),
+    LoggedNavigation() => _navigation(action),
   };
+
+  Widget _message(LoggedMessage message) =>
+      dom.div(classes: 'hui-preview-log-action is-message', <Widget>[
+        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text('message player'),
+        ]),
+        dom.code(classes: 'hui-preview-log-cmd', <Widget>[
+          Component.text(message.message),
+        ]),
+        if (message.hasStrippedInteractions)
+          _badge(
+            'interactions stripped',
+            'is-unknown',
+            'HoloUI keeps MiniMessage styling but removes click and insertion '
+                'events before sending the message.',
+          ),
+      ]);
+
+  Widget _teleport(LoggedTeleport teleport) =>
+      dom.div(classes: 'hui-preview-log-action is-teleport', <Widget>[
+        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text('teleport'),
+        ]),
+        dom.code(classes: 'hui-preview-log-cmd', <Widget>[
+          Component.text(
+            '${teleport.world} ${_number(teleport.x)} '
+            '${_number(teleport.y)} ${_number(teleport.z)}',
+          ),
+        ]),
+        dom.span(classes: 'hui-preview-log-soundmeta', <Widget>[
+          Component.text(
+            'yaw ${_number(teleport.yaw)} · pitch ${_number(teleport.pitch)}',
+          ),
+        ]),
+      ]);
+
+  Widget _connect(LoggedConnect connect) =>
+      dom.div(classes: 'hui-preview-log-action is-connect', <Widget>[
+        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text('connect'),
+        ]),
+        dom.code(classes: 'hui-preview-log-cmd', <Widget>[
+          Component.text(connect.server),
+        ]),
+        const dom.span(classes: 'hui-preview-log-dispatch is-player', <Widget>[
+          Component.text('via proxy'),
+        ]),
+      ]);
+
+  Widget _navigation(LoggedNavigation navigation) =>
+      dom.div(classes: 'hui-preview-log-action is-navigation', <Widget>[
+        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text('navigate'),
+        ]),
+        dom.code(classes: 'hui-preview-log-cmd', <Widget>[
+          Component.text(
+            navigation.target.isEmpty
+                ? navigation.mode
+                : '${navigation.mode} ${navigation.target}',
+          ),
+        ]),
+      ]);
 
   /// A command, with its dispatch spelled out.
   ///

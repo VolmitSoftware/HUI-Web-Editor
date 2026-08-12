@@ -45,20 +45,20 @@ void main() {
 
   group('previewVarsForMaterial', () {
     HuiPreviewDoc doc() => HuiPreviewDoc(
-          match: HuiPreviewMatch(
-            vars: <String, dynamic>{'style': 'base', 'accent': '#FFFFFFFF'},
-          ),
-          variants: <HuiPreviewVariant>[
-            HuiPreviewVariant(
-              blocks: <String>['BLAST_FURNACE'],
-              vars: <String, dynamic>{'style': 'blast'},
-            ),
-            HuiPreviewVariant(
-              blocks: <String>['*_SHULKER_BOX'],
-              vars: <String, dynamic>{'style': 'shulker'},
-            ),
-          ],
-        );
+      match: HuiPreviewMatch(
+        vars: <String, dynamic>{'style': 'base', 'accent': '#FFFFFFFF'},
+      ),
+      variants: <HuiPreviewVariant>[
+        HuiPreviewVariant(
+          blocks: <String>['BLAST_FURNACE'],
+          vars: <String, dynamic>{'style': 'blast'},
+        ),
+        HuiPreviewVariant(
+          blocks: <String>['*_SHULKER_BOX'],
+          vars: <String, dynamic>{'style': 'shulker'},
+        ),
+      ],
+    );
 
     test('null material keeps the document defaults untouched', () {
       final Map<String, dynamic> vars = previewVarsForMaterial(doc(), null);
@@ -71,16 +71,20 @@ void main() {
     });
 
     test('an exact-match variant overlays on top of the defaults', () {
-      final Map<String, dynamic> vars =
-          previewVarsForMaterial(doc(), 'BLAST_FURNACE');
+      final Map<String, dynamic> vars = previewVarsForMaterial(
+        doc(),
+        'BLAST_FURNACE',
+      );
       // Overridden key changes, untouched key survives from the base.
       expect(vars['style'], 'blast');
       expect(vars['accent'], '#FFFFFFFF');
     });
 
     test('a glob-matching variant overlays the same way', () {
-      final Map<String, dynamic> vars =
-          previewVarsForMaterial(doc(), 'RED_SHULKER_BOX');
+      final Map<String, dynamic> vars = previewVarsForMaterial(
+        doc(),
+        'RED_SHULKER_BOX',
+      );
       expect(vars['style'], 'shulker');
       expect(vars['accent'], '#FFFFFFFF');
     });
@@ -104,8 +108,10 @@ void main() {
 
     test('mutating the result never mutates the document', () {
       final HuiPreviewDoc source = doc();
-      final Map<String, dynamic> vars =
-          previewVarsForMaterial(source, 'BLAST_FURNACE');
+      final Map<String, dynamic> vars = previewVarsForMaterial(
+        source,
+        'BLAST_FURNACE',
+      );
       vars['style'] = 'mutated-locally';
       expect(source.match.vars['style'], 'base');
       expect(source.variants.first.vars['style'], 'blast');

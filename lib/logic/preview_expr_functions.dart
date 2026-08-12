@@ -22,7 +22,9 @@ Object? previewStdFunction(String name, List<Object?> args) {
     case 'clamp':
       _requireCount(name, args, 3);
       return math.min(
-          math.max(_numArg(name, args, 0), _numArg(name, args, 1)), _numArg(name, args, 2));
+        math.max(_numArg(name, args, 0), _numArg(name, args, 1)),
+        _numArg(name, args, 2),
+      );
     case 'lerp':
       _requireCount(name, args, 3);
       final double a = _numArg(name, args, 0);
@@ -50,15 +52,20 @@ Object? previewStdFunction(String name, List<Object?> args) {
       return math.cos(_oneNumArg(name, args));
     case 'rgb':
       _requireCount(name, args, 3);
-      return _packArgb(0xFF, _clampChannel(_numArg(name, args, 0)),
-          _clampChannel(_numArg(name, args, 1)), _clampChannel(_numArg(name, args, 2)));
+      return _packArgb(
+        0xFF,
+        _clampChannel(_numArg(name, args, 0)),
+        _clampChannel(_numArg(name, args, 1)),
+        _clampChannel(_numArg(name, args, 2)),
+      );
     case 'argb':
       _requireCount(name, args, 4);
       return _packArgb(
-          _clampChannel(_numArg(name, args, 0)),
-          _clampChannel(_numArg(name, args, 1)),
-          _clampChannel(_numArg(name, args, 2)),
-          _clampChannel(_numArg(name, args, 3)));
+        _clampChannel(_numArg(name, args, 0)),
+        _clampChannel(_numArg(name, args, 1)),
+        _clampChannel(_numArg(name, args, 2)),
+        _clampChannel(_numArg(name, args, 3)),
+      );
     case 'alpha':
       return _alpha(name, args);
     case 'mix':
@@ -124,7 +131,8 @@ double _mix(String name, List<Object?> args) {
   );
 }
 
-int _mixChannel(int a, int b, double t) => previewRound(a + (b - a) * t).toInt();
+int _mixChannel(int a, int b, double t) =>
+    previewRound(a + (b - a) * t).toInt();
 
 /// One byte of an already-narrowed ARGB value; [divisor] is `1 << shift`.
 int _channel(int argb, int divisor) => (argb ~/ divisor) % 256;
@@ -154,14 +162,17 @@ double _palette(String name, List<Object?> args) {
   final int narrowed = index.isNaN
       ? 0
       : index >= 2147483647.0
-          ? 2147483647
-          : index <= -2147483648.0
-              ? -2147483648
-              : index.toInt();
+      ? 2147483647
+      : index <= -2147483648.0
+      ? -2147483648
+      : index.toInt();
   // Dart's int % is the floor variant, which is Java's floorMod here.
   final Object? item = listArg[narrowed % listArg.length];
   if (item is! double) {
-    throw PExprException('$name list entries must be numbers', previewNoPosition);
+    throw PExprException(
+      '$name list entries must be numbers',
+      previewNoPosition,
+    );
   }
   return item;
 }
@@ -173,9 +184,13 @@ String _fixed(String name, List<Object?> args) {
   // digits must be a whole number in [0, 20]: negative/fractional precision is
   // meaningless to String.format, and >20 is a RangeError in Dart's
   // toStringAsFixed, so the shared range keeps both engines identical.
-  if (digitsArg != digitsArg.roundToDouble() || digitsArg < 0 || digitsArg > 20) {
+  if (digitsArg != digitsArg.roundToDouble() ||
+      digitsArg < 0 ||
+      digitsArg > 20) {
     throw PExprException(
-        '$name argument 2 (digits) must be a whole number in [0, 20]', previewNoPosition);
+      '$name argument 2 (digits) must be a whole number in [0, 20]',
+      previewNoPosition,
+    );
   }
   final int digits = digitsArg.toInt();
   if (!x.isFinite) {
@@ -308,7 +323,9 @@ double _oneNumArg(String name, List<Object?> args) {
 void _requireCount(String name, List<Object?> args, int count) {
   if (args.length != count) {
     throw PExprException(
-        '$name expects $count argument(s), got ${args.length}', previewNoPosition);
+      '$name expects $count argument(s), got ${args.length}',
+      previewNoPosition,
+    );
   }
 }
 
@@ -317,7 +334,10 @@ double _numArg(String name, List<Object?> args, int index) {
   if (value is double) {
     return value;
   }
-  throw PExprException('$name argument ${index + 1} must be a number', previewNoPosition);
+  throw PExprException(
+    '$name argument ${index + 1} must be a number',
+    previewNoPosition,
+  );
 }
 
 String _strArg(String name, List<Object?> args, int index) {
@@ -325,5 +345,8 @@ String _strArg(String name, List<Object?> args, int index) {
   if (value is String) {
     return value;
   }
-  throw PExprException('$name argument ${index + 1} must be a string', previewNoPosition);
+  throw PExprException(
+    '$name argument ${index + 1} must be a string',
+    previewNoPosition,
+  );
 }

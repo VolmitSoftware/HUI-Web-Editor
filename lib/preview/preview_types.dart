@@ -31,16 +31,13 @@ class PVec3 {
   final double y;
   final double z;
 
-  PVec3 operator +(PVec3 other) =>
-      PVec3(x + other.x, y + other.y, z + other.z);
+  PVec3 operator +(PVec3 other) => PVec3(x + other.x, y + other.y, z + other.z);
 
-  PVec3 operator -(PVec3 other) =>
-      PVec3(x - other.x, y - other.y, z - other.z);
+  PVec3 operator -(PVec3 other) => PVec3(x - other.x, y - other.y, z - other.z);
 
   PVec3 operator -() => PVec3(-x, -y, -z);
 
-  PVec3 operator *(double scalar) =>
-      PVec3(x * scalar, y * scalar, z * scalar);
+  PVec3 operator *(double scalar) => PVec3(x * scalar, y * scalar, z * scalar);
 
   PVec3 scale(double scalar) => this * scalar;
 
@@ -53,10 +50,10 @@ class PVec3 {
   double dot(PVec3 other) => x * other.x + y * other.y + z * other.z;
 
   PVec3 cross(PVec3 other) => PVec3(
-        y * other.z - z * other.y,
-        z * other.x - x * other.z,
-        x * other.y - y * other.x,
-      );
+    y * other.z - z * other.y,
+    z * other.x - x * other.z,
+    x * other.y - y * other.x,
+  );
 
   double get lengthSquared => x * x + y * y + z * z;
 
@@ -71,23 +68,6 @@ class PVec3 {
   PVec3 get normalized {
     final double len = length;
     return len <= 0 || !len.isFinite ? zero : PVec3(x / len, y / len, z / len);
-  }
-
-  /// Yaw rotation about the vertical axis through [origin].
-  ///
-  /// This is the menu's one and only rotation: `MenuComponent.rotateByPlayer`
-  /// turns every component location about the player's own vertical axis by the
-  /// yaw captured at open (`MenuComponent.java:142-144`), then freezes it.
-  PVec3 rotateAroundY(PVec3 origin, double radians) {
-    final double cos = math.cos(radians);
-    final double sin = math.sin(radians);
-    final double dx = x - origin.x;
-    final double dz = z - origin.z;
-    return PVec3(
-      origin.x + dx * cos - dz * sin,
-      y,
-      origin.z + dx * sin + dz * cos,
-    );
   }
 
   @override
@@ -107,7 +87,7 @@ class LookRay {
   const LookRay(this.origin, this.direction);
 
   LookRay.normalized(this.origin, PVec3 direction)
-      : direction = direction.normalized;
+    : direction = direction.normalized;
 
   final PVec3 origin;
   final PVec3 direction;
@@ -166,21 +146,20 @@ class OrbitCamera {
     double? yawDegrees,
     double? pitchDegrees,
     double? distance,
-  }) =>
-      OrbitCamera(
-        target: target ?? this.target,
-        yawDegrees: yawDegrees ?? this.yawDegrees,
-        pitchDegrees: pitchDegrees ?? this.pitchDegrees,
-        distance: distance ?? this.distance,
-      );
+  }) => OrbitCamera(
+    target: target ?? this.target,
+    yawDegrees: yawDegrees ?? this.yawDegrees,
+    pitchDegrees: pitchDegrees ?? this.pitchDegrees,
+    distance: distance ?? this.distance,
+  );
 
   /// Pitch and dolly clamped into a usable range; yaw is free.
   OrbitCamera clamped() => OrbitCamera(
-        target: target,
-        yawDegrees: yawDegrees,
-        pitchDegrees: _clamp(pitchDegrees, minPitchDegrees, maxPitchDegrees),
-        distance: _clamp(distance, minDistance, maxDistance),
-      );
+    target: target,
+    yawDegrees: yawDegrees,
+    pitchDegrees: _clamp(pitchDegrees, minPitchDegrees, maxPitchDegrees),
+    distance: _clamp(distance, minDistance, maxDistance),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -220,18 +199,17 @@ class PlayerPose {
     PVec3? feet,
     double? yawDegrees,
     double? pitchDegrees,
-  }) =>
-      PlayerPose(
-        feet: feet ?? this.feet,
-        yawDegrees: yawDegrees ?? this.yawDegrees,
-        pitchDegrees: pitchDegrees ?? this.pitchDegrees,
-      );
+  }) => PlayerPose(
+    feet: feet ?? this.feet,
+    yawDegrees: yawDegrees ?? this.yawDegrees,
+    pitchDegrees: pitchDegrees ?? this.pitchDegrees,
+  );
 
   PlayerPose clamped() => PlayerPose(
-        feet: feet,
-        yawDegrees: yawDegrees,
-        pitchDegrees: _clamp(pitchDegrees, -89.9, 89.9),
-      );
+    feet: feet,
+    yawDegrees: yawDegrees,
+    pitchDegrees: _clamp(pitchDegrees, -89.9, 89.9),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -258,8 +236,8 @@ enum PreviewCloseReason {
   movedOutOfRange;
 
   String get wireName => switch (this) {
-        PreviewCloseReason.movedOutOfRange => 'MOVED_OUT_OF_RANGE',
-      };
+    PreviewCloseReason.movedOutOfRange => 'MOVED_OUT_OF_RANGE',
+  };
 }
 
 /// The runtime's range test, warts and all.

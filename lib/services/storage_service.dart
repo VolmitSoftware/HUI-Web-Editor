@@ -40,10 +40,12 @@ class StorageService {
     }
   }
 
-  static void remove(String key) {
+  static bool remove(String key) {
     try {
       storageRemoveItem(key);
+      return true;
     } catch (_) {}
+    return false;
   }
 
   static bool get isPersistent {
@@ -83,9 +85,20 @@ class StorageService {
   }
 
   /// Drops every key this app owns. Used by the "reset local data" action.
-  static void clearAll({String prefix = keyPrefix}) {
-    for (final String key in keys(prefix: prefix)) {
-      remove(key);
+  static bool clearAll({String prefix = keyPrefix}) {
+    try {
+      final List<String> found = <String>[];
+      final int count = storageLength();
+      for (int i = 0; i < count; i++) {
+        final String? key = storageKeyAt(i);
+        if (key != null && key.startsWith(prefix)) found.add(key);
+      }
+      for (final String key in found) {
+        storageRemoveItem(key);
+      }
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 

@@ -222,24 +222,24 @@ HuiPreviewDoc buildFurnaceDashboardTemplate() =>
 /// label. Deliberately vars-free: a starter document should build clean
 /// before the author has written a single `vars` entry.
 HuiPreviewDoc buildMinimalChestTemplate() => HuiPreviewDoc(
-      card: HuiPreviewCard(title: "'&f&lChest'"),
-      elements: <HuiPreviewElement>[
-        HuiPreviewElement(
-          'slot',
-          x: 'mod(i, 3) * 27 - 27',
-          y: '18 - floor(i / 3) * 27',
-          size: 18,
-          index: 'i',
-          repeat: HuiPreviewRepeat(count: 9, varName: 'i'),
-        ),
-        HuiPreviewElement(
-          'label',
-          x: 0,
-          y: -40,
-          text: "'&7' + inventory.occupied + '/' + inventory.size + ' occupied'",
-        ),
-      ],
-    );
+  card: HuiPreviewCard(title: "'&f&lChest'"),
+  elements: <HuiPreviewElement>[
+    HuiPreviewElement(
+      'slot',
+      x: 'mod(i, 3) * 27 - 27',
+      y: '18 - floor(i / 3) * 27',
+      size: 18,
+      index: 'i',
+      repeat: HuiPreviewRepeat(count: 9, varName: 'i'),
+    ),
+    HuiPreviewElement(
+      'label',
+      x: 0,
+      y: -40,
+      text: "'&7' + inventory.occupied + '/' + inventory.size + ' occupied'",
+    ),
+  ],
+);
 
 /// Bare content (`framed: false`) that walks through the expression language:
 /// a ternary-and-mod()-driven pulsing cell, string concatenation with `+`,
@@ -247,36 +247,31 @@ HuiPreviewDoc buildMinimalChestTemplate() => HuiPreviewDoc(
 /// the `statics` category, so it only touches variables every category
 /// publishes.
 HuiPreviewDoc buildCustomStatCardTemplate() => HuiPreviewDoc(
-      card: HuiPreviewCard(framed: false),
-      elements: <HuiPreviewElement>[
-        HuiPreviewElement(
-          'label',
-          x: 0,
-          y: 24,
-          text: "'&6&lCustom Stat Card'",
-        ),
-        HuiPreviewElement(
-          'label',
-          x: 0,
-          y: 8,
-          text: "'&7Block: &f' + (blockType != '' ? readable(blockType) : 'none')",
-        ),
-        HuiPreviewElement(
-          'cell',
-          x: -20,
-          y: -8,
-          size: 16,
-          // `#RRGGBB` is a NUMBER literal in this grammar (tokenized straight
-          // to its unsigned ARGB value), not a quoted string — quoting it
-          // would make the ternary resolve to text and fail `_color`'s
-          // number requirement at build time.
-          color: 'mod(floor(time / 20), 2) == 0 ? #FF55D67D : #FF3D8F57',
-        ),
-        HuiPreviewElement(
-          'label',
-          x: 10,
-          y: -8,
-          text: "'&7Time: &f' + round(time) + 's'",
-        ),
-      ],
-    );
+  card: HuiPreviewCard(framed: false),
+  elements: <HuiPreviewElement>[
+    HuiPreviewElement('label', x: 0, y: 24, text: "'&6&lCustom Stat Card'"),
+    HuiPreviewElement(
+      'label',
+      x: 0,
+      y: 8,
+      text: "'&7Block: &f' + (blockType != '' ? readable(blockType) : 'none')",
+    ),
+    HuiPreviewElement(
+      'cell',
+      x: -20,
+      y: -8,
+      size: 16,
+      // `#RRGGBB` is a NUMBER literal in this grammar (tokenized straight
+      // to its unsigned ARGB value), not a quoted string — quoting it
+      // would make the ternary resolve to text and fail `_color`'s
+      // number requirement at build time.
+      color: 'mod(floor(time / 20), 2) == 0 ? #FF55D67D : #FF3D8F57',
+    ),
+    HuiPreviewElement(
+      'label',
+      x: 10,
+      y: -8,
+      text: "'&7Time: &f' + round(time) + 's'",
+    ),
+  ],
+);

@@ -1,7 +1,7 @@
 /// The menu lifted into three dimensions.
 ///
 /// This module does exactly one thing the 2D canvas does not: it applies the
-/// player anchor and the single frozen open-yaw rotation. Every measurement —
+/// current menu transform and each icon's billboard mode. Every measurement —
 /// plane widths, visual extents, the item hitbox drop, the true-render bias —
 /// comes from [buildCanvasScene] and `hui_geometry.dart` unchanged, because the
 /// only way the two views can never disagree is if there is one layout pass.
@@ -9,14 +9,12 @@
 /// Two things move at different rates and the difference is the point of the
 /// preview:
 ///
-///  * A [PreviewQuad] is **frozen**. Its position and its facing are fixed at
-///    open by the player's yaw (`MenuSession.java:119-122`,
-///    `MenuComponent.java:142-144`); billboarding is always FIXED
-///    (`MenuIcon.java:112-114`). Nothing in this file takes a camera, so no
-///    amount of orbiting can move a quad.
-///  * A [PlaneAim] is rebuilt **every tick**, aimed at the player's eye
-///    (`ClickableComponent.java:60-62`). [aimQuadPlane] and
-///    [hoveredClickableIds] are the per-tick half.
+///  * A [PreviewQuad] carries the fixed menu transform. A static personal menu
+///    keeps that transform from open; `followPlayer` replaces its anchor and
+///    facing yaw as the player moves or looks.
+///  * [aimQuadPlane] applies the icon's `fixed`, `vertical`, `horizontal`, or
+///    `center` billboard rule for the current viewer. The visual and collision
+///    plane use the same rule.
 library;
 
 import '../logic/canvas_scene.dart';
@@ -33,9 +31,8 @@ class PreviewQuad {
     required this.anchor,
     required this.planeCenter,
     required this.visualCenter,
-    required this.facingYawDeg,
-    required this.normal,
-    required this.right,
+    required this.fixedPlane,
+    required this.billboard,
     required this.highlightModifier,
   });
 
@@ -53,23 +50,11 @@ class PreviewQuad {
   /// with `trueRender`, which reproduces the in-game vertical bias.
   final PVec3 visualCenter;
 
-  /// The player's yaw at open, frozen. Never re-aimed — billboarding is always
-  /// FIXED (`MenuIcon.java:112-114`).
-  ///
-  /// The runtime only actually spawns *item* displays facing the player
-  /// (`ItemMenuIcon.java:115-121` yaws them to `playerYaw + 180` once). Text and
-  /// image displays are spawned at yaw 0 and never rotated: `MenuIcon.rotate`
-  /// reaches them solely through `MenuSession.rotate`, which nothing calls. The
-  /// preview faces every quad at the open yaw, which is what a builder means to
-  /// author; see the T1.1 report for the divergence.
-  final double facingYawDeg;
+  /// The menu-transformed collision plane before client billboarding.
+  final PlaneAim fixedPlane;
 
-  /// Outward face of the quad: the reverse of the open look direction.
-  final PVec3 normal;
-
-  /// The quad's horizontal axis in the world; `up` is always +Y, since the one
-  /// rotation the menu gets is about the vertical axis.
-  final PVec3 right;
+  /// Runtime display metadata: fixed, vertical, horizontal, or center.
+  final String billboard;
 
   /// Raw `highlightModifier`, unclamped, 0 for decorations. Gson bypasses the
   /// API's 0..1 clamp (`HoloComponent.java:33`), so a file may say anything.
@@ -77,8 +62,7 @@ class PreviewQuad {
 
   String get id => item.id;
 
-  /// Declaration index — the click dispatch order
-  /// (`SessionHolder.java:145-159`).
+  /// Declaration index, used as the tie-break when planes are equally near.
   int get index => item.index;
 
   bool get clickable => item.clickable;
@@ -96,7 +80,7 @@ class PreviewQuad {
   bool get hasPlane => clickable && planeWidth > 0 && planeHeight > 0;
 
   @override
-  String toString() => 'PreviewQuad($id at $anchor, yaw $facingYawDeg)';
+  String toString() => 'PreviewQuad($id at $anchor, $billboard)';
 }
 
 /// One resolved 3D frame.
@@ -107,9 +91,11 @@ class PreviewScene {
     required this.openFeet,
     required this.anchorFeet,
     required this.center,
-    required this.sessionCenter,
     required this.menuOffset,
     required this.openYawDeg,
+    required this.facingYawDeg,
+    required this.pitchDeg,
+    required this.rollDeg,
   });
 
   /// Declaration order, matching [CanvasScene.items].
@@ -123,37 +109,23 @@ class PreviewScene {
   /// ground anchor hang off this.
   final PVec3 openFeet;
 
+  final double openYawDeg;
+
   /// The feet the layout is currently pivoting on. Equal to [openFeet] unless
-  /// `followPlayer` moved the centre, in which case the runtime re-derives
-  /// every location from the player's *current* position
-  /// (`MenuSession.java:103-109`).
+  /// `followPlayer` moved the transform anchor.
   final PVec3 anchorFeet;
 
-  /// Where the menu centre actually is once the frozen rotation has been
-  /// applied — the point the centre marker marks, the camera frames, and the
-  /// stage's menu group translates to. Every quad is this plus its own rotated
-  /// component offset.
+  /// The transformed menu origin used for drawing and max-distance checks.
   final PVec3 center;
-
-  /// The runtime's raw `centerPoint`: [anchorFeet] plus the unscaled menu
-  /// offset, **before** the open-yaw rotation (`MenuSession.java:73,103-109`).
-  /// Identical to the `currentCenter` this scene was built from.
-  ///
-  /// It is not where the menu draws, but it is what the range check compares
-  /// against (`MenuSession.java:147-151`). The two distances agree, because the
-  /// rotation pivots on the player, but the points do not.
-  final PVec3 sessionCenter;
 
   /// The menu offset, never multiplied by uiScale (`HuiSettings.java:60-66`).
   final PVec3 menuOffset;
 
-  /// The player's yaw at open, in degrees.
-  final double openYawDeg;
+  final double facingYawDeg;
+  final double pitchDeg;
+  final double rollDeg;
 
   double get uiScale => canvas.uiScale;
-
-  /// The frozen rotation, in radians (`initialY`, i.e. the negated yaw).
-  late final double rotationRadians = huiOpenYawRadians(openYawDeg);
 
   late final List<PreviewQuad> clickables = List<PreviewQuad>.unmodifiable(
     quads.where((PreviewQuad quad) => quad.clickable),
@@ -171,32 +143,33 @@ class PreviewScene {
   }
 
   /// Lifts a canvas-space block point — menu-local, y up, z depth — into the
-  /// world, applying the frozen rotation and the player anchor.
+  /// world, applying the current menu transform and player anchor.
   ///
   /// Overlays and markers should go through this rather than re-deriving the
   /// rotation, which is how the 2D and 3D views stay in lockstep.
   PVec3 lift(double x, double y, double z) =>
-      PVec3(x, y, z).rotateAroundY(PVec3.zero, rotationRadians) + anchorFeet;
+      liftDirection(PVec3(x, y, z)) + anchorFeet;
 
   /// [lift] without the translation, for directions and extents.
-  PVec3 liftDirection(PVec3 direction) =>
-      direction.rotateAroundY(PVec3.zero, rotationRadians);
+  PVec3 liftDirection(PVec3 direction) => huiMenuVector(
+    direction,
+    facingYawDegrees: facingYawDeg,
+    pitchDegrees: pitchDeg,
+    rollDegrees: rollDeg,
+  );
 
   @override
   String toString() =>
-      'PreviewScene(${quads.length} quads, centre $center, yaw $openYawDeg)';
+      'PreviewScene(${quads.length} quads, centre $center, yaw $facingYawDeg)';
 }
 
 /// Builds the 3D frame.
 ///
-/// [openFeet] is where the player stood at open; [openYawDeg] is the yaw they
-/// had at that moment and the only rotation the menu will ever get.
-/// [currentCenter] is the runtime's unrotated `centerPoint`
-/// (`MenuSession.java:73,103-109`) — what the simulation computes per tick. It
-/// defaults to `openFeet + menuOffset` and only differs while `followPlayer` is
-/// walking the menu around; the pivot is derived back out of it exactly as the
-/// runtime does with `getCenterNoOffset()` (`MenuSession.java:138-140`). Read
-/// [PreviewScene.center] for where the menu actually draws.
+/// [openFeet] is where the player stood at open. [anchorFeet] and
+/// [facingYawDeg] are the current runtime transform; they change together when
+/// `followPlayer` handles player movement or look rotation. Personal menu JSON
+/// has no pitch or roll, so both default to zero; the parameters keep the core
+/// transform accurate for positioned menu previews.
 ///
 /// Supply [canvas] when one has already been built for this menu and scale —
 /// the 3D stage needs its [CanvasItem]s for sprites anyway, and rebuilding it
@@ -206,8 +179,11 @@ PreviewScene buildPreviewScene({
   required HuiMenu menu,
   required double uiScale,
   required PVec3 openFeet,
-  required double openYawDeg,
-  PVec3? currentCenter,
+  required double facingYawDeg,
+  double? openYawDeg,
+  PVec3? anchorFeet,
+  double pitchDeg = 0,
+  double rollDeg = 0,
   CanvasScene? canvas,
   bool trueRender = false,
   bool Function(String id)? togglePreview,
@@ -239,14 +215,16 @@ PreviewScene buildPreviewScene({
   // into every item anchor, so the pivot can never drift from the layout.
   final Vec3 offset = resolved.menuOffset;
   final PVec3 menuOffset = PVec3(offset.x, offset.y, offset.z);
-  final PVec3 sessionCenter = currentCenter ?? (openFeet + menuOffset);
-  final PVec3 anchorFeet = sessionCenter - menuOffset;
-  final double angle = huiOpenYawRadians(openYawDeg);
-  final PVec3 normal = -huiLookDirection(yawDegrees: openYawDeg);
-  final PVec3 right = PVec3.right.rotateAroundY(PVec3.zero, angle);
+  final PVec3 resolvedAnchorFeet = anchorFeet ?? openFeet;
 
   PVec3 lift(double x, double y, double z) =>
-      PVec3(x, y, z).rotateAroundY(PVec3.zero, angle) + anchorFeet;
+      huiMenuVector(
+        PVec3(x, y, z),
+        facingYawDegrees: facingYawDeg,
+        pitchDegrees: pitchDeg,
+        rollDegrees: rollDeg,
+      ) +
+      resolvedAnchorFeet;
 
   final List<PreviewQuad> quads = <PreviewQuad>[];
   final Set<String> componentIds = <String>{};
@@ -258,9 +236,13 @@ PreviewScene buildPreviewScene({
         anchor: lift(item.anchor.x, item.anchor.y, item.depth),
         planeCenter: lift(item.hitbox.x, item.hitbox.y, item.hitboxDepth),
         visualCenter: lift(item.visual.x, item.visual.y, item.depth),
-        facingYawDeg: openYawDeg,
-        normal: normal,
-        right: right,
+        fixedPlane: fixedMenuPlane(
+          center: lift(item.hitbox.x, item.hitbox.y, item.hitboxDepth),
+          facingYawDegrees: facingYawDeg,
+          pitchDegrees: pitchDeg,
+          rollDegrees: rollDeg,
+        ),
+        billboard: item.icon?.style?.billboard ?? 'fixed',
         highlightModifier: _highlightModifier(item.component.data),
       ),
     );
@@ -270,25 +252,34 @@ PreviewScene buildPreviewScene({
     quads: List<PreviewQuad>.unmodifiable(quads),
     canvas: resolved,
     openFeet: openFeet,
-    anchorFeet: anchorFeet,
+    anchorFeet: resolvedAnchorFeet,
     center: lift(menuOffset.x, menuOffset.y, menuOffset.z),
-    sessionCenter: sessionCenter,
     menuOffset: menuOffset,
-    openYawDeg: openYawDeg,
+    openYawDeg: openYawDeg ?? facingYawDeg,
+    facingYawDeg: facingYawDeg,
+    pitchDeg: pitchDeg,
+    rollDeg: rollDeg,
   );
 }
 
-/// The quad's collision plane, re-aimed at [eye] for this tick.
-PlaneAim aimQuadPlane(PreviewQuad quad, PVec3 eye) =>
-    aimPlaneAt(quad.planeCenter, eye);
+PlaneAim aimQuadPlane(PreviewQuad quad, PVec3 eye) => orientBillboardPlane(
+  fixed: quad.fixedPlane,
+  billboard: quad.billboard,
+  viewer: eye,
+);
+
+PlaneAim aimQuadVisual(PreviewQuad quad, PVec3 center, PVec3 eye) =>
+    orientBillboardPlane(
+      fixed: movePlane(quad.fixedPlane, center),
+      billboard: quad.billboard,
+      viewer: eye,
+    );
 
 /// Every clickable the look ray is currently inside, in declaration order.
 ///
-/// This is one tick of `ClickableComponent.onTick` for the whole menu: re-aim
-/// each plane at the eye, then hit-test (`ClickableComponent.java:59-70`).
-/// Declaration order matters because a click fires all of them in that order
-/// (`SessionHolder.java:145-159`), and decorations are excluded because they
-/// never build a plane at all (`MenuComponent.java:62-67`).
+/// This is one tick of `ClickableComponent.onTick` for the whole menu: apply
+/// each icon's billboard rule, then hit-test (`ClickableComponent.java:59-70`).
+/// Decorations are excluded because they never build a plane at all.
 List<String> hoveredClickableIds({
   required PreviewScene scene,
   required LookRay ray,
@@ -307,6 +298,29 @@ List<String> hoveredClickableIds({
     }
   }
   return hovered;
+}
+
+String? nearestClickableId({
+  required PreviewScene scene,
+  required LookRay ray,
+  required PVec3 eye,
+}) {
+  String? nearest;
+  double nearestDistance = double.infinity;
+  for (final PreviewQuad quad in scene.quads) {
+    if (!quad.hasPlane) continue;
+    final double? distance = rayPlaneIntersectionDistance(
+      ray,
+      aimQuadPlane(quad, eye),
+      quad.planeWidth,
+      quad.planeHeight,
+    );
+    if (distance != null && distance < nearestDistance) {
+      nearest = quad.id;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
 }
 
 /// Decorations have no highlight of any kind; both clickable types carry a raw,

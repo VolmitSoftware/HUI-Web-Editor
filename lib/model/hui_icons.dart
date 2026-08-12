@@ -1,13 +1,15 @@
 import 'json_codec.dart';
 
-/// The five JSON-authorable icon types. `itemStack` exists in the plugin enum
+/// The seven JSON-authorable icon types. `itemStack` exists in the plugin enum
 /// but maps to a null class, so it is API-only and unparseable.
 const List<String> huiIconTypes = <String>[
   'text',
   'textImage',
   'animatedTextImage',
   'item',
+  'block',
   'customItem',
+  'entity',
 ];
 
 /// Provider ids the plugin ships adapters for, in declaration order. Runtime
@@ -29,8 +31,262 @@ const List<String> huiCustomItemProviders = <String>[
 /// Sentinel `provider`: try every ready provider in activation order.
 const String huiAutoItemProvider = 'auto';
 
+const List<String> huiIconBillboards = <String>[
+  'fixed',
+  'vertical',
+  'horizontal',
+  'center',
+];
+
+const List<String> huiIconTextAlignments = <String>['center', 'left', 'right'];
+
+const List<String> huiSpawnableLivingEntityTypes = <String>[
+  'minecraft:allay',
+  'minecraft:armadillo',
+  'minecraft:armor_stand',
+  'minecraft:axolotl',
+  'minecraft:bat',
+  'minecraft:bee',
+  'minecraft:blaze',
+  'minecraft:bogged',
+  'minecraft:breeze',
+  'minecraft:camel',
+  'minecraft:camel_husk',
+  'minecraft:cat',
+  'minecraft:cave_spider',
+  'minecraft:chicken',
+  'minecraft:cod',
+  'minecraft:copper_golem',
+  'minecraft:cow',
+  'minecraft:creaking',
+  'minecraft:creeper',
+  'minecraft:dolphin',
+  'minecraft:donkey',
+  'minecraft:drowned',
+  'minecraft:elder_guardian',
+  'minecraft:ender_dragon',
+  'minecraft:enderman',
+  'minecraft:endermite',
+  'minecraft:evoker',
+  'minecraft:fox',
+  'minecraft:frog',
+  'minecraft:ghast',
+  'minecraft:giant',
+  'minecraft:glow_squid',
+  'minecraft:goat',
+  'minecraft:guardian',
+  'minecraft:happy_ghast',
+  'minecraft:hoglin',
+  'minecraft:horse',
+  'minecraft:husk',
+  'minecraft:illusioner',
+  'minecraft:iron_golem',
+  'minecraft:llama',
+  'minecraft:magma_cube',
+  'minecraft:mannequin',
+  'minecraft:mooshroom',
+  'minecraft:mule',
+  'minecraft:nautilus',
+  'minecraft:ocelot',
+  'minecraft:panda',
+  'minecraft:parched',
+  'minecraft:parrot',
+  'minecraft:phantom',
+  'minecraft:pig',
+  'minecraft:piglin',
+  'minecraft:piglin_brute',
+  'minecraft:pillager',
+  'minecraft:polar_bear',
+  'minecraft:pufferfish',
+  'minecraft:rabbit',
+  'minecraft:ravager',
+  'minecraft:salmon',
+  'minecraft:sheep',
+  'minecraft:shulker',
+  'minecraft:silverfish',
+  'minecraft:skeleton',
+  'minecraft:skeleton_horse',
+  'minecraft:slime',
+  'minecraft:sniffer',
+  'minecraft:snow_golem',
+  'minecraft:spider',
+  'minecraft:squid',
+  'minecraft:stray',
+  'minecraft:strider',
+  'minecraft:tadpole',
+  'minecraft:trader_llama',
+  'minecraft:tropical_fish',
+  'minecraft:turtle',
+  'minecraft:vex',
+  'minecraft:villager',
+  'minecraft:vindicator',
+  'minecraft:wandering_trader',
+  'minecraft:warden',
+  'minecraft:witch',
+  'minecraft:wither',
+  'minecraft:wither_skeleton',
+  'minecraft:wolf',
+  'minecraft:zoglin',
+  'minecraft:zombie',
+  'minecraft:zombie_horse',
+  'minecraft:zombie_nautilus',
+  'minecraft:zombie_villager',
+  'minecraft:zombified_piglin',
+];
+
+class HuiIconStyle {
+  String billboard;
+  bool shadow;
+  bool seeThrough;
+  String textAlignment;
+  String backgroundArgb;
+  int textOpacity;
+  int lineWidth;
+  int? blockLight;
+  int? skyLight;
+  double viewRange;
+  double shadowRadius;
+  double shadowStrength;
+  double cullingWidth;
+  double cullingHeight;
+  String? glowColor;
+  double scaleX;
+  double scaleY;
+  double scaleZ;
+  Map<String, dynamic> extras;
+
+  HuiIconStyle({
+    this.billboard = 'fixed',
+    this.shadow = false,
+    this.seeThrough = false,
+    this.textAlignment = 'center',
+    this.backgroundArgb = '#00000000',
+    this.textOpacity = 255,
+    this.lineWidth = 2000,
+    this.blockLight,
+    this.skyLight,
+    this.viewRange = 1,
+    this.shadowRadius = 0,
+    this.shadowStrength = 0,
+    this.cullingWidth = 0,
+    this.cullingHeight = 0,
+    this.glowColor,
+    this.scaleX = 1,
+    this.scaleY = 1,
+    this.scaleZ = 1,
+    Map<String, dynamic>? extras,
+  }) : extras = extras ?? <String, dynamic>{};
+
+  bool get hasBrightnessOverride => blockLight != null || skyLight != null;
+
+  HuiIconStyle copy() => HuiIconStyle(
+    billboard: billboard,
+    shadow: shadow,
+    seeThrough: seeThrough,
+    textAlignment: textAlignment,
+    backgroundArgb: backgroundArgb,
+    textOpacity: textOpacity,
+    lineWidth: lineWidth,
+    blockLight: blockLight,
+    skyLight: skyLight,
+    viewRange: viewRange,
+    shadowRadius: shadowRadius,
+    shadowStrength: shadowStrength,
+    cullingWidth: cullingWidth,
+    cullingHeight: cullingHeight,
+    glowColor: glowColor,
+    scaleX: scaleX,
+    scaleY: scaleY,
+    scaleZ: scaleZ,
+    extras: huiDeepCopyMap(extras),
+  );
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'billboard': billboard,
+    'shadow': shadow,
+    'seeThrough': seeThrough,
+    'textAlignment': textAlignment,
+    'backgroundArgb': backgroundArgb,
+    'textOpacity': textOpacity,
+    'lineWidth': lineWidth,
+    if (blockLight != null) 'blockLight': blockLight,
+    if (skyLight != null) 'skyLight': skyLight,
+    'viewRange': viewRange,
+    'shadowRadius': shadowRadius,
+    'shadowStrength': shadowStrength,
+    'cullingWidth': cullingWidth,
+    'cullingHeight': cullingHeight,
+    if (glowColor != null) 'glowColor': glowColor,
+    'scaleX': scaleX,
+    'scaleY': scaleY,
+    'scaleZ': scaleZ,
+  }, extras);
+
+  static HuiIconStyle? fromJsonOrNull(
+    Object? raw, {
+    String path = 'icon.style',
+  }) {
+    if (raw == null) return null;
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return HuiIconStyle(
+      billboard: huiReadString(map, 'billboard', fallback: 'fixed'),
+      shadow: huiReadBool(map, 'shadow'),
+      seeThrough: huiReadBool(map, 'seeThrough'),
+      textAlignment: huiReadString(map, 'textAlignment', fallback: 'center'),
+      backgroundArgb: huiReadString(
+        map,
+        'backgroundArgb',
+        fallback: '#00000000',
+      ),
+      textOpacity: huiReadInt(map, 'textOpacity', fallback: 255),
+      lineWidth: huiReadInt(map, 'lineWidth', fallback: 2000),
+      blockLight: _readOptionalInt(map, 'blockLight'),
+      skyLight: _readOptionalInt(map, 'skyLight'),
+      viewRange: huiReadDouble(map, 'viewRange', fallback: 1),
+      shadowRadius: huiReadDouble(map, 'shadowRadius'),
+      shadowStrength: huiReadDouble(map, 'shadowStrength'),
+      cullingWidth: huiReadDouble(map, 'cullingWidth'),
+      cullingHeight: huiReadDouble(map, 'cullingHeight'),
+      glowColor: map['glowColor'] == null
+          ? null
+          : huiReadString(map, 'glowColor'),
+      scaleX: huiReadDouble(map, 'scaleX', fallback: 1),
+      scaleY: huiReadDouble(map, 'scaleY', fallback: 1),
+      scaleZ: huiReadDouble(map, 'scaleZ', fallback: 1),
+      extras: huiCollectExtras(map, _knownStyleKeys),
+    );
+  }
+
+  static int? _readOptionalInt(Map<String, dynamic> map, String key) {
+    if (!map.containsKey(key) || map[key] == null) return null;
+    return huiReadInt(map, key);
+  }
+
+  static const Set<String> _knownStyleKeys = <String>{
+    'billboard',
+    'shadow',
+    'seeThrough',
+    'textAlignment',
+    'backgroundArgb',
+    'textOpacity',
+    'lineWidth',
+    'blockLight',
+    'skyLight',
+    'viewRange',
+    'shadowRadius',
+    'shadowStrength',
+    'cullingWidth',
+    'cullingHeight',
+    'glowColor',
+    'scaleX',
+    'scaleY',
+    'scaleZ',
+  };
+}
+
 sealed class HuiIcon {
   Map<String, dynamic> extras = <String, dynamic>{};
+  HuiIconStyle? style;
 
   String get type;
 
@@ -50,8 +306,12 @@ sealed class HuiIcon {
         return HuiAnimatedImageIcon.fromMap(map);
       case 'item':
         return HuiItemIcon.fromMap(map);
+      case 'block':
+        return HuiBlockIcon.fromMap(map);
       case 'customItem':
         return HuiCustomItemIcon.fromMap(map);
+      case 'entity':
+        return HuiEntityIcon.fromMap(map);
       default:
         huiUnknownType(type, path);
     }
@@ -65,30 +325,50 @@ sealed class HuiIcon {
 
 class HuiTextIcon extends HuiIcon {
   String text;
+  int? refreshTicks;
 
-  HuiTextIcon([this.text = '']);
+  HuiTextIcon([this.text = '', HuiIconStyle? style, this.refreshTicks]) {
+    this.style = style;
+  }
 
   @override
   String get type => 'text';
 
   @override
-  Map<String, dynamic> toJson() =>
-      huiMergeExtras(<String, dynamic>{'type': 'text', 'text': text}, extras);
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'text',
+    'text': text,
+    if (refreshTicks != null) 'refreshTicks': refreshTicks,
+    if (style != null) 'style': style!.toJson(),
+  }, extras);
 
   @override
-  HuiTextIcon copy() => HuiTextIcon(text)..extras = huiDeepCopyMap(extras);
+  HuiTextIcon copy() =>
+      HuiTextIcon(text, style?.copy(), refreshTicks)
+        ..extras = huiDeepCopyMap(extras);
 
-  static const Set<String> _known = <String>{'type', 'text'};
+  static const Set<String> _known = <String>{
+    'type',
+    'text',
+    'refreshTicks',
+    'style',
+  };
 
-  static HuiTextIcon fromMap(Map<String, dynamic> map) =>
-      HuiTextIcon(huiReadString(map, 'text'))
-        ..extras = huiCollectExtras(map, _known);
+  static HuiTextIcon fromMap(Map<String, dynamic> map) => HuiTextIcon(
+    huiReadString(map, 'text'),
+    HuiIconStyle.fromJsonOrNull(map['style']),
+    map.containsKey('refreshTicks') && map['refreshTicks'] != null
+        ? huiReadInt(map, 'refreshTicks')
+        : null,
+  )..extras = huiCollectExtras(map, _known);
 }
 
 class HuiTextImageIcon extends HuiIcon {
   String path;
 
-  HuiTextImageIcon([this.path = '']);
+  HuiTextImageIcon([this.path = '', HuiIconStyle? style]) {
+    this.style = style;
+  }
 
   @override
   String get type => 'textImage';
@@ -97,17 +377,19 @@ class HuiTextImageIcon extends HuiIcon {
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
     'type': 'textImage',
     'path': path,
+    if (style != null) 'style': style!.toJson(),
   }, extras);
 
   @override
   HuiTextImageIcon copy() =>
-      HuiTextImageIcon(path)..extras = huiDeepCopyMap(extras);
+      HuiTextImageIcon(path, style?.copy())..extras = huiDeepCopyMap(extras);
 
-  static const Set<String> _known = <String>{'type', 'path'};
+  static const Set<String> _known = <String>{'type', 'path', 'style'};
 
-  static HuiTextImageIcon fromMap(Map<String, dynamic> map) =>
-      HuiTextImageIcon(huiReadString(map, 'path'))
-        ..extras = huiCollectExtras(map, _known);
+  static HuiTextImageIcon fromMap(Map<String, dynamic> map) => HuiTextImageIcon(
+    huiReadString(map, 'path'),
+    HuiIconStyle.fromJsonOrNull(map['style']),
+  )..extras = huiCollectExtras(map, _known);
 }
 
 class HuiAnimatedImageIcon extends HuiIcon {
@@ -116,8 +398,13 @@ class HuiAnimatedImageIcon extends HuiIcon {
   /// Ticks per frame (20 ticks = 1 s). Anything below 1 advances every tick.
   int speed;
 
-  HuiAnimatedImageIcon([List<String>? source, this.speed = 1])
-    : source = source ?? <String>[];
+  HuiAnimatedImageIcon([
+    List<String>? source,
+    this.speed = 1,
+    HuiIconStyle? style,
+  ]) : source = source ?? <String>[] {
+    this.style = style;
+  }
 
   @override
   String get type => 'animatedTextImage';
@@ -127,22 +414,30 @@ class HuiAnimatedImageIcon extends HuiIcon {
     'type': 'animatedTextImage',
     'source': List<String>.from(source),
     'speed': speed,
+    if (style != null) 'style': style!.toJson(),
   }, extras);
 
   @override
   HuiAnimatedImageIcon copy() =>
-      HuiAnimatedImageIcon(List<String>.from(source), speed)
+      HuiAnimatedImageIcon(List<String>.from(source), speed, style?.copy())
         ..extras = huiDeepCopyMap(extras);
 
   // `path` is consumed, not preserved: the pre-3.0 schema named the frame list
   // `path`, which Gson ignores. Importing migrates it onto `source` rather than
   // exporting a file that carries both.
-  static const Set<String> _known = <String>{'type', 'source', 'speed', 'path'};
+  static const Set<String> _known = <String>{
+    'type',
+    'source',
+    'speed',
+    'path',
+    'style',
+  };
 
   static HuiAnimatedImageIcon fromMap(Map<String, dynamic> map) =>
       HuiAnimatedImageIcon(
         huiReadStringList(map['source'] ?? map['path']),
         huiReadInt(map, 'speed'),
+        HuiIconStyle.fromJsonOrNull(map['style']),
       )..extras = huiCollectExtras(map, _known);
 }
 
@@ -155,7 +450,14 @@ class HuiItemIcon extends HuiIcon {
   /// `customModelValue`; the pre-3.0 `customModelData` is ignored by Gson.
   int customModelValue;
 
-  HuiItemIcon([this.item = '', this.count = 1, this.customModelValue = 0]);
+  HuiItemIcon([
+    this.item = '',
+    this.count = 1,
+    this.customModelValue = 0,
+    HuiIconStyle? style,
+  ]) {
+    this.style = style;
+  }
 
   @override
   String get type => 'item';
@@ -166,11 +468,12 @@ class HuiItemIcon extends HuiIcon {
     'item': item,
     'count': count,
     'customModelValue': customModelValue,
+    if (style != null) 'style': style!.toJson(),
   }, extras);
 
   @override
   HuiItemIcon copy() =>
-      HuiItemIcon(item, count, customModelValue)
+      HuiItemIcon(item, count, customModelValue, style?.copy())
         ..extras = huiDeepCopyMap(extras);
 
   // `customModelData` is consumed, not preserved: the old editor and the
@@ -182,6 +485,7 @@ class HuiItemIcon extends HuiIcon {
     'count',
     'customModelValue',
     'customModelData',
+    'style',
   };
 
   static HuiItemIcon fromMap(Map<String, dynamic> map) => HuiItemIcon(
@@ -191,6 +495,36 @@ class HuiItemIcon extends HuiIcon {
       map,
       map['customModelValue'] == null ? 'customModelData' : 'customModelValue',
     ),
+    HuiIconStyle.fromJsonOrNull(map['style']),
+  )..extras = huiCollectExtras(map, _known);
+}
+
+class HuiBlockIcon extends HuiIcon {
+  String block;
+
+  HuiBlockIcon([this.block = 'minecraft:stone', HuiIconStyle? style]) {
+    this.style = style;
+  }
+
+  @override
+  String get type => 'block';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'block',
+    'block': block,
+    if (style != null) 'style': style!.toJson(),
+  }, extras);
+
+  @override
+  HuiBlockIcon copy() =>
+      HuiBlockIcon(block, style?.copy())..extras = huiDeepCopyMap(extras);
+
+  static const Set<String> _known = <String>{'type', 'block', 'style'};
+
+  static HuiBlockIcon fromMap(Map<String, dynamic> map) => HuiBlockIcon(
+    huiReadString(map, 'block'),
+    HuiIconStyle.fromJsonOrNull(map['style']),
   )..extras = huiCollectExtras(map, _known);
 }
 
@@ -212,7 +546,10 @@ class HuiCustomItemIcon extends HuiIcon {
     this.provider = huiAutoItemProvider,
     this.item = '',
     this.count = 1,
-  ]);
+    HuiIconStyle? style,
+  ]) {
+    this.style = style;
+  }
 
   @override
   String get type => 'customItem';
@@ -223,17 +560,20 @@ class HuiCustomItemIcon extends HuiIcon {
     'provider': provider,
     'item': item,
     'count': count,
+    if (style != null) 'style': style!.toJson(),
   }, extras);
 
   @override
   HuiCustomItemIcon copy() =>
-      HuiCustomItemIcon(provider, item, count)..extras = huiDeepCopyMap(extras);
+      HuiCustomItemIcon(provider, item, count, style?.copy())
+        ..extras = huiDeepCopyMap(extras);
 
   static const Set<String> _known = <String>{
     'type',
     'provider',
     'item',
     'count',
+    'style',
   };
 
   static HuiCustomItemIcon fromMap(Map<String, dynamic> map) {
@@ -245,6 +585,47 @@ class HuiCustomItemIcon extends HuiIcon {
       provider.isEmpty ? huiAutoItemProvider : provider,
       huiReadString(map, 'item'),
       count > 0 ? count : 1,
+      HuiIconStyle.fromJsonOrNull(map['style']),
     )..extras = huiCollectExtras(map, _known);
   }
+}
+
+class HuiEntityIcon extends HuiIcon {
+  String entity;
+  double width;
+  double height;
+
+  HuiEntityIcon([
+    this.entity = 'minecraft:parrot',
+    this.width = 1,
+    this.height = 1,
+  ]);
+
+  @override
+  String get type => 'entity';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'entity',
+    'entity': entity,
+    'width': width,
+    'height': height,
+  }, extras);
+
+  @override
+  HuiEntityIcon copy() =>
+      HuiEntityIcon(entity, width, height)..extras = huiDeepCopyMap(extras);
+
+  static const Set<String> _known = <String>{
+    'type',
+    'entity',
+    'width',
+    'height',
+  };
+
+  static HuiEntityIcon fromMap(Map<String, dynamic> map) => HuiEntityIcon(
+    huiReadString(map, 'entity'),
+    huiReadDouble(map, 'width', fallback: 1),
+    huiReadDouble(map, 'height', fallback: 1),
+  )..extras = huiCollectExtras(map, _known);
 }

@@ -26,13 +26,13 @@ class _FakeStorage {
 }
 
 EditorStore _store(_FakeStorage storage) => EditorStore(
-      workspace: Workspace(
-        read: storage.read,
-        write: storage.write,
-        autoLoad: true,
-      ),
-      autosaveDelay: Duration.zero,
-    );
+  workspace: Workspace(
+    read: storage.read,
+    write: storage.write,
+    autoLoad: true,
+  ),
+  autosaveDelay: Duration.zero,
+);
 
 /// Three decorations plus the default `title`, so ids are known and stable.
 EditorStore _populated(_FakeStorage storage, {int count = 3}) {
@@ -123,13 +123,15 @@ void main() {
       expect(store.selectedId, 'c0');
     });
 
-    test('selectMany keeps iteration order and honours an explicit primary',
-        () {
-      final EditorStore store = _populated(_FakeStorage());
-      store.selectMany(<String>['c0', 'c1', 'c2'], primary: 'c0');
-      expect(store.selectionIds.toList(), <String>['c1', 'c2', 'c0']);
-      expect(store.selectedId, 'c0');
-    });
+    test(
+      'selectMany keeps iteration order and honours an explicit primary',
+      () {
+        final EditorStore store = _populated(_FakeStorage());
+        store.selectMany(<String>['c0', 'c1', 'c2'], primary: 'c0');
+        expect(store.selectionIds.toList(), <String>['c1', 'c2', 'c0']);
+        expect(store.selectedId, 'c0');
+      },
+    );
 
     test('selectMany drops unknown ids', () {
       final EditorStore store = _populated(_FakeStorage());
@@ -147,10 +149,7 @@ void main() {
     test('selectAll selects every component in document order', () {
       final EditorStore store = _populated(_FakeStorage());
       store.selectAll();
-      expect(
-        store.selectionIds.toList(),
-        <String>['title', 'c0', 'c1', 'c2'],
-      );
+      expect(store.selectionIds.toList(), <String>['title', 'c0', 'c1', 'c2']);
       expect(store.selectedId, 'c2');
     });
 
@@ -199,7 +198,11 @@ void main() {
       final EditorStore store = _populated(_FakeStorage());
       store.mutate('add namesake', (HuiMenu menu) {
         menu.components.add(
-          HuiComponent('c0', Vec3(1, 1, 0), createDefaultComponentData('decoration')),
+          HuiComponent(
+            'c0',
+            Vec3(1, 1, 0),
+            createDefaultComponentData('decoration'),
+          ),
         );
       });
       store.select('c0');
@@ -211,10 +214,7 @@ void main() {
       final EditorStore store = _populated(_FakeStorage());
       store.selectMany(<String>['c0', 'c1', 'c2']);
       store.renameComponent('c1', 'renamed');
-      expect(
-        store.selectionIds.toList(),
-        <String>['c0', 'renamed', 'c2'],
-      );
+      expect(store.selectionIds.toList(), <String>['c0', 'renamed', 'c2']);
       expect(store.selectedId, 'c2');
     });
 
@@ -293,24 +293,26 @@ void main() {
       expect(store.menu.componentById('ghost'), isNull);
     });
 
-    test('duplicateSelection copies each source in place and selects the copies',
-        () {
-      final EditorStore store = _populated(_FakeStorage());
-      store.selectMany(<String>['c0', 'c2']);
-      final List<String> copies = store.duplicateSelection();
-      expect(copies.length, 2);
-      expect(store.selectionIds, copies.toSet());
-      expect(
-        store.menu.components.map((HuiComponent c) => c.id).toList(),
-        <String>['title', 'c0', copies[0], 'c1', 'c2', copies[1]],
-      );
-      // Alt-drag duplicates must land exactly on their sources; the caller
-      // moves them afterwards.
-      expect(
-        store.menu.componentById(copies[0])!.offset,
-        store.menu.componentById('c0')!.offset,
-      );
-    });
+    test(
+      'duplicateSelection copies each source in place and selects the copies',
+      () {
+        final EditorStore store = _populated(_FakeStorage());
+        store.selectMany(<String>['c0', 'c2']);
+        final List<String> copies = store.duplicateSelection();
+        expect(copies.length, 2);
+        expect(store.selectionIds, copies.toSet());
+        expect(
+          store.menu.components.map((HuiComponent c) => c.id).toList(),
+          <String>['title', 'c0', copies[0], 'c1', 'c2', copies[1]],
+        );
+        // Alt-drag duplicates must land exactly on their sources; the caller
+        // moves them afterwards.
+        expect(
+          store.menu.componentById(copies[0])!.offset,
+          store.menu.componentById('c0')!.offset,
+        );
+      },
+    );
 
     test('duplicateSelection is one undo step', () {
       final EditorStore store = _populated(_FakeStorage());

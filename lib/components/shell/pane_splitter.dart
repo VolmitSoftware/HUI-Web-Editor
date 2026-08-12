@@ -29,9 +29,8 @@ class PaneSplitter extends StatefulWidget {
   /// Called once per settled gesture: drag release, double-click or key press.
   final void Function(PaneLayout layout) onCommit;
 
-  String get handleId => side == PaneSide.rail
-      ? 'hui-splitter-rail'
-      : 'hui-splitter-inspector';
+  String get handleId =>
+      side == PaneSide.rail ? 'hui-splitter-rail' : 'hui-splitter-inspector';
 
   String get label => side == PaneSide.rail
       ? 'Resize the components rail'
@@ -82,13 +81,12 @@ class _PaneSplitterState extends State<PaneSplitter> {
 
   void _onDragMove(double edgeX) {
     final double viewport = paneViewportWidth();
-    final double raw = PaneLayout.widthForEdge(
+    final double raw = PaneLayout.widthForEdge(component.side, edgeX, viewport);
+    final PaneLayout next = _current.withWidth(
       component.side,
-      edgeX,
-      viewport,
+      raw,
+      viewportWidth: viewport,
     );
-    final PaneLayout next =
-        _current.withWidth(component.side, raw, viewportWidth: viewport);
     _drag = next;
     _paint(next);
   }
@@ -111,8 +109,7 @@ class _PaneSplitterState extends State<PaneSplitter> {
   void _onKey(String key, bool shift) {
     final double viewport = paneViewportWidth();
     final PaneSide side = component.side;
-    final double step =
-        shift ? PaneLayout.keyStepCoarse : PaneLayout.keyStep;
+    final double step = shift ? PaneLayout.keyStepCoarse : PaneLayout.keyStep;
     // The rail grows rightwards, the inspector leftwards: both handles move
     // the way the arrow points.
     final double grow = side == PaneSide.rail ? step : -step;
@@ -121,15 +118,15 @@ class _PaneSplitterState extends State<PaneSplitter> {
       'ArrowRight' => base.nudged(side, grow, viewportWidth: viewport),
       'ArrowLeft' => base.nudged(side, -grow, viewportWidth: viewport),
       'Home' => base.withWidth(
-          side,
-          PaneLayout.minOf(side),
-          viewportWidth: viewport,
-        ),
+        side,
+        PaneLayout.minOf(side),
+        viewportWidth: viewport,
+      ),
       'End' => base.withWidth(
-          side,
-          PaneLayout.maxOf(side),
-          viewportWidth: viewport,
-        ),
+        side,
+        PaneLayout.maxOf(side),
+        viewportWidth: viewport,
+      ),
       _ => base,
     };
     if (next == base) return;

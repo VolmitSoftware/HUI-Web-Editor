@@ -20,7 +20,7 @@ class UndoEntry {
 
 class UndoStack {
   UndoStack({int capacity = defaultCapacity})
-      : capacity = capacity < 1 ? 1 : capacity;
+    : capacity = capacity < 1 ? 1 : capacity;
 
   /// Roughly a session's worth of edits; each entry is a whole document, so the
   /// ceiling is what keeps a long session from growing without bound.

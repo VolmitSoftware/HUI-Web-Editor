@@ -20,6 +20,18 @@ void main() {
       expect(icon.item, isEmpty);
       expect(icon.count, 1);
     });
+
+    test('a new entity icon is a valid visible parrot', () {
+      final HuiEntityIcon icon = createDefaultIcon('entity') as HuiEntityIcon;
+      expect(icon.entity, huiDefaultEntityType);
+      expect(icon.width, 0.5);
+      expect(icon.height, 0.9);
+    });
+
+    test('a new block icon is a valid stone block display', () {
+      final HuiBlockIcon icon = createDefaultIcon('block') as HuiBlockIcon;
+      expect(icon.block, huiDefaultBlockMaterial);
+    });
   });
 
   group('huiItemProviderInfo', () {

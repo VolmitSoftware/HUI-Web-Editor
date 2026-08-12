@@ -1,0 +1,60 @@
+{
+  "project": {
+    "format": "holoui-sync-project",
+    "version": 1,
+    "kind": "board",
+    "subjectId": "fixture",
+    "menus": [
+      {
+        "id": "fixture",
+        "json": "{\"components\":[]}"
+      }
+    ],
+    "board": {
+      "schemaVersion": 1,
+      "id": "fixture",
+      "uuid": "00000000-0000-4000-8000-000000000042",
+      "revision": 1.0,
+      "rootMenuId": "fixture",
+      "transform": {
+        "worldKey": "minecraft:overworld",
+        "worldUuid": "00000000-0000-4000-8000-000000000043",
+        "x": 1e20,
+        "y": 0.1,
+        "z": 1e-7,
+        "yaw": -0.0,
+        "pitch": 1.0,
+        "roll": 1,
+        "scale": 1.0
+      },
+      "follow": {
+        "mode": "none",
+        "targetPlayerUuid": null,
+        "rotation": "fixed"
+      },
+      "visibility": {
+        "mode": "public",
+        "viewPermission": null,
+        "interactPermission": null,
+        "viewRange": 64.0,
+        "interactionRange": 8.0
+      }
+    },
+    "images": [],
+    "constraints": {
+      "subjectId": "fixture",
+      "menuIds": [
+        "fixture"
+      ],
+      "imagePaths": [],
+      "newMenuPrefix": "fixture/",
+      "newImagePrefix": "sync/fixture/",
+      "allowDeletes": false
+    },
+    "warnings": [
+      "Snowman ☃, CJK 雪, HTML <tag>&, quote \" and slash \\, control \b\t\n\f\r, separators   , emoji 🚀"
+    ],
+    "baseRevision": "sha256:7e322c580c650ebd93ab4e19dc4b550bbd3f11436d694b38b96143996f8727d0"
+  },
+  "canonicalWithoutBaseRevision": "{\"board\":{\"follow\":{\"mode\":\"none\",\"rotation\":\"fixed\",\"targetPlayerUuid\":null},\"id\":\"fixture\",\"revision\":1,\"rootMenuId\":\"fixture\",\"schemaVersion\":1,\"transform\":{\"pitch\":1,\"roll\":1,\"scale\":1,\"worldKey\":\"minecraft:overworld\",\"worldUuid\":\"00000000-0000-4000-8000-000000000043\",\"x\":100000000000000000000,\"y\":0.1,\"yaw\":0,\"z\":1e-7},\"uuid\":\"00000000-0000-4000-8000-000000000042\",\"visibility\":{\"interactPermission\":null,\"interactionRange\":8,\"mode\":\"public\",\"viewPermission\":null,\"viewRange\":64}},\"constraints\":{\"allowDeletes\":false,\"imagePaths\":[],\"menuIds\":[\"fixture\"],\"newImagePrefix\":\"sync/fixture/\",\"newMenuPrefix\":\"fixture/\",\"subjectId\":\"fixture\"},\"format\":\"holoui-sync-project\",\"images\":[],\"kind\":\"board\",\"menus\":[{\"id\":\"fixture\",\"json\":\"{\\\"components\\\":[]}\"}],\"subjectId\":\"fixture\",\"version\":1,\"warnings\":[\"Snowman ☃, CJK 雪, HTML <tag>&, quote \\\" and slash \\\\, control \\b\\t\\n\\f\\r, separators   , emoji 🚀\"]}"
+}

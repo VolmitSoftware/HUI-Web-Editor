@@ -157,15 +157,14 @@ Map<String, Vec3> shiftOffsets({
   double dx = 0,
   double dy = 0,
   double dz = 0,
-}) =>
-    <String, Vec3>{
-      for (final MapEntry<String, Vec3> entry in offsets.entries)
-        entry.key: Vec3(
-          dx == 0 ? entry.value.x : _round4(entry.value.x + dx),
-          dy == 0 ? entry.value.y : _round4(entry.value.y + dy),
-          dz == 0 ? entry.value.z : _round4(entry.value.z + dz),
-        ),
-    };
+}) => <String, Vec3>{
+  for (final MapEntry<String, Vec3> entry in offsets.entries)
+    entry.key: Vec3(
+      dx == 0 ? entry.value.x : _round4(entry.value.x + dx),
+      dy == 0 ? entry.value.y : _round4(entry.value.y + dy),
+      dz == 0 ? entry.value.z : _round4(entry.value.z + dz),
+    ),
+};
 
 /// Resolves one pointer-move of a group drag.
 ///
@@ -287,10 +286,8 @@ Map<String, Vec3> distributeOffsets({
   if (picked.length < 3 || !_invertible(scene)) return const <String, Vec3>{};
 
   final bool horizontal = axis == HuiAxis.horizontal;
-  double lowOf(CanvasItem i) =>
-      horizontal ? i.outline.left : i.outline.bottom;
-  double highOf(CanvasItem i) =>
-      horizontal ? i.outline.right : i.outline.top;
+  double lowOf(CanvasItem i) => horizontal ? i.outline.left : i.outline.bottom;
+  double highOf(CanvasItem i) => horizontal ? i.outline.right : i.outline.top;
   double sizeOf(CanvasItem i) => horizontal ? i.outline.w : i.outline.h;
 
   // Declaration index breaks ties so two coincident components keep a stable
@@ -444,9 +441,9 @@ bool _touches(HuiRect a, HuiRect b) =>
     a.top >= b.bottom - _epsilon;
 
 bool _isHorizontal(HuiAlign align) => switch (align) {
-      HuiAlign.left || HuiAlign.centerX || HuiAlign.right => true,
-      HuiAlign.top || HuiAlign.middleY || HuiAlign.bottom => false,
-    };
+  HuiAlign.left || HuiAlign.centerX || HuiAlign.right => true,
+  HuiAlign.top || HuiAlign.middleY || HuiAlign.bottom => false,
+};
 
 /// A uiScale of zero or worse cannot be inverted, so every operation that has
 /// to write an offset back declines rather than emitting infinities.
@@ -469,12 +466,7 @@ List<CanvasItem> _resolve(CanvasScene scene, List<String> ids) {
 /// Moves [item] by [delta] world blocks along one axis and inverts the result
 /// back into an offset. The delta is measured on the drawn rect but applied to
 /// the anchor, which is what keeps true-render biases from being aligned away.
-Vec3 _shift(
-  CanvasScene scene,
-  CanvasItem item,
-  double delta,
-  bool horizontal,
-) {
+Vec3 _shift(CanvasScene scene, CanvasItem item, double delta, bool horizontal) {
   final Vec3 offset = item.component.offset;
   if (horizontal) {
     final double world = item.anchor.x + delta;
@@ -559,8 +551,8 @@ _AxisSnap _solveAxis({
 /// would be drawn against.
 List<double> _linesOf(HuiRect rect, GuideAxis axis) =>
     axis == GuideAxis.vertical
-        ? <double>[rect.left, rect.x, rect.right]
-        : <double>[rect.bottom, rect.y, rect.top];
+    ? <double>[rect.left, rect.x, rect.right]
+    : <double>[rect.bottom, rect.y, rect.top];
 
 /// Collapses the raw hits into one guide per (position, match), each spanning
 /// the snapped selection and every neighbour on that line.

@@ -23,8 +23,10 @@ Brightness loadStoredBrightness() {
 
 void persistBrightness(Brightness brightness) {
   try {
-    web.window.localStorage
-        .setItem(_themeStorageKey, brightness == Brightness.light ? 'light' : 'dark');
+    web.window.localStorage.setItem(
+      _themeStorageKey,
+      brightness == Brightness.light ? 'light' : 'dark',
+    );
   } catch (_) {}
 }
 

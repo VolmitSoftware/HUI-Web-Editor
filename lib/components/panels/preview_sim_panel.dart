@@ -52,27 +52,24 @@ class PreviewSimPanel extends StatelessWidget {
       _categorySection(controller),
       _playbackSection(controller),
       ..._variableSection(controller, sim),
-      if (previewSimCategorySupportsSurge(controller.category)) _surgeSection(controller, sim),
-      if (previewSimCategorySupportsSlots(controller.category)) _slotsSection(controller, sim, cats),
+      if (previewSimCategorySupportsSurge(controller.category))
+        _surgeSection(controller, sim),
+      if (previewSimCategorySupportsSlots(controller.category))
+        _slotsSection(controller, sim, cats),
     ]);
   }
 
-  Widget _header() => const dom.div(
-        classes: 'hui-inspector-headgroup',
-        <Widget>[
-          HuiEyebrow('Simulation'),
-          dom.p(
-            classes: 'hui-inspector-lede',
-            <Widget>[
-              Text(
-                'The editor has no server, so this is a canned target the card '
-                'previews against. Pin any value below to hold it still; '
-                'anything not pinned follows the simulation.',
-              ),
-            ],
+  Widget _header() =>
+      const dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+        HuiEyebrow('Simulation'),
+        dom.p(classes: 'hui-inspector-lede', <Widget>[
+          Text(
+            'The editor has no server, so this is a canned target the card '
+            'previews against. Pin any value below to hold it still; '
+            'anything not pinned follows the simulation.',
           ),
-        ],
-      );
+        ]),
+      ]);
 
   // --- category ---------------------------------------------------------
 
@@ -85,13 +82,15 @@ class PreviewSimPanel extends StatelessWidget {
       children: <Widget>[
         HuiField(
           label: 'Simulated target',
-          help: 'Which canned state (a chest, a running furnace, ...) the '
+          help:
+              'Which canned state (a chest, a running furnace, ...) the '
               'card previews against.',
           trailing: !manual
               ? null
               : HuiIconButton(
                   icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
-                  label: 'Follow the document\'s own match '
+                  label:
+                      'Follow the document\'s own match '
                       '(${previewSimCategoryLabel(auto)})',
                   onPressed: () => controller.setCategory(null),
                 ),
@@ -116,79 +115,96 @@ class PreviewSimPanel extends StatelessWidget {
   // --- playback -----------------------------------------------------------
 
   Widget _playbackSection(PreviewSimController controller) => InspectorSection(
-        title: 'Playback',
-        description: 'Drives the same clock the canvas toolbar\'s play/pause '
-            'does — one simulated game tick every 50 ms.',
-        children: <Widget>[
-          dom.div(
-            styles: const dom.Styles(
-              raw: <String, String>{'display': 'flex', 'gap': '6px'},
-            ),
-            <Widget>[
-              Button(
-                variant: store.animationsPlaying
-                    ? ButtonVariant.secondary
-                    : ButtonVariant.outline,
-                size: ButtonSize.sm,
-                icon: store.animationsPlaying
-                    ? ArcaneIcon.pause(size: IconSize.sm)
-                    : ArcaneIcon.play(size: IconSize.sm),
-                onPressed: () => store.animationsPlaying = !store.animationsPlaying,
-                attributes: <String, String>{
-                  'aria-pressed': '${store.animationsPlaying}',
-                  'aria-label': store.animationsPlaying ? 'Pause' : 'Play',
-                },
-                child: Text(store.animationsPlaying ? 'Pause' : 'Play'),
-              ),
-              Button(
-                variant: ButtonVariant.outline,
-                size: ButtonSize.sm,
-                icon: ArcaneIcon.stepForward(size: IconSize.sm),
-                onPressed: controller.step,
-                attributes: const <String, String>{
-                  'aria-label': 'Step one second of simulation',
-                },
-                child: const Text('Step'),
-              ),
-              Button(
-                variant: ButtonVariant.outline,
-                size: ButtonSize.sm,
-                icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
-                onPressed: controller.reset,
-                attributes: const <String, String>{
-                  'aria-label': 'Reset the simulated state',
-                },
-                child: const Text('Reset'),
-              ),
-            ],
+    title: 'Playback',
+    description:
+        'Drives the same clock the canvas toolbar\'s play/pause '
+        'does — one simulated game tick every 50 ms.',
+    children: <Widget>[
+      dom.div(
+        styles: const dom.Styles(
+          raw: <String, String>{'display': 'flex', 'gap': '6px'},
+        ),
+        <Widget>[
+          Button(
+            variant: store.animationsPlaying
+                ? ButtonVariant.secondary
+                : ButtonVariant.outline,
+            size: ButtonSize.sm,
+            icon: store.animationsPlaying
+                ? ArcaneIcon.pause(size: IconSize.sm)
+                : ArcaneIcon.play(size: IconSize.sm),
+            onPressed: () => store.animationsPlaying = !store.animationsPlaying,
+            attributes: <String, String>{
+              'aria-pressed': '${store.animationsPlaying}',
+              'aria-label': store.animationsPlaying ? 'Pause' : 'Play',
+            },
+            child: Text(store.animationsPlaying ? 'Pause' : 'Play'),
           ),
-          HuiSwitchRow(
-            label: 'Force ticking on a static card',
-            value: controller.forcePlay,
-            onChanged: controller.setForcePlay,
-            help: 'Runs the clock even if nothing in this document reads a '
-                'value it moves. Normally the surface skips ticking a card '
-                'that would draw the same picture every frame.',
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.sm,
+            icon: ArcaneIcon.stepForward(size: IconSize.sm),
+            onPressed: controller.step,
+            attributes: const <String, String>{
+              'aria-label': 'Step one second of simulation',
+            },
+            child: const Text('Step'),
+          ),
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.sm,
+            icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
+            onPressed: controller.reset,
+            attributes: const <String, String>{
+              'aria-label': 'Reset the simulated state',
+            },
+            child: const Text('Reset'),
           ),
         ],
-      );
+      ),
+      HuiSwitchRow(
+        label: 'Force ticking on a static card',
+        value: controller.forcePlay,
+        onChanged: controller.setForcePlay,
+        help:
+            'Runs the clock even if nothing in this document reads a '
+            'value it moves. Normally the surface skips ticking a card '
+            'that would draw the same picture every frame.',
+      ),
+    ],
+  );
 
   // --- per-variable controls -----------------------------------------------
 
-  List<Widget> _variableSection(PreviewSimController controller, PreviewSim sim) {
-    final List<PreviewSimVarControl> controls = previewSimControlsFor(controller.category);
+  List<Widget> _variableSection(
+    PreviewSimController controller,
+    PreviewSim sim,
+  ) {
+    final List<PreviewSimVarControl> controls = previewSimControlsFor(
+      controller.category,
+    );
     if (controls.isEmpty) return const <Widget>[];
     return <Widget>[
       InspectorSection(
         title: 'Sample values',
-        children: <Widget>[for (final PreviewSimVarControl c in controls) _controlRow(controller, sim, c)],
+        children: <Widget>[
+          for (final PreviewSimVarControl c in controls)
+            _controlRow(controller, sim, c),
+        ],
       ),
     ];
   }
 
-  Widget _controlRow(PreviewSimController controller, PreviewSim sim, PreviewSimVarControl control) {
+  Widget _controlRow(
+    PreviewSimController controller,
+    PreviewSim sim,
+    PreviewSimVarControl control,
+  ) {
     final bool pinned = sim.overrides.containsKey(control.name);
-    final Object current = sim.overrides[control.name] ?? sim.variable(control.name) ?? _fallback(control.kind);
+    final Object current =
+        sim.overrides[control.name] ??
+        sim.variable(control.name) ??
+        _fallback(control.kind);
     final Widget? unpin = !pinned
         ? null
         : HuiIconButton(
@@ -237,16 +253,18 @@ class PreviewSimPanel extends StatelessWidget {
   }
 
   static Object _fallback(PreviewSimControlKind kind) => switch (kind) {
-        PreviewSimControlKind.number => 0.0,
-        PreviewSimControlKind.boolean => false,
-        PreviewSimControlKind.string => '',
-      };
+    PreviewSimControlKind.number => 0.0,
+    PreviewSimControlKind.boolean => false,
+    PreviewSimControlKind.string => '',
+  };
 
   // --- surge ----------------------------------------------------------------
 
-  Widget _surgeSection(PreviewSimController controller, PreviewSim sim) => InspectorSection(
+  Widget _surgeSection(PreviewSimController controller, PreviewSim sim) =>
+      InspectorSection(
         title: 'Surge',
-        description: 'Simulates the plugin\'s own catch-up window after a '
+        description:
+            'Simulates the plugin\'s own catch-up window after a '
             'refresh gap: progress jumps by more than the elapsed ticks, '
             'which is what `surge.active`/`surge.gain` report.',
         children: <Widget>[
@@ -265,7 +283,8 @@ class PreviewSimPanel extends StatelessWidget {
                 max: 30,
                 step: 0.1,
                 decimals: 1,
-                onChanged: (double value) => controller.setSurge(true, gain: value),
+                onChanged: (double value) =>
+                    controller.setSurge(true, gain: value),
               ),
             ),
         ],
@@ -273,18 +292,28 @@ class PreviewSimPanel extends StatelessWidget {
 
   // --- sample items -----------------------------------------------------
 
-  Widget _slotsSection(PreviewSimController controller, PreviewSim sim, HuiCatalogs cats) {
+  Widget _slotsSection(
+    PreviewSimController controller,
+    PreviewSim sim,
+    HuiCatalogs cats,
+  ) {
     final int size = sim.inventorySize;
     if (size <= 0) return const dom.div(<Widget>[]);
     return HuiMore(
       summary: 'Sample items ($size slots)',
       children: <Widget>[
-        for (int slot = 0; slot < size; slot++) _slotRow(controller, sim, cats, slot),
+        for (int slot = 0; slot < size; slot++)
+          _slotRow(controller, sim, cats, slot),
       ],
     );
   }
 
-  Widget _slotRow(PreviewSimController controller, PreviewSim sim, HuiCatalogs cats, int slot) {
+  Widget _slotRow(
+    PreviewSimController controller,
+    PreviewSim sim,
+    HuiCatalogs cats,
+    int slot,
+  ) {
     final SimSlotItem? item = previewSimSlotAt(sim.slotItems, slot);
     final String material = item?.material ?? '';
     final int count = item?.count ?? 0;
@@ -314,7 +343,10 @@ class PreviewSimPanel extends StatelessWidget {
             textureFor: cats.textureFor,
             search: (String query, int limit) => cats
                 .searchMaterials(query, limit: limit)
-                .map((MaterialEntry entry) => RegistryOption(entry.key, entry.texture))
+                .map(
+                  (MaterialEntry entry) =>
+                      RegistryOption(entry.key, entry.texture),
+                )
                 .toList(),
             onChanged: (String value) => controller.setSlot(
               slot,

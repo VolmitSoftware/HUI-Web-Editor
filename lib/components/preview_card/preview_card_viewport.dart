@@ -85,7 +85,9 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   String get _zoomLabelId => '$_uid-zoom';
 
   final McFontMetrics _metrics = McFontMetrics();
-  late final PreviewCardPainter _painter = PreviewCardPainter(metrics: _metrics);
+  late final PreviewCardPainter _painter = PreviewCardPainter(
+    metrics: _metrics,
+  );
 
   PreviewCardView _view = const PreviewCardView();
   PreviewCardScene _scene = PreviewCardScene.empty;
@@ -188,7 +190,8 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     attributes: const <String, String>{
       'tabindex': '0',
       'role': 'application',
-      'aria-label': 'Container preview card. Scroll to zoom, space or '
+      'aria-label':
+          'Container preview card. Scroll to zoom, space or '
           'middle-drag to pan, drag an element to move it.',
     },
     <Widget>[
@@ -197,8 +200,11 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
         id: _canvasId,
         classes: 'hui-canvas-surface',
       ),
-      dom.div(id: _issuesId, classes: 'hui-preview-card-issues',
-          const <Widget>[]),
+      dom.div(
+        id: _issuesId,
+        classes: 'hui-preview-card-issues',
+        const <Widget>[],
+      ),
       dom.div(id: _readoutId, classes: 'hui-canvas-readout', const <Widget>[]),
     ],
   );
@@ -215,10 +221,10 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
           zoomLabelId: _zoomLabelId,
           zoomLabel: _zoomLabelText,
           simCategory: store.previewSim.category,
-          onZoomIn: () => _commitView(
-              _view.zoomedAtCenter(previewZoomIn(_view.zoom))),
-          onZoomOut: () => _commitView(
-              _view.zoomedAtCenter(previewZoomOut(_view.zoom))),
+          onZoomIn: () =>
+              _commitView(_view.zoomedAtCenter(previewZoomIn(_view.zoom))),
+          onZoomOut: () =>
+              _commitView(_view.zoomedAtCenter(previewZoomOut(_view.zoom))),
           onZoomReset: _resetView,
           onFit: _fitToContent,
           onStepSim: _stepSim,
@@ -228,16 +234,22 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
       _stageTree,
       const dom.div(classes: 'hui-canvas-hint', <Widget>[
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
-          Component.text('Space or middle-drag pans - scroll zooms - 0 resets '
-              '- F fits'),
+          Component.text(
+            'Space or middle-drag pans - scroll zooms - 0 resets '
+            '- F fits',
+          ),
         ]),
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
-          Component.text('Click selects - drag moves - corner handles resize - '
-              'arrows nudge'),
+          Component.text(
+            'Click selects - drag moves - corner handles resize - '
+            'arrows nudge',
+          ),
         ]),
         dom.span(classes: 'hui-canvas-hint-item hui-canvas-hint-note', <Widget>[
-          Component.text('Positions are whole pixels from the card centre, y '
-              'up. Expression-driven fields are edited in the inspector.'),
+          Component.text(
+            'Positions are whole pixels from the card centre, y '
+            'up. Expression-driven fields are edited in the inspector.',
+          ),
         ]),
       ]),
     ]);
@@ -276,12 +288,14 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     if (status == null || !_statusDirty || !_hasArea) return;
     _statusDirty = false;
     status.setZoom(_view.zoom.toDouble());
-    status.setHint(_hint ??
-        switch (_dragMode) {
-          _PreviewDragMode.element => huiPreviewDragHint,
-          _PreviewDragMode.resize => huiPreviewResizeHint,
-          _PreviewDragMode.pan || _PreviewDragMode.none => null,
-        });
+    status.setHint(
+      _hint ??
+          switch (_dragMode) {
+            _PreviewDragMode.element => huiPreviewDragHint,
+            _PreviewDragMode.resize => huiPreviewResizeHint,
+            _PreviewDragMode.pan || _PreviewDragMode.none => null,
+          },
+    );
   }
 
   void _schedulePostFrame() {
@@ -315,8 +329,11 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   }
 
   void _attachListeners(web.HTMLElement stage) {
-    void bind(String type, void Function(web.Event event) handler,
-        {bool passive = true}) {
+    void bind(
+      String type,
+      void Function(web.Event event) handler, {
+      bool passive = true,
+    }) {
       final JSFunction listener = handler.toJS;
       _stageListeners[type] = listener;
       stage.addEventListener(
@@ -379,14 +396,13 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     if (_fontRequested) return;
     _fontRequested = true;
     try {
-      web.document.fonts.load('16px "Minecraftia"').toDart.then<void>(
-        (JSArray<web.FontFace> _) {
-          if (_disposed) return;
-          _metrics.invalidate();
-          _markDirty();
-        },
-        onError: (Object _) {},
-      );
+      web.document.fonts.load('16px "Minecraftia"').toDart.then<void>((
+        JSArray<web.FontFace> _,
+      ) {
+        if (_disposed) return;
+        _metrics.invalidate();
+        _markDirty();
+      }, onError: (Object _) {});
     } catch (_) {
       // Font Loading API unavailable: the fallback metric still renders.
     }
@@ -480,9 +496,10 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     _reconcileTimers();
   }
 
-  PreviewLangCatalog _lang() =>
-      huiFreshestCatalogs(component.store.catalogs, component.catalogs)
-          .previewLang;
+  PreviewLangCatalog _lang() => huiFreshestCatalogs(
+    component.store.catalogs,
+    component.catalogs,
+  ).previewLang;
 
   /// Scene for hit testing. Rebuilt when the document changed since the last
   /// paint, so a click can never resolve against a stale layout.
@@ -509,11 +526,11 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   }
 
   PreviewBox _itemBox(PreviewCardScene scene, int index) => previewItemBox(
-        scene.items[index],
-        labelWidth: index < _labelWidths.length && _labelWidths[index] > 0
-            ? _labelWidths[index]
-            : null,
-      );
+    scene.items[index],
+    labelWidth: index < _labelWidths.length && _labelWidths[index] > 0
+        ? _labelWidths[index]
+        : null,
+  );
 
   // --- simulation clock -----------------------------------------------------
 

@@ -109,8 +109,10 @@ extension _CanvasInteractions on _CanvasViewportState {
       pagePixels: math.max(1, _viewport.heightPx),
     );
     if (factor == 1) return;
-    final ScreenPoint local =
-        _localPoint(_eventDouble(wheel, 'clientX'), _eventDouble(wheel, 'clientY'));
+    final ScreenPoint local = _localPoint(
+      _eventDouble(wheel, 'clientX'),
+      _eventDouble(wheel, 'clientY'),
+    );
     _commitViewport(
       _viewport.zoomByAtScreenPoint(
         factor: factor,
@@ -366,8 +368,11 @@ extension _CanvasInteractions on _CanvasViewportState {
       grabbedId: id,
       // Snap the grabbed component only; the rest follow its snapped delta, so
       // the group can never be torn apart by the grid.
-      grabbedTarget:
-          Vec3(store.snapValue(rawX), store.snapValue(rawY), start.z),
+      grabbedTarget: Vec3(
+        store.snapValue(rawX),
+        store.snapValue(rawY),
+        start.z,
+      ),
       guideThresholdBlocks: _viewport.pixelsToBlocks(huiGuideCatchPx),
     );
     if (drag.offsets.isEmpty) return;
@@ -378,7 +383,9 @@ extension _CanvasInteractions on _CanvasViewportState {
     }
     if (!_offsetsChanged(store, drag.offsets)) return;
     store.setOffsets(
-      drag.offsets.length == 1 ? 'move $id' : 'move ${drag.offsets.length} components',
+      drag.offsets.length == 1
+          ? 'move $id'
+          : 'move ${drag.offsets.length} components',
       drag.offsets,
     );
     final Vec3? landed = drag.offsets[id];
@@ -490,8 +497,10 @@ extension _CanvasInteractions on _CanvasViewportState {
   void _handleDoubleClick(web.Event event) {
     if (!event.isA<web.MouseEvent>()) return;
     final web.MouseEvent mouse = event as web.MouseEvent;
-    final WorldPoint world =
-        _worldPoint(_eventDouble(mouse, 'clientX'), _eventDouble(mouse, 'clientY'));
+    final WorldPoint world = _worldPoint(
+      _eventDouble(mouse, 'clientX'),
+      _eventDouble(mouse, 'clientY'),
+    );
     final CanvasItem? hit = _currentScene.hitTest(world.x, world.y);
     if (hit == null) return;
     event.preventDefault();
@@ -635,11 +644,7 @@ extension _CanvasInteractions on _CanvasViewportState {
 
   // --- DOM readouts ---------------------------------------------------------
 
-  void _setStageState({
-    bool? dragging,
-    bool? overComponent,
-    bool? panReady,
-  }) {
+  void _setStageState({bool? dragging, bool? overComponent, bool? panReady}) {
     final web.HTMLElement? stage = _stage;
     if (stage == null) return;
     if (dragging != null) {
@@ -674,7 +679,8 @@ extension _CanvasInteractions on _CanvasViewportState {
   void _showReadout(Vec3 offset) {
     final web.Element? readout = web.document.getElementById(_readoutId);
     if (readout == null) return;
-    readout.textContent = 'x ${_fmt(offset.x)}   y ${_fmt(offset.y)}   '
+    readout.textContent =
+        'x ${_fmt(offset.x)}   y ${_fmt(offset.y)}   '
         'z ${_fmt(offset.z)}';
     readout.classList.add('is-visible');
   }

@@ -349,6 +349,26 @@ void main() {
         closeTo(0.95, _epsilon),
       );
     });
+
+    test('entity footprint grows upward from its feet anchor', () {
+      final HuiRect visual = visualBoundsAt(
+        anchorX: 2,
+        anchorY: 3,
+        uiScale: 2,
+        shape: const IconShape.entity(width: 0.5, height: 0.9),
+        trueRender: true,
+      );
+      final HuiRect hitbox = hitboxAt(
+        anchorX: 2,
+        anchorY: 3,
+        uiScale: 2,
+        shape: const IconShape.entity(width: 0.5, height: 0.9),
+      );
+
+      expect(visual, const HuiRect(x: 2, y: 3.9, w: 1, h: 1.8));
+      expect(hitbox, visual);
+      expect(visual.bottom, closeTo(3, _epsilon));
+    });
   });
 
   group('text line layout', () {
@@ -562,12 +582,7 @@ void main() {
           0.05,
           const [],
           null,
-          HuiHitbox(
-            null,
-            null,
-            Vec3(0, 0.175, 0),
-            HuiHitboxAnchor.menu,
-          ),
+          HuiHitbox(null, null, Vec3(0, 0.175, 0), HuiHitboxAnchor.menu),
         ),
       );
       final Vec3 menuOffset = Vec3(0, 1.7, 2.5);
@@ -630,6 +645,49 @@ void main() {
   });
 
   group('degenerate shapes', () {
+    test(
+      'non-uniform icon scale changes automatic planes and visual bounds',
+      () {
+        const IconShape shape = IconShape.text(lines: 2, maxLineChars: 8);
+        final HuiRect plane = hitboxAt(
+          anchorX: 0,
+          anchorY: 0,
+          uiScale: 1,
+          shape: shape,
+          scaleX: 2,
+          scaleY: 0.5,
+        );
+        final HuiRect visual = visualBoundsAt(
+          anchorX: 0,
+          anchorY: 0,
+          uiScale: 1,
+          shape: shape,
+          trueRender: true,
+          scaleX: 2,
+          scaleY: 0.5,
+        );
+
+        expect(plane.w, closeTo(8 * huiLineHeight, _epsilon));
+        expect(plane.h, closeTo(huiLineHeight, _epsilon));
+        expect(plane.y, closeTo(-huiTextTrueRenderBias * 0.5, _epsilon));
+        expect(visual.w, closeTo(8 * huiTextCharWidth * 2, _epsilon));
+        expect(visual.h, closeTo(2 * huiLineHeight * 0.5, _epsilon));
+      },
+    );
+
+    test('non-uniform item scale expands its automatic click plane', () {
+      final HuiRect plane = hitboxAt(
+        anchorX: 0,
+        anchorY: 0,
+        uiScale: 2,
+        shape: const IconShape.item(),
+        scaleX: 1.5,
+        scaleY: 0.25,
+      );
+      expect(plane.w, closeTo(huiItemSize * 3, _epsilon));
+      expect(plane.h, closeTo(huiItemSize * 0.5, _epsilon));
+    });
+
     test('never produce negative extents', () {
       final HuiRect emptyText = hitboxAt(
         anchorX: 0,

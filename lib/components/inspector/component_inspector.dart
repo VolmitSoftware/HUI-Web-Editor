@@ -120,7 +120,8 @@ class ComponentInspector extends StatelessWidget {
           componentId: _id,
           slot: ActionSlot.actions,
           actions: data.actions,
-          description: 'Run in order on every left click.',
+          description:
+              'Matching actions run in order for each configured click.',
           issues: _issues,
         ),
       ];

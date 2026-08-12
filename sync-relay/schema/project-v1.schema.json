@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sync.holoui.volmitsoftware.com/schema/project-v1.schema.json",
+  "title": "HoloUI editor sync project v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "kind",
+    "subjectId",
+    "baseRevision",
+    "menus",
+    "images",
+    "constraints",
+    "warnings"
+  ],
+  "properties": {
+    "format": { "const": "holoui-sync-project" },
+    "version": { "const": 1 },
+    "kind": { "enum": ["menu", "board"] },
+    "subjectId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "baseRevision": { "$ref": "#/$defs/revision" },
+    "menus": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "json"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "json": { "type": "string", "minLength": 1, "maxLength": 2097152 }
+        }
+      }
+    },
+    "board": { "type": ["object", "null"] },
+    "images": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "data"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "data": {
+            "type": "string",
+            "maxLength": 699100,
+            "pattern": "^data:image/(png|jpeg|gif|webp|bmp);base64,[A-Za-z0-9+/]*={0,2}$"
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subjectId",
+        "menuIds",
+        "imagePaths",
+        "newImagePrefix",
+        "allowDeletes"
+      ],
+      "properties": {
+        "subjectId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "menuIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        },
+        "imagePaths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        },
+        "newMenuPrefix": { "type": "string", "minLength": 2, "maxLength": 256 },
+        "newImagePrefix": { "type": "string", "minLength": 2, "maxLength": 256 },
+        "allowDeletes": { "const": false }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "type": "string", "maxLength": 512 }
+    }
+  },
+  "$defs": {
+    "revision": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "menu" } } },
+      "then": {
+        "not": { "required": ["board"] },
+        "properties": {
+          "constraints": { "not": { "required": ["newMenuPrefix"] } }
+        }
+      },
+      "else": {
+        "required": ["board"],
+        "properties": {
+          "board": { "type": "object" },
+          "constraints": { "required": ["newMenuPrefix"] }
+        }
+      }
+    }
+  ]
+}

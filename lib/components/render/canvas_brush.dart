@@ -166,8 +166,8 @@ class CanvasBrush {
   set smoothing(bool value) => ctx.imageSmoothingEnabled = value;
 
   void dash(List<double> pattern) => ctx.setLineDash(
-        <JSNumber>[for (final double value in pattern) value.toJS].toJS,
-      );
+    <JSNumber>[for (final double value in pattern) value.toJS].toJS,
+  );
 
   void clearDash() => ctx.setLineDash(const <JSNumber>[].toJS);
 
@@ -185,12 +185,8 @@ class CanvasBrush {
       ctx.strokeRect(x, y, w, h);
 
   /// Fills a block-space rectangle.
-  void fillWorldRect(HuiRect rect) => ctx.fillRect(
-        sx(rect.left),
-        sy(rect.top),
-        px(rect.w),
-        px(rect.h),
-      );
+  void fillWorldRect(HuiRect rect) =>
+      ctx.fillRect(sx(rect.left), sy(rect.top), px(rect.w), px(rect.h));
 
   /// Strokes a block-space rectangle, snapped to the pixel grid so hairlines
   /// stay crisp at any zoom.
@@ -202,13 +198,7 @@ class CanvasBrush {
     ctx.strokeRect(left, top, right - left, bottom - top);
   }
 
-  void roundedRectPx(
-    double x,
-    double y,
-    double w,
-    double h,
-    double radius,
-  ) {
+  void roundedRectPx(double x, double y, double w, double h, double radius) {
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, radius.toJS);
   }
@@ -252,12 +242,14 @@ class CanvasBrush {
   }
 
   void setUiFont(double sizePx, {bool bold = false}) {
-    ctx.font = '${bold ? '600 ' : ''}${sizePx.toStringAsFixed(1)}px '
+    ctx.font =
+        '${bold ? '600 ' : ''}${sizePx.toStringAsFixed(1)}px '
         '"Geist", ui-sans-serif, system-ui, sans-serif';
   }
 
   void setMinecraftFont(double sizePx, {bool italic = false}) {
-    ctx.font = '${italic ? 'italic ' : ''}${sizePx.toStringAsFixed(2)}px '
+    ctx.font =
+        '${italic ? 'italic ' : ''}${sizePx.toStringAsFixed(2)}px '
         '"Minecraftia", "Geist Mono", monospace';
   }
 

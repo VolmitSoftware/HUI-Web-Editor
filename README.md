@@ -8,13 +8,19 @@ Version 3.1.0 — a from-scratch rewrite in [arcane_jaspr](https://github.com/Ar
 
 - **Visual canvas** in block space: zoom/pan, grid + snapping, drag components, selection, keyboard nudge. Renders text (legacy `&` codes and MiniMessage, in the Minecraft font), item sprites, pixel-art image icons and animated icons at the exact in-game metrics (0.21875 blocks per text line, `uiScale` semantics, hitbox overlays matching the plugin's `debugHitbox`).
 - **Linked button hitboxes**: text and image click planes follow the visible render, while an optional custom width and height can replace automatic icon-derived sizing without creating an independent position that can drift away.
-- **Full format coverage** as the plugin's Gson actually reads it — all three component types (button / decoration / toggle), all five authorable icon types (text / textImage / animatedTextImage / item / customItem), both actions (command / sound with all 10 sound categories), toggle conditions, `maxDistance`, `closeOnDeath`, `closeOnTeleport`, `customModelValue` (the real key — the `customModelData` older files carry is migrated on import).
-- **Code view** with two-way sync, plus split view.
+- **Runtime 3D preview**: reproduces the open pose, `followPlayer` position and yaw, fixed / vertical / horizontal / center icon billboards, matching click planes, hover push and nearest-click behavior. PlaceholderAPI tokens remain literal because the browser has no server context; the preview reports their `refreshTicks` cadence instead.
+- **Full format coverage** as the plugin's Gson actually reads it — all three component types (button / decoration / toggle), all seven authorable icon types (text / textImage / animatedTextImage / item / block / customItem / entity), all six actions (command / sound / message / teleport / connect / navigate), toggle conditions, `maxDistance`, `closeOnDeath`, `closeOnTeleport`, `customModelValue` (the real key — the `customModelData` older files carry is migrated on import).
+- **Code view** with two-way sync, plus split view. Validated menu handoffs retain their exact source formatting and extension keys through storage and export until the first visual edit or explicit Format action.
 - **Validation** engine encoding the plugin's real parsing rules (lowercase registry keys, action source spellings, silent-zero pitfalls like `volume: 0`, legacy and MiniMessage formatting, hitbox overlap warnings).
-- **Image library**: upload pixel art, preview exactly as the plugin rasterizes it, export `images.zip` laid out for `plugins/holoui/images/`.
-- **Workspace**: multiple menus, autosave to browser storage, undo/redo, templates, searchable item/sound catalogs.
+- **Image library**: upload validated PNG pixel art, preview exactly as the plugin rasterizes it, export `images.zip` laid out for `plugins/holoui/images/`. Server sync preserves captured PNG, JPEG, GIF, WebP and BMP bytes losslessly.
+- **Workspace**: folders, multiple menus and flow boards, atomic IndexedDB autosave with previous-transaction recovery and cross-tab conflict protection, undo/redo, templates, and searchable catalogs. Existing `holoui.workspace.v1` / `v2` localStorage data migrates once without deleting the rollback copy.
+- **Optional server sync**: capability links opened from `/holoui edit` import an exact menu or persistent world-board graph through the configured relay. Board publication retains the bound no-delete baseline and adds only menus reachable from the board root, leaving unrelated folder documents local. Sync status, conflicts and expiry stay visible; only the explicit **Publish to Server** action sends changes, and revision conflicts never overwrite local work. Links use the configured HTTPS relay (the plugin defaults to `https://sync.holoui.volmitsoftware.com/v1`) or a localhost HTTP development relay; an unreachable provider is reported without implying that a deployment is available.
 
-Everything runs client-side. No server, no accounts, no network calls beyond loading the static assets.
+The editor itself remains a static client with no accounts. Normal authoring and autosave are local-only; opening a server-issued capability link enables bounded HTTPS requests to that link's relay until the tab disconnects. Capability tokens stay in the URL fragment and tab `sessionStorage`, never in workspace documents or exported bundles. If tab storage is blocked, the capability stays in the fragment and the sync bar tells you to copy the link before reloading.
+
+Sync v1 does not delete captured server resources. A board can add menus only under the displayed `newMenuPrefix`; menus and boards can add images only under `newImagePrefix`. The editor validates exact runtime ids, the whole bound graph, typed world-board JSON, image bytes, immutable constraints and content revisions before publishing. Synced raster assets are limited to 64×64 pixels each and 262,144 stored pixels per project; every repeated text-image component and animated frame is counted again against a 262,144-pixel / 4,096-row runtime-render budget. The protocol safety ceiling is 32 MiB per project; a relay deployment may enforce a lower configured limit and return `413`.
+
+Workspace bundles and server projects span IndexedDB documents and localStorage images. Import and refresh use checked compensation when either write fails, but browsers provide no atomic transaction across those two storage systems; force-closing the browser between their writes can leave a partial import.
 
 ## Development
 
@@ -38,8 +44,8 @@ The hosted editor is deployed to [holoui.volmitsoftware.com](https://holoui.volm
 ```
 lib/model/        HoloUI JSON data model + codec (runtime semantics, unknown-key preserving)
 lib/logic/        validation rules, Minecraft text parser, viewport math, hitbox geometry
-lib/services/     localStorage, image library, catalogs, file transfer, clipboard
-lib/state/        EditorStore (undo/redo, autosave), multi-doc workspace
+lib/services/     browser storage, image library, catalogs, file transfer, clipboard
+lib/state/        EditorStore, IndexedDB persistence, multi-doc workspace and flow boards
 lib/components/   shell (top bar, shortcuts, palette), canvas, inspector, panels, dialogs
 web/assets/       fonts (Geist, lucide, Minecraft), item/sound catalogs, backdrop, brand
 tool/             asset extraction scripts

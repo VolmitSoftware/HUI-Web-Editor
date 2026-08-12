@@ -1,0 +1,14 @@
+{
+  "protocol": 1,
+  "baseRevision": "sha256:ec18b7610a5df4a0e172be9a5d8bec0b25c2927d84327908bd3f6c3e7a46d3cd",
+  "publication": {
+    "revision": 1,
+    "state": "applied",
+    "ack": {
+      "status": "applied",
+      "message": "Applied safely.",
+      "serverRevision": "sha256:ec18b7610a5df4a0e172be9a5d8bec0b25c2927d84327908bd3f6c3e7a46d3cd",
+      "acknowledgedAt": "2026-08-12T12:05:02.000Z"
+    }
+  }
+}

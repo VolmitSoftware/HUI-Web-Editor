@@ -78,8 +78,8 @@ void paintGrid(CanvasBrush brush) {
   final double majorStep = pixelsPerBlock >= 26
       ? 1
       : pixelsPerBlock >= 6
-          ? 5
-          : 25;
+      ? 5
+      : 25;
   final bool showSubGrid = brush.px(0.25) >= 13;
 
   brush.save();
@@ -109,8 +109,9 @@ void paintGrid(CanvasBrush brush) {
 void _rules(
   CanvasBrush brush,
   WorldBounds view,
-  double step,
-  {required bool vertical}) {
+  double step, {
+  required bool vertical,
+}) {
   final double min = vertical ? view.minX : view.minY;
   final double max = vertical ? view.maxX : view.maxY;
   final int first = (min / step).floor();
@@ -151,7 +152,11 @@ void _paintRulerLabels(CanvasBrush brush, WorldBounds view, double step) {
     for (int i = firstX; i <= lastX; i++) {
       final double value = i * step;
       if (value == 0) continue;
-      brush.fillTextPx(_rulerLabel(value), brush.sx(value), brush.heightPx - 12);
+      brush.fillTextPx(
+        _rulerLabel(value),
+        brush.sx(value),
+        brush.heightPx - 12,
+      );
     }
   }
   brush.restore();
@@ -210,7 +215,11 @@ void paintPlayerReference(CanvasBrush brush) {
 }
 
 /// Yellow menu-centre marker, mirroring the plugin's `debugPosition` particle.
-void paintMenuCenter(CanvasBrush brush, Vec3 menuOffset, {bool labelled = true}) {
+void paintMenuCenter(
+  CanvasBrush brush,
+  Vec3 menuOffset, {
+  bool labelled = true,
+}) {
   final CanvasPalette palette = brush.palette;
   brush.save();
   brush.clearDash();

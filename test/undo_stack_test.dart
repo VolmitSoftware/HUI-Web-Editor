@@ -138,7 +138,8 @@ void main() {
       final _FakeStorage storage = _FakeStorage();
       final Workspace workspace = _workspace(storage);
       final WorkspaceDoc doc = workspace.create(
-        name: 'shop',
+        title: 'shop',
+        runtimeId: 'shop',
         json: '{"components": []}',
       );
       expect(workspace.activeId, doc.id);
@@ -149,20 +150,24 @@ void main() {
     test('round-trips through storage', () {
       final _FakeStorage storage = _FakeStorage();
       final Workspace first = _workspace(storage);
-      final WorkspaceDoc a = first.create(name: 'a', json: '{"a": 1}');
-      first.create(name: 'b', json: '{"b": 2}');
+      final WorkspaceDoc a = first.create(
+        title: 'a',
+        runtimeId: 'a',
+        json: '{"a": 1}',
+      );
+      first.create(title: 'b', runtimeId: 'b', json: '{"b": 2}');
       first.switchTo(a.id);
 
       final Workspace second = _workspace(storage);
       expect(second.docs.length, 2);
       expect(second.activeId, a.id);
-      expect(second.active?.name, 'a');
+      expect(second.active?.runtimeId, 'a');
       expect(second.active?.json, '{"a": 1}');
     });
 
     test('skips corrupt entries instead of throwing', () {
       final _FakeStorage storage = _FakeStorage();
-      storage.values[Workspace.storageKey] =
+      storage.values[Workspace.legacyStorageKey] =
           '{"docs":['
           '{"id":"1","name":"good","json":"{}","updatedAt":5},'
           '{"id":"2","name":"bad-json","json":"{not json","updatedAt":6},'
@@ -172,8 +177,8 @@ void main() {
           '],"activeId":"2"}';
       final Workspace workspace = _workspace(storage);
       expect(workspace.docs.length, 1);
-      expect(workspace.docs.single.id, '1');
-      expect(workspace.activeId, '1');
+      expect(isWorkspaceUuid(workspace.docs.single.id), isTrue);
+      expect(workspace.activeId, workspace.docs.single.id);
     });
 
     test('survives a payload that is not JSON at all', () {
@@ -192,20 +197,32 @@ void main() {
       expect(workspace.docs, isEmpty);
     });
 
-    test('rename sanitizes and persists', () {
+    test('runtime-id rename sanitizes and persists', () {
       final _FakeStorage storage = _FakeStorage();
       final Workspace workspace = _workspace(storage);
-      final WorkspaceDoc doc = workspace.create(name: 'a', json: '{}');
-      expect(workspace.rename(doc.id, 'Warp Compass'), isTrue);
-      expect(workspace.byId(doc.id)?.name, 'warp-compass');
-      expect(workspace.rename('missing', 'x'), isFalse);
+      final WorkspaceDoc doc = workspace.create(
+        title: 'A',
+        runtimeId: 'a',
+        json: '{}',
+      );
+      expect(workspace.renameDocumentRuntimeId(doc.id, 'Warp Compass'), isTrue);
+      expect(workspace.byId(doc.id)?.runtimeId, 'Warp-Compass');
+      expect(workspace.renameDocumentRuntimeId('missing', 'x'), isFalse);
     });
 
     test('delete picks a new active document', () {
       final _FakeStorage storage = _FakeStorage();
       final Workspace workspace = _workspace(storage);
-      final WorkspaceDoc a = workspace.create(name: 'a', json: '{}');
-      final WorkspaceDoc b = workspace.create(name: 'b', json: '{}');
+      final WorkspaceDoc a = workspace.create(
+        title: 'a',
+        runtimeId: 'a',
+        json: '{}',
+      );
+      final WorkspaceDoc b = workspace.create(
+        title: 'b',
+        runtimeId: 'b',
+        json: '{}',
+      );
       expect(workspace.activeId, b.id);
       expect(workspace.delete(b.id), isTrue);
       expect(workspace.activeId, a.id);
@@ -217,7 +234,7 @@ void main() {
     test('switchTo rejects unknown ids', () {
       final _FakeStorage storage = _FakeStorage();
       final Workspace workspace = _workspace(storage);
-      workspace.create(name: 'a', json: '{}');
+      workspace.create(title: 'a', runtimeId: 'a', json: '{}');
       expect(workspace.switchTo('nope'), isFalse);
     });
 
@@ -227,7 +244,11 @@ void main() {
         final _FakeStorage storage = _FakeStorage();
         final Workspace workspace = _workspace(storage);
         storage.refuseWrites = true;
-        final WorkspaceDoc doc = workspace.create(name: 'a', json: '{}');
+        final WorkspaceDoc doc = workspace.create(
+          title: 'a',
+          runtimeId: 'a',
+          json: '{}',
+        );
         expect(workspace.byId(doc.id), isNotNull);
         expect(workspace.lastError, isNotNull);
         expect(workspace.quotaExceeded, isTrue);
@@ -237,8 +258,16 @@ void main() {
     test('recent orders by updatedAt descending', () {
       final _FakeStorage storage = _FakeStorage();
       final Workspace workspace = _workspace(storage);
-      final WorkspaceDoc a = workspace.create(name: 'a', json: '{}');
-      final WorkspaceDoc b = workspace.create(name: 'b', json: '{}');
+      final WorkspaceDoc a = workspace.create(
+        title: 'a',
+        runtimeId: 'a',
+        json: '{}',
+      );
+      final WorkspaceDoc b = workspace.create(
+        title: 'b',
+        runtimeId: 'b',
+        json: '{}',
+      );
       workspace.switchTo(a.id);
       workspace.updateActive(json: '{"x":1}');
       expect(workspace.recent.first.id, a.id);
@@ -285,10 +314,12 @@ void main() {
       expect(sound.source, 'master');
       expect(sound.volume, 1);
       expect(sound.pitch, 1);
+      expect(sound.trigger, 'any');
 
       final HuiCommandAction command =
           createDefaultAction('command') as HuiCommandAction;
       expect(command.source, 'player');
+      expect(command.trigger, 'any');
     });
 
     test('every default component and icon validates clean', () {
@@ -322,10 +353,19 @@ void main() {
       expect(sanitizeComponentId('a' * 200).length, 64);
     });
 
-    test('menu ids are sanitized to a safe file base name', () {
-      expect(sanitizeMenuId('My Shop Menu'), 'my-shop-menu');
+    test('menu ids preserve portable nested relative paths', () {
+      expect(sanitizeMenuId('My Shop Menu'), 'My-Shop-Menu');
+      expect(sanitizeMenuId('shop/category/detail'), 'shop/category/detail');
       expect(sanitizeMenuId('  ../weird:name  '), 'weird-name');
       expect(sanitizeMenuId(''), huiDefaultMenuId);
+      expect(validateMenuId('shop/category/detail'), isNull);
+      expect(validateMenuId('shop//detail'), isNotNull);
+      expect(validateMenuId('shop/../detail'), isNotNull);
+      expect(validateMenuId('shop\\detail'), isNotNull);
+      expect(
+        menuIdFromFileName('menus/shop/category/detail.json'),
+        'shop/category/detail',
+      );
     });
 
     test('nextFreeOffset avoids offsets already in use', () {
@@ -488,13 +528,13 @@ void main() {
           textCache: McTextCache(),
         ).byId(id)!;
 
-      final CanvasItem linked = item();
-      store.setHitboxAnchor(id, HuiHitboxAnchor.menu);
-      final CanvasItem detached = item();
-      expect(detached.hitbox.x, closeTo(linked.hitbox.x, 1e-9));
-      expect(detached.hitbox.y, closeTo(linked.hitbox.y, 1e-9));
-      expect(detached.hitbox.w, closeTo(linked.hitbox.w, 1e-9));
-      expect(detached.hitbox.h, closeTo(linked.hitbox.h, 1e-9));
+        final CanvasItem linked = item();
+        store.setHitboxAnchor(id, HuiHitboxAnchor.menu);
+        final CanvasItem detached = item();
+        expect(detached.hitbox.x, closeTo(linked.hitbox.x, 1e-9));
+        expect(detached.hitbox.y, closeTo(linked.hitbox.y, 1e-9));
+        expect(detached.hitbox.w, closeTo(linked.hitbox.w, 1e-9));
+        expect(detached.hitbox.h, closeTo(linked.hitbox.h, 1e-9));
         expect(detached.hitboxDepth, linked.hitboxDepth);
 
         store.setComponentOffset(id, Vec3(1, 1, 1));
@@ -616,7 +656,7 @@ void main() {
       store.dispose();
     });
 
-    test('reorder moves a component within the dispatch order', () {
+    test('reorder moves a component within document order', () {
       final EditorStore store = _store(_FakeStorage());
       final String first = store.addComponent('button')!;
       store.addComponent('decoration');
@@ -669,7 +709,7 @@ void main() {
       store.importJson('Warp Compass.json', encodeHuiMenu(replacement));
 
       expect(store.lastError, isNull);
-      expect(store.menuId, 'warp-compass');
+      expect(store.menuId, 'Warp-Compass');
       expect(store.menu.components.single.id, 'imported');
       expect(store.canUndo, isTrue);
 
@@ -793,7 +833,7 @@ void main() {
 
     test('a corrupt stored document degrades to a fresh default menu', () {
       final _FakeStorage storage = _FakeStorage();
-      storage.values[Workspace.storageKey] =
+      storage.values[Workspace.legacyStorageKey] =
           '{"docs":[{"id":"1","name":"broken","json":"[1,2,3]","updatedAt":1}],'
           '"activeId":"1"}';
       final EditorStore store = _store(storage);
@@ -892,8 +932,8 @@ void main() {
     test('export file name follows the sanitized menu id', () {
       final EditorStore store = _store(_FakeStorage());
       store.setMenuId('Warp Compass');
-      expect(store.menuId, 'warp-compass');
-      expect(store.exportFileName, 'warp-compass.json');
+      expect(store.menuId, 'Warp-Compass');
+      expect(store.exportFileName, 'Warp-Compass.json');
       store.dispose();
     });
   });

@@ -1,0 +1,3 @@
+library;
+
+void reloadPlatformPage() {}

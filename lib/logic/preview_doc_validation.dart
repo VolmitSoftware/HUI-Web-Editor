@@ -32,7 +32,9 @@ List<HuiIssue> parseCheckPreviewDoc(HuiPreviewDoc doc) {
     try {
       parsePreviewExpr(raw);
     } on PExprException catch (e) {
-      issues.add(HuiIssue(severity: HuiSeverity.error, path: path, message: e.message));
+      issues.add(
+        HuiIssue(severity: HuiSeverity.error, path: path, message: e.message),
+      );
     }
   }
 
@@ -131,8 +133,8 @@ PreviewVarProblem? previewCheckVariableName(
   return PreviewVarProblem(
     HuiSeverity.warning,
     '$name references provider namespace "$prefix", which nothing currently '
-        'cataloged publishes. It may be supplied by another plugin at '
-        'runtime, or it may be a typo.',
+    'cataloged publishes. It may be supplied by another plugin at '
+    'runtime, or it may be a typo.',
   );
 }
 
@@ -155,10 +157,10 @@ void previewCollectVarRefs(PExpr expr, void Function(String name) visit) {
       previewCollectVarRefs(left, visit);
       previewCollectVarRefs(right, visit);
     case PTernary(
-        condition: final PExpr condition,
-        ifTrue: final PExpr ifTrue,
-        ifFalse: final PExpr ifFalse,
-      ):
+      condition: final PExpr condition,
+      ifTrue: final PExpr ifTrue,
+      ifFalse: final PExpr ifFalse,
+    ):
       previewCollectVarRefs(condition, visit);
       previewCollectVarRefs(ifTrue, visit);
       previewCollectVarRefs(ifFalse, visit);
@@ -195,10 +197,10 @@ bool previewIsConstantExpr(PExpr expr) {
     case PBinary(left: final PExpr left, right: final PExpr right):
       return previewIsConstantExpr(left) && previewIsConstantExpr(right);
     case PTernary(
-        condition: final PExpr condition,
-        ifTrue: final PExpr ifTrue,
-        ifFalse: final PExpr ifFalse,
-      ):
+      condition: final PExpr condition,
+      ifTrue: final PExpr ifTrue,
+      ifFalse: final PExpr ifFalse,
+    ):
       return previewIsConstantExpr(condition) &&
           previewIsConstantExpr(ifTrue) &&
           previewIsConstantExpr(ifFalse);
@@ -274,9 +276,9 @@ const int previewMaxTotalTemplates = 4096;
 /// [validatePreviewDoc] and the inspector's autocomplete list, so the two can
 /// never disagree on what `vars.` offers.
 Set<String> previewDeclaredVars(HuiPreviewDoc doc) => <String>{
-      ...doc.match.vars.keys,
-      for (final HuiPreviewVariant variant in doc.variants) ...variant.vars.keys,
-    };
+  ...doc.match.vars.keys,
+  for (final HuiPreviewVariant variant in doc.variants) ...variant.vars.keys,
+};
 
 // ---------------------------------------------------------------------------
 // Expression-field autocomplete: DOM-free suggestion-source logic shared by
@@ -324,10 +326,11 @@ List<String> previewSuggestExprTokens(
     for (final String name in declaredVars) 'vars.$name',
     ...scope,
   };
-  final List<String> matches = source
-      .where((String name) => name != token && name.startsWith(token))
-      .toList()
-    ..sort();
+  final List<String> matches =
+      source
+          .where((String name) => name != token && name.startsWith(token))
+          .toList()
+        ..sort();
   return matches.take(8).toList();
 }
 
@@ -353,12 +356,7 @@ List<HuiIssue> validatePreviewDoc(
 }) {
   final List<HuiIssue> issues = <HuiIssue>[];
 
-  void add(
-    HuiSeverity severity,
-    String path,
-    String message, {
-    String? fix,
-  }) {
+  void add(HuiSeverity severity, String path, String message, {String? fix}) {
     issues.add(
       HuiIssue(severity: severity, path: path, message: message, fix: fix),
     );
@@ -437,7 +435,7 @@ List<HuiIssue> validatePreviewDoc(
         HuiSeverity.error,
         path,
         'Unknown special value "$special"; must be one of '
-            '${_previewSpecialValueSet.join(", ")}.',
+        '${_previewSpecialValueSet.join(", ")}.',
       );
     }
   }
@@ -463,7 +461,8 @@ List<HuiIssue> validatePreviewDoc(
               HuiSeverity.info,
               path,
               'Glob "$raw" does not currently match any known $kind.',
-              fix: 'Double check the pattern; a target added later can still '
+              fix:
+                  'Double check the pattern; a target added later can still '
                   'match it.',
             );
           }
@@ -489,8 +488,18 @@ List<HuiIssue> validatePreviewDoc(
 
   // --- match / variants ------------------------------------------------
   checkSpecial(doc.match.special, 'match.special');
-  checkNames(doc.match.blocks, 'match.blocks', knownMaterials, 'block material');
-  checkNames(doc.match.entities, 'match.entities', knownEntityTypes, 'entity type');
+  checkNames(
+    doc.match.blocks,
+    'match.blocks',
+    knownMaterials,
+    'block material',
+  );
+  checkNames(
+    doc.match.entities,
+    'match.entities',
+    knownEntityTypes,
+    'entity type',
+  );
   checkVarsMap(doc.match.vars, 'match.vars');
 
   bool anyVariantMatches = false;
@@ -517,7 +526,8 @@ List<HuiIssue> validatePreviewDoc(
     }
   }
 
-  final bool matchEmpty = doc.match.blocks.isEmpty &&
+  final bool matchEmpty =
+      doc.match.blocks.isEmpty &&
       doc.match.entities.isEmpty &&
       doc.match.special == null;
   if (matchEmpty && !anyVariantMatches) {
@@ -553,7 +563,7 @@ List<HuiIssue> validatePreviewDoc(
         type.isEmpty
             ? 'Element type is required: one of panel, cell, slot, label.'
             : 'Unknown element type "$type"; must be one of panel, cell, '
-                'slot, label.',
+                  'slot, label.',
       );
       totalTemplateCount += 1;
       // The plugin never even reads the rest of an element whose type it
@@ -565,10 +575,9 @@ List<HuiIssue> validatePreviewDoc(
     Set<String> scope = const <String>{};
     final HuiPreviewRepeat? repeat = element.repeat;
     if (repeat != null) {
-      final String varName =
-          (repeat.varName == null || repeat.varName!.isEmpty)
-              ? 'i'
-              : repeat.varName!;
+      final String varName = (repeat.varName == null || repeat.varName!.isEmpty)
+          ? 'i'
+          : repeat.varName!;
       if (!_previewIdentifierPattern.hasMatch(varName)) {
         add(
           HuiSeverity.error,
@@ -622,39 +631,67 @@ List<HuiIssue> validatePreviewDoc(
     switch (type) {
       case 'panel':
         if (element.width == null) {
-          add(HuiSeverity.error, '$path.width', 'width is required for type panel.');
+          add(
+            HuiSeverity.error,
+            '$path.width',
+            'width is required for type panel.',
+          );
         } else {
           checkExpr(element.width, '$path.width', scope);
         }
         if (element.height == null) {
-          add(HuiSeverity.error, '$path.height', 'height is required for type panel.');
+          add(
+            HuiSeverity.error,
+            '$path.height',
+            'height is required for type panel.',
+          );
         } else {
           checkExpr(element.height, '$path.height', scope);
         }
         if (element.color == null) {
-          add(HuiSeverity.error, '$path.color', 'color is required for type panel.');
+          add(
+            HuiSeverity.error,
+            '$path.color',
+            'color is required for type panel.',
+          );
         } else {
           checkExpr(element.color, '$path.color', scope);
         }
       case 'cell':
         if (element.size == null) {
-          add(HuiSeverity.error, '$path.size', 'size is required for type cell.');
+          add(
+            HuiSeverity.error,
+            '$path.size',
+            'size is required for type cell.',
+          );
         } else {
           checkExpr(element.size, '$path.size', scope);
         }
         if (element.color == null) {
-          add(HuiSeverity.error, '$path.color', 'color is required for type cell.');
+          add(
+            HuiSeverity.error,
+            '$path.color',
+            'color is required for type cell.',
+          );
         } else {
           checkExpr(element.color, '$path.color', scope);
         }
       case 'slot':
         if (element.size == null) {
-          add(HuiSeverity.error, '$path.size', 'size is required for type slot.');
+          add(
+            HuiSeverity.error,
+            '$path.size',
+            'size is required for type slot.',
+          );
         } else {
           checkExpr(element.size, '$path.size', scope);
         }
         if (element.index == null) {
-          add(HuiSeverity.error, '$path.index', 'index is required for type slot.');
+          add(
+            HuiSeverity.error,
+            '$path.index',
+            'index is required for type slot.',
+          );
         } else {
           checkExpr(element.index, '$path.index', scope);
         }
@@ -663,7 +700,11 @@ List<HuiIssue> validatePreviewDoc(
         }
       case 'label':
         if (element.text == null) {
-          add(HuiSeverity.error, '$path.text', 'text is required for type label.');
+          add(
+            HuiSeverity.error,
+            '$path.text',
+            'text is required for type label.',
+          );
         } else {
           checkExpr(element.text, '$path.text', scope);
         }

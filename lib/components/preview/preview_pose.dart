@@ -9,8 +9,8 @@
 ///
 /// Three notifiers, deliberately, and the split is load-bearing:
 ///
-///  * [PreviewPose] itself notifies for things a person changed — facing mode,
-///    a reopen. Camera writes are SILENT (see [PreviewPose.orbit]); a 60 fps
+///  * [PreviewPose] itself notifies for session changes such as a reopen.
+///    Camera writes are SILENT (see [PreviewPose.orbit]); a 60 fps
 ///    orbit drag must never rebuild a Jaspr subtree.
 ///  * [PreviewPose.live] notifies for per-tick readouts, and only when a value
 ///    actually changed, so a parked pointer over a static menu notifies nobody.
@@ -24,75 +24,8 @@ import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 import '../../preview/action_log.dart';
 import '../../preview/preview_types.dart';
 
-/// Entries kept before the oldest is dropped. A click on a pile of overlapping
-/// hitboxes can log a dozen entries at once, so this is a few hundred clicks.
+/// Entries kept before the oldest is dropped.
 const int huiPreviewLogCapacity = 500;
-
-/// How the preview orients each icon quad.
-///
-/// The two modes exist because the runtime and the author disagree, and the
-/// disagreement is a genuine HoloUi bug rather than a modelling choice.
-enum PreviewFacingMode {
-  /// What a player actually sees. `billboardMode()` returns FIXED for every
-  /// icon type with no overrides (`MenuIcon.java:112-114`), and the only path
-  /// that reaches `MenuIcon.rotate` is `MenuSession.rotate`, which **nothing
-  /// calls**. So text, image and animated icons spawn at world yaw 0
-  /// (`MenuIcon.java:129-131`) and are never turned. Item icons are the lone
-  /// exception: `ItemMenuIcon.spawn` yaws them at the player directly
-  /// (`ItemMenuIcon.java:117-120`).
-  inGame,
-
-  /// What the author is drawing. Component *positions* really are rotated to
-  /// sit in front of the player (`MenuComponent.rotateByPlayer`,
-  /// `MenuComponent.java:142-144`), so this mode carries that rotation through
-  /// to the glyphs as well — the menu the 2D canvas shows, stood up in 3D.
-  intent;
-
-  String get label => switch (this) {
-    PreviewFacingMode.inGame => 'In-game',
-    PreviewFacingMode.intent => 'Intent',
-  };
-
-  /// One line for a chip or a tooltip.
-  String get summary => switch (this) {
-    PreviewFacingMode.inGame =>
-      'Text, image and animated icons face world yaw 0. Item icons face '
-          'the player.',
-    PreviewFacingMode.intent =>
-      'Every icon faces the yaw the menu was opened at.',
-  };
-
-  /// One line for the in-stage note. Says which mode you are in and that the
-  /// result is HoloUi's, not the preview's; the rest is behind the toolbar's
-  /// facing help so the stage stays out of the way.
-  String get headline => switch (this) {
-    PreviewFacingMode.inGame =>
-      'Positions follow the player, glyphs do not. A HoloUi quirk, not a '
-          'preview artifact.',
-    PreviewFacingMode.intent =>
-      'Every icon turned to the open yaw. The server will not render text '
-          'or images this way.',
-  };
-
-  /// The teaching copy. In-game mode has to explain why it looks wrong,
-  /// because looking wrong is the correct result.
-  String get explanation => switch (this) {
-    PreviewFacingMode.inGame =>
-      'The layout follows the player but the glyphs do not. HoloUi rotates '
-          'every component position by the yaw at open, then spawns text, '
-          'image and animated icons at world yaw 0 and never rotates them '
-          '(billboard is FIXED and MenuSession.rotate has no caller). Only '
-          'item icons are yawed at the player, once, at spawn. So a menu '
-          'authored at one yaw reads correctly there and slides toward '
-          'edge-on everywhere else. This is a HoloUi bug, not a preview '
-          'artifact.',
-    PreviewFacingMode.intent =>
-      'Every quad is turned to the open yaw — the menu as you are drawing '
-          'it. Useful for judging layout, but the server will not render '
-          'text, image or animated icons this way. Switch to In-game to '
-          'see what a player gets.',
-  };
-}
 
 /// Imperative commands the preview chrome sends to the stage.
 ///
@@ -167,12 +100,11 @@ class PreviewLiveState extends ChangeNotifier {
   PreviewCloseReason? _closeReason;
   bool _movementLocked = false;
 
-  /// First hovered clickable in declaration order — the one a click reaches
-  /// first, and the one the HUD names.
+  /// Nearest hovered clickable, and the one the HUD names.
   String? get hoveredId => _hoveredId;
 
-  /// How many clickables the look ray is inside. More than one means a single
-  /// click fires all of them (`SessionHolder.java:145-159`).
+  /// How many clickable planes the look ray intersects before nearest-hit
+  /// arbitration.
   int get hoveredIds => _hoveredIds;
 
   /// Consecutive ticks [hoveredId] has been held, counting from 1.
@@ -255,7 +187,6 @@ class PreviewPose extends ChangeNotifier {
 
   PVec3 _openFeet = PVec3.zero;
   double _openYawDeg = 0;
-  PreviewFacingMode _facing = PreviewFacingMode.inGame;
   bool _paused = false;
   int _sessionId = 0;
 
@@ -271,11 +202,9 @@ class PreviewPose extends ChangeNotifier {
   /// not the eyes (`MenuSession.java:73`).
   PVec3 get openFeet => _openFeet;
 
-  /// The yaw the player had at open, in degrees. The menu's one and only
-  /// rotation (`MenuSession.java:119-122`).
+  /// The yaw the player had at open, in degrees. Static menus retain it;
+  /// `followPlayer` menus replace their current facing as the player looks.
   double get openYawDeg => _openYawDeg;
-
-  PreviewFacingMode get facing => _facing;
 
   /// Stops the preview's 50 ms clock: animated frames stop advancing and
   /// obfuscated glyphs stop scrambling.
@@ -288,12 +217,6 @@ class PreviewPose extends ChangeNotifier {
 
   /// Bumped by [captureOpen]. A new id means a fresh `MenuSession`.
   int get sessionId => _sessionId;
-
-  set facing(PreviewFacingMode value) {
-    if (_facing == value) return;
-    _facing = value;
-    notifyListeners();
-  }
 
   set paused(bool value) {
     if (_paused == value) return;

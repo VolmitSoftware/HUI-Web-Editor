@@ -58,6 +58,7 @@ String spriteCacheKey(
         ..write('x')
         ..write(item.shape.columns);
     case CanvasIconKind.item:
+    case CanvasIconKind.block:
     case CanvasIconKind.customItem:
       key
         ..write('|')
@@ -71,6 +72,14 @@ String spriteCacheKey(
         // small. The texture is derived from the item key anyway, so this only
         // has to notice the catalog arriving after the first paint.
         ..write(item.itemTexture?.hashCode.toRadixString(36) ?? '-');
+    case CanvasIconKind.entity:
+      key
+        ..write('|')
+        ..write(item.entityKey)
+        ..write('|')
+        ..write(_num(item.shape.entityWidth))
+        ..write('x')
+        ..write(_num(item.shape.entityHeight));
     case CanvasIconKind.missing:
       // The magenta/black checker is the same 8x8 bitmap everywhere.
       break;

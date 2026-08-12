@@ -1,8 +1,8 @@
 /// Left rail: the ordered component list.
 ///
-/// Order is click-dispatch order in-game. Every overlapping clickable under
-/// the cursor fires in list order, so reordering is a document edit, not a view
-/// preference — every move goes through the store and lands in the undo stack.
+/// Order is serialized menu order and breaks exact-distance click ties in-game.
+/// Reordering is a document edit, not a view preference, so every move goes
+/// through the store and lands in the undo stack.
 ///
 /// The rail is also the non-canvas face of the selection: rows carry set
 /// membership, and shift-click toggles it, so a multi-selection can be built
@@ -287,15 +287,15 @@ class _ComponentsRailState extends State<ComponentsRail> {
         'title': group
             ? 'Commands act on all $selected. Shift-click a row to add or '
                   'remove it; Escape clears the selection.'
-            : 'Order is click order: overlapping clickable components all '
-                  'fire in list order. Drag a row, use the arrows, or use the '
-                  'right-click menu to change it.',
+            : 'The nearest hitbox fires; list order breaks an exact-distance '
+                  'tie. Drag a row, use the arrows, or use the right-click '
+                  'menu to change it.',
       },
       <Widget>[
         Text(
           group
               ? '$selected of $count selected'
-              : 'List order controls click sequence',
+              : 'List order breaks click ties',
         ),
       ],
     );
@@ -948,9 +948,13 @@ class _ComponentsRailState extends State<ComponentsRail> {
     final HuiItemIcon item =>
       'item ${item.item.isEmpty ? '(unset)' : item.item}'
           '${item.count > 1 ? ' x${item.count}' : ''}',
+    final HuiBlockIcon block =>
+      'block ${block.block.isEmpty ? '(unset)' : block.block}',
     final HuiCustomItemIcon custom =>
       '${custom.provider} ${custom.item.isEmpty ? '(unset)' : custom.item}'
           '${custom.count > 1 ? ' x${custom.count}' : ''}',
+    final HuiEntityIcon entity =>
+      'entity ${entity.entity.isEmpty ? '(unset)' : entity.entity}',
   };
 
   /// First line only, colour codes and MiniMessage tags removed, ellipsized.

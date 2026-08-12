@@ -85,8 +85,11 @@ void main() {
   });
 
   group('PreviewCardView', () {
-    const PreviewCardView view =
-        PreviewCardView(widthPx: 400, heightPx: 200, zoom: 4);
+    const PreviewCardView view = PreviewCardView(
+      widthPx: 400,
+      heightPx: 200,
+      zoom: 4,
+    );
 
     test('maps the card origin to the centre of the surface', () {
       expect(view.toScreenX(0), 200);
@@ -110,7 +113,11 @@ void main() {
     });
 
     test('zooming at a point keeps that point under the pointer', () {
-      final PreviewCardView zoomed = view.zoomedAt(8, screenX: 310, screenY: 40);
+      final PreviewCardView zoomed = view.zoomedAt(
+        8,
+        screenX: 310,
+        screenY: 40,
+      );
       expect(zoomed.zoom, 8);
       expect(zoomed.toCardX(310), closeTo(view.toCardX(310), 1e-9));
       expect(zoomed.toCardY(40), closeTo(view.toCardY(40), 1e-9));
@@ -157,32 +164,25 @@ void main() {
     });
 
     test('a panel is its width and height', () {
-      final PreviewBox box =
-          previewItemBox(const CardPanel(0, 0, 1, 100, 40, 0));
+      final PreviewBox box = previewItemBox(
+        const CardPanel(0, 0, 1, 100, 40, 0),
+      );
       expect(box.width, 100);
       expect(box.height, 40);
     });
 
     test('a label is measured from its runs when nothing measured it', () {
-      final PreviewBox box = previewItemBox(const CardLabel(
-        0,
-        0,
-        6,
-        <McSpan>[McSpan(text: 'abcd')],
-        0,
-      ));
+      final PreviewBox box = previewItemBox(
+        const CardLabel(0, 0, 6, <McSpan>[McSpan(text: 'abcd')], 0),
+      );
       expect(box.width, 4 * previewGlyphAdvancePx);
       expect(box.height, previewLabelLineHeightPx);
     });
 
     test('a bold run is one pixel wider per glyph, like the font', () {
-      final PreviewBox box = previewItemBox(const CardLabel(
-        0,
-        0,
-        6,
-        <McSpan>[McSpan(text: 'ab', bold: true)],
-        0,
-      ));
+      final PreviewBox box = previewItemBox(
+        const CardLabel(0, 0, 6, <McSpan>[McSpan(text: 'ab', bold: true)], 0),
+      );
       expect(box.width, 2 * (previewGlyphAdvancePx + 1));
     });
 
@@ -195,8 +195,9 @@ void main() {
     });
 
     test('an empty label still has a grabbable width', () {
-      final PreviewBox box =
-          previewItemBox(const CardLabel(0, 0, 6, <McSpan>[], 0));
+      final PreviewBox box = previewItemBox(
+        const CardLabel(0, 0, 6, <McSpan>[], 0),
+      );
       expect(box.width, previewGlyphAdvancePx);
     });
   });
@@ -205,10 +206,22 @@ void main() {
     test('the topmost item by z wins, not the last declared', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
-              x: 0, y: 0, z: 9, size: 20, color: '#FF00FF00'),
-          HuiPreviewElement('cell',
-              x: 0, y: 0, z: 2, size: 20, color: '#FFFF0000'),
+          HuiPreviewElement(
+            'cell',
+            x: 0,
+            y: 0,
+            z: 9,
+            size: 20,
+            color: '#FF00FF00',
+          ),
+          HuiPreviewElement(
+            'cell',
+            x: 0,
+            y: 0,
+            z: 2,
+            size: 20,
+            color: '#FFFF0000',
+          ),
         ],
       );
       final PreviewCardScene scene = _build(doc);
@@ -261,21 +274,32 @@ void main() {
     });
 
     test('an expression-positioned element refuses the drag', () {
-      expect(previewMoveRefusal(_cell('i * 10', 0, 8)),
-          previewExpressionMoveHint);
-      expect(previewMoveRefusal(_cell(0, 'time', 8)), previewExpressionMoveHint);
+      expect(
+        previewMoveRefusal(_cell('i * 10', 0, 8)),
+        previewExpressionMoveHint,
+      );
+      expect(
+        previewMoveRefusal(_cell(0, 'time', 8)),
+        previewExpressionMoveHint,
+      );
     });
 
     test('a move lands on whole pixels', () {
-      final PreviewPoint moved =
-          previewMoveTarget(_cell(10, -4, 8), dxCard: 3.4, dyCard: -2.6);
+      final PreviewPoint moved = previewMoveTarget(
+        _cell(10, -4, 8),
+        dxCard: 3.4,
+        dyCard: -2.6,
+      );
       expect(moved.x, 13);
       expect(moved.y, -7);
     });
 
     test('an absent coordinate moves from the format default of zero', () {
-      final PreviewPoint moved =
-          previewMoveTarget(_cell(null, null, 8), dxCard: -5.2, dyCard: 9.7);
+      final PreviewPoint moved = previewMoveTarget(
+        _cell(null, null, 8),
+        dxCard: -5.2,
+        dyCard: 9.7,
+      );
       expect(moved.x, -5);
       expect(moved.y, 10);
     });
@@ -285,13 +309,18 @@ void main() {
       // Ten frames of a third of a pixel each: measured from the start this is
       // one clean move, where per-frame deltas would round to nothing ten
       // times over.
-      expect(previewMoveFrom(start, dxCard: 3.3, dyCard: -3.3),
-          const PreviewPoint(13, 7));
+      expect(
+        previewMoveFrom(start, dxCard: 3.3, dyCard: -3.3),
+        const PreviewPoint(13, 7),
+      );
     });
 
     test('a nudge is a move by whole pixels', () {
-      final PreviewPoint nudged =
-          previewMoveTarget(_cell(2, 2, 8), dxCard: -1, dyCard: 0);
+      final PreviewPoint nudged = previewMoveTarget(
+        _cell(2, 2, 8),
+        dxCard: -1,
+        dyCard: 0,
+      );
       expect(nudged.x, 1);
       expect(nudged.y, 2);
     });
@@ -303,18 +332,28 @@ void main() {
     });
 
     test('an expression size refuses', () {
-      expect(previewResizeRefusal(_cell(0, 0, 'vars.size')),
-          previewExpressionResizeHint);
+      expect(
+        previewResizeRefusal(_cell(0, 0, 'vars.size')),
+        previewExpressionResizeHint,
+      );
     });
 
     test('a label has no resizable extent', () {
-      expect(previewResizeRefusal(HuiPreviewElement('label', text: "'hi'")),
-          previewNoResizeHint);
+      expect(
+        previewResizeRefusal(HuiPreviewElement('label', text: "'hi'")),
+        previewNoResizeHint,
+      );
     });
 
     test('a panel resizes from the corner opposite the handle', () {
-      final HuiPreviewElement panel = HuiPreviewElement('panel',
-          x: 0, y: 0, width: 40, height: 20, color: '#FF000000');
+      final HuiPreviewElement panel = HuiPreviewElement(
+        'panel',
+        x: 0,
+        y: 0,
+        width: 40,
+        height: 20,
+        color: '#FF000000',
+      );
       final PreviewResize? resized = previewResizeTarget(
         element: panel,
         box: const PreviewBox(left: -20, bottom: -10, right: 20, top: 10),
@@ -375,8 +414,9 @@ void main() {
         const PreviewBox(left: -4, bottom: -6, right: 4, top: 6),
       );
       expect(spots, hasLength(4));
-      final PreviewHandleSpot topLeft = spots
-          .firstWhere((PreviewHandleSpot s) => s.handle == PreviewHandle.topLeft);
+      final PreviewHandleSpot topLeft = spots.firstWhere(
+        (PreviewHandleSpot s) => s.handle == PreviewHandle.topLeft,
+      );
       expect(topLeft.x, -4);
       expect(topLeft.y, 6);
     });
@@ -388,8 +428,12 @@ void main() {
         card: HuiPreviewCard(title: "'&fChest'"),
         elements: <HuiPreviewElement>[
           _cell(0, 0, 8),
-          HuiPreviewElement('label',
-              x: 0, y: -20, text: "'&7' + inventory.occupied + ' full'"),
+          HuiPreviewElement(
+            'label',
+            x: 0,
+            y: -20,
+            text: "'&7' + inventory.occupied + ' full'",
+          ),
         ],
       );
       expect(previewDocIsAnimated(doc), isFalse);
@@ -398,11 +442,13 @@ void main() {
     test('a cell colour driven by the clock is animated', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
-              x: 0,
-              y: 0,
-              size: 8,
-              color: 'mod(floor(time / 20), 2) == 0 ? #FF00FF00 : #FF008800'),
+          HuiPreviewElement(
+            'cell',
+            x: 0,
+            y: 0,
+            size: 8,
+            color: 'mod(floor(time / 20), 2) == 0 ? #FF00FF00 : #FF008800',
+          ),
         ],
       );
       expect(previewDocIsAnimated(doc), isTrue);
@@ -413,8 +459,13 @@ void main() {
       // word is what keeps `time` and `cookTime` from firing inside it.
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell',
-              x: 0, y: 0, size: 'cookTimeTotal / 20', color: '#FF00FF00'),
+          HuiPreviewElement(
+            'cell',
+            x: 0,
+            y: 0,
+            size: 'cookTimeTotal / 20',
+            color: '#FF00FF00',
+          ),
         ],
       );
       expect(previewDocIsAnimated(doc), isFalse);
@@ -422,35 +473,43 @@ void main() {
 
     test('a repeat count and a card field are both scanned', () {
       expect(
-        previewDocIsAnimated(HuiPreviewDoc(
-          elements: <HuiPreviewElement>[
-            HuiPreviewElement('cell',
+        previewDocIsAnimated(
+          HuiPreviewDoc(
+            elements: <HuiPreviewElement>[
+              HuiPreviewElement(
+                'cell',
                 x: 0,
                 y: 0,
                 size: 4,
                 color: '#FF00FF00',
-                repeat: HuiPreviewRepeat(count: 'floor(burnTime / 100)')),
-          ],
-        )),
+                repeat: HuiPreviewRepeat(count: 'floor(burnTime / 100)'),
+              ),
+            ],
+          ),
+        ),
         isTrue,
       );
       expect(
-        previewDocIsAnimated(HuiPreviewDoc(
-          card: HuiPreviewCard(title: "'up ' + round(time) + 's'"),
-        )),
+        previewDocIsAnimated(
+          HuiPreviewDoc(
+            card: HuiPreviewCard(title: "'up ' + round(time) + 's'"),
+          ),
+        ),
         isTrue,
       );
     });
 
     test('the shipped furnace document animates', () {
       final HuiPreviewDoc doc = decodeHuiPreviewDoc(
-          File('test/fixtures/previews/furnace.json').readAsStringSync());
+        File('test/fixtures/previews/furnace.json').readAsStringSync(),
+      );
       expect(previewDocIsAnimated(doc), isTrue);
     });
 
     test('the shipped locked document does not', () {
       final HuiPreviewDoc doc = decodeHuiPreviewDoc(
-          File('test/fixtures/previews/locked.json').readAsStringSync());
+        File('test/fixtures/previews/locked.json').readAsStringSync(),
+      );
       expect(previewDocIsAnimated(doc), isFalse);
     });
   });
@@ -466,8 +525,9 @@ void main() {
     });
 
     test('a special document has no target at all', () {
-      final HuiPreviewDoc doc =
-          HuiPreviewDoc(match: HuiPreviewMatch(special: 'locked'));
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        match: HuiPreviewMatch(special: 'locked'),
+      );
       expect(previewAutoSimCategory(doc), 'statics');
     });
 
@@ -479,8 +539,9 @@ void main() {
     });
 
     test('a plain container falls back to a chest', () {
-      final HuiPreviewDoc doc =
-          HuiPreviewDoc(match: HuiPreviewMatch(blocks: <String>['BARREL']));
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        match: HuiPreviewMatch(blocks: <String>['BARREL']),
+      );
       expect(previewAutoSimCategory(doc), 'chest');
     });
 
@@ -498,8 +559,9 @@ void main() {
         'ENDER_CHEST',
         'BARREL',
       ]) {
-        final HuiPreviewDoc doc =
-            HuiPreviewDoc(match: HuiPreviewMatch(blocks: <String>[blocks]));
+        final HuiPreviewDoc doc = HuiPreviewDoc(
+          match: HuiPreviewMatch(blocks: <String>[blocks]),
+        );
         expect(previewSimCategories, contains(previewAutoSimCategory(doc)));
       }
     });

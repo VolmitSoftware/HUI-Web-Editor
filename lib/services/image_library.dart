@@ -2,8 +2,9 @@
 ///
 /// The plugin resolves every icon path against `plugins/holoui/images/`, so the
 /// stored path IS the JSON value and IS the zip entry name — keeping those three
-/// identical is the whole point of this class. Images are normalized to PNG data
-/// URIs and persisted at [ImageLibrary.storageKey]; writes that exceed the
+/// identical is the whole point of this class. Browser uploads are normalized
+/// to PNG; server-sync imports preserve supported source formats losslessly.
+/// Data URIs are persisted at [ImageLibrary.storageKey]; writes that exceed the
 /// browser quota are rolled back instead of silently dropping the library, which
 /// is how the previous editor lost documents.
 library;
@@ -33,6 +34,39 @@ const int huiRecommendedMaxImageDimension = 64;
 /// roughly 5 MB, so a single oversized upload must never be allowed to consume
 /// it. HoloUI images are a couple of KB.
 const int huiMaxStoredImageBytes = 512 * 1024;
+const int huiMaxDecodedImagePixels = 2048 * 2048;
+const String huiNormalizedPngDataUriPrefix = 'data:image/png;base64,';
+
+typedef ImageStorageWriter = bool Function(String key, String value);
+
+bool _writeImageStorage(String key, String value) =>
+    StorageService.write(key, value);
+
+final class StoredPngData {
+  const StoredPngData({
+    required this.bytes,
+    required this.width,
+    required this.height,
+  });
+
+  final Uint8List bytes;
+  final int width;
+  final int height;
+}
+
+final class StoredImageData {
+  const StoredImageData({
+    required this.bytes,
+    required this.width,
+    required this.height,
+    required this.mediaType,
+  });
+
+  final Uint8List bytes;
+  final int width;
+  final int height;
+  final String mediaType;
+}
 
 class StoredImage {
   const StoredImage({
@@ -45,7 +79,8 @@ class StoredImage {
   /// Path relative to `plugins/holoui/images/`, forward slashes, no leading `/`.
   final String path;
 
-  /// Normalized `data:image/png;base64,...`.
+  /// Validated base64 data URI. Uploads are PNG; synced assets may retain JPEG,
+  /// GIF, WebP or BMP bytes.
   final String dataUri;
   final int width;
   final int height;
@@ -53,24 +88,30 @@ class StoredImage {
   int get pixelCount => width * height;
 
   bool get isOversized =>
-      width > huiRecommendedMaxImageDimension || height > huiRecommendedMaxImageDimension;
+      width > huiRecommendedMaxImageDimension ||
+      height > huiRecommendedMaxImageDimension;
 
   /// Approximate localStorage cost of this entry (UTF-16, key included).
   int get approximateBytes => (dataUri.length + path.length + 48) * 2;
 
-  StoredImage copyWith({String? path, String? dataUri, int? width, int? height}) => StoredImage(
-        path: path ?? this.path,
-        dataUri: dataUri ?? this.dataUri,
-        width: width ?? this.width,
-        height: height ?? this.height,
-      );
+  StoredImage copyWith({
+    String? path,
+    String? dataUri,
+    int? width,
+    int? height,
+  }) => StoredImage(
+    path: path ?? this.path,
+    dataUri: dataUri ?? this.dataUri,
+    width: width ?? this.width,
+    height: height ?? this.height,
+  );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'path': path,
-        'dataUri': dataUri,
-        'width': width,
-        'height': height,
-      };
+    'path': path,
+    'dataUri': dataUri,
+    'width': width,
+    'height': height,
+  };
 
   static StoredImage? fromJson(Object? raw) {
     if (raw is! Map<String, Object?>) {
@@ -78,7 +119,10 @@ class StoredImage {
     }
     final Object? path = raw['path'];
     final Object? dataUri = raw['dataUri'];
-    if (path is! String || dataUri is! String || path.isEmpty || dataUri.isEmpty) {
+    if (path is! String ||
+        dataUri is! String ||
+        path.isEmpty ||
+        dataUri.isEmpty) {
       return null;
     }
     final Object? width = raw['width'];
@@ -95,7 +139,11 @@ class StoredImage {
 /// Row-major pixel grid, `rows[y][x]` packed as 0xAARRGGBB — the exact shape the
 /// canvas needs to emit one block character per source pixel.
 class ImagePixels {
-  const ImagePixels({required this.width, required this.height, required this.rows});
+  const ImagePixels({
+    required this.width,
+    required this.height,
+    required this.rows,
+  });
 
   final int width;
   final int height;
@@ -143,7 +191,10 @@ class ImageAddOutcome {
 /// forward slashes, `..`/`.`/empty segments and `:` are dropped, leading slashes
 /// are removed.
 String sanitizeImagePath(String raw) {
-  final String normalized = raw.replaceAll('\\', '/').replaceAll(':', '').trim();
+  final String normalized = raw
+      .replaceAll('\\', '/')
+      .replaceAll(':', '')
+      .trim();
   final List<String> segments = <String>[];
   for (final String segment in normalized.split('/')) {
     final String trimmed = segment.trim();
@@ -158,8 +209,11 @@ String sanitizeImagePath(String raw) {
   }
   if (path.length > huiMaxImagePathLength) {
     final int dot = path.lastIndexOf('.');
-    final String extension = dot > 0 && path.length - dot <= 8 ? path.substring(dot) : '';
-    path = path.substring(0, huiMaxImagePathLength - extension.length) + extension;
+    final String extension = dot > 0 && path.length - dot <= 8
+        ? path.substring(dot)
+        : '';
+    path =
+        path.substring(0, huiMaxImagePathLength - extension.length) + extension;
   }
   return path;
 }
@@ -213,8 +267,241 @@ Uint8List? decodeDataUriBytes(String dataUri) {
   }
 }
 
+StoredPngData? decodeNormalizedPngData(String dataUri) {
+  if (!dataUri.startsWith(huiNormalizedPngDataUriPrefix)) return null;
+  final String payload = dataUri.substring(
+    huiNormalizedPngDataUriPrefix.length,
+  );
+  final Uint8List bytes;
+  try {
+    bytes = base64Decode(payload);
+  } catch (_) {
+    return null;
+  }
+  if (base64Encode(bytes) != payload || bytes.length < 33) return null;
+  const List<int> signature = <int>[137, 80, 78, 71, 13, 10, 26, 10];
+  for (int index = 0; index < signature.length; index++) {
+    if (bytes[index] != signature[index]) return null;
+  }
+  if (_pngUint32(bytes, 8) != 13 ||
+      bytes[12] != 73 ||
+      bytes[13] != 72 ||
+      bytes[14] != 68 ||
+      bytes[15] != 82) {
+    return null;
+  }
+  if (!_hasValidPngChunks(bytes)) return null;
+  final int width = _pngUint32(bytes, 16);
+  final int height = _pngUint32(bytes, 20);
+  if (width <= 0 || height <= 0 || width * height > huiMaxDecodedImagePixels) {
+    return null;
+  }
+  return StoredPngData(bytes: bytes, width: width, height: height);
+}
+
+bool isValidStoredImageData(StoredImage image) {
+  final StoredImageData? decoded = decodeSupportedImageData(image.dataUri);
+  return decoded != null &&
+      decoded.bytes.length <= huiMaxStoredImageBytes &&
+      decoded.width == image.width &&
+      decoded.height == image.height;
+}
+
+StoredImageData? decodeSupportedImageData(String dataUri) {
+  final RegExpMatch? match = RegExp(
+    r'^data:(image/(?:png|jpeg|gif|webp|bmp));base64,([A-Za-z0-9+/]*={0,2})$',
+  ).firstMatch(dataUri);
+  if (match == null) return null;
+  final String mediaType = match.group(1)!;
+  final Uint8List bytes;
+  try {
+    bytes = base64Decode(match.group(2)!);
+  } catch (_) {
+    return null;
+  }
+  if (base64Encode(bytes) != match.group(2) ||
+      bytes.isEmpty ||
+      bytes.length > huiMaxStoredImageBytes) {
+    return null;
+  }
+  final ({int width, int height})? dimensions = switch (mediaType) {
+    'image/png' => _pngDimensions(bytes),
+    'image/jpeg' => _jpegDimensions(bytes),
+    'image/gif' => _gifDimensions(bytes),
+    'image/webp' => _webpDimensions(bytes),
+    'image/bmp' => _bmpDimensions(bytes),
+    _ => null,
+  };
+  if (dimensions == null ||
+      dimensions.width <= 0 ||
+      dimensions.height <= 0 ||
+      dimensions.width * dimensions.height > huiMaxDecodedImagePixels) {
+    return null;
+  }
+  return StoredImageData(
+    bytes: bytes,
+    width: dimensions.width,
+    height: dimensions.height,
+    mediaType: mediaType,
+  );
+}
+
+({int width, int height})? _pngDimensions(Uint8List bytes) {
+  final String dataUri = '$huiNormalizedPngDataUriPrefix${base64Encode(bytes)}';
+  final StoredPngData? png = decodeNormalizedPngData(dataUri);
+  return png == null ? null : (width: png.width, height: png.height);
+}
+
+({int width, int height})? _gifDimensions(Uint8List bytes) {
+  if (bytes.length < 10) return null;
+  final String header = ascii.decode(bytes.sublist(0, 6), allowInvalid: true);
+  if (header != 'GIF87a' && header != 'GIF89a') return null;
+  return (
+    width: bytes[6] | (bytes[7] << 8),
+    height: bytes[8] | (bytes[9] << 8),
+  );
+}
+
+({int width, int height})? _bmpDimensions(Uint8List bytes) {
+  if (bytes.length < 26 || bytes[0] != 0x42 || bytes[1] != 0x4d) return null;
+  final int headerSize = _littleUint32(bytes, 14);
+  if (headerSize == 12) {
+    return (
+      width: bytes[18] | (bytes[19] << 8),
+      height: bytes[20] | (bytes[21] << 8),
+    );
+  }
+  if (headerSize < 40 || bytes.length < 26) return null;
+  final int width = _signedLittleInt32(bytes, 18).abs();
+  final int height = _signedLittleInt32(bytes, 22).abs();
+  return (width: width, height: height);
+}
+
+({int width, int height})? _jpegDimensions(Uint8List bytes) {
+  if (bytes.length < 4 || bytes[0] != 0xff || bytes[1] != 0xd8) return null;
+  int offset = 2;
+  while (offset + 4 <= bytes.length) {
+    while (offset < bytes.length && bytes[offset] == 0xff) {
+      offset++;
+    }
+    if (offset >= bytes.length) return null;
+    final int marker = bytes[offset++];
+    if (marker == 0xd9 || marker == 0xda) return null;
+    if (marker == 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (offset + 2 > bytes.length) return null;
+    final int length = (bytes[offset] << 8) | bytes[offset + 1];
+    if (length < 2 || offset + length > bytes.length) return null;
+    if (_jpegSofMarkers.contains(marker)) {
+      if (length < 7) return null;
+      return (
+        width: (bytes[offset + 5] << 8) | bytes[offset + 6],
+        height: (bytes[offset + 3] << 8) | bytes[offset + 4],
+      );
+    }
+    offset += length;
+  }
+  return null;
+}
+
+({int width, int height})? _webpDimensions(Uint8List bytes) {
+  if (bytes.length < 30 ||
+      ascii.decode(bytes.sublist(0, 4), allowInvalid: true) != 'RIFF' ||
+      ascii.decode(bytes.sublist(8, 12), allowInvalid: true) != 'WEBP') {
+    return null;
+  }
+  final String chunk = ascii.decode(bytes.sublist(12, 16), allowInvalid: true);
+  if (chunk == 'VP8X') {
+    return (
+      width: 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16),
+      height: 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16),
+    );
+  }
+  if (chunk == 'VP8L' && bytes.length >= 25 && bytes[20] == 0x2f) {
+    final int bits = _littleUint32(bytes, 21);
+    return (width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1);
+  }
+  if (chunk == 'VP8 ' &&
+      bytes.length >= 30 &&
+      bytes[23] == 0x9d &&
+      bytes[24] == 0x01 &&
+      bytes[25] == 0x2a) {
+    return (
+      width: (bytes[26] | (bytes[27] << 8)) & 0x3fff,
+      height: (bytes[28] | (bytes[29] << 8)) & 0x3fff,
+    );
+  }
+  return null;
+}
+
+int _littleUint32(Uint8List bytes, int offset) =>
+    bytes[offset] |
+    (bytes[offset + 1] << 8) |
+    (bytes[offset + 2] << 16) |
+    (bytes[offset + 3] << 24);
+
+int _signedLittleInt32(Uint8List bytes, int offset) {
+  final int value = _littleUint32(bytes, offset);
+  return value >= 0x80000000 ? value - 0x100000000 : value;
+}
+
+const Set<int> _jpegSofMarkers = <int>{
+  0xc0,
+  0xc1,
+  0xc2,
+  0xc3,
+  0xc5,
+  0xc6,
+  0xc7,
+  0xc9,
+  0xca,
+  0xcb,
+  0xcd,
+  0xce,
+  0xcf,
+};
+
+int _pngUint32(Uint8List bytes, int offset) =>
+    (bytes[offset] << 24) |
+    (bytes[offset + 1] << 16) |
+    (bytes[offset + 2] << 8) |
+    bytes[offset + 3];
+
+bool _hasValidPngChunks(Uint8List bytes) {
+  int offset = 8;
+  bool sawHeader = false;
+  bool sawImageData = false;
+  while (offset + 12 <= bytes.length) {
+    final int length = _pngUint32(bytes, offset);
+    final int typeOffset = offset + 4;
+    final int dataEnd = typeOffset + 4 + length;
+    final int chunkEnd = dataEnd + 4;
+    if (dataEnd < typeOffset || chunkEnd > bytes.length) return false;
+    final int expectedCrc = _pngUint32(bytes, dataEnd);
+    final int actualCrc = getCrc32(bytes.sublist(typeOffset, dataEnd));
+    if (actualCrc != expectedCrc) return false;
+    final String type = String.fromCharCodes(
+      bytes.sublist(typeOffset, typeOffset + 4),
+    );
+    if (!sawHeader) {
+      if (type != 'IHDR' || length != 13) return false;
+      sawHeader = true;
+    } else if (type == 'IHDR') {
+      return false;
+    }
+    if (type == 'IDAT') sawImageData = true;
+    if (type == 'IEND') {
+      return length == 0 && sawImageData && chunkEnd == bytes.length;
+    }
+    offset = chunkEnd;
+  }
+  return false;
+}
+
 class ImageLibrary extends ChangeNotifier {
-  ImageLibrary({bool autoLoad = true}) {
+  ImageLibrary({
+    bool autoLoad = true,
+    ImageStorageWriter writer = _writeImageStorage,
+  }) : _writer = writer {
     if (autoLoad) {
       load();
     }
@@ -223,11 +510,15 @@ class ImageLibrary extends ChangeNotifier {
   static const String storageKey = 'holoui.images.v1';
 
   final List<StoredImage> _images = <StoredImage>[];
-  late final List<StoredImage> _imagesView = UnmodifiableListView<StoredImage>(_images);
+  late final List<StoredImage> _imagesView = UnmodifiableListView<StoredImage>(
+    _images,
+  );
   final Set<String> _paths = <String>{};
   late final Set<String> _pathsView = UnmodifiableSetView<String>(_paths);
   final Map<String, ImagePixels> _pixels = <String, ImagePixels>{};
-  final Map<String, Future<ImagePixels?>> _pending = <String, Future<ImagePixels?>>{};
+  final Map<String, Future<ImagePixels?>> _pending =
+      <String, Future<ImagePixels?>>{};
+  final ImageStorageWriter _writer;
   bool _quotaExceeded = false;
   String? _lastError;
 
@@ -268,12 +559,15 @@ class ImageLibrary extends ChangeNotifier {
         List<Object?> entries = const <Object?>[];
         if (decoded is List<Object?>) {
           entries = decoded;
-        } else if (decoded is Map<String, Object?> && decoded['images'] is List<Object?>) {
+        } else if (decoded is Map<String, Object?> &&
+            decoded['images'] is List<Object?>) {
           entries = decoded['images']! as List<Object?>;
         }
         for (final Object? entry in entries) {
           final StoredImage? image = StoredImage.fromJson(entry);
-          if (image != null && !_images.any((StoredImage e) => e.path == image.path)) {
+          if (image != null &&
+              isValidStoredImageData(image) &&
+              !_images.any((StoredImage e) => e.path == image.path)) {
             _images.add(image);
           }
         }
@@ -313,7 +607,9 @@ class ImageLibrary extends ChangeNotifier {
         );
         continue;
       }
-      if (!replaceExisting && (_paths.contains(path) || candidates.any((StoredImage c) => c.path == path))) {
+      if (!replaceExisting &&
+          (_paths.contains(path) ||
+              candidates.any((StoredImage c) => c.path == path))) {
         path = _uniquePath(path, candidates);
       }
       final StoredImage image = StoredImage(
@@ -342,7 +638,9 @@ class ImageLibrary extends ChangeNotifier {
     }
     final bool stored = _commit(() {
       for (final StoredImage image in candidates) {
-        final int index = _images.indexWhere((StoredImage e) => e.path == image.path);
+        final int index = _images.indexWhere(
+          (StoredImage e) => e.path == image.path,
+        );
         if (index >= 0) {
           _images[index] = image;
         } else {
@@ -399,11 +697,53 @@ class ImageLibrary extends ChangeNotifier {
     _commit(() => _images.removeWhere((StoredImage e) => e.path == path));
   }
 
-  void clear() {
-    if (_images.isEmpty) {
-      return;
+  bool clear() => _commit(_images.clear);
+
+  bool replaceAll(Iterable<StoredImage> replacements) {
+    final List<StoredImage> next = List<StoredImage>.of(replacements);
+    final Set<String> paths = <String>{};
+    for (final StoredImage image in next) {
+      if (validateImagePath(image.path) != null ||
+          !paths.add(image.path) ||
+          !isValidStoredImageData(image)) {
+        _lastError = 'The imported image library contains an invalid entry.';
+        _quotaExceeded = false;
+        notifyListeners();
+        return false;
+      }
     }
-    _commit(_images.clear);
+    return _commit(() {
+      _images
+        ..clear()
+        ..addAll(next);
+    });
+  }
+
+  bool upsertAll(Iterable<StoredImage> replacements) {
+    final List<StoredImage> next = List<StoredImage>.of(replacements);
+    final Set<String> paths = <String>{};
+    for (final StoredImage image in next) {
+      if (validateImagePath(image.path) != null ||
+          !paths.add(image.path) ||
+          !isValidStoredImageData(image)) {
+        _lastError = 'The server sync contains an invalid image.';
+        _quotaExceeded = false;
+        notifyListeners();
+        return false;
+      }
+    }
+    return _commit(() {
+      for (final StoredImage image in next) {
+        final int index = _images.indexWhere(
+          (StoredImage current) => current.path == image.path,
+        );
+        if (index < 0) {
+          _images.add(image);
+        } else {
+          _images[index] = image;
+        }
+      }
+    });
   }
 
   /// Cached pixel grid, decoding it in the background on the first miss. Built
@@ -443,7 +783,8 @@ class ImageLibrary extends ChangeNotifier {
       }
       final List<List<int>> rows = List<List<int>>.generate(
         decoded.height,
-        (int y) => decoded.argb.sublist(y * decoded.width, (y + 1) * decoded.width),
+        (int y) =>
+            decoded.argb.sublist(y * decoded.width, (y + 1) * decoded.width),
         growable: false,
       );
       final ImagePixels pixels = ImagePixels(
@@ -494,9 +835,11 @@ class ImageLibrary extends ChangeNotifier {
     final List<StoredImage> snapshot = List<StoredImage>.of(_images);
     mutation();
     final String payload = jsonEncode(
-      _images.map((StoredImage image) => image.toJson()).toList(growable: false),
+      _images
+          .map((StoredImage image) => image.toJson())
+          .toList(growable: false),
     );
-    final bool stored = StorageService.write(storageKey, payload);
+    final bool stored = _writer(storageKey, payload);
     if (!stored) {
       _images
         ..clear()
@@ -527,7 +870,8 @@ class ImageLibrary extends ChangeNotifier {
     final String extension = dot > slash && dot > 0 ? path.substring(dot) : '';
     for (int i = 2; i < 1000; i++) {
       final String candidate = '$stem-$i$extension';
-      if (!_paths.contains(candidate) && !pending.any((StoredImage c) => c.path == candidate)) {
+      if (!_paths.contains(candidate) &&
+          !pending.any((StoredImage c) => c.path == candidate)) {
         return candidate;
       }
     }

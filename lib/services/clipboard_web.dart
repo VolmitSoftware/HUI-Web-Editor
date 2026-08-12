@@ -12,7 +12,10 @@ const Duration _clipboardTimeout = Duration(milliseconds: 1200);
 
 Future<bool> copyText(String text) async {
   try {
-    await web.window.navigator.clipboard.writeText(text).toDart.timeout(_clipboardTimeout);
+    await web.window.navigator.clipboard
+        .writeText(text)
+        .toDart
+        .timeout(_clipboardTimeout);
     return true;
   } catch (_) {
     return _copyWithExecCommand(text);
@@ -21,8 +24,10 @@ Future<bool> copyText(String text) async {
 
 Future<String?> readText() async {
   try {
-    final JSString value =
-        await web.window.navigator.clipboard.readText().toDart.timeout(_clipboardTimeout);
+    final JSString value = await web.window.navigator.clipboard
+        .readText()
+        .toDart
+        .timeout(_clipboardTimeout);
     return value.toDart;
   } catch (_) {
     return null;
@@ -34,7 +39,8 @@ Future<String?> readText() async {
 /// the textarea must be on-screen-ish for iOS to select it.
 bool _copyWithExecCommand(String text) {
   try {
-    final web.HTMLTextAreaElement area = web.HTMLTextAreaElement()..value = text;
+    final web.HTMLTextAreaElement area = web.HTMLTextAreaElement()
+      ..value = text;
     area.setAttribute('readonly', 'true');
     area.style
       ..position = 'fixed'

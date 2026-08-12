@@ -9,7 +9,7 @@
 ///    including the whole of Player mode: the walk, the mouselook, the pointer
 ///    lock.
 ///  * [PreviewOverlayLayer] draws the rules that only exist because a player is
-///    standing somewhere — the collision plane that re-aims at their eye, the
+///    standing somewhere — the collision plane honoring its billboard mode, the
 ///    normal a hovered icon jumps along toward them, the anchor a bitmap hangs
 ///    off, and the sphere the session closes at when they walk out of it.
 ///
@@ -61,8 +61,8 @@ const Set<String> huiPreviewWalkKeys = <String>{'w', 'a', 's', 'd'};
 
 /// Stage keys that flip a preview setting. Digits for the six overlays, because
 /// every letter that would read as a mnemonic there is already a global view
-/// shortcut (`keyboard_shortcuts.dart:142-152` binds c, p, s and v); `f` for
-/// facing and `k` for pause are the two left over.
+/// shortcut (`keyboard_shortcuts.dart:142-152` binds c, p, s and v); `k` is
+/// reserved for preview pause.
 const Set<String> huiPreviewToggleKeys = <String>{
   '1',
   '2',
@@ -70,7 +70,6 @@ const Set<String> huiPreviewToggleKeys = <String>{
   '4',
   '5',
   '6',
-  'f',
   'k',
 };
 
@@ -133,9 +132,7 @@ abstract interface class PreviewInputHost {
   /// `0` — frame the menu from where the player opened it.
   void onInputReset();
 
-  /// A left click, which is the only thing the runtime dispatches on
-  /// (`MenuSessionManager.java:170-203`).
-  void onInputClick();
+  void onInputClick(String trigger);
 
   /// One of [huiPreviewToggleKeys], already lower-cased.
   void onInputToggle(String key);
@@ -313,7 +310,7 @@ class PreviewInput {
   void _onPointerDown(web.Event event) {
     final web.PointerEvent pointer = event as web.PointerEvent;
     final int button = pointer.button;
-    if (button != 0 && button != 1) return;
+    if (button != 0 && button != 1 && button != 2) return;
     event.preventDefault();
     _stage?.focus();
     _pointerInside = true;
@@ -341,7 +338,9 @@ class PreviewInput {
     _dragTotalPx = 0;
     _drag = _host.inputPlayerMode
         ? PreviewDragMode.press
-        : (button == 1 || _spaceHeld
+        : (button == 2
+              ? PreviewDragMode.press
+              : button == 1 || _spaceHeld
               ? PreviewDragMode.pan
               : PreviewDragMode.orbit);
     _syncStageState();
@@ -388,12 +387,12 @@ class PreviewInput {
   void _onPointerUp(web.Event event) {
     final web.PointerEvent pointer = event as web.PointerEvent;
     if (_pointerLocked) {
-      if (pointer.button != 0) return;
+      if (pointer.button != 0 && pointer.button != 2) return;
       if (_suppressNextClick) {
         _suppressNextClick = false;
         return;
       }
-      _host.onInputClick();
+      _host.onInputClick(_clickTrigger(pointer));
       return;
     }
     if (_activePointerId != pointer.pointerId) return;
@@ -401,9 +400,9 @@ class PreviewInput {
         (_drag == PreviewDragMode.orbit || _drag == PreviewDragMode.press) &&
         _dragTotalPx <= huiPreviewClickSlopPx;
     _endDrag(pointer.pointerId);
-    // LEFT_CLICK_AIR only (`MenuSessionManager.java:170-203`); a drag that
-    // happens to end over a component is a camera move, not a click.
-    if (wasClick && pointer.button == 0) _host.onInputClick();
+    if (wasClick && (pointer.button == 0 || pointer.button == 2)) {
+      _host.onInputClick(_clickTrigger(pointer));
+    }
   }
 
   void _onPointerCancel(web.Event event) =>
@@ -442,6 +441,11 @@ class PreviewInput {
   }
 
   void _onContextMenu(web.Event event) => event.preventDefault();
+
+  String _clickTrigger(web.PointerEvent pointer) {
+    final String side = pointer.button == 2 ? 'right_click' : 'left_click';
+    return pointer.shiftKey ? 'shift_$side' : side;
+  }
 
   void _updatePointer(web.Event event) {
     final web.HTMLElement? stage = _stage;
@@ -775,7 +779,8 @@ class PreviewOverlayLayer {
     final PVec3 feet = preview.openFeet;
     final PVec3 eye = PVec3(feet.x, feet.y + huiPreviewEyeHeight, feet.z);
     final PVec3 center = preview.center;
-    final double yaw = preview.openYawDeg;
+    final double openYaw = preview.openYawDeg;
+    final double menuYaw = preview.facingYawDeg;
     // You cannot see your own head. Standing on the open spot in Player mode
     // puts the eye marker exactly at the camera, where the perspective divide
     // blows it up across the whole viewport.
@@ -802,13 +807,13 @@ class PreviewOverlayLayer {
         'avatar-disc' => (showAvatar, _flatTransform(feet), 0.6, 0.6),
         'avatar-postA' => (
           showAvatar,
-          _uprightTransform(_eyeMid(feet), yaw),
+          _uprightTransform(_eyeMid(feet), openYaw),
           0.03,
           1.62,
         ),
         'avatar-postB' => (
           showAvatar,
-          _uprightTransform(_eyeMid(feet), yaw + 90),
+          _uprightTransform(_eyeMid(feet), openYaw + 90),
           0.03,
           1.62,
         ),
@@ -816,13 +821,13 @@ class PreviewOverlayLayer {
         'center-disc' => (flags.center, _flatTransform(center), 0.24, 0.24),
         'center-postA' => (
           flags.center,
-          _uprightTransform(center, yaw),
+          _uprightTransform(center, menuYaw),
           0.02,
           0.4,
         ),
         'center-postB' => (
           flags.center,
-          _uprightTransform(center, yaw + 90),
+          _uprightTransform(center, menuYaw + 90),
           0.02,
           0.4,
         ),
@@ -841,11 +846,9 @@ class PreviewOverlayLayer {
 
   /// The `maxDistance` boundary, as great circles on the session centre.
   ///
-  /// Centred on `sessionCenter` — the UNROTATED `centerPoint` — because that is
-  /// the point the range check measures from (`MenuSession.java:147-151`), not
-  /// the rotated one the menu draws at.
+  /// Centred on the transformed menu origin used by the runtime range check.
   void _renderRange(PreviewScene preview, PreviewSimulation sim, bool show) {
-    final PVec3 center = preview.sessionCenter;
+    final PVec3 center = preview.center;
     final double bare = huiPreviewBareRange(sim);
     final double effective = huiPreviewEffectiveRange(sim);
     final bool clamped = effective > huiPreviewMaxRangeBlocks;
@@ -903,9 +906,7 @@ class PreviewOverlayLayer {
     bool open,
     PreviewOverlayFlags flags,
   ) {
-    // The plane is rebuilt from the eye EVERY frame while the quad it belongs
-    // to never moves (`ClickableComponent.java:60-62`). Seeing the rectangle
-    // swing around a stationary icon is the entire reason this overlay exists.
+    // The plane uses the same billboard mode as the icon every frame.
     final PlaneAim? aim = open && quad.hasPlane
         ? aimQuadPlane(quad, eye)
         : null;
@@ -1068,7 +1069,10 @@ String _flatTransform(PVec3 position) =>
     ])} translate(-50%,-50%)';
 
 String _uprightTransform(PVec3 position, double yawDegrees) =>
-    '${cssMatrix3d(cssQuadMatrix(position: position, facingYawDegrees: yawDegrees, pxPerBlock: huiPreviewPxPerBlock))} translate(-50%,-50%)';
+    '${cssMatrix3d(cssPlaneMatrix(
+      fixedMenuPlane(center: position, facingYawDegrees: yawDegrees),
+      pxPerBlock: huiPreviewPxPerBlock,
+    ))} translate(-50%,-50%)';
 
 /// An element lying exactly on [aim].
 String _aimTransform(PlaneAim aim) =>

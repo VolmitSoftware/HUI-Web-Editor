@@ -328,6 +328,7 @@ void main() {
           uiScale: 1,
           openFeet: PVec3.zero,
           openYawDeg: 0,
+          facingYawDeg: 0,
           canvas: canvas,
         );
 

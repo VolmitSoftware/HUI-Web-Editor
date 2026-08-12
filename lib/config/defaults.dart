@@ -29,6 +29,8 @@ const int huiDefaultAnimationSpeed = 2;
 
 /// Neutral, always-present material for a new item icon.
 const String huiDefaultItemMaterial = 'stone';
+const String huiDefaultBlockMaterial = 'minecraft:stone';
+const String huiDefaultEntityType = 'minecraft:parrot';
 
 /// HoloUI's own placeholder: it always resolves to `true`, so a brand new
 /// toggle is valid and visibly demonstrates the condition mechanism.
@@ -37,8 +39,7 @@ const String huiDefaultToggleExpectedValue = 'true';
 
 /// One-line descriptions for the "add component" menu.
 const Map<String, String> huiComponentTypeDescriptions = <String, String>{
-  'button':
-      'Clickable. Runs commands and plays sounds when a player clicks it.',
+  'button': 'Clickable. Runs its ordered action list when a player clicks it.',
   'decoration': 'Display only. Draws an icon but cannot be clicked.',
   'toggle':
       'Two states. Picks an icon from a placeholder value checked once at open.',
@@ -49,7 +50,9 @@ const Map<String, String> huiIconTypeDescriptions = <String, String>{
   'textImage': 'A stored image drawn one character per pixel.',
   'animatedTextImage': 'A list of images cycled at a fixed tick interval.',
   'item': 'A floating item stack.',
+  'block': 'A packet-only block display using its default block state.',
   'customItem': 'An item from a custom-item plugin, resolved by the server.',
+  'entity': 'A packet-only living entity with an authored click footprint.',
 };
 
 /// Authoring hints for one custom-item provider.
@@ -150,21 +153,35 @@ HuiIcon createDefaultIcon(String iconType, {String text = '&fNew text'}) {
       return HuiAnimatedImageIcon(<String>[], huiDefaultAnimationSpeed);
     case 'item':
       return HuiItemIcon(huiDefaultItemMaterial, 1, 0);
+    case 'block':
+      return HuiBlockIcon(huiDefaultBlockMaterial);
     case 'customItem':
       // No id can be defaulted: it belongs to a plugin the editor cannot see.
       // The empty id is flagged as an error until the user types one.
       return HuiCustomItemIcon(huiAutoItemProvider, '', 1);
+    case 'entity':
+      return HuiEntityIcon(huiDefaultEntityType, 0.5, 0.9);
     case 'text':
     default:
       return HuiTextIcon(text);
   }
 }
 
+HuiIconStyle createDefaultIconStyle() => HuiIconStyle();
+
 /// Default action for [actionType]; unknown types fall back to a command.
 HuiAction createDefaultAction(String actionType) {
   switch (actionType) {
     case 'sound':
       return HuiSoundAction('ui.button.click', 'master', 1, 1);
+    case 'navigate':
+      return HuiNavigateAction('', 'push');
+    case 'message':
+      return HuiMessageAction('<gold>Hello %player%</gold>');
+    case 'teleport':
+      return HuiTeleportAction('minecraft:overworld', 0, 64, 0, 0, 0);
+    case 'connect':
+      return HuiConnectAction('lobby');
     case 'command':
     default:
       return HuiCommandAction('', 'player');
@@ -210,10 +227,12 @@ HuiComponent createDefaultComponent({
 /// One-line descriptions for the preview element list's "add" menu.
 const Map<String, String> previewElementTypeDescriptions = <String, String>{
   'panel': 'A flat rectangle. Needs width, height and color.',
-  'cell': 'A small square well, the building block of a grid. Needs size and '
+  'cell':
+      'A small square well, the building block of a grid. Needs size and '
       'color.',
   'slot': 'Draws one inventory item. Needs size and the slot index to read.',
-  'label': 'Minecraft-formatted text. Needs an expression that returns a '
+  'label':
+      'Minecraft-formatted text. Needs an expression that returns a '
       'string.',
 };
 
@@ -225,7 +244,12 @@ HuiPreviewElement createDefaultPreviewElement(String type) {
   const String defaultColor = '#FF2B2B33';
   switch (type) {
     case 'panel':
-      return HuiPreviewElement('panel', width: 40, height: 20, color: defaultColor);
+      return HuiPreviewElement(
+        'panel',
+        width: 40,
+        height: 20,
+        color: defaultColor,
+      );
     case 'slot':
       return HuiPreviewElement('slot', size: 18, index: 0);
     case 'label':
@@ -253,16 +277,78 @@ String uniqueComponentId(String base, Set<String> taken) {
 String sanitizeComponentId(String raw) =>
     _sanitize(raw, _componentIdAllowed, 64, 'component');
 
-/// Menu ids double as file base names and permission nodes
-/// (`holoui.open.<id>`), so they are lowercased and kept to `[a-z0-9_-]`.
-String sanitizeMenuId(String raw) =>
-    _sanitize(raw.toLowerCase(), _menuIdAllowed, 64, huiDefaultMenuId);
+const int huiMaxMenuIdLength = 255;
+const int huiMaxMenuIdSegmentLength = 64;
+
+String sanitizeMenuId(String raw) {
+  final String normalized = raw.trim().replaceAll('\\', '/');
+  final List<String> segments = <String>[];
+  for (final String rawSegment in normalized.split('/')) {
+    if (rawSegment.isEmpty || rawSegment == '.' || rawSegment == '..') {
+      continue;
+    }
+    String segment = _sanitize(
+      rawSegment,
+      _menuIdCharacter,
+      huiMaxMenuIdSegmentLength,
+      '',
+    );
+    while (segment.isNotEmpty && !_menuIdFirst.hasMatch(segment[0])) {
+      segment = segment.substring(1);
+    }
+    if (segment.isEmpty) continue;
+    final int used =
+        segments.fold<int>(
+          0,
+          (int total, String value) => total + value.length,
+        ) +
+        (segments.isEmpty ? 0 : segments.length - 1);
+    final int remaining =
+        huiMaxMenuIdLength - used - (segments.isEmpty ? 0 : 1);
+    if (remaining <= 0) break;
+    segments.add(
+      segment.length <= remaining ? segment : segment.substring(0, remaining),
+    );
+    if (remaining < segment.length) break;
+  }
+  return segments.isEmpty ? huiDefaultMenuId : segments.join('/');
+}
+
+String? validateMenuId(String raw) {
+  if (raw.isEmpty || raw != raw.trim()) {
+    return 'Menu id must not be blank or have surrounding whitespace.';
+  }
+  if (raw.length > huiMaxMenuIdLength) {
+    return 'Menu id must be at most $huiMaxMenuIdLength characters.';
+  }
+  if (raw.contains('\\')) {
+    return 'Menu id must use forward slashes between folders.';
+  }
+  for (final String segment in raw.split('/')) {
+    if (segment.isEmpty || segment == '.' || segment == '..') {
+      return 'Menu id contains an empty, dot, or traversal segment.';
+    }
+    if (segment.length > huiMaxMenuIdSegmentLength ||
+        !_menuIdSegment.hasMatch(segment)) {
+      return 'Each menu id segment must start with a letter or number and use '
+          'only letters, numbers, dots, underscores, or hyphens.';
+    }
+  }
+  return null;
+}
+
+bool isCanonicalMenuId(String raw) => validateMenuId(raw) == null;
 
 /// Strips a trailing `.json` before sanitizing, for imported file names.
 String menuIdFromFileName(String fileName) {
-  String base = fileName.trim();
-  final int slash = base.lastIndexOf('/');
-  if (slash >= 0) base = base.substring(slash + 1);
+  String base = fileName.trim().replaceAll('\\', '/');
+  final String lower = base.toLowerCase();
+  final int menuRoot = lower.lastIndexOf('/menus/');
+  if (menuRoot >= 0) {
+    base = base.substring(menuRoot + '/menus/'.length);
+  } else if (lower.startsWith('menus/')) {
+    base = base.substring('menus/'.length);
+  }
   if (base.toLowerCase().endsWith('.json')) {
     base = base.substring(0, base.length - 5);
   }
@@ -270,7 +356,9 @@ String menuIdFromFileName(String fileName) {
 }
 
 final RegExp _componentIdAllowed = RegExp(r'[A-Za-z0-9_.-]');
-final RegExp _menuIdAllowed = RegExp(r'[a-z0-9_-]');
+final RegExp _menuIdCharacter = RegExp(r'[A-Za-z0-9._-]');
+final RegExp _menuIdFirst = RegExp(r'[A-Za-z0-9]');
+final RegExp _menuIdSegment = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]*$');
 
 String _sanitize(String raw, RegExp allowed, int maxLength, String fallback) {
   final StringBuffer buffer = StringBuffer();

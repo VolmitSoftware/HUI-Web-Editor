@@ -48,162 +48,150 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
   }
 
   @override
-  Widget build(BuildContext context) => dom.div(
-        classes: 'hui-rail-pane',
-        <Widget>[
-          ListenableBuilder(
-            listenable: _store,
-            builder: (BuildContext inner) => _body(),
-          ),
-        ],
-      );
+  Widget build(BuildContext context) =>
+      dom.div(classes: 'hui-rail-pane', <Widget>[
+        ListenableBuilder(
+          listenable: _store,
+          builder: (BuildContext inner) => _body(),
+        ),
+      ]);
 
   Widget _body() {
     final HuiPreviewDoc? doc = _store.previewDoc;
     if (doc == null) return const dom.div(<Widget>[]);
     final List<HuiPreviewElement> elements = doc.elements;
-    return dom.div(
-      classes: 'hui-rail-inner',
-      <Widget>[
-        _header(elements.length),
-        if (_typesOpen) _typeChooser(),
-        if (elements.isEmpty)
-          _empty()
-        else
-          dom.div(
-            classes: 'hui-rail-list',
-            attributes: const <String, String>{'role': 'list'},
-            <Widget>[
-              for (int i = 0; i < elements.length; i++)
-                _row(i, elements[i], elements.length),
-            ],
-          ),
-      ],
-    );
+    return dom.div(classes: 'hui-rail-inner', <Widget>[
+      _header(elements.length),
+      if (_typesOpen) _typeChooser(),
+      if (elements.isEmpty)
+        _empty()
+      else
+        dom.div(
+          classes: 'hui-rail-list',
+          attributes: const <String, String>{'role': 'list'},
+          <Widget>[
+            for (int i = 0; i < elements.length; i++)
+              _row(i, elements[i], elements.length),
+          ],
+        ),
+    ]);
   }
 
-  Widget _header(int count) => dom.div(
-        classes: 'hui-rail-header',
-        <Widget>[
-          dom.div(
-            classes: 'hui-rail-heading',
-            <Widget>[
-              const HuiEyebrow('Elements'),
-              dom.span(classes: 'hui-rail-count', <Widget>[Text('$count')]),
-            ],
-          ),
-          dom.div(
-            classes: 'hui-rail-add',
-            <Widget>[
-              Button(
-                variant: ButtonVariant.primary,
-                size: ButtonSize.small,
-                onPressed: () => _add('cell'),
-                icon: ArcaneIcon.plus(size: IconSize.sm),
-                label: 'Add',
-                attributes: const <String, String>{
-                  'aria-label': 'Add a cell element',
-                },
-              ),
-              Button(
-                key: ValueKey<bool>(_typesOpen),
-                variant: ButtonVariant.primary,
-                size: ButtonSize.small,
-                onPressed: () => setState(() => _typesOpen = !_typesOpen),
-                styles: const ArcaneStyleData(
-                  raw: <String, String>{'padding': '0 4px !important'},
-                ),
-                attributes: <String, String>{
-                  'aria-label': 'Choose an element type',
-                  'aria-expanded': _typesOpen ? 'true' : 'false',
-                  'data-arcane-interactive': 'true',
-                },
-                child: _typesOpen
-                    ? ArcaneIcon.chevronUp(size: IconSize.sm)
-                    : ArcaneIcon.chevronDown(size: IconSize.sm),
-              ),
-            ],
-          ),
-        ],
-      );
+  Widget _header(int count) => dom.div(classes: 'hui-rail-header', <Widget>[
+    dom.div(classes: 'hui-rail-heading', <Widget>[
+      const HuiEyebrow('Elements'),
+      dom.span(classes: 'hui-rail-count', <Widget>[Text('$count')]),
+    ]),
+    dom.div(classes: 'hui-rail-add', <Widget>[
+      Button(
+        variant: ButtonVariant.primary,
+        size: ButtonSize.small,
+        onPressed: () => _add('cell'),
+        icon: ArcaneIcon.plus(size: IconSize.sm),
+        label: 'Add',
+        attributes: const <String, String>{'aria-label': 'Add a cell element'},
+      ),
+      Button(
+        key: ValueKey<bool>(_typesOpen),
+        variant: ButtonVariant.primary,
+        size: ButtonSize.small,
+        onPressed: () => setState(() => _typesOpen = !_typesOpen),
+        styles: const ArcaneStyleData(
+          raw: <String, String>{'padding': '0 4px !important'},
+        ),
+        attributes: <String, String>{
+          'aria-label': 'Choose an element type',
+          'aria-expanded': _typesOpen ? 'true' : 'false',
+          'data-arcane-interactive': 'true',
+        },
+        child: _typesOpen
+            ? ArcaneIcon.chevronUp(size: IconSize.sm)
+            : ArcaneIcon.chevronDown(size: IconSize.sm),
+      ),
+    ]),
+  ]);
 
   Widget _typeChooser() => dom.div(
-        classes: 'hui-rail-types',
-        styles: const dom.Styles(raw: <String, String>{
-          'display': 'flex',
-          'flex-direction': 'column',
-          'gap': '2px',
-          'padding': '6px',
-          'margin': '0 0 8px',
-          'border': '1px solid var(--hui-border-soft)',
-          'border-radius': 'var(--hui-radius)',
-          'background': 'var(--hui-panel-soft)',
-        }),
-        attributes: const <String, String>{
-          'role': 'group',
-          'aria-label': 'Element types',
-        },
-        <Widget>[
-          for (final String type in previewElementTypes)
-            dom.button(
-              classes: 'hui-rail-type',
-              styles: const dom.Styles(raw: <String, String>{
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '8px',
-                'width': '100%',
-                'padding': '7px 8px',
-                'border': '0',
-                'border-radius': 'calc(var(--hui-radius) - 3px)',
-                'background': 'transparent',
-                'color': 'var(--hui-text)',
-                'text-align': 'left',
-                'cursor': 'pointer',
-                'font': 'inherit',
-              }),
-              attributes: <String, String>{
-                'type': 'button',
-                'data-no-tooltip': 'true',
-                'title': previewElementTypeDescriptions[type] ?? '',
-              },
-              events: <String, void Function(Object)>{
-                'click': (Object _) => _add(type),
-              },
-              <Widget>[
-                _typeIcon(type),
-                dom.span(<Widget>[Text(_typeLabel(type))]),
-              ],
-            ),
-        ],
-      );
-
-  Widget _empty() => dom.div(
-        classes: 'hui-rail-empty',
-        <Widget>[
-          ArcaneEmptyState(
-            title: 'No elements yet',
-            description: 'A container preview needs at least one element to '
-                'draw anything. Start with a cell or a label.',
-            icon: ArcaneIcon.layers(size: IconSize.lg),
-            action: Button(
-              variant: ButtonVariant.primary,
-              size: ButtonSize.small,
-              onPressed: () => _add('cell'),
-              icon: ArcaneIcon.plus(size: IconSize.sm),
-              label: 'Add your first element',
-            ),
+    classes: 'hui-rail-types',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'flex-direction': 'column',
+        'gap': '2px',
+        'padding': '6px',
+        'margin': '0 0 8px',
+        'border': '1px solid var(--hui-border-soft)',
+        'border-radius': 'var(--hui-radius)',
+        'background': 'var(--hui-panel-soft)',
+      },
+    ),
+    attributes: const <String, String>{
+      'role': 'group',
+      'aria-label': 'Element types',
+    },
+    <Widget>[
+      for (final String type in previewElementTypes)
+        dom.button(
+          classes: 'hui-rail-type',
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'display': 'flex',
+              'align-items': 'center',
+              'gap': '8px',
+              'width': '100%',
+              'padding': '7px 8px',
+              'border': '0',
+              'border-radius': 'calc(var(--hui-radius) - 3px)',
+              'background': 'transparent',
+              'color': 'var(--hui-text)',
+              'text-align': 'left',
+              'cursor': 'pointer',
+              'font': 'inherit',
+            },
           ),
-        ],
-      );
+          attributes: <String, String>{
+            'type': 'button',
+            'data-no-tooltip': 'true',
+            'title': previewElementTypeDescriptions[type] ?? '',
+          },
+          events: <String, void Function(Object)>{
+            'click': (Object _) => _add(type),
+          },
+          <Widget>[
+            _typeIcon(type),
+            dom.span(<Widget>[Text(_typeLabel(type))]),
+          ],
+        ),
+    ],
+  );
+
+  Widget _empty() => dom.div(classes: 'hui-rail-empty', <Widget>[
+    ArcaneEmptyState(
+      title: 'No elements yet',
+      description:
+          'A container preview needs at least one element to '
+          'draw anything. Start with a cell or a label.',
+      icon: ArcaneIcon.layers(size: IconSize.lg),
+      action: Button(
+        variant: ButtonVariant.primary,
+        size: ButtonSize.small,
+        onPressed: () => _add('cell'),
+        icon: ArcaneIcon.plus(size: IconSize.sm),
+        label: 'Add your first element',
+      ),
+    ),
+  ]);
 
   Widget _row(int index, HuiPreviewElement element, int total) {
     final bool selected = _store.previewSelectedIndex == index;
     final bool armed = _armedDeleteIndex == index;
     final List<HuiIssue> issues = _store.issuesForPreviewElement(index);
-    final bool hasError =
-        issues.any((HuiIssue issue) => issue.severity == HuiSeverity.error);
-    final bool hasWarning =
-        issues.any((HuiIssue issue) => issue.severity == HuiSeverity.warning);
+    final bool hasError = issues.any(
+      (HuiIssue issue) => issue.severity == HuiSeverity.error,
+    );
+    final bool hasWarning = issues.any(
+      (HuiIssue issue) => issue.severity == HuiSeverity.warning,
+    );
     final String label = '${index + 1}. ${_typeLabel(element.type)}';
 
     return dom.div(
@@ -235,16 +223,12 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                   attributes: const <String, String>{'aria-hidden': 'true'},
                   <Widget>[_typeIcon(element.type)],
                 ),
-                dom.span(
-                  classes: 'hui-rail-text',
-                  <Widget>[
-                    dom.span(classes: 'hui-rail-id', <Widget>[Text(label)]),
-                    dom.span(
-                      classes: 'hui-rail-summary',
-                      <Widget>[Text(_summary(element))],
-                    ),
-                  ],
-                ),
+                dom.span(classes: 'hui-rail-text', <Widget>[
+                  dom.span(classes: 'hui-rail-id', <Widget>[Text(label)]),
+                  dom.span(classes: 'hui-rail-summary', <Widget>[
+                    Text(_summary(element)),
+                  ]),
+                ]),
                 if (hasError || hasWarning)
                   dom.span(
                     classes: classNames(<String?>[
@@ -259,69 +243,66 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
               ],
             ),
             if (armed)
-              dom.div(
-                classes: 'hui-rail-confirm',
-                <Widget>[
-                  const dom.span(
-                    classes: 'hui-rail-confirm-label',
-                    <Widget>[Text('Delete?')],
-                  ),
-                  Button(
-                    variant: ButtonVariant.destructive,
-                    size: ButtonSize.iconSm,
-                    onPressed: () => _delete(index),
-                    attributes: <String, String>{'aria-label': 'Delete $label'},
-                    child: ArcaneIcon.check(size: IconSize.sm),
-                  ),
-                  Button(
-                    variant: ButtonVariant.ghost,
-                    size: ButtonSize.iconSm,
-                    onPressed: () => setState(() => _armedDeleteIndex = null),
-                    attributes: const <String, String>{'aria-label': 'Keep it'},
-                    child: ArcaneIcon.x(size: IconSize.sm),
-                  ),
-                ],
-              )
+              dom.div(classes: 'hui-rail-confirm', <Widget>[
+                const dom.span(classes: 'hui-rail-confirm-label', <Widget>[
+                  Text('Delete?'),
+                ]),
+                Button(
+                  variant: ButtonVariant.destructive,
+                  size: ButtonSize.iconSm,
+                  onPressed: () => _delete(index),
+                  attributes: <String, String>{'aria-label': 'Delete $label'},
+                  child: ArcaneIcon.check(size: IconSize.sm),
+                ),
+                Button(
+                  variant: ButtonVariant.ghost,
+                  size: ButtonSize.iconSm,
+                  onPressed: () => setState(() => _armedDeleteIndex = null),
+                  attributes: const <String, String>{'aria-label': 'Keep it'},
+                  child: ArcaneIcon.x(size: IconSize.sm),
+                ),
+              ])
             else
-              dom.div(
-                classes: 'hui-rail-tools',
-                <Widget>[
-                  Button(
-                    variant: ButtonVariant.ghost,
-                    size: ButtonSize.iconSm,
-                    disabled: index == 0,
-                    onPressed: index == 0
-                        ? null
-                        : () => _store.reorderPreviewElement(index, index - 1),
-                    attributes: <String, String>{'aria-label': 'Move $label up'},
-                    child: ArcaneIcon.chevronUp(size: IconSize.sm),
-                  ),
-                  Button(
-                    variant: ButtonVariant.ghost,
-                    size: ButtonSize.iconSm,
-                    disabled: index >= total - 1,
-                    onPressed: index >= total - 1
-                        ? null
-                        : () => _store.reorderPreviewElement(index, index + 1),
-                    attributes: <String, String>{'aria-label': 'Move $label down'},
-                    child: ArcaneIcon.chevronDown(size: IconSize.sm),
-                  ),
-                  Button(
-                    variant: ButtonVariant.ghost,
-                    size: ButtonSize.iconSm,
-                    onPressed: () => _store.duplicatePreviewElement(index),
-                    attributes: <String, String>{'aria-label': 'Duplicate $label'},
-                    child: ArcaneIcon.copy(size: IconSize.sm),
-                  ),
-                  Button(
-                    variant: ButtonVariant.ghost,
-                    size: ButtonSize.iconSm,
-                    onPressed: () => setState(() => _armedDeleteIndex = index),
-                    attributes: <String, String>{'aria-label': 'Delete $label'},
-                    child: ArcaneIcon.trash2(size: IconSize.sm),
-                  ),
-                ],
-              ),
+              dom.div(classes: 'hui-rail-tools', <Widget>[
+                Button(
+                  variant: ButtonVariant.ghost,
+                  size: ButtonSize.iconSm,
+                  disabled: index == 0,
+                  onPressed: index == 0
+                      ? null
+                      : () => _store.reorderPreviewElement(index, index - 1),
+                  attributes: <String, String>{'aria-label': 'Move $label up'},
+                  child: ArcaneIcon.chevronUp(size: IconSize.sm),
+                ),
+                Button(
+                  variant: ButtonVariant.ghost,
+                  size: ButtonSize.iconSm,
+                  disabled: index >= total - 1,
+                  onPressed: index >= total - 1
+                      ? null
+                      : () => _store.reorderPreviewElement(index, index + 1),
+                  attributes: <String, String>{
+                    'aria-label': 'Move $label down',
+                  },
+                  child: ArcaneIcon.chevronDown(size: IconSize.sm),
+                ),
+                Button(
+                  variant: ButtonVariant.ghost,
+                  size: ButtonSize.iconSm,
+                  onPressed: () => _store.duplicatePreviewElement(index),
+                  attributes: <String, String>{
+                    'aria-label': 'Duplicate $label',
+                  },
+                  child: ArcaneIcon.copy(size: IconSize.sm),
+                ),
+                Button(
+                  variant: ButtonVariant.ghost,
+                  size: ButtonSize.iconSm,
+                  onPressed: () => setState(() => _armedDeleteIndex = index),
+                  attributes: <String, String>{'aria-label': 'Delete $label'},
+                  child: ArcaneIcon.trash2(size: IconSize.sm),
+                ),
+              ]),
           ],
         ),
       ],
@@ -329,20 +310,20 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
   }
 
   Widget _typeIcon(String type) => switch (type) {
-        'panel' => ArcaneIcon.square(size: IconSize.sm),
-        'cell' => ArcaneIcon.grid2x2(size: IconSize.sm),
-        'slot' => ArcaneIcon.package(size: IconSize.sm),
-        'label' => ArcaneIcon.typeIcon(size: IconSize.sm),
-        _ => ArcaneIcon.circleAlert(size: IconSize.sm),
-      };
+    'panel' => ArcaneIcon.square(size: IconSize.sm),
+    'cell' => ArcaneIcon.grid2x2(size: IconSize.sm),
+    'slot' => ArcaneIcon.package(size: IconSize.sm),
+    'label' => ArcaneIcon.typeIcon(size: IconSize.sm),
+    _ => ArcaneIcon.circleAlert(size: IconSize.sm),
+  };
 
   static String _typeLabel(String type) => switch (type) {
-        'panel' => 'Panel',
-        'cell' => 'Cell',
-        'slot' => 'Slot',
-        'label' => 'Label',
-        _ => type.isEmpty ? '(no type)' : type,
-      };
+    'panel' => 'Panel',
+    'cell' => 'Cell',
+    'slot' => 'Slot',
+    'label' => 'Label',
+    _ => type.isEmpty ? '(no type)' : type,
+  };
 
   String _summary(HuiPreviewElement element) {
     final String repeat = element.repeat == null ? '' : ' x repeat';

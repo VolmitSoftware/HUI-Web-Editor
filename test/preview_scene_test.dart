@@ -1,5 +1,4 @@
-/// The 3D layout pass: where each component's quad and collision plane land in
-/// the world, and what is frozen at open versus recomputed every tick.
+/// The 3D layout pass: menu transforms, display billboards and collision planes.
 library;
 
 import 'package:holoui_editor/logic/canvas_scene.dart';
@@ -12,12 +11,20 @@ import 'package:test/test.dart';
 
 import 'projection_test.dart' show expectVec;
 
-HuiComponent _button(String id, Vec3 offset, {double highlight = 0.05}) =>
-    HuiComponent(
-      id,
-      offset,
-      HuiButtonData(highlight, <HuiAction>[], HuiTextIcon('Play')),
-    );
+HuiComponent _button(
+  String id,
+  Vec3 offset, {
+  double highlight = 0.05,
+  String billboard = 'fixed',
+}) => HuiComponent(
+  id,
+  offset,
+  HuiButtonData(
+    highlight,
+    <HuiAction>[],
+    HuiTextIcon('Play', HuiIconStyle(billboard: billboard)),
+  ),
+);
 
 HuiComponent _decoration(String id, Vec3 offset, [String text = 'Title']) =>
     HuiComponent(id, offset, HuiDecorationData(HuiTextIcon(text)));
@@ -37,14 +44,20 @@ PreviewScene _scene(
   double uiScale = 1,
   PVec3 openFeet = PVec3.zero,
   double openYawDeg = 0,
-  PVec3? currentCenter,
+  double? facingYawDeg,
+  PVec3? anchorFeet,
+  double pitchDeg = 0,
+  double rollDeg = 0,
   bool trueRender = false,
 }) => buildPreviewScene(
   menu: menu,
   uiScale: uiScale,
   openFeet: openFeet,
   openYawDeg: openYawDeg,
-  currentCenter: currentCenter,
+  facingYawDeg: facingYawDeg ?? openYawDeg,
+  anchorFeet: anchorFeet,
+  pitchDeg: pitchDeg,
+  rollDeg: rollDeg,
   trueRender: trueRender,
 );
 
@@ -129,10 +142,7 @@ void main() {
         openYawDeg: 180,
       );
       // Yaw 180 turns the player around: forward becomes -z, right becomes -x.
-      // `center` is where the menu draws; `sessionCenter` is the runtime's raw
-      // pre-rotation `centerPoint`, and at this yaw the two disagree.
       expectVec(scene.center, feet + const PVec3(0, 1, -3), epsilon: 1e-9);
-      expectVec(scene.sessionCenter, feet + const PVec3(0, 1, 3));
       expectVec(
         scene.quads.single.anchor,
         feet + const PVec3(-1, 1, -3),
@@ -159,7 +169,7 @@ void main() {
       expect(scene.byId('r')!.anchor.z, closeTo(-1, 1e-9));
     });
 
-    test('quad facing is the open yaw, frozen on every quad', () {
+    test('fixed quads use the menu yaw', () {
       final PreviewScene scene = _scene(
         _menu(
           components: <HuiComponent>[
@@ -169,18 +179,18 @@ void main() {
         ),
         openYawDeg: 137.5,
       );
+      expect(scene.facingYawDeg, 137.5);
       for (final PreviewQuad quad in scene.quads) {
-        expect(quad.facingYawDeg, 137.5);
         // The outward face points back down the player's line of sight.
         expectVec(
-          quad.normal,
+          quad.fixedPlane.normal,
           -huiLookDirection(yawDegrees: 137.5),
           epsilon: 1e-12,
         );
       }
     });
 
-    test('changing the open yaw is the ONLY thing that moves a quad', () {
+    test('changing the menu yaw moves and turns a fixed quad', () {
       final HuiMenu menu = _menu(
         components: <HuiComponent>[_button('a', Vec3(0, 0, 3))],
       );
@@ -188,39 +198,103 @@ void main() {
       final PreviewScene at90 = _scene(menu, openYawDeg: 90);
       expect(at0.quads.single.anchor == at90.quads.single.anchor, isFalse);
       expect(
-        at0.quads.single.facingYawDeg,
-        isNot(at90.quads.single.facingYawDeg),
+        at0.quads.single.fixedPlane.normal,
+        isNot(at90.quads.single.fixedPlane.normal),
       );
     });
   });
 
-  group('frozen quads versus re-aimed planes', () {
-    // The contrast this whole preview exists to show: the plane chases the eye
-    // every tick (`ClickableComponent.java:60-62`), the quad never moves.
-    final PreviewScene scene = _scene(
-      _menu(components: <HuiComponent>[_button('a', Vec3(0, 1.5, 3))]),
-      openYawDeg: 0,
-    );
-    final PreviewQuad quad = scene.quads.single;
-
-    test('the scene takes no camera at all — quads cannot follow one', () {
-      final PreviewScene again = _scene(
+  group('billboard orientation', () {
+    test('fixed preserves the full menu transform as the viewer moves', () {
+      final PreviewQuad quad = _scene(
         _menu(components: <HuiComponent>[_button('a', Vec3(0, 1.5, 3))]),
-        openYawDeg: 0,
-      );
-      expectVec(again.quads.single.anchor, quad.anchor);
-      expect(again.quads.single.facingYawDeg, quad.facingYawDeg);
+        openYawDeg: 32,
+        pitchDeg: 18,
+        rollDeg: -11,
+      ).quads.single;
+      final PlaneAim fromFront = aimQuadPlane(quad, const PVec3(0, 1.5, -5));
+      final PlaneAim fromSide = aimQuadPlane(quad, const PVec3(9, 1.5, 3));
+      expectVec(fromFront.normal, quad.fixedPlane.normal);
+      expectVec(fromFront.right, quad.fixedPlane.right);
+      expectVec(fromSide.normal, quad.fixedPlane.normal);
+      expectVec(fromSide.up, quad.fixedPlane.up);
     });
 
-    test('a moving eye re-aims the plane while the quad stays put', () {
-      final double planeY = quad.planeCenter.y;
-      final PVec3 fromFront = aimQuadPlane(quad, PVec3(0, planeY, -5)).normal;
-      final PVec3 fromSide = aimQuadPlane(quad, PVec3(9, planeY, 3)).normal;
-      expectVec(fromFront, const PVec3(0, 0, -1), epsilon: 1e-9);
-      expectVec(fromSide, const PVec3(1, 0, 0), epsilon: 1e-9);
-      // ... and the quad is untouched by either call.
-      expectVec(quad.anchor, const PVec3(0, 1.5, 3));
-      expect(quad.facingYawDeg, 0);
+    test('vertical faces the viewer in yaw while keeping world up', () {
+      final PreviewQuad quad = _scene(
+        _menu(
+          components: <HuiComponent>[
+            _button('a', Vec3(0, 1.5, 3), billboard: 'vertical'),
+          ],
+        ),
+        openYawDeg: 40,
+        pitchDeg: 20,
+        rollDeg: 15,
+      ).quads.single;
+      const PVec3 eye = PVec3(7, 8, -2);
+      final PlaneAim aimed = aimQuadPlane(quad, eye);
+      final PVec3 horizontal = PVec3(
+        eye.x - quad.planeCenter.x,
+        0,
+        eye.z - quad.planeCenter.z,
+      ).normalized;
+      expectVec(aimed.normal, horizontal);
+      expectVec(aimed.up, PVec3.up);
+      expect(aimed.right.y, closeTo(0, 1e-12));
+    });
+
+    test('horizontal preserves menu right and pitches toward the viewer', () {
+      final PreviewQuad quad = _scene(
+        _menu(
+          components: <HuiComponent>[
+            _button('a', Vec3(0, 1.5, 3), billboard: 'horizontal'),
+          ],
+        ),
+        openYawDeg: 35,
+        pitchDeg: 12,
+        rollDeg: -7,
+      ).quads.single;
+      const PVec3 eye = PVec3(5, 7, -4);
+      final PlaneAim aimed = aimQuadPlane(quad, eye);
+      final PVec3 expectedNormal =
+          (eye -
+                  quad.planeCenter -
+                  quad.fixedPlane.right *
+                      (eye - quad.planeCenter).dot(quad.fixedPlane.right))
+              .normalized;
+      expectVec(aimed.right, quad.fixedPlane.right);
+      expectVec(aimed.normal, expectedNormal);
+      expect(aimed.up.dot(aimed.right), closeTo(0, 1e-12));
+    });
+
+    test('center fully faces the viewer', () {
+      final PreviewQuad quad = _scene(
+        _menu(
+          components: <HuiComponent>[
+            _button('a', Vec3(0, 1.5, 3), billboard: 'center'),
+          ],
+        ),
+        openYawDeg: 75,
+      ).quads.single;
+      const PVec3 eye = PVec3(6, 5, -3);
+      final PlaneAim aimed = aimQuadPlane(quad, eye);
+      expectVec(aimed.normal, (eye - quad.planeCenter).normalized);
+    });
+
+    test('the visual and click plane apply the same billboard basis', () {
+      final PreviewQuad quad = _scene(
+        _menu(
+          components: <HuiComponent>[
+            _button('a', Vec3(0, 1.5, 3), billboard: 'center'),
+          ],
+        ),
+      ).quads.single;
+      const PVec3 eye = PVec3(6, 5, -3);
+      final PlaneAim hitbox = aimQuadPlane(quad, eye);
+      final PlaneAim visual = aimQuadVisual(quad, quad.planeCenter, eye);
+      expectVec(visual.normal, hitbox.normal);
+      expectVec(visual.right, hitbox.right);
+      expectVec(visual.up, hitbox.up);
     });
   });
 
@@ -325,6 +399,7 @@ void main() {
         uiScale: 2,
         openFeet: PVec3.zero,
         openYawDeg: 0,
+        facingYawDeg: 0,
         canvas: canvas,
       );
       expect(identical(scene.canvas, canvas), isTrue);
@@ -350,8 +425,7 @@ void main() {
       ]);
     });
 
-    test('clickables keep declaration order — the click dispatch order', () {
-      // `SessionHolder.java:145-159` fires every hovered clickable in order.
+    test('clickables keep declaration order for equal-distance ties', () {
       final PreviewScene scene = _scene(
         _menu(
           components: <HuiComponent>[
@@ -409,9 +483,7 @@ void main() {
   });
 
   group('followPlayer', () {
-    test('a moved centre translates the whole menu rigidly', () {
-      // `MenuSession.java:103-109` re-derives every location from the new
-      // centre and re-applies the SAME frozen initialY.
+    test('a moved anchor translates the whole menu rigidly', () {
       final HuiMenu menu = _menu(
         offset: Vec3(0, 1.5, 3),
         followPlayer: true,
@@ -424,7 +496,8 @@ void main() {
       final PreviewScene walked = _scene(
         menu,
         openYawDeg: 45,
-        currentCenter: still.sessionCenter + const PVec3(5, 0, -2),
+        facingYawDeg: 45,
+        anchorFeet: still.anchorFeet + const PVec3(5, 0, -2),
       );
       expectVec(
         walked.center,
@@ -437,14 +510,14 @@ void main() {
           quad.anchor + const PVec3(5, 0, -2),
           epsilon: 1e-9,
         );
-        // Facing is frozen at open; walking never re-aims it.
-        expect(walked.byId(quad.id)!.facingYawDeg, quad.facingYawDeg);
+        expectVec(
+          walked.byId(quad.id)!.fixedPlane.normal,
+          quad.fixedPlane.normal,
+        );
       }
     });
 
     test('the pivot is the CURRENT player position, not the open one', () {
-      // The runtime pivots on `player.getEyeLocation()` at the moment of the
-      // move, so the derived feet must come off the current centre.
       final PreviewScene scene = _scene(
         _menu(
           offset: Vec3(0, 0, 4),
@@ -452,9 +525,8 @@ void main() {
           components: <HuiComponent>[_button('a', Vec3(0, 0, 0))],
         ),
         openYawDeg: 90,
-        // The player walked to (20, 0, 20); the runtime's centre is their feet
-        // plus the UNROTATED menu offset.
-        currentCenter: const PVec3(20, 0, 24),
+        facingYawDeg: 90,
+        anchorFeet: const PVec3(20, 0, 20),
       );
       expectVec(scene.anchorFeet, const PVec3(20, 0, 20), epsilon: 1e-9);
       expectVec(
@@ -463,6 +535,29 @@ void main() {
         epsilon: 1e-9,
       );
       expectVec(scene.center, const PVec3(24, 0, 20), epsilon: 1e-9);
+    });
+
+    test('keeps the open pose but turns with the current player yaw', () {
+      final HuiMenu menu = _menu(
+        offset: Vec3(0, 0, 4),
+        followPlayer: true,
+        components: <HuiComponent>[_button('a', Vec3(1, 0, 0))],
+      );
+      final PreviewScene scene = _scene(
+        menu,
+        openFeet: const PVec3(2, 0, 3),
+        openYawDeg: 20,
+        anchorFeet: const PVec3(8, 0, 9),
+        facingYawDeg: 90,
+      );
+      expect(scene.openYawDeg, 20);
+      expect(scene.facingYawDeg, 90);
+      expectVec(scene.center, const PVec3(12, 0, 9), epsilon: 1e-9);
+      expectVec(
+        scene.quads.single.fixedPlane.normal,
+        -huiLookDirection(yawDegrees: 90),
+        epsilon: 1e-9,
+      );
     });
   });
 
@@ -524,8 +619,8 @@ void main() {
   });
 
   group('hoveredClickableIds', () {
-    // One call is a whole tick of `ClickableComponent.onTick`: re-aim every
-    // plane at the eye, then test the look ray against each.
+    // One call is a whole geometry tick: apply each icon's billboard rule,
+    // then test the look ray against every clickable.
     PreviewScene overlapping() => _scene(
       _menu(
         components: <HuiComponent>[
@@ -547,6 +642,14 @@ void main() {
       ]);
     });
 
+    test('reports the nearest event-time click target', () {
+      final PreviewScene scene = overlapping();
+      final PVec3 eye = PVec3(0, scene.quads.first.planeCenter.y, -1);
+      final LookRay ray = LookRay.normalized(eye, const PVec3(0, 0, 1));
+
+      expect(nearestClickableId(scene: scene, ray: ray, eye: eye), 'front');
+    });
+
     test('never reports a decoration', () {
       final PreviewScene scene = overlapping();
       final PVec3 eye = PVec3(0, scene.quads.first.planeCenter.y, -1);
@@ -564,11 +667,13 @@ void main() {
       expect(hoveredClickableIds(scene: scene, ray: ray, eye: eye), isEmpty);
     });
 
-    test('planes re-aim, so a glancing eye still resolves a hit', () {
-      // Standing to the side, the plane turns to face the eye and the ray meets
-      // it square on — a fixed-normal plane would be edge-on and miss.
+    test('a center billboard resolves a glancing hit from the side', () {
       final PreviewScene scene = _scene(
-        _menu(components: <HuiComponent>[_button('a', Vec3(0, 0, 3))]),
+        _menu(
+          components: <HuiComponent>[
+            _button('a', Vec3(0, 0, 3), billboard: 'center'),
+          ],
+        ),
       );
       final PVec3 anchor = scene.quads.single.planeCenter;
       const PVec3 eye = PVec3(6, 0, 3);

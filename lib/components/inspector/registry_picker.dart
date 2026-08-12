@@ -170,45 +170,34 @@ class _RegistryPickerState extends State<RegistryPicker> {
           ],
         ),
         if (_browsing)
-          dom.div(
-            classes: 'hui-registry-browser',
-            <Widget>[
-              TextInput(
-                value: _query,
-                size: ComponentSize.sm,
-                fullWidth: true,
-                placeholder: component.searchPlaceholder,
-                onInput: (String raw) => setState(() => _query = raw),
-                attributes: const <String, String>{
-                  'autocomplete': 'off',
-                  'spellcheck': 'false',
-                },
-              ),
-              if (results.isEmpty)
-                dom.p(
-                  classes: 'hui-registry-empty',
-                  <Widget>[Text(component.emptyMessage)],
-                )
-              else
-                dom.div(
-                  classes: 'hui-registry-results',
-                  <Widget>[
-                    for (final RegistryOption option in results)
-                      _resultRow(option),
-                  ],
+          dom.div(classes: 'hui-registry-browser', <Widget>[
+            TextInput(
+              value: _query,
+              size: ComponentSize.sm,
+              fullWidth: true,
+              placeholder: component.searchPlaceholder,
+              onInput: (String raw) => setState(() => _query = raw),
+              attributes: const <String, String>{
+                'autocomplete': 'off',
+                'spellcheck': 'false',
+              },
+            ),
+            if (results.isEmpty)
+              dom.p(classes: 'hui-registry-empty', <Widget>[
+                Text(component.emptyMessage),
+              ])
+            else
+              dom.div(classes: 'hui-registry-results', <Widget>[
+                for (final RegistryOption option in results) _resultRow(option),
+              ]),
+            if (results.length >= component.maxResults)
+              dom.p(classes: 'hui-registry-more', <Widget>[
+                Text(
+                  'Showing the first ${component.maxResults} matches. '
+                  'Keep typing to narrow it down.',
                 ),
-              if (results.length >= component.maxResults)
-                dom.p(
-                  classes: 'hui-registry-more',
-                  <Widget>[
-                    Text(
-                      'Showing the first ${component.maxResults} matches. '
-                      'Keep typing to narrow it down.',
-                    ),
-                  ],
-                ),
-            ],
-          ),
+              ]),
+          ]),
       ],
     );
   }
@@ -249,20 +238,15 @@ class _RegistryPickerState extends State<RegistryPicker> {
             classes: 'hui-registry-result-icon is-blank',
             <Widget>[],
           ),
-        dom.span(
-          classes: 'hui-registry-result-text',
-          <Widget>[
-            dom.span(
-              classes: 'hui-registry-result-key',
-              <Widget>[Text(option.key)],
-            ),
-            if (option.detail != null)
-              dom.span(
-                classes: 'hui-registry-result-detail',
-                <Widget>[Text(option.detail!)],
-              ),
-          ],
-        ),
+        dom.span(classes: 'hui-registry-result-text', <Widget>[
+          dom.span(classes: 'hui-registry-result-key', <Widget>[
+            Text(option.key),
+          ]),
+          if (option.detail != null)
+            dom.span(classes: 'hui-registry-result-detail', <Widget>[
+              Text(option.detail!),
+            ]),
+        ]),
       ],
     );
   }

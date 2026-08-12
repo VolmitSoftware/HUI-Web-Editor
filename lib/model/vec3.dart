@@ -9,10 +9,7 @@ class Vec3 {
 
   Vec3(this.x, this.y, this.z);
 
-  Vec3.zero()
-      : x = 0,
-        y = 0,
-        z = 0;
+  Vec3.zero() : x = 0, y = 0, z = 0;
 
   Vec3 copy() => Vec3(x, y, z);
 
@@ -25,7 +22,9 @@ class Vec3 {
     }
     if (raw.length != 3) {
       throw HuiFormatException(
-          'Expected exactly 3 numbers, found ${raw.length}', path);
+        'Expected exactly 3 numbers, found ${raw.length}',
+        path,
+      );
     }
     return Vec3(
       _component(raw[0], path),

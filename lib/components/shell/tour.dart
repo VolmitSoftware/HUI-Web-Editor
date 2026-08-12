@@ -50,41 +50,49 @@ class HuiTourStep {
 const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
   HuiTourStep(
     title: 'Components live in the rail',
-    body: 'Add a button, toggle or decoration from the split button at the '
+    body:
+        'Add a button, toggle or decoration from the split button at the '
         'top, then pick a row to select it. Right-click a row — or use its ⋮ '
         'button — for duplicate, restack and delete.',
     selectors: <String>['.hui-rail'],
-    hint: 'Rail order is click order: overlapping hitboxes all fire, top to '
-        'bottom.',
+    hint:
+        'The nearest overlapping hitbox fires. Rail order breaks an exact '
+        'distance tie.',
   ),
   HuiTourStep(
     title: 'The artboard places them',
-    body: 'Drag a component to move it, drag empty space to marquee-select, '
+    body:
+        'Drag a component to move it, drag empty space to marquee-select, '
         'and hold Shift to add one at a time. Space-drag or middle-drag pans; '
         'scroll zooms.',
     selectors: <String>['.hui-center', '.hui-canvas'],
-    hint: 'X is mirrored against the JSON on purpose — the runtime negates it, '
+    hint:
+        'X is mirrored against the JSON on purpose — the runtime negates it, '
         'so the artboard shows what the player sees.',
   ),
   HuiTourStep(
     title: 'The inspector tunes them',
-    body: 'Everything about the selection is edited here: id, offset, icon, '
+    body:
+        'Everything about the selection is edited here: id, offset, icon, '
         'actions and any extra keys the file carried. The ? button beside a '
         'field explains what HoloUi does with it.',
     selectors: <String>['.hui-inspector'],
   ),
   HuiTourStep(
     title: 'Preview plays it back',
-    body: 'The Preview tab runs the menu the way the plugin does — hover push, '
+    body:
+        'The Preview tab runs the menu the way the plugin does — hover push, '
         'click dispatch, toggle transitions, and the distance close — with '
         'every command and sound written to a log instead of fired.',
     selectors: <String>['.hui-view-switcher', '.hui-bar-center'],
-    hint: 'Icons never turn to face the player. Preview is where that stops '
-        'being a footnote.',
+    hint:
+        'Fixed, vertical, horizontal and center billboards are reproduced '
+        'with their matching click planes.',
   ),
   HuiTourStep(
     title: 'Everything else is one keystroke away',
-    body: 'The command palette in the Editor cluster runs any command by name, '
+    body:
+        'The command palette in the Editor cluster runs any command by name, '
         'including this tour. Press ? at any time for the full shortcut sheet.',
     selectors: <String>['.hui-bar'],
   ),
@@ -208,29 +216,26 @@ class _HuiTourState extends State<HuiTour> {
     // and an in-flow wrapper here would add a fourth implicit row. The card
     // carries the accessible name; a landmark role on a contents box is not
     // reliably kept in the accessibility tree.
-    return dom.div(
-      classes: 'hui-tour',
-      <Widget>[
-        ..._dimming(spot),
-        if (spot != null)
-          dom.div(
-            // Keyed on the step so the ring's entrance replays as it moves.
-            key: ValueKey<String>('ring-$_step'),
-            classes: 'hui-tour-ring',
-            styles: dom.Styles(
-              raw: <String, String>{
-                'left': '${spot.left}px',
-                'top': '${spot.top}px',
-                'width': '${spot.width}px',
-                'height': '${spot.height}px',
-              },
-            ),
-            attributes: const <String, String>{'aria-hidden': 'true'},
-            const <Widget>[],
+    return dom.div(classes: 'hui-tour', <Widget>[
+      ..._dimming(spot),
+      if (spot != null)
+        dom.div(
+          // Keyed on the step so the ring's entrance replays as it moves.
+          key: ValueKey<String>('ring-$_step'),
+          classes: 'hui-tour-ring',
+          styles: dom.Styles(
+            raw: <String, String>{
+              'left': '${spot.left}px',
+              'top': '${spot.top}px',
+              'width': '${spot.width}px',
+              'height': '${spot.height}px',
+            },
           ),
-        _card(step, spot, last),
-      ],
-    );
+          attributes: const <String, String>{'aria-hidden': 'true'},
+          const <Widget>[],
+        ),
+      _card(step, spot, last),
+    ]);
   }
 
   _Box? _padded(_Box? box) {
@@ -282,12 +287,13 @@ class _HuiTourState extends State<HuiTour> {
   /// onboarding, and an overlay you cannot get out of by clicking away is the
   /// worst thing onboarding can be.
   Widget _dim(Map<String, String> rect) => dom.div(
-        classes:
-            component.leaving ? 'hui-tour-dim hui-anim-fade-out' : 'hui-tour-dim',
-        styles: dom.Styles(raw: rect),
-        events: dom.events<Null>(onClick: component.onSkip),
-        const <Widget>[],
-      );
+    classes: component.leaving
+        ? 'hui-tour-dim hui-anim-fade-out'
+        : 'hui-tour-dim',
+    styles: dom.Styles(raw: rect),
+    events: dom.events<Null>(onClick: component.onSkip),
+    const <Widget>[],
+  );
 
   Widget _card(HuiTourStep step, _Box? spot, bool last) {
     final (double left, double top) = _place(spot);
@@ -296,70 +302,64 @@ class _HuiTourState extends State<HuiTour> {
       // which is the only signal that the card moved rather than just changed
       // its text.
       key: ValueKey<String>('card-$_step'),
-      classes:
-          component.leaving ? 'hui-tour-card hui-anim-out' : 'hui-tour-card',
+      classes: component.leaving
+          ? 'hui-tour-card hui-anim-out'
+          : 'hui-tour-card',
       styles: dom.Styles(
         raw: <String, String>{'left': '${left}px', 'top': '${top}px'},
       ),
-      attributes: <String, String>{
-        'role': 'dialog',
-        'aria-label': step.title,
-      },
+      attributes: <String, String>{'role': 'dialog', 'aria-label': step.title},
       <Widget>[
-        dom.div(
-          classes: 'hui-tour-eyebrow',
-          <Widget>[Text('Step ${_step + 1} of ${huiTourSteps.length}')],
-        ),
+        dom.div(classes: 'hui-tour-eyebrow', <Widget>[
+          Text('Step ${_step + 1} of ${huiTourSteps.length}'),
+        ]),
         dom.h2(classes: 'hui-tour-title', <Widget>[Text(step.title)]),
         dom.p(classes: 'hui-tour-body', <Widget>[Text(step.body)]),
         if (step.hint != null)
           dom.p(classes: 'hui-tour-hint', <Widget>[Text(step.hint!)]),
-        dom.div(
-          classes: 'hui-tour-actions',
-          <Widget>[
+        dom.div(classes: 'hui-tour-actions', <Widget>[
+          Button(
+            variant: ButtonVariant.ghost,
+            size: ButtonSize.small,
+            onPressed: component.onNever,
+            label: "Don't show again",
+            attributes: const <String, String>{
+              'aria-label': 'Never show the guided tour again',
+            },
+          ),
+          const dom.span(classes: 'hui-tour-spacer', <Widget>[]),
+          Button(
+            variant: ButtonVariant.ghost,
+            size: ButtonSize.small,
+            onPressed: component.onSkip,
+            label: 'Skip',
+            attributes: const <String, String>{
+              'aria-label': 'Close the tour for now',
+            },
+          ),
+          if (_step > 0)
             Button(
-              variant: ButtonVariant.ghost,
+              variant: ButtonVariant.outline,
               size: ButtonSize.small,
-              onPressed: component.onNever,
-              label: "Don't show again",
-              attributes: const <String, String>{
-                'aria-label': 'Never show the guided tour again',
-              },
+              onPressed: () => _goto(_step - 1),
+              label: 'Back',
             ),
-            const dom.span(classes: 'hui-tour-spacer', <Widget>[]),
-            Button(
-              variant: ButtonVariant.ghost,
-              size: ButtonSize.small,
-              onPressed: component.onSkip,
-              label: 'Skip',
-              attributes: const <String, String>{
-                'aria-label': 'Close the tour for now',
-              },
-            ),
-            if (_step > 0)
-              Button(
-                variant: ButtonVariant.outline,
-                size: ButtonSize.small,
-                onPressed: () => _goto(_step - 1),
-                label: 'Back',
-              ),
-            Button(
-              // Arcane renders a Button's attributes one build behind (C15);
-              // keying it on the step keeps the label and its aria-label from
-              // reporting the previous step.
-              key: ValueKey<int>(_step),
-              variant: ButtonVariant.primary,
-              size: ButtonSize.small,
-              onPressed: last ? component.onFinish : () => _goto(_step + 1),
-              label: last ? 'Done' : 'Next',
-              attributes: <String, String>{
-                'aria-label': last
-                    ? 'Finish the tour'
-                    : 'Go to step ${_step + 2} of ${huiTourSteps.length}',
-              },
-            ),
-          ],
-        ),
+          Button(
+            // Arcane renders a Button's attributes one build behind (C15);
+            // keying it on the step keeps the label and its aria-label from
+            // reporting the previous step.
+            key: ValueKey<int>(_step),
+            variant: ButtonVariant.primary,
+            size: ButtonSize.small,
+            onPressed: last ? component.onFinish : () => _goto(_step + 1),
+            label: last ? 'Done' : 'Next',
+            attributes: <String, String>{
+              'aria-label': last
+                  ? 'Finish the tour'
+                  : 'Go to step ${_step + 2} of ${huiTourSteps.length}',
+            },
+          ),
+        ]),
       ],
     );
   }
@@ -386,8 +386,11 @@ class _HuiTourState extends State<HuiTour> {
         spot.top - _gap - _cardHeight,
       );
     }
-    final double centredTop =
-        _clamp(spot.top + (spot.height - _cardHeight) / 2, _edge, _maxTop);
+    final double centredTop = _clamp(
+      spot.top + (spot.height - _cardHeight) / 2,
+      _edge,
+      _maxTop,
+    );
     if (spot.right + _gap + _cardWidth <= _viewWidth - _edge) {
       return (spot.right + _gap, centredTop);
     }

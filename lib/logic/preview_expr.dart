@@ -445,8 +445,14 @@ List<_Token> _tokenize(String source) {
           i++;
         }
       }
-      tokens.add(_Token(
-          _TokenType.number, null, double.parse(source.substring(start, i)), start));
+      tokens.add(
+        _Token(
+          _TokenType.number,
+          null,
+          double.parse(source.substring(start, i)),
+          start,
+        ),
+      );
       continue;
     }
     if (c == _singleQuote || c == _doubleQuote) {
@@ -535,7 +541,8 @@ int _scanIdentifierEnd(String source, int start, int n) {
   while (i < n &&
       source.codeUnitAt(i) == _dot &&
       i + 1 < n &&
-      (_isLetter(source.codeUnitAt(i + 1)) || source.codeUnitAt(i + 1) == _underscore)) {
+      (_isLetter(source.codeUnitAt(i + 1)) ||
+          source.codeUnitAt(i + 1) == _underscore)) {
     i += 2;
     while (i < n && _isIdentifierPart(source.codeUnitAt(i))) {
       i++;
@@ -634,10 +641,13 @@ bool _isDigit(int c) {
   return _unicodeDigit.hasMatch(String.fromCharCode(c));
 }
 
-bool _isIdentifierPart(int c) => _isLetter(c) || _isDigit(c) || c == _underscore;
+bool _isIdentifierPart(int c) =>
+    _isLetter(c) || _isDigit(c) || c == _underscore;
 
 bool _isHexDigit(int c) =>
-    (c >= 0x30 && c <= 0x39) || (c >= 0x61 && c <= 0x66) || (c >= 0x41 && c <= 0x46);
+    (c >= 0x30 && c <= 0x39) ||
+    (c >= 0x61 && c <= 0x66) ||
+    (c >= 0x41 && c <= 0x46);
 
 // ---------------------------------------------------------------------------
 // Evaluator
@@ -652,7 +662,9 @@ Object evalPreviewExpr(PExpr expr, PExprScope scope) {
     case PBool(value: final bool value):
       return value;
     case PList(items: final List<PExpr> items):
-      return <Object?>[for (final PExpr item in items) evalPreviewExpr(item, scope)];
+      return <Object?>[
+        for (final PExpr item in items) evalPreviewExpr(item, scope),
+      ];
     case PVar(name: final String name):
       final Object? value = scope.variable(name);
       if (value == null) {
@@ -727,7 +739,10 @@ Object _evalUnary(PUnary u, PExprScope scope) {
     case '!':
       return !previewRequireBool(value);
     default:
-      throw PExprException('unknown unary operator: ${u.op}', previewNoPosition);
+      throw PExprException(
+        'unknown unary operator: ${u.op}',
+        previewNoPosition,
+      );
   }
 }
 
@@ -792,8 +807,9 @@ bool _valuesEqual(Object? left, Object? right) {
     return left == right;
   }
   throw PExprException(
-      'cannot compare ${previewTypeName(left)} and ${previewTypeName(right)}',
-      previewNoPosition);
+    'cannot compare ${previewTypeName(left)} and ${previewTypeName(right)}',
+    previewNoPosition,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -805,7 +821,9 @@ double previewRequireNumber(Object? value) {
     return value;
   }
   throw PExprException(
-      'expected number, got ${previewTypeName(value)}', previewNoPosition);
+    'expected number, got ${previewTypeName(value)}',
+    previewNoPosition,
+  );
 }
 
 bool previewRequireBool(Object? value) {
@@ -813,7 +831,9 @@ bool previewRequireBool(Object? value) {
     return value;
   }
   throw PExprException(
-      'expected boolean, got ${previewTypeName(value)}', previewNoPosition);
+    'expected boolean, got ${previewTypeName(value)}',
+    previewNoPosition,
+  );
 }
 
 double _requireNonZero(Object? value) {
@@ -857,7 +877,9 @@ String previewStringify(Object? value) {
     return value ? 'true' : 'false';
   }
   throw PExprException(
-      'cannot convert ${previewTypeName(value)} to string', previewNoPosition);
+    'cannot convert ${previewTypeName(value)} to string',
+    previewNoPosition,
+  );
 }
 
 String _numberToString(double value) {

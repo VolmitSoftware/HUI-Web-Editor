@@ -52,7 +52,11 @@ void main() {
     });
 
     test('zoomAtPoint keeps the anchored point stationary in screen space', () {
-      const CanvasTransform start = CanvasTransform(zoom: 1.5, panX: 40, panY: -18);
+      const CanvasTransform start = CanvasTransform(
+        zoom: 1.5,
+        panX: 40,
+        panY: -18,
+      );
       const double anchorX = 120;
       const double anchorY = -75;
       const double base = 100;
@@ -84,19 +88,28 @@ void main() {
       );
     });
 
-    test('zoomAtPoint on the centre anchor leaves pan untouched at pan zero', () {
-      const CanvasTransform start = CanvasTransform(zoom: 1);
-      final CanvasTransform zoomed =
-          start.zoomAtPoint(requestedZoom: 3, anchorX: 0, anchorY: 0);
-      expect(zoomed.panX, 0.0);
-      expect(zoomed.panY, 0.0);
-      expect(zoomed.zoom, 3.0);
-    });
+    test(
+      'zoomAtPoint on the centre anchor leaves pan untouched at pan zero',
+      () {
+        const CanvasTransform start = CanvasTransform(zoom: 1);
+        final CanvasTransform zoomed = start.zoomAtPoint(
+          requestedZoom: 3,
+          anchorX: 0,
+          anchorY: 0,
+        );
+        expect(zoomed.panX, 0.0);
+        expect(zoomed.panY, 0.0);
+        expect(zoomed.zoom, 3.0);
+      },
+    );
 
     test('zoomByAtPoint multiplies the current zoom', () {
       const CanvasTransform start = CanvasTransform(zoom: 2);
-      final CanvasTransform zoomed =
-          start.zoomByAtPoint(factor: 1.25, anchorX: 0, anchorY: 0);
+      final CanvasTransform zoomed = start.zoomByAtPoint(
+        factor: 1.25,
+        anchorX: 0,
+        anchorY: 0,
+      );
       expect(zoomed.zoom, closeTo(2.5, _epsilon));
     });
 
@@ -136,7 +149,10 @@ void main() {
     });
 
     test('opposite scrolls compose back to unity', () {
-      expect(wheelZoomFactor(-90) * wheelZoomFactor(90), closeTo(1.0, _epsilon));
+      expect(
+        wheelZoomFactor(-90) * wheelZoomFactor(90),
+        closeTo(1.0, _epsilon),
+      );
     });
   });
 
@@ -240,8 +256,9 @@ void main() {
     });
 
     test('blocks and pixels convert both ways', () {
-      final HuiViewport v =
-          _viewport(transform: const CanvasTransform(zoom: 2));
+      final HuiViewport v = _viewport(
+        transform: const CanvasTransform(zoom: 2),
+      );
       expect(v.blocksToPixels(0.5), 100.0);
       expect(v.pixelsToBlocks(100), 0.5);
     });
@@ -300,19 +317,22 @@ void main() {
       expect(zoomOut.transform.panY, closeTo(v.transform.panY, 1e-7));
     });
 
-    test('zooming out past the minimum clamps without moving the anchor twice',
-        () {
-      final HuiViewport v =
-          _viewport(transform: const CanvasTransform(zoom: huiMinZoom));
-      final HuiViewport zoomed = v.zoomByAtScreenPoint(
-        factor: 0.1,
-        screenX: 700,
-        screenY: 50,
-      );
-      expect(zoomed.zoom, huiMinZoom);
-      expect(zoomed.transform.panX, v.transform.panX);
-      expect(zoomed.transform.panY, v.transform.panY);
-    });
+    test(
+      'zooming out past the minimum clamps without moving the anchor twice',
+      () {
+        final HuiViewport v = _viewport(
+          transform: const CanvasTransform(zoom: huiMinZoom),
+        );
+        final HuiViewport zoomed = v.zoomByAtScreenPoint(
+          factor: 0.1,
+          screenX: 700,
+          screenY: 50,
+        );
+        expect(zoomed.zoom, huiMinZoom);
+        expect(zoomed.transform.panX, v.transform.panX);
+        expect(zoomed.transform.panY, v.transform.panY);
+      },
+    );
 
     test('panByPixels translates and clamps to the world pan limit', () {
       final HuiViewport v = _viewport();
@@ -336,8 +356,11 @@ void main() {
       final HuiViewport v = _viewport(
         transform: const CanvasTransform(zoom: 3, panX: 5, panY: 6),
       );
-      final HuiViewport r =
-          v.resized(widthPx: 1024, heightPx: 768, devicePixelRatio: 2);
+      final HuiViewport r = v.resized(
+        widthPx: 1024,
+        heightPx: 768,
+        devicePixelRatio: 2,
+      );
       expect(r.widthPx, 1024.0);
       expect(r.heightPx, 768.0);
       expect(r.devicePixelRatio, 2.0);
@@ -347,8 +370,12 @@ void main() {
 
     test('zoomToFit centres the bounds and honours padding', () {
       final HuiViewport v = _viewport();
-      const WorldBounds bounds =
-          WorldBounds(minX: 1, minY: 2, maxX: 3, maxY: 4);
+      const WorldBounds bounds = WorldBounds(
+        minX: 1,
+        minY: 2,
+        maxX: 3,
+        maxY: 4,
+      );
       final HuiViewport fitted = v.zoomToFit(bounds, paddingPx: 20);
       expect(fitted.zoom, closeTo(2.8, _epsilon));
       final ScreenPoint centre = fitted.worldToScreen(2, 3);
@@ -379,7 +406,13 @@ void main() {
       final WorldPoint w = v.screenToWorld(0, 0);
       expect(w.x.isFinite, isTrue);
       expect(w.y.isFinite, isTrue);
-      expect(v.zoomToFit(const WorldBounds(minX: 0, minY: 0, maxX: 1, maxY: 1)).zoom.isFinite, isTrue);
+      expect(
+        v
+            .zoomToFit(const WorldBounds(minX: 0, minY: 0, maxX: 1, maxY: 1))
+            .zoom
+            .isFinite,
+        isTrue,
+      );
     });
   });
 }

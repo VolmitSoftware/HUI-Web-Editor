@@ -13,4 +13,5 @@
 ///   file input to hand to `ImageLibrary.addFromFiles`.
 library;
 
-export 'dom_bridge_stub.dart' if (dart.library.js_interop) 'dom_bridge_web.dart';
+export 'dom_bridge_stub.dart'
+    if (dart.library.js_interop) 'dom_bridge_web.dart';

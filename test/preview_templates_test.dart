@@ -14,27 +14,35 @@ import 'package:test/test.dart';
 void main() {
   group('every preview template', () {
     for (final HuiPreviewTemplate template in huiPreviewTemplates) {
-      test('${template.id} parses and builds clean against "${template.category}"',
-          () {
-        final HuiPreviewDoc doc = template.build();
+      test(
+        '${template.id} parses and builds clean against "${template.category}"',
+        () {
+          final HuiPreviewDoc doc = template.build();
 
-        // "Parses clean": round-tripping through the JSON codec never throws.
-        final String json = encodeHuiPreviewDoc(doc);
-        final HuiPreviewDoc reparsed = decodeHuiPreviewDoc(json);
-        expect(reparsed.elements.length, doc.elements.length);
+          // "Parses clean": round-tripping through the JSON codec never throws.
+          final String json = encodeHuiPreviewDoc(doc);
+          final HuiPreviewDoc reparsed = decodeHuiPreviewDoc(json);
+          expect(reparsed.elements.length, doc.elements.length);
 
-        // "Builds clean": zero onError output against the declared category,
-        // with the document's own vars resolved exactly as the plugin's
-        // registry would (no specific material — the template's own defaults).
-        final PreviewSim sim = PreviewSim(template.category);
-        sim.vars = PreviewSim.parseVars(previewVarsForMaterial(doc, null));
-        final List<String> errors = <String>[];
-        final PreviewCardScene scene =
-            buildCardScene(doc, sim, onError: errors.add);
-        expect(errors, isEmpty,
-            reason: '${template.id} must build without any onError output');
-        expect(scene.items, isNotEmpty);
-      });
+          // "Builds clean": zero onError output against the declared category,
+          // with the document's own vars resolved exactly as the plugin's
+          // registry would (no specific material — the template's own defaults).
+          final PreviewSim sim = PreviewSim(template.category);
+          sim.vars = PreviewSim.parseVars(previewVarsForMaterial(doc, null));
+          final List<String> errors = <String>[];
+          final PreviewCardScene scene = buildCardScene(
+            doc,
+            sim,
+            onError: errors.add,
+          );
+          expect(
+            errors,
+            isEmpty,
+            reason: '${template.id} must build without any onError output',
+          );
+          expect(scene.items, isNotEmpty);
+        },
+      );
     }
 
     test('every template has a unique, non-empty id', () {

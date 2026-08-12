@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:arcane_jaspr_shadcn/arcane_jaspr_shadcn.dart';
 
 import 'components/canvas/canvas.dart';
+import 'components/board/board.dart';
 import 'components/code_editor/code_editor_view.dart';
 import 'components/dialogs/dialogs.dart';
 import 'components/inspector/inspector.dart';
@@ -10,9 +13,18 @@ import 'components/preview/preview_view.dart';
 import 'components/preview_card/preview_card.dart';
 import 'components/shell/shell.dart';
 import 'services/catalogs.dart';
+import 'services/clipboard.dart';
+import 'services/editor_sync.dart';
+import 'services/file_transfer.dart';
 import 'services/image_library.dart';
+import 'services/page_lifecycle.dart';
+import 'services/workspace_location.dart';
 import 'state/editor_scope.dart';
 import 'state/editor_store.dart';
+import 'state/workspace.dart';
+import 'state/workspace_board.dart';
+import 'state/workspace_bundle.dart';
+import 'state/workspace_route.dart';
 import 'theme/theme_state.dart';
 
 enum _EditorDialog { none, import, export, images, templates, settings, help }
@@ -40,7 +52,9 @@ class _OfflineShadcnStylesheet extends ShadcnStylesheet {
 }
 
 class App extends StatefulWidget {
-  const App({super.key});
+  const App({required this.workspace, super.key});
+
+  final Workspace workspace;
 
   @override
   State<App> createState() => _AppState();
@@ -53,6 +67,22 @@ class _AppState extends State<App> {
   late final EditorStore _store;
   final ShellStatus _status = ShellStatus();
   HuiCatalogs? _catalogs;
+  WorkspaceMenuImportEnvelope? _menuHandoff;
+  final EditorSyncClient _syncClient = EditorSyncClient();
+  final EditorSyncPollGate _syncPollGate = EditorSyncPollGate();
+  EditorSyncBinding? _syncBinding;
+  EditorSyncSession? _syncSession;
+  EditorSyncSession? _syncImportSession;
+  EditorSyncBinding? _syncImportCapability;
+  Timer? _syncPollTimer;
+  String? _syncError;
+  String? _syncPersistenceWarning;
+  bool _syncLoading = false;
+  bool _syncPublishing = false;
+  bool _syncConflictOpen = false;
+  void Function() _stopHashListener = () {};
+  void Function() _stopPageExitListener = () {};
+  bool _applyingHash = false;
 
   _EditorDialog _dialog = _EditorDialog.none;
   bool _validationOpen = false;
@@ -64,7 +94,21 @@ class _AppState extends State<App> {
     stampDocumentTheme(_brightness);
 
     _images = ImageLibrary();
-    _store = EditorStore(images: _images);
+    _store = EditorStore(workspace: component.workspace, images: _images);
+    _stopPageExitListener = listenForPageExit(
+      () => _store.flushAutosave(notify: false),
+    );
+    _applyWorkspaceHash(readWorkspaceLocationHash(), notify: false);
+    if (_syncImportCapability == null) {
+      _restoreSyncBinding();
+    }
+    _store.addListener(_syncWorkspaceHash);
+    _stopHashListener = listenWorkspaceLocationHash(
+      (String hash) => _applyWorkspaceHash(hash, notify: true),
+    );
+    if (_menuHandoff == null && readWorkspaceLocationHash().isEmpty) {
+      _syncWorkspaceHash(replace: true);
+    }
 
     HuiCatalogs.load().then((HuiCatalogs catalogs) {
       if (!mounted) return;
@@ -77,6 +121,11 @@ class _AppState extends State<App> {
 
   @override
   void dispose() {
+    _syncPollTimer?.cancel();
+    _syncClient.close();
+    _stopPageExitListener();
+    _stopHashListener();
+    _store.removeListener(_syncWorkspaceHash);
     _store.dispose();
     super.dispose();
   }
@@ -102,6 +151,519 @@ class _AppState extends State<App> {
     _dialog = _EditorDialog.none;
     _validationOpen = false;
   });
+
+  void _applyWorkspaceHash(String hash, {required bool notify}) {
+    final WorkspaceRouteResult parsed = parseWorkspaceRoute(hash);
+    final WorkspaceRoute? route = parsed.route;
+    if (route is WorkspaceMenuImportRoute) {
+      if (notify) {
+        setState(() => _menuHandoff = route.envelope);
+      } else {
+        _menuHandoff = route.envelope;
+      }
+      return;
+    }
+    if (route is WorkspaceSyncRoute) {
+      _beginSyncRoute(route);
+      return;
+    }
+    if (route is WorkspaceDocumentRoute) {
+      if (_menuHandoff != null) {
+        if (notify) {
+          setState(() => _menuHandoff = null);
+        } else {
+          _menuHandoff = null;
+        }
+      }
+      if (route.workspaceId != _store.workspace.id) {
+        _reportRouteError(
+          'That link belongs to a different local workspace. Import its '
+          'workspace bundle first.',
+        );
+        return;
+      }
+      _applyingHash = true;
+      final bool opened = _store.openDocument(route.documentId);
+      _applyingHash = false;
+      if (!opened) {
+        _reportRouteError('That linked document is not in this workspace.');
+      }
+      return;
+    }
+    if (parsed.error != null) _reportRouteError(parsed.error!);
+  }
+
+  void _syncWorkspaceHash({bool replace = false}) {
+    if (_applyingHash ||
+        _menuHandoff != null ||
+        _syncImportCapability != null) {
+      return;
+    }
+    final EditorSyncBinding? syncBinding = _syncBinding;
+    if (syncBinding != null && _syncPersistenceWarning != null) {
+      writeWorkspaceLocationHash(
+        workspaceSyncHash(
+          sessionId: syncBinding.sessionId,
+          editorToken: syncBinding.editorToken,
+          relayEndpoint: syncBinding.relayEndpoint,
+        ),
+        replace: true,
+      );
+      return;
+    }
+    final String? documentId = _store.workspace.activeId;
+    if (documentId == null) return;
+    final String current = readWorkspaceLocationHash();
+    writeWorkspaceLocationHash(
+      workspaceDocumentHash(_store.workspace.id, documentId),
+      replace: replace || current.startsWith('#/import/menu/'),
+    );
+  }
+
+  void _reportRouteError(String message) {
+    Timer.run(() {
+      if (mounted) ArcaneSonner.error(message);
+    });
+  }
+
+  void _cancelMenuHandoff() {
+    setState(() => _menuHandoff = null);
+    _syncWorkspaceHash(replace: true);
+  }
+
+  void _confirmMenuHandoff() {
+    final WorkspaceMenuImportEnvelope? envelope = _menuHandoff;
+    if (envelope == null) return;
+    final bool created = _store.newMenuDocumentFromJson(
+      name: envelope.runtimeId.split('/').last,
+      runtimeId: envelope.runtimeId,
+      json: envelope.json,
+    );
+    if (!created) return;
+    setState(() => _menuHandoff = null);
+    ArcaneSonner.success('Added ${envelope.runtimeId} to the workspace.');
+  }
+
+  void _restoreSyncBinding() {
+    final EditorSyncBinding? binding = loadEditorSyncBinding(
+      _store.workspace.id,
+    );
+    if (binding == null) return;
+    _syncBinding = binding;
+    _startSyncPolling();
+  }
+
+  void _beginSyncRoute(WorkspaceSyncRoute route) {
+    final EditorSyncBinding capability = EditorSyncBinding(
+      sessionId: route.sessionId,
+      editorToken: route.editorToken,
+      relayEndpoint: route.relayEndpoint,
+      kind: 'menu',
+      subjectId: 'pending',
+      baseRevision: 'sha256:${List<String>.filled(64, '0').join()}',
+      menuDocumentIds: const <String, String>{},
+      imagePaths: const <String>[],
+      constraints: const EditorSyncConstraints(
+        subjectId: 'pending',
+        menuIds: <String>[],
+        imagePaths: <String>[],
+      ),
+      warnings: const <String>[],
+    );
+    setState(() {
+      _syncImportCapability = capability;
+      _syncImportSession = null;
+      _syncError = null;
+      _syncLoading = false;
+    });
+  }
+
+  void _loadSyncImport() {
+    final EditorSyncBinding? capability = _syncImportCapability;
+    if (capability == null || _syncLoading) return;
+    setState(() {
+      _syncLoading = true;
+      _syncError = null;
+    });
+    _syncClient
+        .fetch(capability, initialSnapshot: true)
+        .then((EditorSyncSession session) {
+          if (!mounted ||
+              _syncImportCapability?.sessionId != capability.sessionId) {
+            return;
+          }
+          setState(() {
+            _syncImportSession = session;
+            _syncLoading = false;
+          });
+        })
+        .catchError((Object error) {
+          if (!mounted ||
+              _syncImportCapability?.sessionId != capability.sessionId) {
+            return;
+          }
+          setState(() {
+            _syncError = error is EditorSyncFailure
+                ? error.message
+                : 'The relay response could not be read.';
+            _syncLoading = false;
+          });
+        });
+  }
+
+  bool get _syncImportHasConflicts {
+    final EditorSyncProject? project = _syncImportSession?.project;
+    if (project == null) return false;
+    final Set<String> ids = project.menus
+        .map((EditorSyncMenu menu) => menu.id)
+        .toSet();
+    final bool documentConflict = _store.workspace.docs.any(
+      (WorkspaceDoc doc) =>
+          doc.kind == WorkspaceDocKind.menu && ids.contains(doc.runtimeId),
+    );
+    final bool imageConflict = project.images.any((EditorSyncImage incoming) {
+      final StoredImage? local = _images.byPath(incoming.path);
+      return local != null && local.dataUri != incoming.data;
+    });
+    final bool boardConflict =
+        project.kind == 'board' &&
+        _store.workspace.docs.any(
+          (WorkspaceDoc doc) =>
+              doc.kind == WorkspaceDocKind.board &&
+              decodeWorkspaceBoard(doc.json).data.runtimeBoardId ==
+                  project.subjectId,
+        );
+    return documentConflict || imageConflict || boardConflict;
+  }
+
+  EditorSyncStatus get _visibleSyncStatus {
+    final EditorSyncStatus? current = _syncSession?.status;
+    if (current == EditorSyncStatus.expired ||
+        current == EditorSyncStatus.revoked) {
+      return current!;
+    }
+    if (_syncConflictOpen) {
+      return current == EditorSyncStatus.rejected
+          ? EditorSyncStatus.rejected
+          : EditorSyncStatus.conflict;
+    }
+    if (_syncError != null) return EditorSyncStatus.unavailable;
+    return current ?? EditorSyncStatus.connected;
+  }
+
+  void _cancelSyncImport() {
+    setState(() {
+      _syncImportCapability = null;
+      _syncImportSession = null;
+      _syncError = null;
+      _syncLoading = false;
+    });
+    _syncWorkspaceHash(replace: true);
+  }
+
+  Future<void> _confirmSyncImport() async {
+    final EditorSyncBinding? capability = _syncImportCapability;
+    final EditorSyncSession? session = _syncImportSession;
+    if (capability == null || session == null) return;
+    try {
+      final EditorSyncBinding binding = await importEditorSyncProject(
+        capability: capability,
+        project: session.project,
+        workspace: _store.workspace,
+        images: _images,
+        replaceExisting: _syncImportHasConflicts,
+      );
+      final bool durable = _persistSyncBinding(binding);
+      setState(() {
+        _syncBinding = binding;
+        _syncSession = session;
+        _syncImportCapability = null;
+        _syncImportSession = null;
+        _syncError = null;
+      });
+      final String? first = binding.menuDocumentIds.values.firstOrNull;
+      if (first != null) _store.openDocument(first);
+      if (durable) {
+        _syncWorkspaceHash(replace: true);
+      } else {
+        writeWorkspaceLocationHash(
+          workspaceSyncHash(
+            sessionId: binding.sessionId,
+            editorToken: binding.editorToken,
+            relayEndpoint: binding.relayEndpoint,
+          ),
+          replace: true,
+        );
+      }
+      _startSyncPolling();
+      ArcaneSonner.success('Connected ${binding.subjectId}.');
+    } on EditorSyncFailure catch (error) {
+      setState(() => _syncError = error.message);
+    }
+  }
+
+  void _startSyncPolling() {
+    _syncPollTimer?.cancel();
+    _refreshSyncStatus();
+    _syncPollTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _refreshSyncStatus(),
+    );
+  }
+
+  Future<void> _refreshSyncStatus() async {
+    final EditorSyncBinding? binding = _syncBinding;
+    if (binding == null) return;
+    final EditorSyncBinding? captured = _syncPollGate.begin(binding);
+    if (captured == null) return;
+    try {
+      final EditorSyncSession session = await _syncClient.fetch(captured);
+      if (!mounted || !_syncPollGate.shouldApply(captured, _syncBinding)) {
+        return;
+      }
+      EditorSyncBinding next = captured;
+      if (session.status == EditorSyncStatus.applied &&
+          session.baseRevision != captured.baseRevision) {
+        final EditorSyncAppliedResolution resolution =
+            await resolveEditorSyncApplied(
+              binding: captured,
+              serverProject: session.project,
+              workspace: _store.workspace,
+              images: _images,
+            );
+        if (resolution.decision == EditorSyncAppliedDecision.reconcile) {
+          next = resolution.binding;
+          _persistSyncBinding(next);
+        } else {
+          setState(() {
+            _syncSession = session;
+            _syncError =
+                'The server applied the publication, but this tab changed '
+                'while it was pending. Export or refresh before publishing again.';
+            _syncConflictOpen = true;
+          });
+          return;
+        }
+      }
+      final EditorSyncBinding terminal = reconcileEditorSyncTerminalStatus(
+        next,
+        session.status,
+      );
+      if (!identical(terminal, next)) {
+        next = terminal;
+        _persistSyncBinding(next);
+      }
+      final EditorSyncSession visibleSession =
+          session.status == EditorSyncStatus.conflict &&
+              next.pendingContentRevision == null &&
+              session.baseRevision == next.baseRevision
+          ? EditorSyncSession(
+              sessionId: session.sessionId,
+              baseRevision: session.baseRevision,
+              expiresAt: session.expiresAt,
+              project: session.project,
+              status: EditorSyncStatus.connected,
+              message: session.message,
+              serverRevision: session.serverRevision,
+            )
+          : session;
+      setState(() {
+        _syncBinding = next;
+        _syncSession = visibleSession;
+        _syncError = null;
+        _syncConflictOpen = visibleSession.status == EditorSyncStatus.conflict;
+      });
+    } on EditorSyncGone catch (error) {
+      if (!mounted || !_syncPollGate.shouldApply(captured, _syncBinding)) {
+        return;
+      }
+      _syncPollTimer?.cancel();
+      setState(() {
+        _syncError = null;
+        _syncConflictOpen = false;
+        _syncSession = EditorSyncSession(
+          sessionId: captured.sessionId,
+          baseRevision: captured.baseRevision,
+          expiresAt: DateTime.now().toUtc(),
+          project: _syncSession?.project ?? _emptySyncProject(captured),
+          status: error.revoked
+              ? EditorSyncStatus.revoked
+              : EditorSyncStatus.expired,
+          message: error.message,
+        );
+      });
+    } on EditorSyncFailure catch (error) {
+      if (!mounted || !_syncPollGate.shouldApply(captured, _syncBinding)) {
+        return;
+      }
+      setState(() => _syncError = error.message);
+    } finally {
+      if (_syncPollGate.complete(captured) && mounted) {
+        Timer.run(_refreshSyncStatus);
+      }
+    }
+  }
+
+  Future<void> _publishSync() async {
+    final EditorSyncBinding? binding = _syncBinding;
+    if (binding == null || _syncPublishing) return;
+    setState(() {
+      _syncPublishing = true;
+      _syncError = null;
+    });
+    try {
+      _store.flushAutosave();
+      await _store.workspace.writesSettled;
+      final EditorSyncProject project = collectEditorSyncProject(
+        binding: binding,
+        workspace: _store.workspace,
+        images: _images,
+      );
+      await _syncClient.publish(binding, project);
+      if (!mounted) return;
+      final EditorSyncBinding pending = binding.copyWith(
+        pendingContentRevision: project.baseRevision,
+      );
+      _persistSyncBinding(pending);
+      setState(() {
+        _syncPublishing = false;
+        _syncBinding = pending;
+        _syncSession = EditorSyncSession(
+          sessionId: binding.sessionId,
+          baseRevision: binding.baseRevision,
+          expiresAt: _syncSession?.expiresAt ?? DateTime.now().toUtc(),
+          project: project,
+          status: EditorSyncStatus.pending,
+        );
+      });
+      _refreshSyncStatus();
+      ArcaneSonner.success('Published for server validation and apply.');
+    } on EditorSyncConflict catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _syncPublishing = false;
+        _syncError = error.message;
+        _syncConflictOpen = true;
+      });
+    } on EditorSyncFailure catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _syncPublishing = false;
+        _syncError = error.message;
+      });
+      ArcaneSonner.error(error.message);
+    }
+  }
+
+  Future<void> _copySyncLink() async {
+    final EditorSyncBinding? binding = _syncBinding;
+    if (binding == null) return;
+    final String hash = workspaceSyncHash(
+      sessionId: binding.sessionId,
+      editorToken: binding.editorToken,
+      relayEndpoint: binding.relayEndpoint,
+    );
+    final bool copied = await copyText(workspaceUrlForHash(hash));
+    if (copied) {
+      ArcaneSonner.success(
+        'Copied the capability link. Anyone with it can edit.',
+      );
+    } else {
+      ArcaneSonner.error('The browser refused clipboard access.');
+    }
+  }
+
+  bool _persistSyncBinding(EditorSyncBinding binding) {
+    final bool persisted = persistEditorSyncBinding(
+      _store.workspace.id,
+      binding,
+      onFailure: (EditorSyncBinding failed) {
+        writeWorkspaceLocationHash(
+          workspaceSyncHash(
+            sessionId: failed.sessionId,
+            editorToken: failed.editorToken,
+            relayEndpoint: failed.relayEndpoint,
+          ),
+          replace: true,
+        );
+      },
+    );
+    if (persisted) {
+      _syncPersistenceWarning = null;
+    } else {
+      _syncPersistenceWarning =
+          'This browser blocked tab storage. The connection still works, but '
+          'reload will lose it. Copy the sync link before continuing.';
+      ArcaneSonner.error(_syncPersistenceWarning!);
+    }
+    return persisted;
+  }
+
+  void _disconnectSync() {
+    clearEditorSyncBinding(_store.workspace.id);
+    _syncPollTimer?.cancel();
+    _syncPollGate.reset();
+    setState(() {
+      _syncBinding = null;
+      _syncSession = null;
+      _syncError = null;
+      _syncPersistenceWarning = null;
+      _syncConflictOpen = false;
+    });
+    ArcaneSonner.info(
+      'Disconnected this tab. The server session was not revoked.',
+    );
+    _syncWorkspaceHash(replace: true);
+  }
+
+  Future<void> _refreshFromServer() async {
+    final EditorSyncBinding? binding = _syncBinding;
+    final EditorSyncSession? session = _syncSession;
+    if (binding == null || session == null) return;
+    try {
+      final EditorSyncBinding refreshed = await refreshEditorSyncProject(
+        binding: binding.copyWith(baseRevision: session.baseRevision),
+        project: session.project,
+        workspace: _store.workspace,
+        images: _images,
+      );
+      _persistSyncBinding(refreshed);
+      setState(() {
+        _syncBinding = refreshed;
+        _syncConflictOpen = false;
+        _syncError = null;
+        _syncSession = EditorSyncSession(
+          sessionId: session.sessionId,
+          baseRevision: session.baseRevision,
+          expiresAt: session.expiresAt,
+          project: session.project,
+          status: EditorSyncStatus.connected,
+        );
+      });
+      ArcaneSonner.success('Replaced the bound scope with the server copy.');
+    } on EditorSyncFailure catch (error) {
+      ArcaneSonner.error(error.message);
+    }
+  }
+
+  void _exportConflictWork() {
+    downloadText(
+      'holoui-workspace.json',
+      encodeWorkspaceBundle(_store.workspace, _images),
+      mime: 'application/json',
+    );
+    ArcaneSonner.success('Saved the complete local workspace before refresh.');
+  }
+
+  EditorSyncProject _emptySyncProject(EditorSyncBinding binding) =>
+      EditorSyncProject(
+        kind: binding.kind,
+        subjectId: binding.subjectId,
+        baseRevision: binding.baseRevision,
+        menus: const <EditorSyncMenu>[],
+        images: const <EditorSyncImage>[],
+        constraints: binding.constraints,
+      );
 
   @override
   Widget build(BuildContext context) => ArcaneApp(
@@ -147,7 +709,25 @@ class _AppState extends State<App> {
         onOpenValidation: () =>
             setState(() => _validationOpen = !_validationOpen),
         onCloseOverlay: _closeOverlay,
-        rail: ComponentsRail(store: _store),
+        syncBar: _syncBinding == null
+            ? null
+            : EditorSyncBar(
+                status: _visibleSyncStatus,
+                subjectId: _syncBinding!.subjectId,
+                busy: _syncPublishing,
+                message:
+                    _syncError ??
+                    _syncPersistenceWarning ??
+                    _syncSession?.message,
+                onPublish: _publishSync,
+                onCopyLink: _copySyncLink,
+                onDisconnect: _disconnectSync,
+              ),
+        rail: EditorRail(
+          store: _store,
+          contents: ComponentsRail(store: _store),
+          syncBinding: _syncBinding,
+        ),
         canvas: CanvasViewport(
           store: _store,
           images: _images,
@@ -164,6 +744,7 @@ class _AppState extends State<App> {
           images: _images,
           catalogs: _catalogs,
         ),
+        board: BoardView(store: _store),
         inspector: InspectorPane(
           store: _store,
           images: _images,
@@ -204,6 +785,29 @@ class _AppState extends State<App> {
             store: _store,
             isOpen: _dialog == _EditorDialog.help,
             onClose: _closeDialog,
+          ),
+          MenuHandoffDialog(
+            envelope: _menuHandoff,
+            onConfirm: _confirmMenuHandoff,
+            onClose: _cancelMenuHandoff,
+          ),
+          EditorSyncImportDialog(
+            session: _syncImportSession,
+            loading: _syncLoading,
+            error: _syncError,
+            hasLocalConflicts: _syncImportHasConflicts,
+            relayEndpoint: _syncImportCapability?.relayEndpoint,
+            onConfirm: _syncImportSession == null
+                ? _loadSyncImport
+                : _confirmSyncImport,
+            onCancel: _cancelSyncImport,
+          ),
+          EditorSyncConflictDialog(
+            isOpen: _syncConflictOpen,
+            message: _syncError ?? _syncSession?.message,
+            onRefresh: _refreshFromServer,
+            onExport: _exportConflictWork,
+            onClose: () => setState(() => _syncConflictOpen = false),
           ),
           ValidationPanel(
             store: _store,

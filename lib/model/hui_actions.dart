@@ -1,7 +1,29 @@
 import 'json_codec.dart';
 
-/// The only two action types in the format.
-const List<String> huiActionTypes = <String>['command', 'sound'];
+const List<String> huiActionTypes = <String>[
+  'command',
+  'sound',
+  'message',
+  'teleport',
+  'connect',
+  'navigate',
+];
+
+const List<String> huiActionTriggers = <String>[
+  'any',
+  'left_click',
+  'right_click',
+  'shift_left_click',
+  'shift_right_click',
+];
+
+const List<String> huiNavigationModes = <String>[
+  'push',
+  'replace',
+  'back',
+  'home',
+  'close',
+];
 
 /// `MenuActionCommandSource` serialized names. Gson also accepts the Java enum
 /// names `PLAYER` and `GLOBAL`; imports canonicalize those spellings.
@@ -23,12 +45,18 @@ const List<String> huiSoundSources = <String>[
 
 sealed class HuiAction {
   Map<String, dynamic> extras = <String, dynamic>{};
+  String trigger;
+
+  HuiAction([this.trigger = 'any']);
 
   String get type;
 
   Map<String, dynamic> toJson();
 
   HuiAction copy();
+
+  Map<String, dynamic> withTrigger(Map<String, dynamic> values) =>
+      <String, dynamic>{...values, if (trigger != 'any') 'trigger': trigger};
 
   static HuiAction fromJson(Object? raw, {String path = 'action'}) {
     final Map<String, dynamic> map = huiReadObject(raw, path);
@@ -38,6 +66,14 @@ sealed class HuiAction {
         return HuiCommandAction.fromMap(map);
       case 'sound':
         return HuiSoundAction.fromMap(map);
+      case 'message':
+        return HuiMessageAction.fromMap(map);
+      case 'teleport':
+        return HuiTeleportAction.fromMap(map);
+      case 'connect':
+        return HuiConnectAction.fromMap(map);
+      case 'navigate':
+        return HuiNavigateAction.fromMap(map);
       default:
         huiUnknownType(type, path);
     }
@@ -56,6 +92,11 @@ sealed class HuiAction {
 
   static List<Object?> listToJson(List<HuiAction> actions) =>
       actions.map((HuiAction a) => a.toJson()).toList();
+
+  static String readTrigger(Map<String, dynamic> map) {
+    if (!map.containsKey('trigger') || map['trigger'] == null) return 'any';
+    return huiReadString(map, 'trigger');
+  }
 }
 
 class HuiCommandAction extends HuiAction {
@@ -63,27 +104,42 @@ class HuiCommandAction extends HuiAction {
   String command;
   String source;
 
-  HuiCommandAction([this.command = '', this.source = 'player']);
+  HuiCommandAction([
+    this.command = '',
+    this.source = 'player',
+    super.trigger = 'any',
+  ]);
 
   @override
   String get type => 'command';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
-    'type': 'command',
-    'source': source,
-    'command': command,
-  }, extras);
+  Map<String, dynamic> toJson() => huiMergeExtras(
+    withTrigger(<String, dynamic>{
+      'type': 'command',
+      'source': source,
+      'command': command,
+    }),
+    extras,
+  );
 
   @override
   HuiCommandAction copy() =>
-      HuiCommandAction(command, source)..extras = huiDeepCopyMap(extras);
+      HuiCommandAction(command, source, trigger)
+        ..extras = huiDeepCopyMap(extras);
 
-  static const Set<String> _known = <String>{'type', 'source', 'command'};
+  static const Set<String> _known = <String>{
+    'type',
+    'source',
+    'command',
+    'trigger',
+  };
 
-  static HuiCommandAction fromMap(Map<String, dynamic> map) =>
-      HuiCommandAction(huiReadString(map, 'command'), _readSource(map))
-        ..extras = huiCollectExtras(map, _known);
+  static HuiCommandAction fromMap(Map<String, dynamic> map) => HuiCommandAction(
+    huiReadString(map, 'command'),
+    _readSource(map),
+    HuiAction.readTrigger(map),
+  )..extras = huiCollectExtras(map, _known);
 
   /// An absent or blank source is null to Gson, which the plugin defaults to
   /// `player`. Reading it as `player` keeps that behaviour and keeps the export
@@ -115,23 +171,27 @@ class HuiSoundAction extends HuiAction {
     this.source = 'master',
     this.volume = 1,
     this.pitch = 1,
+    super.trigger = 'any',
   ]);
 
   @override
   String get type => 'sound';
 
   @override
-  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
-    'type': 'sound',
-    'sound': sound,
-    'source': source,
-    'volume': volume,
-    'pitch': pitch,
-  }, extras);
+  Map<String, dynamic> toJson() => huiMergeExtras(
+    withTrigger(<String, dynamic>{
+      'type': 'sound',
+      'sound': sound,
+      'source': source,
+      'volume': volume,
+      'pitch': pitch,
+    }),
+    extras,
+  );
 
   @override
   HuiSoundAction copy() =>
-      HuiSoundAction(sound, source, volume, pitch)
+      HuiSoundAction(sound, source, volume, pitch, trigger)
         ..extras = huiDeepCopyMap(extras);
 
   static const Set<String> _known = <String>{
@@ -140,6 +200,7 @@ class HuiSoundAction extends HuiAction {
     'source',
     'volume',
     'pitch',
+    'trigger',
   };
 
   // Absent keys take the plugin's defaults - master, 1.0, 1.0 - while an
@@ -150,6 +211,7 @@ class HuiSoundAction extends HuiAction {
     _readSource(map),
     huiReadDouble(map, 'volume', fallback: 1),
     huiReadDouble(map, 'pitch', fallback: 1),
+    HuiAction.readTrigger(map),
   )..extras = huiCollectExtras(map, _known);
 
   /// An absent or blank category is null to Gson and the plugin falls back to
@@ -164,4 +226,167 @@ class HuiSoundAction extends HuiAction {
     }
     return source;
   }
+}
+
+class HuiNavigateAction extends HuiAction {
+  String target;
+  String mode;
+
+  HuiNavigateAction([
+    this.target = '',
+    this.mode = 'push',
+    super.trigger = 'any',
+  ]);
+
+  @override
+  String get type => 'navigate';
+
+  bool get requiresTarget => mode == 'push' || mode == 'replace';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(
+    withTrigger(<String, dynamic>{
+      'type': 'navigate',
+      if (target.isNotEmpty) 'target': target,
+      'mode': mode,
+    }),
+    extras,
+  );
+
+  @override
+  HuiNavigateAction copy() =>
+      HuiNavigateAction(target, mode, trigger)..extras = huiDeepCopyMap(extras);
+
+  static const Set<String> _known = <String>{
+    'type',
+    'target',
+    'mode',
+    'trigger',
+  };
+
+  static HuiNavigateAction fromMap(Map<String, dynamic> map) =>
+      HuiNavigateAction(
+        huiReadString(map, 'target'),
+        huiReadString(map, 'mode').isEmpty
+            ? 'push'
+            : huiReadString(map, 'mode'),
+        HuiAction.readTrigger(map),
+      )..extras = huiCollectExtras(map, _known);
+}
+
+class HuiMessageAction extends HuiAction {
+  String message;
+
+  HuiMessageAction([
+    this.message = '<gold>Hello %player%</gold>',
+    super.trigger = 'any',
+  ]);
+
+  @override
+  String get type => 'message';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(
+    withTrigger(<String, dynamic>{'type': 'message', 'message': message}),
+    extras,
+  );
+
+  @override
+  HuiMessageAction copy() =>
+      HuiMessageAction(message, trigger)..extras = huiDeepCopyMap(extras);
+
+  static const Set<String> _known = <String>{'type', 'message', 'trigger'};
+
+  static HuiMessageAction fromMap(Map<String, dynamic> map) => HuiMessageAction(
+    huiReadString(map, 'message'),
+    HuiAction.readTrigger(map),
+  )..extras = huiCollectExtras(map, _known);
+}
+
+class HuiTeleportAction extends HuiAction {
+  String world;
+  double x;
+  double y;
+  double z;
+  double yaw;
+  double pitch;
+
+  HuiTeleportAction([
+    this.world = 'minecraft:overworld',
+    this.x = 0,
+    this.y = 64,
+    this.z = 0,
+    this.yaw = 0,
+    this.pitch = 0,
+    super.trigger = 'any',
+  ]);
+
+  @override
+  String get type => 'teleport';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(
+    withTrigger(<String, dynamic>{
+      'type': 'teleport',
+      'world': world,
+      'x': x,
+      'y': y,
+      'z': z,
+      'yaw': yaw,
+      'pitch': pitch,
+    }),
+    extras,
+  );
+
+  @override
+  HuiTeleportAction copy() =>
+      HuiTeleportAction(world, x, y, z, yaw, pitch, trigger)
+        ..extras = huiDeepCopyMap(extras);
+
+  static const Set<String> _known = <String>{
+    'type',
+    'world',
+    'x',
+    'y',
+    'z',
+    'yaw',
+    'pitch',
+    'trigger',
+  };
+
+  static HuiTeleportAction fromMap(Map<String, dynamic> map) =>
+      HuiTeleportAction(
+        huiReadString(map, 'world'),
+        huiReadDouble(map, 'x'),
+        huiReadDouble(map, 'y'),
+        huiReadDouble(map, 'z'),
+        huiReadDouble(map, 'yaw'),
+        huiReadDouble(map, 'pitch'),
+        HuiAction.readTrigger(map),
+      )..extras = huiCollectExtras(map, _known);
+}
+
+class HuiConnectAction extends HuiAction {
+  String server;
+
+  HuiConnectAction([this.server = 'lobby', super.trigger = 'any']);
+
+  @override
+  String get type => 'connect';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(
+    withTrigger(<String, dynamic>{'type': 'connect', 'server': server}),
+    extras,
+  );
+
+  @override
+  HuiConnectAction copy() =>
+      HuiConnectAction(server, trigger)..extras = huiDeepCopyMap(extras);
+
+  static const Set<String> _known = <String>{'type', 'server', 'trigger'};
+
+  static HuiConnectAction fromMap(Map<String, dynamic> map) =>
+      HuiConnectAction(huiReadString(map, 'server'), HuiAction.readTrigger(map))
+        ..extras = huiCollectExtras(map, _known);
 }

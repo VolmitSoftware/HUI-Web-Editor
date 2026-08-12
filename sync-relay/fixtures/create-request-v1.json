@@ -1,0 +1,15 @@
+{
+  "protocol": 1,
+  "expiresInSeconds": 3600,
+  "snapshot": {
+    "format": "holoui-sync-project",
+    "version": 1,
+    "kind": "menu",
+    "subjectId": "main",
+    "menus": [{"id": "main", "json": "{\"components\":[]}"}],
+    "images": [],
+    "constraints": {"subjectId": "main", "menuIds": ["main"], "imagePaths": [], "newImagePrefix": "sync/menus/main/", "allowDeletes": false},
+    "warnings": [],
+    "baseRevision": "sha256:2aa4fe1c28da72bfe69d18272631c12a324e279ac9169f257a4fb21b257e3317"
+  }
+}

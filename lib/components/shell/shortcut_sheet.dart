@@ -82,11 +82,7 @@ class HuiShortcutRow {
 }
 
 class HuiShortcutGroup {
-  const HuiShortcutGroup({
-    required this.title,
-    required this.rows,
-    this.note,
-  });
+  const HuiShortcutGroup({required this.title, required this.rows, this.note});
 
   final String title;
   final List<HuiShortcutRow> rows;
@@ -137,7 +133,8 @@ bool _plain(ShellKey key, String lower) =>
 final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
   HuiShortcutGroup(
     title: 'Global',
-    note: 'Bound on the document, so they work wherever the pointer is. '
+    note:
+        'Bound on the document, so they work wherever the pointer is. '
         'Everything except the first two stands down while a text field has '
         'focus.',
     rows: <HuiShortcutRow>[
@@ -240,8 +237,7 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
         id: 'edit.deselect',
         spec: 'Escape',
         label: 'Deselect everything',
-        matches: (ShellKey key) =>
-            !key.mod && !key.alt && key.key == 'Escape',
+        matches: (ShellKey key) => !key.mod && !key.alt && key.key == 'Escape',
         run: (HuiShortcutScope scope) {
           if (scope.intents.store.selectionIds.isEmpty) return false;
           scope.intents.deselect();
@@ -260,7 +256,8 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
         id: 'edit.nudge.large',
         spec: 'Shift+arrows',
         label: 'Nudge by $huiNudgeStepLarge blocks',
-        note: 'The primary is snapped and its step applied to the rest, so a '
+        note:
+            'The primary is snapped and its step applied to the rest, so a '
             'group keeps its spacing.',
         matches: (ShellKey key) =>
             !key.mod && !key.alt && key.shift && _isArrow(key.key),
@@ -298,7 +295,8 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
   ),
   const HuiShortcutGroup(
     title: 'Artboard',
-    note: 'Bound on the canvas element, so click it once first. It consumes '
+    note:
+        'Bound on the canvas element, so click it once first. It consumes '
         'the event, which is what stops the global bindings firing twice.',
     rows: <HuiShortcutRow>[
       HuiShortcutRow(
@@ -315,7 +313,8 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
         id: 'canvas.duplicate',
         spec: 'Alt+Drag',
         label: 'Duplicate the selection and drag the copies',
-        note: 'The copy is made on the first move, so Alt-click leaves '
+        note:
+            'The copy is made on the first move, so Alt-click leaves '
             'nothing behind.',
       ),
       HuiShortcutRow(
@@ -343,7 +342,8 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
         id: 'canvas.delete',
         spec: 'Delete',
         label: 'Delete the selection immediately',
-        note: 'No confirmation here: the gesture is local and undo is one '
+        note:
+            'No confirmation here: the gesture is local and undo is one '
             'keystroke away.',
       ),
     ],
@@ -377,7 +377,8 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
   ),
   const HuiShortcutGroup(
     title: 'Command palette',
-    note: 'The palette lists only commands that can run right now, so a '
+    note:
+        'The palette lists only commands that can run right now, so a '
         'command missing from it is one this document has nothing to apply '
         'it to. This sheet is the complete list.',
     rows: <HuiShortcutRow>[
@@ -435,118 +436,86 @@ class ShortcutSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
+    classes: classNames(<String?>[
+      'hui-keys-scrim',
+      leaving ? 'hui-anim-fade-out' : null,
+    ]),
+    events: dom.events<Null>(onClick: onClose),
+    <Widget>[
+      dom.div(
         classes: classNames(<String?>[
-          'hui-keys-scrim',
-          leaving ? 'hui-anim-fade-out' : null,
+          'hui-keys-dialog',
+          leaving ? 'hui-anim-out' : null,
         ]),
-        events: dom.events<Null>(onClick: onClose),
-        <Widget>[
-          dom.div(
-            classes: classNames(<String?>[
-              'hui-keys-dialog',
-              leaving ? 'hui-anim-out' : null,
-            ]),
-            attributes: const <String, String>{
-              'role': 'dialog',
-              'aria-modal': 'true',
-              'aria-label': 'Keyboard shortcuts',
-            },
-            events: <String, EventCallback>{
-              'click': (Object? event) => domStopPropagation(event),
-            },
-            <Widget>[_head(), _body(), _foot()],
-          ),
-        ],
-      );
+        attributes: const <String, String>{
+          'role': 'dialog',
+          'aria-modal': 'true',
+          'aria-label': 'Keyboard shortcuts',
+        },
+        events: <String, EventCallback>{
+          'click': (Object? event) => domStopPropagation(event),
+        },
+        <Widget>[_head(), _body(), _foot()],
+      ),
+    ],
+  );
 
-  Widget _head() => dom.header(
-        classes: 'hui-keys-head',
-        <Widget>[
-          ArcaneIcon.keyboard(size: IconSize.sm),
-          const dom.h2(
-            classes: 'hui-keys-title',
-            <Widget>[Text('Keyboard shortcuts')],
-          ),
-          const dom.span(classes: 'hui-keys-spacer', <Widget>[]),
-          ArcaneKbd.combo(
-            shortcutKeys('Esc', apple: apple),
-            size: ComponentSize.sm,
-          ),
-          Button(
-            variant: ButtonVariant.ghost,
-            size: ButtonSize.iconSm,
-            onPressed: onClose,
-            attributes: const <String, String>{
-              'aria-label': 'Close the shortcut sheet',
-            },
-            child: ArcaneIcon.x(size: IconSize.sm),
-          ),
-        ],
-      );
+  Widget _head() => dom.header(classes: 'hui-keys-head', <Widget>[
+    ArcaneIcon.keyboard(size: IconSize.sm),
+    const dom.h2(classes: 'hui-keys-title', <Widget>[
+      Text('Keyboard shortcuts'),
+    ]),
+    const dom.span(classes: 'hui-keys-spacer', <Widget>[]),
+    ArcaneKbd.combo(shortcutKeys('Esc', apple: apple), size: ComponentSize.sm),
+    Button(
+      variant: ButtonVariant.ghost,
+      size: ButtonSize.iconSm,
+      onPressed: onClose,
+      attributes: const <String, String>{
+        'aria-label': 'Close the shortcut sheet',
+      },
+      child: ArcaneIcon.x(size: IconSize.sm),
+    ),
+  ]);
 
   /// One column per group on a wide sheet, reflowing to one on a narrow one.
   /// The stagger is `pop`, not `rise`: this is a scroll box (06-motion.css
   /// rule 3).
-  Widget _body() => dom.div(
-        classes: 'hui-keys-body',
-        <Widget>[
-          dom.div(
-            classes: 'hui-keys-columns hui-stagger',
-            <Widget>[
-              for (final HuiShortcutGroup group in huiShortcutGroups)
-                _group(group),
-            ],
-          ),
-        ],
-      );
+  Widget _body() => dom.div(classes: 'hui-keys-body', <Widget>[
+    dom.div(classes: 'hui-keys-columns hui-stagger', <Widget>[
+      for (final HuiShortcutGroup group in huiShortcutGroups) _group(group),
+    ]),
+  ]);
 
-  Widget _group(HuiShortcutGroup group) => dom.section(
-        classes: 'hui-keys-group',
-        <Widget>[
-          dom.h3(
-            classes: 'hui-keys-group-title',
-            <Widget>[Text(group.title)],
-          ),
-          if (group.note != null)
-            dom.p(
-              classes: 'hui-keys-group-note',
-              <Widget>[Text(group.note!)],
-            ),
-          dom.ul(
-            classes: 'hui-keys-list',
-            <Widget>[
-              for (final HuiShortcutRow row in group.rows) _row(row),
-            ],
-          ),
-        ],
-      );
+  Widget _group(HuiShortcutGroup group) =>
+      dom.section(classes: 'hui-keys-group', <Widget>[
+        dom.h3(classes: 'hui-keys-group-title', <Widget>[Text(group.title)]),
+        if (group.note != null)
+          dom.p(classes: 'hui-keys-group-note', <Widget>[Text(group.note!)]),
+        dom.ul(classes: 'hui-keys-list', <Widget>[
+          for (final HuiShortcutRow row in group.rows) _row(row),
+        ]),
+      ]);
 
-  Widget _row(HuiShortcutRow row) => dom.li(
-        classes: 'hui-keys-row',
-        <Widget>[
-          dom.span(
-            classes: 'hui-keys-text',
-            <Widget>[
-              dom.span(classes: 'hui-keys-label', <Widget>[Text(row.label)]),
-              if (row.note != null)
-                dom.span(classes: 'hui-keys-note', <Widget>[Text(row.note!)]),
-            ],
-          ),
-          ArcaneKbd.combo(
-            shortcutKeys(row.spec, apple: apple),
-            size: ComponentSize.sm,
-          ),
-        ],
-      );
+  Widget _row(HuiShortcutRow row) => dom.li(classes: 'hui-keys-row', <Widget>[
+    dom.span(classes: 'hui-keys-text', <Widget>[
+      dom.span(classes: 'hui-keys-label', <Widget>[Text(row.label)]),
+      if (row.note != null)
+        dom.span(classes: 'hui-keys-note', <Widget>[Text(row.note!)]),
+    ]),
+    ArcaneKbd.combo(
+      shortcutKeys(row.spec, apple: apple),
+      size: ComponentSize.sm,
+    ),
+  ]);
 
-  Widget _foot() => dom.footer(
-        classes: 'hui-keys-foot',
-        <Widget>[
-          dom.span(<Widget>[
-            Text('Press ? any time. '
-                '${shortcutLabel('mod+K', apple: apple)} runs any command by '
-                'name.'),
-          ]),
-        ],
-      );
+  Widget _foot() => dom.footer(classes: 'hui-keys-foot', <Widget>[
+    dom.span(<Widget>[
+      Text(
+        'Press ? any time. '
+        '${shortcutLabel('mod+K', apple: apple)} runs any command by '
+        'name.',
+      ),
+    ]),
+  ]);
 }

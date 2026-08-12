@@ -28,7 +28,8 @@ library;
 import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 
 import '../model/preview_doc.dart';
-import 'preview_card_edit.dart' show previewAutoSimCategory, previewDocIsAnimated;
+import 'preview_card_edit.dart'
+    show previewAutoSimCategory, previewDocIsAnimated;
 import 'preview_sim.dart';
 import 'preview_variant_resolver.dart';
 
@@ -78,35 +79,111 @@ const Set<String> _surgeVarNames = <String>{'surge.active', 'surge.gain'};
 /// (its bounds are still used by the dedicated surge control) — pinned
 /// against that map by `preview_sim_controls_test.dart`'s drift gate, so an
 /// unmapped name fails loudly instead of silently vanishing from the panel.
-const Map<String, PreviewSimVarControl> _varControlSpecs = <String, PreviewSimVarControl>{
-  'time': PreviewSimVarControl('time', PreviewSimControlKind.number, max: 24000, step: 20),
+const Map<String, PreviewSimVarControl>
+_varControlSpecs = <String, PreviewSimVarControl>{
+  'time': PreviewSimVarControl(
+    'time',
+    PreviewSimControlKind.number,
+    max: 24000,
+    step: 20,
+  ),
   'blockType': PreviewSimVarControl('blockType', PreviewSimControlKind.string),
-  'customName': PreviewSimVarControl('customName', PreviewSimControlKind.string),
-  'inventory.size':
-      PreviewSimVarControl('inventory.size', PreviewSimControlKind.number, max: 54),
-  'inventory.occupied':
-      PreviewSimVarControl('inventory.occupied', PreviewSimControlKind.number, max: 54),
-  'cookTime': PreviewSimVarControl('cookTime', PreviewSimControlKind.number, max: 1200, step: 20),
-  'cookTimeTotal':
-      PreviewSimVarControl('cookTimeTotal', PreviewSimControlKind.number, max: 1200, step: 20),
-  'burnTime': PreviewSimVarControl('burnTime', PreviewSimControlKind.number, max: 1200, step: 20),
-  'fuelSeconds': PreviewSimVarControl('fuelSeconds', PreviewSimControlKind.number, max: 60),
-  'bankedXp': PreviewSimVarControl('bankedXp', PreviewSimControlKind.number,
-      max: 100, step: 0.1, decimals: 2),
+  'customName': PreviewSimVarControl(
+    'customName',
+    PreviewSimControlKind.string,
+  ),
+  'inventory.size': PreviewSimVarControl(
+    'inventory.size',
+    PreviewSimControlKind.number,
+    max: 54,
+  ),
+  'inventory.occupied': PreviewSimVarControl(
+    'inventory.occupied',
+    PreviewSimControlKind.number,
+    max: 54,
+  ),
+  'cookTime': PreviewSimVarControl(
+    'cookTime',
+    PreviewSimControlKind.number,
+    max: 1200,
+    step: 20,
+  ),
+  'cookTimeTotal': PreviewSimVarControl(
+    'cookTimeTotal',
+    PreviewSimControlKind.number,
+    max: 1200,
+    step: 20,
+  ),
+  'burnTime': PreviewSimVarControl(
+    'burnTime',
+    PreviewSimControlKind.number,
+    max: 1200,
+    step: 20,
+  ),
+  'fuelSeconds': PreviewSimVarControl(
+    'fuelSeconds',
+    PreviewSimControlKind.number,
+    max: 60,
+  ),
+  'bankedXp': PreviewSimVarControl(
+    'bankedXp',
+    PreviewSimControlKind.number,
+    max: 100,
+    step: 0.1,
+    decimals: 2,
+  ),
   'lit': PreviewSimVarControl('lit', PreviewSimControlKind.boolean),
-  'surge.active': PreviewSimVarControl('surge.active', PreviewSimControlKind.boolean),
-  'surge.gain': PreviewSimVarControl('surge.gain', PreviewSimControlKind.number,
-      max: 30, step: 0.1, decimals: 1),
-  'brewTime': PreviewSimVarControl('brewTime', PreviewSimControlKind.number, max: 800, step: 20),
-  'brewTotal': PreviewSimVarControl('brewTotal', PreviewSimControlKind.number, max: 800, step: 20),
-  'fuelLevel': PreviewSimVarControl('fuelLevel', PreviewSimControlKind.number, max: 20),
-  'maxFuel': PreviewSimVarControl('maxFuel', PreviewSimControlKind.number, max: 20),
+  'surge.active': PreviewSimVarControl(
+    'surge.active',
+    PreviewSimControlKind.boolean,
+  ),
+  'surge.gain': PreviewSimVarControl(
+    'surge.gain',
+    PreviewSimControlKind.number,
+    max: 30,
+    step: 0.1,
+    decimals: 1,
+  ),
+  'brewTime': PreviewSimVarControl(
+    'brewTime',
+    PreviewSimControlKind.number,
+    max: 800,
+    step: 20,
+  ),
+  'brewTotal': PreviewSimVarControl(
+    'brewTotal',
+    PreviewSimControlKind.number,
+    max: 800,
+    step: 20,
+  ),
+  'fuelLevel': PreviewSimVarControl(
+    'fuelLevel',
+    PreviewSimControlKind.number,
+    max: 20,
+  ),
+  'maxFuel': PreviewSimVarControl(
+    'maxFuel',
+    PreviewSimControlKind.number,
+    max: 20,
+  ),
   'bees': PreviewSimVarControl('bees', PreviewSimControlKind.number, max: 10),
-  'maxBees': PreviewSimVarControl('maxBees', PreviewSimControlKind.number, max: 10),
+  'maxBees': PreviewSimVarControl(
+    'maxBees',
+    PreviewSimControlKind.number,
+    max: 10,
+  ),
   'honey': PreviewSimVarControl('honey', PreviewSimControlKind.number, max: 10),
-  'maxHoney': PreviewSimVarControl('maxHoney', PreviewSimControlKind.number, max: 10),
+  'maxHoney': PreviewSimVarControl(
+    'maxHoney',
+    PreviewSimControlKind.number,
+    max: 10,
+  ),
   'level': PreviewSimVarControl('level', PreviewSimControlKind.number, max: 3),
-  'maxLevel': PreviewSimVarControl('maxLevel', PreviewSimControlKind.number, max: 3),
+  'maxLevel': PreviewSimVarControl(
+    'maxLevel',
+    PreviewSimControlKind.number,
+    max: 3,
+  ),
   'fluid': PreviewSimVarControl('fluid', PreviewSimControlKind.string),
   'playing': PreviewSimVarControl('playing', PreviewSimControlKind.boolean),
   'record': PreviewSimVarControl('record', PreviewSimControlKind.string),
@@ -157,7 +234,8 @@ const Map<String, String> _categoryLabels = <String, String>{
 String previewSimVarLabel(String name) => _varLabels[name] ?? name;
 
 /// Friendly panel label for a [previewSimCategories] entry.
-String previewSimCategoryLabel(String category) => _categoryLabels[category] ?? category;
+String previewSimCategoryLabel(String category) =>
+    _categoryLabels[category] ?? category;
 
 /// The controls the panel shows for [category], in catalog order, generic
 /// per-variable controls only — `surge.*` is the dedicated surge section's.
@@ -166,7 +244,8 @@ List<PreviewSimVarControl> previewSimControlsFor(String category) {
   final Set<String> seen = <String>{};
   for (final String group
       in previewSimCategoryGroups[category] ?? const <String>['universal']) {
-    for (final String name in previewSimGroupVariables[group] ?? const <String>[]) {
+    for (final String name
+        in previewSimGroupVariables[group] ?? const <String>[]) {
       if (_surgeVarNames.contains(name) || !seen.add(name)) continue;
       final PreviewSimVarControl? spec = _varControlSpecs[name];
       if (spec != null) controls.add(spec);
@@ -179,14 +258,15 @@ List<PreviewSimVarControl> previewSimControlsFor(String category) {
 /// `PreviewStateAdapters.tracksTimeFlow` (furnace and brewing only).
 bool previewSimCategorySupportsSurge(String category) =>
     (previewSimCategoryGroups[category] ?? const <String>['universal']).any(
-      (String group) =>
-          (previewSimGroupVariables[group] ?? const <String>[]).contains('surge.active'),
+      (String group) => (previewSimGroupVariables[group] ?? const <String>[])
+          .contains('surge.active'),
     );
 
 /// Whether [category] simulates an inventory at all — the sample-item
 /// pickers only make sense when it does.
 bool previewSimCategorySupportsSlots(String category) =>
-    (previewSimCategoryGroups[category] ?? const <String>['universal']).contains('inventory');
+    (previewSimCategoryGroups[category] ?? const <String>['universal'])
+        .contains('inventory');
 
 /// Coerces a raw UI value (a range input's number, a switch's bool, a text
 /// field's string) into what [control] should actually store: a numeric
@@ -207,7 +287,9 @@ Object previewSimCoerceOverride(PreviewSimVarControl control, Object rawValue) {
       final double factor = _pow10(control.decimals);
       return (value * factor).roundToDouble() / factor;
     case PreviewSimControlKind.boolean:
-      return rawValue is bool ? rawValue : rawValue.toString().toLowerCase() == 'true';
+      return rawValue is bool
+          ? rawValue
+          : rawValue.toString().toLowerCase() == 'true';
     case PreviewSimControlKind.string:
       return rawValue is String ? rawValue : rawValue.toString();
   }
@@ -223,12 +305,17 @@ double _pow10(int digits) {
 
 /// Pins [control.name] to a coerced [rawValue] on [sim]. A display pin only —
 /// see [PreviewSim.overrides]'s own doc comment.
-void previewSimSetOverride(PreviewSim sim, PreviewSimVarControl control, Object rawValue) {
+void previewSimSetOverride(
+  PreviewSim sim,
+  PreviewSimVarControl control,
+  Object rawValue,
+) {
   sim.overrides[control.name] = previewSimCoerceOverride(control, rawValue);
 }
 
 /// Hands [name] back to the live simulation.
-void previewSimClearOverride(PreviewSim sim, String name) => sim.overrides.remove(name);
+void previewSimClearOverride(PreviewSim sim, String name) =>
+    sim.overrides.remove(name);
 
 /// [items] with [slot] set to a stack of [material] x [count], or cleared if
 /// [material] is blank or [count] is not positive — the same emptiness rule
@@ -277,8 +364,7 @@ bool previewSimClockWanted({
   required bool playing,
   required bool autoAnimated,
   required bool forcePlay,
-}) =>
-    hasArea && isPreviewDoc && playing && (autoAnimated || forcePlay);
+}) => hasArea && isPreviewDoc && playing && (autoAnimated || forcePlay);
 
 /// Owns the one [PreviewSim] a document's preview-card viewport and
 /// simulation panel share. See the library doc comment for the ownership
@@ -325,7 +411,9 @@ class PreviewSimController extends ChangeNotifier {
     }
     sim.lang = lang;
     final String wanted = categoryOverride ?? previewAutoSimCategory(doc);
-    if (!swapped && revision == _syncedRevision && wanted == _resolvedCategory) {
+    if (!swapped &&
+        revision == _syncedRevision &&
+        wanted == _resolvedCategory) {
       return;
     }
     _syncedRevision = revision;
@@ -359,7 +447,10 @@ class PreviewSimController extends ChangeNotifier {
     }
     if (doc != null) {
       sim.vars = PreviewSim.parseVars(
-        previewVarsForMaterial(doc, sim.blockType.isEmpty ? null : sim.blockType),
+        previewVarsForMaterial(
+          doc,
+          sim.blockType.isEmpty ? null : sim.blockType,
+        ),
       );
       _autoAnimated = previewDocIsAnimated(doc);
     }
@@ -380,7 +471,12 @@ class PreviewSimController extends ChangeNotifier {
 
   /// Edits the sample inventory. See [previewSimSetSlot].
   void setSlot(int slot, {required String material, required int count}) {
-    sim.slotItems = previewSimSetSlot(sim.slotItems, slot, material: material, count: count);
+    sim.slotItems = previewSimSetSlot(
+      sim.slotItems,
+      slot,
+      material: material,
+      count: count,
+    );
     notifyListeners();
   }
 
@@ -390,7 +486,9 @@ class PreviewSimController extends ChangeNotifier {
   void setSurge(bool active, {double? gain}) {
     sim.setSurge(
       active,
-      gain: gain ?? (sim.surgeGain > 0 ? sim.surgeGain : previewSimDefaultSurgeGain),
+      gain:
+          gain ??
+          (sim.surgeGain > 0 ? sim.surgeGain : previewSimDefaultSurgeGain),
     );
     notifyListeners();
   }

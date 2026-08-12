@@ -52,8 +52,8 @@ enum HuiOverlayEscape { confirmDelete, appOverlay }
 /// from — so this is a precedence rule, not a cascade.
 HuiOverlayEscape huiOverlayEscapeTarget({required bool confirmDeleteOpen}) =>
     confirmDeleteOpen
-        ? HuiOverlayEscape.confirmDelete
-        : HuiOverlayEscape.appOverlay;
+    ? HuiOverlayEscape.confirmDelete
+    : HuiOverlayEscape.appOverlay;
 
 const String _apple = 'apple';
 

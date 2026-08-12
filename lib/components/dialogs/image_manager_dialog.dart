@@ -142,8 +142,9 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
       return;
     }
     final int slash = image.path.lastIndexOf('/');
-    final String name =
-        slash >= 0 ? image.path.substring(slash + 1) : image.path;
+    final String name = slash >= 0
+        ? image.path.substring(slash + 1)
+        : image.path;
     downloadBytes(name, bytes, mime: 'image/png');
   }
 
@@ -158,97 +159,83 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
 
   @override
   Widget build(BuildContext context) => ArcaneDialog(
-        id: 'hui-image-dialog',
-        isOpen: component.isOpen,
-        onClose: component.onClose,
-        title: 'Images',
-        maxWidth: 860,
-        actions: <Widget>[
-          Button(
-            variant: ButtonVariant.outline,
-            onPressed: component.onClose,
-            label: 'Close',
-          ),
-        ],
-        children: <Widget>[
-          ListenableBuilder(
-            listenable: _library,
-            builder: (BuildContext inner) => _body(),
-          ),
-        ],
-      );
+    id: 'hui-image-dialog',
+    isOpen: component.isOpen,
+    onClose: component.onClose,
+    title: 'Images',
+    maxWidth: 860,
+    actions: <Widget>[
+      Button(
+        variant: ButtonVariant.outline,
+        onPressed: component.onClose,
+        label: 'Close',
+      ),
+    ],
+    children: <Widget>[
+      ListenableBuilder(
+        listenable: _library,
+        builder: (BuildContext inner) => _body(),
+      ),
+    ],
+  );
 
   Widget _body() {
     final List<StoredImage> images = _library.images;
     final Set<String> used = huiUsedImagePaths(_store.menu);
-    return dom.div(
-      classes: 'hui-dialog-body hui-stagger',
-      <Widget>[
-        if (_library.lastError != null)
-          ArcaneAlert.error(message: _library.lastError!),
-        _toolbar(images.isNotEmpty),
-        _quota(),
-        // Every upload is decoded, re-encoded as PNG and measured before it
-        // reaches the grid, which is long enough to see on a batch. The
-        // placeholders sit where the new cards will land so the grid grows
-        // once, when the images arrive, rather than twice.
-        if (images.isEmpty && !_busy)
-          _empty()
-        else
-          dom.div(
-            classes: 'hui-image-grid',
-            <Widget>[
-              for (final StoredImage image in images)
-                _card(image, used.contains(image.path)),
-              if (_busy)
-                const HuiSkeleton(
-                  label: 'Reading images',
-                  block: true,
-                  lines: 2,
-                  classes: 'hui-skeleton-card',
-                ),
-            ],
-          ),
-      ],
-    );
+    return dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
+      if (_library.lastError != null)
+        ArcaneAlert.error(message: _library.lastError!),
+      _toolbar(images.isNotEmpty),
+      _quota(),
+      // Every upload is decoded, re-encoded as PNG and measured before it
+      // reaches the grid, which is long enough to see on a batch. The
+      // placeholders sit where the new cards will land so the grid grows
+      // once, when the images arrive, rather than twice.
+      if (images.isEmpty && !_busy)
+        _empty()
+      else
+        dom.div(classes: 'hui-image-grid', <Widget>[
+          for (final StoredImage image in images)
+            _card(image, used.contains(image.path)),
+          if (_busy)
+            const HuiSkeleton(
+              label: 'Reading images',
+              block: true,
+              lines: 2,
+              classes: 'hui-skeleton-card',
+            ),
+        ]),
+    ]);
   }
 
-  Widget _toolbar(bool hasImages) => dom.div(
-        classes: 'hui-image-toolbar',
-        <Widget>[
-          dom.div(
-            classes: 'hui-dialog-actions',
-            <Widget>[
-              Button(
-                variant: ButtonVariant.primary,
-                size: ButtonSize.small,
-                loading: _busy,
-                onPressed: _upload,
-                icon: ArcaneIcon.upload(size: IconSize.sm),
-                label: 'Upload images',
-              ),
-              Button(
-                variant: ButtonVariant.outline,
-                size: ButtonSize.small,
-                disabled: !hasImages || _busy,
-                onPressed: hasImages ? _downloadZip : null,
-                icon: ArcaneIcon.fileArchive(size: IconSize.sm),
-                label: 'Download images.zip',
-              ),
-            ],
+  Widget _toolbar(bool hasImages) =>
+      dom.div(classes: 'hui-image-toolbar', <Widget>[
+        dom.div(classes: 'hui-dialog-actions', <Widget>[
+          Button(
+            variant: ButtonVariant.primary,
+            size: ButtonSize.small,
+            loading: _busy,
+            onPressed: _upload,
+            icon: ArcaneIcon.upload(size: IconSize.sm),
+            label: 'Upload images',
           ),
-          const dom.p(
-            classes: 'hui-dialog-note',
-            <Widget>[
-              Text(
-                'You can also drop image files anywhere in the editor. Unzip '
-                'images.zip into plugins/holoui/images/ and the paths below '
-                'resolve unchanged.',
-              ),
-            ],
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.small,
+            disabled: !hasImages || _busy,
+            onPressed: hasImages ? _downloadZip : null,
+            icon: ArcaneIcon.fileArchive(size: IconSize.sm),
+            label: 'Download images.zip',
           ),
-        ],
-      );
+        ]),
+        const dom.p(classes: 'hui-dialog-note', <Widget>[
+          Text(
+            'You can also drop image files anywhere in the editor. Unzip '
+            'images.zip into plugins/holoui/images/ and the paths below '
+            'resolve unchanged.',
+          ),
+        ]),
+      ]);
 
   Widget _quota() {
     final int used = StorageService.estimateUsageBytes();
@@ -261,67 +248,58 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
         percent >= 80 ? 'is-critical' : (percent >= 60 ? 'is-warning' : null),
       ]),
       <Widget>[
-        dom.div(
-          classes: 'hui-quota-head',
-          <Widget>[
-            const HuiEyebrow('browser storage'),
-            dom.span(
-              classes: 'hui-quota-value',
-              <Widget>[
-                Text(
-                  '${huiFormatBytes(used)} of about '
-                  '${huiFormatBytes(quota)} ($percent%)',
-                ),
-              ],
+        dom.div(classes: 'hui-quota-head', <Widget>[
+          const HuiEyebrow('browser storage'),
+          dom.span(classes: 'hui-quota-value', <Widget>[
+            Text(
+              '${huiFormatBytes(used)} of about '
+              '${huiFormatBytes(quota)} ($percent%)',
             ),
-          ],
-        ),
+          ]),
+        ]),
         ArcaneProgressBar(
           value: percent.toDouble(),
           size: ComponentSize.sm,
           variant: percent >= 80
               ? ProgressVariant.error
-              : (percent >= 60 ? ProgressVariant.warning : ProgressVariant.primary),
+              : (percent >= 60
+                    ? ProgressVariant.warning
+                    : ProgressVariant.primary),
         ),
-        dom.p(
-          classes: 'hui-dialog-note',
-          <Widget>[
-            Text(
-              percent >= 60
-                  ? 'Storage is filling up. Images are kept in this browser '
+        dom.p(classes: 'hui-dialog-note', <Widget>[
+          Text(
+            percent >= 60
+                ? 'Storage is filling up. Images are kept in this browser '
                       'only, and a full store silently refuses to save. Export '
                       'what you need and delete unused images.'
-                  : 'Images live in this browser only. Keep them at or under '
+                : 'Images live in this browser only. Keep them at or under '
                       '${huiRecommendedMaxImageDimension}x'
                       '$huiRecommendedMaxImageDimension pixels: HoloUI draws '
                       'one text display per row and one character per pixel.',
-            ),
-          ],
-        ),
+          ),
+        ]),
       ],
     );
   }
 
-  Widget _empty() => dom.div(
-        classes: 'hui-image-empty',
-        <Widget>[
-          ArcaneEmptyState(
-            title: 'No images yet',
-            description: 'Upload PNG or GIF files to use them as textImage and '
-                'animatedTextImage icons. They are stored in this browser and '
-                'exported as $huiImageFolder in images.zip.',
-            icon: ArcaneIcon.images(size: IconSize.lg),
-            action: Button(
-              variant: ButtonVariant.primary,
-              size: ButtonSize.small,
-              loading: _busy,
-              onPressed: _upload,
-              icon: ArcaneIcon.upload(size: IconSize.sm),
-              label: 'Upload images',
-            ),
-          ),
-        ],
-      );
+  Widget _empty() => dom.div(classes: 'hui-image-empty', <Widget>[
+    ArcaneEmptyState(
+      title: 'No images yet',
+      description:
+          'Upload PNG or GIF files to use them as textImage and '
+          'animatedTextImage icons. They are stored in this browser and '
+          'exported as $huiImageFolder in images.zip.',
+      icon: ArcaneIcon.images(size: IconSize.lg),
+      action: Button(
+        variant: ButtonVariant.primary,
+        size: ButtonSize.small,
+        loading: _busy,
+        onPressed: _upload,
+        icon: ArcaneIcon.upload(size: IconSize.sm),
+        label: 'Upload images',
+      ),
+    ),
+  ]);
 
   Widget _card(StoredImage image, bool inUse) {
     final String path = image.path;
@@ -335,68 +313,53 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
         image.isOversized ? 'is-oversized' : null,
       ]),
       <Widget>[
-        dom.div(
-          classes: 'hui-image-preview hui-checkerboard',
-          <Widget>[
-            dom.img(
-              src: image.dataUri,
-              alt: path,
-              classes: 'hui-image-thumb',
+        dom.div(classes: 'hui-image-preview hui-checkerboard', <Widget>[
+          dom.img(src: image.dataUri, alt: path, classes: 'hui-image-thumb'),
+        ]),
+        dom.div(classes: 'hui-image-meta', <Widget>[
+          HuiField(
+            label: 'Path',
+            error: error,
+            help:
+                '${image.width}x${image.height} px · '
+                '${huiFormatBytes(image.approximateBytes)}'
+                '${image.isOversized ? ' · larger than recommended' : ''}',
+            control: TextInput(
+              value: draft,
+              size: ComponentSize.sm,
+              fullWidth: true,
+              onInput: (String value) => setState(() => _drafts[path] = value),
+              onBlur: () => _commitRename(path),
+              onSubmit: (String _) => _commitRename(path),
+              attributes: <String, String>{
+                'aria-label': 'Path for $path',
+                'autocomplete': 'off',
+                'spellcheck': 'false',
+              },
             ),
-          ],
-        ),
-        dom.div(
-          classes: 'hui-image-meta',
-          <Widget>[
-            HuiField(
-              label: 'Path',
-              error: error,
-              help: '${image.width}x${image.height} px · '
-                  '${huiFormatBytes(image.approximateBytes)}'
-                  '${image.isOversized ? ' · larger than recommended' : ''}',
-              control: TextInput(
-                value: draft,
-                size: ComponentSize.sm,
-                fullWidth: true,
-                onInput: (String value) => setState(() => _drafts[path] = value),
-                onBlur: () => _commitRename(path),
-                onSubmit: (String _) => _commitRename(path),
-                attributes: <String, String>{
-                  'aria-label': 'Path for $path',
-                  'autocomplete': 'off',
-                  'spellcheck': 'false',
-                },
-              ),
+          ),
+          dom.div(classes: 'hui-image-card-tools', <Widget>[
+            if (inUse)
+              const dom.span(classes: 'hui-chip is-accent', <Widget>[
+                Text('used in this menu'),
+              ]),
+            Button(
+              variant: ButtonVariant.ghost,
+              size: ButtonSize.iconSm,
+              onPressed: () => _downloadOne(image),
+              attributes: <String, String>{'aria-label': 'Download $path'},
+              child: ArcaneIcon.download(size: IconSize.sm),
             ),
-            dom.div(
-              classes: 'hui-image-card-tools',
-              <Widget>[
-                if (inUse)
-                  const dom.span(
-                    classes: 'hui-chip is-accent',
-                    <Widget>[Text('used in this menu')],
-                  ),
-                Button(
-                  variant: ButtonVariant.ghost,
-                  size: ButtonSize.iconSm,
-                  onPressed: () => _downloadOne(image),
-                  attributes: <String, String>{
-                    'aria-label': 'Download $path',
-                  },
-                  child: ArcaneIcon.download(size: IconSize.sm),
-                ),
-                HuiTwoStepButton(
-                  label: 'Delete $path',
-                  confirmLabel: 'Delete',
-                  icon: ArcaneIcon.trash2(size: IconSize.sm),
-                  iconOnly: true,
-                  size: ButtonSize.iconSm,
-                  onConfirm: () => _remove(path),
-                ),
-              ],
+            HuiTwoStepButton(
+              label: 'Delete $path',
+              confirmLabel: 'Delete',
+              icon: ArcaneIcon.trash2(size: IconSize.sm),
+              iconOnly: true,
+              size: ButtonSize.iconSm,
+              onConfirm: () => _remove(path),
             ),
-          ],
-        ),
+          ]),
+        ]),
       ],
     );
   }

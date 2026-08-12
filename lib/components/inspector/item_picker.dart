@@ -63,8 +63,12 @@ class ItemIconEditor extends StatelessWidget {
                 .toList(),
             onChanged: (String value) => onChanged(
               'item material',
-              HuiItemIcon(value, icon.count, icon.customModelValue)
-                ..extras = huiDeepCopyMap(icon.extras),
+              HuiItemIcon(
+                value,
+                icon.count,
+                icon.customModelValue,
+                icon.style?.copy(),
+              )..extras = huiDeepCopyMap(icon.extras),
             ),
           ),
           HuiInlineIssues(_issuesFor('.item')),
@@ -91,8 +95,12 @@ class ItemIconEditor extends StatelessWidget {
               integer: true,
               onChanged: (double value) => onChanged(
                 'item count',
-                HuiItemIcon(icon.item, value.round(), icon.customModelValue)
-                  ..extras = huiDeepCopyMap(icon.extras),
+                HuiItemIcon(
+                  icon.item,
+                  value.round(),
+                  icon.customModelValue,
+                  icon.style?.copy(),
+                )..extras = huiDeepCopyMap(icon.extras),
               ),
             ),
           ),
@@ -105,8 +113,12 @@ class ItemIconEditor extends StatelessWidget {
               integer: true,
               onChanged: (double value) => onChanged(
                 'item custom model value',
-                HuiItemIcon(icon.item, icon.count, value.round())
-                  ..extras = huiDeepCopyMap(icon.extras),
+                HuiItemIcon(
+                  icon.item,
+                  icon.count,
+                  value.round(),
+                  icon.style?.copy(),
+                )..extras = huiDeepCopyMap(icon.extras),
               ),
             ),
           ),

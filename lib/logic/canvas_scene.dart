@@ -27,7 +27,7 @@ const Duration huiAnimationTick = Duration(milliseconds: 50);
 /// Extra grab room around a hitbox so hairline icons stay clickable.
 const double huiPickToleranceBlocks = 0.03;
 
-enum CanvasIconKind { text, image, item, customItem, missing }
+enum CanvasIconKind { text, image, item, block, customItem, entity, missing }
 
 /// Everything the painter needs about one component, already measured.
 class CanvasItem {
@@ -52,14 +52,15 @@ class CanvasItem {
     this.itemCount = 1,
     this.itemTexture,
     this.itemProvider = '',
+    this.entityKey = '',
     this.animationFrame = -1,
     this.animationFrameCount = 0,
   });
 
   final HuiComponent component;
 
-  /// Position in `menu.components`; the click-dispatch order in game and the
-  /// tie-break for equal depth here.
+  /// Position in `menu.components`; the equal-distance click and render-depth
+  /// tie-break.
   final int index;
 
   final CanvasIconKind kind;
@@ -105,6 +106,8 @@ class CanvasItem {
   /// Provider id of a [CanvasIconKind.customItem], drawn as the placeholder
   /// badge. Empty for every other kind.
   final String itemProvider;
+
+  final String entityKey;
 
   final int animationFrame;
   final int animationFrameCount;
@@ -180,14 +183,19 @@ HuiRect _countLabelRect(
   HuiRect icon,
   bool trueRender,
 ) {
-  final double lineHeight = huiLineHeight * uiScale;
+  final HuiIconStyle style = item.icon?.style ?? HuiIconStyle();
+  final double lineHeight = huiLineHeight * uiScale * style.scaleY;
   return HuiRect(
     x: item.anchor.x,
     y: trueRender
-        ? itemCountLabelY(anchorY: item.anchor.y, uiScale: uiScale)
+        ? itemCountLabelY(
+            anchorY: item.anchor.y,
+            uiScale: uiScale,
+            scaleY: style.scaleY,
+          )
         : icon.bottom - lineHeight * 0.6,
     // Two digits at the glyph advance, with slack for a three-digit stack.
-    w: math.max(icon.w, huiTextCharWidth * uiScale * 4),
+    w: math.max(icon.w, huiTextCharWidth * uiScale * style.scaleX * 4),
     h: lineHeight * 2,
   );
 }
@@ -424,6 +432,8 @@ CanvasItem _resolveItem({
     HuiToggleData() => showsTrue ? data.trueIcon : data.falseIcon,
   };
   final bool clickable = data is HuiButtonData || data is HuiToggleData;
+  final double iconScaleX = icon?.style?.scaleX ?? 1;
+  final double iconScaleY = icon?.style?.scaleY ?? 1;
 
   CanvasIconKind kind = CanvasIconKind.missing;
   IconShape shape = const IconShape.missing();
@@ -438,6 +448,7 @@ CanvasItem _resolveItem({
   int itemCount = 1;
   String? itemTexture;
   String itemProvider = '';
+  String entityKey = '';
   int animationFrame = -1;
   int animationFrameCount = 0;
 
@@ -512,6 +523,22 @@ CanvasItem _resolveItem({
         );
         hitShape = shape;
       }
+    case HuiBlockIcon():
+      final String rawKey = icon.block;
+      final String key = rawKey.contains(':') ? rawKey : 'minecraft:$rawKey';
+      if (rawKey == rawKey.trim() &&
+          rawKey == rawKey.toLowerCase() &&
+          huiIsBlockLikeMaterial(key)) {
+        kind = CanvasIconKind.block;
+        itemKey = key;
+        itemTexture = catalogs?.textureFor(
+          key.startsWith('minecraft:')
+              ? key.substring('minecraft:'.length)
+              : key,
+        );
+        shape = const IconShape.block();
+        hitShape = shape;
+      }
     case HuiCustomItemIcon():
       // The resolved stack is a plain ItemStack, so the plugin renders it
       // through the same ItemMenuIcon: the geometry is the vanilla item's,
@@ -530,6 +557,17 @@ CanvasItem _resolveItem({
           count: itemCount,
           isBlockItem: material != null && huiIsBlockLikeMaterial(material),
         );
+        hitShape = shape;
+      }
+    case HuiEntityIcon():
+      final String rawKey = icon.entity;
+      final String key = rawKey.contains(':') ? rawKey : 'minecraft:$rawKey';
+      if (rawKey == rawKey.trim() &&
+          rawKey == rawKey.toLowerCase() &&
+          huiSpawnableLivingEntityTypes.contains(key)) {
+        kind = CanvasIconKind.entity;
+        entityKey = key;
+        shape = IconShape.entity(width: icon.width, height: icon.height);
         hitShape = shape;
       }
   }
@@ -561,6 +599,8 @@ CanvasItem _resolveItem({
       shape: hitShape,
       menuOffset: menuOffset,
       trueRender: trueRender,
+      scaleX: iconScaleX,
+      scaleY: iconScaleY,
     ),
     visual: visualBoundsAt(
       anchorX: anchor.x,
@@ -568,6 +608,8 @@ CanvasItem _resolveItem({
       uiScale: uiScale,
       shape: shape,
       trueRender: trueRender,
+      scaleX: iconScaleX,
+      scaleY: iconScaleY,
     ),
     clickable: clickable,
     isToggle: isToggle,
@@ -580,6 +622,7 @@ CanvasItem _resolveItem({
     itemCount: itemCount,
     itemTexture: itemTexture,
     itemProvider: itemProvider,
+    entityKey: entityKey,
     animationFrame: animationFrame,
     animationFrameCount: animationFrameCount,
   );

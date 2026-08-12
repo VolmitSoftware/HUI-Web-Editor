@@ -7,14 +7,19 @@ import 'package:web/web.dart' as web;
 
 import 'app.dart';
 import 'main.client.options.dart';
+import 'state/workspace.dart';
+import 'state/workspace_repository.dart';
 
-void main() {
+Future<void> main() async {
   info('holoui_editor starting...');
 
   Jaspr.initializeApp(options: defaultClientOptions);
 
   try {
-    const App app = App();
+    final Workspace workspace = await Workspace.open(
+      repository: createDefaultWorkspaceRepository(),
+    );
+    final App app = App(workspace: workspace);
     runApp(app);
 
     web.document.getElementById('loading')?.remove();

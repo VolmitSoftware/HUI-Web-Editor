@@ -41,7 +41,8 @@ class PreviewMatchEditor extends StatelessWidget {
   /// Document-level issues only: no `elements[...]` prefix.
   List<HuiIssue> _issuesFor(String path) => store.issues
       .where(
-        (HuiIssue issue) => issue.path == path || issue.path.startsWith('$path.'),
+        (HuiIssue issue) =>
+            issue.path == path || issue.path.startsWith('$path.'),
       )
       .toList();
 
@@ -49,99 +50,89 @@ class PreviewMatchEditor extends StatelessWidget {
       store.mutatePreview(label, fn);
 
   @override
-  Widget build(BuildContext context) => dom.div(
-        classes: 'hui-inspector-body is-menu',
-        <Widget>[
-          _header(),
-          _matchSection(),
-          _variantsSection(),
-          _cardSection(),
-          _install(),
-          _extras(),
-        ],
-      );
+  Widget build(BuildContext context) =>
+      dom.div(classes: 'hui-inspector-body is-menu', <Widget>[
+        _header(),
+        _matchSection(),
+        _variantsSection(),
+        _cardSection(),
+        _install(),
+        _extras(),
+      ]);
 
-  Widget _header() => dom.div(
-        classes: 'hui-inspector-headgroup',
-        <Widget>[
-          dom.div(
-            classes: 'hui-inspector-header is-menu',
-            <Widget>[
-              const HuiEyebrow('Container preview'),
-              dom.h2(
-                classes: 'hui-inspector-title',
-                <Widget>[Text(store.menuId)],
-              ),
-            ],
-          ),
-          const dom.p(
-            classes: 'hui-inspector-lede',
-            <Widget>[
-              Text(
-                'Nothing is selected, so these are the document-wide '
-                'settings: which blocks and entities draw this card, its '
-                'variants, and the chrome around it. Pick an element in the '
-                'list to edit it.',
-              ),
-            ],
-          ),
-        ],
-      );
+  Widget _header() => dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+    dom.div(classes: 'hui-inspector-header is-menu', <Widget>[
+      const HuiEyebrow('Container preview'),
+      dom.h2(classes: 'hui-inspector-title', <Widget>[Text(store.menuId)]),
+    ]),
+    const dom.p(classes: 'hui-inspector-lede', <Widget>[
+      Text(
+        'Nothing is selected, so these are the document-wide '
+        'settings: which blocks and entities draw this card, its '
+        'variants, and the chrome around it. Pick an element in the '
+        'list to edit it.',
+      ),
+    ]),
+  ]);
 
   Widget _matchSection() => InspectorSection(
-        title: 'Match',
-        description: 'Which blocks, entities or special targets this '
-            'document draws over. The highest-priority document naming a '
-            'target wins.',
-        children: <Widget>[
-          _PreviewNameChips(
-            label: 'Blocks',
-            values: _doc.match.blocks,
-            help: '"*" is the only wildcard, e.g. "OAK_*" or "*_SHULKER_BOX".',
-            onChanged: (List<String> next) =>
-                _mutate('match blocks', (HuiPreviewDoc d) => d.match.blocks = next),
+    title: 'Match',
+    description:
+        'Which blocks, entities or special targets this '
+        'document draws over. The highest-priority document naming a '
+        'target wins.',
+    children: <Widget>[
+      _PreviewNameChips(
+        label: 'Blocks',
+        values: _doc.match.blocks,
+        help: '"*" is the only wildcard, e.g. "OAK_*" or "*_SHULKER_BOX".',
+        onChanged: (List<String> next) =>
+            _mutate('match blocks', (HuiPreviewDoc d) => d.match.blocks = next),
+      ),
+      HuiInlineIssues(_issuesFor('match.blocks')),
+      _PreviewNameChips(
+        label: 'Entities',
+        values: _doc.match.entities,
+        help: 'Same glob rule as blocks.',
+        onChanged: (List<String> next) => _mutate(
+          'match entities',
+          (HuiPreviewDoc d) => d.match.entities = next,
+        ),
+      ),
+      HuiInlineIssues(_issuesFor('match.entities')),
+      _specialField(),
+      HuiField(
+        label: 'Priority',
+        help: 'Highest priority wins. Defaults to 0.',
+        control: HuiNumberField(
+          value: (_doc.match.priority ?? 0).toDouble(),
+          integer: true,
+          min: -1000000,
+          max: 1000000,
+          onChanged: (double value) => _mutate(
+            'match priority',
+            (HuiPreviewDoc d) => d.match.priority = value.round(),
           ),
-          HuiInlineIssues(_issuesFor('match.blocks')),
-          _PreviewNameChips(
-            label: 'Entities',
-            values: _doc.match.entities,
-            help: 'Same glob rule as blocks.',
-            onChanged: (List<String> next) =>
-                _mutate('match entities', (HuiPreviewDoc d) => d.match.entities = next),
-          ),
-          HuiInlineIssues(_issuesFor('match.entities')),
-          _specialField(),
-          HuiField(
-            label: 'Priority',
-            help: 'Highest priority wins. Defaults to 0.',
-            control: HuiNumberField(
-              value: (_doc.match.priority ?? 0).toDouble(),
-              integer: true,
-              min: -1000000,
-              max: 1000000,
-              onChanged: (double value) => _mutate(
-                'match priority',
-                (HuiPreviewDoc d) => d.match.priority = value.round(),
-              ),
-            ),
-          ),
-          const HuiDivider(),
-          _PreviewVarsRows(
-            title: 'vars',
-            vars: _doc.match.vars,
-            onChanged: (Map<String, dynamic> next) =>
-                _mutate('match vars', (HuiPreviewDoc d) => d.match.vars = next),
-          ),
-          HuiInlineIssues(_issuesFor('match.vars')),
-          HuiInlineIssues(_issuesFor('match')),
-        ],
-      );
+        ),
+      ),
+      const HuiDivider(),
+      _PreviewVarsRows(
+        title: 'vars',
+        vars: _doc.match.vars,
+        onChanged: (Map<String, dynamic> next) =>
+            _mutate('match vars', (HuiPreviewDoc d) => d.match.vars = next),
+      ),
+      HuiInlineIssues(_issuesFor('match.vars')),
+      HuiInlineIssues(_issuesFor('match')),
+    ],
+  );
 
   Widget _specialField() {
     final String? special = _doc.match.special;
     return HuiField(
       label: 'Special',
-      help: 'enderChest draws from the viewer\'s own ender chest, locked is '
+      help:
+          'enderChest draws from the viewer\'s own ender chest, locked is '
           'the access-denied card, anyInventoryHolder is the entity fallback.',
       control: HuiSegmented(
         value: special ?? 'none',
@@ -160,27 +151,30 @@ class PreviewMatchEditor extends StatelessWidget {
   }
 
   Widget _variantsSection() => InspectorSection(
-        title: 'Variants',
-        description: 'Extra vars (and optionally extra blocks/entities) for a '
-            'subset of targets, tried in order — the first one whose blocks '
-            'or entities match wins.',
-        trailing: Button(
-          variant: ButtonVariant.outline,
-          size: ButtonSize.sm,
-          icon: ArcaneIcon.plus(size: IconSize.sm),
-          onPressed: () => _mutate(
-            'add variant',
-            (HuiPreviewDoc d) => d.variants.add(HuiPreviewVariant()),
-          ),
-          child: const Text('Add'),
-        ),
-        children: <Widget>[
-          if (_doc.variants.isEmpty)
-            const HuiNote('No variants. Every target uses the document\'s own vars.')
-          else
-            for (int i = 0; i < _doc.variants.length; i++) _variantCard(i),
-        ],
-      );
+    title: 'Variants',
+    description:
+        'Extra vars (and optionally extra blocks/entities) for a '
+        'subset of targets, tried in order — the first one whose blocks '
+        'or entities match wins.',
+    trailing: Button(
+      variant: ButtonVariant.outline,
+      size: ButtonSize.sm,
+      icon: ArcaneIcon.plus(size: IconSize.sm),
+      onPressed: () => _mutate(
+        'add variant',
+        (HuiPreviewDoc d) => d.variants.add(HuiPreviewVariant()),
+      ),
+      child: const Text('Add'),
+    ),
+    children: <Widget>[
+      if (_doc.variants.isEmpty)
+        const HuiNote(
+          'No variants. Every target uses the document\'s own vars.',
+        )
+      else
+        for (int i = 0; i < _doc.variants.length; i++) _variantCard(i),
+    ],
+  );
 
   Widget _variantCard(int index) {
     final HuiPreviewVariant variant = _doc.variants[index];
@@ -210,15 +204,15 @@ class PreviewMatchEditor extends StatelessWidget {
               onMoveUp: index == 0
                   ? null
                   : () => _mutate('move variant', (HuiPreviewDoc d) {
-                        final HuiPreviewVariant v = d.variants.removeAt(index);
-                        d.variants.insert(index - 1, v);
-                      }),
+                      final HuiPreviewVariant v = d.variants.removeAt(index);
+                      d.variants.insert(index - 1, v);
+                    }),
               onMoveDown: index >= _doc.variants.length - 1
                   ? null
                   : () => _mutate('move variant', (HuiPreviewDoc d) {
-                        final HuiPreviewVariant v = d.variants.removeAt(index);
-                        d.variants.insert(index + 1, v);
-                      }),
+                      final HuiPreviewVariant v = d.variants.removeAt(index);
+                      d.variants.insert(index + 1, v);
+                    }),
               onRemove: () => _mutate(
                 'remove variant',
                 (HuiPreviewDoc d) => d.variants.removeAt(index),
@@ -262,7 +256,8 @@ class PreviewMatchEditor extends StatelessWidget {
     final HuiPreviewCard? card = _doc.card;
     return InspectorSection(
       title: 'Card',
-      description: 'The chrome drawn around the elements. Omit it entirely '
+      description:
+          'The chrome drawn around the elements. Omit it entirely '
           'for bare content with no frame.',
       children: <Widget>[
         HuiSwitchRow(
@@ -270,7 +265,8 @@ class PreviewMatchEditor extends StatelessWidget {
           value: card != null,
           onChanged: (bool value) => _mutate(
             value ? 'add card' : 'remove card',
-            (HuiPreviewDoc d) => d.card = value ? HuiPreviewCard(framed: true) : null,
+            (HuiPreviewDoc d) =>
+                d.card = value ? HuiPreviewCard(framed: true) : null,
           ),
         ),
         if (card != null) ..._cardFields(card),
@@ -279,69 +275,73 @@ class PreviewMatchEditor extends StatelessWidget {
   }
 
   List<Widget> _cardFields(HuiPreviewCard card) => <Widget>[
-        PreviewExprField(
-          label: 'Framed',
-          raw: card.framed,
-          kind: PreviewExprKind.boolean,
-          placeholder: 'true',
-          issues: _issuesFor('card.framed'),
-          onChanged: (Object? v) =>
-              _mutate('card framed', (HuiPreviewDoc d) => d.card?.framed = v),
+    PreviewExprField(
+      label: 'Framed',
+      raw: card.framed,
+      kind: PreviewExprKind.boolean,
+      placeholder: 'true',
+      issues: _issuesFor('card.framed'),
+      onChanged: (Object? v) =>
+          _mutate('card framed', (HuiPreviewDoc d) => d.card?.framed = v),
+    ),
+    PreviewExprField(
+      label: 'Title',
+      raw: card.title,
+      kind: PreviewExprKind.string,
+      placeholder: "'Furnace'",
+      issues: _issuesFor('card.title'),
+      onChanged: (Object? v) => _mutate(
+        'card title',
+        (HuiPreviewDoc d) => d.card?.title = v as String?,
+      ),
+    ),
+    PreviewExprField(
+      label: 'Accent',
+      raw: card.accent,
+      kind: PreviewExprKind.string,
+      placeholder: '#FF808080',
+      trailing: previewColorSwatch(card.accent),
+      issues: _issuesFor('card.accent'),
+      onChanged: (Object? v) => _mutate(
+        'card accent',
+        (HuiPreviewDoc d) => d.card?.accent = v as String?,
+      ),
+    ),
+    HuiField(
+      label: 'Min half width',
+      help: 'Minimum panel half-width in pixels. Defaults to 82.',
+      control: HuiNumberField(
+        value: (card.minHalfWidth ?? 82).toDouble(),
+        integer: true,
+        min: 0,
+        max: 2000,
+        onChanged: (double value) => _mutate(
+          'card minHalfWidth',
+          (HuiPreviewDoc d) => d.card?.minHalfWidth = value.round(),
         ),
-        PreviewExprField(
-          label: 'Title',
-          raw: card.title,
-          kind: PreviewExprKind.string,
-          placeholder: "'Furnace'",
-          issues: _issuesFor('card.title'),
-          onChanged: (Object? v) =>
-              _mutate('card title', (HuiPreviewDoc d) => d.card?.title = v as String?),
-        ),
-        PreviewExprField(
-          label: 'Accent',
-          raw: card.accent,
-          kind: PreviewExprKind.string,
-          placeholder: '#FF808080',
-          trailing: previewColorSwatch(card.accent),
-          issues: _issuesFor('card.accent'),
-          onChanged: (Object? v) =>
-              _mutate('card accent', (HuiPreviewDoc d) => d.card?.accent = v as String?),
-        ),
-        HuiField(
-          label: 'Min half width',
-          help: 'Minimum panel half-width in pixels. Defaults to 82.',
-          control: HuiNumberField(
-            value: (card.minHalfWidth ?? 82).toDouble(),
-            integer: true,
-            min: 0,
-            max: 2000,
-            onChanged: (double value) => _mutate(
-              'card minHalfWidth',
-              (HuiPreviewDoc d) => d.card?.minHalfWidth = value.round(),
-            ),
-          ),
-        ),
-      ];
+      ),
+    ),
+  ];
 
   Widget _install() => InspectorSection(
-        title: 'Install on the server',
-        children: <Widget>[
-          HuiDetailRow('Preview file', '$huiPreviewFolder${store.menuId}.json'),
-          const HuiDetailRow('Permission', 'holoui.preview'),
-        ],
-      );
+    title: 'Install on the server',
+    children: <Widget>[
+      HuiDetailRow('Preview file', '$huiPreviewFolder${store.menuId}.json'),
+      const HuiDetailRow('Permission', 'holoui.preview'),
+    ],
+  );
 
   Widget _extras() => InspectorSection(
-        title: 'Extra keys',
-        children: <Widget>[
-          ExtrasEditor(
-            title: 'Document',
-            extras: _doc.extras,
-            onChanged: (String label, Map<String, dynamic> next) =>
-                _mutate(label, (HuiPreviewDoc d) => d.extras = next),
-          ),
-        ],
-      );
+    title: 'Extra keys',
+    children: <Widget>[
+      ExtrasEditor(
+        title: 'Document',
+        extras: _doc.extras,
+        onChanged: (String label, Map<String, dynamic> next) =>
+            _mutate(label, (HuiPreviewDoc d) => d.extras = next),
+      ),
+    ],
+  );
 }
 
 /// Editable chip list for `match.blocks`/`match.entities` (and their variant
@@ -374,96 +374,96 @@ class _PreviewNameChipsState extends State<_PreviewNameChips> {
     component.onChanged(<String>[...component.values, value]);
   }
 
-  void _remove(String value) => component
-      .onChanged(component.values.where((String v) => v != value).toList());
+  void _remove(String value) => component.onChanged(
+    component.values.where((String v) => v != value).toList(),
+  );
 
   @override
   Widget build(BuildContext context) => HuiField(
-        label: component.label,
-        help: component.help,
-        control: dom.div(
+    label: component.label,
+    help: component.help,
+    control: dom.div(
+      styles: const dom.Styles(
+        raw: <String, String>{
+          'display': 'flex',
+          'flex-direction': 'column',
+          'gap': '6px',
+          'min-width': '0',
+        },
+      ),
+      <Widget>[
+        if (component.values.isNotEmpty)
+          dom.div(classes: 'hui-chips', <Widget>[
+            for (final String value in component.values) _chip(value),
+          ]),
+        dom.div(
           styles: const dom.Styles(
             raw: <String, String>{
-              'display': 'flex',
-              'flex-direction': 'column',
-              'gap': '6px',
+              'display': 'grid',
+              'grid-template-columns': 'minmax(0, 1fr) auto',
+              'gap': '8px',
               'min-width': '0',
             },
           ),
           <Widget>[
-            if (component.values.isNotEmpty)
-              dom.div(
-                classes: 'hui-chips',
-                <Widget>[for (final String value in component.values) _chip(value)],
-              ),
-            dom.div(
-              styles: const dom.Styles(
-                raw: <String, String>{
-                  'display': 'grid',
-                  'grid-template-columns': 'minmax(0, 1fr) auto',
-                  'gap': '8px',
-                  'min-width': '0',
-                },
-              ),
-              <Widget>[
-                TextInput(
-                  value: _draft,
-                  size: ComponentSize.sm,
-                  fullWidth: true,
-                  placeholder: 'CHEST or OAK_*',
-                  onInput: (String value) => setState(() => _draft = value),
-                  attributes: const <String, String>{
-                    'autocomplete': 'off',
-                    'spellcheck': 'false',
-                  },
-                ),
-                Button(
-                  variant: ButtonVariant.outline,
-                  size: ButtonSize.sm,
-                  icon: ArcaneIcon.plus(size: IconSize.sm),
-                  onPressed: _add,
-                  child: const Text('Add'),
-                ),
-              ],
+            TextInput(
+              value: _draft,
+              size: ComponentSize.sm,
+              fullWidth: true,
+              placeholder: 'CHEST or OAK_*',
+              onInput: (String value) => setState(() => _draft = value),
+              attributes: const <String, String>{
+                'autocomplete': 'off',
+                'spellcheck': 'false',
+              },
+            ),
+            Button(
+              variant: ButtonVariant.outline,
+              size: ButtonSize.sm,
+              icon: ArcaneIcon.plus(size: IconSize.sm),
+              onPressed: _add,
+              child: const Text('Add'),
             ),
           ],
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _chip(String value) => dom.span(
-        classes: 'hui-chip',
+    classes: 'hui-chip',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'inline-flex',
+        'align-items': 'center',
+        'gap': '4px',
+      },
+    ),
+    <Widget>[
+      Text(value),
+      dom.button(
         styles: const dom.Styles(
           raw: <String, String>{
             'display': 'inline-flex',
-            'align-items': 'center',
-            'gap': '4px',
+            'border': '0',
+            'padding': '0',
+            'background': 'transparent',
+            'color': 'inherit',
+            'cursor': 'pointer',
+            'opacity': '0.7',
           },
         ),
-        <Widget>[
-          Text(value),
-          dom.button(
-            styles: const dom.Styles(
-              raw: <String, String>{
-                'display': 'inline-flex',
-                'border': '0',
-                'padding': '0',
-                'background': 'transparent',
-                'color': 'inherit',
-                'cursor': 'pointer',
-                'opacity': '0.7',
-              },
-            ),
-            attributes: <String, String>{
-              'type': 'button',
-              'aria-label': 'Remove $value',
-            },
-            events: <String, void Function(Object)>{
-              'click': (Object _) => _remove(value),
-            },
-            <Widget>[ArcaneIcon.x(size: IconSize.sm)],
-          ),
-        ],
-      );
+        attributes: <String, String>{
+          'type': 'button',
+          'aria-label': 'Remove $value',
+        },
+        events: <String, void Function(Object)>{
+          'click': (Object _) => _remove(value),
+        },
+        <Widget>[ArcaneIcon.x(size: IconSize.sm)],
+      ),
+    ],
+  );
 }
 
 /// Key/value rows for `vars`: value text with a colour swatch affordance for
@@ -515,7 +515,9 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
     if (value is bool) return value ? 'true' : 'false';
     if (value is num) {
       final double d = value.toDouble();
-      return d == d.roundToDouble() && d.isFinite ? d.toInt().toString() : d.toString();
+      return d == d.roundToDouble() && d.isFinite
+          ? d.toInt().toString()
+          : d.toString();
     }
     return value.toString();
   }
@@ -539,7 +541,8 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
 
   void _remove(String key) {
     _drafts.remove(key);
-    final Map<String, dynamic> next = Map<String, dynamic>.of(component.vars)..remove(key);
+    final Map<String, dynamic> next = Map<String, dynamic>.of(component.vars)
+      ..remove(key);
     setState(() {});
     component.onChanged(next);
   }
@@ -569,20 +572,20 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '8px',
-            'min-width': '0',
-          },
-        ),
-        <Widget>[
-          HuiEyebrow(component.title),
-          for (final String key in component.vars.keys.toList()) _row(key),
-          _addRow(),
-        ],
-      );
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'flex-direction': 'column',
+        'gap': '8px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      HuiEyebrow(component.title),
+      for (final String key in component.vars.keys.toList()) _row(key),
+      _addRow(),
+    ],
+  );
 
   Widget _row(String key) {
     final Object? value = component.vars[key];
@@ -598,7 +601,8 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
         attributes: <String, String>{'aria-label': 'Remove $key'},
         child: ArcaneIcon.trash2(size: IconSize.sm),
       ),
-      help: 'A leading "#" is read as a colour literal (#RGB, #RRGGBB or '
+      help:
+          'A leading "#" is read as a colour literal (#RGB, #RRGGBB or '
           '#AARRGGBB); anything else is a plain string, never parsed as an '
           'expression.',
       control: dom.div(
@@ -613,7 +617,9 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
         <Widget>[
           ?swatch,
           dom.div(
-            styles: const dom.Styles(raw: <String, String>{'flex': '1 1 auto', 'min-width': '0'}),
+            styles: const dom.Styles(
+              raw: <String, String>{'flex': '1 1 auto', 'min-width': '0'},
+            ),
             <Widget>[
               TextInput(
                 value: _valueText(key),
@@ -634,41 +640,41 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
   }
 
   Widget _addRow() => HuiField(
-        label: 'Add a var',
-        error: _newKeyError,
-        control: dom.div(
-          styles: const dom.Styles(
-            raw: <String, String>{
-              'display': 'grid',
-              'grid-template-columns': 'minmax(0, 1fr) auto',
-              'align-items': 'center',
-              'gap': '8px',
-              'min-width': '0',
-            },
-          ),
-          <Widget>[
-            TextInput(
-              value: _newKey,
-              size: ComponentSize.sm,
-              fullWidth: true,
-              placeholder: 'accent',
-              onInput: (String value) {
-                _newKey = value;
-                if (_newKeyError != null) setState(() => _newKeyError = null);
-              },
-              attributes: const <String, String>{
-                'autocomplete': 'off',
-                'spellcheck': 'false',
-              },
-            ),
-            Button(
-              variant: ButtonVariant.outline,
-              size: ButtonSize.sm,
-              icon: ArcaneIcon.plus(size: IconSize.sm),
-              onPressed: _add,
-              child: const Text('Add'),
-            ),
-          ],
+    label: 'Add a var',
+    error: _newKeyError,
+    control: dom.div(
+      styles: const dom.Styles(
+        raw: <String, String>{
+          'display': 'grid',
+          'grid-template-columns': 'minmax(0, 1fr) auto',
+          'align-items': 'center',
+          'gap': '8px',
+          'min-width': '0',
+        },
+      ),
+      <Widget>[
+        TextInput(
+          value: _newKey,
+          size: ComponentSize.sm,
+          fullWidth: true,
+          placeholder: 'accent',
+          onInput: (String value) {
+            _newKey = value;
+            if (_newKeyError != null) setState(() => _newKeyError = null);
+          },
+          attributes: const <String, String>{
+            'autocomplete': 'off',
+            'spellcheck': 'false',
+          },
         ),
-      );
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          icon: ArcaneIcon.plus(size: IconSize.sm),
+          onPressed: _add,
+          child: const Text('Add'),
+        ),
+      ],
+    ),
+  );
 }

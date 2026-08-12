@@ -111,8 +111,9 @@ class _ImportDialogState extends State<ImportDialog> {
       _issues = validateHuiMenu(
         menu,
         knownImagePaths: _store.images?.paths,
-        knownMaterials:
-            _store.catalogs.loaded ? _store.catalogs.materialKeys : null,
+        knownMaterials: _store.catalogs.loaded
+            ? _store.catalogs.materialKeys
+            : null,
         knownSounds: _store.catalogs.loaded ? _store.catalogs.soundKeys : null,
         customItems: _store.catalogs.customItems,
       );
@@ -159,84 +160,79 @@ class _ImportDialogState extends State<ImportDialog> {
 
   @override
   Widget build(BuildContext context) => ArcaneDialog(
-        id: 'hui-import-dialog',
-        isOpen: component.isOpen,
-        onClose: component.onClose,
-        title: 'Import JSON',
-        maxWidth: 720,
-        actions: <Widget>[
+    id: 'hui-import-dialog',
+    isOpen: component.isOpen,
+    onClose: component.onClose,
+    title: 'Import JSON',
+    maxWidth: 720,
+    actions: <Widget>[
+      Button(
+        variant: ButtonVariant.outline,
+        onPressed: component.onClose,
+        label: 'Cancel',
+      ),
+      Button(
+        variant: ButtonVariant.primary,
+        disabled: !_hasParsed,
+        onPressed: _hasParsed ? _replace : null,
+        icon: ArcaneIcon.upload(size: IconSize.sm),
+        label: 'Replace document',
+      ),
+    ],
+    children: <Widget>[_body()],
+  );
+
+  Widget _body() => dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
+    const ArcaneAlert.warning(
+      message:
+          'Importing replaces the document you are editing. It is a '
+          'single undo step, so Ctrl+Z brings the old one back.',
+    ),
+    HuiDialogSection(
+      title: 'From a file',
+      description:
+          'Dropping a .json file anywhere in the editor does the same '
+          'thing. A menu or a container-preview document both work — '
+          'the shape of the file decides which.',
+      children: <Widget>[
+        dom.div(classes: 'hui-dialog-actions', <Widget>[
           Button(
             variant: ButtonVariant.outline,
-            onPressed: component.onClose,
-            label: 'Cancel',
+            size: ButtonSize.small,
+            loading: _picking,
+            onPressed: _pickFile,
+            icon: ArcaneIcon.folderOpen(size: IconSize.sm),
+            label: 'Choose a .json file',
           ),
-          Button(
-            variant: ButtonVariant.primary,
-            disabled: !_hasParsed,
-            onPressed: _hasParsed ? _replace : null,
-            icon: ArcaneIcon.upload(size: IconSize.sm),
-            label: 'Replace document',
-          ),
-        ],
-        children: <Widget>[_body()],
-      );
-
-  Widget _body() => dom.div(
-        classes: 'hui-dialog-body hui-stagger',
-        <Widget>[
-          const ArcaneAlert.warning(
-            message: 'Importing replaces the document you are editing. It is a '
-                'single undo step, so Ctrl+Z brings the old one back.',
-          ),
-          HuiDialogSection(
-            title: 'From a file',
-            description:
-                'Dropping a .json file anywhere in the editor does the same '
-                'thing. A menu or a container-preview document both work — '
-                'the shape of the file decides which.',
-            children: <Widget>[
-              dom.div(
-                classes: 'hui-dialog-actions',
-                <Widget>[
-                  Button(
-                    variant: ButtonVariant.outline,
-                    size: ButtonSize.small,
-                    loading: _picking,
-                    onPressed: _pickFile,
-                    icon: ArcaneIcon.folderOpen(size: IconSize.sm),
-                    label: 'Choose a .json file',
-                  ),
-                  if (_sourceName.isNotEmpty)
-                    dom.span(
-                      classes: 'hui-dialog-filename',
-                      <Widget>[Text(_sourceName)],
-                    ),
-                ],
-              ),
-            ],
-          ),
-          HuiDialogSection(
-            title: 'Or paste it',
-            description: 'Anything the plugin accepts: single-value lists and '
-                'missing booleans are read the same way HoloUI reads them.',
-            children: <Widget>[
-              TextArea(
-                key: ValueKey<int>(_generation),
-                value: _text,
-                rows: 8,
-                fullWidth: true,
-                placeholder: '{ "offset": [0, 1.7, 2.5], "components": [] }',
-                onInput: _onText,
-              ),
-            ],
-          ),
-          HuiDialogSection(
-            title: 'Preview',
-            description: 'Nothing is written until you press Replace.',
-            children: <Widget>[_preview()],
-          ),
-        ],
-      );
+          if (_sourceName.isNotEmpty)
+            dom.span(classes: 'hui-dialog-filename', <Widget>[
+              Text(_sourceName),
+            ]),
+        ]),
+      ],
+    ),
+    HuiDialogSection(
+      title: 'Or paste it',
+      description:
+          'Anything the plugin accepts: single-value lists and '
+          'missing booleans are read the same way HoloUI reads them.',
+      children: <Widget>[
+        TextArea(
+          key: ValueKey<int>(_generation),
+          value: _text,
+          rows: 8,
+          fullWidth: true,
+          placeholder: '{ "offset": [0, 1.7, 2.5], "components": [] }',
+          onInput: _onText,
+        ),
+      ],
+    ),
+    HuiDialogSection(
+      title: 'Preview',
+      description: 'Nothing is written until you press Replace.',
+      children: <Widget>[_preview()],
+    ),
+  ]);
 
   Widget _preview() {
     // The picker is a real wait: the browser dialog, then a full file read.
@@ -258,7 +254,8 @@ class _ImportDialogState extends State<ImportDialog> {
     if (menu != null) return _menuSummary(menu);
     return ArcaneEmptyState(
       title: 'Nothing to import yet',
-      description: 'Choose a file or paste JSON above. Both a menu and a '
+      description:
+          'Choose a file or paste JSON above. Both a menu and a '
           'container-preview document are parsed as you type, and everything '
           'the plugin would complain about is listed here before anything is '
           'replaced.',
@@ -274,93 +271,79 @@ class _ImportDialogState extends State<ImportDialog> {
         .where((HuiIssue issue) => issue.severity == HuiSeverity.warning)
         .length;
 
-    return dom.div(
-      classes: 'hui-import-preview',
-      <Widget>[
-        HuiChips(
-          labels: <String>[
-            'menu document',
-            'id $_targetId',
-            '${menu.components.length} component'
-                '${menu.components.length == 1 ? '' : 's'}',
-            menu.followPlayer ? 'follows player' : 'fixed in place',
-            if (menu.maxDistance != null)
-              'maxDistance ${menu.maxDistance}'
-            else
-              'unlimited range',
-            '$errors error${errors == 1 ? '' : 's'}',
-            '$warnings warning${warnings == 1 ? '' : 's'}',
-          ],
-        ),
-        _issueList(),
-      ],
-    );
+    return dom.div(classes: 'hui-import-preview', <Widget>[
+      HuiChips(
+        labels: <String>[
+          'menu document',
+          'id $_targetId',
+          '${menu.components.length} component'
+              '${menu.components.length == 1 ? '' : 's'}',
+          menu.followPlayer ? 'follows player' : 'fixed in place',
+          if (menu.maxDistance != null)
+            'maxDistance ${menu.maxDistance}'
+          else
+            'unlimited range',
+          '$errors error${errors == 1 ? '' : 's'}',
+          '$warnings warning${warnings == 1 ? '' : 's'}',
+        ],
+      ),
+      _issueList(),
+    ]);
   }
 
   Widget _previewDocSummary(HuiPreviewDoc doc) {
     final int errors = _issues.length;
-    return dom.div(
-      classes: 'hui-import-preview',
-      <Widget>[
-        HuiChips(
-          labels: <String>[
-            'container-preview document',
-            'id $_targetId',
-            '${doc.elements.length} element'
-                '${doc.elements.length == 1 ? '' : 's'}',
-            '${doc.variants.length} variant'
-                '${doc.variants.length == 1 ? '' : 's'}',
-            doc.card == null ? 'no card (bare content)' : 'has a card',
-            '$errors expression error${errors == 1 ? '' : 's'}',
-          ],
-        ),
-        if (errors > 0)
-          const dom.p(
-            classes: 'hui-dialog-note',
-            <Widget>[
-              Text('Expression errors are shown for reference and do not '
-                  'block importing — the document still replaces the current '
-                  'one when you press Replace.'),
-            ],
+    return dom.div(classes: 'hui-import-preview', <Widget>[
+      HuiChips(
+        labels: <String>[
+          'container-preview document',
+          'id $_targetId',
+          '${doc.elements.length} element'
+              '${doc.elements.length == 1 ? '' : 's'}',
+          '${doc.variants.length} variant'
+              '${doc.variants.length == 1 ? '' : 's'}',
+          doc.card == null ? 'no card (bare content)' : 'has a card',
+          '$errors expression error${errors == 1 ? '' : 's'}',
+        ],
+      ),
+      if (errors > 0)
+        const dom.p(classes: 'hui-dialog-note', <Widget>[
+          Text(
+            'Expression errors are shown for reference and do not '
+            'block importing — the document still replaces the current '
+            'one when you press Replace.',
           ),
-        _issueList(),
-      ],
-    );
+        ]),
+      _issueList(),
+    ]);
   }
 
   Widget _issueList() {
     if (_issues.isEmpty) {
-      return const dom.p(
-        classes: 'hui-dialog-note',
-        <Widget>[Text('No issues found in the imported document.')],
-      );
+      return const dom.p(classes: 'hui-dialog-note', <Widget>[
+        Text('No issues found in the imported document.'),
+      ]);
     }
-    return dom.ul(
-      classes: 'hui-import-issues',
-      <Widget>[
-        for (final HuiIssue issue in _issues.take(12))
-          dom.li(
-            classes: classNames(<String?>[
-              'hui-import-issue',
-              switch (issue.severity) {
-                HuiSeverity.error => 'is-error',
-                HuiSeverity.warning => 'is-warning',
-                HuiSeverity.info => 'is-info',
-              },
-            ]),
-            <Widget>[
-              dom.code(<Widget>[Text(issue.path)]),
-              dom.span(<Widget>[Text(issue.message)]),
-            ],
-          ),
-        if (_issues.length > 12)
-          dom.li(
-            classes: 'hui-import-issue',
-            <Widget>[
-              dom.span(<Widget>[Text('and ${_issues.length - 12} more…')]),
-            ],
-          ),
-      ],
-    );
+    return dom.ul(classes: 'hui-import-issues', <Widget>[
+      for (final HuiIssue issue in _issues.take(12))
+        dom.li(
+          classes: classNames(<String?>[
+            'hui-import-issue',
+            switch (issue.severity) {
+              HuiSeverity.error => 'is-error',
+              HuiSeverity.warning => 'is-warning',
+              HuiSeverity.info => 'is-info',
+            },
+          ]),
+          <Widget>[
+            dom.code(<Widget>[Text(issue.path)]),
+            dom.span(<Widget>[Text(issue.message)]),
+          ],
+        ),
+      if (_issues.length > 12)
+        dom.li(classes: 'hui-import-issue', <Widget>[
+          dom.span(<Widget>[Text('and ${_issues.length - 12} more…')]),
+        ]),
+    ]);
   }
 }

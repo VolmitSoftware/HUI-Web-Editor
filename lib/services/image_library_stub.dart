@@ -7,7 +7,12 @@ library;
 
 /// Name comes from the picked file, dimensions from the decoded bitmap, and
 /// [dataUri] is always a normalized `image/png` data URI.
-typedef DecodedImageFile = ({String name, String dataUri, int width, int height});
+typedef DecodedImageFile = ({
+  String name,
+  String dataUri,
+  int width,
+  int height,
+});
 
 /// Row-major RGBA flattened to 0xAARRGGBB, one entry per source pixel.
 typedef DecodedPixels = ({int width, int height, List<int> argb});

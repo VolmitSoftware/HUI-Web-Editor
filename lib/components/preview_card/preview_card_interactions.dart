@@ -82,11 +82,14 @@ extension _PreviewCardInteractions on _PreviewCardViewportState {
     wheel.preventDefault();
     final double delta = _eventDouble(wheel, 'deltaY');
     if (delta == 0) return;
-    final int next =
-        delta < 0 ? previewZoomIn(_view.zoom) : previewZoomOut(_view.zoom);
+    final int next = delta < 0
+        ? previewZoomIn(_view.zoom)
+        : previewZoomOut(_view.zoom);
     if (next == _view.zoom) return;
     final ({double x, double y}) local = _localPoint(
-        _eventDouble(wheel, 'clientX'), _eventDouble(wheel, 'clientY'));
+      _eventDouble(wheel, 'clientX'),
+      _eventDouble(wheel, 'clientY'),
+    );
     _commitView(_view.zoomedAt(next, screenX: local.x, screenY: local.y));
   }
 
@@ -110,10 +113,14 @@ extension _PreviewCardInteractions on _PreviewCardViewportState {
       _dragMode = _PreviewDragMode.pan;
       _dragElement = null;
     } else {
-      final ({double x, double y}) local =
-          _localPoint(_lastClientX, _lastClientY);
-      final ({double x, double y}) card =
-          (x: _view.toCardX(local.x), y: _view.toCardY(local.y));
+      final ({double x, double y}) local = _localPoint(
+        _lastClientX,
+        _lastClientY,
+      );
+      final ({double x, double y}) card = (
+        x: _view.toCardX(local.x),
+        y: _view.toCardY(local.y),
+      );
       final PreviewCardScene scene = _currentScene;
       final PreviewHandle? handle = _handleAt(scene, local.x, local.y);
       if (handle != null) {
@@ -138,10 +145,13 @@ extension _PreviewCardInteractions on _PreviewCardViewportState {
   /// position is expression-driven, starts moving it.
   void _beginSelectOrDrag(PreviewCardScene scene, double cardX, double cardY) {
     final EditorStore store = component.store;
-    final int? item = previewHitTestItem(scene, cardX, cardY,
-        labelWidths: _labelWidths);
-    final int element =
-        item == null ? -1 : previewElementIndexOf(scene, item);
+    final int? item = previewHitTestItem(
+      scene,
+      cardX,
+      cardY,
+      labelWidths: _labelWidths,
+    );
+    final int element = item == null ? -1 : previewElementIndexOf(scene, item);
     if (element < 0) {
       store.selectPreviewElement(null);
       _dragMode = _PreviewDragMode.none;
@@ -285,8 +295,9 @@ extension _PreviewCardInteractions on _PreviewCardViewportState {
             (next.height ?? -1)) {
       return;
     }
-    component.store.editPreviewElement(index, 'resize element',
-        (HuiPreviewElement edited) {
+    component.store.editPreviewElement(index, 'resize element', (
+      HuiPreviewElement edited,
+    ) {
       edited.x = next.x;
       edited.y = next.y;
       if (next.width != null) edited.width = next.width;
@@ -338,8 +349,12 @@ extension _PreviewCardInteractions on _PreviewCardViewportState {
 
   void _updateHover(double clientX, double clientY) {
     final ({double x, double y}) card = _cardPoint(clientX, clientY);
-    final int? item = previewHitTestItem(_currentScene, card.x, card.y,
-        labelWidths: _labelWidths);
+    final int? item = previewHitTestItem(
+      _currentScene,
+      card.x,
+      card.y,
+      labelWidths: _labelWidths,
+    );
     if (item == _hoveredItem) return;
     _hoveredItem = item;
     _setStageState(overElement: item != null);

@@ -6,11 +6,9 @@
 /// ids and owns everything that follows from it: hover-tick counters, click
 /// dispatch, toggle state, the menu centre and the range close.
 ///
-/// Positions here are unrotated authoring-frame values. The menu's one yaw
-/// rotation is frozen at open and applied by `preview_scene.dart`; it turns
-/// component locations about the player's own vertical axis
-/// (`MenuComponent.java:142-144`), which preserves the distance from the player
-/// to the centre, so the range test below is unaffected by it.
+/// Positions use the same transformed menu origin as the runtime. Static menus
+/// keep their open pose; `followPlayer` updates both the anchor and facing yaw
+/// from each movement event before the next scene is built.
 library;
 
 import '../model/hui_actions.dart';
@@ -18,6 +16,7 @@ import '../model/hui_component.dart';
 import '../model/hui_menu.dart';
 import 'action_log.dart';
 import 'preview_types.dart';
+import 'projection.dart';
 
 /// The two component types that have a collision plane. `decoration` has none
 /// — `DecoComponent` is not a `ClickableComponent`, so it never highlights and
@@ -68,7 +67,7 @@ class PreviewTickResult {
 
   final int tick;
 
-  /// Menu centre in the authoring frame, before the frozen open-yaw rotation.
+  /// The transformed runtime menu origin.
   final PVec3 center;
   final double distanceToCenter;
 
@@ -101,16 +100,16 @@ class PreviewSimulation {
   PreviewSimulation({
     required HuiMenu menu,
     required this.openFeet,
+    this.openYawDeg = 0,
     bool Function(String componentId)? initialToggleState,
   }) : menuOffset = PVec3(menu.offset.x, menu.offset.y, menu.offset.z),
        maxDistance = menu.maxDistance,
        followPlayer = menu.followPlayer,
        lockPosition = menu.lockPosition,
        _clickables = List<SimClickable>.unmodifiable(_collectClickables(menu)) {
-    // MenuSession.java:73 anchors on player.getLocation() — the feet — and the
-    // menu offset is the one offset uiScale never touches
-    // (HuiSettings.java:60-66).
-    _center = openFeet + menuOffset;
+    _anchorFeet = openFeet;
+    _facingYawDeg = openYawDeg.isFinite ? openYawDeg : 0;
+    _center = _menuCenter(_anchorFeet, _facingYawDeg);
     for (final SimClickable clickable in _clickables) {
       _toggleStates.add(
         clickable.kind == SimClickableKind.toggle
@@ -125,6 +124,7 @@ class PreviewSimulation {
   }
 
   final PVec3 openFeet;
+  final double openYawDeg;
 
   /// Menu offset in the authoring frame; its squared length loosens the range
   /// test (`MenuSession.java:57-80`).
@@ -141,17 +141,23 @@ class PreviewSimulation {
   final Map<String, int> _hoverTicks = <String, int>{};
 
   late PVec3 _center;
+  late PVec3 _anchorFeet;
+  late double _facingYawDeg;
   Set<String> _hoveredIds = const <String>{};
   int _tickCount = 0;
   bool _open = true;
   PreviewCloseReason? _closeReason;
 
-  /// Clickables in declaration order — the order a click dispatches in.
+  /// Clickables in declaration order, used for equal-distance fallback ties.
   List<SimClickable> get clickables => _clickables;
 
   int get tickCount => _tickCount;
 
   PVec3 get center => _center;
+
+  PVec3 get anchorFeet => _anchorFeet;
+
+  double get facingYawDeg => _facingYawDeg;
 
   bool get isOpen => _open;
 
@@ -178,6 +184,7 @@ class PreviewSimulation {
   PreviewTickResult tick({
     required Set<String> hoveredClickableIds,
     required PVec3 playerFeet,
+    double? playerYawDeg,
   }) {
     if (!_open) {
       return _result(playerFeet: playerFeet, closedThisTick: null);
@@ -186,6 +193,9 @@ class PreviewSimulation {
     _tickCount++;
 
     if (lockPosition) {
+      if (followPlayer) {
+        _follow(openFeet, playerYawDeg);
+      }
       _advanceHover(hoveredClickableIds);
       return _result(playerFeet: openFeet, closedThisTick: null);
     }
@@ -208,60 +218,79 @@ class PreviewSimulation {
     }
 
     if (followPlayer) {
-      // MenuSession.java:103-109 re-anchors the whole session on the new feet.
-      _center = playerFeet + menuOffset;
+      _follow(playerFeet, playerYawDeg);
     }
 
     _advanceHover(hoveredClickableIds);
     return _result(playerFeet: playerFeet, closedThisTick: null);
   }
 
-  /// One left click, dispatched exactly as `MenuSessionManager.dispatchClick`
-  /// does it: `SessionHolder.java:145-159` snapshots EVERY component that is
-  /// currently selected, in component-list order, and the dispatcher calls
-  /// `onClick` on all of them. Overlapping hitboxes are never deduplicated —
-  /// teaching that is the point of the preview.
-  ///
-  /// Selection is last tick's state, so a click resolves against the hover set
-  /// the previous [tick] produced.
-  List<ActionLogEntry> click() {
+  /// One accepted click, dispatched as the nearest event-time intersection.
+  /// [componentId] is the
+  /// geometry pass's nearest result; pure state-machine callers fall back to
+  /// the first hovered component, matching declaration-order tie-breaking.
+  List<ActionLogEntry> click({
+    String trigger = 'left_click',
+    String? componentId,
+  }) {
     if (!_open) return const <ActionLogEntry>[];
 
-    final List<ActionLogEntry> fired = <ActionLogEntry>[];
+    String? target = componentId;
+    if (target == null) {
+      for (final SimClickable clickable in _clickables) {
+        if (_hoverTicks.containsKey(clickable.id)) {
+          target = clickable.id;
+          break;
+        }
+      }
+    }
+    if (target == null) {
+      return const <ActionLogEntry>[];
+    }
+
     for (int i = 0; i < _clickables.length; i++) {
       final SimClickable clickable = _clickables[i];
-      if (!_hoverTicks.containsKey(clickable.id)) continue;
+      if (clickable.id != target) continue;
 
       switch (clickable.kind) {
         case SimClickableKind.button:
-          fired.add(
+          return <ActionLogEntry>[
             ActionLogEntry(
               tick: _tickCount,
               componentId: clickable.id,
               trigger: ActionLogTrigger.button,
-              actions: loggedActionsFrom(clickable.actions),
+              clickTrigger: trigger,
+              actions: loggedActionsFrom(
+                clickable.actions,
+                clickTrigger: trigger,
+              ),
             ),
-          );
+          ];
         case SimClickableKind.toggle:
           // ToggleComponent.java:52-61 fires the list named for the state it is
           // moving INTO, then swaps the icon and stores the new state.
           final bool next = !(_toggleStates[i] ?? false);
-          _toggleStates[i] = next;
-          fired.add(
+          final List<LoggedAction> actions = loggedActionsFrom(
+            next ? clickable.trueActions : clickable.falseActions,
+            clickTrigger: trigger,
+          );
+          if (actions.isEmpty || actions.last is! LoggedNavigation) {
+            _toggleStates[i] = next;
+          }
+          return <ActionLogEntry>[
             ActionLogEntry(
               tick: _tickCount,
               componentId: clickable.id,
               trigger: next
                   ? ActionLogTrigger.toggleToTrue
                   : ActionLogTrigger.toggleToFalse,
-              actions: loggedActionsFrom(
-                next ? clickable.trueActions : clickable.falseActions,
-              ),
+              clickTrigger: trigger,
+              actions: actions,
             ),
-          );
+          ];
       }
     }
-    return fired;
+    return const <ActionLogEntry>[];
   }
 
   void _advanceHover(Set<String> requested) {
@@ -292,6 +321,17 @@ class PreviewSimulation {
     closedThisTick: closedThisTick,
     movementLocked: movementLocked,
   );
+
+  void _follow(PVec3 playerFeet, double? playerYawDeg) {
+    _anchorFeet = playerFeet;
+    if (playerYawDeg != null && playerYawDeg.isFinite) {
+      _facingYawDeg = playerYawDeg;
+    }
+    _center = _menuCenter(_anchorFeet, _facingYawDeg);
+  }
+
+  PVec3 _menuCenter(PVec3 anchor, double yawDegrees) =>
+      anchor + huiMenuVector(menuOffset, facingYawDegrees: yawDegrees);
 
   static List<SimClickable> _collectClickables(HuiMenu menu) {
     final List<SimClickable> out = <SimClickable>[];

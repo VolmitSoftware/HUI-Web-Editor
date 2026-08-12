@@ -134,8 +134,7 @@ class CanvasAssets {
   void prunePixelCanvases(Set<String> livePaths) {
     if (_pixelCanvases.isEmpty) return;
     _pixelCanvases.removeWhere(
-      (String key, _PixelCanvas _) =>
-          !livePaths.contains(key.split('#').first),
+      (String key, _PixelCanvas _) => !livePaths.contains(key.split('#').first),
     );
   }
 

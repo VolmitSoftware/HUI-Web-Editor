@@ -89,10 +89,14 @@ class _ExportDialogState extends State<ExportDialog> {
     final bool copied = await copyText(_store.exportJson());
     if (!mounted) return;
     if (copied) {
-      toast.success('${_store.isPreviewDoc ? 'Document' : 'Menu'} JSON copied '
-          'to the clipboard');
+      toast.success(
+        '${_store.isPreviewDoc ? 'Document' : 'Menu'} JSON copied '
+        'to the clipboard',
+      );
     } else {
-      toast.error('The browser refused clipboard access. Use Download instead.');
+      toast.error(
+        'The browser refused clipboard access. Use Download instead.',
+      );
     }
   }
 
@@ -108,33 +112,40 @@ class _ExportDialogState extends State<ExportDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => ArcaneDialog(
-        id: 'hui-export-dialog',
-        isOpen: component.isOpen,
-        onClose: component.onClose,
-        title: _store.isPreviewDoc ? 'Export preview' : 'Export menu',
-        maxWidth: 720,
-        actions: <Widget>[
-          Button(
-            variant: ButtonVariant.outline,
-            onPressed: component.onClose,
-            label: 'Close',
-          ),
-          Button(
-            variant: ButtonVariant.primary,
-            onPressed: _downloadJson,
-            icon: ArcaneIcon.download(size: IconSize.sm),
-            label: 'Download JSON',
-          ),
-        ],
-        children: <Widget>[
-          ListenableBuilder(
-            listenable: _store,
-            builder: (BuildContext inner) =>
-                _store.isPreviewDoc ? _previewBody() : _menuBody(),
-          ),
-        ],
-      );
+  Widget build(BuildContext context) {
+    if (!_store.canTransferDocument) return const dom.div(<Widget>[]);
+    return ArcaneDialog(
+      id: 'hui-export-dialog',
+      isOpen: component.isOpen,
+      onClose: component.onClose,
+      title: _store.isPreviewDoc ? 'Export preview' : 'Export menu',
+      maxWidth: 720,
+      actions: <Widget>[
+        Button(
+          variant: ButtonVariant.outline,
+          onPressed: component.onClose,
+          label: 'Close',
+        ),
+        Button(
+          variant: ButtonVariant.primary,
+          onPressed: _downloadJson,
+          icon: ArcaneIcon.download(size: IconSize.sm),
+          label: 'Download JSON',
+        ),
+      ],
+      children: <Widget>[
+        ListenableBuilder(
+          listenable: _store,
+          builder: (BuildContext inner) {
+            if (!_store.canTransferDocument) {
+              return const dom.div(<Widget>[]);
+            }
+            return _store.isPreviewDoc ? _previewBody() : _menuBody();
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _menuBody() {
     final ImageLibrary? library = _images;
@@ -144,221 +155,217 @@ class _ExportDialogState extends State<ExportDialog> {
         : used.where((String path) => !library.contains(path)).length;
     final String json = _store.exportJson();
 
-    return dom.div(
-      classes: 'hui-dialog-body hui-stagger',
-      <Widget>[
-        if (_store.hasErrors)
-          ArcaneAlert.error(
-            title: '${_store.errorCount} error'
-                '${_store.errorCount == 1 ? '' : 's'} in this menu',
-            message: 'The file will still export, but HoloUI may refuse to open '
-                'it. Check the validation panel before you ship it.',
-          ),
-        HuiDialogSection(
-          title: 'File name',
-          description: 'The name becomes the menu id, the open command and the '
-              'permission node.',
-          children: <Widget>[
-            HuiField(
-              label: 'Menu id',
-              help: 'Lowercase letters, digits, underscore and hyphen. '
-                  'Anything else is replaced.',
-              control: TextInput(
-                value: _name,
-                size: ComponentSize.sm,
-                fullWidth: true,
-                placeholder: huiDefaultMenuId,
-                onInput: (String value) => setState(() => _name = value),
-                onBlur: _commitName,
-                attributes: const <String, String>{
-                  'aria-label': 'Menu id',
-                  'autocomplete': 'off',
-                  'spellcheck': 'false',
-                },
-              ),
-            ),
-            HuiCodeBlock(text: '$huiMenuFolder$_fileName'),
-          ],
+    return dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
+      if (_store.hasErrors)
+        ArcaneAlert.error(
+          title:
+              '${_store.errorCount} error'
+              '${_store.errorCount == 1 ? '' : 's'} in this menu',
+          message:
+              'The file will still export, but HoloUI may refuse to open '
+              'it. Check the validation panel before you ship it.',
         ),
-        HuiDialogSection(
-          title: 'Download',
-          description: 'Everything the server needs, in the layout it expects.',
-          children: <Widget>[
-            dom.div(
-              classes: 'hui-dialog-actions',
-              <Widget>[
-                Button(
-                  variant: ButtonVariant.primary,
-                  size: ButtonSize.small,
-                  onPressed: _downloadJson,
-                  icon: ArcaneIcon.download(size: IconSize.sm),
-                  label: 'Download $_fileName',
-                ),
-                Button(
-                  variant: ButtonVariant.outline,
-                  size: ButtonSize.small,
-                  onPressed: _copyJson,
-                  icon: ArcaneIcon.clipboardCopy(size: IconSize.sm),
-                  label: 'Copy JSON',
-                ),
-                if (used.isNotEmpty)
-                  Button(
-                    variant: ButtonVariant.outline,
-                    size: ButtonSize.small,
-                    loading: _zipping,
-                    disabled: library == null || library.images.isEmpty,
-                    onPressed: _downloadImages,
-                    icon: ArcaneIcon.fileArchive(size: IconSize.sm),
-                    label: 'Download images.zip',
-                  ),
-              ],
+      HuiDialogSection(
+        title: 'File name',
+        description:
+            'The name becomes the menu id, the open command and the '
+            'permission node.',
+        children: <Widget>[
+          HuiField(
+            label: 'Menu id',
+            help:
+                'Lowercase letters, digits, underscore and hyphen. '
+                'Anything else is replaced.',
+            control: TextInput(
+              value: _name,
+              size: ComponentSize.sm,
+              fullWidth: true,
+              placeholder: huiDefaultMenuId,
+              onInput: (String value) => setState(() => _name = value),
+              onBlur: _commitName,
+              attributes: const <String, String>{
+                'aria-label': 'Menu id',
+                'autocomplete': 'off',
+                'spellcheck': 'false',
+              },
+            ),
+          ),
+          HuiCodeBlock(text: '$huiMenuFolder$_fileName'),
+        ],
+      ),
+      HuiDialogSection(
+        title: 'Download',
+        description: 'Everything the server needs, in the layout it expects.',
+        children: <Widget>[
+          dom.div(classes: 'hui-dialog-actions', <Widget>[
+            Button(
+              variant: ButtonVariant.primary,
+              size: ButtonSize.small,
+              onPressed: _downloadJson,
+              icon: ArcaneIcon.download(size: IconSize.sm),
+              label: 'Download $_fileName',
+            ),
+            Button(
+              variant: ButtonVariant.outline,
+              size: ButtonSize.small,
+              onPressed: _copyJson,
+              icon: ArcaneIcon.clipboardCopy(size: IconSize.sm),
+              label: 'Copy JSON',
             ),
             if (used.isNotEmpty)
-              dom.p(
-                classes: 'hui-dialog-note',
-                <Widget>[
-                  Text(
-                    'This menu uses ${used.length} image'
-                    '${used.length == 1 ? '' : 's'}. Unzip images.zip into '
-                    '$huiImageFolder keeping the folder structure.',
-                  ),
-                ],
+              Button(
+                variant: ButtonVariant.outline,
+                size: ButtonSize.small,
+                loading: _zipping,
+                disabled: library == null || library.images.isEmpty,
+                onPressed: _downloadImages,
+                icon: ArcaneIcon.fileArchive(size: IconSize.sm),
+                label: 'Download images.zip',
               ),
-            if (missing > 0)
-              ArcaneAlert.warning(
-                message: '$missing referenced image'
-                    '${missing == 1 ? ' is' : 's are'} not in the local library, '
-                    'so ${missing == 1 ? 'it' : 'they'} will not be in the zip. '
-                    'Upload the file${missing == 1 ? '' : 's'} or copy '
-                    '${missing == 1 ? 'it' : 'them'} to the server by hand.',
+          ]),
+          if (used.isNotEmpty)
+            dom.p(classes: 'hui-dialog-note', <Widget>[
+              Text(
+                'This menu uses ${used.length} image'
+                '${used.length == 1 ? '' : 's'}. Unzip images.zip into '
+                '$huiImageFolder keeping the folder structure.',
               ),
-          ],
-        ),
-        HuiDialogSection(
-          title: 'Install on your server',
-          description: 'HoloUI watches the folder, so no restart is needed.',
-          children: <Widget>[
-            HuiSteps(
-              steps: <String>[
-                'Drop $_fileName into $huiMenuFolder — the folder is flat, '
-                    'files in subfolders are never registered.',
-                if (used.isNotEmpty)
-                  'Unzip images.zip into $huiImageFolder so every icon path '
-                      'resolves.',
-                'Changed menus re-register within about 5 ticks and any open '
-                    'session of that id is closed with DEFINITION_RELOADED. '
-                    'New and deleted files are noticed within about 20 ticks.',
-                'Grant holoui.command.open plus holoui.open.$_menuId — the '
-                    'per-menu node is not declared in plugin.yml, so it has to '
-                    'be granted explicitly.',
-                'Test it with /holoui open $_menuId (aliases: holo, hui, '
-                    'holou, hu).',
-              ],
+            ]),
+          if (missing > 0)
+            ArcaneAlert.warning(
+              message:
+                  '$missing referenced image'
+                  '${missing == 1 ? ' is' : 's are'} not in the local library, '
+                  'so ${missing == 1 ? 'it' : 'they'} will not be in the zip. '
+                  'Upload the file${missing == 1 ? '' : 's'} or copy '
+                  '${missing == 1 ? 'it' : 'them'} to the server by hand.',
             ),
-            HuiCodeBlock(text: '/holoui open $_menuId'),
-          ],
-        ),
-        HuiDialogSection(
-          title: 'Preview',
-          description: '${json.length} characters, '
-              '${_store.menu.components.length} components.',
-          children: <Widget>[
-            HuiCodeBlock(text: json, scroll: true),
-          ],
-        ),
-      ],
-    );
+        ],
+      ),
+      HuiDialogSection(
+        title: 'Install on your server',
+        description: 'HoloUI watches the folder, so no restart is needed.',
+        children: <Widget>[
+          HuiSteps(
+            steps: <String>[
+              'Drop $_fileName under $huiMenuFolder. Slash-separated menu '
+                  'ids use matching subfolders and stay part of the runtime id.',
+              if (used.isNotEmpty)
+                'Unzip images.zip into $huiImageFolder so every icon path '
+                    'resolves.',
+              'Changed menus re-register within about 5 ticks and any open '
+                  'session of that id is closed with DEFINITION_RELOADED. '
+                  'New and deleted files are noticed within about 20 ticks.',
+              'Grant holoui.command, holoui.command.open, '
+                  'holoui.command.move and holoui.open.$_menuId — the '
+                  'per-menu node is not declared in plugin.yml, so it has '
+                  'to be granted explicitly.',
+              'Test it with /holoui open $_menuId (aliases: holo, hui, '
+                  'holou, hu).',
+              'To re-anchor the open session, stand at its new origin and '
+                  'run /holoui move. This keeps the configured offset and '
+                  'does not rewrite $_fileName.',
+            ],
+          ),
+          HuiCodeBlock(text: '/holoui open $_menuId\n/holoui move'),
+        ],
+      ),
+      HuiDialogSection(
+        title: 'Preview',
+        description:
+            '${json.length} characters, '
+            '${_store.menu.components.length} components.',
+        children: <Widget>[HuiCodeBlock(text: json, scroll: true)],
+      ),
+    ]);
   }
 
   Widget _previewBody() {
     final String json = _store.exportJson();
     final int elementCount = _store.previewDoc?.elements.length ?? 0;
 
-    return dom.div(
-      classes: 'hui-dialog-body hui-stagger',
-      <Widget>[
-        HuiDialogSection(
-          title: 'File name',
-          description: 'Only used to name the file on disk and in error logs '
-              '— unlike a menu, a container-preview document carries no id of '
-              'its own.',
-          children: <Widget>[
-            HuiField(
-              label: 'File name',
-              help: 'Lowercase letters, digits, underscore and hyphen. '
-                  'Anything else is replaced.',
-              control: TextInput(
-                value: _name,
-                size: ComponentSize.sm,
-                fullWidth: true,
-                placeholder: huiDefaultMenuId,
-                onInput: (String value) => setState(() => _name = value),
-                onBlur: _commitName,
-                attributes: const <String, String>{
-                  'aria-label': 'File name',
-                  'autocomplete': 'off',
-                  'spellcheck': 'false',
-                },
-              ),
+    return dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
+      HuiDialogSection(
+        title: 'File name',
+        description:
+            'Only used to name the file on disk and in error logs '
+            '— unlike a menu, a container-preview document carries no id of '
+            'its own.',
+        children: <Widget>[
+          HuiField(
+            label: 'File name',
+            help:
+                'Lowercase letters, digits, underscore and hyphen. '
+                'Anything else is replaced.',
+            control: TextInput(
+              value: _name,
+              size: ComponentSize.sm,
+              fullWidth: true,
+              placeholder: huiDefaultMenuId,
+              onInput: (String value) => setState(() => _name = value),
+              onBlur: _commitName,
+              attributes: const <String, String>{
+                'aria-label': 'File name',
+                'autocomplete': 'off',
+                'spellcheck': 'false',
+              },
             ),
-            HuiCodeBlock(text: '$huiPreviewFolder$_fileName'),
-          ],
-        ),
-        HuiDialogSection(
-          title: 'Download',
-          description: 'The document, ready to drop into $huiPreviewFolder. '
-              'There is no images zip: the preview format has no image icons.',
-          children: <Widget>[
-            dom.div(
-              classes: 'hui-dialog-actions',
-              <Widget>[
-                Button(
-                  variant: ButtonVariant.primary,
-                  size: ButtonSize.small,
-                  onPressed: _downloadJson,
-                  icon: ArcaneIcon.download(size: IconSize.sm),
-                  label: 'Download $_fileName',
-                ),
-                Button(
-                  variant: ButtonVariant.outline,
-                  size: ButtonSize.small,
-                  onPressed: _copyJson,
-                  icon: ArcaneIcon.clipboardCopy(size: IconSize.sm),
-                  label: 'Copy JSON',
-                ),
-              ],
+          ),
+          HuiCodeBlock(text: '$huiPreviewFolder$_fileName'),
+        ],
+      ),
+      HuiDialogSection(
+        title: 'Download',
+        description:
+            'The document, ready to drop into $huiPreviewFolder. '
+            'There is no images zip: the preview format has no image icons.',
+        children: <Widget>[
+          dom.div(classes: 'hui-dialog-actions', <Widget>[
+            Button(
+              variant: ButtonVariant.primary,
+              size: ButtonSize.small,
+              onPressed: _downloadJson,
+              icon: ArcaneIcon.download(size: IconSize.sm),
+              label: 'Download $_fileName',
             ),
-          ],
-        ),
-        HuiDialogSection(
-          title: 'Install on your server',
-          description: 'Previews are not menus: they draw automatically, with '
-              'no open command.',
-          children: <Widget>[
-            HuiSteps(
-              steps: <String>[
-                'Drop $_fileName into $huiPreviewFolder — the folder is flat, '
-                    'files in subfolders are never registered.',
-                'Editing, adding or deleting a file there takes effect within '
-                    'a few ticks: no reload command and no restart.',
-                'Grant holoui.preview to whoever should see it (operators '
-                    'have it by default); a viewer without it sees the locked '
-                    'document instead.',
-                'It draws automatically over any block or entity its `match` '
-                    'names — there is no open command for a preview.',
-              ],
+            Button(
+              variant: ButtonVariant.outline,
+              size: ButtonSize.small,
+              onPressed: _copyJson,
+              icon: ArcaneIcon.clipboardCopy(size: IconSize.sm),
+              label: 'Copy JSON',
             ),
-          ],
-        ),
-        HuiDialogSection(
-          title: 'Preview',
-          description: '${json.length} characters, $elementCount element'
-              '${elementCount == 1 ? '' : 's'}.',
-          children: <Widget>[
-            HuiCodeBlock(text: json, scroll: true),
-          ],
-        ),
-      ],
-    );
+          ]),
+        ],
+      ),
+      HuiDialogSection(
+        title: 'Install on your server',
+        description:
+            'Previews are not menus: they draw automatically, with '
+            'no open command.',
+        children: <Widget>[
+          HuiSteps(
+            steps: <String>[
+              'Drop $_fileName into $huiPreviewFolder — the folder is flat, '
+                  'files in subfolders are never registered.',
+              'Editing, adding or deleting a file there takes effect within '
+                  'a few ticks: no reload command and no restart.',
+              'Grant holoui.preview to whoever should see it (operators '
+                  'have it by default); a viewer without it sees the locked '
+                  'document instead.',
+              'It draws automatically over any block or entity its `match` '
+                  'names — there is no open command for a preview.',
+            ],
+          ),
+        ],
+      ),
+      HuiDialogSection(
+        title: 'Preview',
+        description:
+            '${json.length} characters, $elementCount element'
+            '${elementCount == 1 ? '' : 's'}.',
+        children: <Widget>[HuiCodeBlock(text: json, scroll: true)],
+      ),
+    ]);
   }
 }

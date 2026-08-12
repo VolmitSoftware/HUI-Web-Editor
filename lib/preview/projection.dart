@@ -10,12 +10,11 @@
 ///    the json frame verbatim — `MenuSession.java:70` multiplies the parsed
 ///    offset by (-1, 1, 1) precisely so that json +X means "player's right",
 ///    so the preview adds no second mirror.
-///  * **Yaw** is Minecraft yaw in degrees: yaw 0 looks along +Z, increasing yaw
-///    turns the player to their right, and positive pitch looks down. The
-///    runtime captures `initialY = -yaw` at open (`MenuSession.java:120`) and
-///    rotates the layout by that once (`MenuComponent.java:142-144`), so the
-///    authoring-frame rotation angle is the *negated* yaw — see
-///    [huiOpenYawRadians], which is the only place that sign lives.
+///  * **Rotation** uses Minecraft yaw, pitch and roll in degrees. Yaw 0 looks
+///    along +Z, increasing yaw turns the player to their right, and positive
+///    pitch looks down. [huiMenuVector] applies the same roll, pitch, yaw order
+///    as `MenuTransform.localVector` after accounting for the authoring frame's
+///    mirrored X axis.
 ///  * **CSS frame**: +x right, +y **down**, +z toward the viewer. The mapping
 ///    from authoring blocks to css pixels is `(S·x, −S·y, −S·z)` for a scene
 ///    scale `S` px per block. That flip is orientation-preserving, so rotations
@@ -54,14 +53,39 @@ PVec3 huiLookDirection({required double yawDegrees, double pitchDegrees = 0}) {
   );
 }
 
-/// The one and only rotation the menu ever gets, in radians.
-///
-/// `MenuSession.java:120` stores `initialY = -player.getEyeLocation().getYaw()`
-/// and `MenuComponent.java:142-144` rotates every component location by it,
-/// about the vertical axis through the player. Everything else about the menu
-/// is frozen from that moment on.
-double huiOpenYawRadians(double openYawDegrees) =>
-    -openYawDegrees * math.pi / 180;
+PVec3 huiMenuVector(
+  PVec3 vector, {
+  required double facingYawDegrees,
+  double pitchDegrees = 0,
+  double rollDegrees = 0,
+}) {
+  final double roll = rollDegrees * math.pi / 180;
+  final double rollCos = math.cos(roll);
+  final double rollSin = math.sin(roll);
+  final PVec3 rolled = PVec3(
+    vector.x * rollCos + vector.y * rollSin,
+    -vector.x * rollSin + vector.y * rollCos,
+    vector.z,
+  );
+
+  final double pitch = pitchDegrees * math.pi / 180;
+  final double pitchCos = math.cos(pitch);
+  final double pitchSin = math.sin(pitch);
+  final PVec3 pitched = PVec3(
+    rolled.x,
+    rolled.y * pitchCos - rolled.z * pitchSin,
+    rolled.y * pitchSin + rolled.z * pitchCos,
+  );
+
+  final double yaw = facingYawDegrees * math.pi / 180;
+  final double yawCos = math.cos(yaw);
+  final double yawSin = math.sin(yaw);
+  return PVec3(
+    pitched.x * yawCos + pitched.z * yawSin,
+    pitched.y,
+    -pitched.x * yawSin + pitched.z * yawCos,
+  );
+}
 
 /// A camera reduced to a position and an orthonormal basis.
 ///
@@ -184,10 +208,10 @@ LookRay rayThrough({
   );
 }
 
-/// A collision plane aimed at the player's eye.
+/// An oriented plane in the preview world.
 ///
-/// [normal] points from [center] at the eye; [right] and [up] span the
-/// rectangle. Rebuilt every tick — that is the point of it.
+/// [normal] is its outward axis; [right] and [up] span the rectangle. A value
+/// may be the fixed menu plane or the viewer-resolved form of a billboard.
 class PlaneAim {
   const PlaneAim({
     required this.center,
@@ -205,21 +229,9 @@ class PlaneAim {
   String toString() => 'PlaneAim($center, n: $normal)';
 }
 
-/// Re-aims a collision plane at [eye], exactly as `ClickableComponent.rotateToFace`
-/// does before every hit test (`ClickableComponent.java:60-62,111-113`).
-///
-/// The runtime routes this through Minecraft yaw/pitch, but the algebra
-/// collapses: `plane.rotate(pitch, -yaw)` with the rotation derived from
-/// `center − eye` yields `normal = normalize(eye − center)`,
-/// `right = normalize(normal × up)` and `up = right × normal`
-/// (`CollisionPlane.java:56-64,83-85`). The exact `x == 0 && z == 0` branch of
-/// `MathHelper.getRotationFromDirection` is preserved below: an eye straight
-/// above or below the plane gives yaw 0, pitch ±90, hence right = +X.
-///
-/// The authoring frame mirrors Minecraft's X, which flips the handedness of a
-/// cross product — harmless here, because the hit test only ever reads
-/// `|right·i|` and `|up·i|`, and an overlay rectangle spanned by ±right, ±up is
-/// the same rectangle either way.
+/// Builds a fully viewer-facing plane for preview markers. Runtime icon and
+/// click-plane orientation goes through [orientBillboardPlane], because its
+/// fixed axes and billboard-specific degeneracy rules are part of the result.
 PlaneAim aimPlaneAt(PVec3 planeCenter, PVec3 eye) {
   final PVec3 toEye = eye - planeCenter;
   final double horizontal = math.sqrt(toEye.x * toEye.x + toEye.z * toEye.z);
@@ -240,21 +252,115 @@ PlaneAim aimPlaneAt(PVec3 planeCenter, PVec3 eye) {
   );
 }
 
+PlaneAim fixedMenuPlane({
+  required PVec3 center,
+  required double facingYawDegrees,
+  double pitchDegrees = 0,
+  double rollDegrees = 0,
+}) {
+  final PVec3 right = huiMenuVector(
+    PVec3.right,
+    facingYawDegrees: facingYawDegrees,
+    pitchDegrees: pitchDegrees,
+    rollDegrees: rollDegrees,
+  ).normalized;
+  final PVec3 up = huiMenuVector(
+    PVec3.up,
+    facingYawDegrees: facingYawDegrees,
+    pitchDegrees: pitchDegrees,
+    rollDegrees: rollDegrees,
+  ).normalized;
+  return PlaneAim(
+    center: center,
+    normal: up.cross(right).normalized,
+    right: right,
+    up: up,
+  );
+}
+
+PlaneAim movePlane(PlaneAim plane, PVec3 center) => PlaneAim(
+  center: center,
+  normal: plane.normal,
+  right: plane.right,
+  up: plane.up,
+);
+
+PlaneAim orientBillboardPlane({
+  required PlaneAim fixed,
+  required String billboard,
+  required PVec3 viewer,
+}) {
+  if (billboard == 'fixed') return fixed;
+  final PVec3 toViewer = viewer - fixed.center;
+  if (toViewer.lengthSquared < 1e-12) return fixed;
+
+  if (billboard == 'vertical') {
+    final PVec3 normal = PVec3(toViewer.x, 0, toViewer.z);
+    if (normal.lengthSquared < 1e-12) return fixed;
+    final PVec3 resolvedNormal = normal.normalized;
+    const PVec3 up = PVec3.up;
+    return PlaneAim(
+      center: fixed.center,
+      normal: resolvedNormal,
+      right: resolvedNormal.cross(up).normalized,
+      up: up,
+    );
+  }
+
+  if (billboard == 'horizontal') {
+    final PVec3 right = fixed.right.normalized;
+    final PVec3 normal = toViewer - right * toViewer.dot(right);
+    if (normal.lengthSquared < 1e-12) return fixed;
+    final PVec3 resolvedNormal = normal.normalized;
+    return PlaneAim(
+      center: fixed.center,
+      normal: resolvedNormal,
+      right: right,
+      up: right.cross(resolvedNormal).normalized,
+    );
+  }
+
+  if (billboard != 'center') return fixed;
+  final PVec3 normal = toViewer.normalized;
+  final PVec3 referenceUp = normal.dot(PVec3.up).abs() > 0.999
+      ? fixed.up
+      : PVec3.up;
+  final PVec3 right = normal.cross(referenceUp);
+  if (right.lengthSquared < 1e-12) return fixed;
+  final PVec3 resolvedRight = right.normalized;
+  return PlaneAim(
+    center: fixed.center,
+    normal: normal,
+    right: resolvedRight,
+    up: resolvedRight.cross(normal).normalized,
+  );
+}
+
 /// Port of `CollisionPlane.isLookingAt` (`CollisionPlane.java:42-54`).
 ///
-/// Two rejections are deliberate and must not be "improved": an exactly
-/// parallel ray bails on `proj == 0`, and a plane behind the ray bails on
+/// Two rejections match the runtime: a near-parallel ray bails when
+/// `abs(proj) < 1e-9`, and a plane behind the ray bails on
 /// `distance < 0`. The edge test is strictly `<`, so a ray through a corner of
 /// the rectangle misses, and a zero-width plane can never be hit at all.
-bool rayHitsPlane(LookRay ray, PlaneAim aim, double width, double height) {
+double? rayPlaneIntersectionDistance(
+  LookRay ray,
+  PlaneAim aim,
+  double width,
+  double height,
+) {
   final double projection = aim.normal.dot(ray.direction);
-  if (projection == 0) return false;
+  if (projection.abs() < 1e-9) return null;
   final double distance = aim.normal.dot(aim.center - ray.origin) / projection;
-  if (distance < 0) return false;
+  if (distance < 0) return null;
   final PVec3 intersect = ray.pointAt(distance) - aim.center;
   return aim.right.dot(intersect).abs() < width / 2 &&
-      aim.up.dot(intersect).abs() < height / 2;
+          aim.up.dot(intersect).abs() < height / 2
+      ? distance
+      : null;
 }
+
+bool rayHitsPlane(LookRay ray, PlaneAim aim, double width, double height) =>
+    rayPlaneIntersectionDistance(ray, aim, width, height) != null;
 
 /// How far the icon leans toward the player on hover tick [hoverTicks].
 ///
@@ -366,34 +472,6 @@ List<double> cssCameraMatrix({
     depth,
     huiMultiplyMatrix(toPixels, huiMultiplyMatrix(viewMatrix(basis), toBlocks)),
   );
-}
-
-/// Transform for one icon quad, frozen at the yaw the player had at open.
-///
-/// The quad is a plain translation plus `rotateY(−openYaw)`: an untransformed
-/// css element already faces the viewer, so yaw 0 needs no rotation at all, and
-/// the rotation is the same `initialY` the layout got. Nothing here reads the
-/// camera, which is the structural reason a quad cannot drift while orbiting.
-///
-/// The element itself is sized in pixels (`blocks × pxPerBlock`), so the matrix
-/// deliberately carries no scale — a scale here would double-apply.
-List<double> cssQuadMatrix({
-  required PVec3 position,
-  required double facingYawDegrees,
-  required double pxPerBlock,
-}) {
-  final double angle = huiOpenYawRadians(facingYawDegrees);
-  final double cos = math.cos(angle);
-  final double sin = math.sin(angle);
-  return <double>[
-    cos, 0, -sin, 0, //
-    0, 1, 0, 0, //
-    sin, 0, cos, 0, //
-    position.x * pxPerBlock,
-    -position.y * pxPerBlock,
-    -position.z * pxPerBlock,
-    1,
-  ];
 }
 
 /// Transform for an aimed collision-plane overlay.

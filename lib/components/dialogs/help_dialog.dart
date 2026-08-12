@@ -66,27 +66,90 @@ class HelpDialog extends StatelessWidget {
               'from a placeholder value.',
           'Drag them on the canvas or type exact offsets in the inspector. '
               'Offsets are blocks relative to the menu centre.',
-          'Give buttons their actions: a command runs as the player or as '
-              'the console, a sound takes a category plus volume and pitch.',
+          'Give buttons their actions: run a player or console command, play '
+              'a sound, send MiniMessage, teleport, connect through a proxy, '
+              'or navigate the viewer\'s page stack.',
           'Watch the issues chip in the status bar. Errors mean the plugin '
               'will refuse or misbehave, not just that a key is missing.',
           'Export, drop the file into $huiMenuFolder, then run '
               '/holoui open ${store.menuId}.',
+          'To re-anchor that open session, stand at its new origin and run '
+              '/holoui move. It keeps the configured offset and opening '
+              'direction; it does not rewrite the menu file.',
         ],
       ),
       HuiCodeBlock(
         text:
             '$huiMenuFolder${store.exportFileName}\n'
             '${huiImageFolder}your-icon.png\n\n'
-            '/holoui open ${store.menuId}',
+            '/holoui open ${store.menuId}\n'
+            '/holoui move',
       ),
       const dom.p(classes: 'hui-dialog-note', <Widget>[
         Text(
           'Saving a menu file re-registers it within about 5 ticks and '
           'closes any session that has it open. New and deleted files are '
-          'picked up within about 20 ticks. Players need '
-          'holoui.command.open plus holoui.open.<id>; the per-menu node '
-          'is not declared in plugin.yml, so grant it explicitly.',
+          'picked up within about 20 ticks. Players need holoui.command, '
+          'holoui.command.open, holoui.open.<id> and holoui.command.move. '
+          'The per-menu node is not declared in plugin.yml, so grant it '
+          'explicitly.',
+        ),
+      ]),
+      const dom.p(classes: 'hui-dialog-note', <Widget>[
+        Text(
+          'A menu added through an editor handoff link keeps its exact '
+          'validated JSON in Code view, workspace storage and export, '
+          'including formatting and extension keys. The first visual edit or '
+          'an explicit Code view Format action writes the normalized form.',
+        ),
+      ]),
+      const ArcaneAlert.info(
+        title: 'Server sync is always explicit',
+        message:
+            'A capability link from /holoui edit can connect one menu or a '
+            'persistent world-board project. Review it before import. Local '
+            'autosave never contacts the server: use Publish to Server, then '
+            'wait for Applied. Pending, rejected, expired and revision-conflict '
+            'states remain visible. Fix a rejected publication and publish it '
+            'again; a conflict stays blocked until you export local work or '
+            'explicitly refresh from the server copy. Copy Link shares the '
+            'same editing capability, so treat it like a password and '
+            'disconnect the tab when finished.',
+      ),
+      const dom.p(classes: 'hui-dialog-note', <Widget>[
+        Text(
+          'The connection shows the only allowed prefixes for new board menus '
+          'and image assets. New board menus publish only when navigation from '
+          'the board root reaches them; unrelated folder documents stay local. '
+          'Sync v1 retains captured resources instead of deleting them. '
+          'Raster assets are capped at 64 by 64 pixels, with bounded stored '
+          'pixels and repeated image-frame render work across the project. '
+          'Projects are capped at 32 MiB by the editor; the '
+          'configured relay may use a lower limit. If tab storage is blocked, '
+          'the capability remains in the URL and the sync bar asks you to copy '
+          'it before reloading.',
+        ),
+      ]),
+      const dom.p(classes: 'hui-dialog-note', <Widget>[
+        Text(
+          'Workspace documents autosave through atomic IndexedDB '
+          'transactions. The previous committed transaction and any migrated '
+          'localStorage workspace are retained for recovery. If another tab '
+          'changes or resets the workspace, this tab immediately refuses to '
+          'overwrite it and offers Reload; export this tab first if needed. '
+          'Hiding or leaving the page starts the final IndexedDB transaction '
+          'immediately when no earlier save is still settling. Browsers do '
+          'not guarantee that queued or uncommitted work finishes after a '
+          'page is frozen, closed, or interrupted by a crash.',
+        ),
+      ]),
+      const dom.p(classes: 'hui-dialog-note', <Widget>[
+        Text(
+          'Workspace and server-project imports compensate by restoring the '
+          'prior workspace when either the document or image write fails. '
+          'Browser localStorage and IndexedDB cannot share one native '
+          'transaction, so force-closing the browser between those two writes '
+          'can still leave a partial import.',
         ),
       ]),
     ],
@@ -171,8 +234,9 @@ class HelpDialog extends StatelessWidget {
         ],
         <String>[
           '%papi_placeholder%',
-          'Expanded once, when the menu opens, in text icons and in a '
-              'toggle condition. Never in commands, ids or image paths.',
+          'Text icons expand initially and every refreshTicks; toggle '
+              'conditions expand only at open. Never in commands, ids or '
+              'image paths.',
         ],
         <String>[
           'Unknown tag',
@@ -217,8 +281,9 @@ class HelpDialog extends StatelessWidget {
       const ArcaneAlert.warning(
         title: 'The editor cannot verify these ids',
         message:
-            'It is a static page with no connection to your server, '
-            'so an id it has never heard of is never an error. If the '
+            'The static catalog and optional menu-sync scope do not expose '
+            'your server\'s plugin registries, so an id the editor has never '
+            'heard of is never an error. If the '
             'provider is missing or the id is wrong, HoloUI logs a warning '
             'naming both and draws its magenta/black placeholder; the rest '
             'of the menu still opens.',
@@ -309,17 +374,18 @@ const List<String> _nonFeatureList = <String>[
       'toggle comparing one placeholder value with equalsIgnoreCase.',
   'No comparators: a toggle can only test equality, never greater-than or '
       'contains.',
-  'No live placeholder refresh. Values are read once, when the menu opens, and '
-      'stay frozen for the session.',
+  'Text placeholders refresh every 10 ticks by default. Set refreshTicks to 0 '
+      'when a text icon should stay frozen after its initial render.',
   'No placeholders in commands. The command string is dispatched verbatim.',
-  'Only three component types (button, decoration, toggle), five icon types '
-      '(text, textImage, animatedTextImage, item, customItem) and two action '
-      'types (command, sound). itemStack is API-only and cannot be parsed '
-      'from JSON; fontImage is not a current icon type.',
+  'Only three component types (button, decoration, toggle), seven icon types '
+      '(text, textImage, animatedTextImage, item, block, customItem, entity) and six action '
+      'types (command, sound, message, teleport, connect, navigate). '
+      'itemStack is API-only and cannot be parsed from JSON; fontImage is not '
+      'a current icon type.',
   'No enchantments, lore or NBT on an item icon. A customItem icon inherits '
       'whatever its provider plugin builds, but the JSON cannot add to it.',
   'No format version or migration: what you export is exactly what the plugin '
       'reads.',
-  'No trigger other than a command or the Java API. Nothing in the JSON opens '
-      'a menu on join, on a block, or from an NPC.',
+  'No external menu-opening trigger other than a command or the Java API. '
+      'Nothing in the JSON opens a menu on join, from a block, or from an NPC.',
 ];

@@ -79,6 +79,12 @@ class ShellIntents {
   // --- transfer -------------------------------------------------------------
 
   Future<void> copyJson() async {
+    if (!store.canTransferDocument) {
+      ArcaneSonner.info(
+        'Flow boards are editor-only and are not runtime JSON.',
+      );
+      return;
+    }
     final bool copied = await copyText(store.exportJson());
     if (copied) {
       ArcaneSonner.success('Menu JSON copied to the clipboard.');
@@ -91,6 +97,10 @@ class ShellIntents {
   }
 
   Future<void> importMenu() async {
+    if (!store.canTransferDocument) {
+      ArcaneSonner.info('Open a menu or preview document before importing.');
+      return;
+    }
     final void Function()? dialog = onOpenImport;
     if (dialog != null) {
       dialog();
@@ -102,6 +112,10 @@ class ShellIntents {
   }
 
   void exportMenu() {
+    if (!store.canTransferDocument) {
+      ArcaneSonner.info('Flow boards are editor-only and are not exported.');
+      return;
+    }
     final void Function()? dialog = onOpenExport;
     if (dialog != null) {
       dialog();
@@ -114,8 +128,9 @@ class ShellIntents {
   // --- documents ------------------------------------------------------------
 
   void newDocument() {
-    store.newDocument();
-    ArcaneSonner.success('Started a new menu.');
+    if (store.newDocument()) {
+      ArcaneSonner.success('Started a new menu.');
+    }
   }
 
   void openDocument(String docId) {
@@ -127,7 +142,7 @@ class ShellIntents {
   void deleteActiveDocument() {
     final WorkspaceDoc? active = store.workspace.active;
     if (active == null) return;
-    final String name = active.name;
+    final String name = active.title;
     if (store.deleteDocument(active.id)) {
       ArcaneSonner.success('Deleted $name.');
     }
@@ -205,10 +220,12 @@ class ShellIntents {
     // Snap the primary and apply ITS delta to the rest, exactly as a group drag
     // does. Snapping each member on its own would pull an off-grid group onto
     // the grid one arrow press at a time and destroy the spacing.
-    final double snappedX =
-        dx == 0 ? lead.offset.x : store.snapValue(lead.offset.x + dx);
-    final double snappedY =
-        dy == 0 ? lead.offset.y : store.snapValue(lead.offset.y + dy);
+    final double snappedX = dx == 0
+        ? lead.offset.x
+        : store.snapValue(lead.offset.x + dx);
+    final double snappedY = dy == 0
+        ? lead.offset.y
+        : store.snapValue(lead.offset.y + dy);
     final double stepX = snappedX - lead.offset.x;
     final double stepY = snappedY - lead.offset.y;
     if (stepX == 0 && stepY == 0) return;
@@ -260,8 +277,9 @@ class ShellIntents {
       axis: axis,
     );
     if (offsets.isEmpty) return;
-    final String direction =
-        axis == HuiAxis.horizontal ? 'horizontally' : 'vertically';
+    final String direction = axis == HuiAxis.horizontal
+        ? 'horizontally'
+        : 'vertically';
     store.setOffsets('distribute $direction', offsets);
     ArcaneSonner.success(
       'Spaced ${offsets.length} components evenly $direction.',
@@ -300,43 +318,42 @@ class ShellIntents {
   /// selection is insertion-ordered and the order the user clicked in is not a
   /// property of the layout.
   List<String> _selectedIds() => <String>[
-        for (final HuiComponent component in store.selectedComponents)
-          component.id,
-      ];
+    for (final HuiComponent component in store.selectedComponents) component.id,
+  ];
 
   /// The frame the canvas is showing right now — same uiScale, same
   /// `trueRender` — so aligning flushes the edges the user can actually see.
   /// The store's own validation scene is fixed at uiScale 1 and is not it.
   CanvasScene _scene() => buildCanvasScene(
-        menu: store.menu,
-        uiScale: store.previewUiScale,
-        trueRender: store.trueRender,
-        togglePreview: store.togglePreviewFor,
-        textCache: _textCache,
-        images: store.images,
-        catalogs: store.catalogs,
-        charCache: _charCache,
-      );
+    menu: store.menu,
+    uiScale: store.previewUiScale,
+    trueRender: store.trueRender,
+    togglePreview: store.togglePreviewFor,
+    textCache: _textCache,
+    images: store.images,
+    catalogs: store.catalogs,
+    charCache: _charCache,
+  );
 
   /// `EditorStore._round` — four decimals, so exported JSON stays stable.
   double _round(double value) =>
       !value.isFinite ? 0 : (value * 10000).roundToDouble() / 10000;
 
   String _alignLabel(HuiAlign align) => switch (align) {
-        HuiAlign.left => 'left',
-        HuiAlign.centerX => 'centred',
-        HuiAlign.right => 'right',
-        HuiAlign.top => 'top',
-        HuiAlign.middleY => 'middle',
-        HuiAlign.bottom => 'bottom',
-      };
+    HuiAlign.left => 'left',
+    HuiAlign.centerX => 'centred',
+    HuiAlign.right => 'right',
+    HuiAlign.top => 'top',
+    HuiAlign.middleY => 'middle',
+    HuiAlign.bottom => 'bottom',
+  };
 
   String _depthLabel(HuiZOrder op) => switch (op) {
-        HuiZOrder.forward => 'bring forward',
-        HuiZOrder.backward => 'send back',
-        HuiZOrder.toFront => 'bring to front',
-        HuiZOrder.toBack => 'send to back',
-      };
+    HuiZOrder.forward => 'bring forward',
+    HuiZOrder.backward => 'send back',
+    HuiZOrder.toFront => 'bring to front',
+    HuiZOrder.toBack => 'send to back',
+  };
 
   // --- view -----------------------------------------------------------------
 

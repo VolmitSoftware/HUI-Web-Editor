@@ -100,7 +100,9 @@ List<JsonToken> tokenizeJson(String source) {
       final int end = _scanNumber(source, index);
       if (end > index) {
         flushPlain();
-        tokens.add(JsonToken(JsonTokenKind.number, source.substring(index, end)));
+        tokens.add(
+          JsonToken(JsonTokenKind.number, source.substring(index, end)),
+        );
         index = end;
         continue;
       }

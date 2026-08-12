@@ -327,8 +327,7 @@
 }
 
 /* The menu group sits at the camera's own origin: quads carry absolute world
-   matrices, because preview_scene.dart has already baked the player anchor and
-   the frozen open-yaw rotation into every position. */
+   matrices with their current menu transform and billboard orientation. */
 .hui-preview-menu { left: 0; top: 0; }
 
 .hui-preview-camera > *,
@@ -428,7 +427,7 @@
 .hui-preview-menu > .is-hidden,
 .hui-preview-quad > .is-hidden { display: none; }
 
-/* ---- facing-mode banner ------------------------------------------------- */
+/* ---- runtime billboard banner ------------------------------------------ */
 
 .hui-preview-banner {
   position: absolute;
@@ -457,6 +456,7 @@
 }
 
 .hui-preview-banner-mode {
+  color: #7fd4ff;
   font-size: .74rem;
   font-weight: 700;
   letter-spacing: .07em;
@@ -484,14 +484,6 @@
 .hui-preview-banner-close:focus-visible {
   background: color-mix(in srgb, #f7f4ec 14%, transparent);
   color: #f7f4ec;
-}
-
-.hui-preview-banner[data-mode="inGame"] .hui-preview-banner-mode {
-  color: #ffd479;
-}
-
-.hui-preview-banner[data-mode="intent"] .hui-preview-banner-mode {
-  color: #7fd4ff;
 }
 
 .hui-preview-banner-body {

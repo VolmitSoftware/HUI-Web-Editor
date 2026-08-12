@@ -37,46 +37,45 @@ class InspectorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.section(
-        classes: classNames(<String?>['hui-inspector-section', classes]),
+    classes: classNames(<String?>['hui-inspector-section', classes]),
+    <Widget>[
+      dom.div(
+        classes: 'hui-inspector-section-head',
+        styles: const dom.Styles(
+          raw: <String, String>{
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'space-between',
+            'gap': '8px',
+            'min-width': '0',
+          },
+        ),
         <Widget>[
-          dom.div(
-            classes: 'hui-inspector-section-head',
-            styles: const dom.Styles(
-              raw: <String, String>{
-                'display': 'flex',
-                'align-items': 'center',
-                'justify-content': 'space-between',
-                'gap': '8px',
-                'min-width': '0',
-              },
-            ),
-            <Widget>[
-              HuiEyebrow(title),
-              if (trailing != null)
-                dom.div(classes: 'hui-inspector-section-trailing', <Widget>[
-                  trailing!,
-                ]),
-            ],
-          ),
-          if (description != null)
-            dom.p(
-              classes: 'hui-inspector-section-note',
-              <Widget>[Text(description!)],
-            ),
-          dom.div(
-            classes: 'hui-inspector-section-body',
-            styles: dom.Styles(
-              raw: <String, String>{
-                'display': 'flex',
-                'flex-direction': 'column',
-                'gap': '${gap}px',
-                'min-width': '0',
-              },
-            ),
-            children,
-          ),
+          HuiEyebrow(title),
+          if (trailing != null)
+            dom.div(classes: 'hui-inspector-section-trailing', <Widget>[
+              trailing!,
+            ]),
         ],
-      );
+      ),
+      if (description != null)
+        dom.p(classes: 'hui-inspector-section-note', <Widget>[
+          Text(description!),
+        ]),
+      dom.div(
+        classes: 'hui-inspector-section-body',
+        styles: dom.Styles(
+          raw: <String, String>{
+            'display': 'flex',
+            'flex-direction': 'column',
+            'gap': '${gap}px',
+            'min-width': '0',
+          },
+        ),
+        children,
+      ),
+    ],
+  );
 }
 
 /// Long-form explanation behind a closed native `<details>`.
@@ -99,80 +98,82 @@ class HuiMore extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ArcaneDisclosure.minimal(
-        classes: <String>['hui-more', if (classes.isNotEmpty) classes],
-        showTreeLines: false,
-        summary: dom.span(
-          classes: 'hui-more-summary',
-          <Widget>[Text(summary)],
-        ),
-        child: dom.div(
-          classes: 'hui-more-body',
-          styles: const dom.Styles(
-            raw: <String, String>{
-              'display': 'flex',
-              'flex-direction': 'column',
-              'gap': '6px',
-              'min-width': '0',
-            },
-          ),
-          children,
-        ),
-      );
+    classes: <String>['hui-more', if (classes.isNotEmpty) classes],
+    showTreeLines: false,
+    summary: dom.span(classes: 'hui-more-summary', <Widget>[Text(summary)]),
+    child: dom.div(
+      classes: 'hui-more-body',
+      styles: const dom.Styles(
+        raw: <String, String>{
+          'display': 'flex',
+          'flex-direction': 'column',
+          'gap': '6px',
+          'min-width': '0',
+        },
+      ),
+      children,
+    ),
+  );
 }
 
 /// Muted explanatory block. [tone] tints the left rule for warnings and traps.
 enum HuiNoteTone { neutral, info, warning, danger }
 
 class HuiNote extends StatelessWidget {
-  const HuiNote(this.text, {this.tone = HuiNoteTone.neutral, this.title, super.key});
+  const HuiNote(
+    this.text, {
+    this.tone = HuiNoteTone.neutral,
+    this.title,
+    super.key,
+  });
 
   final String text;
   final String? title;
   final HuiNoteTone tone;
 
   String get _toneClass => switch (tone) {
-        HuiNoteTone.neutral => 'is-neutral',
-        HuiNoteTone.info => 'is-info',
-        HuiNoteTone.warning => 'is-warning',
-        HuiNoteTone.danger => 'is-danger',
-      };
+    HuiNoteTone.neutral => 'is-neutral',
+    HuiNoteTone.info => 'is-info',
+    HuiNoteTone.warning => 'is-warning',
+    HuiNoteTone.danger => 'is-danger',
+  };
 
   String get _accent => switch (tone) {
-        HuiNoteTone.neutral => 'var(--hui-border, var(--border))',
-        HuiNoteTone.info => 'var(--hui-info, #007acc)',
-        HuiNoteTone.warning => 'var(--hui-warning, #a06022)',
-        HuiNoteTone.danger => 'var(--hui-danger, var(--destructive))',
-      };
+    HuiNoteTone.neutral => 'var(--hui-border, var(--border))',
+    HuiNoteTone.info => 'var(--hui-info, #007acc)',
+    HuiNoteTone.warning => 'var(--hui-warning, #a06022)',
+    HuiNoteTone.danger => 'var(--hui-danger, var(--destructive))',
+  };
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: classNames(<String?>['hui-note', _toneClass]),
-        styles: dom.Styles(
-          raw: <String, String>{
-            'border-left': '2px solid $_accent',
-            'padding': '1px 0 1px 9px',
-            'font-size': '0.72rem',
-            'line-height': '1.45',
-            'color': 'var(--muted-foreground)',
-          },
+    classes: classNames(<String?>['hui-note', _toneClass]),
+    styles: dom.Styles(
+      raw: <String, String>{
+        'border-left': '2px solid $_accent',
+        'padding': '1px 0 1px 9px',
+        'font-size': '0.72rem',
+        'line-height': '1.45',
+        'color': 'var(--muted-foreground)',
+      },
+    ),
+    <Widget>[
+      if (title != null)
+        dom.strong(
+          classes: 'hui-note-title',
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'display': 'block',
+              'color': 'var(--foreground)',
+              'font-size': '0.72rem',
+              'font-weight': '620',
+            },
+          ),
+          <Widget>[Text(title!)],
         ),
-        <Widget>[
-          if (title != null)
-            dom.strong(
-              classes: 'hui-note-title',
-              styles: const dom.Styles(
-                raw: <String, String>{
-                  'display': 'block',
-                  'color': 'var(--foreground)',
-                  'font-size': '0.72rem',
-                  'font-weight': '620',
-                },
-              ),
-              <Widget>[Text(title!)],
-            ),
-          Text(text),
-        ],
-      );
+      Text(text),
+    ],
+  );
 }
 
 /// Key/value help rows: one hairline per row, right-aligned monospace value.
@@ -185,48 +186,49 @@ class HuiDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-detail-row',
+    classes: 'hui-detail-row',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'align-items': 'baseline',
+        'justify-content': 'space-between',
+        'gap': '12px',
+        'min-height': '24px',
+        'padding': '3px 0',
+      },
+    ),
+    <Widget>[
+      dom.span(
+        classes: 'hui-detail-label',
         styles: const dom.Styles(
           raw: <String, String>{
-            'display': 'flex',
-            'align-items': 'baseline',
-            'justify-content': 'space-between',
-            'gap': '12px',
-            'min-height': '24px',
-            'padding': '3px 0',
+            'color': 'var(--muted-foreground)',
+            'font-size': '0.72rem',
+            'flex': '0 0 auto',
           },
         ),
-        <Widget>[
-          dom.span(
-            classes: 'hui-detail-label',
-            styles: const dom.Styles(
-              raw: <String, String>{
-                'color': 'var(--muted-foreground)',
-                'font-size': '0.72rem',
-                'flex': '0 0 auto',
-              },
-            ),
-            <Widget>[Text(label)],
-          ),
-          dom.span(
-            classes: classNames(<String?>[
-              'hui-detail-value',
-              mono ? 'is-mono' : null,
-            ]),
-            styles: dom.Styles(
-              raw: <String, String>{
-                'min-width': '0',
-                'font-size': '0.72rem',
-                'font-weight': '560',
-                'text-align': 'right',
-                'overflow-wrap': 'anywhere',
-                if (mono) 'font-family': 'var(--font-mono, ui-monospace, monospace)',
-              },
-            ),
-            <Widget>[Text(value)],
-          ),
-        ],
-      );
+        <Widget>[Text(label)],
+      ),
+      dom.span(
+        classes: classNames(<String?>[
+          'hui-detail-value',
+          mono ? 'is-mono' : null,
+        ]),
+        styles: dom.Styles(
+          raw: <String, String>{
+            'min-width': '0',
+            'font-size': '0.72rem',
+            'font-weight': '560',
+            'text-align': 'right',
+            'overflow-wrap': 'anywhere',
+            if (mono)
+              'font-family': 'var(--font-mono, ui-monospace, monospace)',
+          },
+        ),
+        <Widget>[Text(value)],
+      ),
+    ],
+  );
 }
 
 /// Validation issues rendered under the field they belong to.
@@ -236,10 +238,10 @@ class HuiInlineIssues extends StatelessWidget {
   final List<HuiIssue> issues;
 
   static String severityColor(HuiSeverity severity) => switch (severity) {
-        HuiSeverity.error => 'var(--hui-danger, var(--destructive))',
-        HuiSeverity.warning => 'var(--hui-warning, #a06022)',
-        HuiSeverity.info => 'var(--hui-info, #007acc)',
-      };
+    HuiSeverity.error => 'var(--hui-danger, var(--destructive))',
+    HuiSeverity.warning => 'var(--hui-warning, #a06022)',
+    HuiSeverity.info => 'var(--hui-info, #007acc)',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -268,9 +270,11 @@ class HuiInlineIssues extends StatelessWidget {
               },
             ),
             <Widget>[
-              Text(issue.fix == null
-                  ? issue.message
-                  : '${issue.message} ${issue.fix!}'),
+              Text(
+                issue.fix == null
+                    ? issue.message
+                    : '${issue.message} ${issue.fix!}',
+              ),
             ],
           ),
       ],
@@ -417,26 +421,26 @@ class HuiSegmented extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: classNames(<String?>['hui-segmented', classes]),
-        <Widget>[
-          ArcaneToggleGroup(
-            value: value,
-            variant: ToggleGroupVariant.outline,
-            size: size,
-            onChanged: (String? next) {
-              if (next == null || next == value) return;
-              onChanged(next);
-            },
-            items: <ToggleGroupItem>[
-              for (final HuiSegment segment in segments)
-                ToggleGroupItem(
-                  value: segment.value,
-                  child: _segmentChild(segment),
-                ),
-            ],
-          ),
+    classes: classNames(<String?>['hui-segmented', classes]),
+    <Widget>[
+      ArcaneToggleGroup(
+        value: value,
+        variant: ToggleGroupVariant.outline,
+        size: size,
+        onChanged: (String? next) {
+          if (next == null || next == value) return;
+          onChanged(next);
+        },
+        items: <ToggleGroupItem>[
+          for (final HuiSegment segment in segments)
+            ToggleGroupItem(
+              value: segment.value,
+              child: _segmentChild(segment),
+            ),
         ],
-      );
+      ),
+    ],
+  );
 
   Widget _segmentChild(HuiSegment segment) {
     final Widget inner = dom.span(
@@ -449,10 +453,7 @@ class HuiSegmented extends StatelessWidget {
           'white-space': 'nowrap',
         },
       ),
-      <Widget>[
-        if (segment.icon != null) segment.icon!,
-        Text(segment.label),
-      ],
+      <Widget>[if (segment.icon != null) segment.icon!, Text(segment.label)],
     );
     return segment.hint == null
         ? inner
@@ -488,89 +489,89 @@ class HuiSwitchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-switch-row',
+    classes: 'hui-switch-row',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'flex-direction': 'column',
+        'gap': '4px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      dom.div(
+        classes: 'hui-switch-row-head',
         styles: const dom.Styles(
           raw: <String, String>{
             'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '4px',
-            'min-width': '0',
+            'align-items': 'center',
+            'justify-content': 'space-between',
+            'gap': '10px',
+            'min-height': '28px',
           },
         ),
         <Widget>[
-          dom.div(
-            classes: 'hui-switch-row-head',
+          dom.span(
+            classes: 'hui-switch-row-label',
             styles: const dom.Styles(
               raw: <String, String>{
-                'display': 'flex',
+                'font-size': '0.78rem',
+                'font-weight': '600',
+                'letter-spacing': '-0.01em',
+              },
+            ),
+            <Widget>[Text(label)],
+          ),
+          dom.span(
+            classes: 'hui-switch-row-tail',
+            styles: const dom.Styles(
+              raw: <String, String>{
+                'display': 'inline-flex',
                 'align-items': 'center',
-                'justify-content': 'space-between',
-                'gap': '10px',
-                'min-height': '28px',
+                'gap': '2px',
+                'flex': '0 0 auto',
               },
             ),
             <Widget>[
-              dom.span(
-                classes: 'hui-switch-row-label',
-                styles: const dom.Styles(
-                  raw: <String, String>{
-                    'font-size': '0.78rem',
-                    'font-weight': '600',
-                    'letter-spacing': '-0.01em',
-                  },
-                ),
-                <Widget>[Text(label)],
-              ),
-              dom.span(
-                classes: 'hui-switch-row-tail',
-                styles: const dom.Styles(
-                  raw: <String, String>{
-                    'display': 'inline-flex',
-                    'align-items': 'center',
-                    'gap': '2px',
-                    'flex': '0 0 auto',
-                  },
-                ),
-                <Widget>[
-                  ?trailing,
-                  ArcaneToggleSwitch(
-                    value: value,
-                    disabled: disabled,
-                    size: ComponentSize.sm,
-                    onChanged: disabled ? null : onChanged,
-                  ),
-                ],
+              ?trailing,
+              ArcaneToggleSwitch(
+                value: value,
+                disabled: disabled,
+                size: ComponentSize.sm,
+                onChanged: disabled ? null : onChanged,
               ),
             ],
           ),
-          if (help != null)
-            dom.p(
-              classes: 'hui-switch-row-help',
-              styles: const dom.Styles(
-                raw: <String, String>{
-                  'margin': '0',
-                  'font-size': '0.72rem',
-                  'line-height': '1.45',
-                  'color': 'var(--muted-foreground)',
-                },
-              ),
-              <Widget>[Text(help!)],
-            ),
-          if (warning != null)
-            dom.p(
-              classes: 'hui-switch-row-warning',
-              styles: const dom.Styles(
-                raw: <String, String>{
-                  'margin': '0',
-                  'font-size': '0.72rem',
-                  'line-height': '1.45',
-                  'color': 'var(--hui-warning, #a06022)',
-                },
-              ),
-              <Widget>[Text(warning!)],
-            ),
         ],
-      );
+      ),
+      if (help != null)
+        dom.p(
+          classes: 'hui-switch-row-help',
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'margin': '0',
+              'font-size': '0.72rem',
+              'line-height': '1.45',
+              'color': 'var(--muted-foreground)',
+            },
+          ),
+          <Widget>[Text(help!)],
+        ),
+      if (warning != null)
+        dom.p(
+          classes: 'hui-switch-row-warning',
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'margin': '0',
+              'font-size': '0.72rem',
+              'line-height': '1.45',
+              'color': 'var(--hui-warning, #a06022)',
+            },
+          ),
+          <Widget>[Text(warning!)],
+        ),
+    ],
+  );
 }
 
 /// Track plus an unclamped number field. HoloUI's JSON path does not clamp
@@ -626,7 +627,9 @@ class HuiSliderField extends StatelessWidget {
   /// range input reports, so a drag commits the same numbers the step buttons
   /// and the typed entry do.
   double _snap(double raw) {
-    final double stepped = step <= 0 ? raw : (raw / step).roundToDouble() * step;
+    final double stepped = step <= 0
+        ? raw
+        : (raw / step).roundToDouble() * step;
     final num factor = _pow10(decimals);
     return (stepped * factor).roundToDouble() / factor;
   }
@@ -648,57 +651,57 @@ class HuiSliderField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-slider-field',
-        styles: dom.Styles(
-          raw: <String, String>{
-            'display': 'grid',
-            'grid-template-columns':
-                'minmax(0, 1fr) 96px${resetTo == null ? '' : ' auto'}',
-            'align-items': 'center',
-            'gap': '8px',
-            'min-width': '0',
-          },
+    classes: 'hui-slider-field',
+    styles: dom.Styles(
+      raw: <String, String>{
+        'display': 'grid',
+        'grid-template-columns':
+            'minmax(0, 1fr) 96px${resetTo == null ? '' : ' auto'}',
+        'align-items': 'center',
+        'gap': '8px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      dom.input<num>(
+        type: dom.InputType.range,
+        classes: 'hui-range',
+        // Clamped for the track only: a value the plugin accepted but the
+        // track cannot show still reads correctly in the number field.
+        value: value.clamp(min, max).toString(),
+        // No setState: the inspector pane rebuilds on the store's notify,
+        // and jaspr writes the `value` property rather than the attribute
+        // (`dom_render_object.dart:115`), so the thumb follows a typed edit
+        // even after the input has been dragged.
+        onInput: (num next) => onChanged(_snap(next.toDouble())),
+        attributes: <String, String>{
+          'min': '$min',
+          'max': '$max',
+          'step': '$step',
+          'aria-label': label,
+        },
+      ),
+      HuiNumberField(
+        value: value,
+        onChanged: onChanged,
+        min: numberMin,
+        max: numberMax,
+        step: step,
+        decimals: decimals,
+        steppers: false,
+      ),
+      // Always mounted, disabled when there is nothing to undo: a button
+      // that appeared only once the value moved would jump the row width
+      // mid-drag.
+      if (resetTo != null)
+        HuiIconButton(
+          icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
+          label: 'Reset $label to ${_text(resetTo!)}',
+          disabled: value == resetTo,
+          onPressed: () => onChanged(resetTo!),
         ),
-        <Widget>[
-          dom.input<num>(
-            type: dom.InputType.range,
-            classes: 'hui-range',
-            // Clamped for the track only: a value the plugin accepted but the
-            // track cannot show still reads correctly in the number field.
-            value: value.clamp(min, max).toString(),
-            // No setState: the inspector pane rebuilds on the store's notify,
-            // and jaspr writes the `value` property rather than the attribute
-            // (`dom_render_object.dart:115`), so the thumb follows a typed edit
-            // even after the input has been dragged.
-            onInput: (num next) => onChanged(_snap(next.toDouble())),
-            attributes: <String, String>{
-              'min': '$min',
-              'max': '$max',
-              'step': '$step',
-              'aria-label': label,
-            },
-          ),
-          HuiNumberField(
-            value: value,
-            onChanged: onChanged,
-            min: numberMin,
-            max: numberMax,
-            step: step,
-            decimals: decimals,
-            steppers: false,
-          ),
-          // Always mounted, disabled when there is nothing to undo: a button
-          // that appeared only once the value moved would jump the row width
-          // mid-drag.
-          if (resetTo != null)
-            HuiIconButton(
-              icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
-              label: 'Reset $label to ${_text(resetTo!)}',
-              disabled: value == resetTo,
-              onPressed: () => onChanged(resetTo!),
-            ),
-        ],
-      );
+    ],
+  );
 }
 
 /// Compact icon button with a tooltip and an aria-label (never a native title).
@@ -720,16 +723,16 @@ class HuiIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ArcaneTooltip(
-        text: label,
-        child: Button(
-          variant: variant,
-          size: ButtonSize.iconSm,
-          disabled: disabled || onPressed == null,
-          onPressed: disabled ? null : onPressed,
-          attributes: <String, String>{'aria-label': label},
-          child: icon,
-        ),
-      );
+    text: label,
+    child: Button(
+      variant: variant,
+      size: ButtonSize.iconSm,
+      disabled: disabled || onPressed == null,
+      onPressed: disabled ? null : onPressed,
+      attributes: <String, String>{'aria-label': label},
+      child: icon,
+    ),
+  );
 }
 
 /// Placeholder for a control that is still waiting on an asset fetch.
@@ -747,19 +750,19 @@ class HuiSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.span(
-        classes: 'hui-skeleton',
-        attributes: const <String, String>{'aria-hidden': 'true'},
-        styles: dom.Styles(
-          raw: <String, String>{
-            'display': 'block',
-            'width': width,
-            'height': '${height}px',
-            'border-radius': 'var(--hui-radius, 6px)',
-            'background': 'var(--hui-border-soft, var(--border))',
-          },
-        ),
-        const <Widget>[],
-      );
+    classes: 'hui-skeleton',
+    attributes: const <String, String>{'aria-hidden': 'true'},
+    styles: dom.Styles(
+      raw: <String, String>{
+        'display': 'block',
+        'width': width,
+        'height': '${height}px',
+        'border-radius': 'var(--hui-radius, 6px)',
+        'background': 'var(--hui-border-soft, var(--border))',
+      },
+    ),
+    const <Widget>[],
+  );
 }
 
 /// A stack of [HuiSkeleton] rows with the widths staggered, so a loading list
@@ -774,20 +777,20 @@ class HuiSkeletonRows extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-skeleton-rows',
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '6px',
-            'min-width': '0',
-          },
-        ),
-        <Widget>[
-          for (int i = 0; i < rows; i++)
-            HuiSkeleton(width: _widths[i % _widths.length], height: height),
-        ],
-      );
+    classes: 'hui-skeleton-rows',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'flex-direction': 'column',
+        'gap': '6px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      for (int i = 0; i < rows; i++)
+        HuiSkeleton(width: _widths[i % _widths.length], height: height),
+    ],
+  );
 }
 
 /// What an empty list says for itself: the consequence in game first, then the
@@ -810,28 +813,22 @@ class HuiEmptyState extends StatelessWidget {
   final List<Widget> actions;
 
   String get _toneClass => switch (tone) {
-        HuiNoteTone.neutral => 'is-neutral',
-        HuiNoteTone.info => 'is-info',
-        HuiNoteTone.warning => 'is-warning',
-        HuiNoteTone.danger => 'is-danger',
-      };
+    HuiNoteTone.neutral => 'is-neutral',
+    HuiNoteTone.info => 'is-info',
+    HuiNoteTone.warning => 'is-warning',
+    HuiNoteTone.danger => 'is-danger',
+  };
 
   @override
-  Widget build(BuildContext context) => dom.div(
-        classes: classNames(<String?>['hui-empty', _toneClass]),
-        <Widget>[
-          dom.span(classes: 'hui-empty-icon', <Widget>[icon]),
-          dom.div(
-            classes: 'hui-empty-text',
-            <Widget>[
-              dom.strong(classes: 'hui-empty-title', <Widget>[Text(title)]),
-              dom.p(classes: 'hui-empty-body', <Widget>[Text(body)]),
-            ],
-          ),
-          if (actions.isNotEmpty)
-            dom.div(classes: 'hui-empty-actions', actions),
-        ],
-      );
+  Widget build(BuildContext context) =>
+      dom.div(classes: classNames(<String?>['hui-empty', _toneClass]), <Widget>[
+        dom.span(classes: 'hui-empty-icon', <Widget>[icon]),
+        dom.div(classes: 'hui-empty-text', <Widget>[
+          dom.strong(classes: 'hui-empty-title', <Widget>[Text(title)]),
+          dom.p(classes: 'hui-empty-body', <Widget>[Text(body)]),
+        ]),
+        if (actions.isNotEmpty) dom.div(classes: 'hui-empty-actions', actions),
+      ]);
 }
 
 /// Field help for controls this pane composes but does not own.
@@ -850,24 +847,19 @@ class HuiHelpCluster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> known =
-        docKeys.where((String key) => huiFieldDoc(key) != null).toList();
+    final List<String> known = docKeys
+        .where((String key) => huiFieldDoc(key) != null)
+        .toList();
     if (known.isEmpty) return const dom.span(<Widget>[]);
-    return dom.div(
-      classes: 'hui-help-cluster',
-      <Widget>[
-        if (label != null)
-          dom.span(classes: 'hui-help-cluster-label', <Widget>[Text(label!)]),
-        for (final String key in known)
-          dom.span(
-            classes: 'hui-help-cluster-item',
-            <Widget>[
-              Text(huiFieldDoc(key)!.title),
-              HuiFieldHelp(key, align: HuiFieldHelpAlign.start),
-            ],
-          ),
-      ],
-    );
+    return dom.div(classes: 'hui-help-cluster', <Widget>[
+      if (label != null)
+        dom.span(classes: 'hui-help-cluster-label', <Widget>[Text(label!)]),
+      for (final String key in known)
+        dom.span(classes: 'hui-help-cluster-item', <Widget>[
+          Text(huiFieldDoc(key)!.title),
+          HuiFieldHelp(key, align: HuiFieldHelpAlign.start),
+        ]),
+    ]);
   }
 }
 
@@ -888,33 +880,33 @@ class HuiRowTools extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-row-tools',
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'display': 'flex',
-            'align-items': 'center',
-            'gap': '2px',
-            'flex': '0 0 auto',
-          },
-        ),
-        <Widget>[
-          HuiIconButton(
-            icon: ArcaneIcon.chevronUp(size: IconSize.sm),
-            label: 'Move up',
-            onPressed: onMoveUp,
-          ),
-          HuiIconButton(
-            icon: ArcaneIcon.chevronDown(size: IconSize.sm),
-            label: 'Move down',
-            onPressed: onMoveDown,
-          ),
-          HuiArmedButton(
-            label: removeLabel,
-            armedLabel: 'Remove',
-            icon: ArcaneIcon.trash2(size: IconSize.sm),
-            iconOnly: true,
-            onConfirm: onRemove,
-          ),
-        ],
-      );
+    classes: 'hui-row-tools',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'align-items': 'center',
+        'gap': '2px',
+        'flex': '0 0 auto',
+      },
+    ),
+    <Widget>[
+      HuiIconButton(
+        icon: ArcaneIcon.chevronUp(size: IconSize.sm),
+        label: 'Move up',
+        onPressed: onMoveUp,
+      ),
+      HuiIconButton(
+        icon: ArcaneIcon.chevronDown(size: IconSize.sm),
+        label: 'Move down',
+        onPressed: onMoveDown,
+      ),
+      HuiArmedButton(
+        label: removeLabel,
+        armedLabel: 'Remove',
+        icon: ArcaneIcon.trash2(size: IconSize.sm),
+        iconOnly: true,
+        onConfirm: onRemove,
+      ),
+    ],
+  );
 }

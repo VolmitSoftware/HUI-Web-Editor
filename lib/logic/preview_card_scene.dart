@@ -117,7 +117,14 @@ sealed class CardItem {
 /// A filled rectangle: the card frame, the panel, the tray behind a grid, the
 /// title bar, or a document's own `panel` element.
 class CardPanel extends CardItem {
-  const CardPanel(super.x, super.y, super.z, this.width, this.height, this.color);
+  const CardPanel(
+    super.x,
+    super.y,
+    super.z,
+    this.width,
+    this.height,
+    this.color,
+  );
 
   final int width;
   final int height;
@@ -166,8 +173,14 @@ class CardSlot extends CardItem {
 /// A line of styled text. Empty [text] is a label that resolved to nothing,
 /// which is also what a failed text expression renders.
 class CardLabel extends CardItem {
-  const CardLabel(super.x, super.y, super.z, this.text, this.background,
-      {this.size});
+  const CardLabel(
+    super.x,
+    super.y,
+    super.z,
+    this.text,
+    this.background, {
+    this.size,
+  });
 
   /// Always null. The preview format has no label size: `PreviewElement.Label`
   /// carries none and the parser never compiles one, so a painter has to
@@ -191,8 +204,7 @@ class PreviewCardScene {
     this.sources = const <int>[],
   });
 
-  static const PreviewCardScene empty =
-      PreviewCardScene(<CardItem>[], 0, 0);
+  static const PreviewCardScene empty = PreviewCardScene(<CardItem>[], 0, 0);
 
   /// Emission order, which is the plugin's render order: chrome first, then the
   /// document's own elements in declaration order.
@@ -245,8 +257,10 @@ PreviewCardScene buildCardScene(
     for (int index = 0; index < doc.elements.length; index++) {
       final HuiPreviewElement template = doc.elements[index];
       if (budget.exhausted) {
-        sink('element cap $previewMaxTotalTemplates reached, '
-            'remaining elements skipped');
+        sink(
+          'element cap $previewMaxTotalTemplates reached, '
+          'remaining elements skipped',
+        );
         break;
       }
       final int before = content.length;
@@ -313,8 +327,10 @@ void _expand(
   }
   int count = _repeatCount(repeat, sim, sink);
   if (count > budget.remaining) {
-    sink('repeat of $count truncated at the '
-        '$previewMaxTotalTemplates element cap');
+    sink(
+      'repeat of $count truncated at the '
+      '$previewMaxTotalTemplates element cap',
+    );
     count = budget.remaining;
   }
   final String name = _repeatVar(repeat);
@@ -333,7 +349,10 @@ String _repeatVar(HuiPreviewRepeat repeat) {
 }
 
 int _repeatCount(
-    HuiPreviewRepeat repeat, PExprScope scope, void Function(String) sink) {
+  HuiPreviewRepeat repeat,
+  PExprScope scope,
+  void Function(String) sink,
+) {
   final double raw = _number(repeat.count, 0, scope, 'repeat.count');
   // NaN and negative infinity both fail this, exactly as Java's `!(raw >= 1.0)`
   // does, so only a positive infinity reaches the branch below.
@@ -347,8 +366,10 @@ int _repeatCount(
   // number: it is over the cap by construction, so the count is truncated to
   // the cap and only the message carries the value.
   if (!raw.isFinite) {
-    sink('repeat count $_javaLongMaxText exceeds $previewMaxRepeatCount, '
-        'truncated');
+    sink(
+      'repeat count $_javaLongMaxText exceeds $previewMaxRepeatCount, '
+      'truncated',
+    );
     return previewMaxRepeatCount;
   }
   final int count = raw.floor();
@@ -369,7 +390,9 @@ void _emit(
   final String type = template.type;
   if (!_elementTypes.contains(type)) {
     throw PExprException(
-        'type must be one of ${_elementTypes.join(', ')}', previewNoPosition);
+      'type must be one of ${_elementTypes.join(', ')}',
+      previewNoPosition,
+    );
   }
   if (!_bool(template.visible, true, scope, 'visible')) return;
   final int x = _coordinate(template.x, 0, scope, 'x');
@@ -377,51 +400,75 @@ void _emit(
   final int z = _coordinate(template.z, _defaultZ(type), scope, 'z');
   switch (type) {
     case 'panel':
-      out.add(CardPanel(
-        x,
-        y,
-        z,
-        _coordinate(_required(template.width, 'width'), 0, scope, 'width'),
-        _coordinate(_required(template.height, 'height'), 0, scope, 'height'),
-        _color(_required(template.color, 'color'), 0, scope, 'color'),
-      ));
+      out.add(
+        CardPanel(
+          x,
+          y,
+          z,
+          _coordinate(_required(template.width, 'width'), 0, scope, 'width'),
+          _coordinate(_required(template.height, 'height'), 0, scope, 'height'),
+          _color(_required(template.color, 'color'), 0, scope, 'color'),
+        ),
+      );
     case 'cell':
-      final int size =
-          _coordinate(_required(template.size, 'size'), 0, scope, 'size');
-      out.add(CardCell(
-          x, y, z, size, _cellColor(template.color, scope, sink)));
+      final int size = _coordinate(
+        _required(template.size, 'size'),
+        0,
+        scope,
+        'size',
+      );
+      out.add(CardCell(x, y, z, size, _cellColor(template.color, scope, sink)));
     case 'slot':
       if (sim.inventorySize <= 0) {
         sink('slot: target has no inventory');
         return;
       }
-      final int size =
-          _coordinate(_required(template.size, 'size'), 0, scope, 'size');
-      final int index =
-          _coordinate(_required(template.index, 'index'), 0, scope, 'index');
-      out.add(CardSlot(
-        x,
-        y,
-        z,
-        size,
-        _color(template.wellColor, previewDefaultWellColor.toDouble(), scope,
-            'wellColor'),
-        index,
-        _slotItem(sim, index),
-      ));
+      final int size = _coordinate(
+        _required(template.size, 'size'),
+        0,
+        scope,
+        'size',
+      );
+      final int index = _coordinate(
+        _required(template.index, 'index'),
+        0,
+        scope,
+        'index',
+      );
+      out.add(
+        CardSlot(
+          x,
+          y,
+          z,
+          size,
+          _color(
+            template.wellColor,
+            previewDefaultWellColor.toDouble(),
+            scope,
+            'wellColor',
+          ),
+          index,
+          _slotItem(sim, index),
+        ),
+      );
     case 'label':
-      final int background =
-          _color(template.background, 0, scope, 'background');
-      out.add(CardLabel(
-          x, y, z, _labelText(template.text, scope, sink), background));
+      final int background = _color(
+        template.background,
+        0,
+        scope,
+        'background',
+      );
+      out.add(
+        CardLabel(x, y, z, _labelText(template.text, scope, sink), background),
+      );
   }
 }
 
 double _defaultZ(String type) => switch (type) {
-      'panel' => _defaultZPanel,
-      'label' => _defaultZLabel,
-      _ => _defaultZWell,
-    };
+  'panel' => _defaultZPanel,
+  'label' => _defaultZLabel,
+  _ => _defaultZWell,
+};
 
 Object _required(Object? raw, String field) {
   if (raw == null) {
@@ -456,7 +503,10 @@ int _cellColor(Object? raw, PExprScope scope, void Function(String) sink) {
 /// twin of the plugin's `TextUtils.parse`, so a document renders the same runs
 /// the retired layouts built. A failure renders nothing.
 List<StyledTextRun> _labelText(
-    String? raw, PExprScope scope, void Function(String) sink) {
+  String? raw,
+  PExprScope scope,
+  void Function(String) sink,
+) {
   try {
     return _parseRuns(_string(_required(raw, 'text'), scope, 'text'));
   } catch (failure) {
@@ -470,9 +520,7 @@ List<StyledTextRun> _labelText(
 List<StyledTextRun> _parseRuns(String text) {
   final McTextResult parsed = parseMcText(text);
   if (parsed.lines.length == 1) return parsed.lines.first;
-  return <StyledTextRun>[
-    for (final List<McSpan> line in parsed.lines) ...line,
-  ];
+  return <StyledTextRun>[for (final List<McSpan> line in parsed.lines) ...line];
 }
 
 // ---------------------------------------------------------------------------
@@ -497,7 +545,11 @@ List<CardItem> _framed(
   );
 }
 
-bool _cardFramed(HuiPreviewCard card, PExprScope scope, void Function(String) sink) {
+bool _cardFramed(
+  HuiPreviewCard card,
+  PExprScope scope,
+  void Function(String) sink,
+) {
   try {
     return _bool(card.framed, true, scope, 'card.framed');
   } catch (failure) {
@@ -507,7 +559,10 @@ bool _cardFramed(HuiPreviewCard card, PExprScope scope, void Function(String) si
 }
 
 List<StyledTextRun> _cardTitle(
-    HuiPreviewCard card, PExprScope scope, void Function(String) sink) {
+  HuiPreviewCard card,
+  PExprScope scope,
+  void Function(String) sink,
+) {
   final String? title = card.title;
   if (title == null) return const <StyledTextRun>[];
   try {
@@ -519,7 +574,10 @@ List<StyledTextRun> _cardTitle(
 }
 
 int _cardAccent(
-    HuiPreviewCard card, PExprScope scope, void Function(String) sink) {
+  HuiPreviewCard card,
+  PExprScope scope,
+  void Function(String) sink,
+) {
   final String? accent = card.accent;
   if (accent == null) return previewDefaultAccentColor;
   try {
@@ -613,7 +671,9 @@ List<CardItem> _frame(
   }
 
   final int panelHalfWidth = _max(
-      minHalfWidth, (hasGrid ? (gridRight - gridLeft) ~/ 2 : _well ~/ 2) + _panelPad);
+    minHalfWidth,
+    (hasGrid ? (gridRight - gridLeft) ~/ 2 : _well ~/ 2) + _panelPad,
+  );
   final int titleBarBottom = contentTop + _gap;
   final int panelTop = titleBarBottom + _titleBarHeight;
   final int panelBottom = contentBottom - _panelPad;
@@ -626,21 +686,46 @@ List<CardItem> _frame(
   final int titleBarColor = (_titleBarAlpha << 24) | (accent & 0xFFFFFF);
 
   final List<CardItem> styled = <CardItem>[];
-  styled.add(CardPanel(0, panelCenterY, _zFrame, panelWidth + _frameBorder * 2,
-      panelHeight + _frameBorder * 2, frameColor));
   styled.add(
-      CardPanel(0, panelCenterY, _zPanel, panelWidth, panelHeight, _panelColor));
+    CardPanel(
+      0,
+      panelCenterY,
+      _zFrame,
+      panelWidth + _frameBorder * 2,
+      panelHeight + _frameBorder * 2,
+      frameColor,
+    ),
+  );
+  styled.add(
+    CardPanel(0, panelCenterY, _zPanel, panelWidth, panelHeight, _panelColor),
+  );
   if (hasGrid) {
     final int trayWidth = (gridRight - gridLeft) + _trayPad * 2;
     final int trayHeight = (gridTop - gridBottom) + _trayPad * 2;
     final int trayCenterX = (gridRight + gridLeft) ~/ 2;
     final int trayCenterY = (gridTop + gridBottom) ~/ 2;
-    styled.add(CardPanel(
-        trayCenterX, trayCenterY, _zTray, trayWidth, trayHeight, _trayColor));
+    styled.add(
+      CardPanel(
+        trayCenterX,
+        trayCenterY,
+        _zTray,
+        trayWidth,
+        trayHeight,
+        _trayColor,
+      ),
+    );
   }
   final int titleBarCenterY = (panelTop + titleBarBottom) ~/ 2;
-  styled.add(CardPanel(
-      0, titleBarCenterY, _zTitleBar, panelWidth, _titleBarHeight, titleBarColor));
+  styled.add(
+    CardPanel(
+      0,
+      titleBarCenterY,
+      _zTitleBar,
+      panelWidth,
+      _titleBarHeight,
+      titleBarColor,
+    ),
+  );
   styled.add(CardLabel(0, titleBarCenterY, _zLabel, title, 0));
   styled.addAll(content);
   return styled;
@@ -694,18 +779,18 @@ int _height(List<CardItem> items) {
 /// Negative for a label: the format carries no rendered width, so a label is
 /// left out of the horizontal extent entirely rather than guessed at.
 int _halfWidth(CardItem item) => switch (item) {
-      CardPanel() => item.width ~/ 2,
-      CardCell() => item.size ~/ 2,
-      CardSlot() => item.size ~/ 2,
-      CardLabel() => -1,
-    };
+  CardPanel() => item.width ~/ 2,
+  CardCell() => item.size ~/ 2,
+  CardSlot() => item.size ~/ 2,
+  CardLabel() => -1,
+};
 
 int _halfHeight(CardItem item) => switch (item) {
-      CardPanel() => item.height ~/ 2,
-      CardCell() => item.size ~/ 2,
-      CardSlot() => item.size ~/ 2,
-      CardLabel() => _line ~/ 2,
-    };
+  CardPanel() => item.height ~/ 2,
+  CardCell() => item.size ~/ 2,
+  CardSlot() => item.size ~/ 2,
+  CardLabel() => _line ~/ 2,
+};
 
 // ---------------------------------------------------------------------------
 // Field evaluation
@@ -741,7 +826,9 @@ double _number(Object? raw, double fallback, PExprScope scope, String field) {
   if (raw is num) return raw.toDouble();
   if (raw is! String) {
     throw PExprException(
-        '$field: must be a number or a string expression', previewNoPosition);
+      '$field: must be a number or a string expression',
+      previewNoPosition,
+    );
   }
   return _labelled(field, () => evalNumber(_compile(raw), scope));
 }
@@ -763,14 +850,19 @@ bool _bool(Object? raw, bool fallback, PExprScope scope, String field) {
   if (raw is bool) return raw;
   if (raw is! String) {
     throw PExprException(
-        '$field: must be a boolean or a string expression', previewNoPosition);
+      '$field: must be a boolean or a string expression',
+      previewNoPosition,
+    );
   }
   return _labelled(field, () => evalBool(_compile(raw), scope));
 }
 
 String _string(Object? raw, PExprScope scope, String field) {
   if (raw is! String) {
-    throw PExprException('$field: must be a string expression', previewNoPosition);
+    throw PExprException(
+      '$field: must be a string expression',
+      previewNoPosition,
+    );
   }
   return _labelled(field, () => evalString(_compile(raw), scope));
 }

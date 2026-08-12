@@ -19,16 +19,15 @@ CanvasScene _scene(
   List<HuiComponent> components, {
   int animationTicks = 0,
   ImageLibrary? images,
-}) =>
-    buildCanvasScene(
-      menu: HuiMenu(offset: Vec3(0, 1.7, 2.5), components: components),
-      uiScale: 1,
-      trueRender: false,
-      togglePreview: (String _) => true,
-      textCache: McTextCache(),
-      images: images,
-      animationTicks: animationTicks,
-    );
+}) => buildCanvasScene(
+  menu: HuiMenu(offset: Vec3(0, 1.7, 2.5), components: components),
+  uiScale: 1,
+  trueRender: false,
+  togglePreview: (String _) => true,
+  textCache: McTextCache(),
+  images: images,
+  animationTicks: animationTicks,
+);
 
 /// Two 4x4 frames the scene builder will accept. Pixel grids stay undecoded on
 /// the VM, which is fine: the key is keyed on the path, not the bitmap.
@@ -39,9 +38,10 @@ ImageLibrary _frames() {
       for (final String path in <String>['one.png', 'two.png'])
         <String, Object>{
           'path': path,
-          'dataUri': 'data:image/png;base64,${base64Encode(<int>[1, 2, 3])}',
-          'width': 4,
-          'height': 4,
+          'dataUri':
+              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
+          'width': 1,
+          'height': 1,
         },
     ]),
   );
@@ -57,20 +57,24 @@ String _key(
   double pxPerBlock = 64,
   double uiScale = 1,
   int obfuscationTick = 0,
-}) =>
-    spriteCacheKey(
-      scene.byId(id)!,
-      pxPerBlock: pxPerBlock,
-      uiScale: uiScale,
-      obfuscationTick: obfuscationTick,
-    );
+}) => spriteCacheKey(
+  scene.byId(id)!,
+  pxPerBlock: pxPerBlock,
+  uiScale: uiScale,
+  obfuscationTick: obfuscationTick,
+);
 
 void main() {
   group('spriteCacheKey', () {
     test('is stable for the same item across rebuilds', () {
-      final String first = _key(_scene(<HuiComponent>[_text('a', '&aHi')]), 'a');
-      final String second =
-          _key(_scene(<HuiComponent>[_text('a', '&aHi')]), 'a');
+      final String first = _key(
+        _scene(<HuiComponent>[_text('a', '&aHi')]),
+        'a',
+      );
+      final String second = _key(
+        _scene(<HuiComponent>[_text('a', '&aHi')]),
+        'a',
+      );
       expect(first, second);
     });
 
@@ -83,16 +87,22 @@ void main() {
     });
 
     test('changes when the raw text changes', () {
-      final String before =
-          _key(_scene(<HuiComponent>[_text('a', '&aHi')]), 'a');
-      final String after =
-          _key(_scene(<HuiComponent>[_text('a', '&aHo')]), 'a');
+      final String before = _key(
+        _scene(<HuiComponent>[_text('a', '&aHi')]),
+        'a',
+      );
+      final String after = _key(
+        _scene(<HuiComponent>[_text('a', '&aHo')]),
+        'a',
+      );
       expect(before, isNot(after));
     });
 
     test('changes when only the colour code changes', () {
-      final String green =
-          _key(_scene(<HuiComponent>[_text('a', '&aHi')]), 'a');
+      final String green = _key(
+        _scene(<HuiComponent>[_text('a', '&aHi')]),
+        'a',
+      );
       final String red = _key(_scene(<HuiComponent>[_text('a', '&cHi')]), 'a');
       expect(green, isNot(red));
     });
@@ -107,10 +117,7 @@ void main() {
 
     test('changes with uiScale', () {
       final CanvasScene scene = _scene(<HuiComponent>[_text('a', 'Hi')]);
-      expect(
-        _key(scene, 'a', uiScale: 1),
-        isNot(_key(scene, 'a', uiScale: 2)),
-      );
+      expect(_key(scene, 'a', uiScale: 1), isNot(_key(scene, 'a', uiScale: 2)));
     });
 
     test('ignores the obfuscation tick for plain text', () {
@@ -122,8 +129,9 @@ void main() {
     });
 
     test('follows the obfuscation tick when a span is obfuscated', () {
-      final CanvasScene scene =
-          _scene(<HuiComponent>[_text('a', '<obfuscated>Hi')]);
+      final CanvasScene scene = _scene(<HuiComponent>[
+        _text('a', '<obfuscated>Hi'),
+      ]);
       expect(
         _key(scene, 'a', obfuscationTick: 0),
         isNot(_key(scene, 'a', obfuscationTick: 1)),
@@ -133,20 +141,16 @@ void main() {
     test('follows the animation frame and wraps with it', () {
       final ImageLibrary images = _frames();
       HuiComponent build() => HuiComponent(
-            'a',
-            Vec3(0, 0, 0),
-            HuiDecorationData(
-              HuiAnimatedImageIcon(<String>['one.png', 'two.png'], 1),
-            ),
-          );
+        'a',
+        Vec3(0, 0, 0),
+        HuiDecorationData(
+          HuiAnimatedImageIcon(<String>['one.png', 'two.png'], 1),
+        ),
+      );
       String at(int ticks) => _key(
-            _scene(
-              <HuiComponent>[build()],
-              animationTicks: ticks,
-              images: images,
-            ),
-            'a',
-          );
+        _scene(<HuiComponent>[build()], animationTicks: ticks, images: images),
+        'a',
+      );
       expect(at(0), isNot(at(1)));
       expect(at(0), at(2));
     });
@@ -154,23 +158,16 @@ void main() {
     test('a repeated frame path reuses its sprite', () {
       final ImageLibrary images = _frames();
       HuiComponent build() => HuiComponent(
-            'a',
-            Vec3(0, 0, 0),
-            HuiDecorationData(
-              HuiAnimatedImageIcon(
-                <String>['one.png', 'two.png', 'one.png'],
-                1,
-              ),
-            ),
-          );
+        'a',
+        Vec3(0, 0, 0),
+        HuiDecorationData(
+          HuiAnimatedImageIcon(<String>['one.png', 'two.png', 'one.png'], 1),
+        ),
+      );
       String at(int ticks) => _key(
-            _scene(
-              <HuiComponent>[build()],
-              animationTicks: ticks,
-              images: images,
-            ),
-            'a',
-          );
+        _scene(<HuiComponent>[build()], animationTicks: ticks, images: images),
+        'a',
+      );
       expect(at(0), at(2));
       expect(at(0), isNot(at(1)));
     });
@@ -194,16 +191,13 @@ void main() {
         ],
       );
       CanvasScene sceneFor(bool showsTrue) => buildCanvasScene(
-            menu: menu,
-            uiScale: 1,
-            trueRender: false,
-            togglePreview: (String _) => showsTrue,
-            textCache: McTextCache(),
-          );
-      expect(
-        _key(sceneFor(true), 'a'),
-        isNot(_key(sceneFor(false), 'a')),
+        menu: menu,
+        uiScale: 1,
+        trueRender: false,
+        togglePreview: (String _) => showsTrue,
+        textCache: McTextCache(),
       );
+      expect(_key(sceneFor(true), 'a'), isNot(_key(sceneFor(false), 'a')));
     });
 
     test('separates item keys, counts and kinds', () {
@@ -240,16 +234,8 @@ void main() {
 
     test('a missing icon keys the same everywhere', () {
       final CanvasScene scene = _scene(<HuiComponent>[
-        HuiComponent(
-          'a',
-          Vec3(0, 0, 0),
-          HuiDecorationData(HuiTextImageIcon()),
-        ),
-        HuiComponent(
-          'b',
-          Vec3(1, 0, 0),
-          HuiDecorationData(HuiTextImageIcon()),
-        ),
+        HuiComponent('a', Vec3(0, 0, 0), HuiDecorationData(HuiTextImageIcon())),
+        HuiComponent('b', Vec3(1, 0, 0), HuiDecorationData(HuiTextImageIcon())),
       ]);
       expect(_key(scene, 'a'), _key(scene, 'b'));
     });

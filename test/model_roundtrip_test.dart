@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:holoui_editor/config/defaults.dart';
 import 'package:holoui_editor/model/model.dart';
 import 'package:test/test.dart';
 
@@ -961,7 +962,7 @@ void main() {
         () => decodeHuiMenu(
           '{"offset":[0,0,0],"components":[{"id":"a",'
           '"offset":[0,0,0],"data":{"type":"button","actions":'
-          '[{"type":"teleport"}]}}]}',
+          '[{"type":"openUrl"}]}}]}',
         ),
         throwsA(
           isA<HuiFormatException>().having(
@@ -1032,6 +1033,277 @@ void main() {
       expect(component.offset.y, 2);
       expect(original.trueActions.length, 1);
       expect((original.trueIcon! as HuiAnimatedImageIcon).source.length, 1);
+    });
+  });
+
+  group('native navigation actions', () {
+    test('push navigation round-trips its target and default mode', () {
+      final HuiMenu menu = decodeHuiMenu(
+        '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
+        '"data":{"type":"button","actions":[{"type":"navigate",'
+        '"target":"shops/confirm"}]}}]}',
+      );
+      final HuiNavigateAction action =
+          (menu.components.single.data as HuiButtonData).actions.single
+              as HuiNavigateAction;
+
+      expect(action.mode, 'push');
+      expect(action.target, 'shops/confirm');
+      expect(encodeHuiMenu(menu), contains('"type": "navigate"'));
+      expect(encodeHuiMenu(menu), contains('"mode": "push"'));
+    });
+
+    test('targetless back navigation stays targetless', () {
+      final HuiNavigateAction action =
+          HuiAction.fromJson(<String, dynamic>{
+                'type': 'navigate',
+                'mode': 'back',
+              })
+              as HuiNavigateAction;
+
+      expect(action.requiresTarget, isFalse);
+      expect(action.toJson().containsKey('target'), isFalse);
+      expect(action.copy().mode, 'back');
+    });
+  });
+
+  group('icon display style', () {
+    test('round-trips every runtime display field', () {
+      final HuiTextIcon icon =
+          HuiIcon.fromJson(<String, dynamic>{
+                'type': 'text',
+                'text': 'Styled',
+                'style': <String, dynamic>{
+                  'billboard': 'center',
+                  'shadow': true,
+                  'seeThrough': true,
+                  'textAlignment': 'right',
+                  'backgroundArgb': '#80445566',
+                  'textOpacity': 128,
+                  'lineWidth': 120,
+                  'blockLight': 7,
+                  'skyLight': 12,
+                  'viewRange': 2.5,
+                  'shadowRadius': 0.4,
+                  'shadowStrength': 0.7,
+                  'cullingWidth': 4,
+                  'cullingHeight': 3,
+                  'glowColor': '#FFFF00FF',
+                  'scaleX': 2,
+                  'scaleY': 0.5,
+                  'scaleZ': 1.25,
+                },
+              })
+              as HuiTextIcon;
+
+      expect(icon.style!.billboard, 'center');
+      expect(icon.style!.blockLight, 7);
+      expect(icon.style!.scaleY, 0.5);
+      expect(icon.toJson()['style'], icon.style!.toJson());
+      expect(HuiIcon.fromJson(icon.toJson()).toJson(), icon.toJson());
+    });
+
+    test('style remains optional and copies deeply', () {
+      final HuiItemIcon plain = HuiItemIcon('stone');
+      expect(plain.toJson().containsKey('style'), isFalse);
+
+      final HuiIconStyle style = HuiIconStyle()
+        ..extras['extension'] = <String, dynamic>{'value': 1};
+      final HuiItemIcon styled = HuiItemIcon('stone', 1, 0, style);
+      final HuiItemIcon copy = styled.copy();
+      (copy.style!.extras['extension'] as Map<String, dynamic>)['value'] = 2;
+      expect(
+        (styled.style!.extras['extension'] as Map<String, dynamic>)['value'],
+        1,
+      );
+    });
+  });
+
+  group('entity icons', () {
+    test('round-trips registry id and authored footprint', () {
+      final HuiEntityIcon icon =
+          HuiIcon.fromJson(<String, dynamic>{
+                'type': 'entity',
+                'entity': 'minecraft:parrot',
+                'width': 0.5,
+                'height': 0.9,
+              })
+              as HuiEntityIcon;
+
+      expect(icon.entity, 'minecraft:parrot');
+      expect(icon.width, 0.5);
+      expect(icon.height, 0.9);
+      expect(HuiIcon.fromJson(icon.toJson()).toJson(), icon.toJson());
+    });
+
+    test('defaults omitted dimensions and preserves extension fields', () {
+      final HuiEntityIcon icon =
+          (HuiIcon.fromJson(<String, dynamic>{
+                'type': 'entity',
+                'entity': 'minecraft:cow',
+                'extension': <String, dynamic>{'value': 1},
+              })
+              as HuiEntityIcon);
+      final HuiEntityIcon copy = icon.copy();
+      (copy.extras['extension'] as Map<String, dynamic>)['value'] = 2;
+
+      expect(icon.width, 1);
+      expect(icon.height, 1);
+      expect((icon.extras['extension'] as Map<String, dynamic>)['value'], 1);
+    });
+
+    test('preserves unsupported style so validation can reject it', () {
+      final HuiEntityIcon icon =
+          HuiIcon.fromJson(<String, dynamic>{
+                'type': 'entity',
+                'entity': 'minecraft:parrot',
+                'style': <String, dynamic>{'billboard': 'center'},
+              })
+              as HuiEntityIcon;
+
+      expect(icon.extras['style'], <String, dynamic>{'billboard': 'center'});
+      expect(icon.toJson()['style'], <String, dynamic>{'billboard': 'center'});
+    });
+  });
+
+  group('block icons', () {
+    test('round-trips namespaced material, style and extension fields', () {
+      final HuiBlockIcon icon =
+          HuiIcon.fromJson(<String, dynamic>{
+                'type': 'block',
+                'block': 'minecraft:stone',
+                'style': <String, dynamic>{'scaleX': 1.5},
+                'extension': <String, dynamic>{'value': 1},
+              })
+              as HuiBlockIcon;
+      final HuiBlockIcon copy = icon.copy();
+      (copy.extras['extension'] as Map<String, dynamic>)['value'] = 2;
+
+      expect(icon.block, 'minecraft:stone');
+      expect(icon.style!.scaleX, 1.5);
+      expect((icon.extras['extension'] as Map<String, dynamic>)['value'], 1);
+      expect(HuiIcon.fromJson(icon.toJson()).toJson(), icon.toJson());
+    });
+  });
+
+  group('live text placeholders', () {
+    test('round-trips and copies an explicit refresh interval', () {
+      final HuiTextIcon icon =
+          HuiIcon.fromJson(<String, dynamic>{
+                'type': 'text',
+                'text': 'Balance: %vault_eco_balance%',
+                'refreshTicks': 20,
+              })
+              as HuiTextIcon;
+
+      expect(icon.refreshTicks, 20);
+      expect(icon.toJson()['refreshTicks'], 20);
+      expect(icon.copy().refreshTicks, 20);
+    });
+
+    test('preserves omission for the runtime default', () {
+      final HuiTextIcon icon =
+          HuiIcon.fromJson(<String, dynamic>{'type': 'text', 'text': 'Static'})
+              as HuiTextIcon;
+
+      expect(icon.refreshTicks, isNull);
+      expect(icon.toJson().containsKey('refreshTicks'), isFalse);
+    });
+  });
+
+  group('typed interaction actions', () {
+    test('factory defaults cover every declared action type', () {
+      expect(huiActionTypes, <String>[
+        'command',
+        'sound',
+        'message',
+        'teleport',
+        'connect',
+        'navigate',
+      ]);
+      expect(createDefaultAction('message'), isA<HuiMessageAction>());
+      expect(createDefaultAction('teleport'), isA<HuiTeleportAction>());
+      expect(createDefaultAction('connect'), isA<HuiConnectAction>());
+      for (final String type in huiActionTypes) {
+        final HuiAction action = createDefaultAction(type);
+        expect(action.trigger, 'any', reason: type);
+        expect(action.toJson().containsKey('trigger'), isFalse, reason: type);
+      }
+    });
+
+    test('click triggers round-trip and copy across every action shape', () {
+      for (final String type in huiActionTypes) {
+        final HuiAction action = createDefaultAction(type)
+          ..trigger = 'shift_right_click';
+        final Map<String, dynamic> encoded = action.toJson();
+        final HuiAction decoded = HuiAction.fromJson(encoded);
+
+        expect(encoded['trigger'], 'shift_right_click', reason: type);
+        expect(decoded.trigger, 'shift_right_click', reason: type);
+        expect(decoded.copy().trigger, 'shift_right_click', reason: type);
+      }
+
+      final HuiAction nullTrigger = HuiAction.fromJson(<String, dynamic>{
+        'type': 'message',
+        'message': 'Hello',
+        'trigger': null,
+      });
+      expect(nullTrigger.trigger, 'any');
+      expect(nullTrigger.toJson().containsKey('trigger'), isFalse);
+    });
+
+    test('message teleport and connect round-trip every runtime field', () {
+      final HuiMenu menu = decodeHuiMenu(
+        '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
+        '"data":{"type":"button","actions":['
+        '{"type":"message","message":"<green>Hello %player%</green>"},'
+        '{"type":"teleport","world":"minecraft:overworld","x":1.5,'
+        '"y":64,"z":-2,"yaw":90,"pitch":15},'
+        '{"type":"connect","server":"lobby-1"}]}}]}',
+      );
+      final List<HuiAction> actions =
+          (menu.components.single.data as HuiButtonData).actions;
+
+      expect((actions[0] as HuiMessageAction).message, contains('%player%'));
+      final HuiTeleportAction teleport = actions[1] as HuiTeleportAction;
+      expect(teleport.world, 'minecraft:overworld');
+      expect(
+        <double>[
+          teleport.x,
+          teleport.y,
+          teleport.z,
+          teleport.yaw,
+          teleport.pitch,
+        ],
+        <double>[1.5, 64, -2, 90, 15],
+      );
+      expect((actions[2] as HuiConnectAction).server, 'lobby-1');
+
+      final String encoded = encodeHuiMenu(menu);
+      expect(encoded, contains('"type": "message"'));
+      expect(encoded, contains('"type": "teleport"'));
+      expect(encoded, contains('"world": "minecraft:overworld"'));
+      expect(encoded, contains('"type": "connect"'));
+      expect(encodeHuiMenu(decodeHuiMenu(encoded)), encoded);
+    });
+
+    test('copy is deep and retains extension fields', () {
+      final HuiTeleportAction action = HuiTeleportAction(
+        'example:arena',
+        1,
+        2,
+        3,
+        4,
+        5,
+      )..extras['extension'] = <String, dynamic>{'enabled': true};
+      final HuiTeleportAction copy = action.copy();
+      (copy.extras['extension'] as Map<String, dynamic>)['enabled'] = false;
+
+      expect(
+        (action.extras['extension'] as Map<String, dynamic>)['enabled'],
+        isTrue,
+      );
+      expect(copy.toJson()['world'], 'example:arena');
     });
   });
 }

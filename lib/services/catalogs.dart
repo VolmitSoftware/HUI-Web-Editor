@@ -71,10 +71,10 @@ class HuiCustomItemCatalog {
     required Map<String, int> countByProvider,
     required List<String> providers,
     required this.generated,
-  })  : _items = items,
-        _byId = byId,
-        _countByProvider = countByProvider,
-        _providers = providers;
+  }) : _items = items,
+       _byId = byId,
+       _countByProvider = countByProvider,
+       _providers = providers;
 
   final List<CustomItemEntry> _items;
   final Map<String, List<CustomItemEntry>> _byId;
@@ -331,11 +331,13 @@ class HuiPreviewVariableCatalog {
           final Object? type = fields['type'];
           if (type is! String || type.isEmpty) continue;
           final Object? description = fields['description'];
-          entries.add(PreviewVariableEntry(
-            member.key,
-            type,
-            description is String ? description : '',
-          ));
+          entries.add(
+            PreviewVariableEntry(
+              member.key,
+              type,
+              description is String ? description : '',
+            ),
+          );
         }
         if (entries.isNotEmpty) categories[group.key] = entries;
       }
@@ -350,16 +352,18 @@ class HuiPreviewVariableCatalog {
         final Object? args = fields['args'];
         final Object? returns = fields['returns'];
         final Object? description = fields['description'];
-        functions.add(PreviewFunctionEntry(
-          name: function.key,
-          args: <String>[
-            if (args is List<Object?>)
-              for (final Object? arg in args)
-                if (arg is String) arg,
-          ],
-          returns: returns is String ? returns : '',
-          description: description is String ? description : '',
-        ));
+        functions.add(
+          PreviewFunctionEntry(
+            name: function.key,
+            args: <String>[
+              if (args is List<Object?>)
+                for (final Object? arg in args)
+                  if (arg is String) arg,
+            ],
+            returns: returns is String ? returns : '',
+            description: description is String ? description : '',
+          ),
+        );
       }
     }
     return HuiPreviewVariableCatalog._(categories, functions);
@@ -378,11 +382,11 @@ class HuiCatalogs {
     required this.previewVariables,
     required this.previewLang,
     required this.loaded,
-  })  : _materials = materials,
-        _materialIndex = materialIndex,
-        _materialKeys = materialKeys,
-        _sounds = sounds,
-        _soundKeys = soundKeys;
+  }) : _materials = materials,
+       _materialIndex = materialIndex,
+       _materialKeys = materialKeys,
+       _sounds = sounds,
+       _soundKeys = soundKeys;
 
   final List<MaterialEntry> _materials;
   final Map<String, MaterialEntry> _materialIndex;
@@ -410,7 +414,8 @@ class HuiCatalogs {
   static const String soundsAssetUrl = 'assets/catalog/sounds.json';
   static const String previewVariablesAssetUrl =
       'assets/catalog/preview-variables.json';
-  static const String previewLangAssetUrl = 'assets/catalog/preview-lang-en.json';
+  static const String previewLangAssetUrl =
+      'assets/catalog/preview-lang-en.json';
 
   /// One URL, and the build always ships a file there — an empty catalog when
   /// nobody has exported one. Probing a second, usually-absent URL would print
@@ -442,10 +447,12 @@ class HuiCatalogs {
     final String? soundsBody = bodies[1];
     final String? previewVariablesBody = bodies[2];
     final String? previewLangBody = bodies[3];
-    final List<MaterialEntry> materials =
-        itemsBody == null ? const <MaterialEntry>[] : parseMaterials(itemsBody);
-    final List<String> sounds =
-        soundsBody == null ? const <String>[] : parseSounds(soundsBody);
+    final List<MaterialEntry> materials = itemsBody == null
+        ? const <MaterialEntry>[]
+        : parseMaterials(itemsBody);
+    final List<String> sounds = soundsBody == null
+        ? const <String>[]
+        : parseSounds(soundsBody);
     final bool ok = materials.isNotEmpty && sounds.isNotEmpty;
     return build(
       materials: materials,
@@ -479,10 +486,10 @@ class HuiCatalogs {
 
   /// Empty catalogs, used before [load] completes and when it fails outright.
   factory HuiCatalogs.empty() => build(
-        materials: const <MaterialEntry>[],
-        sounds: const <String>[],
-        loaded: false,
-      );
+    materials: const <MaterialEntry>[],
+    sounds: const <String>[],
+    loaded: false,
+  );
 
   /// Assembles the lookup indexes. Exposed for tests and for callers that
   /// already hold decoded catalog data.
@@ -491,7 +498,8 @@ class HuiCatalogs {
     required List<String> sounds,
     required bool loaded,
     HuiCustomItemCatalog? customItems,
-    HuiPreviewVariableCatalog previewVariables = HuiPreviewVariableCatalog.empty,
+    HuiPreviewVariableCatalog previewVariables =
+        HuiPreviewVariableCatalog.empty,
     PreviewLangCatalog previewLang = PreviewLangCatalog.empty,
   }) {
     final Map<String, MaterialEntry> index = <String, MaterialEntry>{};
@@ -514,16 +522,16 @@ class HuiCatalogs {
   /// Same material and sound data with a different custom item catalog, for the
   /// import action.
   HuiCatalogs withCustomItems(HuiCustomItemCatalog catalog) => HuiCatalogs._(
-        materials: _materials,
-        materialIndex: _materialIndex,
-        materialKeys: _materialKeys,
-        sounds: _sounds,
-        soundKeys: _soundKeys,
-        customItems: catalog,
-        previewVariables: previewVariables,
-        previewLang: previewLang,
-        loaded: loaded,
-      );
+    materials: _materials,
+    materialIndex: _materialIndex,
+    materialKeys: _materialKeys,
+    sounds: _sounds,
+    soundKeys: _soundKeys,
+    customItems: catalog,
+    previewVariables: previewVariables,
+    previewLang: previewLang,
+    loaded: loaded,
+  );
 
   /// Registry keys sorted alphabetically; textured entries and key-only entries
   /// are interleaved.
@@ -588,8 +596,9 @@ class HuiCatalogs {
 
   static Future<String?> _fetch(String url) async {
     try {
-      final http.Response response =
-          await http.get(Uri.parse(url)).timeout(_fetchTimeout);
+      final http.Response response = await http
+          .get(Uri.parse(url))
+          .timeout(_fetchTimeout);
       if (response.statusCode != 200) return null;
       return response.body;
     } catch (_) {
@@ -613,10 +622,12 @@ class HuiCatalogs {
       final String normalized = key.trim().toLowerCase();
       if (normalized.isEmpty) continue;
       final Object? texture = item['texture'];
-      out.add(MaterialEntry(
-        normalized,
-        texture is String && texture.isNotEmpty ? texture : null,
-      ));
+      out.add(
+        MaterialEntry(
+          normalized,
+          texture is String && texture.isNotEmpty ? texture : null,
+        ),
+      );
     }
     return out;
   }
@@ -637,7 +648,6 @@ class HuiCatalogs {
     }
     return out;
   }
-
 }
 
 /// Picks the live catalogs over a boot snapshot.
@@ -660,9 +670,9 @@ Object? _decode(String body) {
 }
 
 /// HoloUI's own three PlaceholderAPI keys followed by common expansions people
-/// already have installed. Expansion happens once, at menu open, and only in
-/// text icon lines and the toggle `condition` - never in commands, image paths,
-/// or ids.
+/// already have installed. Text icon lines expand initially and then at their
+/// `refreshTicks`; a toggle `condition` expands only at open. Commands, image
+/// paths and ids are never expanded.
 const List<(String, String)> _placeholders = <(String, String)>[
   (
     '%holoui_available%',
@@ -682,10 +692,16 @@ const List<(String, String)> _placeholders = <(String, String)>[
   ('%player_health%', 'PlaceholderAPI: current health points.'),
   ('%player_level%', 'PlaceholderAPI: current experience level.'),
   ('%player_ping%', 'PlaceholderAPI: connection latency in milliseconds.'),
-  ('%player_gamemode%', 'PlaceholderAPI: SURVIVAL, CREATIVE, ADVENTURE, or SPECTATOR.'),
+  (
+    '%player_gamemode%',
+    'PlaceholderAPI: SURVIVAL, CREATIVE, ADVENTURE, or SPECTATOR.',
+  ),
   ('%server_online%', 'PlaceholderAPI: players currently connected.'),
   ('%server_max_players%', 'PlaceholderAPI: the configured player cap.'),
   ('%server_tps_1%', 'PlaceholderAPI: one-minute average TPS.'),
-  ('%vault_eco_balance_formatted%', 'Vault expansion: the player balance, formatted.'),
+  (
+    '%vault_eco_balance_formatted%',
+    'Vault expansion: the player balance, formatted.',
+  ),
   ('%luckperms_prefix%', 'LuckPerms expansion: the player prefix.'),
 ];

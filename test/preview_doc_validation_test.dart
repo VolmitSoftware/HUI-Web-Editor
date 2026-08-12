@@ -12,7 +12,11 @@ void main() {
   group('parseCheckPreviewDoc', () {
     test('a clean document reports no issues', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
-        card: HuiPreviewCard(framed: true, title: "'Hello'", accent: '#FFFFFFFF'),
+        card: HuiPreviewCard(
+          framed: true,
+          title: "'Hello'",
+          accent: '#FFFFFFFF',
+        ),
         elements: <HuiPreviewElement>[
           HuiPreviewElement('cell', x: 0, y: 0, size: 8, color: '#FF000000'),
           HuiPreviewElement('label', x: 0, y: 10, text: "'&fLabel'"),
@@ -31,18 +35,21 @@ void main() {
       expect(parseCheckPreviewDoc(doc), isEmpty);
     });
 
-    test('a broken element expression is reported with its index and field', () {
-      final HuiPreviewDoc doc = HuiPreviewDoc(
-        elements: <HuiPreviewElement>[
-          HuiPreviewElement('cell', size: 8, color: '#FF000000'),
-          HuiPreviewElement('cell', size: 8, color: '1 +'),
-        ],
-      );
-      final List<HuiIssue> result = parseCheckPreviewDoc(doc);
-      expect(result, hasLength(1));
-      expect(result.single.severity, HuiSeverity.error);
-      expect(result.single.path, 'elements[1].color');
-    });
+    test(
+      'a broken element expression is reported with its index and field',
+      () {
+        final HuiPreviewDoc doc = HuiPreviewDoc(
+          elements: <HuiPreviewElement>[
+            HuiPreviewElement('cell', size: 8, color: '#FF000000'),
+            HuiPreviewElement('cell', size: 8, color: '1 +'),
+          ],
+        );
+        final List<HuiIssue> result = parseCheckPreviewDoc(doc);
+        expect(result, hasLength(1));
+        expect(result.single.severity, HuiSeverity.error);
+        expect(result.single.path, 'elements[1].color');
+      },
+    );
 
     test('a broken card expression is reported by field name', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
@@ -73,21 +80,29 @@ void main() {
     test('several broken fields each report their own path', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[
-          HuiPreviewElement('panel', x: '1 +', y: 0, width: '2 +', height: 4,
-              color: '#FF000000'),
+          HuiPreviewElement(
+            'panel',
+            x: '1 +',
+            y: 0,
+            width: '2 +',
+            height: 4,
+            color: '#FF000000',
+          ),
         ],
       );
       final List<HuiIssue> result = parseCheckPreviewDoc(doc);
-      expect(result.map((HuiIssue issue) => issue.path).toSet(),
-          <String>{'elements[0].x', 'elements[0].width'});
+      expect(result.map((HuiIssue issue) => issue.path).toSet(), <String>{
+        'elements[0].x',
+        'elements[0].width',
+      });
     });
   });
 
   group('validatePreviewDoc', () {
     HuiPreviewDoc chestDoc(List<HuiPreviewElement> elements) => HuiPreviewDoc(
-          match: HuiPreviewMatch(blocks: <String>['CHEST']),
-          elements: elements,
-        );
+      match: HuiPreviewMatch(blocks: <String>['CHEST']),
+      elements: elements,
+    );
 
     List<String> paths(List<HuiIssue> issues) =>
         issues.map((HuiIssue issue) => issue.path).toList();
@@ -113,9 +128,7 @@ void main() {
     });
 
     test('a document decoded from JSON with no type key still reports it', () {
-      final HuiPreviewDoc doc = decodeHuiPreviewDoc(
-        '{"elements":[{"x":1}]}',
-      );
+      final HuiPreviewDoc doc = decodeHuiPreviewDoc('{"elements":[{"x":1}]}');
       expect(doc.elements.single.type, isEmpty);
       final List<HuiIssue> issues = validatePreviewDoc(doc);
       expect(
@@ -135,108 +148,158 @@ void main() {
 
     test('panel requires width, height and color', () {
       expect(
-        paths(validatePreviewDoc(chestDoc(<HuiPreviewElement>[
-          HuiPreviewElement('panel', height: 1, color: 1),
-        ]))),
+        paths(
+          validatePreviewDoc(
+            chestDoc(<HuiPreviewElement>[
+              HuiPreviewElement('panel', height: 1, color: 1),
+            ]),
+          ),
+        ),
         contains('elements[0].width'),
       );
       expect(
-        paths(validatePreviewDoc(chestDoc(<HuiPreviewElement>[
-          HuiPreviewElement('panel', width: 1, color: 1),
-        ]))),
+        paths(
+          validatePreviewDoc(
+            chestDoc(<HuiPreviewElement>[
+              HuiPreviewElement('panel', width: 1, color: 1),
+            ]),
+          ),
+        ),
         contains('elements[0].height'),
       );
       expect(
-        paths(validatePreviewDoc(chestDoc(<HuiPreviewElement>[
-          HuiPreviewElement('panel', width: 1, height: 1),
-        ]))),
+        paths(
+          validatePreviewDoc(
+            chestDoc(<HuiPreviewElement>[
+              HuiPreviewElement('panel', width: 1, height: 1),
+            ]),
+          ),
+        ),
         contains('elements[0].color'),
       );
     });
 
     test('cell requires size and color', () {
       expect(
-        paths(validatePreviewDoc(chestDoc(<HuiPreviewElement>[
-          HuiPreviewElement('cell', color: 1),
-        ]))),
+        paths(
+          validatePreviewDoc(
+            chestDoc(<HuiPreviewElement>[HuiPreviewElement('cell', color: 1)]),
+          ),
+        ),
         contains('elements[0].size'),
       );
       expect(
-        paths(validatePreviewDoc(chestDoc(<HuiPreviewElement>[
-          HuiPreviewElement('cell', size: 4),
-        ]))),
+        paths(
+          validatePreviewDoc(
+            chestDoc(<HuiPreviewElement>[HuiPreviewElement('cell', size: 4)]),
+          ),
+        ),
         contains('elements[0].color'),
       );
     });
 
     test('slot requires size and index', () {
       expect(
-        paths(validatePreviewDoc(chestDoc(<HuiPreviewElement>[
-          HuiPreviewElement('slot', index: 0),
-        ]))),
+        paths(
+          validatePreviewDoc(
+            chestDoc(<HuiPreviewElement>[HuiPreviewElement('slot', index: 0)]),
+          ),
+        ),
         contains('elements[0].size'),
       );
       expect(
-        paths(validatePreviewDoc(chestDoc(<HuiPreviewElement>[
-          HuiPreviewElement('slot', size: 18),
-        ]))),
+        paths(
+          validatePreviewDoc(
+            chestDoc(<HuiPreviewElement>[HuiPreviewElement('slot', size: 18)]),
+          ),
+        ),
         contains('elements[0].index'),
       );
     });
 
     test('label requires text', () {
       expect(
-        paths(validatePreviewDoc(chestDoc(<HuiPreviewElement>[
-          HuiPreviewElement('label'),
-        ]))),
+        paths(
+          validatePreviewDoc(
+            chestDoc(<HuiPreviewElement>[HuiPreviewElement('label')]),
+          ),
+        ),
         contains('elements[0].text'),
       );
     });
 
     test('repeat.count is required', () {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
-        HuiPreviewElement('cell', size: 4, color: 1,
-            repeat: HuiPreviewRepeat(varName: 'i')),
+        HuiPreviewElement(
+          'cell',
+          size: 4,
+          color: 1,
+          repeat: HuiPreviewRepeat(varName: 'i'),
+        ),
       ]);
-      expect(paths(validatePreviewDoc(doc)), contains('elements[0].repeat.count'));
+      expect(
+        paths(validatePreviewDoc(doc)),
+        contains('elements[0].repeat.count'),
+      );
     });
 
     test('constant repeat count over cap is an error mentioning 1024', () {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
-        HuiPreviewElement('cell', size: 4, color: 1,
-            repeat: HuiPreviewRepeat(count: 2000)),
+        HuiPreviewElement(
+          'cell',
+          size: 4,
+          color: 1,
+          repeat: HuiPreviewRepeat(count: 2000),
+        ),
       ]);
-      final HuiIssue issue = validatePreviewDoc(doc)
-          .firstWhere((HuiIssue i) => i.path == 'elements[0].repeat.count');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'elements[0].repeat.count');
       expect(issue.severity, HuiSeverity.error);
       expect(issue.message, contains('1024'));
     });
 
     test('non-constant repeat count skips the cap check', () {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
-        HuiPreviewElement('cell', size: 4, color: 1,
-            repeat: HuiPreviewRepeat(count: 'inventory.size')),
+        HuiPreviewElement(
+          'cell',
+          size: 4,
+          color: 1,
+          repeat: HuiPreviewRepeat(count: 'inventory.size'),
+        ),
       ]);
       expect(validatePreviewDoc(doc), isEmpty);
     });
 
-    test('total compiled template count over cap is an error mentioning 4096', () {
-      final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
-        for (int i = 0; i < 4; i++)
-          HuiPreviewElement('cell', size: 4, color: 1,
-              repeat: HuiPreviewRepeat(count: 1024)),
-        HuiPreviewElement('cell', size: 4, color: 1),
-      ]);
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'elements');
-      expect(issue.severity, HuiSeverity.error);
-      expect(issue.message, contains('4096'));
-    });
+    test(
+      'total compiled template count over cap is an error mentioning 4096',
+      () {
+        final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
+          for (int i = 0; i < 4; i++)
+            HuiPreviewElement(
+              'cell',
+              size: 4,
+              color: 1,
+              repeat: HuiPreviewRepeat(count: 1024),
+            ),
+          HuiPreviewElement('cell', size: 4, color: 1),
+        ]);
+        final HuiIssue issue = validatePreviewDoc(
+          doc,
+        ).firstWhere((HuiIssue i) => i.path == 'elements');
+        expect(issue.severity, HuiSeverity.error);
+        expect(issue.message, contains('4096'));
+      },
+    );
 
     test('repeat var must be a valid identifier', () {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
-        HuiPreviewElement('cell', size: 4, color: 1,
-            repeat: HuiPreviewRepeat(count: 2, varName: '1bad')),
+        HuiPreviewElement(
+          'cell',
+          size: 4,
+          color: 1,
+          repeat: HuiPreviewRepeat(count: 2, varName: '1bad'),
+        ),
       ]);
       expect(
         paths(validatePreviewDoc(doc)),
@@ -246,36 +309,55 @@ void main() {
 
     test('repeat var colliding with a catalog variable is an error', () {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
-        HuiPreviewElement('cell', size: 4, color: 1,
-            repeat: HuiPreviewRepeat(count: 2, varName: 'cookTime')),
+        HuiPreviewElement(
+          'cell',
+          size: 4,
+          color: 1,
+          repeat: HuiPreviewRepeat(count: 2, varName: 'cookTime'),
+        ),
       ]);
-      final HuiIssue issue = validatePreviewDoc(doc)
-          .firstWhere((HuiIssue i) => i.path == 'elements[0].repeat.var');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'elements[0].repeat.var');
       expect(issue.message, contains('cookTime'));
     });
 
-    test('repeat var is in scope for other fields but not for its own count', () {
-      final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
-        HuiPreviewElement('cell', size: 4, color: 1, x: 'i * 20',
-            repeat: HuiPreviewRepeat(count: 3)),
-      ]);
-      expect(validatePreviewDoc(doc), isEmpty);
+    test(
+      'repeat var is in scope for other fields but not for its own count',
+      () {
+        final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
+          HuiPreviewElement(
+            'cell',
+            size: 4,
+            color: 1,
+            x: 'i * 20',
+            repeat: HuiPreviewRepeat(count: 3),
+          ),
+        ]);
+        expect(validatePreviewDoc(doc), isEmpty);
 
-      final HuiPreviewDoc badDoc = chestDoc(<HuiPreviewElement>[
-        HuiPreviewElement('cell', size: 4, color: 1,
-            repeat: HuiPreviewRepeat(count: 'i')),
-      ]);
-      final HuiIssue issue = validatePreviewDoc(badDoc)
-          .firstWhere((HuiIssue i) => i.path == 'elements[0].repeat.count');
-      expect(issue.message, contains('i'));
-    });
+        final HuiPreviewDoc badDoc = chestDoc(<HuiPreviewElement>[
+          HuiPreviewElement(
+            'cell',
+            size: 4,
+            color: 1,
+            repeat: HuiPreviewRepeat(count: 'i'),
+          ),
+        ]);
+        final HuiIssue issue = validatePreviewDoc(
+          badDoc,
+        ).firstWhere((HuiIssue i) => i.path == 'elements[0].repeat.count');
+        expect(issue.message, contains('i'));
+      },
+    );
 
     test('a bare name outside any scope is an unknown-variable error', () {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
         HuiPreviewElement('cell', size: 4, color: 1, x: 'noSuchThing'),
       ]);
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
       expect(issue.severity, HuiSeverity.error);
       expect(issue.message, contains('noSuchThing'));
     });
@@ -311,8 +393,9 @@ void main() {
           HuiPreviewElement('cell', size: 4, color: 1, x: 'vars.bar'),
         ],
       );
-      final HuiIssue issue = validatePreviewDoc(badDoc)
-          .firstWhere((HuiIssue i) => i.path == 'elements[0].x');
+      final HuiIssue issue = validatePreviewDoc(
+        badDoc,
+      ).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
       expect(issue.message, contains('vars.bar'));
     });
 
@@ -330,7 +413,9 @@ void main() {
         ],
       );
       expect(
-        validatePreviewDoc(doc).where((HuiIssue i) => i.severity != HuiSeverity.info),
+        validatePreviewDoc(
+          doc,
+        ).where((HuiIssue i) => i.severity != HuiSeverity.info),
         isEmpty,
       );
     });
@@ -339,8 +424,9 @@ void main() {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
         HuiPreviewElement('cell', size: 4, color: 1, x: 'adapt.xp'),
       ]);
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
       expect(issue.severity, HuiSeverity.warning);
     });
 
@@ -348,8 +434,9 @@ void main() {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
         HuiPreviewElement('cell', size: 4, color: 1, x: 'surge.bogus'),
       ]);
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
       expect(issue.severity, HuiSeverity.error);
       expect(issue.message, contains('surge.bogus'));
     });
@@ -358,8 +445,9 @@ void main() {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
         HuiPreviewElement('cell', size: 4, color: 1, x: 'inventory.bogus'),
       ]);
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
       expect(issue.severity, HuiSeverity.error);
     });
 
@@ -367,14 +455,21 @@ void main() {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(special: 'bogus'),
       );
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'match.special');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'match.special');
       expect(issue.severity, HuiSeverity.error);
     });
 
     test('every valid special value is accepted', () {
-      for (final String special in <String>['enderChest', 'locked', 'anyInventoryHolder']) {
-        final HuiPreviewDoc doc = HuiPreviewDoc(match: HuiPreviewMatch(special: special));
+      for (final String special in <String>[
+        'enderChest',
+        'locked',
+        'anyInventoryHolder',
+      ]) {
+        final HuiPreviewDoc doc = HuiPreviewDoc(
+          match: HuiPreviewMatch(special: special),
+        );
         expect(validatePreviewDoc(doc), isEmpty, reason: special);
       }
     });
@@ -387,8 +482,10 @@ void main() {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(blocks: <String>['NOT_A_REAL_MATERIAL_XYZ']),
       );
-      final List<HuiIssue> issues =
-          validatePreviewDoc(doc, knownMaterials: <String>{'chest', 'furnace'});
+      final List<HuiIssue> issues = validatePreviewDoc(
+        doc,
+        knownMaterials: <String>{'chest', 'furnace'},
+      );
       expect(issues.single.severity, HuiSeverity.warning);
       expect(issues.single.path, 'match.blocks[0]');
     });
@@ -400,28 +497,33 @@ void main() {
       expect(validatePreviewDoc(doc), isEmpty);
     });
 
-    test('an exact material differing only in case from the catalog is not warned', () {
-      // Regression for a real casing bug: match names are always written in
-      // Bukkit enum casing ("FURNACE"), but `HuiCatalogs.materialKeys` -
-      // exactly what `EditorStore` passes as `knownMaterials` - is lowercase
-      // ("furnace"). A case-sensitive membership check flagged every valid
-      // exact block name in every shipped document as unknown.
-      final HuiPreviewDoc doc = HuiPreviewDoc(
-        match: HuiPreviewMatch(blocks: <String>['FURNACE']),
-      );
-      final List<HuiIssue> issues = validatePreviewDoc(
-        doc,
-        knownMaterials: <String>{'furnace', 'blast_furnace', 'smoker'},
-      );
-      expect(issues, isEmpty);
-    });
+    test(
+      'an exact material differing only in case from the catalog is not warned',
+      () {
+        // Regression for a real casing bug: match names are always written in
+        // Bukkit enum casing ("FURNACE"), but `HuiCatalogs.materialKeys` -
+        // exactly what `EditorStore` passes as `knownMaterials` - is lowercase
+        // ("furnace"). A case-sensitive membership check flagged every valid
+        // exact block name in every shipped document as unknown.
+        final HuiPreviewDoc doc = HuiPreviewDoc(
+          match: HuiPreviewMatch(blocks: <String>['FURNACE']),
+        );
+        final List<HuiIssue> issues = validatePreviewDoc(
+          doc,
+          knownMaterials: <String>{'furnace', 'blast_furnace', 'smoker'},
+        );
+        expect(issues, isEmpty);
+      },
+    );
 
     test('a glob matching nothing in a supplied catalog is an info', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(blocks: <String>['ZZZZ_NO_MATCH_*']),
       );
-      final List<HuiIssue> issues =
-          validatePreviewDoc(doc, knownMaterials: <String>{'chest', 'furnace'});
+      final List<HuiIssue> issues = validatePreviewDoc(
+        doc,
+        knownMaterials: <String>{'chest', 'furnace'},
+      );
       expect(issues.single.severity, HuiSeverity.info);
       expect(issues.single.path, 'match.blocks[0]');
     });
@@ -430,19 +532,24 @@ void main() {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(blocks: <String>['OAK_*']),
       );
-      final List<HuiIssue> issues =
-          validatePreviewDoc(doc, knownMaterials: <String>{'oak_log', 'furnace'});
+      final List<HuiIssue> issues = validatePreviewDoc(
+        doc,
+        knownMaterials: <String>{'oak_log', 'furnace'},
+      );
       expect(issues, isEmpty);
     });
 
     test('a non-scalar vars entry is an error', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
-        match: HuiPreviewMatch(vars: <String, dynamic>{
-          'bad': <int>[1, 2],
-        }),
+        match: HuiPreviewMatch(
+          vars: <String, dynamic>{
+            'bad': <int>[1, 2],
+          },
+        ),
       );
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'match.vars.bad');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'match.vars.bad');
       expect(issue.severity, HuiSeverity.error);
     });
 
@@ -450,8 +557,9 @@ void main() {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(vars: <String, dynamic>{'accent': '#GGGGGG'}),
       );
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'match.vars.accent');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'match.vars.accent');
       expect(issue.severity, HuiSeverity.error);
     });
 
@@ -479,37 +587,47 @@ void main() {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         elements: <HuiPreviewElement>[HuiPreviewElement('label', text: "'hi'")],
       );
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'match');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'match');
       expect(issue.severity, HuiSeverity.info);
     });
 
     test('a variant naming a block counts as non-empty match', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
-        variants: <HuiPreviewVariant>[HuiPreviewVariant(blocks: <String>['CHEST'])],
+        variants: <HuiPreviewVariant>[
+          HuiPreviewVariant(blocks: <String>['CHEST']),
+        ],
       );
-      expect(validatePreviewDoc(doc).where((HuiIssue i) => i.path == 'match'), isEmpty);
+      expect(
+        validatePreviewDoc(doc).where((HuiIssue i) => i.path == 'match'),
+        isEmpty,
+      );
     });
 
     test('division by zero in a constant field names the field path', () {
       final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
         HuiPreviewElement('cell', size: 4, color: 1, x: '1/0'),
       ]);
-      final HuiIssue issue =
-          validatePreviewDoc(doc).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'elements[0].x');
       expect(issue.severity, HuiSeverity.error);
       expect(issue.message, contains('division by zero'));
     });
 
-    test('an element with an invalid type still contributes to the issue list once', () {
-      final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
-        HuiPreviewElement('circle', x: 'noSuchThing'),
-      ]);
-      // Only the type error - fields of a document with an unrecognised type
-      // are never compiled by the plugin either, so the editor does not pile
-      // on with an unknown-variable error for a field that would never run.
-      expect(validatePreviewDoc(doc), hasLength(1));
-    });
+    test(
+      'an element with an invalid type still contributes to the issue list once',
+      () {
+        final HuiPreviewDoc doc = chestDoc(<HuiPreviewElement>[
+          HuiPreviewElement('circle', x: 'noSuchThing'),
+        ]);
+        // Only the type error - fields of a document with an unrecognised type
+        // are never compiled by the plugin either, so the editor does not pile
+        // on with an unknown-variable error for a field that would never run.
+        expect(validatePreviewDoc(doc), hasLength(1));
+      },
+    );
   });
 
   group('previewFlatCatalog / previewReservedNamespaces', () {
@@ -538,18 +656,26 @@ void main() {
 
     test('vars.<declared> is accepted, vars.<undeclared> is an error', () {
       expect(
-        previewCheckVariableName('vars.foo', declaredVars: const <String>{'foo'}),
+        previewCheckVariableName(
+          'vars.foo',
+          declaredVars: const <String>{'foo'},
+        ),
         isNull,
       );
-      final PreviewVarProblem? problem =
-          previewCheckVariableName('vars.bar', declaredVars: const <String>{'foo'});
+      final PreviewVarProblem? problem = previewCheckVariableName(
+        'vars.bar',
+        declaredVars: const <String>{'foo'},
+      );
       expect(problem?.severity, HuiSeverity.error);
     });
 
     test('a bare name in scope is accepted, out of scope is an error', () {
       expect(
-        previewCheckVariableName('i',
-            declaredVars: const <String>{}, scope: const <String>{'i'}),
+        previewCheckVariableName(
+          'i',
+          declaredVars: const <String>{},
+          scope: const <String>{'i'},
+        ),
         isNull,
       );
       expect(
@@ -558,16 +684,25 @@ void main() {
       );
     });
 
-    test('a reserved dotted prefix is an error, an unreserved one is a warning', () {
-      expect(
-        previewCheckVariableName('surge.bogus', declaredVars: const <String>{})?.severity,
-        HuiSeverity.error,
-      );
-      expect(
-        previewCheckVariableName('adapt.xp', declaredVars: const <String>{})?.severity,
-        HuiSeverity.warning,
-      );
-    });
+    test(
+      'a reserved dotted prefix is an error, an unreserved one is a warning',
+      () {
+        expect(
+          previewCheckVariableName(
+            'surge.bogus',
+            declaredVars: const <String>{},
+          )?.severity,
+          HuiSeverity.error,
+        );
+        expect(
+          previewCheckVariableName(
+            'adapt.xp',
+            declaredVars: const <String>{},
+          )?.severity,
+          HuiSeverity.warning,
+        );
+      },
+    );
   });
 
   group('previewCollectVarRefs', () {
@@ -577,8 +712,13 @@ void main() {
       );
       final Set<String> names = <String>{};
       previewCollectVarRefs(expr, names.add);
-      expect(names,
-          <String>{'cookTime', 'vars.a', 'surge.gain', 'i', 'adapt.xp'});
+      expect(names, <String>{
+        'cookTime',
+        'vars.a',
+        'surge.gain',
+        'i',
+        'adapt.xp',
+      });
     });
 
     test('a literal expression visits nothing', () {
@@ -591,7 +731,10 @@ void main() {
   group('previewIsConstantExpr', () {
     test('literals and pure arithmetic on them are constant', () {
       expect(previewIsConstantExpr(parsePreviewExpr('1 + 2 * 3')), isTrue);
-      expect(previewIsConstantExpr(parsePreviewExpr("true ? 'a' : 'b'")), isTrue);
+      expect(
+        previewIsConstantExpr(parsePreviewExpr("true ? 'a' : 'b'")),
+        isTrue,
+      );
     });
 
     test('a variable or a call anywhere makes the whole tree non-constant', () {
@@ -642,14 +785,17 @@ void main() {
   });
 
   group('previewSuggestExprTokens', () {
-    test('suggests a bare catalog name once the token reaches the minimum length', () {
-      final List<String> suggestions = previewSuggestExprTokens(
-        'coo',
-        declaredVars: const <String>{},
-        scope: const <String>{},
-      );
-      expect(suggestions, contains('cookTime'));
-    });
+    test(
+      'suggests a bare catalog name once the token reaches the minimum length',
+      () {
+        final List<String> suggestions = previewSuggestExprTokens(
+          'coo',
+          declaredVars: const <String>{},
+          scope: const <String>{},
+        );
+        expect(suggestions, contains('cookTime'));
+      },
+    );
 
     test('a bare token below the minimum length suggests nothing', () {
       // 't' is a prefix of the catalog's own "time", but a single bare
@@ -659,19 +805,29 @@ void main() {
       // catalog entries) was unreachable no matter how much was typed, and
       // this case proves the new gate does not swing to the other extreme.
       expect(
-        previewSuggestExprTokens('t', declaredVars: const <String>{}, scope: const <String>{}),
+        previewSuggestExprTokens(
+          't',
+          declaredVars: const <String>{},
+          scope: const <String>{},
+        ),
         isEmpty,
       );
     });
 
-    test('a dotted token fires immediately, even with nothing typed after the dot', () {
-      final List<String> suggestions = previewSuggestExprTokens(
-        'inventory.',
-        declaredVars: const <String>{},
-        scope: const <String>{},
-      );
-      expect(suggestions, containsAll(<String>['inventory.size', 'inventory.occupied']));
-    });
+    test(
+      'a dotted token fires immediately, even with nothing typed after the dot',
+      () {
+        final List<String> suggestions = previewSuggestExprTokens(
+          'inventory.',
+          declaredVars: const <String>{},
+          scope: const <String>{},
+        );
+        expect(
+          suggestions,
+          containsAll(<String>['inventory.size', 'inventory.occupied']),
+        );
+      },
+    );
 
     test('offers vars.<declared> and nothing else under the vars. prefix', () {
       final List<String> suggestions = previewSuggestExprTokens(
@@ -682,14 +838,17 @@ void main() {
       expect(suggestions, <String>['vars.accent']);
     });
 
-    test('offers a repeat variable from scope once it reaches the minimum length', () {
-      final List<String> suggestions = previewSuggestExprTokens(
-        'id',
-        declaredVars: const <String>{},
-        scope: const <String>{'idx'},
-      );
-      expect(suggestions, contains('idx'));
-    });
+    test(
+      'offers a repeat variable from scope once it reaches the minimum length',
+      () {
+        final List<String> suggestions = previewSuggestExprTokens(
+          'id',
+          declaredVars: const <String>{},
+          scope: const <String>{'idx'},
+        );
+        expect(suggestions, contains('idx'));
+      },
+    );
 
     test('excludes an exact match to the token but keeps a longer sibling', () {
       // "cookTime" is itself a complete catalog entry AND a strict prefix of
@@ -716,14 +875,22 @@ void main() {
 
     test('an empty draft suggests nothing', () {
       expect(
-        previewSuggestExprTokens('', declaredVars: const <String>{}, scope: const <String>{}),
+        previewSuggestExprTokens(
+          '',
+          declaredVars: const <String>{},
+          scope: const <String>{},
+        ),
         isEmpty,
       );
     });
 
     test('a token nothing starts with suggests nothing', () {
       expect(
-        previewSuggestExprTokens('zzqq', declaredVars: const <String>{}, scope: const <String>{}),
+        previewSuggestExprTokens(
+          'zzqq',
+          declaredVars: const <String>{},
+          scope: const <String>{},
+        ),
         isEmpty,
       );
     });

@@ -6,7 +6,8 @@
 library;
 
 import 'package:holoui_editor/config/defaults.dart';
-import 'package:holoui_editor/logic/preview_sim_controls.dart' show PreviewSimController;
+import 'package:holoui_editor/logic/preview_sim_controls.dart'
+    show PreviewSimController;
 import 'package:holoui_editor/logic/validation.dart' show HuiIssue, HuiSeverity;
 import 'package:holoui_editor/model/model.dart';
 import 'package:holoui_editor/state/editor_store.dart';
@@ -25,9 +26,9 @@ class _FakeStorage {
 }
 
 EditorStore _store(_FakeStorage storage) => EditorStore(
-      workspace: Workspace(read: storage.read, write: storage.write),
-      autosaveDelay: Duration.zero,
-    );
+  workspace: Workspace(read: storage.read, write: storage.write),
+  autosaveDelay: Duration.zero,
+);
 
 const String _previewJson = '''
 {
@@ -55,13 +56,16 @@ void main() {
       expect(store.previewDoc, isNull);
     });
 
-    test('a document with elements and no components switches to preview mode', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson);
-      expect(store.docKind, WorkspaceDocKind.containerPreview);
-      expect(store.previewDoc, isNotNull);
-      expect(store.previewDoc!.elements, hasLength(1));
-    });
+    test(
+      'a document with elements and no components switches to preview mode',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson);
+        expect(store.docKind, WorkspaceDocKind.containerPreview);
+        expect(store.previewDoc, isNotNull);
+        expect(store.previewDoc!.elements, hasLength(1));
+      },
+    );
 
     test('malformed JSON is refused and the active document is untouched', () {
       final EditorStore store = _store(_FakeStorage());
@@ -74,16 +78,19 @@ void main() {
       expect(reported, isNotNull);
     });
 
-    test('re-importing a menu after a preview import switches back cleanly', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson);
-      expect(store.docKind, WorkspaceDocKind.containerPreview);
+    test(
+      're-importing a menu after a preview import switches back cleanly',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson);
+        expect(store.docKind, WorkspaceDocKind.containerPreview);
 
-      store.importJson('shop.json', encodeHuiMenu(createDefaultMenu()));
-      expect(store.docKind, WorkspaceDocKind.menu);
-      expect(store.previewDoc, isNull);
-      expect(store.components, isNotEmpty);
-    });
+        store.importJson('shop.json', encodeHuiMenu(createDefaultMenu()));
+        expect(store.docKind, WorkspaceDocKind.menu);
+        expect(store.previewDoc, isNull);
+        expect(store.components, isNotEmpty);
+      },
+    );
 
     test('switching kind via import clears undo/redo', () {
       final EditorStore store = _store(_FakeStorage());
@@ -106,57 +113,75 @@ void main() {
     test('exports HuiPreviewDoc JSON once in preview mode', () {
       final EditorStore store = _store(_FakeStorage());
       store.importJson('furnace.json', _previewJson);
-      final HuiPreviewDoc roundTripped = decodeHuiPreviewDoc(store.exportJson());
+      final HuiPreviewDoc roundTripped = decodeHuiPreviewDoc(
+        store.exportJson(),
+      );
       expect(roundTripped.elements.length, 1);
     });
   });
 
   group('menu-editing API while a preview document is active', () {
-    test('mutate is a documented no-op instead of corrupting the stale menu', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson);
-      final int before = store.components.length;
-      store.mutate('add', (HuiMenu menu) {
-        menu.components.add(
-          HuiComponent('x', Vec3.zero(), HuiDecorationData(HuiTextIcon('x'))),
+    test(
+      'mutate is a documented no-op instead of corrupting the stale menu',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson);
+        final int before = store.components.length;
+        store.mutate('add', (HuiMenu menu) {
+          menu.components.add(
+            HuiComponent('x', Vec3.zero(), HuiDecorationData(HuiTextIcon('x'))),
+          );
+        });
+        expect(store.components.length, before);
+        expect(store.docKind, WorkspaceDocKind.containerPreview);
+      },
+    );
+
+    test(
+      'applyCode refuses menu JSON rather than emptying the preview doc',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson);
+        final bool applied = store.applyCode(
+          encodeHuiMenu(createDefaultMenu()),
         );
-      });
-      expect(store.components.length, before);
-      expect(store.docKind, WorkspaceDocKind.containerPreview);
-    });
+        expect(applied, isFalse);
+        expect(store.codeError, isNotNull);
+        expect(store.docKind, WorkspaceDocKind.containerPreview);
+        expect(store.previewDoc!.elements, hasLength(1));
+      },
+    );
 
-    test('applyCode refuses menu JSON rather than emptying the preview doc', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson);
-      final bool applied = store.applyCode(encodeHuiMenu(createDefaultMenu()));
-      expect(applied, isFalse);
-      expect(store.codeError, isNotNull);
-      expect(store.docKind, WorkspaceDocKind.containerPreview);
-      expect(store.previewDoc!.elements, hasLength(1));
-    });
-
-    test('validation reflects the preview document, not stale menu results', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson);
-      // `_previewJson` has no `match`, which earns the "will never be
-      // selected" info nudge (E7's document validator) but no error/warning.
-      expect(store.hasErrors, isFalse);
-      expect(
-        store.issues.every((HuiIssue issue) => issue.severity == HuiSeverity.info),
-        isTrue,
-      );
-    });
+    test(
+      'validation reflects the preview document, not stale menu results',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson);
+        // `_previewJson` has no `match`, which earns the "will never be
+        // selected" info nudge (E7's document validator) but no error/warning.
+        expect(store.hasErrors, isFalse);
+        expect(
+          store.issues.every(
+            (HuiIssue issue) => issue.severity == HuiSeverity.info,
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 
   group('newPreviewDocument / createDocumentFromPreview', () {
-    test('newPreviewDocument starts a fresh workspace entry in preview mode', () {
-      final EditorStore store = _store(_FakeStorage());
-      final int docsBefore = store.workspace.docs.length;
-      store.newPreviewDocument(name: 'my-card');
-      expect(store.docKind, WorkspaceDocKind.containerPreview);
-      expect(store.workspace.docs.length, docsBefore + 1);
-      expect(store.workspace.active?.kind, WorkspaceDocKind.containerPreview);
-    });
+    test(
+      'newPreviewDocument starts a fresh workspace entry in preview mode',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        final int docsBefore = store.workspace.docs.length;
+        store.newPreviewDocument(name: 'my-card');
+        expect(store.docKind, WorkspaceDocKind.containerPreview);
+        expect(store.workspace.docs.length, docsBefore + 1);
+        expect(store.workspace.active?.kind, WorkspaceDocKind.containerPreview);
+      },
+    );
 
     test('createDocumentFromPreview applies a template as a new document', () {
       final EditorStore store = _store(_FakeStorage());
@@ -244,7 +269,10 @@ void main() {
       store.importJson('furnace.json', _previewJson);
       final int imported = store.previewRevision;
 
-      store.mutatePreview('move', (HuiPreviewDoc doc) => doc.elements.first.x = 5);
+      store.mutatePreview(
+        'move',
+        (HuiPreviewDoc doc) => doc.elements.first.x = 5,
+      );
       final int edited = store.previewRevision;
       expect(edited, greaterThan(imported));
 
@@ -300,7 +328,10 @@ void main() {
       final EditorStore store = _store(_FakeStorage());
       store.importJson('furnace.json', _previewJson);
       store.selectPreviewElement(0);
-      store.mutatePreview('delete', (HuiPreviewDoc doc) => doc.elements.clear());
+      store.mutatePreview(
+        'delete',
+        (HuiPreviewDoc doc) => doc.elements.clear(),
+      );
       expect(store.previewSelectedIndex, isNull);
     });
 
@@ -342,25 +373,29 @@ void main() {
   });
 
   group('views available per document kind', () {
-    test('a menu keeps the original four and never offers the card surface',
-        () {
-      final EditorStore store = _store(_FakeStorage());
-      expect(store.availableViews, <EditorView>[
-        EditorView.visual,
-        EditorView.preview,
-        EditorView.code,
-        EditorView.split,
-      ]);
-      store.view = EditorView.previewCard;
-      expect(store.view, EditorView.visual);
-    });
+    test(
+      'a menu keeps the original four and never offers the card surface',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        expect(store.availableViews, <EditorView>[
+          EditorView.visual,
+          EditorView.preview,
+          EditorView.code,
+          EditorView.split,
+        ]);
+        store.view = EditorView.previewCard;
+        expect(store.view, EditorView.visual);
+      },
+    );
 
     test('a preview document lands on the card surface', () {
       final EditorStore store = _store(_FakeStorage());
       store.view = EditorView.preview;
       store.importJson('furnace.json', _previewJson);
-      expect(store.availableViews,
-          <EditorView>[EditorView.previewCard, EditorView.code]);
+      expect(store.availableViews, <EditorView>[
+        EditorView.previewCard,
+        EditorView.code,
+      ]);
       expect(store.view, EditorView.previewCard);
     });
 
@@ -449,7 +484,10 @@ void main() {
       store.importJson('furnace.json', _previewJson);
       store.duplicatePreviewElement(0);
       expect(store.previewDoc!.elements, hasLength(2));
-      expect(store.previewDoc!.elements[1].type, store.previewDoc!.elements[0].type);
+      expect(
+        store.previewDoc!.elements[1].type,
+        store.previewDoc!.elements[0].type,
+      );
       expect(store.previewSelectedIndex, 1);
     });
 
@@ -466,50 +504,69 @@ void main() {
       store.importJson('furnace.json', _previewJson);
       store.addPreviewElement('label');
       store.addPreviewElement('panel');
-      expect(store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
-          <String>['cell', 'label', 'panel']);
+      expect(
+        store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
+        <String>['cell', 'label', 'panel'],
+      );
 
       store.selectPreviewElement(0); // the cell being moved
       store.reorderPreviewElement(0, 2);
-      expect(store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
-          <String>['label', 'panel', 'cell']);
-      expect(store.previewSelectedIndex, 2); // followed the cell to its new slot
+      expect(
+        store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
+        <String>['label', 'panel', 'cell'],
+      );
+      expect(
+        store.previewSelectedIndex,
+        2,
+      ); // followed the cell to its new slot
     });
 
-    test('reorderPreviewElement leaves an unrelated selection in place, remapped', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson); // [cell]
-      store.addPreviewElement('label'); // [cell, label]
-      store.addPreviewElement('panel'); // [cell, label, panel]
-      expect(store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
-          <String>['cell', 'label', 'panel']);
+    test(
+      'reorderPreviewElement leaves an unrelated selection in place, remapped',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson); // [cell]
+        store.addPreviewElement('label'); // [cell, label]
+        store.addPreviewElement('panel'); // [cell, label, panel]
+        expect(
+          store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
+          <String>['cell', 'label', 'panel'],
+        );
 
-      // panel (index 2) is selected; moving cell (index 0) forward to index 2
-      // must NOT steal the selection onto cell - panel just shifts to index 1.
-      store.selectPreviewElement(2);
-      store.reorderPreviewElement(0, 2);
-      expect(store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
-          <String>['label', 'panel', 'cell']);
-      expect(store.previewSelectedIndex, 1);
-      expect(store.previewSelectedElement!.type, 'panel');
-    });
+        // panel (index 2) is selected; moving cell (index 0) forward to index 2
+        // must NOT steal the selection onto cell - panel just shifts to index 1.
+        store.selectPreviewElement(2);
+        store.reorderPreviewElement(0, 2);
+        expect(
+          store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
+          <String>['label', 'panel', 'cell'],
+        );
+        expect(store.previewSelectedIndex, 1);
+        expect(store.previewSelectedElement!.type, 'panel');
+      },
+    );
 
-    test('reorderPreviewElement remaps a selection caught between the endpoints', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson); // [cell]
-      store.addPreviewElement('label'); // [cell, label]
-      store.addPreviewElement('panel'); // [cell, label, panel]
-      store.addPreviewElement('slot'); // [cell, label, panel, slot]
+    test(
+      'reorderPreviewElement remaps a selection caught between the endpoints',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson); // [cell]
+        store.addPreviewElement('label'); // [cell, label]
+        store.addPreviewElement('panel'); // [cell, label, panel]
+        store.addPreviewElement('slot'); // [cell, label, panel, slot]
 
-      // Moving panel (index 2) backward to index 0 shifts cell and label
-      // (indices 0 and 1, strictly between the endpoints) forward by one.
-      store.selectPreviewElement(1); // label
-      store.reorderPreviewElement(2, 0);
-      expect(store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
-          <String>['panel', 'cell', 'label', 'slot']);
-      expect(store.previewSelectedIndex, 2);
-      expect(store.previewSelectedElement!.type, 'label');
-    });
+        // Moving panel (index 2) backward to index 0 shifts cell and label
+        // (indices 0 and 1, strictly between the endpoints) forward by one.
+        store.selectPreviewElement(1); // label
+        store.reorderPreviewElement(2, 0);
+        expect(
+          store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
+          <String>['panel', 'cell', 'label', 'slot'],
+        );
+        expect(store.previewSelectedIndex, 2);
+        expect(store.previewSelectedElement!.type, 'label');
+      },
+    );
 
     test('reorderPreviewElement with nothing selected selects nothing', () {
       final EditorStore store = _store(_FakeStorage());
@@ -528,40 +585,50 @@ void main() {
       expect(store.previewDoc!.elements.last.type, 'label');
     });
 
-    test('deletePreviewElement removes the element and clears its own selection', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson);
-      store.selectPreviewElement(0);
-      store.deletePreviewElement(0);
-      expect(store.previewDoc!.elements, isEmpty);
-      expect(store.previewSelectedIndex, isNull);
-      expect(store.canUndo, isTrue);
+    test(
+      'deletePreviewElement removes the element and clears its own selection',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson);
+        store.selectPreviewElement(0);
+        store.deletePreviewElement(0);
+        expect(store.previewDoc!.elements, isEmpty);
+        expect(store.previewSelectedIndex, isNull);
+        expect(store.canUndo, isTrue);
 
-      expect(store.performUndo(), isTrue);
-      expect(store.previewDoc!.elements, hasLength(1));
-    });
+        expect(store.performUndo(), isTrue);
+        expect(store.previewDoc!.elements, hasLength(1));
+      },
+    );
 
-    test('deletePreviewElement shifts a later selection down instead of drifting', () {
-      // The exact repro from review: [panel, cell, label], select index 1
-      // (cell), delete index 0 (panel). Before the fix this left
-      // `previewSelectedIndex` at the stale value 1 - now `label`, not
-      // `cell` - and the inspector's `ValueKey<int>(index)` carried its draft
-      // state onto the wrong element on top of that.
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson); // [cell]
-      store.addPreviewElement('label'); // [cell, label]
-      store.addPreviewElement('panel'); // [cell, label, panel]
-      store.reorderPreviewElement(2, 0); // -> [panel, cell, label]
-      expect(store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
-          <String>['panel', 'cell', 'label']);
+    test(
+      'deletePreviewElement shifts a later selection down instead of drifting',
+      () {
+        // The exact repro from review: [panel, cell, label], select index 1
+        // (cell), delete index 0 (panel). Before the fix this left
+        // `previewSelectedIndex` at the stale value 1 - now `label`, not
+        // `cell` - and the inspector's `ValueKey<int>(index)` carried its draft
+        // state onto the wrong element on top of that.
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson); // [cell]
+        store.addPreviewElement('label'); // [cell, label]
+        store.addPreviewElement('panel'); // [cell, label, panel]
+        store.reorderPreviewElement(2, 0); // -> [panel, cell, label]
+        expect(
+          store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
+          <String>['panel', 'cell', 'label'],
+        );
 
-      store.selectPreviewElement(1); // cell
-      store.deletePreviewElement(0); // delete panel
-      expect(store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
-          <String>['cell', 'label']);
-      expect(store.previewSelectedIndex, 0);
-      expect(store.previewSelectedElement!.type, 'cell');
-    });
+        store.selectPreviewElement(1); // cell
+        store.deletePreviewElement(0); // delete panel
+        expect(
+          store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
+          <String>['cell', 'label'],
+        );
+        expect(store.previewSelectedIndex, 0);
+        expect(store.previewSelectedElement!.type, 'cell');
+      },
+    );
 
     test('deletePreviewElement leaves an earlier selection untouched', () {
       final EditorStore store = _store(_FakeStorage());
@@ -571,24 +638,31 @@ void main() {
 
       store.selectPreviewElement(0); // cell
       store.deletePreviewElement(2); // delete panel, after the selection
-      expect(store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
-          <String>['cell', 'label']);
+      expect(
+        store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
+        <String>['cell', 'label'],
+      );
       expect(store.previewSelectedIndex, 0);
       expect(store.previewSelectedElement!.type, 'cell');
     });
 
-    test('deletePreviewElement of the selected element among several clears it', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson); // [cell]
-      store.addPreviewElement('label'); // [cell, label]
-      store.addPreviewElement('panel'); // [cell, label, panel]
+    test(
+      'deletePreviewElement of the selected element among several clears it',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson); // [cell]
+        store.addPreviewElement('label'); // [cell, label]
+        store.addPreviewElement('panel'); // [cell, label, panel]
 
-      store.selectPreviewElement(1); // label
-      store.deletePreviewElement(1); // delete label itself
-      expect(store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
-          <String>['cell', 'panel']);
-      expect(store.previewSelectedIndex, isNull);
-    });
+        store.selectPreviewElement(1); // label
+        store.deletePreviewElement(1); // delete label itself
+        expect(
+          store.previewDoc!.elements.map((HuiPreviewElement e) => e.type),
+          <String>['cell', 'panel'],
+        );
+        expect(store.previewSelectedIndex, isNull);
+      },
+    );
 
     test('deletePreviewElement ignores an out-of-range index', () {
       final EditorStore store = _store(_FakeStorage());
@@ -617,20 +691,23 @@ void main() {
   });
 
   group('previewSim ownership', () {
-    test('a sim edit notifies without touching previewRevision or dirtying the document', () {
-      final EditorStore store = _store(_FakeStorage());
-      store.importJson('furnace.json', _previewJson);
-      final int revisionBefore = store.previewRevision;
-      final bool dirtyBefore = store.hasUnsavedChanges;
-      int notifications = 0;
-      store.addListener(() => notifications++);
+    test(
+      'a sim edit notifies without touching previewRevision or dirtying the document',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        store.importJson('furnace.json', _previewJson);
+        final int revisionBefore = store.previewRevision;
+        final bool dirtyBefore = store.hasUnsavedChanges;
+        int notifications = 0;
+        store.addListener(() => notifications++);
 
-      store.previewSim.tick(20);
+        store.previewSim.tick(20);
 
-      expect(notifications, greaterThan(0));
-      expect(store.previewRevision, revisionBefore);
-      expect(store.hasUnsavedChanges, dirtyBefore);
-    });
+        expect(notifications, greaterThan(0));
+        expect(store.previewRevision, revisionBefore);
+        expect(store.hasUnsavedChanges, dirtyBefore);
+      },
+    );
 
     test('the same controller instance persists across a document edit', () {
       final EditorStore store = _store(_FakeStorage());

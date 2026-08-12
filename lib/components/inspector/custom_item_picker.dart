@@ -45,6 +45,7 @@ class CustomItemIconEditor extends StatelessWidget {
         provider ?? icon.provider,
         item ?? icon.item,
         count ?? icon.count,
+        icon.style?.copy(),
       )..extras = huiDeepCopyMap(icon.extras);
 
   /// Auto-detect first, then the adapters in declaration order. A provider the

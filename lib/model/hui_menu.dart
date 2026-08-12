@@ -34,8 +34,8 @@ class HuiMenu {
     this.closeOnDeath = false,
     this.closeOnTeleport = false,
     List<HuiComponent>? components,
-  })  : offset = offset ?? Vec3.zero(),
-        components = components ?? <HuiComponent>[];
+  }) : offset = offset ?? Vec3.zero(),
+       components = components ?? <HuiComponent>[];
 
   HuiComponent? componentById(String id) {
     for (final HuiComponent component in components) {
@@ -48,14 +48,14 @@ class HuiMenu {
       components.indexWhere((HuiComponent c) => c.id == id);
 
   HuiMenu copy() => HuiMenu(
-        offset: offset.copy(),
-        lockPosition: lockPosition,
-        followPlayer: followPlayer,
-        maxDistance: maxDistance,
-        closeOnDeath: closeOnDeath,
-        closeOnTeleport: closeOnTeleport,
-        components: components.map((HuiComponent c) => c.copy()).toList(),
-      )..extras = huiDeepCopyMap(extras);
+    offset: offset.copy(),
+    lockPosition: lockPosition,
+    followPlayer: followPlayer,
+    maxDistance: maxDistance,
+    closeOnDeath: closeOnDeath,
+    closeOnTeleport: closeOnTeleport,
+    components: components.map((HuiComponent c) => c.copy()).toList(),
+  )..extras = huiDeepCopyMap(extras);
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> out = <String, dynamic>{
@@ -66,8 +66,7 @@ class HuiMenu {
     if (maxDistance != null) out['maxDistance'] = maxDistance;
     out['closeOnDeath'] = closeOnDeath;
     out['closeOnTeleport'] = closeOnTeleport;
-    out['components'] =
-        components.map((HuiComponent c) => c.toJson()).toList();
+    out['components'] = components.map((HuiComponent c) => c.toJson()).toList();
     return huiMergeExtras(out, extras);
   }
 
@@ -94,14 +93,14 @@ class HuiMenu {
       components.add(HuiComponent.fromJson(entry, path: 'components[$i]'));
     }
     return HuiMenu(
-      offset: Vec3.fromJson(map['offset']),
-      lockPosition: huiReadBool(map, 'lockPosition'),
-      followPlayer: huiReadBool(map, 'followPlayer'),
-      maxDistance: huiReadDoubleOrNull(map, 'maxDistance'),
-      closeOnDeath: huiReadBool(map, 'closeOnDeath'),
-      closeOnTeleport: huiReadBool(map, 'closeOnTeleport'),
-      components: components,
-    )
+        offset: Vec3.fromJson(map['offset']),
+        lockPosition: huiReadBool(map, 'lockPosition'),
+        followPlayer: huiReadBool(map, 'followPlayer'),
+        maxDistance: huiReadDoubleOrNull(map, 'maxDistance'),
+        closeOnDeath: huiReadBool(map, 'closeOnDeath'),
+        closeOnTeleport: huiReadBool(map, 'closeOnTeleport'),
+        components: components,
+      )
       ..extras = huiCollectExtras(map, _known)
       ..absentKeys = <String>{
         if (map['offset'] == null) 'offset',

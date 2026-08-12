@@ -13,5 +13,4 @@ void Function() installPaneSplitter({
   required void Function() onDragEnd,
   required void Function() onReset,
   required void Function(String key, bool shift) onKey,
-}) =>
-    () {};
+}) => () {};

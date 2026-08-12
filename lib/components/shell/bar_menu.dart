@@ -95,131 +95,142 @@ class _BarMenuState extends State<BarMenu> {
     if (_open == open) return;
     setState(() => _open = open);
     context.binding.addPostFrameCallback(() {
-      final web.Element? target =
-          web.document.getElementById(open ? component.id : _triggerId);
+      final web.Element? target = web.document.getElementById(
+        open ? component.id : _triggerId,
+      );
       (target as web.HTMLElement?)?.focus();
     });
   }
 
   @override
   Widget build(BuildContext context) => dom.div(
-        classes: 'hui-bar-menu',
-        styles: const dom.Styles(raw: <String, String>{
-          'position': 'relative',
-          'display': 'inline-flex',
-        }),
-        // Escape is caught on the wrapper rather than the menu: closing returns
-        // focus to the trigger, which is a sibling of the menu, so a handler
-        // bound to the menu alone would miss the key on the way back.
-        events: _open
-            ? <String, EventCallback>{
-                'keydown': (Object event) {
-                  if (domEventKey(event) != 'Escape') return;
-                  domStopPropagation(event);
-                  _setOpen(false);
-                },
-              }
-            : null,
-        <Widget>[
-          Button.ghost(
-            // Keyed on the state it reports: Arcane's Button renders its
-            // `attributes` one build behind, so an unkeyed `aria-expanded` is
-            // always the previous value.
-            key: ValueKey<bool>(_open),
-            id: _triggerId,
-            size: ButtonSize.iconSm,
-            icon: component.triggerIcon,
-            attributes: <String, String>{
-              'aria-haspopup': 'menu',
-              'aria-expanded': _open ? 'true' : 'false',
-              'aria-controls': component.id,
-              'aria-label': component.triggerLabel,
-              // The legacy accordion binder claims every `button[aria-expanded]`
-              // in a one-shot scan and writes `display` onto the next sibling.
-              // This is its own opt-out (`accordion_scripts.dart:8`).
-              'data-arcane-interactive': 'true',
+    classes: 'hui-bar-menu',
+    styles: const dom.Styles(
+      raw: <String, String>{'position': 'relative', 'display': 'inline-flex'},
+    ),
+    // Escape is caught on the wrapper rather than the menu: closing returns
+    // focus to the trigger, which is a sibling of the menu, so a handler
+    // bound to the menu alone would miss the key on the way back.
+    events: _open
+        ? <String, EventCallback>{
+            'keydown': (Object event) {
+              if (domEventKey(event) != 'Escape') return;
+              domStopPropagation(event);
+              _setOpen(false);
             },
-            onPressed: () => _setOpen(!_open),
-          ),
-          if (_open) ..._menu(),
-        ],
-      );
+          }
+        : null,
+    <Widget>[
+      Button.ghost(
+        // Keyed on the state it reports: Arcane's Button renders its
+        // `attributes` one build behind, so an unkeyed `aria-expanded` is
+        // always the previous value.
+        key: ValueKey<bool>(_open),
+        id: _triggerId,
+        size: ButtonSize.iconSm,
+        icon: component.triggerIcon,
+        attributes: <String, String>{
+          'aria-haspopup': 'menu',
+          'aria-expanded': _open ? 'true' : 'false',
+          'aria-controls': component.id,
+          'aria-label': component.triggerLabel,
+          // The legacy accordion binder claims every `button[aria-expanded]`
+          // in a one-shot scan and writes `display` onto the next sibling.
+          // This is its own opt-out (`accordion_scripts.dart:8`).
+          'data-arcane-interactive': 'true',
+        },
+        onPressed: () => _setOpen(!_open),
+      ),
+      if (_open) ..._menu(),
+    ],
+  );
 
   List<Widget> _menu() => <Widget>[
-        dom.div(
-          styles: const dom.Styles(raw: <String, String>{
-            'position': 'fixed',
-            'inset': '0',
-            'z-index': '60',
-          }),
-          attributes: const <String, String>{'aria-hidden': 'true'},
-          events: <String, EventCallback>{
-            // Dismissing by clicking away leaves focus alone: the pointer has
-            // already moved on.
-            'pointerdown': (Object _) => setState(() => _open = false),
-          },
-          const <Widget>[],
-        ),
-        dom.div(
-          id: component.id,
-          classes: 'hui-bar-menu-panel hui-anim-in',
-          styles: dom.Styles(raw: <String, String>{
-            'position': 'absolute',
-            'z-index': '61',
-            'top': 'calc(100% + 4px)',
-            if (component.align == BarMenuAlign.left) 'left': '0' else 'right': '0',
-            'min-width': '${component.width}px',
-            'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '1px',
-            'padding': '5px',
-            'border': '1px solid var(--hui-border)',
-            'border-radius': 'var(--hui-radius)',
-            'background': 'var(--hui-surface-raised)',
-            'box-shadow': 'var(--hui-shadow-md)',
-          }),
-          attributes: <String, String>{
-            'role': 'menu',
-            'aria-label': component.triggerLabel,
-            // Focused on open so the Escape handler is reachable; never in the
-            // Tab order, which is what -1 buys over 0.
-            'tabindex': '-1',
-          },
-          <Widget>[
-            for (final BarMenuEntry entry in component.entries()) _row(entry),
-          ],
-        ),
-      ];
+    dom.div(
+      styles: const dom.Styles(
+        raw: <String, String>{
+          'position': 'fixed',
+          'inset': '0',
+          'z-index': '60',
+        },
+      ),
+      attributes: const <String, String>{'aria-hidden': 'true'},
+      events: <String, EventCallback>{
+        // Dismissing by clicking away leaves focus alone: the pointer has
+        // already moved on.
+        'pointerdown': (Object _) => setState(() => _open = false),
+      },
+      const <Widget>[],
+    ),
+    dom.div(
+      id: component.id,
+      classes: 'hui-bar-menu-panel hui-anim-in',
+      styles: dom.Styles(
+        raw: <String, String>{
+          'position': 'absolute',
+          'z-index': '61',
+          'top': 'calc(100% + 4px)',
+          if (component.align == BarMenuAlign.left)
+            'left': '0'
+          else
+            'right': '0',
+          'min-width': '${component.width}px',
+          'display': 'flex',
+          'flex-direction': 'column',
+          'gap': '1px',
+          'padding': '5px',
+          'border': '1px solid var(--hui-border)',
+          'border-radius': 'var(--hui-radius)',
+          'background': 'var(--hui-surface-raised)',
+          'box-shadow': 'var(--hui-shadow-md)',
+        },
+      ),
+      attributes: <String, String>{
+        'role': 'menu',
+        'aria-label': component.triggerLabel,
+        // Focused on open so the Escape handler is reachable; never in the
+        // Tab order, which is what -1 buys over 0.
+        'tabindex': '-1',
+      },
+      <Widget>[
+        for (final BarMenuEntry entry in component.entries()) _row(entry),
+      ],
+    ),
+  ];
 
   Widget _row(BarMenuEntry entry) => switch (entry) {
-        BarMenuHeading(label: final String label) => dom.div(
-            styles: const dom.Styles(raw: <String, String>{
-              'padding': '5px 8px 3px',
-              'color': 'var(--hui-muted)',
-              'font-size': '0.66rem',
-              'font-weight': '680',
-              'letter-spacing': '0.09em',
-              'text-transform': 'uppercase',
-            }),
-            <Widget>[Text(label)],
-          ),
-        BarMenuSeparator() => const dom.div(
-            styles: dom.Styles(raw: <String, String>{
-              'height': '1px',
-              'margin': '4px 2px',
-              'background': 'var(--hui-border-soft)',
-            }),
-            attributes: <String, String>{'role': 'separator'},
-            <Widget>[],
-          ),
-        BarMenuAction(
-          label: final String label,
-          icon: final Widget? icon,
-          onSelect: final void Function()? onSelect,
-          destructive: final bool destructive,
-        ) =>
-          _action(label, icon, onSelect, destructive),
-      };
+    BarMenuHeading(label: final String label) => dom.div(
+      styles: const dom.Styles(
+        raw: <String, String>{
+          'padding': '5px 8px 3px',
+          'color': 'var(--hui-muted)',
+          'font-size': '0.66rem',
+          'font-weight': '680',
+          'letter-spacing': '0.09em',
+          'text-transform': 'uppercase',
+        },
+      ),
+      <Widget>[Text(label)],
+    ),
+    BarMenuSeparator() => const dom.div(
+      styles: dom.Styles(
+        raw: <String, String>{
+          'height': '1px',
+          'margin': '4px 2px',
+          'background': 'var(--hui-border-soft)',
+        },
+      ),
+      attributes: <String, String>{'role': 'separator'},
+      <Widget>[],
+    ),
+    BarMenuAction(
+      label: final String label,
+      icon: final Widget? icon,
+      onSelect: final void Function()? onSelect,
+      destructive: final bool destructive,
+    ) =>
+      _action(label, icon, onSelect, destructive),
+  };
 
   Widget _action(
     String label,
@@ -230,22 +241,24 @@ class _BarMenuState extends State<BarMenu> {
     final bool disabled = onSelect == null;
     return dom.button(
       classes: 'hui-bar-menu-item',
-      styles: dom.Styles(raw: <String, String>{
-        'display': 'flex',
-        'align-items': 'center',
-        'gap': '8px',
-        'width': '100%',
-        'padding': '6px 8px',
-        'border': '0',
-        'border-radius': 'calc(var(--hui-radius) - 3px)',
-        'background': 'transparent',
-        'color': destructive ? 'var(--hui-danger)' : 'var(--hui-text)',
-        'font': 'inherit',
-        'font-size': '0.8rem',
-        'text-align': 'left',
-        'cursor': disabled ? 'default' : 'pointer',
-        'opacity': disabled ? '0.45' : '1',
-      }),
+      styles: dom.Styles(
+        raw: <String, String>{
+          'display': 'flex',
+          'align-items': 'center',
+          'gap': '8px',
+          'width': '100%',
+          'padding': '6px 8px',
+          'border': '0',
+          'border-radius': 'calc(var(--hui-radius) - 3px)',
+          'background': 'transparent',
+          'color': destructive ? 'var(--hui-danger)' : 'var(--hui-text)',
+          'font': 'inherit',
+          'font-size': '0.8rem',
+          'text-align': 'left',
+          'cursor': disabled ? 'default' : 'pointer',
+          'opacity': disabled ? '0.45' : '1',
+        },
+      ),
       attributes: <String, String>{
         'type': 'button',
         'role': 'menuitem',
@@ -263,12 +276,14 @@ class _BarMenuState extends State<BarMenu> {
       },
       <Widget>[
         dom.span(
-          styles: const dom.Styles(raw: <String, String>{
-            'flex': '0 0 auto',
-            'display': 'inline-flex',
-            'width': '18px',
-            'justify-content': 'center',
-          }),
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'flex': '0 0 auto',
+              'display': 'inline-flex',
+              'width': '18px',
+              'justify-content': 'center',
+            },
+          ),
           attributes: const <String, String>{'aria-hidden': 'true'},
           <Widget>[?icon],
         ),

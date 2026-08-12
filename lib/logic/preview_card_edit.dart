@@ -121,22 +121,21 @@ class PreviewCardView {
 
   double toCardY(double screenY) => (originY - screenY) / zoom;
 
-  PreviewCardView resized(double width, double height) =>
-      PreviewCardView(
-        widthPx: width,
-        heightPx: height,
-        zoom: zoom,
-        panX: panX,
-        panY: panY,
-      );
+  PreviewCardView resized(double width, double height) => PreviewCardView(
+    widthPx: width,
+    heightPx: height,
+    zoom: zoom,
+    panX: panX,
+    panY: panY,
+  );
 
   PreviewCardView pannedBy(double dxPx, double dyPx) => PreviewCardView(
-        widthPx: widthPx,
-        heightPx: heightPx,
-        zoom: zoom,
-        panX: panX + dxPx,
-        panY: panY + dyPx,
-      );
+    widthPx: widthPx,
+    heightPx: heightPx,
+    zoom: zoom,
+    panX: panX + dxPx,
+    panY: panY + dyPx,
+  );
 
   PreviewCardView reset() =>
       PreviewCardView(widthPx: widthPx, heightPx: heightPx);
@@ -219,18 +218,18 @@ class PreviewBox {
       x >= left && x <= right && y >= bottom && y <= top;
 
   PreviewBox inflate(double amount) => PreviewBox(
-        left: left - amount,
-        bottom: bottom - amount,
-        right: right + amount,
-        top: top + amount,
-      );
+    left: left - amount,
+    bottom: bottom - amount,
+    right: right + amount,
+    top: top + amount,
+  );
 
   PreviewBox union(PreviewBox other) => PreviewBox(
-        left: math.min(left, other.left),
-        bottom: math.min(bottom, other.bottom),
-        right: math.max(right, other.right),
-        top: math.max(top, other.top),
-      );
+    left: math.min(left, other.left),
+    bottom: math.min(bottom, other.bottom),
+    right: math.max(right, other.right),
+    top: math.max(top, other.top),
+  );
 }
 
 /// The drawn extent of one item.
@@ -272,8 +271,8 @@ PreviewBox previewItemBox(CardItem item, {double? labelWidth}) {
 double previewLabelWidth(CardLabel label) {
   double total = 0;
   for (final McSpan run in label.text) {
-    total += run.text.runes.length *
-        (previewGlyphAdvancePx + (run.bold ? 1 : 0));
+    total +=
+        run.text.runes.length * (previewGlyphAdvancePx + (run.bold ? 1 : 0));
   }
   return total;
 }
@@ -285,8 +284,10 @@ PreviewBox? previewSceneBounds(
 }) {
   PreviewBox? bounds;
   for (int i = 0; i < scene.items.length; i++) {
-    final PreviewBox box =
-        previewItemBox(scene.items[i], labelWidth: _labelWidthAt(labelWidths, i));
+    final PreviewBox box = previewItemBox(
+      scene.items[i],
+      labelWidth: _labelWidthAt(labelWidths, i),
+    );
     bounds = bounds == null ? box : bounds.union(box);
   }
   return bounds;
@@ -294,8 +295,8 @@ PreviewBox? previewSceneBounds(
 
 double? _labelWidthAt(List<double>? widths, int index) =>
     widths == null || index >= widths.length || widths[index] <= 0
-        ? null
-        : widths[index];
+    ? null
+    : widths[index];
 
 // ---------------------------------------------------------------------------
 // Hit model
@@ -307,8 +308,10 @@ double? _labelWidthAt(List<double>? widths, int index) =>
 /// chrome and a document panel both sit at z 1 and the chrome has to stay
 /// behind.
 List<int> previewPaintOrder(PreviewCardScene scene) {
-  final List<int> order =
-      List<int>.generate(scene.items.length, (int index) => index);
+  final List<int> order = List<int>.generate(
+    scene.items.length,
+    (int index) => index,
+  );
   order.sort((int a, int b) {
     final int byZ = scene.items[a].z.compareTo(scene.items[b].z);
     return byZ != 0 ? byZ : a.compareTo(b);
@@ -319,8 +322,8 @@ List<int> previewPaintOrder(PreviewCardScene scene) {
 /// Which element emitted [itemIndex], or -1 for card chrome.
 int previewElementIndexOf(PreviewCardScene scene, int itemIndex) =>
     itemIndex < 0 || itemIndex >= scene.sources.length
-        ? -1
-        : scene.sources[itemIndex];
+    ? -1
+    : scene.sources[itemIndex];
 
 /// Every item [elementIndex] emitted — one per `repeat` instance.
 List<int> previewItemsForElement(PreviewCardScene scene, int elementIndex) =>
@@ -390,8 +393,8 @@ class PreviewPoint {
 /// Why [element] cannot be dragged, or null when it can be.
 String? previewMoveRefusal(HuiPreviewElement element) =>
     previewIsConstant(element.x) && previewIsConstant(element.y)
-        ? null
-        : previewExpressionMoveHint;
+    ? null
+    : previewExpressionMoveHint;
 
 /// Where a drag of ([dxCard], [dyCard]) card pixels lands, measured from
 /// [element]'s current position. This is the arrow-key path: each nudge is a
@@ -404,12 +407,11 @@ PreviewPoint previewMoveTarget(
   HuiPreviewElement element, {
   required double dxCard,
   required double dyCard,
-}) =>
-    previewMoveFrom(
-      PreviewPoint(previewConstantInt(element.x), previewConstantInt(element.y)),
-      dxCard: dxCard,
-      dyCard: dyCard,
-    );
+}) => previewMoveFrom(
+  PreviewPoint(previewConstantInt(element.x), previewConstantInt(element.y)),
+  dxCard: dxCard,
+  dyCard: dyCard,
+);
 
 /// Where a drag of ([dxCard], [dyCard]) lands, measured from [start].
 ///
@@ -421,8 +423,7 @@ PreviewPoint previewMoveFrom(
   PreviewPoint start, {
   required double dxCard,
   required double dyCard,
-}) =>
-    PreviewPoint((start.x + dxCard).round(), (start.y + dyCard).round());
+}) => PreviewPoint((start.x + dxCard).round(), (start.y + dyCard).round());
 
 enum PreviewHandle { topLeft, topRight, bottomLeft, bottomRight }
 
@@ -512,10 +513,8 @@ PreviewResize? previewResizeTarget({
   };
   final double signX = cardX >= anchorX ? 1 : -1;
   final double signY = cardY >= anchorY ? 1 : -1;
-  final int spanX =
-      math.max(minSize, (cardX - anchorX).abs().round()).toInt();
-  final int spanY =
-      math.max(minSize, (cardY - anchorY).abs().round()).toInt();
+  final int spanX = math.max(minSize, (cardX - anchorX).abs().round()).toInt();
+  final int spanY = math.max(minSize, (cardY - anchorY).abs().round()).toInt();
 
   if (element.type == 'panel') {
     return PreviewResize(
@@ -541,8 +540,9 @@ PreviewResize? previewResizeTarget({
 
 /// Whole-word match on any variable [PreviewSim.tick] moves. Built once: the
 /// surface asks this question on every document revision.
-final RegExp _previewTickVaryingPattern =
-    RegExp('\\b(?:${previewTickVaryingVariables.join('|')})\\b');
+final RegExp _previewTickVaryingPattern = RegExp(
+  '\\b(?:${previewTickVaryingVariables.join('|')})\\b',
+);
 
 /// True when anything in [doc] reads a variable the simulation clock moves —
 /// which is to say, when running the clock would actually change the picture.

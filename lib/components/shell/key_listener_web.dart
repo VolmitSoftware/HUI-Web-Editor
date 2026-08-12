@@ -60,7 +60,8 @@ bool isApplePlatform() {
 /// button, `P` left the view on Visual; moved away, the same key switched to
 /// Preview. Anything not listed here still stands the shell down, so a new
 /// modal surface type is safe by default.
-const String _passiveSurfaces = ':not([data-arcane-surface="hovercard"])'
+const String _passiveSurfaces =
+    ':not([data-arcane-surface="hovercard"])'
     ':not([data-arcane-surface="tooltip"])';
 
 /// True while an Arcane surface that owns the keyboard is open — a dialog,
