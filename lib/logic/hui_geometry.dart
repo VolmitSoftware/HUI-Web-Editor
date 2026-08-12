@@ -359,9 +359,7 @@ HuiRect hitboxAt({
       ? chars * characterWidth / 2
       : _safeDimension(override!.width!) * scale;
   final double height = !customSize
-      ? shape.kind == IconShapeKind.image
-            ? math.max(0, lines - 1) * lineHeight
-            : lines * lineHeight
+      ? lines * lineHeight
       : _safeDimension(override!.height!) * scale;
   return HuiRect(
     x: anchorX,

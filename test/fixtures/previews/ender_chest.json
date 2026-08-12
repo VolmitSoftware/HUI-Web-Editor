@@ -1,0 +1,30 @@
+{
+  "match": {
+    "blocks": ["ENDER_CHEST"],
+    "special": "enderChest",
+    "priority": 10,
+    "vars": {
+      "cols": 9,
+      "maxRows": 6,
+      "titleKey": "holoui.preview.theme.title.ender_chest",
+      "accent": "#B152DA"
+    }
+  },
+  "card": {
+    "title": "'&f&l' + plain(lang(vars.titleKey))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    {
+      "type": "slot",
+      "repeat": {
+        "count": "min(vars.cols * clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows), inventory.size)",
+        "var": "i"
+      },
+      "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
+      "y": "round(((clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows) - 1) / 2 - floor(i / vars.cols)) * 20)",
+      "size": 18,
+      "index": "i"
+    }
+  ]
+}

@@ -596,8 +596,11 @@ bool _readsClock(Object? raw) =>
 /// looks broken and one that looks right.
 String previewAutoSimCategory(HuiPreviewDoc doc) {
   final String? special = doc.match.special;
-  // A `special` document (the locked card) is drawn with no target at all.
-  if (special != null && special.isNotEmpty) return 'statics';
+  if (special == 'locked') return 'statics';
+  if (special == 'enderChest') return 'enderChest';
+  if (special == 'anyInventoryHolder') {
+    return doc.match.entities.isNotEmpty ? 'entity' : 'chest';
+  }
   for (final String block in doc.match.blocks) {
     final String name = block.toUpperCase();
     if (name.contains('FURNACE') || name.contains('SMOKER')) return 'furnace';

@@ -1,0 +1,59 @@
+{
+  "match": {
+    "entities": ["CHEST_MINECART", "HOPPER_MINECART", "*_CHEST_BOAT", "*_CHEST_RAFT"],
+    "special": "anyInventoryHolder",
+    "priority": 10,
+    "vars": {
+      "cols": 9,
+      "maxRows": 6,
+      "slots": 5,
+      "row": false,
+      "titleKey": "holoui.preview.theme.title.mobile",
+      "accent": "#A6ACB6"
+    }
+  },
+  "variants": [
+    {
+      "entities": ["HOPPER_MINECART"],
+      "vars": {
+        "row": true,
+        "titleKey": "holoui.preview.theme.title.hopper_minecart",
+        "accent": "#6E747E"
+      }
+    },
+    {
+      "entities": ["CHEST_MINECART"],
+      "vars": {
+        "titleKey": "holoui.preview.theme.title.chest_minecart",
+        "accent": "#F2A535"
+      }
+    }
+  ],
+  "card": {
+    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, readable(blockType))))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    {
+      "type": "slot",
+      "visible": "vars.row",
+      "repeat": { "count": "min(vars.slots, inventory.size)", "var": "i" },
+      "x": "round((i - (min(vars.slots, inventory.size) - 1) / 2) * 20)",
+      "y": 0,
+      "size": 18,
+      "index": "i"
+    },
+    {
+      "type": "slot",
+      "visible": "!vars.row",
+      "repeat": {
+        "count": "min(vars.cols * clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows), inventory.size)",
+        "var": "i"
+      },
+      "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
+      "y": "round(((clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows) - 1) / 2 - floor(i / vars.cols)) * 20)",
+      "size": 18,
+      "index": "i"
+    }
+  ]
+}

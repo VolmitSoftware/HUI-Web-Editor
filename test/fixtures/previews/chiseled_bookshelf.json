@@ -1,0 +1,26 @@
+{
+  "match": {
+    "blocks": ["CHISELED_BOOKSHELF"],
+    "priority": 10,
+    "vars": {
+      "cols": 3,
+      "rows": 2,
+      "titleKey": "holoui.preview.theme.title.chiseled_bookshelf",
+      "accent": "#F2A535"
+    }
+  },
+  "card": {
+    "title": "'&f&l' + plain(lang(vars.titleKey))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    {
+      "type": "slot",
+      "repeat": { "count": "min(vars.cols * vars.rows, inventory.size)", "var": "i" },
+      "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
+      "y": "round(((vars.rows - 1) / 2 - floor(i / vars.cols)) * 20)",
+      "size": 18,
+      "index": "i"
+    }
+  ]
+}

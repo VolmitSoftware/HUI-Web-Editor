@@ -524,11 +524,31 @@ void main() {
       expect(previewAutoSimCategory(doc), 'furnace');
     });
 
-    test('a special document has no target at all', () {
+    test('a locked document has no target at all', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(special: 'locked'),
       );
       expect(previewAutoSimCategory(doc), 'statics');
+    });
+
+    test('an ender-chest document simulates the viewer inventory', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        match: HuiPreviewMatch(
+          blocks: <String>['ENDER_CHEST'],
+          special: 'enderChest',
+        ),
+      );
+      expect(previewAutoSimCategory(doc), 'enderChest');
+    });
+
+    test('an any-inventory-holder document simulates an entity', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        match: HuiPreviewMatch(
+          entities: <String>['CHEST_MINECART'],
+          special: 'anyInventoryHolder',
+        ),
+      );
+      expect(previewAutoSimCategory(doc), 'entity');
     });
 
     test('an entity document simulates an entity', () {

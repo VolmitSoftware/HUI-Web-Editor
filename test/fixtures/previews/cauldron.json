@@ -1,0 +1,59 @@
+{
+  "match": {
+    "blocks": ["CAULDRON", "WATER_CAULDRON", "LAVA_CAULDRON", "POWDER_SNOW_CAULDRON"],
+    "priority": 10,
+    "vars": {
+      "cells": 3,
+      "fluidColor": "#FF2E5E8C",
+      "wellColor": "#FF15151B",
+      "titleKey": "holoui.preview.theme.title.cauldron",
+      "accent": "#A6ACB6"
+    }
+  },
+  "variants": [
+    {
+      "blocks": ["WATER_CAULDRON"],
+      "vars": {
+        "fluidColor": "#FF2E5E8C",
+        "titleKey": "holoui.preview.theme.title.water_cauldron",
+        "accent": "#5E82FF"
+      }
+    },
+    {
+      "blocks": ["LAVA_CAULDRON"],
+      "vars": {
+        "fluidColor": "#FFA14C16",
+        "titleKey": "holoui.preview.theme.title.lava_cauldron",
+        "accent": "#F2A535"
+      }
+    },
+    {
+      "blocks": ["POWDER_SNOW_CAULDRON"],
+      "vars": {
+        "fluidColor": "#FFD8E5EF",
+        "titleKey": "holoui.preview.theme.title.powder_snow_cauldron",
+        "accent": "#CBD0D9"
+      }
+    }
+  ],
+  "card": {
+    "title": "'&f&l' + plain(lang(vars.titleKey))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    {
+      "type": "cell",
+      "repeat": { "count": "vars.cells", "var": "i" },
+      "x": "round((i - (vars.cells - 1) / 2) * 20)",
+      "y": 0,
+      "size": 18,
+      "color": "i < ceil(level / maxLevel * vars.cells) ? vars.fluidColor : vars.wellColor"
+    },
+    {
+      "type": "label",
+      "x": 0,
+      "y": 21,
+      "text": "level <= 0 ? '&7' + lang('holoui.preview.stat.cauldron_empty', level, maxLevel) : '&b' + lang('holoui.preview.stat.cauldron_level', level, maxLevel)"
+    }
+  ]
+}

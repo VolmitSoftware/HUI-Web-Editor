@@ -61,7 +61,7 @@ class HelpDialog extends StatelessWidget {
     children: <Widget>[
       HuiSteps(
         steps: <String>[
-          'Add components in the left rail. A button runs actions, a '
+          'Start from File → New or a template. A button runs actions, a '
               'decoration only draws, and a toggle picks one of two icons '
               'from a placeholder value.',
           'Drag them on the canvas or type exact offsets in the inspector. '
@@ -71,8 +71,10 @@ class HelpDialog extends StatelessWidget {
               'or navigate the viewer\'s page stack.',
           'Watch the issues chip in the status bar. Errors mean the plugin '
               'will refuse or misbehave, not just that a key is missing.',
-          'Export, drop the file into $huiMenuFolder, then run '
-              '/holoui open ${store.menuId}.',
+          'This editor does not push files to a default server. Export, '
+              'drop the JSON into $huiMenuFolder, then run '
+              '/holoui open ${store.menuId}. Live sync needs a capability '
+              'link from /holoui edit.',
           'To re-anchor that open session, stand at its new origin and run '
               '/holoui move. It keeps the configured offset and opening '
               'direction; it does not rewrite the menu file.',

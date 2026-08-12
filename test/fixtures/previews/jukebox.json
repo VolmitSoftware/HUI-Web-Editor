@@ -1,0 +1,23 @@
+{
+  "match": {
+    "blocks": ["JUKEBOX"],
+    "priority": 10,
+    "vars": {
+      "titleKey": "holoui.preview.theme.title.jukebox",
+      "accent": "#EC88EC"
+    }
+  },
+  "card": {
+    "title": "'&f&l' + plain(lang(vars.titleKey))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    { "type": "slot", "x": 0, "y": 0, "size": 18, "index": 0 },
+    {
+      "type": "label",
+      "x": 0,
+      "y": -21,
+      "text": "record != '' ? (playing ? '&a' + lang('holoui.preview.state.disc_playing', record) : '&7' + lang('holoui.preview.state.disc_loaded', record)) : '&8' + lang('holoui.preview.state.no_disc')"
+    }
+  ]
+}

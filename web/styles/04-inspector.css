@@ -204,9 +204,9 @@
 .hui-inspector-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--hui-space-2);
   min-width: 0;
-  padding: 7px 0;
+  padding: var(--hui-space-2) 0;
   border-bottom: 1px solid var(--hui-border-soft);
 }
 
@@ -395,12 +395,17 @@
    colour and transform. `!important` covers the declarations the renderer
    writes inline (summary padding and gap, chevron font-size). */
 #arcane-root .hui-more > summary {
+  display: flex !important;
+  align-items: center;
   gap: 8px !important;
-  padding: 3px 0 !important;
-  font-size: 0.72rem;
+  min-height: 28px;
+  padding: 4px 8px !important;
+  margin: 0 -8px;
+  font-size: 0.75rem;
   font-weight: 620;
-  border-radius: var(--hui-radius);
-  transition: color var(--hui-transition);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color var(--hui-transition), background-color var(--hui-transition);
 }
 
 #arcane-root .hui-more > summary::-webkit-details-marker {
@@ -413,6 +418,10 @@
 #arcane-root .hui-more .hui-more-summary,
 #arcane-root .hui-more .arcane-disclosure-chevron {
   color: var(--hui-muted) !important;
+}
+
+#arcane-root .hui-more > summary:hover {
+  background: color-mix(in srgb, var(--hui-accent) 8%, transparent);
 }
 
 #arcane-root .hui-more > summary:hover .hui-more-summary,
@@ -428,12 +437,14 @@
 }
 
 #arcane-root .hui-more .arcane-disclosure-chevron {
-  font-size: 0.5rem !important;
+  width: 1em;
+  font-size: 0.7rem !important;
+  transform: rotate(-90deg) !important;
   transition: transform var(--hui-transition);
 }
 
 #arcane-root .hui-more[open] .arcane-disclosure-chevron {
-  transform: rotate(180deg) !important;
+  transform: rotate(0deg) !important;
 }
 
 #arcane-root .hui-more > .arcane-disclosure-content {

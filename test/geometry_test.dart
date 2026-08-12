@@ -124,7 +124,7 @@ void main() {
   });
 
   group('hitboxAt - image', () {
-    test('height uses (rows - 1) line heights', () {
+    test('height uses the same lineCount * lineHeight formula as text', () {
       const IconShape shape = IconShape.image(rows: 8, columns: 8);
       final HuiRect box = hitboxAt(
         anchorX: 0,
@@ -133,8 +133,8 @@ void main() {
         shape: shape,
       );
       expect(box.w, closeTo(0.875, _epsilon));
-      expect(box.h, closeTo(7 * huiLineHeight, _epsilon));
-      expect(box.h, closeTo(1.53125, _epsilon));
+      expect(box.h, closeTo(8 * huiLineHeight, _epsilon));
+      expect(box.h, closeTo(1.75, _epsilon));
       expect(box.y, closeTo(-huiTextTrueRenderBias, _epsilon));
     });
 
@@ -147,17 +147,18 @@ void main() {
         shape: shape,
       );
       expect(box.w, closeTo(2.1875, _epsilon));
-      expect(box.h, closeTo(3.828125, _epsilon));
+      expect(box.h, closeTo(8 * huiLineHeight * 2.5, _epsilon));
+      expect(box.h, closeTo(4.375, _epsilon));
     });
 
-    test('a single row is exactly zero-height in game', () {
+    test('a single row is one line tall, matching the plugin', () {
       final HuiRect box = hitboxAt(
         anchorX: 0,
         anchorY: 0,
         uiScale: 1,
         shape: const IconShape.image(rows: 1, columns: 4),
       );
-      expect(box.h, 0.0);
+      expect(box.h, closeTo(huiLineHeight, _epsilon));
     });
 
     test('the missing-icon placeholder is an 8x8 image shape', () {
@@ -172,7 +173,7 @@ void main() {
         shape: missing,
       );
       expect(box.w, closeTo(0.875, _epsilon));
-      expect(box.h, closeTo(1.53125, _epsilon));
+      expect(box.h, closeTo(8 * huiLineHeight, _epsilon));
     });
   });
 

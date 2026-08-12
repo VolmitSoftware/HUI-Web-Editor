@@ -73,7 +73,7 @@
 .hui-canvas-toolbar .arcane-button {
   height: var(--hui-tool-size) !important;
   min-height: var(--hui-tool-size);
-  border-radius: var(--hui-radius);
+  border-radius: 6px;
   white-space: nowrap;
   /* --hui-dur-1: a toolbar toggle is a state flip and has to feel instant. The
      token, not a literal, is what puts it under 06-motion.css's one switch. */
@@ -91,6 +91,7 @@
 .hui-canvas-toolbar .arcane-button[data-size="iconSm"] {
   width: var(--hui-tool-size) !important;
   padding: 0 !important;
+  border-radius: 6px !important;
 }
 
 .hui-canvas-toolbar [aria-pressed="true"] {

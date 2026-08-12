@@ -9,6 +9,7 @@
 /// template must never produce a validation error.
 library;
 
+import '../model/json_codec.dart';
 import '../model/model.dart';
 
 /// A named starter document.
@@ -37,6 +38,16 @@ class HuiTemplate {
 }
 
 const List<HuiTemplate> huiTemplates = <HuiTemplate>[
+  HuiTemplate(
+    id: 'blank',
+    name: 'Blank hologram',
+    description:
+        'The same baseline /holoui menus create writes on the server: a '
+        'title, a hint line, and a Close button. Place it with '
+        '/holoui boards create <id> <id>.',
+    highlights: <String>['3 components', 'Text icons', 'Native close'],
+    build: buildBlankHologramTemplate,
+  ),
   HuiTemplate(
     id: 'welcome',
     name: 'Welcome hub',
@@ -95,6 +106,67 @@ HuiTemplate? huiTemplateById(String id) {
   }
   return null;
 }
+
+const String kBlankHologramJson = r'''
+{
+  "offset": [0.0, 1.7, 2.5],
+  "lockPosition": false,
+  "followPlayer": false,
+  "closeOnDeath": true,
+  "closeOnTeleport": true,
+  "components": [
+    {
+      "id": "title",
+      "offset": [0.0, 0.35, 0.0],
+      "data": {
+        "type": "decoration",
+        "icon": {
+          "type": "text",
+          "text": "&6&lHologram"
+        }
+      }
+    },
+    {
+      "id": "body",
+      "offset": [0.0, 0.05, 0.0],
+      "data": {
+        "type": "decoration",
+        "icon": {
+          "type": "text",
+          "text": "&7Edit this with /holoui menus or the web editor."
+        }
+      }
+    },
+    {
+      "id": "close",
+      "offset": [0.0, -0.35, 0.0],
+      "data": {
+        "type": "button",
+        "highlightModifier": 0.05,
+        "icon": {
+          "type": "text",
+          "text": "&cClose"
+        },
+        "actions": [
+          {
+            "type": "sound",
+            "sound": "ui.button.click",
+            "source": "master",
+            "volume": 1.0,
+            "pitch": 1.0
+          },
+          {
+            "type": "navigate",
+            "mode": "close"
+          }
+        ]
+      }
+    }
+  ]
+}
+''';
+
+HuiMenu buildBlankHologramTemplate() => decodeHuiMenu(kBlankHologramJson);
 
 /// Root defaults shared by every template: eye height, arm's length forward,
 /// follows the player, closes on death and teleport.

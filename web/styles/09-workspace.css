@@ -105,19 +105,25 @@
 
 .hui-library-disclosure {
   display: grid;
-  width: 18px;
+  width: 22px;
   height: 22px;
-  flex: 0 0 18px;
+  flex: 0 0 22px;
   place-items: center;
   padding: 0;
   border: 0;
+  border-radius: 6px;
   background: transparent;
   color: var(--hui-muted);
   cursor: pointer;
 }
 
+.hui-library-disclosure:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--hui-accent) 10%, transparent);
+  color: var(--hui-text);
+}
+
 .hui-library-disclosure:disabled { cursor: default; opacity: .2; }
-.hui-library-document-spacer { width: 18px; flex: 0 0 18px; }
+.hui-library-document-spacer { width: 22px; flex: 0 0 22px; }
 
 .hui-library-label {
   overflow: hidden;

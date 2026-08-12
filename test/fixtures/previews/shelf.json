@@ -1,0 +1,24 @@
+{
+  "match": {
+    "blocks": ["*_SHELF"],
+    "priority": 10,
+    "vars": {
+      "titleKey": "holoui.preview.theme.title.shelf",
+      "accent": "#F2A535"
+    }
+  },
+  "card": {
+    "title": "'&f&l' + plain(lang(vars.titleKey, readable(blockType)))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    {
+      "type": "slot",
+      "repeat": { "count": "inventory.size", "var": "i" },
+      "x": "round((i - (inventory.size - 1) / 2) * 20)",
+      "y": 0,
+      "size": 18,
+      "index": "i"
+    }
+  ]
+}

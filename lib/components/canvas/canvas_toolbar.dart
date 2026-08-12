@@ -42,7 +42,7 @@ const List<HuiBackdropMode> huiBackdropCycle = <HuiBackdropMode>[
 
 const Map<HuiBackdropMode, String> huiBackdropLabels =
     <HuiBackdropMode, String>{
-      HuiBackdropMode.image: 'In-game',
+      HuiBackdropMode.image: 'Scene',
       HuiBackdropMode.dark: 'Dark',
       HuiBackdropMode.light: 'Light',
       HuiBackdropMode.none: 'None',

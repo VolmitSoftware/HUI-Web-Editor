@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:holoui_editor/config/templates.dart';
 import 'package:holoui_editor/logic/validation.dart';
 import 'package:holoui_editor/model/model.dart';
@@ -29,5 +31,24 @@ void main() {
       final String count = '${template.build().components.length} components';
       expect(template.highlights, contains(count), reason: template.id);
     }
+  });
+
+  test('the blank hologram is the plugin baseline', () {
+    final HuiMenu menu = buildBlankHologramTemplate();
+    expect(menu.followPlayer, isFalse);
+    expect(menu.components.map((HuiComponent c) => c.id), <String>[
+      'title',
+      'body',
+      'close',
+    ]);
+    final String fixture = File(
+      'test/fixtures/menus/blank-hologram.json',
+    ).readAsStringSync();
+    expect(kBlankHologramJson.trim(), fixture.trim());
+    final File plugin = File(
+      '../HoloUi/src/main/resources/baselines/blank-hologram.json',
+    );
+    expect(plugin.existsSync(), isTrue);
+    expect(kBlankHologramJson.trim(), plugin.readAsStringSync().trim());
   });
 }

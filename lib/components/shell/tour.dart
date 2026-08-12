@@ -90,6 +90,15 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
         'with their matching click planes.',
   ),
   HuiTourStep(
+    title: 'Export puts it on the server',
+    body:
+        'This page never writes your Minecraft server. Download the JSON, '
+        'drop it into plugins/holoui/menus/, then /holoui open <id>. Live '
+        'sync only exists when /holoui edit gave you a capability link.',
+    selectors: <String>['.hui-bar'],
+    hint: 'File → Export, or the command palette. Images unzip into plugins/holoui/images/.',
+  ),
+  HuiTourStep(
     title: 'Everything else is one keystroke away',
     body:
         'The command palette in the Editor cluster runs any command by name, '

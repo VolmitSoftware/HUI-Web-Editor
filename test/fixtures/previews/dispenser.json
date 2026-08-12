@@ -1,0 +1,35 @@
+{
+  "match": {
+    "blocks": ["DISPENSER", "DROPPER"],
+    "priority": 10,
+    "vars": {
+      "cols": 3,
+      "rows": 3,
+      "titleKey": "holoui.preview.theme.title.dispenser",
+      "accent": "#A6ACB6"
+    }
+  },
+  "variants": [
+    {
+      "blocks": ["DROPPER"],
+      "vars": {
+        "titleKey": "holoui.preview.theme.title.dropper",
+        "accent": "#6E747E"
+      }
+    }
+  ],
+  "card": {
+    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    {
+      "type": "slot",
+      "repeat": { "count": "min(vars.cols * vars.rows, inventory.size)", "var": "i" },
+      "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
+      "y": "round(((vars.rows - 1) / 2 - floor(i / vars.cols)) * 20)",
+      "size": 18,
+      "index": "i"
+    }
+  ]
+}

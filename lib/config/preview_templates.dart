@@ -1,4 +1,4 @@
-/// Starter container-preview documents offered by the templates dialog.
+/// Starter and in-game container-preview documents offered by the templates dialog.
 ///
 /// Every template must parse clean and build clean against the simulated
 /// category it was authored for: `test/preview_templates_test.dart` builds
@@ -7,8 +7,9 @@
 library;
 
 import '../model/preview_doc.dart';
+import 'shipped_preview_json.dart';
 
-/// A named starter document.
+/// A named starter or in-game document.
 class HuiPreviewTemplate {
   const HuiPreviewTemplate({
     required this.id,
@@ -17,6 +18,7 @@ class HuiPreviewTemplate {
     required this.highlights,
     required this.category,
     required this.build,
+    this.inGame = false,
   });
 
   /// File base name the new document starts with.
@@ -33,23 +35,161 @@ class HuiPreviewTemplate {
   /// — the simulation panel preselects it so the starter renders right away.
   final String category;
 
+  /// True when this is one of the thirteen documents the plugin extracts
+  /// into `plugins/holoui/previews/` on first start.
+  final bool inGame;
+
   /// Builds a fresh, mutable document. Never return a shared instance: the
   /// store takes ownership of whatever comes back.
   final HuiPreviewDoc Function() build;
 }
 
-const List<HuiPreviewTemplate> huiPreviewTemplates = <HuiPreviewTemplate>[
-  HuiPreviewTemplate(
-    id: 'furnace-dashboard',
-    name: 'Furnace dashboard',
-    description:
-        'The real card HoloUI draws over a furnace, blast furnace or smoker: '
-        'a progress ring, a fuel flame, and two state labels. Variants swap '
-        'the whole palette and cell layout per block type.',
-    highlights: <String>['3 slots', '2 variants', 'Live progress + fuel'],
-    category: 'furnace',
-    build: buildFurnaceDashboardTemplate,
-  ),
+class _ShippedPreviewSpec {
+  const _ShippedPreviewSpec({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.highlights,
+    required this.category,
+  });
+
+  final String id;
+  final String name;
+  final String description;
+  final List<String> highlights;
+  final String category;
+}
+
+const List<_ShippedPreviewSpec> _shippedPreviewSpecs =
+    <_ShippedPreviewSpec>[
+      _ShippedPreviewSpec(
+        id: 'beehive',
+        name: 'Beehive',
+        description:
+            'The card HoloUI draws over a beehive or bee nest: three honey '
+            'cells and a bees-and-honey label. No inventory.',
+        highlights: <String>['In-game', 'Honey gauge', 'No inventory'],
+        category: 'beehive',
+      ),
+      _ShippedPreviewSpec(
+        id: 'brewing_stand',
+        name: 'Brewing stand',
+        description:
+            'The real brewing-stand card: ingredient and blaze-powder slots, '
+            'three bottles, a brew column, fuel cells, and live state lines.',
+        highlights: <String>['In-game', '5 slots', 'Live brew + fuel'],
+        category: 'brewing',
+      ),
+      _ShippedPreviewSpec(
+        id: 'cauldron',
+        name: 'Cauldron',
+        description:
+            'Fill-level cells for empty, water, lava, and powder-snow '
+            'cauldrons. Variants retint the fluid.',
+        highlights: <String>['In-game', '4 variants', 'Fill gauge'],
+        category: 'cauldron',
+      ),
+      _ShippedPreviewSpec(
+        id: 'chest',
+        name: 'Chest',
+        description:
+            'The canonical 9-wide slot grid HoloUI draws over chests, barrels, '
+            'copper chests, and every shulker box.',
+        highlights: <String>['In-game', 'Up to 54 slots', '20 variants'],
+        category: 'chest',
+      ),
+      _ShippedPreviewSpec(
+        id: 'chiseled_bookshelf',
+        name: 'Chiseled bookshelf',
+        description: 'A 3-by-2 slot grid over a chiseled bookshelf.',
+        highlights: <String>['In-game', '6 slots'],
+        category: 'chest',
+      ),
+      _ShippedPreviewSpec(
+        id: 'dispenser',
+        name: 'Dispenser',
+        description:
+            'A 3-by-3 slot grid. A variant restyles the same layout for a '
+            'dropper.',
+        highlights: <String>['In-game', '9 slots', 'Dropper variant'],
+        category: 'chest',
+      ),
+      _ShippedPreviewSpec(
+        id: 'ender_chest',
+        name: 'Ender chest',
+        description:
+            'The viewer\'s own ender-chest inventory on a 9-wide grid, marked '
+            'special: enderChest.',
+        highlights: <String>['In-game', 'Personal inventory'],
+        category: 'enderChest',
+      ),
+      _ShippedPreviewSpec(
+        id: 'furnace',
+        name: 'Furnace',
+        description:
+            'The real card HoloUI draws over a furnace, blast furnace or '
+            'smoker: a progress ring, a fuel flame, and two state labels.',
+        highlights: <String>['In-game', '3 slots', 'Live progress + fuel'],
+        category: 'furnace',
+      ),
+      _ShippedPreviewSpec(
+        id: 'hopper',
+        name: 'Hopper',
+        description: 'A five-slot row over a hopper.',
+        highlights: <String>['In-game', '5 slots'],
+        category: 'chest',
+      ),
+      _ShippedPreviewSpec(
+        id: 'jukebox',
+        name: 'Jukebox',
+        description:
+            'The disc slot plus a playing, loaded, or empty label.',
+        highlights: <String>['In-game', '1 slot', 'Disc state'],
+        category: 'jukebox',
+      ),
+      _ShippedPreviewSpec(
+        id: 'locked',
+        name: 'Locked',
+        description:
+            'The unframed four-cell padlock shown when a viewer may not open '
+            'the container.',
+        highlights: <String>['In-game', 'No chrome', 'Access denied'],
+        category: 'statics',
+      ),
+      _ShippedPreviewSpec(
+        id: 'minecart',
+        name: 'Minecart and boats',
+        description:
+            'Chest and hopper minecarts, chest boats, chest rafts, and the '
+            'any-inventory-holder entity fallback.',
+        highlights: <String>['In-game', 'Entity', 'Row or grid'],
+        category: 'entity',
+      ),
+      _ShippedPreviewSpec(
+        id: 'shelf',
+        name: 'Shelf',
+        description: 'A slot row for every wood shelf variant.',
+        highlights: <String>['In-game', '*_SHELF glob'],
+        category: 'chest',
+      ),
+    ];
+
+final List<HuiPreviewTemplate> _shippedPreviewTemplates = _shippedPreviewSpecs
+    .map(
+      (_ShippedPreviewSpec spec) => HuiPreviewTemplate(
+        id: spec.id,
+        name: spec.name,
+        description: spec.description,
+        highlights: spec.highlights,
+        category: spec.category,
+        inGame: true,
+        build: () => buildShippedPreview(spec.id),
+      ),
+    )
+    .toList(growable: false);
+
+final List<HuiPreviewTemplate> huiPreviewTemplates = <HuiPreviewTemplate>[
+  ..._shippedPreviewTemplates,
   HuiPreviewTemplate(
     id: 'minimal-chest',
     name: 'Minimal chest',
@@ -81,141 +221,17 @@ HuiPreviewTemplate? huiPreviewTemplateById(String id) {
   return null;
 }
 
-/// Verbatim copy of `HoloUi/src/main/resources/previews/furnace.json` (also
-/// mirrored as the golden-parity fixture at `test/fixtures/previews/furnace.json`
-/// — the two must be kept identical). Decoding rather than hand-authoring the
-/// equivalent `HuiPreviewDoc` graph guarantees the template is byte-for-byte
-/// the shipped document, key ordering included.
-const String _furnaceDashboardJson = r'''
-{
-  "match": {
-    "blocks": ["FURNACE", "BLAST_FURNACE", "SMOKER"],
-    "priority": 10,
-    "vars": {
-      "style": "furnace",
-      "segments": 8,
-      "wellColor": "#FF15151B",
-      "fill": "#FFF2A535",
-      "pulseBright": "#FFFFD978",
-      "pulseDim": "#FF8A5E1E",
-      "chase": "#FF9A5E22",
-      "idle": "#FF2A2A33",
-      "flame0": "#FFE2641E",
-      "flame1": "#FFF2A535",
-      "flame2": "#FFF7D14C",
-      "smoke0": "#FF5E5E66",
-      "smoke1": "#FF8A8A92",
-      "smoke2": "#FFB8B8C0",
-      "activeItemKey": "holoui.preview.state.smelting_item",
-      "activeKey": "holoui.preview.state.smelting",
-      "stateColor": "<#F2A535>",
-      "surgeColor": "<#FFD978>",
-      "titleKey": "holoui.preview.theme.title.furnace",
-      "accent": "#F2A535"
-    }
-  },
-  "variants": [
-    {
-      "blocks": ["BLAST_FURNACE"],
-      "vars": {
-        "style": "blast",
-        "fill": "#FF6FB8E8",
-        "pulseBright": "#FFE8F7FF",
-        "pulseDim": "#FF2E5E80",
-        "chase": "#FF4FA8D8",
-        "idle": "#FF23262E",
-        "flame0": "#FF4FA8E8",
-        "flame1": "#FF8ED4FF",
-        "flame2": "#FFE8F7FF",
-        "activeItemKey": "holoui.preview.state.blasting_item",
-        "activeKey": "holoui.preview.state.blasting",
-        "stateColor": "<#6FB8E8>",
-        "surgeColor": "<#E8F7FF>",
-        "titleKey": "holoui.preview.theme.title.blast_furnace",
-        "accent": "#6FEAEA"
-      }
-    },
-    {
-      "blocks": ["SMOKER"],
-      "vars": {
-        "style": "smoker",
-        "fill": "#FFC8893A",
-        "pulseBright": "#FFF2C878",
-        "pulseDim": "#FF6E4A1E",
-        "chase": "#FF8A6234",
-        "idle": "#FF2A2A33",
-        "flame0": "#FFE25822",
-        "flame1": "#FFF2A535",
-        "flame2": "#FFC23B22",
-        "activeItemKey": "holoui.preview.state.smoking_item",
-        "activeKey": "holoui.preview.state.smoking",
-        "stateColor": "<#C8893A>",
-        "surgeColor": "<#F2C878>",
-        "titleKey": "holoui.preview.theme.title.smoker",
-        "accent": "#F2D451"
-      }
-    }
-  ],
-  "card": {
-    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
-    "accent": "vars.accent"
-  },
-  "elements": [
-    { "type": "slot", "x": -40, "y": 10, "size": 18, "index": 0 },
-    { "type": "slot", "x": -40, "y": -10, "size": 18, "index": 1 },
-    { "type": "slot", "x": 40, "y": 10, "size": 18, "index": 2 },
-    {
-      "type": "cell",
-      "repeat": { "count": "vars.segments", "var": "i" },
-      "x": "-24 + i * 7",
-      "y": 10,
-      "size": 5,
-      "color": "cookTime > 0 && cookTimeTotal > 0 ? (i < floor(cookTime / cookTimeTotal * vars.segments) ? (surge.active ? (mod(floor(cookTime / 2) + i, 2) == 0 ? vars.pulseBright : vars.fill) : vars.fill) : (i == floor(cookTime / cookTimeTotal * vars.segments) ? (mod(floor(cookTime / 4), 2) == 0 ? vars.pulseBright : vars.pulseDim) : vars.wellColor)) : (burnTime > 0 && i == mod(floor(burnTime / 4), vars.segments) ? vars.chase : vars.wellColor)"
-    },
-    {
-      "type": "cell",
-      "visible": "vars.style != 'blast'",
-      "x": -20,
-      "y": -10,
-      "size": 12,
-      "color": "burnTime > 0 ? palette([vars.flame0, vars.flame1, vars.flame2], floor(burnTime / (surge.active ? 2 : 4))) : vars.idle"
-    },
-    {
-      "type": "cell",
-      "visible": "vars.style == 'blast'",
-      "repeat": { "count": 3, "var": "vent" },
-      "x": "-20 + vent * 8",
-      "y": -10,
-      "size": 6,
-      "color": "burnTime > 0 ? palette([vars.flame0, vars.flame1, vars.flame2], floor(burnTime / (surge.active ? 2 : 4)) + vent) : vars.idle"
-    },
-    {
-      "type": "cell",
-      "visible": "vars.style == 'smoker'",
-      "repeat": { "count": 2, "var": "wisp" },
-      "x": "wisp == 0 ? -8 : 2",
-      "y": -10,
-      "size": "wisp == 0 ? 8 : 6",
-      "color": "burnTime > 0 ? palette([vars.smoke0, vars.smoke1, vars.smoke2], floor(burnTime / (surge.active ? 2 : 4)) + wisp + 1) : vars.idle"
-    },
-    {
-      "type": "label",
-      "x": 0,
-      "y": -32,
-      "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? readable(item(0)) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('holoui.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('holoui.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('holoui.preview.state.no_input') : '&7' + lang('holoui.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('holoui.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
-    },
-    {
-      "type": "label",
-      "x": 0,
-      "y": -46,
-      "text": "(burnTime > 0 ? '&e' + lang('holoui.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('holoui.preview.stat.fuel_ready') : '&8' + lang('holoui.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('holoui.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('holoui.preview.stat.xp_zero') + '</dark_gray>') : '')"
-    }
-  ]
+/// The plugin's shipped document of that name, decoded from the byte-identical
+/// copy in [kShippedPreviewJson].
+HuiPreviewDoc buildShippedPreview(String id) {
+  final String? json = kShippedPreviewJson[id];
+  if (json == null) {
+    throw ArgumentError.value(id, 'id', 'not a shipped preview document');
+  }
+  return decodeHuiPreviewDoc(json);
 }
-''';
 
-HuiPreviewDoc buildFurnaceDashboardTemplate() =>
-    decodeHuiPreviewDoc(_furnaceDashboardJson);
+HuiPreviewDoc buildFurnaceDashboardTemplate() => buildShippedPreview('furnace');
 
 /// A framed 3x3 grid of inventory slots (pitch 27px, matching the format's
 /// 18px well plus a comfortable gap) with a card title and an occupied-count

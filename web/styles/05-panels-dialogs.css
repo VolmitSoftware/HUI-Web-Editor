@@ -1051,21 +1051,37 @@
    7. Templates
    ========================================================================== */
 
+.hui-option-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hui-option-group-head {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0 0;
+}
+
+.hui-option-group-head .hui-dialog-note {
+  margin: 0;
+}
+
 .hui-option-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 12px;
-  padding: 16px 0;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  padding: 10px 0 14px;
 }
 
 .hui-option-card {
   display: grid;
   align-content: start;
-  gap: 7px;
-  min-height: 132px;
-  padding: 13px;
+  gap: 6px;
+  min-height: 118px;
+  padding: 12px;
   border: 1px solid var(--hui-border);
-  border-radius: var(--hui-radius);
+  border-radius: 6px;
   background: var(--hui-panel);
   color: inherit;
   cursor: pointer;

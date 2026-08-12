@@ -127,22 +127,47 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
                   'template references an image you do not have. It '
                   'opens as a new document, so your current one is '
                   'untouched.'
-            : 'Every template parses and builds clean against the '
-                  'category it targets, with zero build errors. It '
-                  'opens as a new document, so your current one is '
-                  'untouched.',
+            : 'On the server are the thirteen cards the plugin extracts '
+                  'into plugins/holoui/previews/, byte for byte. Starters '
+                  'are teaching documents the jar does not ship. Every '
+                  'template opens as a new document, so your current one '
+                  'is untouched.',
       ),
     ]),
-    dom.div(
-      classes: 'hui-option-grid',
-      _kind == _TemplateKind.menu
-          ? <Widget>[for (final HuiTemplate t in huiTemplates) _menuCard(t)]
-          : <Widget>[
-              for (final HuiPreviewTemplate t in huiPreviewTemplates)
-                _previewCard(t),
-            ],
-    ),
+    if (_kind == _TemplateKind.menu)
+      dom.div(
+        classes: 'hui-option-grid',
+        <Widget>[for (final HuiTemplate t in huiTemplates) _menuCard(t)],
+      )
+    else
+      _previewGroups(),
   ]);
+
+  Widget _previewGroups() =>
+      dom.div(classes: 'hui-option-groups', <Widget>[
+        _groupHeading(
+          'On the server',
+          'These are the cards HoloUI already draws in game.',
+        ),
+        dom.div(classes: 'hui-option-grid', <Widget>[
+          for (final HuiPreviewTemplate template in huiPreviewTemplates)
+            if (template.inGame) _previewCard(template),
+        ]),
+        _groupHeading(
+          'Starters',
+          'Teaching documents. They are not extracted by the plugin.',
+        ),
+        dom.div(classes: 'hui-option-grid', <Widget>[
+          for (final HuiPreviewTemplate template in huiPreviewTemplates)
+            if (!template.inGame) _previewCard(template),
+        ]),
+      ]);
+
+  Widget _groupHeading(String title, String note) =>
+      dom.div(classes: 'hui-option-group-head', <Widget>[
+        HuiEyebrow(title),
+        dom.p(classes: 'hui-dialog-note', <Widget>[Text(note)]),
+      ]);
 
   Widget _menuCard(HuiTemplate template) => _card(
     id: template.id,

@@ -4,12 +4,31 @@
 /// `onError` the author never caused.
 library;
 
+import 'dart:io';
+
 import 'package:holoui_editor/config/preview_templates.dart';
+import 'package:holoui_editor/config/shipped_preview_json.dart';
 import 'package:holoui_editor/logic/preview_card_scene.dart';
 import 'package:holoui_editor/logic/preview_sim.dart';
 import 'package:holoui_editor/logic/preview_variant_resolver.dart';
 import 'package:holoui_editor/model/preview_doc.dart';
 import 'package:test/test.dart';
+
+const List<String> _shippedPreviewIds = <String>[
+  'beehive',
+  'brewing_stand',
+  'cauldron',
+  'chest',
+  'chiseled_bookshelf',
+  'dispenser',
+  'ender_chest',
+  'furnace',
+  'hopper',
+  'jukebox',
+  'locked',
+  'minecart',
+  'shelf',
+];
 
 void main() {
   group('every preview template', () {
@@ -65,7 +84,7 @@ void main() {
 
   group('huiPreviewTemplateById', () {
     test('finds a known id', () {
-      expect(huiPreviewTemplateById('furnace-dashboard'), isNotNull);
+      expect(huiPreviewTemplateById('furnace'), isNotNull);
     });
 
     test('misses an unknown id', () {
@@ -90,6 +109,14 @@ void main() {
       expect(scene.items.whereType<CardSlot>().length, 9);
     });
 
+    test('every shipped in-game document is a template', () {
+      final List<String> inGameIds = huiPreviewTemplates
+          .where((HuiPreviewTemplate template) => template.inGame)
+          .map((HuiPreviewTemplate template) => template.id)
+          .toList();
+      expect(inGameIds, _shippedPreviewIds);
+    });
+
     test('the custom stat card is bare content with no chrome', () {
       final HuiPreviewDoc doc = buildCustomStatCardTemplate();
       expect(doc.card, isNotNull);
@@ -99,5 +126,23 @@ void main() {
       // No CardPanel at all: framed:false skips the whole frame() wrap.
       expect(scene.items.whereType<CardPanel>(), isEmpty);
     });
+  });
+
+  group('shipped preview copies stay byte-identical', () {
+    for (final String id in _shippedPreviewIds) {
+      test('$id.json matches the plugin, fixture, and embedded copy', () {
+        final String embedded = kShippedPreviewJson[id]!;
+        final String fixture = File(
+          'test/fixtures/previews/$id.json',
+        ).readAsStringSync();
+        expect(embedded.trim(), fixture.trim());
+
+        final File plugin = File(
+          '../HoloUi/src/main/resources/previews/$id.json',
+        );
+        expect(plugin.existsSync(), isTrue, reason: plugin.path);
+        expect(embedded.trim(), plugin.readAsStringSync().trim());
+      });
+    }
   });
 }
