@@ -15,6 +15,7 @@ import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../common/class_names.dart';
 import 'bar_menu.dart';
+import 'editor_sync_bar.dart';
 import 'shell_intents.dart';
 import 'shell_keys.dart';
 import 'store_selector.dart';
@@ -23,12 +24,14 @@ import 'view_switcher.dart';
 class TopBar extends StatefulWidget {
   const TopBar({
     required this.intents,
+    this.syncControls,
     this.apple = false,
     this.darkMode = true,
     super.key,
   });
 
   final ShellIntents intents;
+  final EditorSyncControls? syncControls;
   final bool apple;
   final bool darkMode;
 
@@ -74,6 +77,14 @@ class _TopBarState extends State<TopBar> {
       ..write(_store.undoLabel)
       ..write('|')
       ..write(_store.redoLabel)
+      ..write('|')
+      ..write(component.syncControls?.status.name)
+      ..write('|')
+      ..write(component.syncControls?.subjectId)
+      ..write('|')
+      ..write(component.syncControls?.busy)
+      ..write('|')
+      ..write(component.syncControls?.message)
       ..write('|')
       ..write(workspace.activeId);
     for (final WorkspaceDoc doc in workspace.recent) {
@@ -156,6 +167,17 @@ class _TopBarState extends State<TopBar> {
             onPressed: _intents.exportMenu,
             disabled: !_store.canTransferDocument,
           ),
+          if (component.syncControls != null)
+            _action(
+              icon: ArcaneIcon.cloudUpload(size: IconSize.sm),
+              label: component.syncControls!.publishLabel,
+              hint: component.syncControls!.publishHint,
+              variant: component.syncControls!.canPublish
+                  ? ButtonVariant.primary
+                  : ButtonVariant.outline,
+              onPressed: component.syncControls!.onPublish,
+              disabled: component.syncControls!.canPublish == false,
+            ),
           _action(
             icon: ArcaneIcon.copy(size: IconSize.sm),
             label: 'Copy menu JSON',

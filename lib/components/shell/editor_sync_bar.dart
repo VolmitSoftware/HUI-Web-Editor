@@ -5,8 +5,8 @@ import 'package:jaspr/dom.dart' as dom;
 
 import '../../services/editor_sync.dart';
 
-class EditorSyncBar extends StatelessWidget {
-  const EditorSyncBar({
+class EditorSyncControls {
+  const EditorSyncControls({
     required this.status,
     required this.subjectId,
     required this.busy,
@@ -14,7 +14,6 @@ class EditorSyncBar extends StatelessWidget {
     required this.onCopyLink,
     required this.onDisconnect,
     this.message,
-    super.key,
   });
 
   final EditorSyncStatus status;
@@ -25,37 +24,61 @@ class EditorSyncBar extends StatelessWidget {
   final VoidCallback onCopyLink;
   final VoidCallback onDisconnect;
 
+  bool get canPublish => busy == false && canPublishEditorSyncStatus(status);
+
+  String get publishLabel => busy ? 'Publishing…' : 'Publish to Server';
+
+  String get publishHint => switch (status) {
+    EditorSyncStatus.connected =>
+      'Publish the connected $subjectId project for server validation and apply.',
+    EditorSyncStatus.applied =>
+      'Publish new changes to the connected $subjectId server project.',
+    EditorSyncStatus.rejected =>
+      'The last publication was rejected. Fix the reported issue, then publish again.',
+    EditorSyncStatus.pending =>
+      'The server is still validating and applying the current publication.',
+    EditorSyncStatus.conflict =>
+      'Resolve the server revision conflict before publishing again.',
+    EditorSyncStatus.expired =>
+      'This server capability expired. Create a new link in Minecraft.',
+    EditorSyncStatus.revoked =>
+      'This server capability was revoked. Create a new link in Minecraft.',
+    EditorSyncStatus.disconnected =>
+      'This tab is disconnected from the server project.',
+    EditorSyncStatus.unavailable =>
+      'The configured sync relay is currently unavailable.',
+  };
+}
+
+class EditorSyncBar extends StatelessWidget {
+  const EditorSyncBar({required this.controls, super.key});
+
+  final EditorSyncControls controls;
+
   @override
   Widget build(BuildContext context) => dom.div(
-    classes: 'hui-sync-bar is-${status.name}',
+    classes: 'hui-sync-bar is-${controls.status.name}',
     attributes: const <String, String>{'role': 'status', 'aria-live': 'polite'},
     <Widget>[
       dom.div(classes: 'hui-sync-identity', <Widget>[
         ArcaneIcon.cloud(size: IconSize.sm),
-        dom.strong(<Widget>[Text(_label(status))]),
-        dom.code(<Widget>[Text(subjectId)]),
-        if (message != null) dom.span(<Widget>[Text(message!)]),
+        dom.strong(<Widget>[Text(_label(controls.status))]),
+        dom.code(<Widget>[Text(controls.subjectId)]),
+        if (controls.message != null)
+          dom.span(<Widget>[Text(controls.message!)]),
       ]),
       dom.div(classes: 'hui-sync-actions', <Widget>[
         Button.ghost(
           size: ButtonSize.sm,
-          onPressed: onCopyLink,
+          onPressed: controls.onCopyLink,
           icon: ArcaneIcon.copy(size: IconSize.sm),
           label: 'Copy link',
         ),
         Button.ghost(
           size: ButtonSize.sm,
-          onPressed: onDisconnect,
+          onPressed: controls.onDisconnect,
           icon: ArcaneIcon.unlink(size: IconSize.sm),
           label: 'Disconnect',
-        ),
-        Button(
-          size: ButtonSize.sm,
-          variant: ButtonVariant.primary,
-          disabled: busy || !canPublishEditorSyncStatus(status),
-          onPressed: busy ? null : onPublish,
-          icon: ArcaneIcon.cloudUpload(size: IconSize.sm),
-          label: busy ? 'Publishing…' : 'Publish to Server',
         ),
       ]),
     ],

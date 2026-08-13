@@ -31,6 +31,7 @@ import '../../services/image_library.dart';
 import '../../state/editor_scope.dart';
 import '../../state/editor_store.dart';
 import 'command_palette.dart';
+import 'editor_sync_bar.dart';
 import 'key_listener.dart';
 import 'keyboard_shortcuts.dart';
 import 'pane_dom.dart';
@@ -65,7 +66,7 @@ class EditorShell extends StatefulWidget {
     this.onOpenHelp,
     this.onOpenSettings,
     this.onOpenValidation,
-    this.syncBar,
+    this.syncControls,
     this.onCloseOverlay,
     this.onToggleTheme,
     this.darkMode = true,
@@ -101,7 +102,7 @@ class EditorShell extends StatefulWidget {
   final void Function()? onOpenHelp;
   final void Function()? onOpenSettings;
   final void Function()? onOpenValidation;
-  final Widget? syncBar;
+  final EditorSyncControls? syncControls;
 
   /// Escape handler for whichever dialog or sheet the owner has open.
   final void Function()? onCloseOverlay;
@@ -366,10 +367,18 @@ class _EditorShellState extends State<EditorShell> {
       onCloseOverlay: _escapeOverlay,
       child: dom.div(
         id: 'hui-shell',
-        classes: component.syncBar == null ? 'hui-shell' : 'hui-shell has-sync',
+        classes: component.syncControls == null
+            ? 'hui-shell'
+            : 'hui-shell has-sync',
         <Widget>[
-          TopBar(intents: intents, apple: _apple, darkMode: component.darkMode),
-          if (component.syncBar != null) component.syncBar!,
+          TopBar(
+            intents: intents,
+            syncControls: component.syncControls,
+            apple: _apple,
+            darkMode: component.darkMode,
+          ),
+          if (component.syncControls != null)
+            EditorSyncBar(controls: component.syncControls!),
           dom.div(classes: 'hui-shell-body', <Widget>[
             dom.aside(
               classes: 'hui-pane hui-rail',

@@ -709,9 +709,9 @@ class _AppState extends State<App> {
         onOpenValidation: () =>
             setState(() => _validationOpen = !_validationOpen),
         onCloseOverlay: _closeOverlay,
-        syncBar: _syncBinding == null
+        syncControls: _syncBinding == null
             ? null
-            : EditorSyncBar(
+            : EditorSyncControls(
                 status: _visibleSyncStatus,
                 subjectId: _syncBinding!.subjectId,
                 busy: _syncPublishing,
