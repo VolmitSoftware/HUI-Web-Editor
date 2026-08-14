@@ -54,7 +54,7 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
         'Add a button, toggle or decoration from the split button at the '
         'top, then pick a row to select it. Right-click a row — or use its ⋮ '
         'button — for duplicate, restack and delete.',
-    selectors: <String>['.hui-rail'],
+    selectors: <String>['.hui-rail', '.hui-mobile-panes'],
     hint:
         'The nearest overlapping hitbox fires. Rail order breaks an exact '
         'distance tie.',
@@ -76,7 +76,7 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
         'Everything about the selection is edited here: id, offset, icon, '
         'actions and any extra keys the file carried. The ? button beside a '
         'field explains what HoloUi does with it.',
-    selectors: <String>['.hui-inspector'],
+    selectors: <String>['.hui-inspector', '.hui-mobile-panes'],
   ),
   HuiTourStep(
     title: 'Preview plays it back',
@@ -192,6 +192,12 @@ class _HuiTourState extends State<HuiTour> {
       if (element == null) continue;
       final web.DOMRect rect = element.getBoundingClientRect();
       if (rect.width < 1 || rect.height < 1) continue;
+      if (rect.right <= 0 ||
+          rect.left >= width ||
+          rect.bottom <= 0 ||
+          rect.top >= height) {
+        continue;
+      }
       found = _Box(rect.left, rect.top, rect.width, rect.height);
       break;
     }

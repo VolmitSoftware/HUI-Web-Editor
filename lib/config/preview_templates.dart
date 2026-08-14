@@ -190,7 +190,7 @@ final List<HuiPreviewTemplate> _shippedPreviewTemplates = _shippedPreviewSpecs
 
 final List<HuiPreviewTemplate> huiPreviewTemplates = <HuiPreviewTemplate>[
   ..._shippedPreviewTemplates,
-  HuiPreviewTemplate(
+  const HuiPreviewTemplate(
     id: 'minimal-chest',
     name: 'Minimal chest',
     description:
@@ -201,7 +201,7 @@ final List<HuiPreviewTemplate> huiPreviewTemplates = <HuiPreviewTemplate>[
     category: 'chest',
     build: buildMinimalChestTemplate,
   ),
-  HuiPreviewTemplate(
+  const HuiPreviewTemplate(
     id: 'custom-stat-card',
     name: 'Custom stat card',
     description:

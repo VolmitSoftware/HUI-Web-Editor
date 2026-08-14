@@ -173,7 +173,7 @@ class _EditorRailState extends State<EditorRail> {
           Text(
             _syncScopeHint ??
                 (_store.isBoardDoc
-                    ? 'Boards stay local to this browser workspace.'
+                    ? 'Flow maps stay in this browser.'
                     : 'Folders organize files; runtime ids remain canonical.'),
           ),
         ]),
@@ -219,7 +219,7 @@ class _EditorRailState extends State<EditorRail> {
         onPressed: _createPreview,
       ),
       _iconButton(
-        label: 'New flow board',
+        label: 'New menu flow map',
         icon: ArcaneIcon.workflow(size: IconSize.sm),
         onPressed: _createBoard,
       ),
@@ -338,7 +338,9 @@ class _EditorRailState extends State<EditorRail> {
             _documentIcon(doc.kind),
             dom.span(classes: 'hui-library-document-copy', <Widget>[
               dom.span(classes: 'hui-library-label', <Widget>[Text(doc.title)]),
-              dom.code(<Widget>[Text(doc.runtimeId ?? 'editor-only board')]),
+              dom.code(<Widget>[
+                Text(doc.runtimeId ?? 'editor-only flow map'),
+              ]),
             ]),
             if (conflict)
               dom.span(
@@ -630,7 +632,7 @@ class _EditorRailState extends State<EditorRail> {
       );
       return;
     }
-    _workspace.renameDocumentRuntimeId(doc.id, canonical);
+    _store.renameDocumentRuntimeId(doc.id, canonical);
   }
 
   void _moveDocument(WorkspaceDoc doc, String folderId) {
@@ -677,7 +679,7 @@ class _EditorRailState extends State<EditorRail> {
     final String folderId = _targetFolderId;
     _expanded.add(folderId);
     _store.newBoardDocument(
-      name: 'Flow board',
+      name: 'Menu flow map',
       folderId: folderId,
       scopeFolderId: folderId,
     );

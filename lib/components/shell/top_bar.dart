@@ -24,6 +24,10 @@ import 'view_switcher.dart';
 class TopBar extends StatefulWidget {
   const TopBar({
     required this.intents,
+    required this.mobileRailOpen,
+    required this.mobileInspectorOpen,
+    required this.onToggleMobileRail,
+    required this.onToggleMobileInspector,
     this.syncControls,
     this.apple = false,
     this.darkMode = true,
@@ -31,6 +35,10 @@ class TopBar extends StatefulWidget {
   });
 
   final ShellIntents intents;
+  final bool mobileRailOpen;
+  final bool mobileInspectorOpen;
+  final VoidCallback onToggleMobileRail;
+  final VoidCallback onToggleMobileInspector;
   final EditorSyncControls? syncControls;
   final bool apple;
   final bool darkMode;
@@ -154,33 +162,22 @@ class _TopBarState extends State<TopBar> {
         _cluster('File', <Widget>[
           _action(
             icon: ArcaneIcon.upload(size: IconSize.sm),
-            label: 'Import menu JSON',
+            label: 'Import $_documentNoun JSON',
             hint: 'Dropping a .json file anywhere works too.',
             onPressed: () => _intents.importMenu(),
             disabled: !_store.canTransferDocument,
           ),
           _action(
             icon: ArcaneIcon.download(size: IconSize.sm),
-            label: 'Export menu JSON',
+            label: 'Export $_documentNoun JSON',
             shortcut: 'mod+S',
             variant: ButtonVariant.outline,
             onPressed: _intents.exportMenu,
             disabled: !_store.canTransferDocument,
           ),
-          if (component.syncControls != null)
-            _action(
-              icon: ArcaneIcon.cloudUpload(size: IconSize.sm),
-              label: component.syncControls!.publishLabel,
-              hint: component.syncControls!.publishHint,
-              variant: component.syncControls!.canPublish
-                  ? ButtonVariant.primary
-                  : ButtonVariant.outline,
-              onPressed: component.syncControls!.onPublish,
-              disabled: component.syncControls!.canPublish == false,
-            ),
           _action(
             icon: ArcaneIcon.copy(size: IconSize.sm),
-            label: 'Copy menu JSON',
+            label: 'Copy $_documentNoun JSON',
             onPressed: () => _intents.copyJson(),
             disabled: !_store.canTransferDocument,
           ),
@@ -228,6 +225,7 @@ class _TopBarState extends State<TopBar> {
             onPressed: _intents.toggleTheme,
           ),
         ]),
+        _mobilePaneControls(),
         _overflow(),
       ]),
     ],
@@ -251,25 +249,119 @@ class _TopBarState extends State<TopBar> {
           triggerIcon: ArcaneIcon.ellipsis(size: IconSize.sm),
           triggerLabel: 'More actions',
           entries: () => <BarMenuEntry>[
-            const BarMenuHeading('More'),
+            const BarMenuHeading('Document'),
+            BarMenuAction(
+              label: 'Import $_documentNoun JSON',
+              icon: ArcaneIcon.upload(size: IconSize.sm),
+              onSelect: _store.canTransferDocument
+                  ? () => _intents.importMenu()
+                  : null,
+            ),
+            BarMenuAction(
+              label: 'Export $_documentNoun JSON',
+              icon: ArcaneIcon.download(size: IconSize.sm),
+              onSelect: _store.canTransferDocument ? _intents.exportMenu : null,
+            ),
+            BarMenuAction(
+              label: 'Copy $_documentNoun JSON',
+              icon: ArcaneIcon.copy(size: IconSize.sm),
+              onSelect: _store.canTransferDocument
+                  ? () => _intents.copyJson()
+                  : null,
+            ),
+            if (component.syncControls != null)
+              BarMenuAction(
+                label: component.syncControls!.publishLabel,
+                icon: ArcaneIcon.cloudUpload(size: IconSize.sm),
+                onSelect: component.syncControls!.canPublish
+                    ? component.syncControls!.onPublish
+                    : null,
+              ),
+            const BarMenuSeparator(),
+            const BarMenuHeading('Resources'),
+            BarMenuAction(
+              label: 'Images',
+              icon: ArcaneIcon.images(size: IconSize.sm),
+              onSelect: _intents.openImages,
+            ),
             BarMenuAction(
               label: 'Templates',
               icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
               onSelect: _intents.openTemplates,
             ),
+            const BarMenuSeparator(),
+            const BarMenuHeading('Editor'),
             BarMenuAction(
               label: 'Command palette',
               icon: ArcaneIcon.command(size: IconSize.sm),
               onSelect: _intents.openPalette,
             ),
             BarMenuAction(
+              label: 'Help',
+              icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
+              onSelect: _intents.openHelp,
+            ),
+            BarMenuAction(
               label: 'Settings',
               icon: ArcaneIcon.settings(size: IconSize.sm),
               onSelect: _intents.openSettings,
             ),
+            BarMenuAction(
+              label: component.darkMode ? 'Light theme' : 'Dark theme',
+              icon: component.darkMode
+                  ? ArcaneIcon.sun(size: IconSize.sm)
+                  : ArcaneIcon.moon(size: IconSize.sm),
+              onSelect: _intents.toggleTheme,
+            ),
           ],
         ),
       ]);
+
+  Widget _mobilePaneControls() => dom.div(
+    classes: 'hui-bar-cluster hui-mobile-panes',
+    attributes: const <String, String>{
+      'role': 'group',
+      'aria-label': 'Workspace panes',
+    },
+    <Widget>[
+      _mobilePaneAction(
+        icon: ArcaneIcon.panelLeft(size: IconSize.sm),
+        label: component.mobileRailOpen ? 'Close library' : 'Open library',
+        pressed: component.mobileRailOpen,
+        onPressed: component.onToggleMobileRail,
+      ),
+      _mobilePaneAction(
+        icon: ArcaneIcon.panelRight(size: IconSize.sm),
+        label: component.mobileInspectorOpen
+            ? 'Close inspector'
+            : 'Open inspector',
+        pressed: component.mobileInspectorOpen,
+        onPressed: component.onToggleMobileInspector,
+      ),
+    ],
+  );
+
+  Widget _mobilePaneAction({
+    required Widget icon,
+    required String label,
+    required bool pressed,
+    required VoidCallback onPressed,
+  }) => Button(
+    icon: icon,
+    variant: pressed ? ButtonVariant.secondary : ButtonVariant.ghost,
+    size: ButtonSize.iconSm,
+    onPressed: onPressed,
+    attributes: <String, String>{
+      'aria-label': label,
+      'aria-pressed': '$pressed',
+    },
+  );
+
+  String get _documentNoun => switch (_store.docKind) {
+    WorkspaceDocKind.menu => 'menu',
+    WorkspaceDocKind.containerPreview => 'preview',
+    WorkspaceDocKind.board => 'flow map',
+  };
 
   Widget _brand() => const dom.div(classes: 'hui-brand', <Widget>[
     dom.img(
@@ -284,17 +376,17 @@ class _TopBarState extends State<TopBar> {
   Widget _documentSwitcher() => dom.div(classes: 'hui-doc', <Widget>[
     dom.span(classes: 'hui-doc-id', <Widget>[
       if (_store.isBoardDoc)
-        Text(_store.workspace.active?.title ?? 'Flow board')
+        Text(_store.workspace.active?.title ?? 'Menu flow map')
       else
         MutableText(
           _store.menuId,
-          onChanged: _store.setMenuId,
+          onChanged: _store.renameActiveRuntimeId,
           placeholder: 'menu-id',
           variant: MutableTextStyle.dashed,
         ),
     ]),
     dom.span(classes: 'hui-doc-ext', <Widget>[
-      Text(_store.isBoardDoc ? ' · board' : '.json'),
+      Text(_store.isBoardDoc ? ' · flow map' : '.json'),
     ]),
     BarMenu(
       id: 'hui-doc-menu',

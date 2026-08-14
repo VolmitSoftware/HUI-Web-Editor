@@ -255,6 +255,33 @@
 
 /* ---------- notes, details, issues ---------- */
 
+.hui-note {
+  padding: 1px 0;
+}
+
+.hui-note.is-info,
+.hui-note.is-warning,
+.hui-note.is-danger {
+  padding: 7px 9px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: var(--hui-radius-sm);
+}
+
+.hui-note.is-info {
+  border-color: color-mix(in srgb, var(--hui-info) 38%, var(--hui-border));
+  background: color-mix(in srgb, var(--hui-info) 7%, transparent);
+}
+
+.hui-note.is-warning {
+  border-color: color-mix(in srgb, var(--hui-warning) 42%, var(--hui-border));
+  background: color-mix(in srgb, var(--hui-warning) 7%, transparent);
+}
+
+.hui-note.is-danger {
+  border-color: color-mix(in srgb, var(--hui-danger) 42%, var(--hui-border));
+  background: color-mix(in srgb, var(--hui-danger) 7%, transparent);
+}
+
 .hui-note + .hui-note {
   margin-top: 2px;
 }
@@ -899,7 +926,7 @@
   gap: 8px;
   min-height: 30px;
   padding: 3px 6px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
   color: var(--hui-text);
@@ -916,13 +943,8 @@
 }
 
 .hui-registry-result.is-selected {
-  /* Square leading corners: an inset shadow is clipped by the border radius,
-     so with the row's 5px radius intact this 3px accent bent into a crescent
-     of light on the leading edge — the banned accent. Straight bar, rounded
-     trailing corners, same as the palette row. */
-  border-start-start-radius: 0;
-  border-end-start-radius: 0;
-  box-shadow: inset 3px 0 0 var(--hui-accent);
+  border-color: color-mix(in srgb, var(--hui-accent) 42%, var(--hui-border));
+  background: color-mix(in srgb, var(--hui-accent) 10%, transparent);
   font-weight: 620;
 }
 

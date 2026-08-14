@@ -339,7 +339,7 @@
 }
 
 .hui-board-node.has-cycle { border-color: color-mix(in srgb, var(--hui-warning) 74%, var(--hui-border)); }
-.hui-board-node.is-orphan { box-shadow: inset 3px 0 0 var(--hui-info), var(--hui-shadow-sm); }
+.hui-board-node.is-orphan { border-color: color-mix(in srgb, var(--hui-info) 58%, var(--hui-border)); }
 .hui-board-node.has-danger { border-color: color-mix(in srgb, var(--hui-danger) 72%, var(--hui-border)); }
 
 .hui-board-node-header {

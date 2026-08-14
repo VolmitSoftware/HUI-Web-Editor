@@ -239,8 +239,8 @@ class HuiToggleData extends HuiComponentData {
 }
 
 class HuiComponent {
-  /// Addresses the component in the Java API. Duplicates render and click but
-  /// only the first is addressable (`putIfAbsent`).
+  /// Addresses the component in the Java API. The first duplicate id wins;
+  /// later duplicates do not render, tick or click.
   String id;
 
   /// Relative to the menu centre, multiplied by the server's `uiScale`.

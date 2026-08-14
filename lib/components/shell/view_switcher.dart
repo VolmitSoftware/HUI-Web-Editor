@@ -51,7 +51,7 @@ class ViewSwitcher extends StatelessWidget {
     EditorView.code => 'Code',
     EditorView.split => 'Split',
     EditorView.previewCard => 'Card',
-    EditorView.board => 'Board',
+    EditorView.board => 'Flow map',
   };
 
   static Widget _iconOf(EditorView value) => switch (value) {

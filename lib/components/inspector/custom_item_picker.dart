@@ -187,7 +187,7 @@ class CustomItemIconEditor extends StatelessWidget {
   Widget _catalogNote() {
     if (_catalog.isEmpty) {
       return const HuiNote(
-        'No catalog loaded, so ids cannot be checked here. Run /holoui items '
+        'No catalog loaded, so ids cannot be checked here. Run /holoui item '
         'export on your server and import the file from Settings to get '
         'autocomplete and canvas previews.',
       );

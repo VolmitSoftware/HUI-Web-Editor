@@ -29,7 +29,7 @@ class MaterialEntry {
   String toString() => 'MaterialEntry($key)';
 }
 
-/// One item exported by a custom-item plugin through `/holoui items export`.
+/// One item exported by a custom-item plugin through `/holoui item export`.
 ///
 /// [id] is kept exactly as the provider spelled it — several providers look ids
 /// up in case-sensitive maps, and MMOItems ids are conventionally uppercase.
@@ -57,7 +57,7 @@ class CustomItemEntry {
   String toString() => 'CustomItemEntry($provider, $id)';
 }
 
-/// The catalog `/holoui items export` writes to
+/// The catalog `/holoui item export` writes to
 /// `plugins/holoui/custom-items.json`.
 ///
 /// Entirely optional: the editor is a static offline page, so a missing catalog

@@ -116,7 +116,7 @@ class HuiMore extends StatelessWidget {
   );
 }
 
-/// Muted explanatory block. [tone] tints the left rule for warnings and traps.
+/// Muted explanatory block with an optional full-surface tone treatment.
 enum HuiNoteTone { neutral, info, warning, danger }
 
 class HuiNote extends StatelessWidget {
@@ -138,20 +138,11 @@ class HuiNote extends StatelessWidget {
     HuiNoteTone.danger => 'is-danger',
   };
 
-  String get _accent => switch (tone) {
-    HuiNoteTone.neutral => 'var(--hui-border, var(--border))',
-    HuiNoteTone.info => 'var(--hui-info, #007acc)',
-    HuiNoteTone.warning => 'var(--hui-warning, #a06022)',
-    HuiNoteTone.danger => 'var(--hui-danger, var(--destructive))',
-  };
-
   @override
   Widget build(BuildContext context) => dom.div(
     classes: classNames(<String?>['hui-note', _toneClass]),
-    styles: dom.Styles(
+    styles: const dom.Styles(
       raw: <String, String>{
-        'border-left': '2px solid $_accent',
-        'padding': '1px 0 1px 9px',
         'font-size': '0.72rem',
         'line-height': '1.45',
         'color': 'var(--muted-foreground)',

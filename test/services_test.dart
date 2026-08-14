@@ -13,7 +13,7 @@ import 'package:holoui_editor/services/image_library.dart';
 import 'package:holoui_editor/services/storage_service.dart';
 import 'package:test/test.dart';
 
-/// A two-provider catalog in the exact shape `/holoui items export` writes.
+/// A two-provider catalog in the exact shape `/holoui item export` writes.
 const String _catalogBody = '''
 {
   "version": 1,

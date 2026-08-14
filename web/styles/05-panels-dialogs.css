@@ -146,37 +146,11 @@
   background: color-mix(in srgb, var(--hui-panel-soft) 86%, var(--hui-accent) 14%);
 }
 
-/* The marker is always in the DOM and always full height; selecting scales it
-   in from the middle. Growing its height instead would animate layout, and the
-   row's flex centre would drift while it did. */
-.hui-rail-row::before {
-  position: absolute;
-  inset: 6px auto 6px -1px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--hui-accent);
-  opacity: 0;
-  transform: scaleY(0);
-  transition:
-    opacity var(--hui-dur-1) var(--hui-ease-out),
-    transform var(--hui-dur-2) var(--hui-ease-spring);
-  content: "";
-}
-
-.hui-rail-row.is-selected::before { opacity: 1; transform: scaleY(1); }
-
 .hui-rail-row.is-dragging { opacity: .45; }
 
 .hui-rail-row.is-drop-target {
   border-color: var(--hui-accent);
-  /* Square the top corners so the 2px accent is a STRAIGHT full-width bar.
-     An inset shadow is clipped by the border radius, so with the row's radius
-     intact this bar curved down around both top corners into the banned
-     crescent. Same treatment as the command palette's active row and the
-     inspector's section accent; the bottom corners keep their radius. */
-  border-start-start-radius: 0;
-  border-start-end-radius: 0;
-  box-shadow: inset 0 2px 0 0 var(--hui-accent);
+  background: color-mix(in srgb, var(--hui-accent) 10%, var(--hui-panel));
 }
 
 .hui-rail-row.is-armed {
@@ -616,14 +590,16 @@
   display: grid;
   grid-template-columns: minmax(120px, .34fr) minmax(0, 1fr);
   gap: 10px;
-  padding: 5px 0 5px 10px;
-  border-left: 3px solid var(--hui-border);
+  padding: 7px 9px;
+  border: 1px solid var(--hui-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--hui-panel) 92%, var(--hui-bg));
   font-size: .76rem;
 }
 
-.hui-code-issue.is-error { border-left-color: var(--hui-danger); }
-.hui-code-issue.is-warning { border-left-color: var(--hui-warning); }
-.hui-code-issue.is-info { border-left-color: var(--hui-info); }
+.hui-code-issue.is-error { border-color: var(--hui-danger); }
+.hui-code-issue.is-warning { border-color: var(--hui-warning); }
+.hui-code-issue.is-info { border-color: var(--hui-info); }
 
 .hui-code-issue-message { color: var(--hui-text); line-height: 1.4; }
 
@@ -931,16 +907,18 @@
   display: grid;
   grid-template-columns: minmax(110px, .3fr) minmax(0, 1fr);
   gap: 10px;
-  padding: 5px 0 5px 10px;
-  border-left: 3px solid var(--hui-border);
+  padding: 7px 9px;
+  border: 1px solid var(--hui-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--hui-panel) 92%, var(--hui-bg));
   color: var(--hui-text);
   font-size: .76rem;
   line-height: 1.4;
 }
 
-.hui-import-issue.is-error { border-left-color: var(--hui-danger); }
-.hui-import-issue.is-warning { border-left-color: var(--hui-warning); }
-.hui-import-issue.is-info { border-left-color: var(--hui-info); }
+.hui-import-issue.is-error { border-color: var(--hui-danger); }
+.hui-import-issue.is-warning { border-color: var(--hui-warning); }
+.hui-import-issue.is-info { border-color: var(--hui-info); }
 
 @media (max-width: 720px) {
   .hui-import-issue { grid-template-columns: 1fr; gap: 2px; }

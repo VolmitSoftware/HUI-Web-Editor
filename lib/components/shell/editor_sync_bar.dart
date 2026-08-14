@@ -68,6 +68,17 @@ class EditorSyncBar extends StatelessWidget {
           dom.span(<Widget>[Text(controls.message!)]),
       ]),
       dom.div(classes: 'hui-sync-actions', <Widget>[
+        Button(
+          variant: controls.canPublish
+              ? ButtonVariant.primary
+              : ButtonVariant.outline,
+          size: ButtonSize.sm,
+          disabled: controls.canPublish == false,
+          onPressed: controls.onPublish,
+          icon: ArcaneIcon.cloudUpload(size: IconSize.sm),
+          label: controls.publishLabel,
+          attributes: <String, String>{'title': controls.publishHint},
+        ),
         Button.ghost(
           size: ButtonSize.sm,
           onPressed: controls.onCopyLink,

@@ -103,6 +103,66 @@ void main() {
     });
   });
 
+  group('importJsonAsNewDocument', () {
+    test('keeps the active menu and opens a separate imported menu', () {
+      final EditorStore store = _store(_FakeStorage());
+      final WorkspaceDoc original = store.workspace.active!;
+      final int before = store.workspace.docs.length;
+
+      expect(
+        store.importJsonAsNewDocument(
+          'shop.json',
+          encodeHuiMenu(createDefaultMenu()),
+        ),
+        isTrue,
+      );
+
+      expect(store.workspace.docs, hasLength(before + 1));
+      expect(store.workspace.byId(original.id), same(original));
+      expect(store.workspace.active!.id, isNot(original.id));
+      expect(store.workspace.active!.runtimeId, 'shop');
+      expect(store.workspace.active!.kind, WorkspaceDocKind.menu);
+    });
+
+    test('deduplicates repeated imported runtime ids', () {
+      final EditorStore store = _store(_FakeStorage());
+      final String source = encodeHuiMenu(createDefaultMenu());
+
+      expect(store.importJsonAsNewDocument('shop.json', source), isTrue);
+      expect(store.importJsonAsNewDocument('shop.json', source), isTrue);
+
+      expect(store.workspace.active!.runtimeId, 'shop-2');
+      expect(store.workspace.runtimeIdConflicts, isEmpty);
+    });
+
+    test('opens a preview import without replacing the menu document', () {
+      final EditorStore store = _store(_FakeStorage());
+      final WorkspaceDoc original = store.workspace.active!;
+
+      expect(
+        store.importJsonAsNewDocument('furnace.json', _previewJson),
+        isTrue,
+      );
+
+      expect(store.workspace.byId(original.id), same(original));
+      expect(store.workspace.active!.runtimeId, 'furnace');
+      expect(store.workspace.active!.kind, WorkspaceDocKind.containerPreview);
+      expect(store.previewDoc!.elements, hasLength(1));
+    });
+
+    test('rejects malformed JSON without creating a document', () {
+      final EditorStore store = _store(_FakeStorage());
+      final int before = store.workspace.docs.length;
+
+      expect(
+        store.importJsonAsNewDocument('broken.json', '{not json'),
+        isFalse,
+      );
+
+      expect(store.workspace.docs, hasLength(before));
+    });
+  });
+
   group('exportJson mode-awareness', () {
     test('exports HuiMenu JSON while in menu mode', () {
       final EditorStore store = _store(_FakeStorage());

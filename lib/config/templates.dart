@@ -9,7 +9,6 @@
 /// template must never produce a validation error.
 library;
 
-import '../model/json_codec.dart';
 import '../model/model.dart';
 
 /// A named starter document.
@@ -42,9 +41,9 @@ const List<HuiTemplate> huiTemplates = <HuiTemplate>[
     id: 'blank',
     name: 'Blank hologram',
     description:
-        'The same baseline /holoui menus create writes on the server: a '
-        'title, a hint line, and a Close button. Place it with '
-        '/holoui boards create <id> <id>.',
+        'The richer starter menu from /holoui menu create: a title, hint, and '
+        'Close button. For the quickest in-game hologram, run '
+        '/holo create <id> [text].',
     highlights: <String>['3 components', 'Text icons', 'Native close'],
     build: buildBlankHologramTemplate,
   ),
@@ -133,7 +132,7 @@ const String kBlankHologramJson = r'''
         "type": "decoration",
         "icon": {
           "type": "text",
-          "text": "&7Edit this with /holoui menus or the web editor."
+          "text": "&7Edit this with /holoui menu or the web editor."
         }
       }
     },

@@ -191,9 +191,9 @@ class _ImportDialogState extends State<ImportDialog> {
     HuiDialogSection(
       title: 'From a file',
       description:
-          'Dropping a .json file anywhere in the editor does the same '
-          'thing. A menu or a container-preview document both work — '
-          'the shape of the file decides which.',
+          'A menu or a container-preview document both work; the file shape '
+          'decides which. Dropping JSON anywhere creates a new document. This '
+          'dialog replaces the active document only after you confirm below.',
       children: <Widget>[
         dom.div(classes: 'hui-dialog-actions', <Widget>[
           Button(

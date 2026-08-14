@@ -617,7 +617,7 @@ class _Validator {
         '$path.item',
         '"$id" is not in the custom item catalog exported from your server; '
             'the server is the only thing that can confirm it',
-        fix: 'Re-run /holoui items export if you added the item recently',
+        fix: 'Re-run /holoui item export if you added the item recently',
       );
     }
   }
@@ -683,12 +683,12 @@ class _Validator {
         fix: 'Use ${key.trim().toLowerCase()}',
       );
     }
-    if (!_registryKeyPattern.hasMatch(key) || !key.contains(':')) {
+    if (!_registryKeyPattern.hasMatch(key)) {
       _add(
         HuiSeverity.error,
         '$path.block',
-        'Block material must be a lowercase namespaced registry id',
-        fix: 'Use an id such as minecraft:stone',
+        'Block material must be a lowercase registry id',
+        fix: 'Use an id such as stone or minecraft:stone',
       );
       return;
     }

@@ -110,7 +110,7 @@ class SettingsDialog extends StatelessWidget {
     final HuiCustomItemCatalog? parsed = HuiCustomItemCatalog.parse(picked.$2);
     if (parsed == null) {
       toast.error(
-        '${picked.$1} is not a HoloUI custom item catalog. Run /holoui items '
+        '${picked.$1} is not a HoloUI custom item catalog. Run /holoui item '
         'export and pick the file it names.',
       );
       return;
@@ -167,7 +167,7 @@ class SettingsDialog extends StatelessWidget {
         ),
         const dom.p(classes: 'hui-dialog-note', <Widget>[
           Text(
-            'Run /holoui items export on your server, then import '
+            'Run /holoui item export on your server, then import '
             'plugins/holoui/custom-items.json here. The server is still '
             'the only thing that can confirm an id.',
           ),

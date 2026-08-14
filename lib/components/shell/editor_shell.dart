@@ -127,6 +127,8 @@ class _EditorShellState extends State<EditorShell> {
   bool _tourChecked = false;
   bool _shortcutsOpen = false;
   bool _shortcutsLeaving = false;
+  bool _mobileRailOpen = false;
+  bool _mobileInspectorOpen = false;
 
   /// Bumped on every open and close so a dismissal already in flight cannot
   /// unmount a surface the user has since re-opened.
@@ -175,7 +177,7 @@ class _EditorShellState extends State<EditorShell> {
     resolved.onError = ArcaneSonner.error;
     resolved.onInfo = ArcaneSonner.info;
     _uninstallDrop = installDropHandler(
-      onJson: resolved.importJson,
+      onJson: resolved.importJsonAsNewDocument,
       onImages: _acceptImages,
       onDragActive: (bool active) {
         if (!mounted || active == _dropActive) return;
@@ -316,6 +318,28 @@ class _EditorShellState extends State<EditorShell> {
     });
   }
 
+  void _toggleMobileRail() {
+    setState(() {
+      _mobileRailOpen = !_mobileRailOpen;
+      if (_mobileRailOpen) _mobileInspectorOpen = false;
+    });
+  }
+
+  void _toggleMobileInspector() {
+    setState(() {
+      _mobileInspectorOpen = !_mobileInspectorOpen;
+      if (_mobileInspectorOpen) _mobileRailOpen = false;
+    });
+  }
+
+  void _closeMobilePanes() {
+    if (!_mobileRailOpen && !_mobileInspectorOpen) return;
+    setState(() {
+      _mobileRailOpen = false;
+      _mobileInspectorOpen = false;
+    });
+  }
+
   /// Exit animations are impossible for an Arcane surface — the runtime writes
   /// `hidden` with `display:none!important` in the same batch as the state flip
   /// (06-motion.css, foot of file). These two are ours to unmount, so the class
@@ -376,12 +400,17 @@ class _EditorShellState extends State<EditorShell> {
             syncControls: component.syncControls,
             apple: _apple,
             darkMode: component.darkMode,
+            mobileRailOpen: _mobileRailOpen,
+            mobileInspectorOpen: _mobileInspectorOpen,
+            onToggleMobileRail: _toggleMobileRail,
+            onToggleMobileInspector: _toggleMobileInspector,
           ),
           if (component.syncControls != null)
             EditorSyncBar(controls: component.syncControls!),
           dom.div(classes: 'hui-shell-body', <Widget>[
             dom.aside(
-              classes: 'hui-pane hui-rail',
+              classes:
+                  'hui-pane hui-rail${_mobileRailOpen ? ' is-mobile-open' : ''}',
               attributes: const <String, String>{
                 'aria-label': 'Library and document contents',
               },
@@ -405,8 +434,19 @@ class _EditorShellState extends State<EditorShell> {
               layout: _panes,
               onCommit: _commitPanes,
             ),
+            if (_mobileRailOpen || _mobileInspectorOpen)
+              dom.button(
+                classes: 'hui-pane-scrim',
+                attributes: const <String, String>{
+                  'type': 'button',
+                  'aria-label': 'Close side panel',
+                },
+                events: dom.events<Null>(onClick: _closeMobilePanes),
+                const <Widget>[],
+              ),
             dom.aside(
-              classes: 'hui-pane hui-inspector',
+              classes:
+                  'hui-pane hui-inspector${_mobileInspectorOpen ? ' is-mobile-open' : ''}',
               attributes: const <String, String>{'aria-label': 'Inspector'},
               <Widget>[component.inspector],
             ),

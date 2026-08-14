@@ -31,7 +31,7 @@ class StatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => dom.footer(
     classes: 'hui-status',
-    attributes: const <String, String>{'role': 'status', 'aria-live': 'polite'},
+    attributes: const <String, String>{'aria-label': 'Editor status'},
     <Widget>[
       StoreSelector<String>(
         listenable: store,
@@ -76,7 +76,7 @@ class StatusBar extends StatelessWidget {
   Widget _issuesChip() {
     if (store.isBoardDoc) {
       return const dom.span(classes: 'hui-status-item', <Widget>[
-        Text('Flow diagnostics shown on board'),
+        Text('Flow diagnostics shown on map'),
       ]);
     }
     final int errors = store.errorCount;
@@ -123,7 +123,7 @@ class StatusBar extends StatelessWidget {
       final int menus = store.workspace.docs
           .where((WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.menu)
           .length;
-      return dom.span(classes: 'hui-status-item', <Widget>[
+      return dom.span(classes: 'hui-status-item hui-status-selection', <Widget>[
         Text('$menus menu${menus == 1 ? '' : 's'} in workspace'),
       ]);
     }
@@ -135,10 +135,12 @@ class StatusBar extends StatelessWidget {
       _ => '$selectedCount of $count selected',
     };
     if (selectedCount < 2) {
-      return dom.span(classes: 'hui-status-item', <Widget>[Text(text)]);
+      return dom.span(classes: 'hui-status-item hui-status-selection', <Widget>[
+        Text(text),
+      ]);
     }
     return dom.span(
-      classes: 'hui-status-item',
+      classes: 'hui-status-item hui-status-selection',
       // `data-no-tooltip` keeps Arcane's title-to-tooltip upgrade away: it
       // re-parents the element behind Jaspr's back, and this span rebuilds on
       // every selection change.
@@ -197,21 +199,29 @@ class StatusBar extends StatelessWidget {
   Widget _saveNote() {
     final String? failure = store.workspace.lastError;
     if (failure != null) {
-      return dom.span(classes: 'hui-status-item is-error', <Widget>[
-        Text(failure),
-        if (store.workspace.requiresReload)
-          const Button.ghost(
-            size: ButtonSize.sm,
-            label: 'Reload',
-            onPressed: reloadEditorPage,
-          )
-        else if (store.hasUnsavedChanges)
-          Button.ghost(
-            size: ButtonSize.sm,
-            label: 'Retry',
-            onPressed: _retryAutosave,
-          ),
-      ]);
+      return dom.span(
+        classes: 'hui-status-item is-error',
+        attributes: const <String, String>{
+          'role': 'status',
+          'aria-live': 'polite',
+          'aria-atomic': 'true',
+        },
+        <Widget>[
+          Text(failure),
+          if (store.workspace.requiresReload)
+            const Button.ghost(
+              size: ButtonSize.sm,
+              label: 'Reload',
+              onPressed: reloadEditorPage,
+            )
+          else if (store.hasUnsavedChanges)
+            Button.ghost(
+              size: ButtonSize.sm,
+              label: 'Retry',
+              onPressed: _retryAutosave,
+            ),
+        ],
+      );
     }
     final DateTime? saved = store.lastSavedAt;
     final String text = store.hasUnsavedChanges
@@ -219,7 +229,15 @@ class StatusBar extends StatelessWidget {
         : saved == null
         ? 'Autosaved locally'
         : 'Autosaved locally ${_clock(saved)}';
-    return dom.span(classes: 'hui-status-item is-muted', <Widget>[Text(text)]);
+    return dom.span(
+      classes: 'hui-status-item is-muted',
+      attributes: const <String, String>{
+        'role': 'status',
+        'aria-live': 'polite',
+        'aria-atomic': 'true',
+      },
+      <Widget>[Text(text)],
+    );
   }
 
   static String _block(double value) => value.toStringAsFixed(2);

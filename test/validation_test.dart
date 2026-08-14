@@ -1461,24 +1461,17 @@ void main() {
   });
 
   group('block icons', () {
-    test('accepts a namespaced block and rejects items or malformed keys', () {
+    test('accepts implicit and explicit Minecraft block ids', () {
       expect(
         validateHuiMenu(_withIcon(HuiBlockIcon('minecraft:stone'))),
         isEmpty,
       );
+      expect(validateHuiMenu(_withIcon(HuiBlockIcon('stone'))), isEmpty);
       expect(
         _has(
           validateHuiMenu(_withIcon(HuiBlockIcon('minecraft:diamond_sword'))),
           HuiSeverity.error,
           'not a block',
-        ),
-        isTrue,
-      );
-      expect(
-        _has(
-          validateHuiMenu(_withIcon(HuiBlockIcon('stone'))),
-          HuiSeverity.error,
-          'namespaced',
         ),
         isTrue,
       );

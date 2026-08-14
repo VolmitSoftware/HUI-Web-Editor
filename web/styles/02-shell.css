@@ -247,6 +247,8 @@ body.hui-resizing * { cursor: col-resize !important; }
 
 /* Shown only once the bar is too narrow for the `is-optional` actions. */
 .hui-bar-overflow { display: none; }
+.hui-mobile-panes,
+.hui-pane-scrim { display: none; }
 
 /* The bar buttons are Arcane's, and Arcane owns their colour states. All this
    adds is the physical half: a press that gives way under the pointer. */
@@ -461,6 +463,7 @@ body.hui-resizing * { cursor: col-resize !important; }
   gap: 10px;
   min-height: 34px;
   padding: 0 10px;
+  border: 1px solid transparent;
   border-radius: var(--hui-radius);
   color: var(--hui-text);
   font-size: 0.86rem;
@@ -471,15 +474,8 @@ body.hui-resizing * { cursor: col-resize !important; }
 }
 .hui-cmd-item:hover { background: var(--hui-panel-soft); }
 .hui-cmd-item.is-active {
+  border-color: color-mix(in srgb, var(--hui-accent) 42%, var(--hui-border));
   background: color-mix(in srgb, var(--hui-accent) 14%, transparent);
-  /* Square leading corners so the 3px accent is a STRAIGHT bar. An inset
-     shadow is clipped by the border radius, so with the row's radius intact
-     this bar bent into a crescent of light hugging the leading edge — the
-     banned accent. The trailing corners keep their radius. Same rule as the
-     rail's selection marker, which is square on the edge it sits on. */
-  border-start-start-radius: 0;
-  border-end-start-radius: 0;
-  box-shadow: inset 3px 0 0 var(--hui-accent);
 }
 .hui-cmd-icon {
   display: inline-flex;
@@ -719,8 +715,10 @@ body.hui-resizing * { cursor: col-resize !important; }
    this is the line the user will remember two days later. */
 .hui-tour-hint {
   margin: 2px 0 0;
-  padding-left: 9px;
-  border-left: 2px solid color-mix(in srgb, var(--hui-accent) 55%, transparent);
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--hui-accent) 38%, var(--hui-border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--hui-accent) 6%, transparent);
   color: var(--hui-text);
   font-size: 0.75rem;
   line-height: 1.45;
@@ -830,22 +828,69 @@ body.hui-resizing * { cursor: col-resize !important; }
   .hui-doc-id { max-width: 150px; }
 }
 @media (max-width: 1024px) {
-  /* Stacked: the splitters are meaningless once the panes are rows. */
   .hui-splitter { display: none; }
   .hui-shell-body {
+    position: relative;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(280px, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr);
   }
-  .hui-rail {
-    max-height: 28vh;
-    border-right: 0;
-    border-bottom: 1px solid var(--hui-border-soft);
-  }
+
+  .hui-rail,
   .hui-inspector {
-    max-height: 38vh;
-    border-left: 0;
-    border-top: 1px solid var(--hui-border-soft);
+    position: absolute;
+    inset-block: 0;
+    z-index: 32;
+    width: min(360px, calc(100vw - 48px));
+    max-height: none;
+    visibility: hidden;
+    pointer-events: none;
+    background: var(--hui-panel);
+    box-shadow: var(--hui-shadow-md);
+    transition:
+      transform var(--hui-dur-3) var(--hui-ease-out),
+      visibility 0s linear var(--hui-dur-3);
   }
+
+  .hui-rail {
+    left: 0;
+    border-right: 1px solid var(--hui-border);
+    border-bottom: 0;
+    transform: translateX(-100%);
+  }
+
+  .hui-inspector {
+    right: 0;
+    border-top: 0;
+    border-left: 1px solid var(--hui-border);
+    transform: translateX(100%);
+  }
+
+  .hui-rail.is-mobile-open,
+  .hui-inspector.is-mobile-open {
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition-delay: 0s;
+  }
+
+  .hui-pane-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 31;
+    display: block;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: color-mix(in srgb, #000 38%, transparent);
+    appearance: none;
+    cursor: default;
+  }
+
+  .hui-mobile-panes { display: flex; }
+
   .hui-center.is-split {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
@@ -854,14 +899,63 @@ body.hui-resizing * { cursor: col-resize !important; }
     border-top: 1px solid var(--hui-border-soft);
     border-left: 0;
   }
-  /* Wrap rather than scroll: a scrolling bar would clip the dropdown and
-     tooltip surfaces that render inside it. */
   .hui-bar {
-    flex-wrap: wrap;
-    padding: 6px var(--hui-space-3);
-    row-gap: 6px;
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+    padding: 4px 8px;
   }
-  .hui-bar-left, .hui-bar-right { flex: 1 1 260px; }
+  .hui-bar-left { flex: 1 1 0; overflow: hidden; }
+  .hui-bar-center,
+  .hui-bar-right { flex: 0 0 auto; }
+  .hui-doc-id { max-width: 132px; }
+}
+
+@media (max-width: 720px) {
+  .hui-brand { display: none; }
+  .hui-doc-id { max-width: min(26vw, 96px); }
+  .hui-doc-ext { display: none; }
+
+  .hui-bar-right > .hui-bar-cluster:not(.hui-mobile-panes):not(.hui-bar-overflow) {
+    display: none;
+  }
+  .hui-bar-overflow { display: flex; }
+  .hui-bar-cluster + .hui-bar-cluster {
+    margin-left: 2px;
+    padding-left: 2px;
+    border-left: 0;
+  }
+
+  .hui-sync-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .hui-sync-identity { flex: 1 1 100%; }
+  .hui-sync-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+
+  .hui-status {
+    gap: 4px;
+    overflow: hidden;
+    padding-inline: 8px;
+  }
+  .hui-status-left { flex: 1 1 auto; overflow: hidden; }
+  .hui-status-selection,
+  .hui-status-right,
+  .hui-status-version { display: none; }
+  .hui-status-item { overflow: hidden; text-overflow: ellipsis; }
+}
+
+@media (pointer: coarse) and (max-width: 1024px) {
+  .hui-bar .arcane-button,
+  .hui-sync-actions .arcane-button {
+    min-width: 40px;
+    min-height: 40px;
+  }
 }
 
 /* Everything in this file that moves resolves its duration from --hui-dur-*,

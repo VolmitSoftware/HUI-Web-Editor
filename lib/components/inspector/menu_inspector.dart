@@ -210,9 +210,9 @@ class MenuInspector extends StatelessWidget {
         children: <Widget>[
           HuiNote(
             'The menu id is the file base name, so renaming the file '
-            'renames the menu. Only the direct children of menus/ are '
-            'registered - subfolders are ignored.',
-            title: 'Flat directory',
+            'renames the menu. Slash-separated ids map to matching subfolders '
+            'under menus/, such as shop/tools.json for shop/tools.',
+            title: 'Nested menu ids',
           ),
           HuiNote(
             'Saving over an existing file re-registers it within about 5 '

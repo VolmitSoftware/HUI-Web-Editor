@@ -33,66 +33,67 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'menu.offset': HuiFieldDoc(
     title: 'Menu offset',
     body:
-        'Measured in blocks from the player\'s feet at the moment the menu '
-        'opens, not from their eyes, so y 1.7 is roughly eye level. X is '
-        'negated on load, which is why positive X reads as the player\'s right '
-        'here. This is the one offset uiScale never touches: raising the '
-        'server\'s uiScale spreads the components further apart without moving '
-        'the menu closer or further away.',
-    citation: 'MenuSession.java:70-73',
+        'For a personal menu, this is measured in blocks from the player\'s '
+        'feet when it opens, so y 1.7 is roughly eye level. On a persistent '
+        'world board it is local to the board anchor and rotates with the '
+        'board. X is negated in both paths. Neither uiScale nor board scale '
+        'changes this root offset; they scale component spacing instead.',
+    citation: 'BoardPlacement.java:42-57',
   ),
   'menu.id': HuiFieldDoc(
     title: 'Menu id',
     body:
-        'Comes from the file base name, and the plugin overwrites whatever id '
-        'the JSON carries immediately after parsing. There is no name key in '
-        'the format either - writing one is silently ignored. Renaming the file '
-        'renames the menu, and with it the /holoui open argument and the '
-        'holoui.open.<id> permission node a player needs to open it.',
-    citation: 'ConfigManager.java:258-260',
+        'Comes from the JSON path relative to menus/, without the extension; '
+        'subfolders become slash-separated id segments. The plugin overwrites '
+        'any id carried in JSON after parsing, and there is no name key. '
+        'Renaming the file or a parent '
+        'folder changes the /holoui open argument, navigation targets and the '
+        'holoui.open.<id> permission node.',
+    citation: 'ConfigManager.java:267-301',
   ),
   'menu.lockPosition': HuiFieldDoc(
     title: 'Lock position',
     body:
-        'Rewrites every movement back to where the player stood and zeroes '
-        'their velocity, for as long as the menu is open. They can still look '
-        'around and click; they cannot walk. Positional following has nowhere '
-        'to go, but follow player can still turn the menu with their yaw.',
+        'Personal-menu behavior only. It rewrites every movement back to the '
+        'open position and zeroes velocity while the menu is open. Persistent '
+        'world boards ignore this key and use their own transform, follow and '
+        'visibility settings.',
     citation: 'MenuSessionManager.java:115-127',
   ),
   'menu.followPlayer': HuiFieldDoc(
     title: 'Follow player',
     body:
-        'Re-centres the whole menu on the player and updates its facing yaw on '
-        'every move or look change, respawn and teleport. Off, the menu keeps '
-        'its open pose and the player can walk away from it - until max '
-        'distance closes it.',
+        'Personal-menu behavior only. It re-centres the menu on the player and '
+        'updates its facing yaw on movement, look, respawn and teleport. A '
+        'persistent world board ignores this key and uses its separate player '
+        'follow target, mode and relative transform.',
     citation: 'MenuSessionManager.java:129-131',
   ),
   'menu.maxDistance': HuiFieldDoc(
     title: 'Max distance',
     body:
-        'Closes the menu once the player gets further from the menu centre '
-        'than this. Leaving the key out means 60000000 blocks, and any value is '
-        'clamped into 0 to 60000000. The check is loosened by the menu offset - '
-        'it compares against maxDistance squared plus the offset length squared '
-        '- so a menu pushed well in front of the player survives a little '
-        'further than the number reads. Changing world always closes it.',
+        'Personal-menu behavior only. It closes the session once the player '
+        'moves too far from the menu centre; the value is clamped to 0 through '
+        '60000000 and changing world always closes it. Persistent boards '
+        'ignore this key and use their own view and interaction ranges.',
     citation: 'MenuSession.java:147-151',
   ),
   'menu.closeOnDeath': HuiFieldDoc(
     title: 'Close on death',
     body:
-        'Closes the menu when the player dies. Off, it stays open through the '
-        'death screen and the respawn.',
-    citation: 'MenuSessionManager.java:136-140',
+        'Personal-menu behavior only. On closes at death. Off preserves the '
+        'session through the death event, but respawn still closes it when the '
+        'new location fails the world or max-distance check. Persistent boards '
+        'ignore this key and reopen from board visibility after respawn.',
+    citation: 'MenuSessionManager.java:121-140',
   ),
   'menu.closeOnTeleport': HuiFieldDoc(
     title: 'Close on teleport',
     body:
-        'Closes on any teleport - commands, portals, other plugins. Even with '
-        'it off, a teleport that leaves the menu\'s world closes the session '
-        'anyway.',
+        'Personal-menu behavior only. On closes for any teleport. Even when '
+        'off, a teleport to another world or beyond max distance closes the '
+        'session. Persistent boards ignore this key and recalculate visibility '
+        'from the destination.',
     citation: 'MenuSessionManager.java:151-159',
   ),
 
@@ -108,12 +109,12 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'component.offset': HuiFieldDoc(
     title: 'Component offset',
     body:
-        'Blocks from the menu centre. X is negated on load, and all three '
-        'axes are multiplied by the server\'s uiScale - so a server at uiScale '
-        '2 spreads every component twice as far from the centre while the menu '
-        'itself stays put. Yaw and pitch are forced to zero; components cannot '
-        'be tilted.',
-    citation: 'MenuComponent.java:53-54',
+        'Blocks from the menu centre. X is negated and all three axes are '
+        'multiplied by uiScale; persistent boards also apply board scale and '
+        'rotate the complete layout and click planes through board yaw, pitch '
+        'and roll. Components have no independent Euler rotation field, while '
+        'display-backed icon style still owns scale and text alignment.',
+    citation: 'MenuTransform.java:98-135',
   ),
 
   // --- clickables -----------------------------------------------------------

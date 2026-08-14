@@ -127,7 +127,7 @@ WorkspaceBoardDecodeResult decodeWorkspaceBoard(String raw) {
     if (candidate.name == rawView) view = candidate;
   }
   if (rawView != null && rawView != view.name) {
-    warning = 'The unknown board view was replaced with Canvas.';
+    warning = 'The unknown flow-map view was replaced with Canvas.';
   }
 
   String? scopeFolderId;

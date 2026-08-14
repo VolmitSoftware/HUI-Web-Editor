@@ -44,7 +44,7 @@ class _BoardViewState extends State<BoardView> {
     final WorkspaceBoardDecodeResult? decoded = component.store.activeBoard;
     if (decoded == null) {
       return const dom.div(classes: 'hui-board-empty', <Widget>[
-        Text('Open a flow board to inspect menu navigation.'),
+        Text('Open a menu flow map to inspect menu navigation.'),
       ]);
     }
     final WorkspaceBoardData board = decoded.data;
@@ -77,7 +77,7 @@ class _BoardViewState extends State<BoardView> {
           ArcaneIcon.workflow(size: IconSize.md),
           dom.div(<Widget>[
             dom.h1(<Widget>[
-              Text(component.store.workspace.active?.title ?? 'Board'),
+              Text(component.store.workspace.active?.title ?? 'Menu flow map'),
             ]),
             dom.p(<Widget>[
               Text(

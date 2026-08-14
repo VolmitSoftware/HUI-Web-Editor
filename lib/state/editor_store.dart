@@ -13,6 +13,7 @@ library;
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 
@@ -244,6 +245,176 @@ class EditorStore extends ChangeNotifier {
     _documentRevision++;
     _scheduleSave();
     _notify();
+  }
+
+  bool renameDocumentRuntimeId(String documentId, String value) {
+    final WorkspaceDoc? target = workspace.byId(documentId);
+    if (target == null ||
+        !target.kind.hasRuntimeId ||
+        target.runtimeId == null) {
+      return false;
+    }
+    final String previous = target.runtimeId!;
+    final String next = sanitizeMenuId(value);
+    if (previous == next) return true;
+    final bool conflict = workspace.docs.any(
+      (WorkspaceDoc document) =>
+          document.id != target.id &&
+          document.kind == target.kind &&
+          document.runtimeId?.toLowerCase() == next.toLowerCase(),
+    );
+    if (conflict) {
+      _fail(
+        'A ${target.kind == WorkspaceDocKind.menu ? 'menu' : 'preview'} already uses "$next".',
+      );
+      return false;
+    }
+
+    flushAutosave();
+    if (target.kind != WorkspaceDocKind.menu) {
+      final bool renamed = workspace.updateDocuments(<WorkspaceDocumentUpdate>[
+        WorkspaceDocumentUpdate(documentId: target.id, runtimeId: next),
+      ]);
+      if (renamed && workspace.activeId == target.id) {
+        _menuId = next;
+        _notify();
+      }
+      return renamed;
+    }
+    return _renameMenuProject(target, previous, next);
+  }
+
+  bool renameActiveRuntimeId(String value) {
+    final WorkspaceDoc? active = workspace.active;
+    if (active == null) return false;
+    return renameDocumentRuntimeId(active.id, value);
+  }
+
+  bool _renameMenuProject(WorkspaceDoc target, String previous, String next) {
+    final List<WorkspaceDocumentUpdate> updates = <WorkspaceDocumentUpdate>[];
+    int navigationLinks = 0;
+    int boardRoots = 0;
+
+    for (final WorkspaceDoc document in workspace.docs) {
+      if (document.kind == WorkspaceDocKind.menu) {
+        final HuiMenu menu;
+        try {
+          menu = decodeHuiMenu(document.json);
+        } catch (_) {
+          _fail(
+            'Cannot safely rename while menu "${document.runtimeId}" is unreadable.',
+          );
+          return false;
+        }
+        final int changed = _rewriteNavigationTargets(menu, previous, next);
+        navigationLinks += changed;
+        if (changed > 0 || document.id == target.id) {
+          updates.add(
+            WorkspaceDocumentUpdate(
+              documentId: document.id,
+              runtimeId: document.id == target.id ? next : null,
+              json: changed > 0 ? encodeHuiMenu(menu) : null,
+            ),
+          );
+        }
+        continue;
+      }
+      if (document.kind != WorkspaceDocKind.board) continue;
+      final WorkspaceBoardDecodeResult decoded = decodeWorkspaceBoard(
+        document.json,
+      );
+      if (decoded.warning != null) {
+        _fail(
+          'Cannot safely rename while menu flow map "${document.title}" is unreadable.',
+        );
+        return false;
+      }
+      final Map<String, dynamic>? runtimeBoard = decoded.data.runtimeBoard;
+      final bool rootChanged = runtimeBoard?['rootMenuId'] == previous;
+      final List<String> syncMenuIds = <String>[
+        for (final String menuId in decoded.data.syncMenuIds)
+          menuId == previous ? next : menuId,
+      ];
+      final bool syncChanged = !_sameStrings(
+        syncMenuIds,
+        decoded.data.syncMenuIds,
+      );
+      if (!rootChanged && !syncChanged) continue;
+      final Map<String, dynamic>? changedBoard = runtimeBoard == null
+          ? null
+          : <String, dynamic>{
+              ...runtimeBoard,
+              if (rootChanged) 'rootMenuId': next,
+            };
+      updates.add(
+        WorkspaceDocumentUpdate(
+          documentId: document.id,
+          json: encodeWorkspaceBoard(
+            decoded.data.copyWith(
+              runtimeBoard: changedBoard,
+              syncMenuIds: syncMenuIds,
+            ),
+          ),
+        ),
+      );
+      if (rootChanged) boardRoots++;
+    }
+
+    if (!workspace.updateDocuments(updates)) {
+      _fail('The workspace could not save the menu rename.');
+      return false;
+    }
+    if (updates.any(
+      (WorkspaceDocumentUpdate update) =>
+          update.documentId == workspace.activeId,
+    )) {
+      _adoptActiveDocument();
+    } else {
+      _notify();
+    }
+    final List<String> effects = <String>[
+      if (navigationLinks > 0)
+        '$navigationLinks navigation link${navigationLinks == 1 ? '' : 's'}',
+      if (boardRoots > 0)
+        '$boardRoots world-board root${boardRoots == 1 ? '' : 's'}',
+    ];
+    onInfo?.call(
+      effects.isEmpty
+          ? 'Renamed $previous to $next.'
+          : 'Renamed $previous to $next and updated ${effects.join(' and ')}.',
+    );
+    return true;
+  }
+
+  int _rewriteNavigationTargets(HuiMenu menu, String previous, String next) {
+    int changed = 0;
+    for (final HuiComponent component in menu.components) {
+      final List<List<HuiAction>> branches = switch (component.data) {
+        final HuiButtonData button => <List<HuiAction>>[button.actions],
+        final HuiToggleData toggle => <List<HuiAction>>[
+          toggle.trueActions,
+          toggle.falseActions,
+        ],
+        HuiDecorationData() => const <List<HuiAction>>[],
+      };
+      for (final List<HuiAction> actions in branches) {
+        for (final HuiAction action in actions) {
+          if (action is HuiNavigateAction && action.target == previous) {
+            action.target = next;
+            changed++;
+          }
+        }
+      }
+    }
+    return changed;
+  }
+
+  bool _sameStrings(List<String> first, List<String> second) {
+    if (first.length != second.length) return false;
+    for (int index = 0; index < first.length; index++) {
+      if (first[index] != second[index]) return false;
+    }
+    return true;
   }
 
   // --- selection ------------------------------------------------------------
@@ -1251,6 +1422,94 @@ class EditorStore extends ChangeNotifier {
     }
   }
 
+  /// Imports [content] into a new workspace document. This is the safe default
+  /// for global drag and drop; replacing the active document remains an
+  /// explicit action in the import dialog.
+  bool importJsonAsNewDocument(String name, String content) {
+    if (!workspace.canWrite) {
+      _fail(
+        workspace.lastError ??
+            'The workspace is protected from overwrite until it is recovered.',
+      );
+      return false;
+    }
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(content);
+    } catch (_) {
+      _fail('That file could not be read as JSON.');
+      return false;
+    }
+    final String requestedId = menuIdFromFileName(name);
+    if (looksLikePreviewDoc(decoded)) {
+      return _importPreviewAsNewDocument(requestedId, content);
+    }
+    final String runtimeId = _availableRuntimeId(
+      WorkspaceDocKind.menu,
+      requestedId,
+    );
+    final bool created = newMenuDocumentFromJson(
+      name: runtimeId,
+      runtimeId: runtimeId,
+      json: content,
+    );
+    if (created) onInfo?.call('Imported $runtimeId as a new menu.');
+    return created;
+  }
+
+  bool _importPreviewAsNewDocument(String requestedId, String content) {
+    final HuiPreviewDoc parsed;
+    try {
+      parsed = decodeHuiPreviewDoc(content);
+    } on HuiFormatException catch (error) {
+      _fail('${error.message} (at ${error.path})');
+      return false;
+    } catch (_) {
+      _fail('That file could not be read as a container-preview document.');
+      return false;
+    }
+    final String runtimeId = _availableRuntimeId(
+      WorkspaceDocKind.containerPreview,
+      requestedId,
+    );
+    flushAutosave();
+    workspace.create(
+      title: runtimeId,
+      runtimeId: runtimeId,
+      json: content,
+      kind: WorkspaceDocKind.containerPreview,
+    );
+    _adoptPreview(parsed, runtimeId);
+    onInfo?.call('Imported $runtimeId as a new preview.');
+    return true;
+  }
+
+  String _availableRuntimeId(WorkspaceDocKind kind, String requestedId) {
+    final Set<String> taken = <String>{
+      for (final WorkspaceDoc document in workspace.docs)
+        if (document.kind == kind && document.runtimeId != null)
+          document.runtimeId!,
+    };
+    final String canonical = sanitizeMenuId(requestedId);
+    if (!taken.contains(canonical)) return canonical;
+    final List<String> segments = canonical.split('/');
+    final String prefix = segments.length == 1
+        ? ''
+        : '${segments.take(segments.length - 1).join('/')}/';
+    final String leaf = segments.last;
+    for (int index = 2; index < 100000; index++) {
+      final String suffix = '-$index';
+      final int available = math.min(
+        huiMaxMenuIdSegmentLength - suffix.length,
+        huiMaxMenuIdLength - prefix.length - suffix.length,
+      );
+      final String base = leaf.substring(0, math.min(leaf.length, available));
+      final String candidate = '$prefix$base$suffix';
+      if (!taken.contains(candidate)) return candidate;
+    }
+    return sanitizeMenuId('$prefix${DateTime.now().microsecondsSinceEpoch}');
+  }
+
   void _importMenuJson(String name, String content) {
     final HuiMenu parsed;
     try {
@@ -1563,7 +1822,7 @@ class EditorStore extends ChangeNotifier {
     }
     flushAutosave();
     workspace.create(
-      title: name ?? 'Flow board',
+      title: name ?? 'Menu flow map',
       runtimeId: null,
       json: encodeWorkspaceBoard(
         WorkspaceBoardData(scopeFolderId: scopeFolderId),

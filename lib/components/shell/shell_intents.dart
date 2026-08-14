@@ -81,13 +81,13 @@ class ShellIntents {
   Future<void> copyJson() async {
     if (!store.canTransferDocument) {
       ArcaneSonner.info(
-        'Flow boards are editor-only and are not runtime JSON.',
+        'Menu flow maps are editor-only and are not runtime JSON.',
       );
       return;
     }
     final bool copied = await copyText(store.exportJson());
     if (copied) {
-      ArcaneSonner.success('Menu JSON copied to the clipboard.');
+      ArcaneSonner.success('$_documentLabel JSON copied to the clipboard.');
     } else {
       ArcaneSonner.error(
         'The browser refused clipboard access. Use Export to download the '
@@ -113,7 +113,7 @@ class ShellIntents {
 
   void exportMenu() {
     if (!store.canTransferDocument) {
-      ArcaneSonner.info('Flow boards are editor-only and are not exported.');
+      ArcaneSonner.info('Menu flow maps are editor-only and are not exported.');
       return;
     }
     final void Function()? dialog = onOpenExport;
@@ -124,6 +124,8 @@ class ShellIntents {
     downloadText(store.exportFileName, store.exportJson());
     ArcaneSonner.success('Saved ${store.exportFileName}.');
   }
+
+  String get _documentLabel => store.isPreviewDoc ? 'Preview' : 'Menu';
 
   // --- documents ------------------------------------------------------------
 

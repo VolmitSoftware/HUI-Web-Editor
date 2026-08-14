@@ -292,9 +292,9 @@ class HelpDialog extends StatelessWidget {
       ),
       const HuiSteps(
         steps: <String>[
-          'Run /holoui items on the server to see which providers are '
+          'Run /holoui item status on the server to see which providers are '
               'present, ready, and how many ids they expose.',
-          'Run /holoui items export to write '
+          'Run /holoui item export to write '
               '${huiPluginFolder}custom-items.json.',
           'Open Settings in the hosted editor and import that file. The '
               'plugin does not host or upload it.',
@@ -303,7 +303,7 @@ class HelpDialog extends StatelessWidget {
               'export.',
         ],
       ),
-      const HuiCodeBlock(text: '/holoui items\n/holoui items export'),
+      const HuiCodeBlock(text: '/holoui item status\n/holoui item export'),
     ],
   );
 
@@ -368,8 +368,9 @@ class HelpDialog extends StatelessWidget {
 
 const List<String> _nonFeatureList = <String>[
   'No background: a menu has no panel, colour or image behind its components.',
-  'No per-component scale, rotation or alignment. Size comes from the server '
-      'uiScale and the icon itself.',
+  'No independent component transform beyond offset. Display-backed icons '
+      'can own scale and alignment, while a persistent board rotates and '
+      'scales the whole menu.',
   "No localization of menu text. language.yml only translates the plugin's own "
       'messages, never the contents of a menu.',
   'No per-component permission or visibility rule. The only condition is a '
@@ -388,6 +389,7 @@ const List<String> _nonFeatureList = <String>[
       'whatever its provider plugin builds, but the JSON cannot add to it.',
   'No format version or migration: what you export is exactly what the plugin '
       'reads.',
-  'No external menu-opening trigger other than a command or the Java API. '
-      'Nothing in the JSON opens a menu on join, from a block, or from an NPC.',
+  'Persistent world boards open automatically for eligible nearby players. '
+      'Menu JSON has no join, block or NPC trigger; personal menus still open '
+      'through a command or the Java API.',
 ];

@@ -665,11 +665,15 @@ body.hui-resizing-row * { cursor: row-resize !important; }
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding-left: 8px;
-  border-left: 2px solid var(--hui-border-soft);
+  padding: 6px 8px;
+  border: 1px solid var(--hui-border-soft);
+  border-radius: 6px;
 }
 
-.hui-preview-log-group.is-newest { border-left-color: var(--hui-accent); }
+.hui-preview-log-group.is-newest {
+  border-color: var(--hui-accent);
+  background: color-mix(in srgb, var(--hui-accent) 5%, transparent);
+}
 
 .hui-preview-log-grouphead {
   display: flex;

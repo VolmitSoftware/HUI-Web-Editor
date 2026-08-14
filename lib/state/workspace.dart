@@ -138,6 +138,18 @@ class WorkspaceDoc {
   }
 }
 
+class WorkspaceDocumentUpdate {
+  const WorkspaceDocumentUpdate({
+    required this.documentId,
+    this.runtimeId,
+    this.json,
+  });
+
+  final String documentId;
+  final String? runtimeId;
+  final String? json;
+}
+
 class WorkspaceRuntimeIdConflict {
   const WorkspaceRuntimeIdConflict({
     required this.kind,
@@ -408,6 +420,43 @@ class Workspace extends ChangeNotifier {
     save();
     notifyListeners();
     return true;
+  }
+
+  bool updateDocuments(List<WorkspaceDocumentUpdate> updates) {
+    if (!canWrite || updates.isEmpty) return false;
+    final Set<String> ids = <String>{};
+    for (final WorkspaceDocumentUpdate update in updates) {
+      if (!ids.add(update.documentId)) return false;
+      final WorkspaceDoc? document = byId(update.documentId);
+      if (document == null) return false;
+      if (update.runtimeId != null && !document.kind.hasRuntimeId) return false;
+      if (update.json != null && !_isJson(update.json!)) return false;
+    }
+
+    bool changed = false;
+    for (final WorkspaceDocumentUpdate update in updates) {
+      final WorkspaceDoc document = byId(update.documentId)!;
+      bool documentChanged = false;
+      if (update.runtimeId != null) {
+        final String canonical = sanitizeMenuId(update.runtimeId!);
+        if (canonical != document.runtimeId) {
+          document.runtimeId = canonical;
+          documentChanged = true;
+        }
+      }
+      if (update.json != null && update.json != document.json) {
+        document.json = update.json!;
+        documentChanged = true;
+      }
+      if (documentChanged) {
+        document.updatedAt = _stamp();
+        changed = true;
+      }
+    }
+    if (!changed) return true;
+    final bool stored = save();
+    notifyListeners();
+    return stored;
   }
 
   bool replaceDocument({
