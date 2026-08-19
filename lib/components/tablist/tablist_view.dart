@@ -26,6 +26,7 @@ import '../../logic/gloss_text.dart';
 import '../../logic/tablist_selection.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 
 /// Animation repaint period, matching the hologram stage.
@@ -173,50 +174,43 @@ class _TablistViewState extends State<TablistView> {
 
     return dom.div(classes: 'hui-tablist-stage', <Widget>[
       dom.div(classes: 'hui-tablist-sky', <Widget>[
-        dom.div(classes: 'hui-tablist-screen', <Widget>[
-          if (doc.useHeaderFooter)
-            dom.div(
-              classes: 'hui-tablist-header',
-              pipelineLines(doc.header),
-            ),
-          dom.div(classes: 'hui-tablist-grid', <Widget>[
-            for (final _MockPlayer player in _players)
-              dom.div(classes: 'hui-tablist-row', <Widget>[
-                const dom.span(
-                  classes: 'hui-tablist-row-face',
-                  <Widget>[],
-                ),
-                dom.span(classes: 'hui-tablist-row-name', <Widget>[
-                  GlossTextLine(
-                    render: renderGlossLine(
-                      _listNameRaw(doc, player),
-                      animations: animations,
-                      emoji: emoji,
-                      nowMs: nowMs,
+        GlossPreviewZoom(
+          label: 'Tab list preview',
+          alignment: GlossPreviewAlignment.top,
+          child: dom.div(classes: 'hui-tablist-screen', <Widget>[
+            if (doc.useHeaderFooter)
+              dom.div(classes: 'hui-tablist-header', pipelineLines(doc.header)),
+            dom.div(classes: 'hui-tablist-grid', <Widget>[
+              for (final _MockPlayer player in _players)
+                dom.div(classes: 'hui-tablist-row', <Widget>[
+                  const dom.span(classes: 'hui-tablist-row-face', <Widget>[]),
+                  dom.span(classes: 'hui-tablist-row-name', <Widget>[
+                    GlossTextLine(
+                      render: renderGlossLine(
+                        _listNameRaw(doc, player),
+                        animations: animations,
+                        emoji: emoji,
+                        nowMs: nowMs,
+                      ),
                     ),
-                  ),
+                  ]),
+                  dom.span(classes: 'hui-tablist-row-ping', <Widget>[
+                    for (int bar = 0; bar < 5; bar++)
+                      dom.span(
+                        classes:
+                            'hui-tablist-ping-bar'
+                            '${bar < player.pingBars ? ' is-filled' : ''}',
+                        const <Widget>[],
+                      ),
+                  ]),
                 ]),
-                dom.span(classes: 'hui-tablist-row-ping', <Widget>[
-                  for (int bar = 0; bar < 5; bar++)
-                    dom.span(
-                      classes:
-                          'hui-tablist-ping-bar'
-                          '${bar < player.pingBars ? ' is-filled' : ''}',
-                      const <Widget>[],
-                    ),
-                ]),
-              ]),
+            ]),
+            if (doc.useHeaderFooter)
+              dom.div(classes: 'hui-tablist-footer', pipelineLines(doc.footer)),
           ]),
-          if (doc.useHeaderFooter)
-            dom.div(
-              classes: 'hui-tablist-footer',
-              pipelineLines(doc.footer),
-            ),
-        ]),
+        ),
       ]),
-      dom.div(classes: 'hui-tablist-readout', <Widget>[
-        Text(_readout(doc)),
-      ]),
+      dom.div(classes: 'hui-tablist-readout', <Widget>[Text(_readout(doc))]),
     ]);
   }
 

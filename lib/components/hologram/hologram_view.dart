@@ -175,6 +175,22 @@ class _HologramViewState extends State<HologramView> {
     });
   }
 
+  void _stopPointer(Object? event) {
+    (event as JSObject?)?.callMethod<JSAny?>('stopPropagation'.toJS);
+  }
+
+  void _zoomBy(double factor) {
+    setState(() {
+      _camera = _camera.copyWith(distance: _camera.distance * factor).clamped();
+    });
+  }
+
+  void _resetCamera() {
+    final GlossHologramDoc? doc = _store.hologramDoc;
+    if (doc == null) return;
+    setState(() => _camera = hologramDefaultCamera(doc));
+  }
+
   @override
   Widget build(BuildContext context) {
     final GlossHologramDoc? doc = _store.hologramDoc;
@@ -206,6 +222,8 @@ class _HologramViewState extends State<HologramView> {
       emoji: _store.workspaceEmoji,
       nowMs: nowMs,
     );
+    final double defaultDistance = hologramDefaultCamera(doc).distance;
+    final int zoomPercent = (defaultDistance / _camera.distance * 100).round();
 
     final List<double> position = doc.anchor.position;
     return dom.div(
@@ -227,13 +245,41 @@ class _HologramViewState extends State<HologramView> {
         for (final HologramGridSegment segment in grid) _gridLine(segment),
         if (placement != null) _billboard(placement, lines),
         if (placement != null) _anchorMarker(placement),
+        dom.div(
+          classes: 'hui-hologram-controls',
+          attributes: const <String, String>{
+            'role': 'group',
+            'aria-label': 'Hologram preview controls',
+          },
+          events: <String, EventCallback>{'pointerdown': _stopPointer},
+          <Widget>[
+            _cameraAction(
+              label: 'Zoom out',
+              icon: ArcaneIcon.zoomOut(size: IconSize.sm),
+              onPressed: () => _zoomBy(1.25),
+            ),
+            dom.span(classes: 'hui-hologram-zoom', <Widget>[
+              Text('$zoomPercent%'),
+            ]),
+            _cameraAction(
+              label: 'Zoom in',
+              icon: ArcaneIcon.zoomIn(size: IconSize.sm),
+              onPressed: () => _zoomBy(0.8),
+            ),
+            _cameraAction(
+              label: 'Reset view',
+              icon: ArcaneIcon.maximize(size: IconSize.sm),
+              onPressed: _resetCamera,
+            ),
+          ],
+        ),
         dom.div(classes: 'hui-hologram-readout', <Widget>[
           Text(
             '${doc.anchor.world.isEmpty ? '(no world)' : doc.anchor.world} '
             '${position[0].toStringAsFixed(2)}, '
             '${position[1].toStringAsFixed(2)}, '
             '${position[2].toStringAsFixed(2)} · '
-            'TextDisplay · billboard center · drag to orbit, wheel to zoom',
+            'TextDisplay · billboard center · drag to orbit, wheel or controls to zoom',
           ),
         ]),
       ],
@@ -270,8 +316,7 @@ class _HologramViewState extends State<HologramView> {
     HologramBillboardPlacement placement,
     List<GlossLineRender> lines,
   ) {
-    final double linePx =
-        glossHologramLineHeightBlocks * placement.pxPerBlock;
+    final double linePx = glossHologramLineHeightBlocks * placement.pxPerBlock;
     final double fontPx = linePx * 0.8;
     return dom.div(
       classes: 'hui-hologram-billboard',
@@ -301,5 +346,17 @@ class _HologramViewState extends State<HologramView> {
       },
     ),
     const <Widget>[],
+  );
+
+  Widget _cameraAction({
+    required String label,
+    required Widget icon,
+    required void Function() onPressed,
+  }) => Button(
+    variant: ButtonVariant.outline,
+    size: ButtonSize.iconSm,
+    onPressed: onPressed,
+    attributes: <String, String>{'aria-label': label, 'title': label},
+    child: icon,
   );
 }

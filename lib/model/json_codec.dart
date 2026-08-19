@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'hui_menu.dart';
 
-/// Raised for the errors that would make HoloUI's Gson pipeline reject the
+/// Raised for the errors that would make Gloss's Gson pipeline reject the
 /// whole menu file: malformed JSON, a bad vector, or a missing/unknown `type`
 /// discriminator. Everything else is imported leniently and surfaced by
 /// `validateHuiMenu` instead.
@@ -68,7 +68,7 @@ String huiReadTypeTag(Map<String, dynamic> raw, String path) {
 /// null-typed constants out of its map before reading (`MenuIconType.java:31`,
 /// `EnumType.java:38-39,82-85`).
 Never huiUnknownType(String type, String path) => throw HuiFormatException(
-  'Unknown type: $type. HoloUI rejects the whole menu file when a '
+  'Unknown type: $type. Gloss rejects the whole menu file when a '
   'component, icon or action type is not one it knows',
   path,
 );

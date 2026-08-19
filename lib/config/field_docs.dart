@@ -1,7 +1,7 @@
 /// Per-field documentation for the inspector's help popovers.
 ///
 /// This is where the editor teaches the runtime rather than the schema. Every
-/// body is a fact read out of the HoloUi source, and the ones worth the screen
+/// body is a fact read out of the Gloss source, and the ones worth the screen
 /// space are the traps: the keys older files spell wrong, the values that mean
 /// silence, and the fields whose value the plugin overwrites a tick later. The
 /// citation is the line that proves it, so a future reader can check the claim
@@ -47,7 +47,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'subfolders become slash-separated id segments. The plugin overwrites '
         'any id carried in JSON after parsing, and there is no name key. '
         'Renaming the file or a parent '
-        'folder changes the /gloss open argument, navigation targets and the '
+        'folder changes the /gloss menu open argument, navigation targets and the '
         'gloss.open.<id> permission node.',
     citation: 'ConfigManager.java:267-301',
   ),
@@ -496,7 +496,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'The file path under plugins/Gloss/boards/, without .json. The id is '
         'never written into the JSON itself. This is the sidebar scoreboard '
         'kind — unrelated to the editor\'s menu flow maps, which the old '
-        'HoloUI called boards.',
+        'Gloss previously called boards.',
     citation: 'BoardDoc.java:12',
   ),
   'scoreboard.title': HuiFieldDoc(

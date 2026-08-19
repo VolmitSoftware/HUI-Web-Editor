@@ -231,7 +231,7 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
         const dom.p(classes: 'hui-dialog-note', <Widget>[
           Text(
             'You can also drop image files anywhere in the editor. Unzip '
-            'images.zip into plugins/holoui/images/ and the paths below '
+            'images.zip into plugins/Gloss/images/ and the paths below '
             'resolve unchanged.',
           ),
         ]),
@@ -274,7 +274,7 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
                       'what you need and delete unused images.'
                 : 'Images live in this browser only. Keep them at or under '
                       '${huiRecommendedMaxImageDimension}x'
-                      '$huiRecommendedMaxImageDimension pixels: HoloUI draws '
+                      '$huiRecommendedMaxImageDimension pixels: Gloss draws '
                       'one text display per row and one character per pixel.',
           ),
         ]),

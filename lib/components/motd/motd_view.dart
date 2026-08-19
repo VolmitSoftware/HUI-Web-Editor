@@ -24,6 +24,7 @@ import 'package:jaspr/jaspr.dart' show EventCallback;
 import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 
 /// Animation repaint period, matching the hologram stage.
@@ -120,74 +121,76 @@ class _MotdViewState extends State<MotdView> {
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
 
     return dom.div(classes: 'hui-motd-stage', <Widget>[
-      dom.div(classes: 'hui-motd-screen', <Widget>[
-        dom.div(classes: 'hui-motd-row', <Widget>[
-          const dom.div(classes: 'hui-motd-icon', <Widget>[
-            dom.span(classes: 'hui-motd-icon-glyph', <Widget>[Text('▚')]),
-          ]),
-          dom.div(classes: 'hui-motd-row-body', <Widget>[
-            dom.div(classes: 'hui-motd-row-head', <Widget>[
-              const dom.span(classes: 'hui-motd-server-name', <Widget>[
-                Text('My Server'),
-              ]),
-              dom.span(classes: 'hui-motd-row-status', <Widget>[
-                const dom.span(classes: 'hui-motd-players', <Widget>[
-                  Text('17/100'),
-                ]),
-                dom.span(classes: 'hui-motd-ping', <Widget>[
-                  for (int bar = 0; bar < 5; bar++)
-                    dom.span(
-                      classes:
-                          'hui-motd-ping-bar${bar < 4 ? ' is-filled' : ''}',
-                      const <Widget>[],
-                    ),
-                ]),
-              ]),
+      GlossPreviewZoom(
+        label: 'MOTD preview',
+        child: dom.div(classes: 'hui-motd-screen', <Widget>[
+          dom.div(classes: 'hui-motd-row', <Widget>[
+            const dom.div(classes: 'hui-motd-icon', <Widget>[
+              dom.span(classes: 'hui-motd-icon-glyph', <Widget>[Text('▚')]),
             ]),
-            if (entry == null)
-              const dom.div(classes: 'hui-motd-line is-blank', <Widget>[
-                Text('No entries — Gloss would reject this file.'),
-              ])
-            else
-              for (final String line in lines)
-                dom.div(classes: 'hui-motd-line', <Widget>[
-                  GlossTextLine(
-                    render: renderGlossLine(
-                      line,
-                      animations: animations,
-                      emoji: _store.workspaceEmoji,
-                      nowMs: nowMs,
-                    ),
-                  ),
+            dom.div(classes: 'hui-motd-row-body', <Widget>[
+              dom.div(classes: 'hui-motd-row-head', <Widget>[
+                const dom.span(classes: 'hui-motd-server-name', <Widget>[
+                  Text('My Server'),
                 ]),
+                dom.span(classes: 'hui-motd-row-status', <Widget>[
+                  const dom.span(classes: 'hui-motd-players', <Widget>[
+                    Text('17/100'),
+                  ]),
+                  dom.span(classes: 'hui-motd-ping', <Widget>[
+                    for (int bar = 0; bar < 5; bar++)
+                      dom.span(
+                        classes:
+                            'hui-motd-ping-bar${bar < 4 ? ' is-filled' : ''}',
+                        const <Widget>[],
+                      ),
+                  ]),
+                ]),
+              ]),
+              if (entry == null)
+                const dom.div(classes: 'hui-motd-line is-blank', <Widget>[
+                  Text('No entries — Gloss would reject this file.'),
+                ])
+              else
+                for (final String line in lines)
+                  dom.div(classes: 'hui-motd-line', <Widget>[
+                    GlossTextLine(
+                      render: renderGlossLine(
+                        line,
+                        animations: animations,
+                        emoji: _store.workspaceEmoji,
+                        nowMs: nowMs,
+                      ),
+                    ),
+                  ]),
+            ]),
+          ]),
+          dom.div(classes: 'hui-motd-controls', <Widget>[
+            Button(
+              variant: ButtonVariant.outline,
+              size: ButtonSize.sm,
+              icon: ArcaneIcon.dices(size: IconSize.sm),
+              onPressed: doc.entries.length > 1 ? () => _randomize(doc) : null,
+              child: const Text('Randomize'),
+            ),
+            dom.div(classes: 'hui-motd-entry-chips', <Widget>[
+              for (int index = 0; index < doc.entries.length; index++)
+                dom.button(
+                  classes:
+                      'hui-motd-entry-chip${index == shown ? ' is-active' : ''}',
+                  attributes: <String, String>{
+                    'type': 'button',
+                    'aria-label': 'Preview entry ${index + 1}',
+                  },
+                  events: <String, EventCallback>{
+                    'click': (Object? _) => setState(() => _entryIndex = index),
+                  },
+                  <Widget>[Text('${index + 1}')],
+                ),
+            ]),
           ]),
         ]),
-        dom.div(classes: 'hui-motd-controls', <Widget>[
-          Button(
-            variant: ButtonVariant.outline,
-            size: ButtonSize.sm,
-            icon: ArcaneIcon.dices(size: IconSize.sm),
-            onPressed: doc.entries.length > 1 ? () => _randomize(doc) : null,
-            child: const Text('Randomize'),
-          ),
-          dom.div(classes: 'hui-motd-entry-chips', <Widget>[
-            for (int index = 0; index < doc.entries.length; index++)
-              dom.button(
-                classes:
-                    'hui-motd-entry-chip${index == shown ? ' is-active' : ''}',
-                attributes: <String, String>{
-                  'type': 'button',
-                  'aria-label': 'Preview entry ${index + 1}',
-                },
-                events: <String, EventCallback>{
-                  'click': (Object? _) =>
-                      setState(() => _entryIndex = index),
-                },
-                <Widget>[Text('${index + 1}')],
-              ),
-          ]),
-        ]),
-      ]),
+      ),
       dom.div(classes: 'hui-motd-readout', <Widget>[
         Text(_readout(doc, entry, shown)),
       ]),

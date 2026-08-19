@@ -55,7 +55,7 @@ class ValidationPanel extends StatelessWidget {
           title: 'No issues',
           description:
               'This menu matches everything the plugin expects. '
-              'Export it to plugins/holoui/menus/${store.exportFileName}.',
+              'Export it to plugins/Gloss/menus/${store.exportFileName}.',
           icon: ArcaneIcon.check(size: IconSize.lg),
         ),
       ]);

@@ -36,7 +36,7 @@ class HuiPreviewTemplate {
   final String category;
 
   /// True when this is one of the thirteen documents the plugin extracts
-  /// into `plugins/holoui/previews/` on first start.
+  /// into `plugins/Gloss/previews/` on first start.
   final bool inGame;
 
   /// Builds a fresh, mutable document. Never return a shared instance: the
@@ -60,119 +60,117 @@ class _ShippedPreviewSpec {
   final String category;
 }
 
-const List<_ShippedPreviewSpec> _shippedPreviewSpecs =
-    <_ShippedPreviewSpec>[
-      _ShippedPreviewSpec(
-        id: 'beehive',
-        name: 'Beehive',
-        description:
-            'The card HoloUI draws over a beehive or bee nest: three honey '
-            'cells and a bees-and-honey label. No inventory.',
-        highlights: <String>['In-game', 'Honey gauge', 'No inventory'],
-        category: 'beehive',
-      ),
-      _ShippedPreviewSpec(
-        id: 'brewing_stand',
-        name: 'Brewing stand',
-        description:
-            'The real brewing-stand card: ingredient and blaze-powder slots, '
-            'three bottles, a brew column, fuel cells, and live state lines.',
-        highlights: <String>['In-game', '5 slots', 'Live brew + fuel'],
-        category: 'brewing',
-      ),
-      _ShippedPreviewSpec(
-        id: 'cauldron',
-        name: 'Cauldron',
-        description:
-            'Fill-level cells for empty, water, lava, and powder-snow '
-            'cauldrons. Variants retint the fluid.',
-        highlights: <String>['In-game', '4 variants', 'Fill gauge'],
-        category: 'cauldron',
-      ),
-      _ShippedPreviewSpec(
-        id: 'chest',
-        name: 'Chest',
-        description:
-            'The canonical 9-wide slot grid HoloUI draws over chests, barrels, '
-            'copper chests, and every shulker box.',
-        highlights: <String>['In-game', 'Up to 54 slots', '20 variants'],
-        category: 'chest',
-      ),
-      _ShippedPreviewSpec(
-        id: 'chiseled_bookshelf',
-        name: 'Chiseled bookshelf',
-        description: 'A 3-by-2 slot grid over a chiseled bookshelf.',
-        highlights: <String>['In-game', '6 slots'],
-        category: 'chest',
-      ),
-      _ShippedPreviewSpec(
-        id: 'dispenser',
-        name: 'Dispenser',
-        description:
-            'A 3-by-3 slot grid. A variant restyles the same layout for a '
-            'dropper.',
-        highlights: <String>['In-game', '9 slots', 'Dropper variant'],
-        category: 'chest',
-      ),
-      _ShippedPreviewSpec(
-        id: 'ender_chest',
-        name: 'Ender chest',
-        description:
-            'The viewer\'s own ender-chest inventory on a 9-wide grid, marked '
-            'special: enderChest.',
-        highlights: <String>['In-game', 'Personal inventory'],
-        category: 'enderChest',
-      ),
-      _ShippedPreviewSpec(
-        id: 'furnace',
-        name: 'Furnace',
-        description:
-            'The real card HoloUI draws over a furnace, blast furnace or '
-            'smoker: a progress ring, a fuel flame, and two state labels.',
-        highlights: <String>['In-game', '3 slots', 'Live progress + fuel'],
-        category: 'furnace',
-      ),
-      _ShippedPreviewSpec(
-        id: 'hopper',
-        name: 'Hopper',
-        description: 'A five-slot row over a hopper.',
-        highlights: <String>['In-game', '5 slots'],
-        category: 'chest',
-      ),
-      _ShippedPreviewSpec(
-        id: 'jukebox',
-        name: 'Jukebox',
-        description:
-            'The disc slot plus a playing, loaded, or empty label.',
-        highlights: <String>['In-game', '1 slot', 'Disc state'],
-        category: 'jukebox',
-      ),
-      _ShippedPreviewSpec(
-        id: 'locked',
-        name: 'Locked',
-        description:
-            'The unframed four-cell padlock shown when a viewer may not open '
-            'the container.',
-        highlights: <String>['In-game', 'No chrome', 'Access denied'],
-        category: 'statics',
-      ),
-      _ShippedPreviewSpec(
-        id: 'minecart',
-        name: 'Minecart and boats',
-        description:
-            'Chest and hopper minecarts, chest boats, chest rafts, and the '
-            'any-inventory-holder entity fallback.',
-        highlights: <String>['In-game', 'Entity', 'Row or grid'],
-        category: 'entity',
-      ),
-      _ShippedPreviewSpec(
-        id: 'shelf',
-        name: 'Shelf',
-        description: 'A slot row for every wood shelf variant.',
-        highlights: <String>['In-game', '*_SHELF glob'],
-        category: 'chest',
-      ),
-    ];
+const List<_ShippedPreviewSpec> _shippedPreviewSpecs = <_ShippedPreviewSpec>[
+  _ShippedPreviewSpec(
+    id: 'beehive',
+    name: 'Beehive',
+    description:
+        'The card Gloss draws over a beehive or bee nest: three honey '
+        'cells and a bees-and-honey label. No inventory.',
+    highlights: <String>['In-game', 'Honey gauge', 'No inventory'],
+    category: 'beehive',
+  ),
+  _ShippedPreviewSpec(
+    id: 'brewing_stand',
+    name: 'Brewing stand',
+    description:
+        'The real brewing-stand card: ingredient and blaze-powder slots, '
+        'three bottles, a brew column, fuel cells, and live state lines.',
+    highlights: <String>['In-game', '5 slots', 'Live brew + fuel'],
+    category: 'brewing',
+  ),
+  _ShippedPreviewSpec(
+    id: 'cauldron',
+    name: 'Cauldron',
+    description:
+        'Fill-level cells for empty, water, lava, and powder-snow '
+        'cauldrons. Variants retint the fluid.',
+    highlights: <String>['In-game', '4 variants', 'Fill gauge'],
+    category: 'cauldron',
+  ),
+  _ShippedPreviewSpec(
+    id: 'chest',
+    name: 'Chest',
+    description:
+        'The canonical 9-wide slot grid Gloss draws over chests, barrels, '
+        'copper chests, and every shulker box.',
+    highlights: <String>['In-game', 'Up to 54 slots', '20 variants'],
+    category: 'chest',
+  ),
+  _ShippedPreviewSpec(
+    id: 'chiseled_bookshelf',
+    name: 'Chiseled bookshelf',
+    description: 'A 3-by-2 slot grid over a chiseled bookshelf.',
+    highlights: <String>['In-game', '6 slots'],
+    category: 'chest',
+  ),
+  _ShippedPreviewSpec(
+    id: 'dispenser',
+    name: 'Dispenser',
+    description:
+        'A 3-by-3 slot grid. A variant restyles the same layout for a '
+        'dropper.',
+    highlights: <String>['In-game', '9 slots', 'Dropper variant'],
+    category: 'chest',
+  ),
+  _ShippedPreviewSpec(
+    id: 'ender_chest',
+    name: 'Ender chest',
+    description:
+        'The viewer\'s own ender-chest inventory on a 9-wide grid, marked '
+        'special: enderChest.',
+    highlights: <String>['In-game', 'Personal inventory'],
+    category: 'enderChest',
+  ),
+  _ShippedPreviewSpec(
+    id: 'furnace',
+    name: 'Furnace',
+    description:
+        'The real card Gloss draws over a furnace, blast furnace or '
+        'smoker: a progress ring, a fuel flame, and two state labels.',
+    highlights: <String>['In-game', '3 slots', 'Live progress + fuel'],
+    category: 'furnace',
+  ),
+  _ShippedPreviewSpec(
+    id: 'hopper',
+    name: 'Hopper',
+    description: 'A five-slot row over a hopper.',
+    highlights: <String>['In-game', '5 slots'],
+    category: 'chest',
+  ),
+  _ShippedPreviewSpec(
+    id: 'jukebox',
+    name: 'Jukebox',
+    description: 'The disc slot plus a playing, loaded, or empty label.',
+    highlights: <String>['In-game', '1 slot', 'Disc state'],
+    category: 'jukebox',
+  ),
+  _ShippedPreviewSpec(
+    id: 'locked',
+    name: 'Locked',
+    description:
+        'The unframed four-cell padlock shown when a viewer may not open '
+        'the container.',
+    highlights: <String>['In-game', 'No chrome', 'Access denied'],
+    category: 'statics',
+  ),
+  _ShippedPreviewSpec(
+    id: 'minecart',
+    name: 'Minecart and boats',
+    description:
+        'Chest and hopper minecarts, chest boats, chest rafts, and the '
+        'any-inventory-holder entity fallback.',
+    highlights: <String>['In-game', 'Entity', 'Row or grid'],
+    category: 'entity',
+  ),
+  _ShippedPreviewSpec(
+    id: 'shelf',
+    name: 'Shelf',
+    description: 'A slot row for every wood shelf variant.',
+    highlights: <String>['In-game', '*_SHELF glob'],
+    category: 'chest',
+  ),
+];
 
 final List<HuiPreviewTemplate> _shippedPreviewTemplates = _shippedPreviewSpecs
     .map(

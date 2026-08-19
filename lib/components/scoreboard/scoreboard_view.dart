@@ -22,6 +22,7 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 
 /// Animation repaint period, matching the hologram stage.
@@ -117,34 +118,38 @@ class _ScoreboardViewState extends State<ScoreboardView> {
 
     return dom.div(classes: 'hui-scoreboard-stage', <Widget>[
       dom.div(classes: 'hui-scoreboard-sky', <Widget>[
-        dom.div(classes: 'hui-scoreboard-sidebar', <Widget>[
-          dom.div(classes: 'hui-scoreboard-title', <Widget>[
-            GlossTextLine(
-              render: renderGlossLine(
-                doc.title,
-                animations: animations,
-                emoji: emoji,
-                nowMs: nowMs,
-              ),
-            ),
-          ]),
-          for (int index = 0; index < rendered; index++)
-            dom.div(classes: 'hui-scoreboard-row', <Widget>[
-              dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
-                GlossTextLine(
-                  render: renderGlossLine(
-                    doc.lines[index],
-                    animations: animations,
-                    emoji: emoji,
-                    nowMs: nowMs,
-                  ),
+        GlossPreviewZoom(
+          label: 'Scoreboard preview',
+          alignment: GlossPreviewAlignment.end,
+          child: dom.div(classes: 'hui-scoreboard-sidebar', <Widget>[
+            dom.div(classes: 'hui-scoreboard-title', <Widget>[
+              GlossTextLine(
+                render: renderGlossLine(
+                  doc.title,
+                  animations: animations,
+                  emoji: emoji,
+                  nowMs: nowMs,
                 ),
-              ]),
-              dom.span(classes: 'hui-scoreboard-score', <Widget>[
-                Text('${rendered - 1 - index}'),
-              ]),
+              ),
             ]),
-        ]),
+            for (int index = 0; index < rendered; index++)
+              dom.div(classes: 'hui-scoreboard-row', <Widget>[
+                dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
+                  GlossTextLine(
+                    render: renderGlossLine(
+                      doc.lines[index],
+                      animations: animations,
+                      emoji: emoji,
+                      nowMs: nowMs,
+                    ),
+                  ),
+                ]),
+                dom.span(classes: 'hui-scoreboard-score', <Widget>[
+                  Text('${rendered - 1 - index}'),
+                ]),
+              ]),
+          ]),
+        ),
       ]),
       dom.div(classes: 'hui-scoreboard-readout', <Widget>[
         Text(_readout(doc, clipped, titleTruncated)),

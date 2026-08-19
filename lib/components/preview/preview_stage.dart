@@ -234,7 +234,7 @@ class _PreviewStageState extends State<PreviewStage>
       'tabindex': '0',
       'role': 'application',
       'aria-label':
-          'HoloUI menu preview. Drag to orbit, scroll to dolly, '
+          'Gloss menu preview. Drag to orbit, scroll to dolly, '
           'space or middle-drag to pan, 0 resets to the open position, '
           'left or right click fires the nearest hovered component, 1 to 6 '
           'toggle overlays. In Player mode WASD walks and clicking '
@@ -261,7 +261,7 @@ class _PreviewStageState extends State<PreviewStage>
           classes: 'hui-preview-hint-item hui-preview-hint-note',
           <Widget>[
             Component.text(
-              '+X is the player\'s RIGHT: HoloUi negates the JSON x '
+              '+X is the player\'s RIGHT: Gloss negates the JSON x '
               'at load (MenuSession.java:70), so the menu is mirrored relative '
               'to the numbers in the file.',
             ),

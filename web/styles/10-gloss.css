@@ -24,6 +24,60 @@
   white-space: nowrap;
 }
 
+.hui-gloss-preview-viewport {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.hui-gloss-preview-viewport.is-end { justify-content: flex-end; }
+.hui-gloss-preview-viewport.is-top { align-items: flex-start; }
+.hui-gloss-preview-viewport.is-bottom { align-items: flex-end; }
+
+.hui-gloss-preview-content {
+  min-width: 0;
+  max-width: 100%;
+  transform: scale(var(--hui-gloss-preview-scale, 1));
+  transform-origin: center;
+  transition: transform var(--hui-dur-2) var(--hui-ease-out);
+}
+
+.hui-gloss-preview-viewport.is-end .hui-gloss-preview-content { transform-origin: right center; }
+.hui-gloss-preview-viewport.is-top .hui-gloss-preview-content { transform-origin: center top; }
+.hui-gloss-preview-viewport.is-bottom .hui-gloss-preview-content { transform-origin: center bottom; }
+
+.hui-gloss-preview-controls,
+.hui-hologram-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--color-card) 88%, transparent);
+  box-shadow: var(--hui-shadow-sm);
+  backdrop-filter: blur(12px);
+}
+
+.hui-gloss-preview-percent,
+.hui-hologram-zoom {
+  min-width: 42px;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- hologram stage ------------------------------------------------------ */
 
 .hui-hologram-stage {
@@ -91,6 +145,8 @@
   pointer-events: none;
 }
 
+.hui-hologram-controls { cursor: default; }
+
 /* --- hologram inspector -------------------------------------------------- */
 
 .hui-hologram-position-row {
@@ -101,6 +157,7 @@
 
 .hui-hologram-lines-tools {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
@@ -219,6 +276,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-background);
+  container-type: inline-size;
 }
 
 /* A hint of in-game backdrop so the right-anchored overlay reads as one. */
@@ -238,10 +296,11 @@
 
 /* Vanilla sidebar: darkened rows, title centered, scores right in dim red. */
 .hui-scoreboard-sidebar {
-  min-width: 200px;
-  max-width: min(60%, 460px);
+  width: min(720px, 72cqi);
+  min-width: min(280px, 100%);
+  max-width: 100%;
   font-family: var(--hui-mc-font);
-  font-size: 15px;
+  font-size: clamp(15px, 1.35cqi, 22px);
   line-height: 1.45;
   color: #ffffff;
 }
@@ -297,6 +356,7 @@
 
 .hui-scoreboard-group-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-bottom: 6px;
@@ -313,11 +373,11 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-background);
+  container-type: inline-size;
 }
 
 /* The multiplayer screen: dirt-dark backdrop, one hovered server row. */
 .hui-motd-screen {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -331,11 +391,13 @@
     color-mix(in srgb, #000 30%, var(--color-background));
 }
 
+.hui-motd-stage .hui-gloss-preview-content { width: min(900px, 78cqi); }
+
 .hui-motd-row {
   display: flex;
   align-items: stretch;
   gap: 10px;
-  width: min(640px, 100%);
+  width: min(760px, 100%);
   padding: 6px;
   border: 1px solid color-mix(in srgb, #fff 22%, transparent);
   background: rgba(0, 0, 0, 0.55);
@@ -427,12 +489,14 @@
 
 .hui-motd-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
 
 .hui-motd-entry-chips {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -535,6 +599,7 @@
 
 .hui-emoji-tools {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
@@ -647,7 +712,7 @@
   align-items: flex-end;
   justify-content: center;
   padding: 28px;
-  overflow: hidden;
+  overflow: auto;
   background:
     linear-gradient(180deg,
       color-mix(in srgb, var(--color-primary) 9%, transparent),
@@ -659,11 +724,16 @@
    bottom edge, which stands in for eye + style offset. */
 .hui-bubble-scene {
   position: relative;
-  width: min(520px, 100%);
+  width: 100%;
   height: 100%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+}
+
+.hui-bubble-stage .hui-gloss-preview-content {
+  width: min(620px, 80%);
+  height: 100%;
 }
 
 .hui-bubble-line {
@@ -712,6 +782,7 @@
 
 .hui-bubble-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 8px 12px 10px;
@@ -733,6 +804,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-background);
+  container-type: inline-size;
 }
 
 .hui-tablist-sky {
@@ -754,12 +826,14 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  width: min(560px, 100%);
+  width: 100%;
   padding: 8px 10px;
   background: rgba(0, 0, 0, 0.4);
   font-family: var(--hui-mc-font);
   color: #ffffff;
 }
+
+.hui-tablist-stage .hui-gloss-preview-content { width: min(880px, 74cqi); }
 
 .hui-tablist-header,
 .hui-tablist-footer {
@@ -835,6 +909,7 @@
 
 .hui-tablist-token-chips {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 8px;
 }
@@ -877,4 +952,42 @@
   font-size: 13px;
   color: #ffffff;
   white-space: pre;
+}
+
+@media (max-width: 700px) {
+  .hui-scoreboard-sky,
+  .hui-motd-screen,
+  .hui-bubble-sky,
+  .hui-tablist-sky { padding: 14px; }
+
+  .hui-scoreboard-sidebar,
+  .hui-motd-stage .hui-gloss-preview-content,
+  .hui-bubble-stage .hui-gloss-preview-content,
+  .hui-tablist-stage .hui-gloss-preview-content { width: 100%; }
+
+  .hui-scoreboard-sidebar { font-size: clamp(13px, 4cqi, 17px); }
+  .hui-motd-screen { padding: 16px 12px; }
+  .hui-motd-icon { width: 48px; height: 48px; }
+  .hui-motd-row-head { flex-wrap: wrap; gap: 4px 10px; }
+  .hui-tablist-grid { grid-template-columns: 1fr; }
+  .hui-tablist-header,
+  .hui-tablist-footer { font-size: 13px; }
+  .hui-hologram-readout { right: 12px; }
+}
+
+@media (max-width: 420px) {
+  .hui-gloss-preview-controls,
+  .hui-hologram-controls { top: 8px; right: 8px; }
+
+  .hui-gloss-preview-percent,
+  .hui-hologram-zoom { min-width: 34px; }
+
+  .hui-scoreboard-readout,
+  .hui-motd-readout,
+  .hui-bubble-controls,
+  .hui-tablist-readout { max-height: 62px; overflow-y: auto; }
+
+  .hui-animation-player,
+  .hui-emoji-stage { padding: 12px; }
+  .hui-animation-frame-large { font-size: clamp(20px, 8vw, 30px); }
 }

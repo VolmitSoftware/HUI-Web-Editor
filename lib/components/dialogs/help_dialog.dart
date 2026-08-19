@@ -73,10 +73,10 @@ class HelpDialog extends StatelessWidget {
               'will refuse or misbehave, not just that a key is missing.',
           'This editor does not push files to a default server. Export, '
               'drop the JSON into $huiMenuFolder, then run '
-              '/gloss open ${store.menuId}. Live sync needs a capability '
-              'link from /gloss edit.',
+              '/gloss menu open ${store.menuId}. Live sync needs a capability '
+              'link from /gloss menu edit ${store.menuId}.',
           'To re-anchor that open session, stand at its new origin and run '
-              '/gloss move. It keeps the configured offset and opening '
+              '/gloss menu move. It keeps the configured offset and opening '
               'direction; it does not rewrite the menu file.',
         ],
       ),
@@ -84,15 +84,15 @@ class HelpDialog extends StatelessWidget {
         text:
             '$huiMenuFolder${store.exportFileName}\n'
             '${huiImageFolder}your-icon.png\n\n'
-            '/gloss open ${store.menuId}\n'
-            '/gloss move',
+            '/gloss menu open ${store.menuId}\n'
+            '/gloss menu move',
       ),
       const dom.p(classes: 'hui-dialog-note', <Widget>[
         Text(
           'Saving a menu file re-registers it within about 5 ticks and '
           'closes any session that has it open. New and deleted files are '
-          'picked up within about 20 ticks. Players need gloss.command, '
-          'gloss.command.open, gloss.open.<id> and gloss.command.move. '
+          'picked up within about 20 ticks. Players need gloss.menus.open, '
+          'gloss.open.<id> and gloss.menus.move. '
           'The per-menu node is not declared in plugin.yml, so grant it '
           'explicitly.',
         ),

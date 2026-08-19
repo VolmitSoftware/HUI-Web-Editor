@@ -93,10 +93,11 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
     title: 'Export puts it on the server',
     body:
         'This page never writes your Minecraft server. Download the JSON, '
-        'drop it into plugins/Gloss/menus/, then /gloss open <id>. Live '
-        'sync only exists when /gloss edit gave you a capability link.',
+        'drop it into plugins/Gloss/menus/, then /gloss menu open <id>. Live '
+        'sync only exists when /gloss menu edit <id> gave you a capability link.',
     selectors: <String>['.hui-bar'],
-    hint: 'File → Export, or the command palette. Images unzip into plugins/Gloss/images/.',
+    hint:
+        'File → Export, or the command palette. Images unzip into plugins/Gloss/images/.',
   ),
   HuiTourStep(
     title: 'Everything else is one keystroke away',

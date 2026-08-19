@@ -67,7 +67,7 @@ class StatusBar extends StatelessWidget {
       '${store.docKind.name}|'
       '${store.workspace.docs.length}|${store.errorCount}|${store.warningCount}|'
       '${store.infoCount}|${store.selectionIds.join(',')}|'
-      '${store.menu.components.length}';
+      '${store.isMenuDoc ? store.menu.components.length : 0}';
 
   String _saveSignature() =>
       '${store.hasUnsavedChanges}|'
@@ -128,6 +128,11 @@ class StatusBar extends StatelessWidget {
         Text('$menus menu${menus == 1 ? '' : 's'} in workspace'),
       ]);
     }
+    if (!store.isMenuDoc && !store.isPreviewDoc) {
+      return dom.span(classes: 'hui-status-item hui-status-selection', <Widget>[
+        Text('${store.docType.noun} document'),
+      ]);
+    }
     final int selectedCount = store.selectionIds.length;
     final int count = store.menu.components.length;
     final String text = switch (selectedCount) {
@@ -165,35 +170,36 @@ class StatusBar extends StatelessWidget {
   }
 
   Widget _canvasReadout() {
-    if (store.isPanelDoc) {
-      return const dom.div(classes: 'hui-status-right', <Widget>[]);
-    }
     final ShellStatus? live = status;
     if (live == null) {
       return const dom.div(classes: 'hui-status-right', <Widget>[]);
     }
     return StoreSelector<String>(
-      listenable: live,
+      listenable: Listenable.merge(<Listenable?>[store, live]),
       selector: () =>
-          '${live.pointerX}|${live.pointerY}|'
+          '${store.docKind.name}|${live.pointerX}|${live.pointerY}|'
           '${live.zoom}|${live.hint}',
-      builder: (BuildContext context, String signature) =>
-          dom.div(classes: 'hui-status-right', <Widget>[
-            if (live.hint != null)
-              dom.span(classes: 'hui-status-item is-hint', <Widget>[
-                Text(live.hint!),
-              ]),
-            dom.span(classes: 'hui-status-item is-numeric', <Widget>[
-              Text(
-                live.hasPointer
-                    ? 'x ${_block(live.pointerX!)}  y ${_block(live.pointerY!)}'
-                    : 'x --  y --',
-              ),
+      builder: (BuildContext context, String signature) {
+        if (!store.isMenuDoc && !store.isPreviewDoc) {
+          return const dom.div(classes: 'hui-status-right', <Widget>[]);
+        }
+        return dom.div(classes: 'hui-status-right', <Widget>[
+          if (live.hint != null)
+            dom.span(classes: 'hui-status-item is-hint', <Widget>[
+              Text(live.hint!),
             ]),
-            dom.span(classes: 'hui-status-item is-numeric', <Widget>[
-              Text('${(live.zoom * 100).round()}%'),
-            ]),
+          dom.span(classes: 'hui-status-item is-numeric', <Widget>[
+            Text(
+              live.hasPointer
+                  ? 'x ${_block(live.pointerX!)}  y ${_block(live.pointerY!)}'
+                  : 'x --  y --',
+            ),
           ]),
+          dom.span(classes: 'hui-status-item is-numeric', <Widget>[
+            Text('${(live.zoom * 100).round()}%'),
+          ]),
+        ]);
+      },
     );
   }
 

@@ -233,4 +233,3 @@ abstract class DocumentTypeAdapter {
   List<DocumentTemplateSection> get templateSections =>
       const <DocumentTemplateSection>[];
 }
-

@@ -281,7 +281,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
       'tabindex': '0',
       'role': 'application',
       'aria-label':
-          'HoloUI menu layout canvas. Scroll to zoom, drag to pan, '
+          'Gloss menu layout canvas. Scroll to zoom, drag to pan, '
           'drag a component to move it.',
     },
     <Widget>[

@@ -1,6 +1,6 @@
 /// Editor for the unknown keys the codec preserves.
 ///
-/// `json_codec.dart:112-129` deep-copies every key HoloUi does not recognise
+/// `json_codec.dart:112-129` deep-copies every key Gloss does not recognise
 /// and merges it back on export, which is what makes an import/export round
 /// trip lossless. Until now the only way to see those keys was the code view.
 ///
@@ -205,7 +205,7 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
     ),
     <Widget>[
       Text(
-        'HoloUi ignores keys it does not recognise, so nothing here changes '
+        'Gloss ignores keys it does not recognise, so nothing here changes '
         'anything in game. The editor keeps them and writes them back on '
         'export, which is why an imported file never loses what it arrived '
         'with.',

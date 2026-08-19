@@ -289,7 +289,7 @@ WorkspaceRouteResult _decodeMenuEnvelope(String payload) {
     decodeHuiMenu(json);
   } catch (_) {
     return const WorkspaceRouteResult(
-      error: 'The menu handoff does not contain valid HoloUI menu JSON.',
+      error: 'The menu handoff does not contain valid Gloss menu JSON.',
     );
   }
   return WorkspaceRouteResult(

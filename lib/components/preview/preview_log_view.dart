@@ -285,7 +285,7 @@ class _PreviewLogViewState extends State<PreviewLogView> {
           _badge(
             'interactions stripped',
             'is-unknown',
-            'HoloUI keeps MiniMessage styling but removes click and insertion '
+            'Gloss keeps MiniMessage styling but removes click and insertion '
                 'events before sending the message.',
           ),
       ]);
@@ -373,7 +373,7 @@ class _PreviewLogViewState extends State<PreviewLogView> {
           _badge(
             'source "${command.rawSource}"',
             'is-unknown',
-            'Not a spelling HoloUI defines. It resolves to null and the command '
+            'Not a spelling Gloss defines. It resolves to null and the command '
                 'uses the player default.',
           ),
       ],

@@ -217,7 +217,8 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     if (rootMenuId is! String ||
         !component.store.workspace.docs.any(
           (WorkspaceDoc doc) =>
-              doc.kind == DocumentTypes.menu.kind && doc.runtimeId == rootMenuId,
+              doc.kind == DocumentTypes.menu.kind &&
+              doc.runtimeId == rootMenuId,
         )) {
       setState(() => _error = 'rootMenuId must name a menu in this workspace.');
       return;
@@ -729,7 +730,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     value: value ?? '',
     size: ComponentSize.sm,
     fullWidth: true,
-    placeholder: 'myserver.holoui.board',
+    placeholder: 'myserver.gloss.panel',
     onInput: (String raw) => onChanged(_optionalText(raw)),
     attributes: const <String, String>{
       'autocomplete': 'off',

@@ -357,7 +357,7 @@ class IconEditor extends StatelessWidget {
       icon: ArcaneIcon.imageOff(size: IconSize.md),
       title: 'No icon',
       body:
-          'HoloUI draws its magenta checker here, and a button keeps '
+          'Gloss draws its magenta checker here, and a button keeps '
           'its hitbox. Pick a type to start one.',
       tone: HuiNoteTone.warning,
       actions: <Widget>[
@@ -790,7 +790,7 @@ class _ImageIconEditor extends StatelessWidget {
         label: 'Path',
         required: true,
         trailing: const HuiFieldHelp('icon.textImage.path'),
-        help: 'Relative to plugins/holoui/images/.',
+        help: 'Relative to plugins/Gloss/images/.',
         control: dom.div(<Widget>[
           TextInput(
             value: icon.path,
@@ -839,10 +839,10 @@ class _ImageIconEditor extends StatelessWidget {
         children: <Widget>[
           HuiNote(
             'No leading slash, no "..", no drive letters - the path is read '
-            'inside plugins/holoui/images/ and nowhere else.',
+            'inside plugins/Gloss/images/ and nowhere else.',
           ),
           HuiNote(
-            'HoloUI draws one character per source pixel with no resizing, so '
+            'Gloss draws one character per source pixel with no resizing, so '
             'a 64x64 image becomes 64 text displays of 64 characters. Keep '
             'images small.',
           ),

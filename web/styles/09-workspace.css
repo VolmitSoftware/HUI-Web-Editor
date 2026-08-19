@@ -37,7 +37,6 @@
 
 .hui-library-header,
 .hui-library-heading,
-.hui-library-create,
 .hui-library-actions {
   display: flex;
   align-items: center;
@@ -49,8 +48,18 @@
   gap: 4px;
 }
 .hui-library-heading { gap: 6px; min-width: 0; }
-.hui-library-create { justify-content: space-between; gap: 0; }
-.hui-library-create .arcane-button { padding-inline: 5px !important; }
+.hui-library-create {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+.hui-library-create .arcane-button {
+  width: 100%;
+  min-width: 34px;
+  min-height: 34px;
+  padding-inline: 5px !important;
+}
 
 .hui-library-hint {
   overflow: hidden;
@@ -175,7 +184,7 @@
   border-left: 1px solid var(--hui-border-soft);
 }
 
-.hui-library-actions { gap: 2px; padding-left: 6px; }
+.hui-library-actions { flex-wrap: wrap; gap: 2px; padding-left: 6px; }
 .hui-library-actions .arcane-button { flex: 1 1 0; }
 
 .hui-library-editor {

@@ -175,7 +175,7 @@ class CustomItemIconEditor extends StatelessWidget {
             'exactly as typed.',
           ),
           HuiNote(
-            'If the provider is missing or the id is unknown, HoloUI logs '
+            'If the provider is missing or the id is unknown, Gloss logs '
             'a warning naming both and draws its magenta/black '
             'placeholder. The rest of the menu still opens.',
           ),
@@ -187,8 +187,8 @@ class CustomItemIconEditor extends StatelessWidget {
   Widget _catalogNote() {
     if (_catalog.isEmpty) {
       return const HuiNote(
-        'No catalog loaded, so ids cannot be checked here. Run /holoui item '
-        'export on your server and import the file from Settings to get '
+        'No catalog loaded, so ids cannot be checked here. Run '
+        '/gloss item export on your server and import the file from Settings to get '
         'autocomplete and canvas previews.',
       );
     }

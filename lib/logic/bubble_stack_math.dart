@@ -69,4 +69,3 @@ double glossBubbleOffsetY(
       glossBubbleStackOffset(spread, lineIndex, liveCount) +
       flyLift;
 }
-

@@ -256,18 +256,18 @@ class _ExportDialogState extends State<ExportDialog> {
               'Changed menus re-register within about 5 ticks and any open '
                   'session of that id is closed with DEFINITION_RELOADED. '
                   'New and deleted files are noticed within about 20 ticks.',
-              'Grant gloss.command, gloss.command.open, '
-                  'gloss.command.move and gloss.open.$_menuId — the '
+              'Grant gloss.menus.open, gloss.menus.move and '
+                  'gloss.open.$_menuId — the '
                   'per-menu node is not declared in plugin.yml, so it has '
                   'to be granted explicitly.',
-              'Test it with /gloss open $_menuId (aliases: holoui, holo, '
-                  'hui, holou, hu).',
+              'Test it with /gloss menu open $_menuId '
+                  '(aliases: gl, glo, gg).',
               'To re-anchor the open session, stand at its new origin and '
-                  'run /gloss move. This keeps the configured offset and '
+                  'run /gloss menu move. This keeps the configured offset and '
                   'does not rewrite $_fileName.',
             ],
           ),
-          HuiCodeBlock(text: '/gloss open $_menuId\n/gloss move'),
+          HuiCodeBlock(text: '/gloss menu open $_menuId\n/gloss menu move'),
         ],
       ),
       HuiDialogSection(

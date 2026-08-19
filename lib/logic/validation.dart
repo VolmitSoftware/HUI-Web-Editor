@@ -342,7 +342,7 @@ class _Validator {
       _add(
         HuiSeverity.info,
         'name',
-        'HoloUI has no menu "name" field: the menu id is the file base name. '
+        'Gloss has no menu "name" field: the menu id is the file base name. '
             'The key is preserved on export but ignored in-game',
         fix: 'Rename the exported file to change the menu id',
       );
@@ -726,7 +726,7 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         '$path.provider',
-        'Unknown item provider "$provider"; HoloUI has no adapter for it and '
+        'Unknown item provider "$provider"; Gloss has no adapter for it and '
             'the icon will not resolve',
         fix: 'Use one of ${huiCustomItemProviders.join(", ")}, or auto',
       );
@@ -755,7 +755,7 @@ class _Validator {
         '$path.item',
         '"$id" is not in the custom item catalog exported from your server; '
             'the server is the only thing that can confirm it',
-        fix: 'Re-run /holoui item export if you added the item recently',
+        fix: 'Re-run /gloss item export if you added the item recently',
       );
     }
   }
@@ -920,7 +920,7 @@ class _Validator {
         HuiSeverity.error,
         jsonPath,
         'Image path must not start with "/": it is resolved relative to '
-        'plugins/holoui/images/',
+        'plugins/Gloss/images/',
         fix: 'Drop the leading slash',
       );
     }
@@ -929,7 +929,7 @@ class _Validator {
         HuiSeverity.error,
         jsonPath,
         'Image path must not contain ":"',
-        fix: 'Use a path relative to plugins/holoui/images/',
+        fix: 'Use a path relative to plugins/Gloss/images/',
       );
     }
     if (path.contains('..')) {
@@ -937,7 +937,7 @@ class _Validator {
         HuiSeverity.error,
         jsonPath,
         'Image path must not contain ".."',
-        fix: 'Use a path relative to plugins/holoui/images/',
+        fix: 'Use a path relative to plugins/Gloss/images/',
       );
     }
     if (path.contains(r'\')) {
@@ -962,7 +962,7 @@ class _Validator {
         HuiSeverity.info,
         jsonPath,
         'Image "$path" is not in the image library; make sure it exists in '
-        'plugins/holoui/images/',
+        'plugins/Gloss/images/',
         fix: 'Upload the image so it ships with the exported zip',
       );
     }
@@ -1201,7 +1201,7 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         '$path.source',
-        'Command source "${action.source}" is not recognized; HoloUI resolves '
+        'Command source "${action.source}" is not recognized; Gloss resolves '
             'it to null and uses the player default',
         fix: 'Use "player" or "server"',
       );

@@ -81,7 +81,7 @@ void main() {
     });
     expect(
       parseWorkspaceRoute('#/import/menu/$badMenu').error,
-      contains('valid HoloUI menu JSON'),
+      contains('valid Gloss menu JSON'),
     );
   });
 

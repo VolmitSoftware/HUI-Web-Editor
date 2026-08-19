@@ -361,7 +361,7 @@ class _TopBarState extends State<TopBar> {
 
   Widget _brand() => const dom.div(classes: 'hui-brand', <Widget>[
     dom.img(
-      src: 'assets/brand/logo.svg',
+      src: 'assets/brand/logo.png',
       alt: '',
       classes: 'hui-brand-mark',
       attributes: <String, String>{'aria-hidden': 'true'},

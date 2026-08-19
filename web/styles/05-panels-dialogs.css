@@ -1047,9 +1047,24 @@
 
 .hui-option-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 10px;
   padding: 10px 0 14px;
+}
+
+.hui-template-tabs {
+  width: 100%;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.hui-template-tabs [role="group"] {
+  display: flex !important;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 4px;
 }
 
 .hui-option-card {
@@ -1298,6 +1313,8 @@
   }
 
   .hui-dialog-section { grid-template-columns: 1fr; gap: 12px; padding: 16px 0; }
+  .hui-template-tabs [role="group"] { flex-wrap: nowrap; width: max-content; }
+  .hui-option-grid { grid-template-columns: 1fr; }
   .hui-validation-strip { grid-template-columns: 1fr; }
   .hui-validation-cell { border-right: 0; border-bottom: 1px solid var(--hui-border-soft); }
   .hui-validation-cell:last-child { border-bottom: 0; }

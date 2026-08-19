@@ -1,6 +1,7 @@
 library;
 
-import 'package:arcane_jaspr/arcane_jaspr.dart' show ArcaneIcon, IconSize, Widget;
+import 'package:arcane_jaspr/arcane_jaspr.dart'
+    show ArcaneIcon, IconSize, Widget;
 
 import '../config/defaults.dart';
 import '../config/preview_templates.dart';
@@ -101,7 +102,9 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
     if (doc == null) return const <HuiIssue>[];
     return validatePreviewDoc(
       doc,
-      knownMaterials: state.catalogs.loaded ? state.catalogs.materialKeys : null,
+      knownMaterials: state.catalogs.loaded
+          ? state.catalogs.materialKeys
+          : null,
     );
   }
 
@@ -118,7 +121,7 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
   @override
   String get templatesNote =>
       'On the server are the thirteen cards the plugin extracts '
-      'into plugins/holoui/previews/, byte for byte. Starters '
+      'into plugins/Gloss/previews/, byte for byte. Starters '
       'are teaching documents the jar does not ship. Every '
       'template opens as a new document, so your current one '
       'is untouched.';
@@ -128,7 +131,7 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
       <DocumentTemplateSection>[
         DocumentTemplateSection(
           title: 'On the server',
-          note: 'These are the cards HoloUI already draws in game.',
+          note: 'These are the cards Gloss already draws in game.',
           templates: _templates(inGame: true),
         ),
         DocumentTemplateSection(
@@ -138,19 +141,18 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
         ),
       ];
 
-  List<DocumentTemplate> _templates({required bool inGame}) =>
-      <DocumentTemplate>[
-        for (final HuiPreviewTemplate template in huiPreviewTemplates)
-          if (template.inGame == inGame)
-            DocumentTemplate(
-              id: template.id,
-              name: template.name,
-              description: template.description,
-              highlights: template.highlights,
-              create: (EditorStore store) => store.createDocumentFromPreview(
-                template.id,
-                template.build(),
-              ),
-            ),
-      ];
+  List<DocumentTemplate> _templates({
+    required bool inGame,
+  }) => <DocumentTemplate>[
+    for (final HuiPreviewTemplate template in huiPreviewTemplates)
+      if (template.inGame == inGame)
+        DocumentTemplate(
+          id: template.id,
+          name: template.name,
+          description: template.description,
+          highlights: template.highlights,
+          create: (EditorStore store) =>
+              store.createDocumentFromPreview(template.id, template.build()),
+        ),
+  ];
 }

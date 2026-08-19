@@ -1,7 +1,7 @@
 /// Image library grid with inline upload, used by the `textImage` editor and by
 /// the animated frame list.
 ///
-/// Paths are exactly what HoloUI reads from `plugins/holoui/images/`, so the
+/// Paths are exactly what Gloss reads from `plugins/Gloss/images/`, so the
 /// grid shows the path, not a friendly name.
 library;
 
@@ -110,7 +110,7 @@ class ImagePickerGrid extends StatelessWidget {
     this.selected,
     this.emptyMessage =
         'No images stored yet. Upload PNGs sized like the pixels you want: '
-        'HoloUI draws one character per pixel, so 8x8 to 32x32 is the '
+        'Gloss draws one character per pixel, so 8x8 to 32x32 is the '
         'practical range.',
     super.key,
   });

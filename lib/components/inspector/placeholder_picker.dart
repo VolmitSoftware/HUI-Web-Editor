@@ -1,6 +1,6 @@
 /// PlaceholderAPI helper for the toggle condition field.
 ///
-/// The catalogue ships HoloUI's own three placeholders plus a handful of common
+/// The catalogue ships Gloss's own three placeholders plus a handful of common
 /// PAPI examples. Picking one replaces the condition outright, because the
 /// condition is compared whole with `equalsIgnoreCase` — there is no expression
 /// language to append to.
@@ -23,7 +23,7 @@ class PlaceholderPicker extends StatefulWidget {
 
   final HuiCatalogs catalogs;
 
-  /// Receives the raw placeholder token, e.g. `%holoui_available%`.
+  /// Receives the raw placeholder token, e.g. `%gloss_available%`.
   final void Function(String placeholder) onPicked;
   final String label;
 
@@ -70,7 +70,7 @@ class _PlaceholderPickerState extends State<PlaceholderPicker> {
           for (final (String, String) entry in entries) _row(entry),
         const dom.p(classes: 'hui-placeholder-foot', <Widget>[
           Text(
-            'Anything outside HoloUI needs PlaceholderAPI installed on the '
+            'Anything outside Gloss needs PlaceholderAPI installed on the '
             'server. Without it the condition string is compared literally.',
           ),
         ]),

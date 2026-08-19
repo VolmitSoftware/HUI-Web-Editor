@@ -9,7 +9,7 @@ library;
 import '../model/model.dart';
 
 /// Fallback file base name. The plugin names the menu after the file, so this
-/// is also the id used by `/holoui open <id>` and `holoui.open.<id>`.
+/// is also the id used by `/gloss menu open <id>` and `gloss.open.<id>`.
 const String huiDefaultMenuId = 'my-menu';
 
 /// `MenuDefinitionData` default for a new document: 1.7 blocks up is roughly
@@ -32,9 +32,9 @@ const String huiDefaultItemMaterial = 'stone';
 const String huiDefaultBlockMaterial = 'minecraft:stone';
 const String huiDefaultEntityType = 'minecraft:parrot';
 
-/// HoloUI's own placeholder: it always resolves to `true`, so a brand new
+/// Gloss's own placeholder: it always resolves to `true`, so a brand new
 /// toggle is valid and visibly demonstrates the condition mechanism.
-const String huiDefaultToggleCondition = '%holoui_available%';
+const String huiDefaultToggleCondition = '%gloss_available%';
 const String huiDefaultToggleExpectedValue = 'true';
 
 /// One-line descriptions for the "add component" menu.

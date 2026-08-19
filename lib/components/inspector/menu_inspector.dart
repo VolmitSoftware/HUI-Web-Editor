@@ -198,12 +198,12 @@ class MenuInspector extends StatelessWidget {
   Widget _install() => InspectorSection(
     title: 'Install on the server',
     children: <Widget>[
-      HuiDetailRow('Menu file', 'plugins/holoui/menus/${store.menuId}.json'),
-      const HuiDetailRow('Images', 'plugins/holoui/images/'),
-      HuiDetailRow('Test command', '/holoui open ${store.menuId}'),
+      HuiDetailRow('Menu file', 'plugins/Gloss/menus/${store.menuId}.json'),
+      const HuiDetailRow('Images', 'plugins/Gloss/images/'),
+      HuiDetailRow('Test command', '/gloss menu open ${store.menuId}'),
       HuiDetailRow(
         'Permissions',
-        'holoui.command.open + holoui.open.${store.menuId}',
+        'gloss.menus.open + gloss.open.${store.menuId}',
       ),
       const HuiMore(
         summary: 'Directory rules, hot reload and the permission trap',
@@ -221,9 +221,9 @@ class MenuInspector extends StatelessWidget {
             title: 'Hot reload',
           ),
           HuiNote(
-            'holoui.open.<id> is not declared in plugin.yml, so it has to '
+            'gloss.open.<id> is not declared in plugin.yml, so it has to '
             'be granted explicitly in your permissions plugin. Command '
-            'aliases: holo, hui, holou, hu.',
+            'aliases: gl, glo, gg.',
             tone: HuiNoteTone.info,
             title: 'Permission trap',
           ),

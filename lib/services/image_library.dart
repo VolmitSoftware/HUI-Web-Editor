@@ -1,6 +1,6 @@
 /// Local image library backing `textImage` / `animatedTextImage` icons.
 ///
-/// The plugin resolves every icon path against `plugins/holoui/images/`, so the
+/// The plugin resolves every icon path against `plugins/Gloss/images/`, so the
 /// stored path IS the JSON value and IS the zip entry name — keeping those three
 /// identical is the whole point of this class. Browser uploads are normalized
 /// to PNG; server-sync imports preserve supported source formats losslessly.
@@ -21,7 +21,7 @@ import 'image_library_stub.dart'
     if (dart.library.js_interop) 'image_library_web.dart';
 import 'storage_service.dart';
 
-/// HoloUI reads paths with `new File(imagesFolder, path)`; anything longer than
+/// Gloss reads paths with `new File(imagesFolder, path)`; anything longer than
 /// this is rejected by common filesystems.
 const int huiMaxImagePathLength = 256;
 
@@ -32,7 +32,7 @@ const int huiRecommendedMaxImageDimension = 64;
 
 /// Hard ceiling for a single stored image. localStorage gives the whole origin
 /// roughly 5 MB, so a single oversized upload must never be allowed to consume
-/// it. HoloUI images are a couple of KB.
+/// it. Gloss images are a couple of KB.
 const int huiMaxStoredImageBytes = 512 * 1024;
 const int huiMaxDecodedImagePixels = 2048 * 2048;
 const String huiNormalizedPngDataUriPrefix = 'data:image/png;base64,';
@@ -76,7 +76,7 @@ class StoredImage {
     required this.height,
   });
 
-  /// Path relative to `plugins/holoui/images/`, forward slashes, no leading `/`.
+  /// Path relative to `plugins/Gloss/images/`, forward slashes, no leading `/`.
   final String path;
 
   /// Validated base64 data URI. Uploads are PNG; synced assets may retain JPEG,
@@ -187,7 +187,7 @@ class ImageAddOutcome {
   bool get isSuccess => added.isNotEmpty && errors.isEmpty && !quotaExceeded;
 }
 
-/// Applies HoloUI's path rules without rejecting the input: backslashes become
+/// Applies Gloss's path rules without rejecting the input: backslashes become
 /// forward slashes, `..`/`.`/empty segments and `:` are dropped, leading slashes
 /// are removed.
 String sanitizeImagePath(String raw) {
@@ -218,7 +218,7 @@ String sanitizeImagePath(String raw) {
   return path;
 }
 
-/// Null when [path] is a legal HoloUI image path, otherwise the reason.
+/// Null when [path] is a legal Gloss image path, otherwise the reason.
 String? validateImagePath(String path) {
   if (path.trim().isEmpty) {
     return 'Image path must not be empty.';
@@ -227,7 +227,7 @@ String? validateImagePath(String path) {
     return 'Image path must be at most $huiMaxImagePathLength characters.';
   }
   if (path.startsWith('/')) {
-    return 'Image path must be relative to plugins/holoui/images (no leading slash).';
+    return 'Image path must be relative to plugins/Gloss/images (no leading slash).';
   }
   if (path.contains('\\')) {
     return 'Image path must use forward slashes.';
@@ -620,7 +620,7 @@ class ImageLibrary extends ChangeNotifier {
       );
       if (image.isOversized) {
         warnings.add(
-          '"$path" is ${image.width}x${image.height}. HoloUI renders one text display '
+          '"$path" is ${image.width}x${image.height}. Gloss renders one text display '
           'per row and one character per pixel; keep images at or under '
           '${huiRecommendedMaxImageDimension}x$huiRecommendedMaxImageDimension.',
         );
@@ -803,7 +803,7 @@ class ImageLibrary extends ChangeNotifier {
   }
 
   /// Zip whose entry names are exactly the stored paths, so unzipping it into
-  /// `plugins/holoui/images/` resolves every icon.
+  /// `plugins/Gloss/images/` resolves every icon.
   Future<List<int>> exportZipBytes() async {
     final Archive archive = Archive();
     for (final StoredImage image in _images) {
@@ -827,7 +827,7 @@ class ImageLibrary extends ChangeNotifier {
 
   String get _quotaMessage =>
       'Browser storage is full, so nothing was saved. Remove images or shrink them '
-      '(HoloUI images are usually under ${huiRecommendedMaxImageDimension}x$huiRecommendedMaxImageDimension pixels).';
+      '(Gloss images are usually under ${huiRecommendedMaxImageDimension}x$huiRecommendedMaxImageDimension pixels).';
 
   /// Runs [mutation], persists, and restores the previous list when the browser
   /// refuses the write so memory never drifts from storage.

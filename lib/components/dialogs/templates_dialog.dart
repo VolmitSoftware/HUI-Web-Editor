@@ -98,7 +98,7 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
     isOpen: component.isOpen,
     onClose: component.onClose,
     title: 'Start from a template',
-    maxWidth: 820,
+    maxWidth: 1120,
     actions: <Widget>[
       Button(
         variant: ButtonVariant.outline,
@@ -116,29 +116,26 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
   );
 
   Widget _body() => dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
-    dom.div(
-      styles: const dom.Styles(raw: <String, String>{'margin-bottom': '12px'}),
-      <Widget>[
-        ArcaneToggleGroup(
-          value: _kind.kind.name,
-          variant: ToggleGroupVariant.outline,
-          size: ToggleGroupSize.sm,
-          onChanged: (String? value) {
-            if (value == null) return;
-            for (final DocumentTypeAdapter type in _tabs) {
-              if (type.kind.name == value) setState(() => _kind = type);
-            }
-          },
-          items: <ToggleGroupItem>[
-            for (final DocumentTypeAdapter type in _tabs)
-              ToggleGroupItem(
-                value: type.kind.name,
-                child: Text(type.templatesTabLabel!),
-              ),
-          ],
-        ),
-      ],
-    ),
+    dom.div(classes: 'hui-template-tabs', <Widget>[
+      ArcaneToggleGroup(
+        value: _kind.kind.name,
+        variant: ToggleGroupVariant.outline,
+        size: ToggleGroupSize.sm,
+        onChanged: (String? value) {
+          if (value == null) return;
+          for (final DocumentTypeAdapter type in _tabs) {
+            if (type.kind.name == value) setState(() => _kind = type);
+          }
+        },
+        items: <ToggleGroupItem>[
+          for (final DocumentTypeAdapter type in _tabs)
+            ToggleGroupItem(
+              value: type.kind.name,
+              child: Text(type.templatesTabLabel!),
+            ),
+        ],
+      ),
+    ]),
     dom.p(classes: 'hui-dialog-note', <Widget>[Text(_kind.templatesNote)]),
     ..._sections(),
   ]);
@@ -158,12 +155,10 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
     ];
   }
 
-  Widget _grid(List<DocumentTemplate> templates) => dom.div(
-    classes: 'hui-option-grid',
-    <Widget>[
-      for (final DocumentTemplate template in templates) _card(template),
-    ],
-  );
+  Widget _grid(List<DocumentTemplate> templates) =>
+      dom.div(classes: 'hui-option-grid', <Widget>[
+        for (final DocumentTemplate template in templates) _card(template),
+      ]);
 
   Widget _groupHeading(String title, String note) =>
       dom.div(classes: 'hui-option-group-head', <Widget>[

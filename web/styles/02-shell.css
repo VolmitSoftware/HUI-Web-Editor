@@ -913,7 +913,7 @@ body.hui-resizing * { cursor: col-resize !important; }
 }
 
 @media (max-width: 720px) {
-  .hui-brand { display: none; }
+  .hui-brand { display: flex; }
   .hui-doc-id { max-width: min(26vw, 96px); }
   .hui-doc-ext { display: none; }
 
@@ -952,10 +952,18 @@ body.hui-resizing * { cursor: col-resize !important; }
 
 @media (pointer: coarse) and (max-width: 1024px) {
   .hui-bar .arcane-button,
-  .hui-sync-actions .arcane-button {
+  .hui-sync-actions .arcane-button,
+  .hui-library-create .arcane-button,
+  .hui-library-actions .arcane-button,
+  .hui-inspector .arcane-button,
+  .hui-gloss-preview-controls .arcane-button,
+  .hui-hologram-controls .arcane-button,
+  [data-arcane-surface="dialog"] .arcane-button {
     min-width: 40px;
     min-height: 40px;
   }
+
+  .hui-library-row { min-height: 44px; }
 }
 
 /* Everything in this file that moves resolves its duration from --hui-dur-*,

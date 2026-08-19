@@ -392,8 +392,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     int panelRoots = 0;
 
     for (final WorkspaceDoc document in workspace.docs) {
-      final MenuRenameRewrite rewrite = DocumentTypeRegistry.of(document.kind)
-          .rewriteForMenuRename(document, previous, next);
+      final MenuRenameRewrite rewrite = DocumentTypeRegistry.of(
+        document.kind,
+      ).rewriteForMenuRename(document, previous, next);
       final String? failure = rewrite.failure;
       if (failure != null) {
         _fail(failure);
@@ -1064,7 +1065,8 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   Map<String, GlossAnimationDoc?> _animationDocs() {
     final Map<String, GlossAnimationDoc?>? cached = _animationCache;
     if (cached != null) return cached;
-    final Map<String, GlossAnimationDoc?> built = <String, GlossAnimationDoc?>{};
+    final Map<String, GlossAnimationDoc?> built =
+        <String, GlossAnimationDoc?>{};
     final WorkspaceDocKind? kind = DocumentTypeRegistry.byWireKind(
       'animation',
     )?.kind;
@@ -1570,7 +1572,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   String formattedJson() => _docType.formattedJson(this);
 
   /// Replaces the active document with [content], auto-detecting whether it
-  /// is a HoloUI menu or a container-preview document via
+  /// is a Gloss menu or a container-preview document via
   /// [looksLikePreviewDoc]. Only malformed JSON is refused: a well-formed
   /// document of either shape always replaces the current one, reporting
   /// through [onInfo]. A parse failure reports through [onError] and leaves
@@ -1779,7 +1781,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       _fail('${e.message} (at ${e.path})');
       return;
     } catch (_) {
-      _fail('That file could not be read as HoloUI menu JSON.');
+      _fail('That file could not be read as Gloss menu JSON.');
       return;
     }
     _lastError = null;
@@ -2052,7 +2054,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       _fail('${error.message} (at ${error.path})');
       return false;
     } catch (_) {
-      _fail('That handoff could not be read as HoloUI menu JSON.');
+      _fail('That handoff could not be read as Gloss menu JSON.');
       return false;
     }
     flushAutosave();

@@ -25,6 +25,7 @@ import '../../logic/bubble_preview.dart';
 import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 
 /// Repaint period. The stack eases every poll in game; 50 ms (one tick)
@@ -132,40 +133,42 @@ class _BubbleViewState extends State<BubbleView> {
     }
     _syncTicker();
     final GlossBubblePreviewTimeline timeline = _timelineFor(doc);
-    final List<GlossBubblePreviewBubble> bubbles = timeline.bubblesAt(
-      _nowMs(),
-    );
+    final List<GlossBubblePreviewBubble> bubbles = timeline.bubblesAt(_nowMs());
 
     return dom.div(classes: 'hui-bubble-stage', <Widget>[
       dom.div(classes: 'hui-bubble-sky', <Widget>[
-        dom.div(classes: 'hui-bubble-scene', <Widget>[
-          for (final GlossBubblePreviewBubble bubble in bubbles)
-            dom.div(
-              classes: 'hui-bubble-line',
-              styles: dom.Styles(
-                raw: <String, String>{
-                  'bottom':
-                      '${(bubble.offsetY * _pixelsPerBlock).toStringAsFixed(1)}px',
-                  'opacity': bubble.remainingMs < 400
-                      ? (bubble.remainingMs / 400).toStringAsFixed(2)
-                      : '1',
-                },
-              ),
-              <Widget>[
-                GlossTextLine(
-                  render: renderGlossLine(
-                    doc.effectivePrefix + bubble.text,
-                    emoji: _store.workspaceEmoji,
-                  ),
+        GlossPreviewZoom(
+          label: 'Chat bubble preview',
+          alignment: GlossPreviewAlignment.bottom,
+          child: dom.div(classes: 'hui-bubble-scene', <Widget>[
+            for (final GlossBubblePreviewBubble bubble in bubbles)
+              dom.div(
+                classes: 'hui-bubble-line',
+                styles: dom.Styles(
+                  raw: <String, String>{
+                    'bottom':
+                        '${(bubble.offsetY * _pixelsPerBlock).toStringAsFixed(1)}px',
+                    'opacity': bubble.remainingMs < 400
+                        ? (bubble.remainingMs / 400).toStringAsFixed(2)
+                        : '1',
+                  },
                 ),
-              ],
-            ),
-          const dom.div(classes: 'hui-bubble-player', <Widget>[
-            dom.div(classes: 'hui-bubble-player-head', <Widget>[]),
-            dom.div(classes: 'hui-bubble-player-body', <Widget>[]),
-            dom.div(classes: 'hui-bubble-player-arms', <Widget>[]),
+                <Widget>[
+                  GlossTextLine(
+                    render: renderGlossLine(
+                      doc.effectivePrefix + bubble.text,
+                      emoji: _store.workspaceEmoji,
+                    ),
+                  ),
+                ],
+              ),
+            const dom.div(classes: 'hui-bubble-player', <Widget>[
+              dom.div(classes: 'hui-bubble-player-head', <Widget>[]),
+              dom.div(classes: 'hui-bubble-player-body', <Widget>[]),
+              dom.div(classes: 'hui-bubble-player-arms', <Widget>[]),
+            ]),
           ]),
-        ]),
+        ),
       ]),
       dom.div(classes: 'hui-bubble-controls', <Widget>[
         Button(

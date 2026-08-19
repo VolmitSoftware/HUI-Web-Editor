@@ -403,7 +403,7 @@ class ComponentInspector extends StatelessWidget {
           HuiNote(
             'The condition is read once at open and never again. After that '
             'the state only changes when a player clicks. Placeholders '
-            'outside HoloUI need PlaceholderAPI installed; without it the '
+            'outside Gloss need PlaceholderAPI installed; without it the '
             'string is compared literally.',
             tone: HuiNoteTone.info,
             title: 'Evaluated once',

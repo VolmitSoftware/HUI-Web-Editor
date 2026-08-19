@@ -452,7 +452,7 @@ class _CommandActionFields extends StatelessWidget {
             ? 'Runs from console with full privileges.'
             : huiCommandSources.contains(action.source)
             ? 'Runs with the player\'s own permissions.'
-            : 'Unrecognized source; HoloUI uses the player default.',
+            : 'Unrecognized source; Gloss uses the player default.',
         control: dom.div(<Widget>[
           HuiSegmented(
             value: action.source,
@@ -478,7 +478,7 @@ class _CommandActionFields extends StatelessWidget {
                   value: action.source,
                   label: 'Unknown',
                   hint:
-                      'Unrecognized source "${action.source}"; HoloUI uses '
+                      'Unrecognized source "${action.source}"; Gloss uses '
                       'the player default.',
                 ),
             ],

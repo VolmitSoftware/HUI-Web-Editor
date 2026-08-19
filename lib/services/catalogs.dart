@@ -30,7 +30,7 @@ class MaterialEntry {
   String toString() => 'MaterialEntry($key)';
 }
 
-/// One item exported by a custom-item plugin through `/holoui item export`.
+/// One item exported by a custom-item plugin through `/gloss item export`.
 ///
 /// [id] is kept exactly as the provider spelled it — several providers look ids
 /// up in case-sensitive maps, and MMOItems ids are conventionally uppercase.
@@ -58,8 +58,8 @@ class CustomItemEntry {
   String toString() => 'CustomItemEntry($provider, $id)';
 }
 
-/// The catalog `/holoui item export` writes to
-/// `plugins/holoui/custom-items.json`.
+/// The catalog `/gloss item export` writes to
+/// `plugins/Gloss/custom-items.json`.
 ///
 /// Entirely optional: the editor is a static offline page, so a missing catalog
 /// is silent and every id stays hand-typable. Its only jobs are autocomplete,
@@ -677,9 +677,7 @@ class HuiCatalogs {
         ),
       );
     }
-    out.sort(
-      (GlossEmojiEntry a, GlossEmojiEntry b) => a.id.compareTo(b.id),
-    );
+    out.sort((GlossEmojiEntry a, GlossEmojiEntry b) => a.id.compareTo(b.id));
     return out;
   }
 
@@ -720,22 +718,22 @@ Object? _decode(String body) {
   }
 }
 
-/// HoloUI's own three PlaceholderAPI keys followed by common expansions people
+/// Gloss's own three PlaceholderAPI keys followed by common expansions people
 /// already have installed. Text icon lines expand initially and then at their
 /// `refreshTicks`; a toggle `condition` expands only at open. Commands, image
 /// paths and ids are never expanded.
 const List<(String, String)> _placeholders = <(String, String)>[
   (
-    '%holoui_available%',
-    'HoloUI: always true. Use it to confirm PlaceholderAPI resolved the HoloUI expansion.',
+    '%gloss_available%',
+    'Gloss: always true. Use it to confirm PlaceholderAPI resolved the Gloss expansion.',
   ),
   (
-    '%holoui_menu.open%',
-    'HoloUI: true or false - whether this player has a HoloUI menu open.',
+    '%gloss_menu.open%',
+    'Gloss: true or false - whether this player has a Gloss menu open.',
   ),
   (
-    '%holoui_menu.id%',
-    'HoloUI: the id of the open menu, or --- when none is open.',
+    '%gloss_menu.id%',
+    'Gloss: the id of the open menu, or --- when none is open.',
   ),
   ('%player_name%', 'PlaceholderAPI: the player account name.'),
   ('%player_displayname%', 'PlaceholderAPI: the formatted display name.'),
