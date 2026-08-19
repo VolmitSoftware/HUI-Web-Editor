@@ -1,13 +1,12 @@
 /// The scoreboard surface: a vanilla-style sidebar mock, right-anchored the
 /// way the client draws it.
 ///
-/// Fidelity notes, all from `BoardService.java`: the title renders through
-/// the text pipeline and is cut at 32 characters INCLUDING colour codes
-/// (`MAX_TITLE_LENGTH`, line 40-41,363-367); at most 15 lines reach the
-/// client (`MAX_LINES`, line 377-380); every line renders through the same
-/// pipeline per viewer, so `|animation.<id>|` references play here through
-/// the workspace-scoped resolver exactly as they would in game. The dimmed
-/// score column stands in for the vanilla sidebar's row scores.
+/// The title renders through Gloss's text pipeline, then VolmLib safely caps
+/// it at 32 UTF-16 units including colour codes. At most 15 lines reach the
+/// client; VolmLib maps every rendered line into
+/// its 16-character team prefix plus 16-character suffix, including carried
+/// colour codes. The dimmed score column stands in for the vanilla sidebar's
+/// row scores.
 ///
 /// Owns a playback clock while any rendered line (or the title) plays an
 /// animation and the store's animations toggle is on. Mounted only while the
@@ -134,7 +133,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
             child: dom.div(classes: 'hui-scoreboard-sidebar', <Widget>[
               dom.div(classes: 'hui-scoreboard-title', <Widget>[
                 GlossTextLine(
-                  render: renderGlossLine(
+                  render: renderGlossScoreboardTitle(
                     doc.title,
                     animations: animations,
                     emoji: emoji,
@@ -146,7 +145,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
                 dom.div(classes: 'hui-scoreboard-row', <Widget>[
                   dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
                     GlossTextLine(
-                      render: renderGlossLine(
+                      render: renderGlossScoreboardLine(
                         doc.lines[index],
                         animations: animations,
                         emoji: emoji,
@@ -181,7 +180,9 @@ class _ScoreboardViewState extends State<ScoreboardView> {
   String _readout(GlossScoreboardDoc doc, int clipped, bool titleTruncated) {
     final List<String> parts = <String>[
       doc.primary ? 'primary' : 'not primary',
-      doc.hideNumbers ? 'score numbers hidden' : 'score numbers visible',
+      doc.hideNumbers
+          ? 'score numbers hidden on supported runtimes'
+          : 'score numbers visible',
       doc.permissionGated
           ? 'needs $glossBoardPermissionNodePrefix${doc.effectivePermission}'
           : 'everyone',
@@ -189,7 +190,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
         'groups: ${doc.effectiveGroups.join(', ')}',
       if (clipped > 0)
         '$clipped line${clipped == 1 ? '' : 's'} past the 15-line render cap',
-      if (titleTruncated) 'title cut at 32 rendered characters in game',
+      if (titleTruncated) 'title exceeds the 32-unit in-game cap',
     ];
     return parts.join(' · ');
   }

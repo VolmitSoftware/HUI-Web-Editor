@@ -452,9 +452,9 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
     '&7TPS &a{{ fixed(server.tps, 1) }}',
     "&7Tick &f{{ fixed(metric('react.tick-ms', 1000 / server.tps), 1) }}ms",
     '',
-    '${_animatedColor(random)}&l${_pick(random, _statusWords)}',
+    '${_scoreboardAnimatedColor(random)}&l${_pick(random, _statusWords)}',
     '&7$event',
-    _easterEgg(random),
+    _scoreboardEasterEgg(random),
     '&8${_pick(random, _domains)}',
   ];
   if (random.nextBool()) {
@@ -923,10 +923,26 @@ const List<String> _easterEggs = <String>[
   '&6Puretie &7found another shiny edge case',
 ];
 
+const List<String> _scoreboardEasterEggs = <String>[
+  '&dMagic_Psycho &fdebugs',
+  '&5SwiftSwamp &fsmells >.<',
+  '&bCyberpwn &floops',
+  '&6Puretie &ffound loot',
+];
+
 T _pick<T>(math.Random random, List<T> values) =>
     values[random.nextInt(values.length)];
 
 String _easterEgg(math.Random random) => _pick(random, _easterEggs);
+
+String _scoreboardEasterEgg(math.Random random) =>
+    _pick(random, _scoreboardEasterEggs);
+
+String _scoreboardAnimatedColor(math.Random random) => _pick(random, <String>[
+  '|animation.rainbow|',
+  "{{ select(['&c', '&6', '&e', '&a', '&b', '&d'], "
+      'floor(time.seconds * ${2 + random.nextInt(5)})) }}',
+]);
 
 String _animatedColor(math.Random random) => _pick(random, <String>[
   '|animation.rainbow|',

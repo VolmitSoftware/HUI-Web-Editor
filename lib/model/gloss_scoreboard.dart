@@ -37,8 +37,7 @@ const String glossBoardPermissionNodePrefix = 'gloss.board.';
 /// `BoardService.MAX_LINES` — lines past this render never reach the client.
 const int glossBoardMaxLines = 15;
 
-/// `BoardService.MAX_TITLE_LENGTH` — the RENDERED title is cut at this many
-/// characters, colour codes included.
+/// The VolmLib board driver's rendered-title cap, colour codes included.
 const int glossBoardMaxTitleLength = 32;
 
 int glossBoardScoreForRow(int index) => glossBoardMaxLines - index;
@@ -106,8 +105,7 @@ final class GlossScoreboardDoc extends GlossDoc {
 
   String title;
 
-  /// Sidebar lines, top first. The service renders at most
-  /// [glossBoardMaxLines] of them (`BoardService.java:377-380`).
+  /// Sidebar lines, top first. Gloss renders at most [glossBoardMaxLines].
   List<String> lines;
 
   /// Whether this board volunteers as the default selection for players no

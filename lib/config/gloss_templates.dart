@@ -130,7 +130,7 @@ const String kGlossScoreboardShowcaseJson = r'''
     "",
     "|animation.rainbow|&lLIVE EVENT",
     "&d:heart: &fWelcome!",
-    "[55FFFF]play.example.net"
+    "&bplay.example.net"
   ],
   "primary": true,
   "hideNumbers": true,

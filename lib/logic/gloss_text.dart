@@ -254,6 +254,102 @@ GlossLineRender renderGlossLine(
   int nowMs = 0,
   GlossTextExpressionSamples expressionSamples =
       const GlossTextExpressionSamples(),
+}) => _renderGlossLine(
+  raw,
+  animations: animations,
+  emoji: emoji,
+  nowMs: nowMs,
+  expressionSamples: expressionSamples,
+);
+
+GlossLineRender renderGlossScoreboardTitle(
+  String raw, {
+  GlossAnimationResolver animations = const GlossNoAnimations(),
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
+  int nowMs = 0,
+  GlossTextExpressionSamples expressionSamples =
+      const GlossTextExpressionSamples(),
+}) => _renderGlossLine(
+  raw,
+  animations: animations,
+  emoji: emoji,
+  nowMs: nowMs,
+  expressionSamples: expressionSamples,
+  runtimeTransform: _limitScoreboardTitle,
+);
+
+GlossLineRender renderGlossScoreboardLine(
+  String raw, {
+  GlossAnimationResolver animations = const GlossNoAnimations(),
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
+  int nowMs = 0,
+  GlossTextExpressionSamples expressionSamples =
+      const GlossTextExpressionSamples(),
+}) => _renderGlossLine(
+  raw,
+  animations: animations,
+  emoji: emoji,
+  nowMs: nowMs,
+  expressionSamples: expressionSamples,
+  runtimeTransform: _limitScoreboardLine,
+);
+
+GlossScoreboardLineMeasure measureGlossScoreboardLine(
+  String raw,
+  GlossAnimationResolver animations, {
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
+}) {
+  final String functions = _applyFunctions(
+    raw,
+    animations,
+    0,
+    <String>[],
+    <String>[],
+    frameOf: (GlossAnimationDoc doc) => _longestRuntimeFrame(doc.frames),
+  );
+  final String substituted = glossApplyEmoji(
+    _applyTextExpressions(
+      functions,
+      0,
+      const GlossTextExpressionSamples(),
+      <String>[],
+      <String>[],
+    ),
+    emoji,
+  );
+  final String translated = _normalizeScoreboardCharacters(
+    _translateRuntimeColors(substituted),
+  );
+  final _ScoreboardLineFit fit = _fitScoreboardLine(translated);
+  return GlossScoreboardLineMeasure(
+    encodedLength: translated.length,
+    visibleLength: _plainLength(translated).length,
+    deliveredVisibleLength: _plainLength(fit.text).length,
+    truncated: fit.truncated,
+  );
+}
+
+final class GlossScoreboardLineMeasure {
+  const GlossScoreboardLineMeasure({
+    required this.encodedLength,
+    required this.visibleLength,
+    required this.deliveredVisibleLength,
+    required this.truncated,
+  });
+
+  final int encodedLength;
+  final int visibleLength;
+  final int deliveredVisibleLength;
+  final bool truncated;
+}
+
+GlossLineRender _renderGlossLine(
+  String raw, {
+  required GlossAnimationResolver animations,
+  required GlossEmojiResolver emoji,
+  required int nowMs,
+  required GlossTextExpressionSamples expressionSamples,
+  String Function(String value)? runtimeTransform,
 }) {
   final List<String> used = <String>[];
   final List<String> missing = <String>[];
@@ -268,7 +364,7 @@ GlossLineRender renderGlossLine(
     missing,
     metrics: metrics,
   );
-  final String substituted = glossApplyEmoji(
+  String substituted = glossApplyEmoji(
     _applyTextExpressions(
       functions,
       nowMs,
@@ -278,6 +374,9 @@ GlossLineRender renderGlossLine(
     ),
     emoji,
   );
+  if (runtimeTransform != null) {
+    substituted = runtimeTransform(substituted);
+  }
   final List<String> placeholders = <String>[];
   final List<GlossTextPiece> pieces = _renderColors(substituted, placeholders);
   return GlossLineRender(
@@ -289,6 +388,207 @@ GlossLineRender renderGlossLine(
     expressions: List<String>.unmodifiable(expressions),
     expressionErrors: List<String>.unmodifiable(expressionErrors),
   );
+}
+
+String _limitScoreboardTitle(String value) {
+  final String translated = _normalizeScoreboardCharacters(
+    _translateRuntimeColors(value),
+  );
+  return translated.substring(0, _safeLegacyBoundary(translated, 32));
+}
+
+String _limitScoreboardLine(String value) =>
+    _fitScoreboardLine(_translateRuntimeColors(value)).text;
+
+_ScoreboardLineFit _fitScoreboardLine(String input) {
+  final String normalized = _normalizeScoreboardCharacters(input);
+  final int lineEnd = _safeLegacyBoundary(normalized, 32);
+  final String line = normalized.substring(0, lineEnd);
+  bool truncated = lineEnd < normalized.length;
+  if (line.length <= 16) {
+    return _ScoreboardLineFit(text: line, truncated: truncated);
+  }
+
+  final int prefixEnd = _safeLegacyBoundary(line, 16);
+  final String prefix = line.substring(0, prefixEnd);
+  final String completeSuffix =
+      _lastLegacyColors(prefix) + line.substring(prefixEnd);
+  final int suffixEnd = _safeLegacyBoundary(completeSuffix, 16);
+  truncated = truncated || suffixEnd < completeSuffix.length;
+  return _ScoreboardLineFit(
+    text: prefix + completeSuffix.substring(0, suffixEnd),
+    truncated: truncated,
+  );
+}
+
+String _normalizeScoreboardCharacters(String input) {
+  final StringBuffer out = StringBuffer();
+  int index = 0;
+  while (index < input.length) {
+    final int codeUnit = input.codeUnitAt(index);
+    if (_isHighSurrogate(codeUnit)) {
+      if (index + 1 < input.length &&
+          _isLowSurrogate(input.codeUnitAt(index + 1))) {
+        out.write(input.substring(index, index + 2));
+        index += 2;
+        continue;
+      }
+      index++;
+      continue;
+    }
+    if (_isLowSurrogate(codeUnit)) {
+      index++;
+      continue;
+    }
+    if (codeUnit == 0x0D ||
+        codeUnit == 0x0A ||
+        codeUnit == 0x2028 ||
+        codeUnit == 0x2029) {
+      out.write(' ');
+      if (codeUnit == 0x0D &&
+          index + 1 < input.length &&
+          input.codeUnitAt(index + 1) == 0x0A) {
+        index++;
+      }
+      index++;
+      continue;
+    }
+    out.writeCharCode(codeUnit);
+    index++;
+  }
+  return out.toString();
+}
+
+int _safeLegacyBoundary(String input, int maximum) {
+  int end = input.length < maximum ? input.length : maximum;
+  if (end > 0 &&
+      _isHighSurrogate(input.codeUnitAt(end - 1)) &&
+      (end == input.length || _isLowSurrogate(input.codeUnitAt(end)))) {
+    end--;
+  }
+
+  int index = 0;
+  while (index < end) {
+    if (input[index] != '§') {
+      index++;
+      continue;
+    }
+    final int tokenLength = _completeBungeeHexAt(input, index) ? 14 : 2;
+    if (index + tokenLength > end) {
+      return index;
+    }
+    index += tokenLength;
+  }
+  return end;
+}
+
+bool _completeBungeeHexAt(String input, int start) {
+  if (start + 14 > input.length ||
+      input[start] != '§' ||
+      input[start + 1].toLowerCase() != 'x') {
+    return false;
+  }
+  for (int index = start + 2; index < start + 14; index += 2) {
+    if (input[index] != '§' || !_isHexDigit(input[index + 1])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _isHighSurrogate(int codeUnit) => codeUnit >= 0xD800 && codeUnit <= 0xDBFF;
+
+bool _isLowSurrogate(int codeUnit) => codeUnit >= 0xDC00 && codeUnit <= 0xDFFF;
+
+String _lastLegacyColors(String input) {
+  final StringBuffer formats = StringBuffer();
+  for (int index = input.length - 2; index >= 0; index--) {
+    if (input[index] != '§') continue;
+    final String code = input[index + 1].toLowerCase();
+    if (_legacyDecorations.contains(code)) {
+      formats.write('§$code');
+      continue;
+    }
+    if (code == 'r') {
+      return '§r${_reverseLegacyCodes(formats.toString())}';
+    }
+    if (_legacyColors.containsKey(code)) {
+      final String? hex = _bungeeHexEndingAt(input, index + 1);
+      final String color = hex ?? '§$code';
+      return color + _reverseLegacyCodes(formats.toString());
+    }
+  }
+  return _reverseLegacyCodes(formats.toString());
+}
+
+String? _bungeeHexEndingAt(String input, int digitIndex) {
+  final int start = digitIndex - 13;
+  if (start < 0 ||
+      input[start] != '§' ||
+      input[start + 1].toLowerCase() != 'x') {
+    return null;
+  }
+  for (int index = start + 2; index <= digitIndex; index += 2) {
+    if (input[index] != '§' || !_isHexDigit(input[index + 1])) {
+      return null;
+    }
+  }
+  return input.substring(start, digitIndex + 1);
+}
+
+String _reverseLegacyCodes(String reversed) {
+  if (reversed.isEmpty) return '';
+  final StringBuffer out = StringBuffer();
+  for (int index = reversed.length - 2; index >= 0; index -= 2) {
+    out.write(reversed.substring(index, index + 2));
+  }
+  return out.toString();
+}
+
+String _longestRuntimeFrame(List<String> frames) {
+  String longest = '';
+  int longestLength = 0;
+  for (final String frame in frames) {
+    final int length = _normalizeScoreboardCharacters(
+      _translateRuntimeColors(frame),
+    ).length;
+    if (length > longestLength) {
+      longest = frame;
+      longestLength = length;
+    }
+  }
+  return longest;
+}
+
+String _translateRuntimeColors(String input) {
+  final String bracketHex = _translateBracketHex(input);
+  if (!bracketHex.contains('&')) return bracketHex;
+  final StringBuffer out = StringBuffer();
+  int index = 0;
+  while (index < bracketHex.length) {
+    final String char = bracketHex[index];
+    if (char == '&' && index + 1 < bracketHex.length) {
+      final String code = bracketHex[index + 1].toLowerCase();
+      if (_legacyColors.containsKey(code) ||
+          _legacyDecorations.contains(code) ||
+          code == 'r' ||
+          code == 'x') {
+        out.write('§$code');
+        index += 2;
+        continue;
+      }
+    }
+    out.write(char);
+    index++;
+  }
+  return out.toString();
+}
+
+final class _ScoreboardLineFit {
+  const _ScoreboardLineFit({required this.text, required this.truncated});
+
+  final String text;
+  final bool truncated;
 }
 
 /// The `metric.<key>` keys [raw] references, in order — the editor's stand-in
@@ -381,9 +681,8 @@ int glossLineMaxVisibleLength(
 }
 
 /// Length of [raw] AFTER the pipeline's colour translation but BEFORE the
-/// client consumes the codes — the string `BoardService` truncates the title
-/// on (`rendered.length() > MAX_TITLE_LENGTH`, `BoardService.java:363-367`),
-/// where every `&` code still counts 2 characters and every `[RRGGBB]`
+/// client consumes the codes — the string VolmLib safely caps for a board
+/// title. Every `&` code still counts 2 characters and every `[RRGGBB]`
 /// becomes Bungee's 14-character `§x§R§R§G§G§B§B` form. Known animation
 /// references substitute their longest frame; emoji substitute before the
 /// colour translation exactly as the pipeline orders its stages; placeholder
@@ -399,13 +698,7 @@ int glossTranslatedLength(
     0,
     <String>[],
     <String>[],
-    frameOf: (GlossAnimationDoc doc) {
-      String longest = '';
-      for (final String frame in doc.frames) {
-        if (frame.length > longest.length) longest = frame;
-      }
-      return longest;
-    },
+    frameOf: (GlossAnimationDoc doc) => _longestRuntimeFrame(doc.frames),
   );
   final String substituted = glossApplyEmoji(
     _applyTextExpressions(
@@ -417,20 +710,9 @@ int glossTranslatedLength(
     ),
     emoji,
   );
-  int length = substituted.length;
-  // Each valid bracket-hex token (8 chars) translates to 14 chars.
-  int open = substituted.indexOf('[');
-  while (open >= 0) {
-    if (open + 7 < substituted.length &&
-        substituted[open + 7] == ']' &&
-        _isBracketHex(substituted, open + 1)) {
-      length += 6;
-      open = substituted.indexOf('[', open + 8);
-    } else {
-      open = substituted.indexOf('[', open + 1);
-    }
-  }
-  return length;
+  return _normalizeScoreboardCharacters(
+    _translateRuntimeColors(substituted),
+  ).length;
 }
 
 final class GlossTextExpressionSamples {

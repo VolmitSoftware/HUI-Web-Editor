@@ -17,8 +17,7 @@ import 'validation.dart';
 
 /// The vanilla server list truncates rows client-side around this many
 /// visible characters; longer lines risk an ellipsis. Client behavior, not a
-/// plugin limit — guidance the same way the scoreboard's 40-character line
-/// note is.
+/// plugin limit.
 const int glossMotdMaxVisibleLineLength = 45;
 
 List<HuiIssue> validateMotdDoc(

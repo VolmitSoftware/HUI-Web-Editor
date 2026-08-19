@@ -3,20 +3,15 @@
 /// `BoardDoc.java` rejects almost nothing — it normalizes silently — so the
 /// only error here is the envelope's revision range. Everything else is a
 /// warning about what the server will actually show: the 15-line render cap
-/// and 32-character title truncation live in `BoardService.java:40-41`, the
-/// 40-character line guidance is the vanilla sidebar's classic limit, and
-/// the normalization notes surface what `normalizePermission` /
-/// `normalizeGroups` will quietly rewrite.
+/// and VolmLib applies the 32-unit title cap and 16-character team
+/// prefix/suffix split in its board driver. The normalization notes surface what
+/// `normalizePermission` / `normalizeGroups` will quietly rewrite.
 library;
 
 import '../model/gloss_doc.dart';
 import '../model/gloss_scoreboard.dart';
 import 'gloss_text.dart';
 import 'validation.dart';
-
-/// Vanilla's classic sidebar line width; longer lines risk client-side
-/// truncation on the versions Gloss targets.
-const int glossBoardMaxLineLength = 40;
 
 List<HuiIssue> validateScoreboardDoc(
   GlossScoreboardDoc doc, {
@@ -51,9 +46,9 @@ List<HuiIssue> validateScoreboardDoc(
         severity: HuiSeverity.warning,
         path: r'$.title',
         message:
-            'The rendered title is $titleLength characters; Gloss cuts it at '
-            '$glossBoardMaxTitleLength — colour codes count, and a [RRGGBB] '
-            'tag costs 14.',
+            'The rendered title is $titleLength UTF-16 units; VolmLib caps '
+            'it safely at $glossBoardMaxTitleLength — colour codes count, '
+            'and a [RRGGBB] tag costs 14.',
         fix: 'Shorten the title or use cheaper colour codes.',
       ),
     );
@@ -76,20 +71,24 @@ List<HuiIssue> validateScoreboardDoc(
 
   for (int index = 0; index < doc.lines.length; index++) {
     final String line = doc.lines[index];
-    final int visible = glossLineMaxVisibleLength(
+    final GlossScoreboardLineMeasure measure = measureGlossScoreboardLine(
       line,
       animations,
       emoji: emoji,
     );
-    if (visible > glossBoardMaxLineLength) {
+    if (measure.truncated) {
       issues.add(
         HuiIssue(
           severity: HuiSeverity.warning,
           path: 'lines[$index]',
           message:
-              'This line shows $visible visible characters; the vanilla '
-              'sidebar clips past $glossBoardMaxLineLength.',
-          fix: 'Shorten the line.',
+              'This rendered line uses ${measure.encodedLength} encoded '
+              'characters. VolmLib keeps a 16-character prefix and a '
+              '16-character suffix; carried colour codes consume suffix '
+              'space, so ${measure.deliveredVisibleLength} of '
+              '${measure.visibleLength} visible characters reach the '
+              'client. Scoreboard rows never wrap.',
+          fix: 'Shorten the line or remove formatting codes.',
         ),
       );
     }

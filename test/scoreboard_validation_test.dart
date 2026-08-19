@@ -64,18 +64,29 @@ void main() {
       expect(validateScoreboardDoc(doc), isEmpty);
     });
 
-    test('a line past 40 visible characters names its index', () {
-      final GlossScoreboardDoc doc = _valid()
-        ..lines = <String>['ok', '&a${'x' * 41}'];
+    test('a plain line past the 16 plus 16 wire limit names its index', () {
+      final GlossScoreboardDoc doc = _valid()..lines = <String>['ok', 'x' * 33];
       final HuiIssue warning = validateScoreboardDoc(doc).single;
       expect(warning.path, 'lines[1]');
-      expect(warning.message, contains('41 visible'));
+      expect(warning.message, contains('16-character suffix'));
+      expect(warning.message, contains('32 of 33 visible'));
     });
 
-    test('colour codes do not count toward the 40 visible characters', () {
-      final GlossScoreboardDoc doc = _valid()
-        ..lines = <String>['&a&l&n[FF0000]${'x' * 40}'];
+    test('exactly 32 unformatted characters is clean', () {
+      final GlossScoreboardDoc doc = _valid()..lines = <String>['x' * 32];
       expect(validateScoreboardDoc(doc), isEmpty);
+    });
+
+    test('carried colour codes consume suffix space like VolmLib', () {
+      final GlossScoreboardDoc clean = _valid()
+        ..lines = <String>['&a${'x' * 28}'];
+      expect(validateScoreboardDoc(clean), isEmpty);
+
+      final GlossScoreboardDoc clipped = _valid()
+        ..lines = <String>['&a${'x' * 29}'];
+      final HuiIssue warning = validateScoreboardDoc(clipped).single;
+      expect(warning.message, contains('31 encoded'));
+      expect(warning.message, contains('28 of 29 visible'));
     });
 
     test('an animated line measures its longest frame', () {
@@ -102,7 +113,7 @@ void main() {
       final GlossScoreboardDoc over = _valid()..title = '[FF00AA]${'x' * 19}';
       final HuiIssue warning = validateScoreboardDoc(over).single;
       expect(warning.path, r'$.title');
-      expect(warning.message, contains('33 characters'));
+      expect(warning.message, contains('33 UTF-16 units'));
     });
   });
 

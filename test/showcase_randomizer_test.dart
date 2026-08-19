@@ -337,6 +337,32 @@ void main() {
     expect(motds.length, greaterThan(100));
   });
 
+  test('seeded scoreboard samples fit the runtime row budget', () {
+    final EditorStore store = _store();
+    for (int seed = 0; seed < 256; seed++) {
+      final GlossScoreboardDoc scoreboard = buildRandomScoreboardShowcase(
+        GlossScoreboardDoc(),
+        math.Random(seed),
+      );
+      for (int index = 0; index < scoreboard.lines.length; index++) {
+        final String line = scoreboard.lines[index];
+        final GlossScoreboardLineMeasure measure = measureGlossScoreboardLine(
+          line,
+          store.workspaceAnimations,
+          emoji: store.workspaceEmoji,
+        );
+        expect(
+          measure.truncated,
+          isFalse,
+          reason:
+              'seed $seed, line $index: $line rendered '
+              '${measure.visibleLength} visible characters from '
+              '${measure.encodedLength} encoded characters',
+        );
+      }
+    }
+  });
+
   test(
     'component randomization preserves identity, position and data type',
     () {

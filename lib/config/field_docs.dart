@@ -502,21 +502,24 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'scoreboard.title': HuiFieldDoc(
     title: 'Title',
     body:
-        'Rendered through the text pipeline per viewer, then cut at 32 '
-        'characters WITH the colour codes still counted — an & code costs 2 '
+        'Rendered through the text pipeline per viewer, then safely capped '
+        'at 32 UTF-16 units WITH the colour codes still counted — an & code costs 2 '
         'and a [RRGGBB] tag costs 14 of the budget, so a hex-coloured title '
         'has 18 characters left. {{ code }} evaluates before that cut, so a '
-        'time-driven colour or calculated title is measured after rendering.',
-    citation: 'BoardService.java:363-367',
+        'time-driven colour or calculated title is measured after rendering. '
+        'Line breaks become spaces.',
+    citation: 'Board.java:201-206',
   ),
   'scoreboard.lines': HuiFieldDoc(
     title: 'Lines',
     body:
         'Top to bottom, each through the text pipeline per viewer — '
         'placeholders, |animation.<id>|, metrics, colours and {{ code }} all '
-        'work. Code can call papi/papiNumber, metric, bar, select, mix and '
-        'the math library. Only the first 15 lines reach the client.',
-    citation: 'BoardService.java:377-380',
+        'work. VolmLib renders each row as a 16-character team prefix plus '
+        'a 16-character suffix; inherited colour and format codes consume '
+        'suffix space. Line breaks become spaces, rows never wrap, and only '
+        'the first 15 lines reach the client.',
+    citation: 'BoardEntry.java:24-40',
   ),
   'scoreboard.primary': HuiFieldDoc(
     title: 'Primary board',

@@ -86,8 +86,8 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
         required: true,
         trailing: const HuiFieldHelp('scoreboard.title'),
         help:
-            'Centered above the lines. The rendered form is cut at 32 '
-            'characters, colour codes included.',
+            'Centered above the lines. The rendered form is safely capped '
+            'at 32 UTF-16 units, colour codes included.',
         control: dom.div(<Widget>[
           TextInput(
             value: doc.title,
@@ -106,7 +106,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
           ),
           dom.div(classes: 'hui-hologram-line-preview', <Widget>[
             GlossTextLine(
-              render: renderGlossLine(
+              render: renderGlossScoreboardTitle(
                 doc.title,
                 animations: _store.workspaceAnimations,
                 emoji: _store.workspaceEmoji,
@@ -183,7 +183,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
         ),
         dom.div(classes: 'hui-hologram-line-preview', <Widget>[
           GlossTextLine(
-            render: renderGlossLine(
+            render: renderGlossScoreboardLine(
               line,
               animations: _store.workspaceAnimations,
               emoji: _store.workspaceEmoji,

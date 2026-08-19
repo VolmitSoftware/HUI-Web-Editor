@@ -20,6 +20,16 @@ import 'package:test/test.dart';
 
 import 'support/gloss_repository.dart';
 
+final class _Animations implements GlossAnimationResolver {
+  final GlossAnimationDoc rainbow = buildRainbowGlossAnimation();
+
+  @override
+  List<String> get ids => <String>['rainbow'];
+
+  @override
+  GlossAnimationDoc? byId(String id) => id == 'rainbow' ? rainbow : null;
+}
+
 void main() {
   group('hologram blank stays the plugin baseline', () {
     test('embedded copy matches the fixture and the plugin resource', () {
@@ -126,6 +136,13 @@ void main() {
       );
       expect(first.permission, 'default');
       expect(validateScoreboardDoc(first), isEmpty);
+      for (final String line in first.lines) {
+        expect(
+          measureGlossScoreboardLine(line, _Animations()).truncated,
+          isFalse,
+          reason: line,
+        );
+      }
     });
   });
 
@@ -305,6 +322,7 @@ void main() {
 
   test('the scoreboard showcase builds without errors', () {
     final GlossScoreboardDoc doc = buildShowcaseGlossScoreboard();
+    final _Animations animations = _Animations();
     expect(doc.lines, hasLength(13));
     expect(doc.primary, isTrue);
     expect(doc.hideNumbers, isTrue);
@@ -325,5 +343,19 @@ void main() {
       ),
       isTrue,
     );
+    for (int index = 0; index < doc.lines.length; index++) {
+      final String line = doc.lines[index];
+      final GlossScoreboardLineMeasure measure = measureGlossScoreboardLine(
+        line,
+        animations,
+      );
+      expect(
+        measure.truncated,
+        isFalse,
+        reason:
+            'line $index: $line rendered ${measure.visibleLength} visible '
+            'characters from ${measure.encodedLength} encoded characters',
+      );
+    }
   });
 }
