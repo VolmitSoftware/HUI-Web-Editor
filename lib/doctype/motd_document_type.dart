@@ -100,13 +100,13 @@ final class MotdDocumentType extends GlossDocumentTypeAdapter {
               id: 'motd-showcase',
               name: 'Rotating showcase',
               description:
-                  'Four entries the ping randomizes over: a hex-coloured '
-                  'headline, a two-line event notice with a playing '
-                  '|animation.rainbow| line, and a one-liner.',
+                  'Four server-safe entries with time-driven colours, live '
+                  'server counts, RGB math and a reusable animation. No '
+                  'player/PAPI values are faked during server-list ping.',
               highlights: const <String>[
                 '4 entries',
                 'Two-line entries',
-                'Animated line',
+                'Authored code',
               ],
               create: (EditorStore store) => store.newGlossDocument(
                 this,

@@ -58,24 +58,24 @@ class _HologramInspectorState extends State<HologramInspector> {
     ]);
   }
 
-  Widget _header(GlossHologramDoc doc) =>
-      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
-        dom.div(classes: 'hui-inspector-header is-hologram', <Widget>[
-          const HuiEyebrow('Hologram'),
-          dom.div(classes: 'hui-inspector-title-row', <Widget>[
-            dom.h2(classes: 'hui-inspector-title', <Widget>[
-              Text(_store.menuId),
-            ]),
-            const HuiFieldHelp('hologram.id'),
-          ]),
+  Widget _header(GlossHologramDoc doc) => dom.div(
+    classes: 'hui-inspector-headgroup',
+    <Widget>[
+      dom.div(classes: 'hui-inspector-header is-hologram', <Widget>[
+        const HuiEyebrow('Hologram'),
+        dom.div(classes: 'hui-inspector-title-row', <Widget>[
+          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
+          const HuiFieldHelp('hologram.id'),
         ]),
-        dom.p(classes: 'hui-inspector-lede', <Widget>[
-          Text(
-            'One TextDisplay at a world anchor. Revision ${doc.revision} is '
-            'server-owned and travels with the file.',
-          ),
-        ]),
-      ]);
+      ]),
+      dom.p(classes: 'hui-inspector-lede', <Widget>[
+        Text(
+          'One TextDisplay at a world anchor. Revision ${doc.revision} is '
+          'server-owned and travels with the file.',
+        ),
+      ]),
+    ],
+  );
 
   Widget _anchor(GlossHologramDoc doc) {
     final List<double> position = doc.anchor.position;
@@ -165,13 +165,11 @@ class _HologramInspectorState extends State<HologramInspector> {
       else
         HuiReorderList(
           itemCount: doc.lines.length,
-          onReorder: (int from, int to) => _store.mutateHologram(
-            'reorder line',
-            (GlossHologramDoc edited) {
-              final String moved = edited.lines.removeAt(from);
-              edited.lines.insert(to, moved);
-            },
-          ),
+          onReorder: (int from, int to) =>
+              _store.mutateHologram('reorder line', (GlossHologramDoc edited) {
+                final String moved = edited.lines.removeAt(from);
+                edited.lines.insert(to, moved);
+              }),
           itemBuilder: (int index) => _lineRow(doc, index),
         ),
       HuiInlineIssues(_issuesFor('lines[')),
@@ -185,7 +183,7 @@ class _HologramInspectorState extends State<HologramInspector> {
         value: line,
         size: ComponentSize.sm,
         fullWidth: true,
-        placeholder: '&fText, [FFAA00]hex, %papi%, |animation.id|',
+        placeholder: '&fText, %papi%, |animation.id|, {{ expression }}',
         onInput: (String value) => _editLine(index, value),
         onFocus: () => _focusedLine = index,
         attributes: <String, String>{
@@ -206,22 +204,18 @@ class _HologramInspectorState extends State<HologramInspector> {
       HuiIconButton(
         label: 'Delete line',
         icon: ArcaneIcon.trash2(size: IconSize.sm),
-        onPressed: () => _store.mutateHologram(
-          'delete line',
-          (GlossHologramDoc edited) {
-            if (index < edited.lines.length) edited.lines.removeAt(index);
-          },
-        ),
+        onPressed: () =>
+            _store.mutateHologram('delete line', (GlossHologramDoc edited) {
+              if (index < edited.lines.length) edited.lines.removeAt(index);
+            }),
       ),
     ]);
   }
 
-  void _editLine(int index, String value) => _store.mutateHologram(
-    'edit line',
-    (GlossHologramDoc edited) {
-      if (index < edited.lines.length) edited.lines[index] = value;
-    },
-  );
+  void _editLine(int index, String value) =>
+      _store.mutateHologram('edit line', (GlossHologramDoc edited) {
+        if (index < edited.lines.length) edited.lines[index] = value;
+      });
 
   void _insertPlaceholder(String token) {
     final GlossHologramDoc? doc = _doc;

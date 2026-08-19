@@ -30,6 +30,13 @@ class MaterialEntry {
   String toString() => 'MaterialEntry($key)';
 }
 
+class EntityMediaEntry {
+  const EntityMediaEntry(this.key, this.texture);
+
+  final String key;
+  final String texture;
+}
+
 /// One item exported by a custom-item plugin through `/gloss item export`.
 ///
 /// [id] is kept exactly as the provider spelled it — several providers look ids
@@ -379,6 +386,7 @@ class HuiCatalogs {
     required Set<String> materialKeys,
     required List<String> sounds,
     required Set<String> soundKeys,
+    required Map<String, String> entityTextures,
     required this.customItems,
     required this.previewVariables,
     required this.previewLang,
@@ -388,13 +396,15 @@ class HuiCatalogs {
        _materialIndex = materialIndex,
        _materialKeys = materialKeys,
        _sounds = sounds,
-       _soundKeys = soundKeys;
+       _soundKeys = soundKeys,
+       _entityTextures = entityTextures;
 
   final List<MaterialEntry> _materials;
   final Map<String, MaterialEntry> _materialIndex;
   final Set<String> _materialKeys;
   final List<String> _sounds;
   final Set<String> _soundKeys;
+  final Map<String, String> _entityTextures;
 
   /// Empty unless the server exported one; see [HuiCustomItemCatalog].
   final HuiCustomItemCatalog customItems;
@@ -421,6 +431,7 @@ class HuiCatalogs {
 
   static const String itemsAssetUrl = 'assets/catalog/items.json';
   static const String soundsAssetUrl = 'assets/catalog/sounds.json';
+  static const String entitiesAssetUrl = 'assets/catalog/entities.json';
   static const String previewVariablesAssetUrl =
       'assets/catalog/preview-variables.json';
   static const String previewLangAssetUrl =
@@ -443,6 +454,7 @@ class HuiCatalogs {
   static Future<HuiCatalogs> load({
     String itemsUrl = itemsAssetUrl,
     String soundsUrl = soundsAssetUrl,
+    String entitiesUrl = entitiesAssetUrl,
     String previewVariablesUrl = previewVariablesAssetUrl,
     String previewLangUrl = previewLangAssetUrl,
     String emojiUrl = emojiAssetUrl,
@@ -451,15 +463,17 @@ class HuiCatalogs {
     final List<String?> bodies = await Future.wait<String?>(<Future<String?>>[
       _fetch(itemsUrl),
       _fetch(soundsUrl),
+      _fetch(entitiesUrl),
       _fetch(previewVariablesUrl),
       _fetch(previewLangUrl),
       _fetch(emojiUrl),
     ]);
     final String? itemsBody = bodies[0];
     final String? soundsBody = bodies[1];
-    final String? previewVariablesBody = bodies[2];
-    final String? previewLangBody = bodies[3];
-    final String? emojiBody = bodies[4];
+    final String? entitiesBody = bodies[2];
+    final String? previewVariablesBody = bodies[3];
+    final String? previewLangBody = bodies[4];
+    final String? emojiBody = bodies[5];
     final List<MaterialEntry> materials = itemsBody == null
         ? const <MaterialEntry>[]
         : parseMaterials(itemsBody);
@@ -470,6 +484,9 @@ class HuiCatalogs {
     return build(
       materials: materials,
       sounds: sounds,
+      entities: entitiesBody == null
+          ? const <EntityMediaEntry>[]
+          : parseEntities(entitiesBody),
       customItems: await loadCustomItems(customItemUrls),
       previewVariables: previewVariablesBody == null
           ? HuiPreviewVariableCatalog.empty
@@ -518,10 +535,15 @@ class HuiCatalogs {
         HuiPreviewVariableCatalog.empty,
     PreviewLangCatalog previewLang = PreviewLangCatalog.empty,
     List<GlossEmojiEntry> emoji = const <GlossEmojiEntry>[],
+    List<EntityMediaEntry> entities = const <EntityMediaEntry>[],
   }) {
     final Map<String, MaterialEntry> index = <String, MaterialEntry>{};
     for (final MaterialEntry entry in materials) {
       index[entry.key] = entry;
+    }
+    final Map<String, String> entityTextures = <String, String>{};
+    for (final EntityMediaEntry entry in entities) {
+      entityTextures[entry.key] = entry.texture;
     }
     return HuiCatalogs._(
       materials: List<MaterialEntry>.unmodifiable(materials),
@@ -529,6 +551,7 @@ class HuiCatalogs {
       materialKeys: Set<String>.unmodifiable(index.keys),
       sounds: List<String>.unmodifiable(sounds),
       soundKeys: Set<String>.unmodifiable(sounds),
+      entityTextures: Map<String, String>.unmodifiable(entityTextures),
       customItems: customItems ?? HuiCustomItemCatalog.empty(),
       previewVariables: previewVariables,
       previewLang: previewLang,
@@ -545,6 +568,7 @@ class HuiCatalogs {
     materialKeys: _materialKeys,
     sounds: _sounds,
     soundKeys: _soundKeys,
+    entityTextures: _entityTextures,
     customItems: catalog,
     previewVariables: previewVariables,
     previewLang: previewLang,
@@ -569,6 +593,11 @@ class HuiCatalogs {
   MaterialEntry? material(String key) => _materialIndex[key.toLowerCase()];
 
   String? textureFor(String key) => _materialIndex[key.toLowerCase()]?.texture;
+
+  String? entityTextureFor(String key) =>
+      _entityTextures[key.toLowerCase().contains(':')
+          ? key.toLowerCase()
+          : 'minecraft:${key.toLowerCase()}'];
 
   /// Substring match ranked prefix-first, for the material combobox.
   List<MaterialEntry> searchMaterials(String query, {int limit = 60}) {
@@ -647,6 +676,25 @@ class HuiCatalogs {
           texture is String && texture.isNotEmpty ? texture : null,
         ),
       );
+    }
+    return out;
+  }
+
+  static List<EntityMediaEntry> parseEntities(String body) {
+    final Object? decoded = _decode(body);
+    if (decoded is! Map<String, Object?>) return const <EntityMediaEntry>[];
+    final Object? raw = decoded['entities'];
+    if (raw is! List<Object?>) return const <EntityMediaEntry>[];
+    final List<EntityMediaEntry> out = <EntityMediaEntry>[];
+    final Set<String> seen = <String>{};
+    for (final Object? item in raw) {
+      if (item is! Map<String, Object?>) continue;
+      final Object? key = item['key'];
+      final Object? texture = item['texture'];
+      if (key is! String || texture is! String || texture.isEmpty) continue;
+      final String normalized = key.trim().toLowerCase();
+      if (normalized.isEmpty || !seen.add(normalized)) continue;
+      out.add(EntityMediaEntry(normalized, texture));
     }
     return out;
   }

@@ -147,14 +147,15 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
     if (!inGame)
       DocumentTemplate(
         id: 'all-elements',
-        name: 'All element types',
+        name: 'Furnace expression lab',
         description:
-            'One working card demonstrating panel, cell, slot, label, repeat, '
-            'expressions, colour, and responsive dimensions together.',
+            'A working furnace, blast-furnace, and smoker card demonstrating '
+            'live timers, inventory functions, variants, repeat, math, '
+            'localization, and animated colour expressions.',
         highlights: const <String>[
-          'Panel + cell',
-          'Slots + labels',
-          'Repeat + expressions',
+          'All 4 element types',
+          'Furnace variables',
+          'Live expression animation',
         ],
         create: (EditorStore store) => store.createDocumentFromPreview(
           'all-elements',

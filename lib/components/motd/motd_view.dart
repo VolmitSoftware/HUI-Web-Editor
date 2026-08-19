@@ -104,7 +104,7 @@ class _MotdViewState extends State<MotdView> {
         : entry.lines.take(glossMotdMaxLinesPerEntry).toList();
     bool animated = false;
     for (final String line in lines) {
-      if (glossLineAnimationRefs(line, animations).isNotEmpty) {
+      if (renderGlossLine(line, animations: animations).isAnimated) {
         animated = true;
         break;
       }

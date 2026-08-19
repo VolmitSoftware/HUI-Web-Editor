@@ -104,12 +104,11 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
               id: 'scoreboard-showcase',
               name: 'Server showcase',
               description:
-                  'A gated, grouped, primary sidebar with a placeholder '
-                  'chip, a blank spacer and a playing |animation.rainbow| '
-                  'line.',
+                  'A gated, grouped sidebar with authored RGB, PAPI, numeric '
+                  'math, a health bar, live metrics and a reusable animation.',
               highlights: const <String>[
-                '5 lines',
-                'Animated line',
+                'Authored code',
+                'PAPI + math',
                 'Permission-gated',
               ],
               create: (EditorStore store) => store.newGlossDocument(

@@ -161,141 +161,342 @@ HuiMenu buildRandomMenuShowcase(EditorStore store, math.Random random) {
   );
 }
 
-HuiPreviewDoc buildRandomPreviewShowcase(math.Random random) => HuiPreviewDoc(
-  card: HuiPreviewCard(title: "'&d&lGloss Showcase'"),
-  elements: <HuiPreviewElement>[
-    HuiPreviewElement(
-      'panel',
-      x: 0,
-      y: 0,
-      width: 154 + random.nextInt(32),
-      height: 88 + random.nextInt(28),
-      color: '#D91A1524',
+HuiPreviewDoc buildRandomPreviewShowcase(math.Random random) {
+  final _PreviewFurnaceTheme theme = _pick(random, _previewFurnaceThemes);
+  final int segments = 7 + random.nextInt(6);
+  final int segmentGap = 6 + random.nextInt(3);
+  final int segmentSize = 4 + random.nextInt(3);
+  final int pulseRate = 3 + random.nextInt(6);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['FURNACE', 'BLAST_FURNACE', 'SMOKER'],
+      priority: 10,
+      vars: <String, dynamic>{
+        'style': 'furnace',
+        'segments': segments,
+        'segmentGap': segmentGap,
+        'segmentSize': segmentSize,
+        'pulseRate': pulseRate,
+        'panelWidth': 156 + random.nextInt(29),
+        'panelHeight': 104 + random.nextInt(21),
+        'panelColor': theme.panelColor,
+        'wellColor': theme.wellColor,
+        'fill': theme.fill,
+        'pulse': theme.pulse,
+        'chase': theme.chase,
+        'idle': theme.idle,
+        'flame0': theme.flame0,
+        'flame1': theme.flame1,
+        'flame2': theme.flame2,
+        'smoke0': '#FF5E5E66',
+        'smoke1': '#FF8A8A92',
+        'smoke2': '#FFB8B8C0',
+        'activeItemKey': 'gloss.preview.state.smelting_item',
+        'activeKey': 'gloss.preview.state.smelting',
+        'stateColor': theme.stateColor,
+        'surgeColor': theme.surgeColor,
+        'titleKey': 'gloss.preview.theme.title.furnace',
+        'accent': theme.accent,
+      },
     ),
-    HuiPreviewElement(
-      'cell',
-      x: 'mod(i, 5) * 24 - 48',
-      y: 16,
-      size: 18 + random.nextInt(5),
-      color: 'i == 2 ? #FFFF55FF : #FF55FFFF',
-      repeat: HuiPreviewRepeat(count: 5, varName: 'i'),
+    variants: <HuiPreviewVariant>[
+      HuiPreviewVariant(
+        blocks: <String>['BLAST_FURNACE'],
+        vars: <String, dynamic>{
+          'style': 'blast',
+          'fill': '#FF6FB8E8',
+          'pulse': '#FFE8F7FF',
+          'chase': '#FF4FA8D8',
+          'idle': '#FF23262E',
+          'flame0': '#FF4FA8E8',
+          'flame1': '#FF8ED4FF',
+          'flame2': '#FFE8F7FF',
+          'activeItemKey': 'gloss.preview.state.blasting_item',
+          'activeKey': 'gloss.preview.state.blasting',
+          'stateColor': '<#6FB8E8>',
+          'surgeColor': '<#E8F7FF>',
+          'titleKey': 'gloss.preview.theme.title.blast_furnace',
+          'accent': '#6FEAEA',
+        },
+      ),
+      HuiPreviewVariant(
+        blocks: <String>['SMOKER'],
+        vars: <String, dynamic>{
+          'style': 'smoker',
+          'fill': '#FFC8893A',
+          'pulse': '#FFF2C878',
+          'chase': '#FF8A6234',
+          'idle': '#FF2A2A33',
+          'flame0': '#FFE25822',
+          'flame1': '#FFF2A535',
+          'flame2': '#FFC23B22',
+          'activeItemKey': 'gloss.preview.state.smoking_item',
+          'activeKey': 'gloss.preview.state.smoking',
+          'stateColor': '<#C8893A>',
+          'surgeColor': '<#F2C878>',
+          'titleKey': 'gloss.preview.theme.title.smoker',
+          'accent': '#F2D451',
+        },
+      ),
+    ],
+    card: HuiPreviewCard(
+      title:
+          "'&f&l' + (customName != '' ? customName : "
+          'plain(lang(vars.titleKey)))',
+      accent: 'vars.accent',
+      minHalfWidth: 92,
     ),
-    HuiPreviewElement(
-      'slot',
-      x: 'mod(i, 3) * 27 - 27',
-      y: -16,
-      size: 18,
-      index: 'i',
-      repeat: HuiPreviewRepeat(count: 3, varName: 'i'),
-    ),
-    HuiPreviewElement(
-      'label',
-      x: 0,
-      y: -42,
-      text: "'&7Occupied: &f' + inventory.occupied + '/' + inventory.size",
-    ),
-  ],
-);
+    elements: <HuiPreviewElement>[
+      HuiPreviewElement(
+        'panel',
+        x: 0,
+        y: -8,
+        width: 'vars.panelWidth',
+        height: 'vars.panelHeight',
+        color: 'vars.panelColor',
+      ),
+      HuiPreviewElement(
+        'slot',
+        x: -43,
+        y: 14,
+        size: 20,
+        index: 0,
+        wellColor: 'vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'slot',
+        x: -43,
+        y: -10,
+        size: 20,
+        index: 1,
+        wellColor: 'vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'slot',
+        x: 43,
+        y: 14,
+        size: 20,
+        index: 2,
+        wellColor: 'vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.segments', varName: 'i'),
+        x: 'round((i - (vars.segments - 1) / 2) * vars.segmentGap)',
+        y: 14,
+        size: 'vars.segmentSize',
+        color:
+            'cookTime > 0 && cookTimeTotal > 0 '
+            '? (i < ceil(cookTime / cookTimeTotal * vars.segments) '
+            '? mix(vars.fill, vars.pulse, '
+            '(sin(time / vars.pulseRate + i) + 1) / 2) '
+            ': vars.wellColor) '
+            ': (burnTime > 0 && '
+            'i == mod(floor(time / vars.pulseRate), vars.segments) '
+            '? vars.chase : vars.wellColor)',
+      ),
+      HuiPreviewElement(
+        'cell',
+        visible: "vars.style != 'blast'",
+        x: -20,
+        y: -10,
+        size: 12,
+        color:
+            'burnTime > 0 '
+            '? palette([vars.flame0, vars.flame1, vars.flame2], '
+            'floor(time / vars.pulseRate)) '
+            ': vars.idle',
+      ),
+      HuiPreviewElement(
+        'cell',
+        visible: "vars.style == 'blast'",
+        repeat: HuiPreviewRepeat(count: 3, varName: 'vent'),
+        x: '-28 + vent * 8',
+        y: -10,
+        size: 6,
+        color:
+            'burnTime > 0 '
+            '? palette([vars.flame0, vars.flame1, vars.flame2], '
+            'floor(time / vars.pulseRate) + vent) '
+            ': vars.idle',
+      ),
+      HuiPreviewElement(
+        'cell',
+        visible: "vars.style == 'smoker'",
+        repeat: HuiPreviewRepeat(count: 3, varName: 'wisp'),
+        x: '-12 + wisp * 10',
+        y: '-9 + mod(wisp, 2) * 6',
+        size: '8 - wisp',
+        color:
+            'burnTime > 0 '
+            '? alpha(palette([vars.smoke0, vars.smoke1, vars.smoke2], '
+            'floor(time / vars.pulseRate) + wisp), 210 - wisp * 45) '
+            ': vars.idle',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -32,
+        text:
+            "cookTime > 0 && cookTimeTotal > 0 "
+            "? vars.stateColor + (occupied(0) "
+            "? lang(vars.activeItemKey, readable(item(0)), "
+            "round(cookTime * 100 / cookTimeTotal)) "
+            ": lang(vars.activeKey, "
+            "round(cookTime * 100 / cookTimeTotal))) "
+            "+ ' &8' + bar(cookTime, cookTimeTotal, 12, '■', '□') "
+            ": (occupied(0) && !occupied(1) "
+            "? '&c' + lang('gloss.preview.state.needs_fuel') "
+            ": (!occupied(0) ? '&7' + lang('gloss.preview.state.no_input') "
+            ": '&7' + lang('gloss.preview.state.waiting')))",
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -46,
+        text:
+            "(occupied(0) ? '&f' + readable(item(0)) + ' &8×&f' "
+            "+ str(count(0)) : '&8Empty input') "
+            "+ ' &8• &7Fuel &f' + str(fuelSeconds) + 's' "
+            "+ ' &8• &7XP &a' + fixed(max(bankedXp, 0), 1)",
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -59,
+        text:
+            "(surge.active "
+            "? vars.surgeColor + '&lSURGE ×' + fixed(surge.gain, 1) "
+            ": select(['&8IDLE', '&7READY', '&fMONITORING'], "
+            "floor(time / 10))) + ' &8• &7Slots &f' "
+            "+ str(inventory.occupied) + '/' + str(inventory.size)",
+      ),
+    ],
+  );
+}
 
 GlossHologramDoc buildRandomHologramShowcase(
   GlossHologramDoc current,
   math.Random random,
-) => GlossHologramDoc(
-  schemaVersion: current.schemaVersion,
-  revision: current.revision,
-  anchor: GlossHologramAnchor(
-    world: <String>['world', 'world_nether', 'spawn'][random.nextInt(3)],
-    positionRaw: <num>[
-      random.nextInt(401) - 200,
-      64 + random.nextInt(48),
-      random.nextInt(401) - 200,
-    ],
-  ),
-  lines: <String>[
-    '[FF55FF]&lGloss Hologram',
-    '&7Magic_Psycho &8• &fCyberpwn',
-    '|animation.rainbow|',
-    '&bPuretie: &fSwiftSwamp smells >.<',
-    '&d:heart: &7Live colour + emoji',
-    '&7Placeholder: &f%player_name%',
-  ],
-);
+) {
+  final String server = _pick(random, _serverNames);
+  final String event = _pick(random, _events);
+  final List<String> lines = <String>[
+    '${_animatedColor(random)}&l$server',
+    "&7Hello, &f{{ papi('player_name') }}&7!",
+    "&7Health {{ papiNumber('player_health') < 7 ? '&c' : '&a' }}"
+        "{{ bar(papiNumber('player_health'), 20, 10, '■', '□') }}",
+    "&7TPS &a{{ fixed(metric('react.tps'), 1) }} &8• &7$event",
+    '&d:heart: &7${_pick(random, _hologramNotes)}',
+    _easterEgg(random),
+  ];
+  if (random.nextBool()) {
+    lines.insert(
+      2,
+      "{{ select(['&d✦', '&b✧', '&6✦'], floor(time.seconds * 3)) }} "
+      '&fLive authored animation',
+    );
+  }
+  return GlossHologramDoc(
+    schemaVersion: current.schemaVersion,
+    revision: current.revision,
+    anchor: GlossHologramAnchor(
+      world: _pick(random, <String>['world', 'world_nether', 'spawn']),
+      positionRaw: <num>[
+        random.nextInt(401) - 200,
+        64 + random.nextInt(48),
+        random.nextInt(401) - 200,
+      ],
+    ),
+    lines: lines,
+  );
+}
 
 GlossAnimationDoc buildRandomAnimationShowcase(
   GlossAnimationDoc current,
   math.Random random,
-) => GlossAnimationDoc(
-  schemaVersion: current.schemaVersion,
-  revision: current.revision,
-  mode: glossAnimationModes[random.nextInt(glossAnimationModes.length)],
-  frameIntervalMs: 120 + random.nextInt(881),
-  frames: <String>[
-    '&c&lGLOSS',
-    '&6&lGLOSS',
-    '&e&lGLOSS',
-    '&a&lGLOSS',
-    '&b&lGLOSS',
-    '&d&lGLOSS',
-  ],
-);
+) {
+  final int count = 4 + random.nextInt(6);
+  final String word = _pick(random, _animationWords);
+  final List<String> colors = List<String>.of(_legacyPalette)..shuffle(random);
+  final List<String> frames = <String>[
+    "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 3) + 1) / 2)) }}&l$word",
+    for (int index = 1; index < count; index++)
+      '${colors[index % colors.length]}${_pick(random, _effects)}$word'
+          '${random.nextBool() ? ' ${_pick(random, _motionGlyphs)}' : ''}',
+  ];
+  return GlossAnimationDoc(
+    schemaVersion: current.schemaVersion,
+    revision: current.revision,
+    mode: _pick(random, glossAnimationModes),
+    frameIntervalMs: 90 + random.nextInt(911),
+    frames: frames,
+  );
+}
 
 GlossScoreboardDoc buildRandomScoreboardShowcase(
   GlossScoreboardDoc current,
   math.Random random,
-) => GlossScoreboardDoc(
-  schemaVersion: current.schemaVersion,
-  revision: current.revision,
-  title: '[FF55FF]&lGLOSS',
-  lines: <String>[
-    '&7Player: &f%player_name%',
-    '&7Rank: &6Architect',
+) {
+  final String server = _pick(random, _serverNames);
+  final String rank = _pick(random, _ranks);
+  final String event = _pick(random, _events);
+  final List<String> lines = <String>[
+    "&7Player &f{{ papi('player_name') }}",
+    '&7Rank &6$rank',
     '',
-    '&dMagic_Psycho &a●',
-    '&bCyberpwn &a●',
-    '&6Puretie &a●',
-    '&5SwiftSwamp &eAFK',
+    "&7Ping {{ papiNumber('player_ping') < 80 ? '&a' : "
+        "papiNumber('player_ping') < 160 ? '&e' : '&c' }}"
+        "{{ papi('player_ping') }}ms",
+    "&7Health &a{{ bar(papiNumber('player_health'), 20, 8, '■', '□') }}",
+    "&7Online &a{{ papi('server_online') }}&8/&a"
+        "{{ papi('server_max_players') }}",
+    "&7TPS &a{{ fixed(metric('react.tps'), 1) }}",
     '',
-    '&7Online: &a${12 + random.nextInt(188)}&8/&a200',
-    '&7Balance: &6\$${500 + random.nextInt(49500)}',
-    '&7TPS: &a20.0',
-    '|animation.rainbow|',
-    '&dSwiftSwamp smells >.<',
-  ],
-  primary: random.nextBool(),
-  permission: random.nextBool() ? 'default' : 'vip',
-  groups: random.nextBool() ? <String>['vip', 'mvp'] : <String>[],
-);
+    '${_animatedColor(random)}&l${_pick(random, _statusWords)}',
+    '&7$event',
+    _easterEgg(random),
+    '&8${_pick(random, _domains)}',
+  ];
+  if (random.nextBool()) {
+    lines.insert(7, r'&7Balance &6%vault_eco_balance_formatted%');
+  }
+  return GlossScoreboardDoc(
+    schemaVersion: current.schemaVersion,
+    revision: current.revision,
+    title: '${_pick(random, _legacyPalette)}&l${server.toUpperCase()}',
+    lines: lines,
+    primary: random.nextBool(),
+    permission: random.nextBool() ? 'default' : 'vip',
+    groups: random.nextBool() ? <String>['vip', 'mvp'] : <String>[],
+  );
+}
 
-GlossMotdDoc buildRandomMotdShowcase(
-  GlossMotdDoc current,
-  math.Random random,
-) => GlossMotdDoc(
-  schemaVersion: current.schemaVersion,
-  revision: current.revision,
-  entries: <GlossMotdEntry>[
-    GlossMotdEntry(
-      lines: <String>[
-        '[FF55FF]&lGloss Network &8- &7Magic_Psycho hosts Season ${2 + random.nextInt(9)}',
-        '&7Join &a${20 + random.nextInt(180)} &7players with &bCyberpwn &8• |animation.rainbow|',
-      ],
-    ),
-    GlossMotdEntry(
-      lines: <String>[
-        '&6&lPuretie\'s weekend event!',
-        '&7Status: |animation.rainbow|',
-      ],
-    ),
-    GlossMotdEntry(
-      lines: <String>['|animation.rainbow| &d:heart: &fSwiftSwamp smells >.<'],
-    ),
-    GlossMotdEntry(
-      lines: <String>[
-        '&bNew worlds. New menus.',
-        '|animation.rainbow| &8• &7play.example.net',
-      ],
-    ),
-  ],
-);
+GlossMotdDoc buildRandomMotdShowcase(GlossMotdDoc current, math.Random random) {
+  final int count = 3 + random.nextInt(4);
+  final String server = _pick(random, _serverNames);
+  final int easterIndex = random.nextInt(count);
+  final List<GlossMotdEntry> entries = <GlossMotdEntry>[];
+  for (int index = 0; index < count; index++) {
+    final List<String> lines = <String>[
+      '${_animatedColor(random)}&l$server &8• &7${_pick(random, _events)}',
+    ];
+    if (index != count - 1) {
+      lines.add(
+        index == easterIndex
+            ? _easterEgg(random)
+            : "&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }} "
+                  '&8• &7${_pick(random, _domains)}',
+      );
+    }
+    entries.add(GlossMotdEntry(lines: lines));
+  }
+  return GlossMotdDoc(
+    schemaVersion: current.schemaVersion,
+    revision: current.revision,
+    entries: entries,
+  );
+}
 
 GlossEmojiDoc buildRandomEmojiShowcase(
   GlossEmojiDoc current,
@@ -323,17 +524,17 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
 ) => GlossBubbleStyleDoc(
   schemaVersion: current.schemaVersion,
   revision: current.revision,
-  prefix: '|animation.rainbow| &f',
+  prefix: '${_animatedColor(random)}${_pick(random, _effects)}',
   offsetRaw: <num>[
     _round((random.nextDouble() - 0.5) * 1.2),
     _round(1.2 + random.nextDouble() * 1.4),
     _round((random.nextDouble() - 0.5) * 0.8),
   ],
-  wordWrapChars: glossBubbleMaxWordWrapChars,
-  lineStaggerTicks: random.nextInt(5),
-  maxAliveMs: 12000 + random.nextInt(12001),
-  flyAway: true,
-  followPlayer: true,
+  wordWrapChars: 64 + random.nextInt(65),
+  lineStaggerTicks: random.nextInt(13),
+  maxAliveMs: 9000 + random.nextInt(21001),
+  flyAway: random.nextBool(),
+  followPlayer: random.nextBool(),
   hideOwn: random.nextBool(),
   select: GlossBubbleSelect(
     worlds: <String>['world*', 'spawn*'],
@@ -345,27 +546,37 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
 GlossTablistDoc buildRandomTablistShowcase(
   GlossTablistDoc current,
   math.Random random,
-) => GlossTablistDoc(
-  schemaVersion: current.schemaVersion,
-  revision: current.revision,
-  useHeaderFooter: true,
-  header:
-      '|animation.rainbow| &fNETWORK\n'
-      '[FF55FF]&lSeason ${2 + random.nextInt(9)}\n'
-      '&7Online: &a${40 + random.nextInt(160)} &8• &7TPS: &a20.0',
-  footer:
-      '&7Magic_Psycho &8• &7SwiftSwamp &8• &7Cyberpwn &8• &7Puretie\n'
-      '&bplay.volmitsoftware.com &8• &d:heart:',
-  groupListNames: true,
-  nameFormats: <String, String>{
-    'default': r'&7[Player] &f$player',
-    '_op': r'|animation.rainbow| &c[Founder] &f$player',
-    'owner': r'&d[Owner] &f$player',
-    'developer': r'&b[Developer] &f$player',
-    'moderator': r'&a[Moderator] &f$player',
-    'vip': r'&6[$group] &f$player',
-  },
-);
+) {
+  final String server = _pick(random, _serverNames);
+  final String easterEgg = _easterEgg(random);
+  final String groupColor = _pick(random, _legacyPalette);
+  return GlossTablistDoc(
+    schemaVersion: current.schemaVersion,
+    revision: current.revision,
+    useHeaderFooter: true,
+    header:
+        '${_animatedColor(random)}&l$server\n'
+        "&7Welcome &f{{ papi('player_name') }} &8• "
+        "{{ papiNumber('player_ping') < 100 ? '&a' : '&e' }}"
+        "{{ papi('player_ping') }}ms\n"
+        "&7Online &a{{ papi('server_online') }}&8/&a"
+        "{{ papi('server_max_players') }} &8• &7TPS &a"
+        "{{ fixed(metric('react.tps'), 1) }}",
+    footer:
+        '$easterEgg\n'
+        "{{ select(['&d✦', '&b✧', '&6✦'], floor(time.seconds * 2)) }} "
+        '&7${_pick(random, _events)} &8• &b${_pick(random, _domains)}',
+    groupListNames: true,
+    nameFormats: <String, String>{
+      'default': r'&7[Player] &f$player',
+      '_op': '${_animatedColor(random)}&l[Founder] &f\$player',
+      'owner': r'&d&l[Owner] &f$player',
+      'developer': r'&b[Developer] &f$player',
+      'moderator': r'&a[Moderator] &f$player',
+      'vip': '$groupColor[\$group] &f\$player',
+    },
+  );
+}
 
 HuiButtonData _randomButtonData(
   EditorStore store,
@@ -540,5 +751,186 @@ String _sound(EditorStore store, math.Random random) {
   ];
   return fallback[random.nextInt(fallback.length)];
 }
+
+const List<String> _serverNames = <String>[
+  'Aether Forge',
+  'Cinder Realm',
+  'Moonlit SMP',
+  'Obsidian Isles',
+  'Prism Network',
+  'Verdant Realms',
+];
+
+const List<String> _events = <String>[
+  'Double XP weekend',
+  'Sky vaults are open',
+  'Fresh survival season',
+  'Dungeon rush begins soon',
+  'Build contest voting live',
+  'Rare drops are boosted',
+];
+
+const List<String> _domains = <String>[
+  'play.volmitsoftware.com',
+  'join.prism.example',
+  'mc.aether.example',
+  'play.cinder.example',
+];
+
+const List<String> _ranks = <String>[
+  'Architect',
+  'Explorer',
+  'Artificer',
+  'Pathfinder',
+  'Warden',
+  'Founder',
+];
+
+const List<String> _statusWords = <String>[
+  'LIVE',
+  'ONLINE',
+  'BOOSTED',
+  'EVENT ACTIVE',
+  'READY',
+];
+
+const List<String> _animationWords = <String>[
+  'PULSE',
+  'ONLINE',
+  'LEVEL UP',
+  'RARE DROP',
+  'QUEST READY',
+  'LIVE EVENT',
+];
+
+const List<String> _effects = <String>['&l', '&o', '&n', '&l&o', ''];
+
+const List<String> _motionGlyphs = <String>['»', '✦', '◆', '➜', '★'];
+
+const List<String> _legacyPalette = <String>[
+  '&c',
+  '&6',
+  '&e',
+  '&a',
+  '&b',
+  '&d',
+];
+
+const List<String> _hologramNotes = <String>[
+  'Animations, PAPI and metrics are live',
+  'This line is generated procedurally',
+  'Edit every expression in code view',
+  'Math and progress bars run in game',
+  'RGB pulses are authored, not faked',
+];
+
+final class _PreviewFurnaceTheme {
+  const _PreviewFurnaceTheme({
+    required this.panelColor,
+    required this.wellColor,
+    required this.fill,
+    required this.pulse,
+    required this.chase,
+    required this.idle,
+    required this.flame0,
+    required this.flame1,
+    required this.flame2,
+    required this.stateColor,
+    required this.surgeColor,
+    required this.accent,
+  });
+
+  final String panelColor;
+  final String wellColor;
+  final String fill;
+  final String pulse;
+  final String chase;
+  final String idle;
+  final String flame0;
+  final String flame1;
+  final String flame2;
+  final String stateColor;
+  final String surgeColor;
+  final String accent;
+}
+
+const List<_PreviewFurnaceTheme> _previewFurnaceThemes = <_PreviewFurnaceTheme>[
+  _PreviewFurnaceTheme(
+    panelColor: '#E014111B',
+    wellColor: '#FF15151B',
+    fill: '#FFF2A535',
+    pulse: '#FFFFD978',
+    chase: '#FF9A5E22',
+    idle: '#FF2A2A33',
+    flame0: '#FFE2641E',
+    flame1: '#FFF2A535',
+    flame2: '#FFF7D14C',
+    stateColor: '<#F2A535>',
+    surgeColor: '<#FFD978>',
+    accent: '#F2A535',
+  ),
+  _PreviewFurnaceTheme(
+    panelColor: '#E0101822',
+    wellColor: '#FF101820',
+    fill: '#FF43D9FF',
+    pulse: '#FFB8F5FF',
+    chase: '#FF25799A',
+    idle: '#FF202C36',
+    flame0: '#FF356BFF',
+    flame1: '#FF43D9FF',
+    flame2: '#FFB8F5FF',
+    stateColor: '<#43D9FF>',
+    surgeColor: '<#B8F5FF>',
+    accent: '#43D9FF',
+  ),
+  _PreviewFurnaceTheme(
+    panelColor: '#E01C1020',
+    wellColor: '#FF1B1020',
+    fill: '#FFFF55CC',
+    pulse: '#FFFFB8EA',
+    chase: '#FF9A357E',
+    idle: '#FF302238',
+    flame0: '#FFAA35FF',
+    flame1: '#FFFF55CC',
+    flame2: '#FFFFB8EA',
+    stateColor: '<#FF55CC>',
+    surgeColor: '<#FFB8EA>',
+    accent: '#FF55CC',
+  ),
+  _PreviewFurnaceTheme(
+    panelColor: '#E0101F19',
+    wellColor: '#FF102019',
+    fill: '#FF55E68A',
+    pulse: '#FFB9FFD2',
+    chase: '#FF2B8D55',
+    idle: '#FF20362A',
+    flame0: '#FF31B36A',
+    flame1: '#FF55E68A',
+    flame2: '#FFB9FFD2',
+    stateColor: '<#55E68A>',
+    surgeColor: '<#B9FFD2>',
+    accent: '#55E68A',
+  ),
+];
+
+const List<String> _easterEggs = <String>[
+  '&dMagic_Psycho &7is debugging reality',
+  '&5SwiftSwamp &fSwiftSwamp smells >.<',
+  '&bCyberpwn &7charted the strange loop',
+  '&6Puretie &7found another shiny edge case',
+];
+
+T _pick<T>(math.Random random, List<T> values) =>
+    values[random.nextInt(values.length)];
+
+String _easterEgg(math.Random random) => _pick(random, _easterEggs);
+
+String _animatedColor(math.Random random) => _pick(random, <String>[
+  '|animation.rainbow|',
+  "{{ select(['&c', '&6', '&e', '&a', '&b', '&d'], "
+      'floor(time.seconds * ${2 + random.nextInt(5)})) }}',
+  "{{ hex(mix(#FF55FF, #55FFFF, "
+      '(sin(time.seconds * ${2 + random.nextInt(4)}) + 1) / 2)) }}',
+]);
 
 double _round(double value) => (value * 100).roundToDouble() / 100;

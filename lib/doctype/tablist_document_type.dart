@@ -100,13 +100,12 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
               id: 'tablist-showcase',
               name: 'Grouped showcase',
               description:
-                  'A hex two-line header, a playing |animation.rainbow| '
-                  'footer, and three formats showing both tokens — including '
-                  'a [\$group] badge for VIPs.',
+                  'A live RGB header with PAPI, ping and metrics, an animated '
+                  'footer, and group formats including authored colour cycles.',
               highlights: const <String>[
                 '3 formats',
-                'Animated footer',
-                'Both tokens',
+                'PAPI + metrics',
+                'Authored animation',
               ],
               create: (EditorStore store) => store.newGlossDocument(
                 this,

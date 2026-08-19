@@ -435,9 +435,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'Rendered top to bottom, joined into ONE TextDisplay with newlines. '
         'Each line runs the text pipeline per viewer: |functions| such as '
-        'animation.<id> and metric.<key>, then %placeholders%, then emoji, '
-        'then [RRGGBB] hex and & colour codes. An empty list is legal and '
-        'renders nothing.',
+        'animation.<id>, then {{ authored expressions }}, %placeholders%, '
+        'emoji, and colours. Expressions can use time, PAPI, metrics, math, '
+        'RGB mixing, selection and progress bars. An empty list is legal.',
     citation: 'PersistentHologram.java:408-436',
   ),
   'hologram.revision': HuiFieldDoc(
@@ -483,9 +483,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Frames',
     body:
         'The texts the animation cycles through, each one run through the '
-        'same pipeline as the line that embeds it — colours and placeholders '
-        'in a frame work exactly as they would inline. An empty list is '
-        'rejected; one frame is legal and simply holds.',
+        'same pipeline as the line that embeds it — colours, expressions and '
+        'placeholders in a frame work exactly as they would inline. An empty '
+        'list is rejected; one frame is legal and simply holds.',
     citation: 'AnimationDoc.java:45-55',
   ),
 
@@ -505,17 +505,17 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'Rendered through the text pipeline per viewer, then cut at 32 '
         'characters WITH the colour codes still counted — an & code costs 2 '
         'and a [RRGGBB] tag costs 14 of the budget, so a hex-coloured title '
-        'has 18 characters left. The cut happens every render; the file is '
-        'never rewritten.',
+        'has 18 characters left. {{ code }} evaluates before that cut, so a '
+        'time-driven colour or calculated title is measured after rendering.',
     citation: 'BoardService.java:363-367',
   ),
   'scoreboard.lines': HuiFieldDoc(
     title: 'Lines',
     body:
         'Top to bottom, each through the text pipeline per viewer — '
-        'placeholders, |animation.<id>| and |metric.<key>| references and '
-        'colours all work. Only the first 15 reach the client; everything '
-        'after is silently skipped, not an error.',
+        'placeholders, |animation.<id>|, metrics, colours and {{ code }} all '
+        'work. Code can call papi/papiNumber, metric, bar, select, mix and '
+        'the math library. Only the first 15 lines reach the client.',
     citation: 'BoardService.java:377-380',
   ),
   'scoreboard.primary': HuiFieldDoc(
@@ -569,9 +569,10 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Entry lines',
     body:
         'One or two lines shown together in the server list, rendered '
-        'without a viewer: colours, |animation.<id>| and |metric.<key>| '
-        'functions work, but PlaceholderAPI tokens stay literal because a '
-        'ping has no player to expand them for.',
+        'without a viewer: colours, animations, metrics, server/time '
+        'expressions and math work. PAPI/player/current-ping expressions do '
+        'not: the response is chosen before a player or measured latency '
+        'exists.',
     citation: 'TextPipeline.java:59-61',
   ),
 
@@ -625,10 +626,10 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'bubble.prefix': HuiFieldDoc(
     title: 'Prefix',
     body:
-        'Colour codes prepended to every bubble line before rendering. Only '
-        'a MISSING key falls back to &7 — an explicit empty string stays '
-        'empty, so clearing the field and deleting the key are different '
-        'files.',
+        'Text prepended to every bubble line before rendering. It accepts '
+        'colours, animations, PAPI and {{ authored expressions }}, so a style '
+        'can pulse or react to the sender. Only a MISSING key falls back to '
+        '&7; an explicit empty string stays empty.',
     citation: 'BubbleStyleDoc.java:23',
   ),
   'bubble.offset': HuiFieldDoc(
@@ -733,9 +734,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Header',
     body:
         'Shown above the player grid. Colours, placeholders, '
-        '|animation.<id>| and |metric.<key>| references all work — the text '
-        're-renders per viewer at the configured update interval, so '
-        'animations play.',
+        '|animation.<id>|, metrics and {{ code }} all work. papiNumber plus '
+        'math can calculate ping/status colours and progress bars; time can '
+        'drive RGB effects at the update interval.',
     citation: 'TablistService.java:188-196',
   ),
   'tablist.footer': HuiFieldDoc(
@@ -760,7 +761,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'take _op first, then the player\'s primary group, then default; '
         'with no default the literal \$player fallback applies. Keys are '
         'trimmed, lowercased and blank ones dropped on load. A blank format '
-        'RESETS matching players to vanilla.',
+        'RESETS matching players to vanilla. Formats also run authored '
+        'expressions, so rank colours and effects can animate.',
     citation: 'TablistService.java:54-66',
   ),
 };

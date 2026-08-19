@@ -64,29 +64,28 @@ void main() {
       expect(render.missingAnimations, isEmpty);
     });
 
-    test(
-      'the closing pipe of an unknown name opens the next candidate — the '
-      'Java scan\'s open = close',
-      () {
-        final _Animations animations = _Animations(<String, GlossAnimationDoc>{
-          'x': _clip(<String>['F']),
-        });
-        // |a| is unknown; its closing pipe pairs with the next one, so the
-        // scan sees name "animation.x" and substitutes it.
-        expect(
-          _plain(renderGlossLine('|a|animation.x|', animations: animations)),
-          '|aF',
-        );
-      },
-    );
+    test('the closing pipe of an unknown name opens the next candidate — the '
+        'Java scan\'s open = close', () {
+      final _Animations animations = _Animations(<String, GlossAnimationDoc>{
+        'x': _clip(<String>['F']),
+      });
+      // |a| is unknown; its closing pipe pairs with the next one, so the
+      // scan sees name "animation.x" and substitutes it.
+      expect(
+        _plain(renderGlossLine('|a|animation.x|', animations: animations)),
+        '|aF',
+      );
+    });
 
     test('a missing animation id is literal text plus a warning', () {
       final GlossLineRender render = renderGlossLine('|animation.nope|');
       expect(_plain(render), '|animation.nope|');
       expect(render.missingAnimations, <String>['animation.nope']);
       expect(
-        glossLineMissingAnimationRefs('|animation.nope|',
-            const GlossNoAnimations()),
+        glossLineMissingAnimationRefs(
+          '|animation.nope|',
+          const GlossNoAnimations(),
+        ),
         <String>['animation.nope'],
       );
     });
@@ -105,8 +104,10 @@ void main() {
       final _Animations animations = _Animations(<String, GlossAnimationDoc>{
         'x': _clip(<String>['F']),
       });
-      expect(glossLineAnimationRefs('|animation.x| |animation.x|', animations),
-          <String>['x']);
+      expect(
+        glossLineAnimationRefs('|animation.x| |animation.x|', animations),
+        <String>['x'],
+      );
       expect(glossLineAnimationRefs('static', animations), isEmpty);
     });
   });
@@ -115,8 +116,9 @@ void main() {
     test('%...% becomes a chip and text around it keeps its style run', () {
       final GlossLineRender render = renderGlossLine('&aHi %player_name%!');
       expect(render.placeholders, <String>['%player_name%']);
-      final GlossPlaceholderChip chip =
-          render.pieces.whereType<GlossPlaceholderChip>().single;
+      final GlossPlaceholderChip chip = render.pieces
+          .whereType<GlossPlaceholderChip>()
+          .single;
       expect(chip.name, 'player_name');
       expect(chip.style.rgb, 0x55FF55, reason: 'chip inherits the green run');
       expect(_plain(render), 'Hi %player_name%!');
@@ -135,6 +137,57 @@ void main() {
         renderGlossLine('|animation.p|', animations: animations).placeholders,
         <String>['%online%'],
       );
+    });
+  });
+
+  group('authored text expressions', () {
+    test('math, selection, progress bars and colours render inline', () {
+      expect(
+        _plain(
+          renderGlossLine(
+            "HP {{ bar(papiNumber('player_health'), 20, 10, '█', '░') }}",
+          ),
+        ),
+        'HP █████████░',
+      );
+      expect(
+        _spans(
+          renderGlossLine('{{ hex(mix(#FF0000, #0000FF, 0.5)) }}Pulse'),
+        ).single.rgb,
+        0x800080,
+      );
+      expect(_plain(renderGlossLine("{{ select(['A', 'B', 'C'], 4) }}")), 'B');
+    });
+
+    test('time expressions animate without a separate animation document', () {
+      final GlossLineRender first = renderGlossLine(
+        "{{ select(['&c', '&b'], floor(time.seconds * 4)) }}Pulse",
+        nowMs: 0,
+      );
+      final GlossLineRender second = renderGlossLine(
+        "{{ select(['&c', '&b'], floor(time.seconds * 4)) }}Pulse",
+        nowMs: 250,
+      );
+      expect(_spans(first).single.rgb, 0xFF5555);
+      expect(_spans(second).single.rgb, 0x55FFFF);
+      expect(first.isAnimated, isTrue);
+      expect(first.expressions, isNotEmpty);
+    });
+
+    test('PAPI and metrics use explicit editor preview samples', () {
+      expect(_plain(renderGlossLine("{{ papi('player_name') }}")), 'Builder');
+      expect(
+        _plain(renderGlossLine("{{ fixed(metric('react.tps'), 1) }} TPS")),
+        '19.8 TPS',
+      );
+      final GlossLineRender unknown = renderGlossLine("{{ papi('custom_x') }}");
+      expect(unknown.placeholders, <String>['%custom_x%']);
+    });
+
+    test('invalid code stays visible and reports an editor error', () {
+      final GlossLineRender render = renderGlossLine('{{ nope() }}');
+      expect(_plain(render), '{{ nope() }}');
+      expect(render.expressionErrors, isNotEmpty);
     });
   });
 
@@ -196,10 +249,7 @@ void main() {
         glossLineMaxVisibleLength('&a&l[FF0000]abc', const GlossNoAnimations()),
         3,
       );
-      expect(
-        glossLineMaxVisibleLength('%x%', const GlossNoAnimations()),
-        3,
-      );
+      expect(glossLineMaxVisibleLength('%x%', const GlossNoAnimations()), 3);
     });
 
     test('substitutes the longest frame of a known animation', () {
@@ -222,12 +272,20 @@ void main() {
           frames: <String>['1', '2', '3', '4', '5'],
         ),
       });
-      final String first =
-          _plain(renderGlossLine('|animation.r|', animations: animations,
-              nowMs: 123456789));
-      final String second =
-          _plain(renderGlossLine('|animation.r|', animations: animations,
-              nowMs: 123456789));
+      final String first = _plain(
+        renderGlossLine(
+          '|animation.r|',
+          animations: animations,
+          nowMs: 123456789,
+        ),
+      );
+      final String second = _plain(
+        renderGlossLine(
+          '|animation.r|',
+          animations: animations,
+          nowMs: 123456789,
+        ),
+      );
       expect(first, second);
       expect(
         first,

@@ -10,6 +10,7 @@ import 'package:gloss_editor/logic/animation_validation.dart';
 import 'package:gloss_editor/logic/bubble_validation.dart';
 import 'package:gloss_editor/logic/emoji_validation.dart';
 import 'package:gloss_editor/logic/hologram_validation.dart';
+import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/logic/motd_validation.dart';
 import 'package:gloss_editor/logic/scoreboard_validation.dart';
 import 'package:gloss_editor/logic/tablist_validation.dart';
@@ -78,7 +79,7 @@ void main() {
 
   test('the showcase builds without errors', () {
     final GlossHologramDoc doc = buildShowcaseGlossHologram();
-    expect(doc.lines, hasLength(4));
+    expect(doc.lines, hasLength(5));
     final List<HuiIssue> issues = validateHologramDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),
@@ -154,7 +155,7 @@ void main() {
     expect(doc.entries, hasLength(4));
     expect(
       doc.entries.first.lines.any(
-        (String line) => line.contains('|animation.rainbow|'),
+        (String line) => renderGlossLine(line).isAnimated,
       ),
       isTrue,
       reason: 'the initially previewed entry should demonstrate animation',

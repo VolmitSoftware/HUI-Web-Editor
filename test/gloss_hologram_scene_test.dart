@@ -193,4 +193,11 @@ void main() {
     expect(reframed.pitchDegrees, authored.pitchDegrees);
     expect(reframed.distance, authored.distance);
   });
+
+  test('authored time expressions keep the hologram ticker active', () {
+    final GlossHologramDoc doc = GlossHologramDoc(
+      lines: <String>["{{ select(['&c', '&b'], time.seconds) }}Live"],
+    );
+    expect(hologramIsAnimated(doc, const GlossNoAnimations()), isTrue);
+  });
 }

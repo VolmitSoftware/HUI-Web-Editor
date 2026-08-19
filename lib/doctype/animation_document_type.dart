@@ -77,69 +77,69 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
       'as a new document, so your current one is untouched.';
 
   @override
-  List<DocumentTemplateSection> get templateSections =>
-      <DocumentTemplateSection>[
-        DocumentTemplateSection(
-          templates: <DocumentTemplate>[
-            DocumentTemplate(
-              id: 'animation-rainbow',
-              name: 'Rainbow',
-              description:
-                  'The shipped default: four coloured Gloss frames on a '
-                  '500 ms ascend. Exactly what plugins/Gloss/animations/ '
-                  'starts with.',
-              highlights: const <String>['Shipped default', '4 frames'],
-              create: (EditorStore store) => store.newGlossDocument(
-                this,
-                name: 'rainbow',
-                from: buildRainbowGlossAnimation(),
-              ),
-            ),
-            DocumentTemplate(
-              id: 'animation-blank',
-              name: 'Blank animation',
-              description:
-                  'The smallest file Gloss accepts: one frame, default mode '
-                  'and interval.',
-              highlights: const <String>['1 frame', 'Starter'],
-              create: (EditorStore store) => store.newGlossDocument(
-                this,
-                name: 'new-animation',
-                from: buildBlankGlossAnimation(),
-              ),
-            ),
-            for (final String mode in <String>[
-              'descend',
-              'ascend_descend',
-              'random',
-            ])
-              DocumentTemplate(
-                id: 'animation-${mode.replaceAll('_', '-')}',
-                name: switch (mode) {
-                  'descend' => 'Descending frames',
-                  'ascend_descend' => 'Ping-pong frames',
-                  _ => 'Random frames',
-                },
-                description:
-                    'A working multi-frame example of Gloss animation mode '
-                    '$mode.',
-                highlights: <String>['$mode mode', '4 frames', '250 ms'],
-                create: (EditorStore store) => store.newGlossDocument(
-                  this,
-                  name: 'example-${mode.replaceAll('_', '-')}',
-                  from: GlossAnimationDoc(
-                    mode: mode,
-                    frameIntervalMs: 250,
-                    frames: <String>[
-                      '&cFrame one',
-                      '&6Frame two',
-                      '&aFrame three',
-                      '&bFrame four',
-                    ],
-                  ),
-                ),
-              ),
-          ],
+  List<DocumentTemplateSection>
+  get templateSections => <DocumentTemplateSection>[
+    DocumentTemplateSection(
+      templates: <DocumentTemplate>[
+        DocumentTemplate(
+          id: 'animation-rainbow',
+          name: 'Rainbow',
+          description:
+              'The shipped default: four colour-only frames on a 500 ms '
+              'ascend. Prefix text with |animation.rainbow| to colour it '
+              'without inserting another word.',
+          highlights: const <String>['Shipped default', '4 frames'],
+          create: (EditorStore store) => store.newGlossDocument(
+            this,
+            name: 'rainbow',
+            from: buildRainbowGlossAnimation(),
+          ),
         ),
-      ];
+        DocumentTemplate(
+          id: 'animation-blank',
+          name: 'Blank animation',
+          description:
+              'The smallest file Gloss accepts: one frame, default mode '
+              'and interval.',
+          highlights: const <String>['1 frame', 'Starter'],
+          create: (EditorStore store) => store.newGlossDocument(
+            this,
+            name: 'new-animation',
+            from: buildBlankGlossAnimation(),
+          ),
+        ),
+        for (final String mode in <String>[
+          'descend',
+          'ascend_descend',
+          'random',
+        ])
+          DocumentTemplate(
+            id: 'animation-${mode.replaceAll('_', '-')}',
+            name: switch (mode) {
+              'descend' => 'Descending frames',
+              'ascend_descend' => 'Ping-pong frames',
+              _ => 'Random frames',
+            },
+            description:
+                'A working multi-frame example of Gloss animation mode '
+                '$mode.',
+            highlights: <String>['$mode mode', '4 frames', '250 ms'],
+            create: (EditorStore store) => store.newGlossDocument(
+              this,
+              name: 'example-${mode.replaceAll('_', '-')}',
+              from: GlossAnimationDoc(
+                mode: mode,
+                frameIntervalMs: 250,
+                frames: <String>[
+                  "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 3) + 1) / 2)) }}Frame one",
+                  '&6&lFrame two',
+                  '&a&oFrame three',
+                  '&b&nFrame four',
+                ],
+              ),
+            ),
+          ),
+      ],
+    ),
+  ];
 }

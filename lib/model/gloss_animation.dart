@@ -6,7 +6,7 @@
 ///   "revision": 1,
 ///   "mode": "ascend",
 ///   "frameIntervalMs": 500,
-///   "frames": ["&cGloss", "&6Gloss", "&aGloss", "&bGloss"]
+///   "frames": ["&c", "&6", "&a", "&b"]
 /// }
 /// ```
 ///
@@ -99,8 +99,8 @@ final class GlossAnimationDoc extends GlossDoc {
 
   /// The interval after the plugin's silent clamp into
   /// `1..60000` (`AnimationDoc.java:20`).
-  int get effectiveFrameIntervalMs => frameIntervalMs
-      .clamp(glossMinFrameIntervalMs, glossMaxFrameIntervalMs);
+  int get effectiveFrameIntervalMs =>
+      frameIntervalMs.clamp(glossMinFrameIntervalMs, glossMaxFrameIntervalMs);
 
   /// [mode] normalized the way `AnimationDoc.requireMode` does, or null when
   /// the plugin would reject it.

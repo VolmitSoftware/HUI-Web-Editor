@@ -5,9 +5,11 @@ import 'canvas_scene.dart' show CanvasOverlap, huiIsBlockLikeMaterial;
 import 'gloss_text.dart'
     show
         GlossEmojiResolver,
+        GlossLineRender,
         GlossNoEmoji,
         glossLineMetricRefs,
-        glossRenderMenuText;
+        glossRenderMenuText,
+        renderGlossLine;
 import 'hui_geometry.dart' show huiLineHeight;
 import 'mc_text.dart' show parseMcText;
 
@@ -67,6 +69,50 @@ HuiIssue? glossMetricInfo(Iterable<String> texts, {String path = r'$'}) {
         'Nothing to fix if the publishing plugin is installed. Check the key '
         'spelling if it stays blank in game.',
   );
+}
+
+List<HuiIssue> glossTextExpressionIssues(
+  Iterable<({String path, String text})> fields, {
+  bool playerBacked = true,
+}) {
+  final List<HuiIssue> issues = <HuiIssue>[];
+  for (final ({String path, String text}) field in fields) {
+    final GlossLineRender rendered = renderGlossLine(field.text);
+    for (final String error in rendered.expressionErrors) {
+      issues.add(
+        HuiIssue(
+          severity: HuiSeverity.warning,
+          path: field.path,
+          message:
+              'This Gloss expression cannot run: $error. The raw {{ ... }} '
+              'code stays visible in game.',
+          fix: 'Correct the expression syntax, function, variable, or type.',
+        ),
+      );
+    }
+    if (!playerBacked &&
+        rendered.expressions.any(
+          (String source) =>
+              source.contains('papi(') ||
+              source.contains('papiNumber(') ||
+              source.contains('player.'),
+        )) {
+      issues.add(
+        HuiIssue(
+          severity: HuiSeverity.warning,
+          path: field.path,
+          message:
+              'This expression needs a player, but a server-list MOTD is '
+              'chosen before any player exists. It cannot read PAPI, player '
+              'state, or the client\'s current ping.',
+          fix:
+              'Use time, static text, animations, server values, or metrics '
+              'in MOTDs; keep player expressions on player-backed surfaces.',
+        ),
+      );
+    }
+  }
+  return issues;
 }
 
 /// Semantic validation against the Java parser's real behaviour. Catalog sets

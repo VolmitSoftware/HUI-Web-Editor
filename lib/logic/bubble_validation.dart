@@ -136,6 +136,12 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
     }
   }
 
+  issues.addAll(
+    glossTextExpressionIssues(<({String path, String text})>[
+      (path: r'$.prefix', text: doc.prefix),
+    ]),
+  );
+
   return issues;
 }
 

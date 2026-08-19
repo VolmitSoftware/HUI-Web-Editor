@@ -59,24 +59,24 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
     ]);
   }
 
-  Widget _header(GlossScoreboardDoc doc) =>
-      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
-        dom.div(classes: 'hui-inspector-header is-scoreboard', <Widget>[
-          const HuiEyebrow('Scoreboard'),
-          dom.div(classes: 'hui-inspector-title-row', <Widget>[
-            dom.h2(classes: 'hui-inspector-title', <Widget>[
-              Text(_store.menuId),
-            ]),
-            const HuiFieldHelp('scoreboard.id'),
-          ]),
+  Widget _header(GlossScoreboardDoc doc) => dom.div(
+    classes: 'hui-inspector-headgroup',
+    <Widget>[
+      dom.div(classes: 'hui-inspector-header is-scoreboard', <Widget>[
+        const HuiEyebrow('Scoreboard'),
+        dom.div(classes: 'hui-inspector-title-row', <Widget>[
+          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
+          const HuiFieldHelp('scoreboard.id'),
         ]),
-        dom.p(classes: 'hui-inspector-lede', <Widget>[
-          Text(
-            'The right-hand sidebar. Revision ${doc.revision} is '
-            'server-owned and travels with the file.',
-          ),
-        ]),
-      ]);
+      ]),
+      dom.p(classes: 'hui-inspector-lede', <Widget>[
+        Text(
+          'The right-hand sidebar. Revision ${doc.revision} is '
+          'server-owned and travels with the file.',
+        ),
+      ]),
+    ],
+  );
 
   Widget _title(GlossScoreboardDoc doc) => InspectorSection(
     title: 'Title',
@@ -173,7 +173,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
           value: line,
           size: ComponentSize.sm,
           fullWidth: true,
-          placeholder: '&fText, %papi%, |animation.id|',
+          placeholder: '&fText, %papi%, |animation.id|, {{ expression }}',
           onInput: (String value) => _editLine(index, value),
           onFocus: () => _focusedLine = index,
           attributes: const <String, String>{
@@ -202,20 +202,18 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
               <Widget>[Text('missing $reference')],
             ),
           if (beyondRender)
-            const dom.span(
-              classes: 'hui-gloss-chip is-missing',
-              <Widget>[Text('past line 15 — not rendered')],
-            ),
+            const dom.span(classes: 'hui-gloss-chip is-missing', <Widget>[
+              Text('past line 15 — not rendered'),
+            ]),
         ]),
         HuiIconButton(
           label: 'Delete line',
           icon: ArcaneIcon.trash2(size: IconSize.sm),
-          onPressed: () => _store.mutateScoreboard(
-            'delete line',
-            (GlossScoreboardDoc edited) {
-              if (index < edited.lines.length) edited.lines.removeAt(index);
-            },
-          ),
+          onPressed: () => _store.mutateScoreboard('delete line', (
+            GlossScoreboardDoc edited,
+          ) {
+            if (index < edited.lines.length) edited.lines.removeAt(index);
+          }),
         ),
       ],
     );
@@ -296,14 +294,13 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
               HuiIconButton(
                 label: 'Remove group',
                 icon: ArcaneIcon.trash2(size: IconSize.sm),
-                onPressed: () => _store.mutateScoreboard(
-                  'remove group',
-                  (GlossScoreboardDoc edited) {
-                    if (index < edited.groups.length) {
-                      edited.groups.removeAt(index);
-                    }
-                  },
-                ),
+                onPressed: () => _store.mutateScoreboard('remove group', (
+                  GlossScoreboardDoc edited,
+                ) {
+                  if (index < edited.groups.length) {
+                    edited.groups.removeAt(index);
+                  }
+                }),
               ),
             ]),
           Button(
@@ -322,12 +319,10 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
     ],
   );
 
-  void _editLine(int index, String value) => _store.mutateScoreboard(
-    'edit line',
-    (GlossScoreboardDoc edited) {
-      if (index < edited.lines.length) edited.lines[index] = value;
-    },
-  );
+  void _editLine(int index, String value) =>
+      _store.mutateScoreboard('edit line', (GlossScoreboardDoc edited) {
+        if (index < edited.lines.length) edited.lines[index] = value;
+      });
 
   /// Inserts a picked token at the end of the focused field: the title when
   /// it was focused last, otherwise the focused (or last) line.

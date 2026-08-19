@@ -280,6 +280,15 @@ void main() {
   });
 
   group('entity icons', () {
+    final HuiCatalogs catalogs = HuiCatalogs.build(
+      materials: const <MaterialEntry>[],
+      sounds: const <String>[],
+      entities: const <EntityMediaEntry>[
+        EntityMediaEntry('minecraft:parrot', 'parrot-render'),
+      ],
+      loaded: true,
+    );
+
     CanvasItem build(HuiEntityIcon icon) => buildCanvasScene(
       menu: HuiMenu(
         offset: Vec3.zero(),
@@ -291,6 +300,7 @@ void main() {
       trueRender: true,
       togglePreview: (String _) => true,
       textCache: McTextCache(),
+      catalogs: catalogs,
     ).items.single;
 
     test('uses the authored footprint above the feet anchor', () {
@@ -300,6 +310,7 @@ void main() {
 
       expect(item.kind, CanvasIconKind.entity);
       expect(item.entityKey, 'minecraft:parrot');
+      expect(item.entityTexture, 'parrot-render');
       expect(item.visual, const HuiRect(x: 0, y: 0.45, w: 0.5, h: 0.9));
       expect(item.hitbox, item.visual);
     });

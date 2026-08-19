@@ -36,10 +36,11 @@ const String kGlossHologramShowcaseJson = r'''
     "position": [0.5, 64.0, 0.5]
   },
   "lines": [
-    "[FFAA00]&lWelcome to the server",
-    "&7Hello, %player_name%!",
-    "|animation.rainbow|",
-    "&8Powered by Gloss"
+    "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&lWelcome",
+    "&7Hello, &f{{ papi('player_name') }}&7!",
+    "&7Health &a{{ bar(papiNumber('player_health'), 20, 10, '■', '□') }}",
+    "|animation.rainbow|&lLive colour prefix",
+    "&7TPS &a{{ fixed(metric('react.tps'), 1) }}"
   ]
 }
 ''';
@@ -60,10 +61,10 @@ const String kGlossAnimationRainbowJson = r'''
   "mode": "ascend",
   "frameIntervalMs": 500,
   "frames": [
-    "&cGloss",
-    "&6Gloss",
-    "&aGloss",
-    "&bGloss"
+    "&c",
+    "&6",
+    "&a",
+    "&b"
   ]
 }
 ''';
@@ -113,17 +114,17 @@ const String kGlossScoreboardShowcaseJson = r'''
 {
   "schemaVersion": 1,
   "revision": 1,
-  "title": "[FF55FF]&lMy Server",
+  "title": "[FF55FF]&lMY SERVER",
   "lines": [
-    "&7Player: &f%player_name%",
+    "&7Player &f{{ papi('player_name') }}",
     "&7Rank: &6VIP",
     "",
-    "&7Online: &a64&8/&a200",
-    "&7Balance: &6$12,450",
-    "&7Kills: &c128",
-    "&7TPS: &a|metric.react.tps|",
+    "&7Ping {{ papiNumber('player_ping') < 100 ? '&a' : '&e' }}{{ papi('player_ping') }}ms",
+    "&7Health &a{{ bar(papiNumber('player_health'), 20, 8, '■', '□') }}",
+    "&7Online &a{{ papi('server_online') }}&8/&a{{ papi('server_max_players') }}",
+    "&7TPS &a{{ fixed(metric('react.tps'), 1) }}",
     "",
-    "|animation.rainbow|",
+    "|animation.rainbow|&lLIVE EVENT",
     "&d:heart: &fWelcome!",
     "[55FFFF]play.example.net"
   ],
@@ -164,19 +165,19 @@ const String kGlossMotdShowcaseJson = r'''
   "entries": [
     {
       "lines": [
-        "[FF55FF]&lMy Server &8- &7Season 4",
-        "&7Now with |animation.rainbow|"
+        "{{ select(['&d', '&b', '&6'], floor(time.seconds / 2)) }}&lMy Server",
+        "&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }}"
       ]
     },
     {
       "lines": [
-        "&6&lDouble XP weekend!",
-        "|animation.rainbow|"
+        "|animation.rainbow|&lDouble XP weekend!",
+        "&7The colour changes every ping"
       ]
     },
     {
       "lines": [
-        "&d:heart: &fWelcome, %player_name%"
+        "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds) + 1) / 2)) }}&lLive RGB pulse"
       ]
     },
     {
@@ -252,7 +253,7 @@ const String kGlossBubbleShowcaseJson = r'''
 {
   "schemaVersion": 1,
   "revision": 1,
-  "prefix": "&6",
+  "prefix": "{{ select(['&6', '&d', '&b'], floor(time.seconds * 3)) }}&l",
   "offset": [0.0, 1.2, 0.0],
   "wordWrapChars": 24,
   "lineStaggerTicks": 8,
@@ -299,12 +300,12 @@ const String kGlossTablistShowcaseJson = r'''
   "schemaVersion": 1,
   "revision": 1,
   "useHeaderFooter": true,
-  "header": "[FF55FF]&lMy Server\n&7Season 4",
-  "footer": "|animation.rainbow|",
+  "header": "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&lMy Server\n&7Welcome &f{{ papi('player_name') }} &8• &a{{ papi('player_ping') }}ms",
+  "footer": "|animation.rainbow|&lONLINE &8• &7TPS &a{{ fixed(metric('react.tps'), 1) }}",
   "groupListNames": true,
   "nameFormats": {
     "default": "&7$player",
-    "_op": "&c[OP] &f$player",
+    "_op": "{{ select(['&c', '&6', '&d'], floor(time.seconds * 4)) }}&l[OP] &f$player",
     "vip": "&6[$group] &f$player"
   }
 }

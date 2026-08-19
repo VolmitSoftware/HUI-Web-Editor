@@ -77,6 +77,8 @@ String spriteCacheKey(
         ..write('|')
         ..write(item.entityKey)
         ..write('|')
+        ..write(item.entityTexture?.hashCode.toRadixString(36) ?? '-')
+        ..write('|')
         ..write(_num(item.shape.entityWidth))
         ..write('x')
         ..write(_num(item.shape.entityHeight));

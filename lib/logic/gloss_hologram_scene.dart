@@ -193,7 +193,7 @@ bool hologramIsAnimated(
   GlossAnimationResolver animations,
 ) {
   for (final String line in doc.lines) {
-    if (glossLineAnimationRefs(line, animations).isNotEmpty) return true;
+    if (renderGlossLine(line, animations: animations).isAnimated) return true;
   }
   return false;
 }

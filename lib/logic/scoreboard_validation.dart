@@ -67,7 +67,8 @@ List<HuiIssue> validateScoreboardDoc(
         message:
             'The board has ${doc.lines.length} lines; Gloss renders only the '
             'first $glossBoardMaxLines.',
-        fix: 'Trim the list — everything past line $glossBoardMaxLines is '
+        fix:
+            'Trim the list — everything past line $glossBoardMaxLines is '
             'invisible in game.',
       ),
     );
@@ -158,11 +159,15 @@ List<HuiIssue> validateScoreboardDoc(
     );
   }
 
-  final HuiIssue? metrics = glossMetricInfo(<String>[
-    doc.title,
-    ...doc.lines,
-  ]);
+  final HuiIssue? metrics = glossMetricInfo(<String>[doc.title, ...doc.lines]);
   if (metrics != null) issues.add(metrics);
+  issues.addAll(
+    glossTextExpressionIssues(<({String path, String text})>[
+      (path: r'$.title', text: doc.title),
+      for (int index = 0; index < doc.lines.length; index++)
+        (path: 'lines[$index]', text: doc.lines[index]),
+    ]),
+  );
 
   return issues;
 }

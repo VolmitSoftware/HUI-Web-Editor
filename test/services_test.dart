@@ -449,6 +449,12 @@ void main() {
       final HuiCatalogs base = HuiCatalogs.build(
         materials: const <MaterialEntry>[MaterialEntry('stone', null)],
         sounds: const <String>['ui.button.click'],
+        entities: const <EntityMediaEntry>[
+          EntityMediaEntry(
+            'minecraft:parrot',
+            'data:image/png;base64,cGFycm90',
+          ),
+        ],
         loaded: true,
       );
       final HuiCatalogs next = base.withCustomItems(
@@ -457,6 +463,7 @@ void main() {
       expect(next.customItems.items.length, 3);
       expect(next.materialKeys, base.materialKeys);
       expect(next.soundKeys, base.soundKeys);
+      expect(next.entityTextureFor('parrot'), 'data:image/png;base64,cGFycm90');
       expect(next.loaded, isTrue);
       expect(base.customItems.isEmpty, isTrue);
     });
@@ -479,6 +486,36 @@ void main() {
         customItemUrls: const <String>['nope-custom.json'],
       );
       expect(catalogs.customItems.items.length, 3);
+    });
+  });
+
+  group('HuiCatalogs entity media', () {
+    test('parses normalized unique entity renders', () {
+      final List<EntityMediaEntry> entries = HuiCatalogs.parseEntities('''
+        {"entities":[
+          {"key":" Minecraft:Parrot ","texture":"data:image/png;base64,AA=="},
+          {"key":"minecraft:parrot","texture":"data:image/png;base64,BB=="},
+          {"key":"minecraft:zombie","texture":""},
+          {"key":4,"texture":"data:image/png;base64,CC=="}
+        ]}
+      ''');
+      expect(entries.length, 1);
+      expect(entries.single.key, 'minecraft:parrot');
+      expect(entries.single.texture, 'data:image/png;base64,AA==');
+    });
+
+    test('looks up namespaced and bare keys', () {
+      final HuiCatalogs catalogs = HuiCatalogs.build(
+        materials: const <MaterialEntry>[],
+        sounds: const <String>[],
+        entities: const <EntityMediaEntry>[
+          EntityMediaEntry('minecraft:parrot', 'parrot-render'),
+        ],
+        loaded: true,
+      );
+      expect(catalogs.entityTextureFor('minecraft:parrot'), 'parrot-render');
+      expect(catalogs.entityTextureFor('PARROT'), 'parrot-render');
+      expect(catalogs.entityTextureFor('minecraft:zombie'), isNull);
     });
   });
 

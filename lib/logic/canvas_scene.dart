@@ -55,6 +55,7 @@ class CanvasItem {
     this.itemTexture,
     this.itemProvider = '',
     this.entityKey = '',
+    this.entityTexture,
     this.animationFrame = -1,
     this.animationFrameCount = 0,
   });
@@ -110,6 +111,7 @@ class CanvasItem {
   final String itemProvider;
 
   final String entityKey;
+  final String? entityTexture;
 
   final int animationFrame;
   final int animationFrameCount;
@@ -472,6 +474,7 @@ CanvasItem _resolveItem({
   String? itemTexture;
   String itemProvider = '';
   String entityKey = '';
+  String? entityTexture;
   int animationFrame = -1;
   int animationFrameCount = 0;
 
@@ -590,6 +593,7 @@ CanvasItem _resolveItem({
           huiSpawnableLivingEntityTypes.contains(key)) {
         kind = CanvasIconKind.entity;
         entityKey = key;
+        entityTexture = catalogs?.entityTextureFor(key);
         shape = IconShape.entity(width: icon.width, height: icon.height);
         hitShape = shape;
       }
@@ -646,6 +650,7 @@ CanvasItem _resolveItem({
     itemTexture: itemTexture,
     itemProvider: itemProvider,
     entityKey: entityKey,
+    entityTexture: entityTexture,
     animationFrame: animationFrame,
     animationFrameCount: animationFrameCount,
   );

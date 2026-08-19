@@ -105,6 +105,12 @@ List<HuiIssue> validateHologramDoc(
 
   final HuiIssue? metrics = glossMetricInfo(doc.lines);
   if (metrics != null) issues.add(metrics);
+  issues.addAll(
+    glossTextExpressionIssues(<({String path, String text})>[
+      for (int index = 0; index < doc.lines.length; index++)
+        (path: 'lines[$index]', text: doc.lines[index]),
+    ]),
+  );
 
   return issues;
 }

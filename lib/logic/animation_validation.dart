@@ -70,5 +70,12 @@ List<HuiIssue> validateAnimationDoc(GlossAnimationDoc doc) {
     );
   }
 
+  issues.addAll(
+    glossTextExpressionIssues(<({String path, String text})>[
+      for (int index = 0; index < doc.frames.length; index++)
+        (path: 'frames[$index]', text: doc.frames[index]),
+    ]),
+  );
+
   return issues;
 }

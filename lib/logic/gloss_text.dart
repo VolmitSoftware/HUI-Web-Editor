@@ -43,6 +43,8 @@ library;
 import '../model/gloss_animation.dart';
 import 'gloss_animation_playback.dart';
 import 'mc_text.dart' show McSpan, mcDefaultTextColor;
+import 'preview_expr.dart';
+import 'preview_expr_functions.dart';
 
 /// The function-name family `AnimationService` registers per document:
 /// `animation.` + the document id (its file path).
@@ -204,6 +206,8 @@ final class GlossLineRender {
     required this.missingAnimations,
     required this.placeholders,
     required this.metrics,
+    required this.expressions,
+    required this.expressionErrors,
   });
 
   final List<GlossTextPiece> pieces;
@@ -224,7 +228,11 @@ final class GlossLineRender {
   /// cannot sample them, so they render as chips rather than values.
   final List<String> metrics;
 
-  bool get isAnimated => usedAnimations.isNotEmpty;
+  final List<String> expressions;
+
+  final List<String> expressionErrors;
+
+  bool get isAnimated => usedAnimations.isNotEmpty || expressions.isNotEmpty;
 
   /// The line as plain characters: colour codes consumed, placeholder and
   /// metric tokens verbatim.
@@ -244,25 +252,42 @@ GlossLineRender renderGlossLine(
   GlossAnimationResolver animations = const GlossNoAnimations(),
   GlossEmojiResolver emoji = const GlossNoEmoji(),
   int nowMs = 0,
+  GlossTextExpressionSamples expressionSamples =
+      const GlossTextExpressionSamples(),
 }) {
   final List<String> used = <String>[];
   final List<String> missing = <String>[];
   final List<String> metrics = <String>[];
+  final List<String> expressions = <String>[];
+  final List<String> expressionErrors = <String>[];
+  final String functions = _applyFunctions(
+    raw,
+    animations,
+    nowMs,
+    used,
+    missing,
+    metrics: metrics,
+  );
   final String substituted = glossApplyEmoji(
-    _applyFunctions(raw, animations, nowMs, used, missing, metrics: metrics),
+    _applyTextExpressions(
+      functions,
+      nowMs,
+      expressionSamples,
+      expressions,
+      expressionErrors,
+    ),
     emoji,
   );
   final List<String> placeholders = <String>[];
-  final List<GlossTextPiece> pieces = _renderColors(
-    substituted,
-    placeholders,
-  );
+  final List<GlossTextPiece> pieces = _renderColors(substituted, placeholders);
   return GlossLineRender(
     pieces: List<GlossTextPiece>.unmodifiable(pieces),
     usedAnimations: List<String>.unmodifiable(used),
     missingAnimations: List<String>.unmodifiable(missing),
     placeholders: List<String>.unmodifiable(placeholders),
     metrics: List<String>.unmodifiable(metrics),
+    expressions: List<String>.unmodifiable(expressions),
+    expressionErrors: List<String>.unmodifiable(expressionErrors),
   );
 }
 
@@ -345,7 +370,14 @@ int glossLineMaxVisibleLength(
       return longest;
     },
   );
-  return _plainLength(glossApplyEmoji(substituted, emoji)).length;
+  final String expressed = _applyTextExpressions(
+    substituted,
+    0,
+    const GlossTextExpressionSamples(),
+    <String>[],
+    <String>[],
+  );
+  return _plainLength(glossApplyEmoji(expressed, emoji)).length;
 }
 
 /// Length of [raw] AFTER the pipeline's colour translation but BEFORE the
@@ -361,20 +393,27 @@ int glossTranslatedLength(
   GlossAnimationResolver animations, {
   GlossEmojiResolver emoji = const GlossNoEmoji(),
 }) {
+  final String functions = _applyFunctions(
+    raw,
+    animations,
+    0,
+    <String>[],
+    <String>[],
+    frameOf: (GlossAnimationDoc doc) {
+      String longest = '';
+      for (final String frame in doc.frames) {
+        if (frame.length > longest.length) longest = frame;
+      }
+      return longest;
+    },
+  );
   final String substituted = glossApplyEmoji(
-    _applyFunctions(
-      raw,
-      animations,
+    _applyTextExpressions(
+      functions,
       0,
+      const GlossTextExpressionSamples(),
       <String>[],
       <String>[],
-      frameOf: (GlossAnimationDoc doc) {
-        String longest = '';
-        for (final String frame in doc.frames) {
-          if (frame.length > longest.length) longest = frame;
-        }
-        return longest;
-      },
     ),
     emoji,
   );
@@ -392,6 +431,149 @@ int glossTranslatedLength(
     }
   }
   return length;
+}
+
+final class GlossTextExpressionSamples {
+  const GlossTextExpressionSamples({
+    this.placeholders = _defaultExpressionPlaceholders,
+    this.metrics = _defaultExpressionMetrics,
+  });
+
+  final Map<String, Object> placeholders;
+  final Map<String, double> metrics;
+}
+
+const Map<String, Object> _defaultExpressionPlaceholders = <String, Object>{
+  'player_name': 'Builder',
+  'player_ping': 42.0,
+  'player_health': 18.0,
+  'player_level': 27.0,
+  'server_online': 86.0,
+  'server_max_players': 250.0,
+  'server_tps_1': 19.8,
+};
+
+const Map<String, double> _defaultExpressionMetrics = <String, double>{
+  'react.tps': 19.8,
+  'react.tick-ms': 12.4,
+  'gloss.boards-active': 7.0,
+};
+
+String _applyTextExpressions(
+  String input,
+  int nowMs,
+  GlossTextExpressionSamples samples,
+  List<String> used,
+  List<String> errors,
+) {
+  if (!input.contains('{{')) return input;
+  final StringBuffer output = StringBuffer();
+  int cursor = 0;
+  int open = input.indexOf('{{');
+  bool replaced = false;
+  final _GlossTextExpressionScope scope = _GlossTextExpressionScope(
+    nowMs,
+    samples,
+  );
+  while (open >= 0) {
+    final int close = input.indexOf('}}', open + 2);
+    if (close < 0) break;
+    final String source = input.substring(open + 2, close).trim();
+    if (source.isEmpty || source.length > 1024) {
+      open = input.indexOf('{{', close + 2);
+      continue;
+    }
+    try {
+      final String value = evalString(parsePreviewExpr(source), scope);
+      output
+        ..write(input.substring(cursor, open))
+        ..write(value);
+      used.add(source);
+      replaced = true;
+      cursor = close + 2;
+    } on PExprException catch (failure) {
+      errors.add('${failure.message} at ${failure.position}');
+    }
+    open = input.indexOf('{{', close + 2);
+  }
+  if (!replaced) return input;
+  output.write(input.substring(cursor));
+  return output.toString();
+}
+
+final class _GlossTextExpressionScope extends PExprScope {
+  _GlossTextExpressionScope(this.nowMs, this.samples);
+
+  final int nowMs;
+  final GlossTextExpressionSamples samples;
+
+  @override
+  Object? variable(String dottedName) {
+    switch (dottedName) {
+      case 'time.ms':
+        return nowMs.toDouble();
+      case 'time.seconds':
+        return nowMs / 1000.0;
+      case 'time.ticks':
+        return nowMs / 50.0;
+      case 'player.name':
+        return samples.placeholders['player_name'];
+      case 'player.ping':
+        return _sampleNumber('player_ping');
+      case 'player.health':
+        return _sampleNumber('player_health');
+      case 'player.level':
+        return _sampleNumber('player_level');
+      case 'server.online':
+        return _sampleNumber('server_online');
+      case 'server.maxPlayers':
+        return _sampleNumber('server_max_players');
+      default:
+        return samples.metrics[dottedName];
+    }
+  }
+
+  @override
+  Object? call(String name, List<Object?> args) {
+    switch (name) {
+      case 'papi':
+        return _papi(args, false);
+      case 'papiNumber':
+        return _papi(args, true);
+      case 'metric':
+        if (args.length != 1 || args.single is! String) {
+          throw const PExprException(
+            'metric expects one string',
+            previewNoPosition,
+          );
+        }
+        return samples.metrics[args.single as String];
+      default:
+        return previewStdFunction(name, args);
+    }
+  }
+
+  Object _papi(List<Object?> args, bool numeric) {
+    if (args.length != 1 || args.single is! String) {
+      throw PExprException(
+        '${numeric ? 'papiNumber' : 'papi'} expects one string',
+        previewNoPosition,
+      );
+    }
+    final String raw = args.single as String;
+    final String key = raw.startsWith('%') && raw.endsWith('%')
+        ? raw.substring(1, raw.length - 1)
+        : raw;
+    final Object? value = samples.placeholders[key];
+    if (value == null) return '%$key%';
+    if (!numeric) return previewStringify(value);
+    return previewStdFunction('number', <Object?>[value])!;
+  }
+
+  double? _sampleNumber(String key) {
+    final Object? value = samples.placeholders[key];
+    return value is double ? value : null;
+  }
 }
 
 /// Plain visible characters of [text]: bracket hex, `&`/`§` codes and
@@ -420,9 +602,10 @@ String _applyFunctions(
   GlossAnimationResolver animations,
   int nowMs,
   List<String> used,
-  List<String> missing,
-  {String Function(GlossAnimationDoc doc)? frameOf, List<String>? metrics}
-) {
+  List<String> missing, {
+  String Function(GlossAnimationDoc doc)? frameOf,
+  List<String>? metrics,
+}) {
   if (!input.contains('|')) return input;
   final StringBuffer out = StringBuffer();
   int cursor = 0;

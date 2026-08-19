@@ -4,6 +4,9 @@ import 'dart:math' as math;
 
 import 'package:gloss_editor/doctype/doctype.dart';
 import 'package:gloss_editor/logic/gloss_text.dart';
+import 'package:gloss_editor/logic/preview_card_scene.dart';
+import 'package:gloss_editor/logic/preview_sim.dart';
+import 'package:gloss_editor/logic/preview_variant_resolver.dart';
 import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:gloss_editor/services/showcase_randomizer.dart';
@@ -74,6 +77,64 @@ void main() {
     expect(different, isNot(first));
   });
 
+  test('container showcase is a procedural furnace expression lab', () {
+    final String first = encodeHuiPreviewDoc(
+      buildRandomPreviewShowcase(math.Random(9)),
+    );
+    final String repeated = encodeHuiPreviewDoc(
+      buildRandomPreviewShowcase(math.Random(9)),
+    );
+    final String different = encodeHuiPreviewDoc(
+      buildRandomPreviewShowcase(math.Random(10)),
+    );
+    expect(repeated, first);
+    expect(different, isNot(first));
+
+    for (int seed = 0; seed < 64; seed++) {
+      final HuiPreviewDoc doc = buildRandomPreviewShowcase(math.Random(seed));
+      expect(doc.match.blocks, <String>['FURNACE', 'BLAST_FURNACE', 'SMOKER']);
+      expect(
+        doc.elements.map((HuiPreviewElement element) => element.type).toSet(),
+        containsAll(previewElementTypes),
+      );
+      final String code = encodeHuiPreviewDoc(doc);
+      expect(code, contains('cookTime'));
+      expect(code, contains('cookTimeTotal'));
+      expect(code, contains('burnTime'));
+      expect(code, contains('fuelSeconds'));
+      expect(code, contains('bankedXp'));
+      expect(code, contains('surge.active'));
+      expect(code, contains('inventory.occupied'));
+      expect(code, contains('repeat'));
+      expect(code, contains('palette'));
+      expect(code, contains('mix'));
+      expect(code, contains('sin'));
+      expect(code, contains('bar'));
+      expect(code, contains('lang'));
+      expect(code, contains('lang(vars.activeItemKey'));
+      expect(code, contains('occupied'));
+      expect(code, contains('item'));
+      expect(code, contains('count'));
+
+      for (final String? material in <String?>[
+        null,
+        'BLAST_FURNACE',
+        'SMOKER',
+      ]) {
+        final PreviewSim sim = PreviewSim('furnace');
+        sim.vars = PreviewSim.parseVars(previewVarsForMaterial(doc, material));
+        final List<String> errors = <String>[];
+        final PreviewCardScene scene = buildCardScene(
+          doc,
+          sim,
+          onError: errors.add,
+        );
+        expect(errors, isEmpty, reason: 'seed $seed, material $material');
+        expect(scene.items, isNotEmpty);
+      }
+    }
+  });
+
   test('menu showcase stays validation-clean across random seeds', () {
     for (int seed = 0; seed < 128; seed++) {
       final EditorStore store = _store()..newDocument();
@@ -137,11 +198,19 @@ void main() {
     expect(
       motd.entries.every(
         (GlossMotdEntry entry) => entry.lines.any(
-          (String line) => line.contains('|animation.rainbow|'),
+          (String line) => renderGlossLine(
+            line,
+            animations: _store().workspaceAnimations,
+          ).isAnimated,
         ),
       ),
       isTrue,
-      reason: 'every entry should visibly animate when randomization opens it',
+      reason: 'every entry should contain authored animation',
+    );
+    expect(
+      motd.entries.expand((GlossMotdEntry entry) => entry.lines).join(),
+      isNot(contains('%')),
+      reason: 'server-list pings have no player for PlaceholderAPI',
     );
 
     final EditorStore motdStore = _store();
@@ -151,7 +220,7 @@ void main() {
       randomizeShowcaseDocument(motdStore, motdId, random: math.Random(4)),
       isTrue,
     );
-    final String animatedLine = motdStore.motdDoc!.entries.first.lines.last;
+    final String animatedLine = motdStore.motdDoc!.entries.first.lines.first;
     final GlossLineRender firstFrame = renderGlossLine(
       animatedLine,
       animations: motdStore.workspaceAnimations,
@@ -184,42 +253,86 @@ void main() {
     );
     expect(scoreboard.revision, 11);
     expect(scoreboard.lines.length, inInclusiveRange(8, glossBoardMaxLines));
-    expect(scoreboard.lines, contains('|animation.rainbow|'));
     expect(
-      scoreboard.lines.any((String line) => line.contains('%player_name%')),
+      scoreboard.lines.any((String line) => renderGlossLine(line).isAnimated),
       isTrue,
     );
-    expect(scoreboard.lines.join('\n'), contains('Magic_Psycho'));
-    expect(scoreboard.lines.join('\n'), contains('SwiftSwamp smells >.<'));
+    expect(
+      scoreboard.lines.any(
+        (String line) => line.contains("papi('player_name')"),
+      ),
+      isTrue,
+    );
+    expect(scoreboard.lines.join('\n'), contains('{{'));
 
     final GlossHologramDoc hologram = buildRandomHologramShowcase(
       GlossHologramDoc(revision: 3),
       math.Random(4),
     );
-    expect(hologram.lines.join('\n'), contains('Cyberpwn'));
-    expect(hologram.lines.join('\n'), contains('Puretie'));
+    expect(hologram.lines.join('\n'), contains("papi('player_name')"));
+    expect(hologram.lines.join('\n'), contains("metric('react.tps')"));
 
     final GlossBubbleStyleDoc bubble = buildRandomBubbleShowcase(
       GlossBubbleStyleDoc(revision: 5),
       math.Random(4),
     );
-    expect(bubble.effectiveWordWrapChars, glossBubbleMaxWordWrapChars);
-    expect(bubble.effectiveMaxAliveMs, greaterThanOrEqualTo(12000));
+    expect(bubble.effectiveWordWrapChars, inInclusiveRange(64, 128));
+    expect(bubble.effectiveMaxAliveMs, greaterThanOrEqualTo(9000));
     expect(bubble.effectivePrefix, isNotEmpty);
 
     final GlossTablistDoc tablist = buildRandomTablistShowcase(
       GlossTablistDoc(revision: 6),
       math.Random(4),
     );
-    expect(tablist.header, contains('|animation.rainbow|'));
-    expect(tablist.footer, contains('Magic_Psycho'));
-    expect(tablist.footer, contains('SwiftSwamp'));
-    expect(tablist.footer, contains('Cyberpwn'));
-    expect(tablist.footer, contains('Puretie'));
+    expect(tablist.header, contains("papi('player_name')"));
+    expect(tablist.header, contains("metric('react.tps')"));
+    expect(renderGlossLine(tablist.footer).isAnimated, isTrue);
     expect(
       tablist.effectiveNameFormats.keys,
       containsAll(<String>['_op', 'owner', 'developer', 'moderator', 'vip']),
     );
+  });
+
+  test('procedural showcases vary and scatter every named easter egg', () {
+    final Set<String> seenNames = <String>{};
+    final Set<String> scoreboards = <String>{};
+    final Set<String> motds = <String>{};
+    for (int seed = 0; seed < 128; seed++) {
+      final GlossScoreboardDoc scoreboard = buildRandomScoreboardShowcase(
+        GlossScoreboardDoc(),
+        math.Random(seed),
+      );
+      final GlossMotdDoc motd = buildRandomMotdShowcase(
+        GlossMotdDoc(),
+        math.Random(seed),
+      );
+      final String all = <String>[
+        scoreboard.title,
+        ...scoreboard.lines,
+        for (final GlossMotdEntry entry in motd.entries) ...entry.lines,
+      ].join('\n');
+      for (final String name in <String>[
+        'Magic_Psycho',
+        'SwiftSwamp',
+        'Cyberpwn',
+        'Puretie',
+      ]) {
+        if (all.contains(name)) seenNames.add(name);
+      }
+      scoreboards.add(encodeGlossScoreboardDoc(scoreboard));
+      motds.add(encodeGlossMotdDoc(motd));
+    }
+    expect(
+      seenNames,
+      containsAll(<String>[
+        'Magic_Psycho',
+        'SwiftSwamp',
+        'Cyberpwn',
+        'Puretie',
+      ]),
+    );
+    expect(scoreboards.length, greaterThan(100));
+    expect(motds.length, greaterThan(100));
   });
 
   test(

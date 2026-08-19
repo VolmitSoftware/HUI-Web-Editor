@@ -132,11 +132,7 @@ List<HuiIssue> validateTablistDoc(
   danglingRefs(doc.header, r'$.header', 'the tab header');
   danglingRefs(doc.footer, r'$.footer', 'the tab footer');
   for (final MapEntry<String, String> entry in effective.entries) {
-    danglingRefs(
-      entry.value,
-      r'$.nameFormats',
-      'the "${entry.key}" list name',
-    );
+    danglingRefs(entry.value, r'$.nameFormats', 'the "${entry.key}" list name');
   }
 
   final HuiIssue? metrics = glossMetricInfo(<String>[
@@ -145,6 +141,14 @@ List<HuiIssue> validateTablistDoc(
     ...doc.nameFormats.values,
   ]);
   if (metrics != null) issues.add(metrics);
+  issues.addAll(
+    glossTextExpressionIssues(<({String path, String text})>[
+      (path: r'$.header', text: doc.header),
+      (path: r'$.footer', text: doc.footer),
+      for (final MapEntry<String, String> entry in doc.nameFormats.entries)
+        (path: r'$.nameFormats', text: entry.value),
+    ]),
+  );
 
   return issues;
 }

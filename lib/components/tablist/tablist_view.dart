@@ -113,13 +113,13 @@ class _TablistViewState extends State<TablistView> {
 
   bool _isAnimated(GlossTablistDoc doc, GlossAnimationResolver animations) {
     if (doc.useHeaderFooter &&
-        (glossLineAnimationRefs(doc.header, animations).isNotEmpty ||
-            glossLineAnimationRefs(doc.footer, animations).isNotEmpty)) {
+        (renderGlossLine(doc.header, animations: animations).isAnimated ||
+            renderGlossLine(doc.footer, animations: animations).isAnimated)) {
       return true;
     }
     if (doc.groupListNames) {
       for (final String format in doc.effectiveNameFormats.values) {
-        if (glossLineAnimationRefs(format, animations).isNotEmpty) {
+        if (renderGlossLine(format, animations: animations).isAnimated) {
           return true;
         }
       }

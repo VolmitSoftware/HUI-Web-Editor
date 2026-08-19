@@ -72,6 +72,14 @@ Object? previewStdFunction(String name, List<Object?> args) {
       return _mix(name, args);
     case 'palette':
       return _palette(name, args);
+    case 'select':
+      return _select(name, args);
+    case 'number':
+      return _number(name, args);
+    case 'bar':
+      return _bar(name, args);
+    case 'hex':
+      return _hex(name, args);
     case 'str':
       _requireCount(name, args, 1);
       return previewStringify(args[0]);
@@ -175,6 +183,74 @@ double _palette(String name, List<Object?> args) {
     );
   }
   return item;
+}
+
+Object? _select(String name, List<Object?> args) {
+  _requireCount(name, args, 2);
+  final Object? listArg = args[0];
+  if (listArg is! List<Object?>) {
+    throw PExprException('$name argument 1 must be a list', previewNoPosition);
+  }
+  if (listArg.isEmpty) {
+    throw PExprException('$name list must not be empty', previewNoPosition);
+  }
+  final int index = _numArg(name, args, 1).floor();
+  return listArg[index % listArg.length];
+}
+
+double _number(String name, List<Object?> args) {
+  _requireCount(name, args, 1);
+  final Object? value = args[0];
+  if (value is double) return value;
+  if (value is! String) {
+    throw PExprException(
+      '$name argument 1 must be a number or string',
+      previewNoPosition,
+    );
+  }
+  final String plain = value
+      .replaceAll(RegExp(r'[&§][0-9A-Fa-fK-Ok-oRr]'), '')
+      .replaceAll(',', '');
+  final Match? match = RegExp(
+    r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)',
+  ).firstMatch(plain);
+  if (match == null) {
+    throw PExprException('$name could not find a number', previewNoPosition);
+  }
+  return double.parse(match.group(0)!);
+}
+
+String _bar(String name, List<Object?> args) {
+  _requireCount(name, args, 5);
+  final double value = _numArg(name, args, 0);
+  final double maximum = _numArg(name, args, 1);
+  final double widthValue = _numArg(name, args, 2);
+  if (maximum <= 0) {
+    throw PExprException(
+      '$name argument 2 must be greater than zero',
+      previewNoPosition,
+    );
+  }
+  if (widthValue != widthValue.roundToDouble() ||
+      widthValue < 1 ||
+      widthValue > 64) {
+    throw PExprException(
+      '$name argument 3 must be a whole number in [1, 64]',
+      previewNoPosition,
+    );
+  }
+  final int width = widthValue.toInt();
+  final int count = previewRound(
+    math.min(1.0, math.max(0.0, value / maximum)) * width,
+  ).toInt();
+  return _strArg(name, args, 3) * count +
+      _strArg(name, args, 4) * (width - count);
+}
+
+String _hex(String name, List<Object?> args) {
+  _requireCount(name, args, 1);
+  final int color = previewNarrowArgb(_numArg(name, args, 0)) & 0xFFFFFF;
+  return '[${color.toRadixString(16).padLeft(6, '0').toUpperCase()}]';
 }
 
 String _fixed(String name, List<Object?> args) {

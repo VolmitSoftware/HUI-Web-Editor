@@ -82,12 +82,17 @@ class _ScoreboardViewState extends State<ScoreboardView> {
   }
 
   bool _isAnimated(GlossScoreboardDoc doc, GlossAnimationResolver animations) {
-    if (glossLineAnimationRefs(doc.title, animations).isNotEmpty) return true;
+    if (renderGlossLine(doc.title, animations: animations).isAnimated) {
+      return true;
+    }
     final int rendered = doc.lines.length > glossBoardMaxLines
         ? glossBoardMaxLines
         : doc.lines.length;
     for (int index = 0; index < rendered; index++) {
-      if (glossLineAnimationRefs(doc.lines[index], animations).isNotEmpty) {
+      if (renderGlossLine(
+        doc.lines[index],
+        animations: animations,
+      ).isAnimated) {
         return true;
       }
     }

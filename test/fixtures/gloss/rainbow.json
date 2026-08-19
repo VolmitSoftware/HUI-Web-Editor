@@ -4,9 +4,9 @@
   "mode": "ascend",
   "frameIntervalMs": 500,
   "frames": [
-    "&cGloss",
-    "&6Gloss",
-    "&aGloss",
-    "&bGloss"
+    "&c",
+    "&6",
+    "&a",
+    "&b"
   ]
 }

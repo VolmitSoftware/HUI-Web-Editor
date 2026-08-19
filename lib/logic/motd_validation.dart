@@ -131,6 +131,16 @@ List<HuiIssue> validateMotdDoc(
     for (final GlossMotdEntry entry in doc.entries) ...entry.lines,
   ]);
   if (metrics != null) issues.add(metrics);
+  issues.addAll(
+    glossTextExpressionIssues(<({String path, String text})>[
+      for (int entry = 0; entry < doc.entries.length; entry++)
+        for (int line = 0; line < doc.entries[entry].lines.length; line++)
+          (
+            path: 'entries[$entry].lines[$line]',
+            text: doc.entries[entry].lines[line],
+          ),
+    ], playerBacked: false),
+  );
 
   return issues;
 }
