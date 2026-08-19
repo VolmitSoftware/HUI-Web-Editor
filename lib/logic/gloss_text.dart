@@ -437,10 +437,12 @@ final class GlossTextExpressionSamples {
   const GlossTextExpressionSamples({
     this.placeholders = _defaultExpressionPlaceholders,
     this.metrics = _defaultExpressionMetrics,
+    this.serverTps = 19.8,
   });
 
   final Map<String, Object> placeholders;
   final Map<String, double> metrics;
+  final double serverTps;
 }
 
 const Map<String, Object> _defaultExpressionPlaceholders = <String, Object>{
@@ -528,6 +530,8 @@ final class _GlossTextExpressionScope extends PExprScope {
         return _sampleNumber('server_online');
       case 'server.maxPlayers':
         return _sampleNumber('server_max_players');
+      case 'server.tps':
+        return samples.serverTps;
       default:
         return samples.metrics[dottedName];
     }
@@ -541,33 +545,64 @@ final class _GlossTextExpressionScope extends PExprScope {
       case 'papiNumber':
         return _papi(args, true);
       case 'metric':
-        if (args.length != 1 || args.single is! String) {
+        if ((args.length != 1 && args.length != 2) || args.first is! String) {
           throw const PExprException(
-            'metric expects one string',
+            'metric expects a key and optional numeric fallback',
             previewNoPosition,
           );
         }
-        return samples.metrics[args.single as String];
+        final Object? fallback = args.length == 2 ? args[1] : null;
+        if (fallback != null && fallback is! double) {
+          throw const PExprException(
+            'metric fallback must be a number',
+            previewNoPosition,
+          );
+        }
+        final double? value = samples.metrics[args.first as String];
+        if (value != null) return value;
+        if (fallback != null) return fallback;
+        throw PExprException(
+          'unknown metric: ${args.first as String}',
+          previewNoPosition,
+        );
       default:
         return previewStdFunction(name, args);
     }
   }
 
   Object _papi(List<Object?> args, bool numeric) {
-    if (args.length != 1 || args.single is! String) {
+    if ((args.length != 1 && args.length != 2) || args.first is! String) {
       throw PExprException(
-        '${numeric ? 'papiNumber' : 'papi'} expects one string',
+        '${numeric ? 'papiNumber' : 'papi'} expects a key and optional fallback',
         previewNoPosition,
       );
     }
-    final String raw = args.single as String;
+    final Object? fallback = args.length == 2 ? args[1] : null;
+    if (numeric && fallback != null && fallback is! double) {
+      throw const PExprException(
+        'papiNumber fallback must be a number',
+        previewNoPosition,
+      );
+    }
+    if (!numeric && fallback != null && fallback is! String) {
+      throw const PExprException(
+        'papi fallback must be a string',
+        previewNoPosition,
+      );
+    }
+    final String raw = args.first as String;
     final String key = raw.startsWith('%') && raw.endsWith('%')
         ? raw.substring(1, raw.length - 1)
         : raw;
     final Object? value = samples.placeholders[key];
-    if (value == null) return '%$key%';
+    if (value == null) return fallback ?? '%$key%';
     if (!numeric) return previewStringify(value);
-    return previewStdFunction('number', <Object?>[value])!;
+    try {
+      return previewStdFunction('number', <Object?>[value])!;
+    } on PExprException {
+      if (fallback != null) return fallback;
+      rethrow;
+    }
   }
 
   double? _sampleNumber(String key) {

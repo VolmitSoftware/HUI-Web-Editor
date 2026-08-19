@@ -8,6 +8,7 @@
 ///   "title": "&d&lGloss",
 ///   "lines": ["&fWelcome!"],
 ///   "primary": false,
+///   "hideNumbers": false,
 ///   "permission": "default",
 ///   "groups": []
 /// }
@@ -81,6 +82,7 @@ const Set<String> _docKnown = <String>{
   'title',
   'lines',
   'primary',
+  'hideNumbers',
   'permission',
   'groups',
 };
@@ -92,6 +94,7 @@ final class GlossScoreboardDoc extends GlossDoc {
     this.title = '',
     List<String>? lines,
     this.primary = false,
+    this.hideNumbers = false,
     this.permission = glossBoardUnrestrictedPermission,
     List<String>? groups,
     Map<String, dynamic>? extras,
@@ -110,6 +113,9 @@ final class GlossScoreboardDoc extends GlossDoc {
   /// Whether this board volunteers as the default selection for players no
   /// group or permission steers elsewhere.
   bool primary;
+
+  /// Uses Minecraft's blank score number format on 1.20.3+ clients.
+  bool hideNumbers;
 
   /// As written; [effectivePermission] is what the server runs.
   String permission;
@@ -153,6 +159,7 @@ final class GlossScoreboardDoc extends GlossDoc {
       title: huiReadString(map, 'title'),
       lines: glossReadStringList(map['lines']),
       primary: huiReadBool(map, 'primary'),
+      hideNumbers: huiReadBool(map, 'hideNumbers'),
       permission: huiReadString(map, 'permission'),
       groups: glossReadStringList(map['groups']),
       extras: huiCollectExtras(map, _docKnown),
@@ -161,6 +168,7 @@ final class GlossScoreboardDoc extends GlossDoc {
         if (map['title'] == null) 'title',
         if (map['lines'] == null) 'lines',
         if (map['primary'] == null) 'primary',
+        if (map['hideNumbers'] == null) 'hideNumbers',
         if (map['permission'] == null) 'permission',
         if (map['groups'] == null) 'groups',
       },
@@ -176,6 +184,8 @@ final class GlossScoreboardDoc extends GlossDoc {
       if (!absentKeys.contains('lines') || lines.isNotEmpty)
         'lines': List<String>.of(lines),
       if (!absentKeys.contains('primary') || primary) 'primary': primary,
+      if (!absentKeys.contains('hideNumbers') || hideNumbers)
+        'hideNumbers': hideNumbers,
       if (!absentKeys.contains('permission') || permission.isNotEmpty)
         'permission': permission,
       if (!absentKeys.contains('groups') || groups.isNotEmpty)
@@ -190,6 +200,7 @@ final class GlossScoreboardDoc extends GlossDoc {
     title: title,
     lines: List<String>.of(lines),
     primary: primary,
+    hideNumbers: hideNumbers,
     permission: permission,
     groups: List<String>.of(groups),
     extras: huiDeepCopyMap(extras),

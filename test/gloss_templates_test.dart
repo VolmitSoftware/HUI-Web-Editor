@@ -79,7 +79,10 @@ void main() {
 
   test('the showcase builds without errors', () {
     final GlossHologramDoc doc = buildShowcaseGlossHologram();
-    expect(doc.lines, hasLength(5));
+    expect(doc.lines, hasLength(6));
+    expect(doc.lines.join('\n'), contains('{{ player.name }}'));
+    expect(doc.lines.join('\n'), contains('server.tps'));
+    expect(doc.lines.join('\n'), contains("papi('vault_prefix',"));
     final List<HuiIssue> issues = validateHologramDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),
@@ -283,6 +286,9 @@ void main() {
   test('the tablist showcase builds without errors', () {
     final GlossTablistDoc doc = buildShowcaseGlossTablist();
     expect(doc.nameFormats, hasLength(3));
+    expect(doc.header, contains('{{ player.name }}'));
+    expect(doc.footer, contains('server.tps'));
+    expect(doc.header, contains("papi('vault_prefix',"));
     final List<HuiIssue> issues = validateTablistDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),
@@ -299,9 +305,14 @@ void main() {
 
   test('the scoreboard showcase builds without errors', () {
     final GlossScoreboardDoc doc = buildShowcaseGlossScoreboard();
-    expect(doc.lines, hasLength(11));
+    expect(doc.lines, hasLength(13));
     expect(doc.primary, isTrue);
+    expect(doc.hideNumbers, isTrue);
     expect(doc.permissionGated, isTrue);
+    expect(doc.lines.join('\n'), contains('{{ player.name }}'));
+    expect(doc.lines.join('\n'), contains('server.tps'));
+    expect(doc.lines.join('\n'), contains("papi('vault_prefix',"));
+    expect(doc.lines.join('\n'), contains("metric('react.tick-ms',"));
     final List<HuiIssue> issues = validateScoreboardDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),

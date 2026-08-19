@@ -26,7 +26,8 @@ const String kGlossHologramBaselineJson = r'''
 ''';
 
 /// A richer starter showing the text pipeline: bracket hex, legacy codes,
-/// a PAPI placeholder and an animation reference.
+/// native player/server values, an optional PAPI expansion and an animation
+/// reference.
 const String kGlossHologramShowcaseJson = r'''
 {
   "schemaVersion": 1,
@@ -37,10 +38,11 @@ const String kGlossHologramShowcaseJson = r'''
   },
   "lines": [
     "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&lWelcome",
-    "&7Hello, &f{{ papi('player_name') }}&7!",
-    "&7Health &a{{ bar(papiNumber('player_health'), 20, 10, '■', '□') }}",
+    "&7Hello, &f{{ player.name }}&7!",
+    "&7Health &a{{ bar(player.health, 20, 10, '■', '□') }}",
+    "&7Rank {{ papi('vault_prefix', '&7Member') }}",
     "|animation.rainbow|&lLive colour prefix",
-    "&7TPS &a{{ fixed(metric('react.tps'), 1) }}"
+    "&7TPS &a{{ fixed(server.tps, 1) }}"
   ]
 }
 ''';
@@ -116,19 +118,22 @@ const String kGlossScoreboardShowcaseJson = r'''
   "revision": 1,
   "title": "[FF55FF]&lMY SERVER",
   "lines": [
-    "&7Player &f{{ papi('player_name') }}",
-    "&7Rank: &6VIP",
+    "&7Player &f{{ player.name }}",
+    "&7Rank {{ papi('vault_prefix', '&6VIP') }}",
     "",
-    "&7Ping {{ papiNumber('player_ping') < 100 ? '&a' : '&e' }}{{ papi('player_ping') }}ms",
-    "&7Health &a{{ bar(papiNumber('player_health'), 20, 8, '■', '□') }}",
-    "&7Online &a{{ papi('server_online') }}&8/&a{{ papi('server_max_players') }}",
-    "&7TPS &a{{ fixed(metric('react.tps'), 1) }}",
+    "&7Ping {{ player.ping < 100 ? '&a' : '&e' }}{{ player.ping }}ms",
+    "&7Health &a{{ bar(player.health, 20, 8, '■', '□') }}",
+    "&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }}",
+    "&7TPS &a{{ fixed(server.tps, 1) }}",
+    "&7Tick &f{{ fixed(metric('react.tick-ms', 1000 / server.tps), 1) }}ms",
+    "&7Balance &6${{ fixed(papiNumber('vault_eco_balance', 0), 2) }}",
     "",
     "|animation.rainbow|&lLIVE EVENT",
     "&d:heart: &fWelcome!",
     "[55FFFF]play.example.net"
   ],
   "primary": true,
+  "hideNumbers": true,
   "permission": "vip",
   "groups": ["vip", "mvp"]
 }
@@ -300,8 +305,8 @@ const String kGlossTablistShowcaseJson = r'''
   "schemaVersion": 1,
   "revision": 1,
   "useHeaderFooter": true,
-  "header": "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&lMy Server\n&7Welcome &f{{ papi('player_name') }} &8• &a{{ papi('player_ping') }}ms",
-  "footer": "|animation.rainbow|&lONLINE &8• &7TPS &a{{ fixed(metric('react.tps'), 1) }}",
+  "header": "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&lMy Server\n&7Welcome &f{{ player.name }} &8• {{ papi('vault_prefix', '&7Member') }} &8• &a{{ player.ping }}ms",
+  "footer": "|animation.rainbow|&lONLINE &8• &7TPS &a{{ fixed(server.tps, 1) }}",
   "groupListNames": true,
   "nameFormats": {
     "default": "&7$player",

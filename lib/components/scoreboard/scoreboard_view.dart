@@ -154,9 +154,10 @@ class _ScoreboardViewState extends State<ScoreboardView> {
                       ),
                     ),
                   ]),
-                  dom.span(classes: 'hui-scoreboard-score', <Widget>[
-                    Text('${glossBoardScoreForRow(index)}'),
-                  ]),
+                  if (!doc.hideNumbers)
+                    dom.span(classes: 'hui-scoreboard-score', <Widget>[
+                      Text('${glossBoardScoreForRow(index)}'),
+                    ]),
                 ]),
             ]),
           ),
@@ -180,6 +181,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
   String _readout(GlossScoreboardDoc doc, int clipped, bool titleTruncated) {
     final List<String> parts = <String>[
       doc.primary ? 'primary' : 'not primary',
+      doc.hideNumbers ? 'score numbers hidden' : 'score numbers visible',
       doc.permissionGated
           ? 'needs $glossBoardPermissionNodePrefix${doc.effectivePermission}'
           : 'everyone',

@@ -144,9 +144,7 @@ void main() {
     test('math, selection, progress bars and colours render inline', () {
       expect(
         _plain(
-          renderGlossLine(
-            "HP {{ bar(papiNumber('player_health'), 20, 10, '█', '░') }}",
-          ),
+          renderGlossLine("HP {{ bar(player.health, 20, 10, '█', '░') }}"),
         ),
         'HP █████████░',
       );
@@ -174,11 +172,42 @@ void main() {
       expect(first.expressions, isNotEmpty);
     });
 
-    test('PAPI and metrics use explicit editor preview samples', () {
+    test('native player and server getters need no extension samples', () {
+      expect(
+        _plain(
+          renderGlossLine(
+            '{{ player.name }} {{ player.ping }}ms '
+            '{{ server.online }}/{{ server.maxPlayers }} '
+            '{{ fixed(server.tps, 1) }} TPS',
+          ),
+        ),
+        'Builder 42ms 86/250 19.8 TPS',
+      );
+    });
+
+    test('PAPI and metrics use preview samples or explicit fallbacks', () {
       expect(_plain(renderGlossLine("{{ papi('player_name') }}")), 'Builder');
       expect(
         _plain(renderGlossLine("{{ fixed(metric('react.tps'), 1) }} TPS")),
         '19.8 TPS',
+      );
+      expect(
+        _plain(renderGlossLine("{{ papi('vault_prefix', 'Member') }}")),
+        'Member',
+      );
+      expect(
+        _plain(
+          renderGlossLine("{{ fixed(papiNumber('vault_eco_balance', 0), 2) }}"),
+        ),
+        '0.00',
+      );
+      expect(
+        _plain(
+          renderGlossLine(
+            "{{ fixed(metric('missing.value', server.tps), 1) }}",
+          ),
+        ),
+        '19.8',
       );
       final GlossLineRender unknown = renderGlossLine("{{ papi('custom_x') }}");
       expect(unknown.placeholders, <String>['%custom_x%']);

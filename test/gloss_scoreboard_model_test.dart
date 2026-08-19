@@ -18,6 +18,7 @@ const String _board = '''
     "&7Line two"
   ],
   "primary": true,
+  "hideNumbers": true,
   "permission": "vip",
   "groups": ["vip", "mvp"]
 }
@@ -31,6 +32,7 @@ void main() {
       expect(doc.title, '&d&lGloss');
       expect(doc.lines, <String>['&fWelcome!', '&7Line two']);
       expect(doc.primary, isTrue);
+      expect(doc.hideNumbers, isTrue);
       expect(doc.permission, 'vip');
       expect(doc.groups, <String>['vip', 'mvp']);
     });
@@ -52,6 +54,7 @@ void main() {
       );
       expect(doc.lines, isEmpty);
       expect(doc.primary, isFalse);
+      expect(doc.hideNumbers, isFalse);
       expect(doc.permission, '');
       expect(doc.effectivePermission, glossBoardUnrestrictedPermission);
       expect(doc.groups, isEmpty);
@@ -76,7 +79,11 @@ void main() {
       final GlossScoreboardDoc doc = decodeGlossScoreboardDoc(_board)
         ..groups = <String>[' VIP', '', 'mvp', 'vip', '  '];
       expect(doc.effectiveGroups, <String>['vip', 'mvp']);
-      expect(doc.groups, hasLength(5), reason: 'the file keeps what was written');
+      expect(
+        doc.groups,
+        hasLength(5),
+        reason: 'the file keeps what was written',
+      );
     });
   });
 
@@ -122,10 +129,12 @@ void main() {
         'title': 't',
       });
       doc.primary = true;
+      doc.hideNumbers = true;
       doc.groups.add('vip');
       final Map<String, dynamic> out =
           jsonDecode(encodeGlossScoreboardDoc(doc)) as Map<String, dynamic>;
       expect(out['primary'], isTrue);
+      expect(out['hideNumbers'], isTrue);
       expect(out['groups'], <String>['vip']);
     });
   });
@@ -144,38 +153,40 @@ void main() {
   });
 
   group('looksLikeScoreboardDoc', () {
-    test('needs the envelope plus a board key, and no other kind\'s marker',
-        () {
-      expect(looksLikeScoreboardDoc(jsonDecode(_board)), isTrue);
-      expect(
-        looksLikeScoreboardDoc(<String, dynamic>{
-          'schemaVersion': 1,
-          'lines': <String>[],
-        }),
-        isFalse,
-        reason: 'lines alone are ambiguous with a broken hologram',
-      );
-      expect(
-        looksLikeScoreboardDoc(<String, dynamic>{
-          'schemaVersion': 1,
-          'anchor': <String, dynamic>{},
-          'title': 't',
-        }),
-        isFalse,
-        reason: 'an anchor makes it a hologram',
-      );
-      expect(
-        looksLikeScoreboardDoc(<String, dynamic>{
-          'schemaVersion': 1,
-          'frames': <String>[],
-          'title': 't',
-        }),
-        isFalse,
-        reason: 'frames make it an animation',
-      );
-      // The three Gloss shape checks stay mutually exclusive.
-      expect(looksLikeHologramDoc(jsonDecode(_board)), isFalse);
-      expect(looksLikeAnimationDoc(jsonDecode(_board)), isFalse);
-    });
+    test(
+      'needs the envelope plus a board key, and no other kind\'s marker',
+      () {
+        expect(looksLikeScoreboardDoc(jsonDecode(_board)), isTrue);
+        expect(
+          looksLikeScoreboardDoc(<String, dynamic>{
+            'schemaVersion': 1,
+            'lines': <String>[],
+          }),
+          isFalse,
+          reason: 'lines alone are ambiguous with a broken hologram',
+        );
+        expect(
+          looksLikeScoreboardDoc(<String, dynamic>{
+            'schemaVersion': 1,
+            'anchor': <String, dynamic>{},
+            'title': 't',
+          }),
+          isFalse,
+          reason: 'an anchor makes it a hologram',
+        );
+        expect(
+          looksLikeScoreboardDoc(<String, dynamic>{
+            'schemaVersion': 1,
+            'frames': <String>[],
+            'title': 't',
+          }),
+          isFalse,
+          reason: 'frames make it an animation',
+        );
+        // The three Gloss shape checks stay mutually exclusive.
+        expect(looksLikeHologramDoc(jsonDecode(_board)), isFalse);
+        expect(looksLikeAnimationDoc(jsonDecode(_board)), isFalse);
+      },
+    );
   });
 }

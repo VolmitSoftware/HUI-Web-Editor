@@ -258,19 +258,20 @@ void main() {
       isTrue,
     );
     expect(
-      scoreboard.lines.any(
-        (String line) => line.contains("papi('player_name')"),
-      ),
+      scoreboard.lines.any((String line) => line.contains('{{ player.name }}')),
       isTrue,
     );
+    expect(scoreboard.hideNumbers, isTrue);
+    expect(scoreboard.lines.join('\n'), contains("papi('vault_prefix',"));
+    expect(scoreboard.lines.join('\n'), contains("metric('react.tick-ms',"));
     expect(scoreboard.lines.join('\n'), contains('{{'));
 
     final GlossHologramDoc hologram = buildRandomHologramShowcase(
       GlossHologramDoc(revision: 3),
       math.Random(4),
     );
-    expect(hologram.lines.join('\n'), contains("papi('player_name')"));
-    expect(hologram.lines.join('\n'), contains("metric('react.tps')"));
+    expect(hologram.lines.join('\n'), contains('{{ player.name }}'));
+    expect(hologram.lines.join('\n'), contains('server.tps'));
 
     final GlossBubbleStyleDoc bubble = buildRandomBubbleShowcase(
       GlossBubbleStyleDoc(revision: 5),
@@ -284,8 +285,9 @@ void main() {
       GlossTablistDoc(revision: 6),
       math.Random(4),
     );
-    expect(tablist.header, contains("papi('player_name')"));
-    expect(tablist.header, contains("metric('react.tps')"));
+    expect(tablist.header, contains('{{ player.name }}'));
+    expect(tablist.header, contains('server.tps'));
+    expect(tablist.header, contains("papi('vault_prefix',"));
     expect(renderGlossLine(tablist.footer).isAnimated, isTrue);
     expect(
       tablist.effectiveNameFormats.keys,

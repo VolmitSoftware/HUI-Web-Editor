@@ -223,6 +223,19 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
     title: 'Selection',
     children: <Widget>[
       HuiSwitchRow(
+        label: 'Hide score numbers',
+        help:
+            'Removes the red numeric column for 1.20.3+ clients. Older '
+            'server versions need ViaVersion\'s hide-scoreboard-numbers '
+            'fallback for newer clients.',
+        trailing: const HuiFieldHelp('scoreboard.hideNumbers'),
+        value: doc.hideNumbers,
+        onChanged: (bool value) => _store.mutateScoreboard(
+          'scoreboard number visibility',
+          (GlossScoreboardDoc edited) => edited.hideNumbers = value,
+        ),
+      ),
+      HuiSwitchRow(
         label: 'Primary board',
         help:
             'Volunteers this board as the default for players nothing else '

@@ -527,6 +527,15 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'sidebar on anyone.',
     citation: 'GlossBoardMeta.java:83-85',
   ),
+  'scoreboard.hideNumbers': HuiFieldDoc(
+    title: 'Hide score numbers',
+    body:
+        'Uses Minecraft\'s blank score number format so 1.20.3+ clients do '
+        'not draw the red 15..1 column. On an older server, ViaVersion\'s '
+        'global hide-scoreboard-numbers option provides the equivalent '
+        'translation for 1.20.3+ clients.',
+    citation: 'BoardDoc.java:10-11',
+  ),
   'scoreboard.permission': HuiFieldDoc(
     title: 'Permission',
     body:

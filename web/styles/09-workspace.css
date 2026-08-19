@@ -205,14 +205,6 @@
 }
 
 .hui-library-warning { display: inline-flex; color: var(--hui-warning); }
-.hui-library-active-dot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 7px;
-  border-radius: 50%;
-  background: var(--hui-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hui-accent) 14%, transparent);
-}
 
 .hui-library-actions,
 .hui-library-editor {

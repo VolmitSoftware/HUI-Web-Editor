@@ -383,10 +383,10 @@ GlossHologramDoc buildRandomHologramShowcase(
   final String event = _pick(random, _events);
   final List<String> lines = <String>[
     '${_animatedColor(random)}&l$server',
-    "&7Hello, &f{{ papi('player_name') }}&7!",
-    "&7Health {{ papiNumber('player_health') < 7 ? '&c' : '&a' }}"
-        "{{ bar(papiNumber('player_health'), 20, 10, '■', '□') }}",
-    "&7TPS &a{{ fixed(metric('react.tps'), 1) }} &8• &7$event",
+    '&7Hello, &f{{ player.name }}&7!',
+    "&7Health {{ player.health < 7 ? '&c' : '&a' }}"
+        "{{ bar(player.health, 20, 10, '■', '□') }}",
+    "&7TPS &a{{ fixed(server.tps, 1) }} &8• &7$event",
     '&d:heart: &7${_pick(random, _hologramNotes)}',
     _easterEgg(random),
   ];
@@ -442,16 +442,15 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
   final String rank = _pick(random, _ranks);
   final String event = _pick(random, _events);
   final List<String> lines = <String>[
-    "&7Player &f{{ papi('player_name') }}",
-    '&7Rank &6$rank',
+    '&7Player &f{{ player.name }}',
+    "&7Rank {{ papi('vault_prefix', '&6$rank') }}",
     '',
-    "&7Ping {{ papiNumber('player_ping') < 80 ? '&a' : "
-        "papiNumber('player_ping') < 160 ? '&e' : '&c' }}"
-        "{{ papi('player_ping') }}ms",
-    "&7Health &a{{ bar(papiNumber('player_health'), 20, 8, '■', '□') }}",
-    "&7Online &a{{ papi('server_online') }}&8/&a"
-        "{{ papi('server_max_players') }}",
-    "&7TPS &a{{ fixed(metric('react.tps'), 1) }}",
+    "&7Ping {{ player.ping < 80 ? '&a' : "
+        "player.ping < 160 ? '&e' : '&c' }}{{ player.ping }}ms",
+    "&7Health &a{{ bar(player.health, 20, 8, '■', '□') }}",
+    '&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }}',
+    '&7TPS &a{{ fixed(server.tps, 1) }}',
+    "&7Tick &f{{ fixed(metric('react.tick-ms', 1000 / server.tps), 1) }}ms",
     '',
     '${_animatedColor(random)}&l${_pick(random, _statusWords)}',
     '&7$event',
@@ -459,7 +458,11 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
     '&8${_pick(random, _domains)}',
   ];
   if (random.nextBool()) {
-    lines.insert(7, r'&7Balance &6%vault_eco_balance_formatted%');
+    lines.insert(
+      8,
+      "&7Balance &6\$"
+      "{{ fixed(papiNumber('vault_eco_balance', 0), 2) }}",
+    );
   }
   return GlossScoreboardDoc(
     schemaVersion: current.schemaVersion,
@@ -467,6 +470,7 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
     title: '${_pick(random, _legacyPalette)}&l${server.toUpperCase()}',
     lines: lines,
     primary: random.nextBool(),
+    hideNumbers: true,
     permission: random.nextBool() ? 'default' : 'vip',
     groups: random.nextBool() ? <String>['vip', 'mvp'] : <String>[],
   );
@@ -556,12 +560,11 @@ GlossTablistDoc buildRandomTablistShowcase(
     useHeaderFooter: true,
     header:
         '${_animatedColor(random)}&l$server\n'
-        "&7Welcome &f{{ papi('player_name') }} &8• "
-        "{{ papiNumber('player_ping') < 100 ? '&a' : '&e' }}"
-        "{{ papi('player_ping') }}ms\n"
-        "&7Online &a{{ papi('server_online') }}&8/&a"
-        "{{ papi('server_max_players') }} &8• &7TPS &a"
-        "{{ fixed(metric('react.tps'), 1) }}",
+        "&7Welcome &f{{ player.name }} &8• "
+        "{{ papi('vault_prefix', '&7Member') }} &8• "
+        "{{ player.ping < 100 ? '&a' : '&e' }}{{ player.ping }}ms\n"
+        '&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }} '
+        '&8• &7TPS &a{{ fixed(server.tps, 1) }}',
     footer:
         '$easterEgg\n'
         "{{ select(['&d✦', '&b✧', '&6✦'], floor(time.seconds * 2)) }} "

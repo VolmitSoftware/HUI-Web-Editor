@@ -389,12 +389,6 @@ class _EditorRailState extends State<EditorRail> {
                     },
                     <Widget>[ArcaneIcon.triangleAlert(size: IconSize.sm)],
                   ),
-                if (active)
-                  const dom.span(
-                    classes: 'hui-library-active-dot',
-                    attributes: <String, String>{'aria-label': 'Open'},
-                    <Widget>[],
-                  ),
               ],
             ),
             _rowMenuButton(

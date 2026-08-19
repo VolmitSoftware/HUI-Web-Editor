@@ -63,6 +63,7 @@ const List<String> _contractKeys = <String>[
   'scoreboard.title',
   'scoreboard.lines',
   'scoreboard.primary',
+  'scoreboard.hideNumbers',
   'scoreboard.permission',
   'scoreboard.groups',
 ];
