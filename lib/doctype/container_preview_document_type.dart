@@ -50,11 +50,8 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
   Widget railIcon() => ArcaneIcon.layoutGrid(size: IconSize.sm);
 
   @override
-  void createNew(
-    EditorStore store, {
-    required String folderId,
-    String? runtimeId,
-  }) => store.newPreviewDocument(name: 'New preview', folderId: folderId);
+  void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>
+      store.newPreviewDocument(name: 'New preview', folderId: folderId);
 
   @override
   AdoptedDocument adopt(WorkspaceDoc doc) {

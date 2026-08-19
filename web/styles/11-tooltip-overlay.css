@@ -1,0 +1,65 @@
+html.gloss-tooltip-overlay-ready .arcane-css-tooltip-trigger > .arcane-css-tooltip-content,
+html.gloss-tooltip-overlay-ready .arcane-tooltip-trigger > .arcane-tooltip,
+html.gloss-tooltip-overlay-ready .arcane-floating-container > [data-arcane-surface="hovercard"],
+html.gloss-tooltip-overlay-ready .neon-floating-container > [data-arcane-surface="hovercard"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.gloss-tooltip-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+
+.gloss-tooltip-overlay-content {
+  position: fixed;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 7px 10px;
+  color: var(--foreground, #f7f4ec);
+  background: var(--popover, #151515);
+  border: 1px solid var(--border, #353535);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .34);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(2px);
+  transition:
+    opacity var(--hui-dur-fast, 120ms) var(--hui-ease-out, ease-out),
+    transform var(--hui-dur-fast, 120ms) var(--hui-ease-out, ease-out),
+    visibility var(--hui-dur-fast, 120ms) var(--hui-ease-out, ease-out);
+}
+
+.gloss-tooltip-overlay-content.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.gloss-tooltip-overlay-rich {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  white-space: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gloss-tooltip-overlay-content {
+    transition: none;
+  }
+}

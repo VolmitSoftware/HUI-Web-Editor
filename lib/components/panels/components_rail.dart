@@ -36,6 +36,8 @@ class ComponentsRail extends StatefulWidget {
 class _ComponentsRailState extends State<ComponentsRail> {
   /// Two-step delete: the first press arms the row, the check runs it.
   String? _armedDeleteId;
+  String? _renameId;
+  String _renameDraft = '';
 
   /// The row whose action menu is open; at most one at a time.
   String? _menuRowId;
@@ -43,6 +45,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
   /// Element id of the tools button that opened [_menuRowId], so closing can
   /// put focus back where the user left it.
   String? _menuTriggerId;
+  HuiActionMenuPoint _menuPoint = const HuiActionMenuPoint(8, 8);
   String? _dragId;
   int _dropIndex = -1;
   bool _typesOpen = false;
@@ -92,11 +95,16 @@ class _ComponentsRailState extends State<ComponentsRail> {
   /// the row's index, so after a reorder focus lands on the same slot rather
   /// than following the component — which is the list convention and keeps
   /// focus inside the rail either way.
-  void _setMenuRow(String? rowId, String? triggerId) {
+  void _setMenuRow(
+    String? rowId,
+    String? triggerId, {
+    HuiActionMenuPoint? point,
+  }) {
     final String? previous = _menuTriggerId;
     setState(() {
       _menuRowId = rowId;
       _menuTriggerId = rowId == null ? null : triggerId;
+      if (point != null) _menuPoint = point;
       _armedDeleteId = null;
     });
     if (rowId != null) {
@@ -525,7 +533,11 @@ class _ComponentsRailState extends State<ComponentsRail> {
         // ArcaneContextMenu was supposed to.
         'contextmenu': (Object event) {
           domPreventDefault(event);
-          _setMenuRow(id, _rowMenuTriggerId(index));
+          _setMenuRow(
+            id,
+            _rowMenuTriggerId(index),
+            point: huiActionMenuEventPoint(event),
+          );
         },
         'dragstart': (Object event) {
           setDragPayload(event, id);
@@ -683,8 +695,13 @@ class _ComponentsRailState extends State<ComponentsRail> {
                 id: _rowMenuTriggerId(index),
                 variant: ButtonVariant.ghost,
                 size: ButtonSize.iconSm,
-                onPressed: () =>
-                    _setMenuRow(menuOpen ? null : id, _rowMenuTriggerId(index)),
+                onPressed: () => _setMenuRow(
+                  menuOpen ? null : id,
+                  _rowMenuTriggerId(index),
+                  point: menuOpen
+                      ? null
+                      : huiActionMenuAnchor(_rowMenuTriggerId(index)),
+                ),
                 attributes: <String, String>{
                   'aria-haspopup': 'menu',
                   'aria-expanded': menuOpen ? 'true' : 'false',
@@ -717,198 +734,85 @@ class _ComponentsRailState extends State<ComponentsRail> {
         raw: <String, String>{'position': 'relative', 'min-width': '0'},
       ),
       attributes: const <String, String>{'role': 'listitem'},
-      <Widget>[row, if (menuOpen) ..._rowMenu(index, id, label, total)],
+      <Widget>[
+        row,
+        if (_renameId == id) _renameEditor(id),
+        if (menuOpen) ..._rowMenu(index, id, label, total),
+      ],
     );
   }
 
-  /// The row's action menu, hand-built.
-  ///
-  /// Was an `ArcaneContextMenu`, which never opens in this arcane_jaspr build
-  /// in either script configuration — measured: right-clicking a row left
-  /// `.arcane-context-menu` at `data-arcane-state="closed"`, so Duplicate, both
-  /// moves and Delete were all unreachable and the two-step delete below them
-  /// was dead code. The shape is deliberately the same as the type chooser's:
-  /// Dart owns the open flag, and nothing here is driven by the injected JS.
-  ///
-  /// Absolutely positioned rather than in flow — pushing four rows down the
-  /// list to read a menu is worse than covering them — which needs no
-  /// stylesheet because the wrapper above is the positioning context.
+  Widget _renameEditor(String id) =>
+      dom.div(classes: 'hui-rail-rename', <Widget>[
+        TextInput(
+          value: _renameDraft,
+          fullWidth: true,
+          size: ComponentSize.sm,
+          onInput: (String value) => setState(() => _renameDraft = value),
+        ),
+        Button(
+          variant: ButtonVariant.primary,
+          size: ButtonSize.iconSm,
+          onPressed: () {
+            final String draft = _renameDraft;
+            setState(() => _renameId = null);
+            _store.renameComponent(id, draft);
+          },
+          attributes: const <String, String>{'aria-label': 'Save component id'},
+          child: ArcaneIcon.check(size: IconSize.sm),
+        ),
+        Button(
+          variant: ButtonVariant.ghost,
+          size: ButtonSize.iconSm,
+          onPressed: () => setState(() => _renameId = null),
+          attributes: const <String, String>{'aria-label': 'Cancel rename'},
+          child: ArcaneIcon.x(size: IconSize.sm),
+        ),
+      ]);
+
   List<Widget> _rowMenu(int index, String id, String label, int total) =>
       <Widget>[
-        // A transparent full-viewport layer under the menu: one click anywhere
-        // closes it. Cheaper and more reliable than a document listener with a
-        // lifecycle to leak, and it cannot outlive the menu because it is
-        // rendered by the same condition.
-        dom.div(
-          styles: const dom.Styles(
-            raw: <String, String>{
-              'position': 'fixed',
-              'inset': '0',
-              'z-index': '40',
-            },
-          ),
-          attributes: const <String, String>{'aria-hidden': 'true'},
-          // Dismissing by clicking away does not pull focus back to the
-          // trigger — the pointer has already moved on — but it must still
-          // drop the remembered trigger so a later close cannot focus a stale
-          // one.
-          events: <String, void Function(Object)>{
-            'pointerdown': (Object _) => _dismissMenu(),
-            'contextmenu': (Object event) {
-              domPreventDefault(event);
-              _dismissMenu();
-            },
-          },
-          const <Widget>[],
-        ),
-        dom.div(
-          classes: 'hui-rail-menu',
+        HuiActionMenu(
           id: _rowMenuId,
-          styles: const dom.Styles(
-            raw: <String, String>{
-              'position': 'absolute',
-              'z-index': '41',
-              'top': 'calc(100% - 4px)',
-              'right': '4px',
-              'min-width': '176px',
-              'display': 'flex',
-              'flex-direction': 'column',
-              'gap': '1px',
-              'padding': '5px',
-              'border': '1px solid var(--hui-border)',
-              'border-radius': 'var(--hui-radius)',
-              'background': 'var(--hui-surface-raised)',
-              'box-shadow': 'var(--hui-shadow-sm)',
-            },
-          ),
-          attributes: <String, String>{
-            'role': 'menu',
-            'aria-label': 'Actions for $label',
-            // Focused on open so this Escape handler is reachable; never in
-            // the Tab order, which is what -1 buys over 0.
-            'tabindex': '-1',
-          },
-          events: <String, void Function(Object)>{
-            'keydown': (Object event) {
-              if (domEventKey(event) != 'Escape') return;
-              domStopPropagation(event);
-              _setMenuRow(null, null);
-            },
-          },
-          <Widget>[
-            _menuItem(
+          label: 'Actions for $label',
+          point: _menuPoint,
+          onClose: _dismissMenu,
+          items: <HuiActionMenuItem>[
+            HuiActionMenuItem(
+              label: 'Rename',
+              icon: ArcaneIcon.pencil(size: IconSize.sm),
+              onSelect: () => setState(() {
+                _renameId = id;
+                _renameDraft = id;
+              }),
+            ),
+            HuiActionMenuItem(
               label: 'Duplicate',
               icon: ArcaneIcon.copy(size: IconSize.sm),
               onSelect: () => _store.duplicateComponent(id),
             ),
-            _menuItem(
+            HuiActionMenuItem(
               label: 'Move to top',
               icon: ArcaneIcon.arrowUp(size: IconSize.sm),
               disabled: index == 0,
               onSelect: () => _move(id, 0),
             ),
-            _menuItem(
+            HuiActionMenuItem(
               label: 'Move to bottom',
               icon: ArcaneIcon.arrowDown(size: IconSize.sm),
               disabled: index >= total - 1,
               onSelect: () => _move(id, total - 1),
             ),
-            const dom.div(
-              styles: dom.Styles(
-                raw: <String, String>{
-                  'height': '1px',
-                  'margin': '4px 2px',
-                  'background': 'var(--hui-border-soft)',
-                },
-              ),
-              attributes: <String, String>{'role': 'separator'},
-              <Widget>[],
-            ),
-            // Arms the row rather than deleting: the second press is the
-            // check on the row itself, which is where the component being
-            // deleted is named.
-            _menuItem(
+            HuiActionMenuItem(
               label: 'Delete',
               icon: ArcaneIcon.trash2(size: IconSize.sm),
               destructive: true,
-              hint: 'Asks on the row',
+              separatorBefore: true,
               onSelect: () => setState(() => _armedDeleteId = id),
             ),
           ],
         ),
       ];
-
-  /// One row of [_rowMenu]. Every item closes the menu first and acts second,
-  /// so a store mutation never runs inside `setState` — the store notifies
-  /// synchronously and would rebuild this subtree mid-frame.
-  Widget _menuItem({
-    required String label,
-    required Widget icon,
-    required void Function() onSelect,
-    bool disabled = false,
-    bool destructive = false,
-    String? hint,
-  }) => dom.button(
-    classes: 'hui-rail-menu-item',
-    styles: dom.Styles(
-      raw: <String, String>{
-        'display': 'flex',
-        'align-items': 'center',
-        'gap': '8px',
-        'width': '100%',
-        'padding': '6px 8px',
-        'border': '0',
-        'border-radius': 'calc(var(--hui-radius) - 3px)',
-        'background': 'transparent',
-        'color': destructive ? 'var(--hui-danger)' : 'var(--hui-text)',
-        'font': 'inherit',
-        'font-size': '0.8rem',
-        'text-align': 'left',
-        'cursor': disabled ? 'default' : 'pointer',
-        'opacity': disabled ? '0.45' : '1',
-      },
-    ),
-    attributes: <String, String>{
-      'type': 'button',
-      'role': 'menuitem',
-      if (disabled) 'disabled': '',
-      if (disabled) 'aria-disabled': 'true',
-    },
-    events: <String, void Function(Object)>{
-      'click': (Object _) {
-        if (disabled) return;
-        // Close first, act second, and focus returns to the tools button:
-        // the store notifies synchronously, so acting inside `setState`
-        // would rebuild this subtree mid-frame.
-        _setMenuRow(null, null);
-        onSelect();
-      },
-    },
-    <Widget>[
-      dom.span(
-        styles: const dom.Styles(
-          raw: <String, String>{'flex': '0 0 auto', 'display': 'inline-flex'},
-        ),
-        attributes: const <String, String>{'aria-hidden': 'true'},
-        <Widget>[icon],
-      ),
-      dom.span(
-        styles: const dom.Styles(raw: <String, String>{'flex': '1 1 auto'}),
-        <Widget>[Text(label)],
-      ),
-      if (hint != null)
-        dom.span(
-          styles: const dom.Styles(
-            raw: <String, String>{
-              'flex': '0 0 auto',
-              'font-size': '0.68rem',
-              'color': 'var(--hui-muted)',
-            },
-          ),
-          <Widget>[Text(hint)],
-        ),
-    ],
-  );
 
   Widget _typeIcon(String type, bool active) => switch (type) {
     'button' => ArcaneIcon.mousePointerClick(size: IconSize.sm),

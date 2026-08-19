@@ -46,6 +46,23 @@ void main() {
       expect(store.isPreviewDoc, isFalse);
       expect(store.previewDoc, isNull);
     });
+
+    test(
+      'duplicateDocument preserves source and creates a unique root copy',
+      () {
+        final EditorStore store = _store(_FakeStorage());
+        final WorkspaceDoc source = store.workspace.active!;
+        final String sourceJson = source.json;
+        final WorkspaceDoc? copy = store.duplicateDocument(source.id);
+        expect(copy, isNotNull);
+        expect(copy!.id, isNot(source.id));
+        expect(copy.runtimeId, isNot(source.runtimeId));
+        expect(copy.json, sourceJson);
+        expect(copy.folderId, isNull);
+        expect(store.workspace.activeId, copy.id);
+        expect(store.docKind, source.kind);
+      },
+    );
   });
 
   group('importJson auto-detection', () {

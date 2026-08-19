@@ -91,7 +91,7 @@ void main() {
       );
       expect(decoded.error, isNull);
       expect(decoded.workspaceCheck?.documentCount, 3);
-      expect(decoded.workspaceCheck?.folderCount, 3);
+      expect(decoded.workspaceCheck?.folderCount, 2);
       expect(decoded.bundle?.images.single.path, 'shops/icon.png');
 
       final ImageLibrary targetImages = ImageLibrary(autoLoad: false);

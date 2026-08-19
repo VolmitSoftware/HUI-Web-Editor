@@ -2199,6 +2199,27 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     return true;
   }
 
+  WorkspaceDoc? duplicateDocument(String docId) {
+    final WorkspaceDoc? source = workspace.byId(docId);
+    if (source == null || !workspace.canWrite) return null;
+    flushAutosave();
+    final String? runtimeId = source.runtimeId == null
+        ? null
+        : _availableRuntimeId(
+            source.kind,
+            sanitizeMenuId('${source.runtimeId}-copy'),
+          );
+    final WorkspaceDoc copy = workspace.create(
+      title: '${source.title} copy',
+      runtimeId: runtimeId,
+      json: source.json,
+      kind: source.kind,
+      folderId: source.folderId,
+    );
+    _adoptActiveDocument();
+    return copy;
+  }
+
   bool deleteDocument(String docId) {
     final bool wasActive = docId == workspace.activeId;
     if (!workspace.delete(docId)) return false;

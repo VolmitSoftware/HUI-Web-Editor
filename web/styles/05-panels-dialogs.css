@@ -320,6 +320,20 @@
   white-space: nowrap;
 }
 
+.hui-rail-rename {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 4px;
+  margin: 3px 6px 7px 28px;
+  align-items: center;
+}
+
+.hui-rail-rename .arcane-button {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+}
+
 .hui-rail-empty { padding: var(--hui-space-3) var(--hui-space-1); }
 
 .hui-two-step { display: inline-flex; align-items: center; gap: 4px; }

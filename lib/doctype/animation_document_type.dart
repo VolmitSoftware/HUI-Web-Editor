@@ -1,6 +1,7 @@
 library;
 
-import 'package:arcane_jaspr/arcane_jaspr.dart' show ArcaneIcon, IconSize, Widget;
+import 'package:arcane_jaspr/arcane_jaspr.dart'
+    show ArcaneIcon, IconSize, Widget;
 
 import '../config/gloss_templates.dart';
 import '../logic/animation_validation.dart';

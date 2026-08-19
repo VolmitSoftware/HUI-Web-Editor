@@ -1,6 +1,7 @@
 library;
 
-import 'package:arcane_jaspr/arcane_jaspr.dart' show ArcaneIcon, IconSize, Widget;
+import 'package:arcane_jaspr/arcane_jaspr.dart'
+    show ArcaneIcon, IconSize, Widget;
 
 import '../logic/validation.dart' show HuiIssue;
 import '../state/editor_store.dart';
@@ -46,15 +47,12 @@ final class PanelDocumentType extends DocumentTypeAdapter {
   Widget railIcon() => ArcaneIcon.workflow(size: IconSize.sm);
 
   @override
-  void createNew(
-    EditorStore store, {
-    required String folderId,
-    String? runtimeId,
-  }) => store.newPanelDocument(
-    name: 'Menu flow map',
-    folderId: folderId,
-    scopeFolderId: folderId,
-  );
+  void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>
+      store.newPanelDocument(
+        name: 'Menu flow map',
+        folderId: folderId,
+        scopeFolderId: folderId,
+      );
 
   @override
   AdoptedDocument adopt(WorkspaceDoc doc) =>

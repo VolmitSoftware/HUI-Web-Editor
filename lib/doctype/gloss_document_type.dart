@@ -54,15 +54,12 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
   bool get sourcePreserving => false;
 
   @override
-  void createNew(
-    EditorStore store, {
-    required String folderId,
-    String? runtimeId,
-  }) => store.newGlossDocument(
-    this,
-    name: runtimeId ?? defaultDocumentName,
-    folderId: folderId,
-  );
+  void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>
+      store.newGlossDocument(
+        this,
+        name: runtimeId ?? defaultDocumentName,
+        folderId: folderId,
+      );
 
   @override
   AdoptedDocument adopt(WorkspaceDoc doc) {

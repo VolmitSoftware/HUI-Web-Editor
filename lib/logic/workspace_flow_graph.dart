@@ -75,7 +75,7 @@ WorkspaceFlowGraph buildWorkspaceFlowGraph(
       .toList(growable: false);
   final _WorkspaceScope scope = _resolveScope(workspace, panel.scopeFolderId);
   final List<WorkspaceDoc> documents = allMenus
-      .where((WorkspaceDoc doc) => scope.folderIds.contains(doc.folderId))
+      .where((WorkspaceDoc doc) => scope.includes(doc.folderId))
       .toList();
   documents.sort(_compareDocuments);
 
@@ -368,14 +368,22 @@ Set<String> _cycleDocumentIds(
 
 _WorkspaceScope _resolveScope(Workspace workspace, String? rootFolderId) {
   if (rootFolderId == null) {
-    return _WorkspaceScope(<String>{
-      for (final WorkspaceFolder folder in workspace.folders) folder.id,
-    }, false);
+    return _WorkspaceScope(
+      <String>{
+        for (final WorkspaceFolder folder in workspace.folders) folder.id,
+      },
+      false,
+      includesRoot: true,
+    );
   }
   if (workspace.folderById(rootFolderId) == null) {
-    return _WorkspaceScope(<String>{
-      for (final WorkspaceFolder folder in workspace.folders) folder.id,
-    }, true);
+    return _WorkspaceScope(
+      <String>{
+        for (final WorkspaceFolder folder in workspace.folders) folder.id,
+      },
+      true,
+      includesRoot: true,
+    );
   }
   final Set<String> ids = <String>{rootFolderId};
   bool changed = true;
@@ -416,8 +424,16 @@ class _NavigationReference {
 }
 
 class _WorkspaceScope {
-  const _WorkspaceScope(this.folderIds, this.missing);
+  const _WorkspaceScope(
+    this.folderIds,
+    this.missing, {
+    this.includesRoot = false,
+  });
 
   final Set<String> folderIds;
   final bool missing;
+  final bool includesRoot;
+
+  bool includes(String? folderId) =>
+      folderId == null ? includesRoot : folderIds.contains(folderId);
 }

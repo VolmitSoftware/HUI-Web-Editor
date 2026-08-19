@@ -1,6 +1,7 @@
 library;
 
-import 'package:arcane_jaspr/arcane_jaspr.dart' show ArcaneIcon, IconSize, Widget;
+import 'package:arcane_jaspr/arcane_jaspr.dart'
+    show ArcaneIcon, IconSize, Widget;
 
 import '../config/defaults.dart';
 import '../config/templates.dart';
@@ -54,15 +55,12 @@ final class MenuDocumentType extends DocumentTypeAdapter {
   Widget createIcon() => ArcaneIcon.filePlus(size: IconSize.sm);
 
   @override
-  void createNew(
-    EditorStore store, {
-    required String folderId,
-    String? runtimeId,
-  }) => store.newDocument(
-    name: 'New menu',
-    runtimeId: runtimeId,
-    folderId: folderId,
-  );
+  void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>
+      store.newDocument(
+        name: 'New menu',
+        runtimeId: runtimeId,
+        folderId: folderId,
+      );
 
   @override
   AdoptedDocument adopt(WorkspaceDoc doc) {
@@ -111,7 +109,9 @@ final class MenuDocumentType extends DocumentTypeAdapter {
     return validateHuiMenu(
       state.menu,
       knownImagePaths: state.images?.paths,
-      knownMaterials: state.catalogs.loaded ? state.catalogs.materialKeys : null,
+      knownMaterials: state.catalogs.loaded
+          ? state.catalogs.materialKeys
+          : null,
       knownSounds: state.catalogs.loaded ? state.catalogs.soundKeys : null,
       customItems: state.catalogs.customItems,
       overlaps: scene.overlaps,

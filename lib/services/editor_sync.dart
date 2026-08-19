@@ -35,10 +35,12 @@ const String _panelWireKind = 'panel';
 /// The workspace document kinds behind the supported wire kinds. Wire slugs
 /// are deliberately independent of [WorkspaceDocKind] names; this is the one
 /// place the two vocabularies meet.
-final WorkspaceDocKind _menuDocKind =
-    DocumentTypeRegistry.byWireKind(_menuWireKind)!.kind;
-final WorkspaceDocKind _panelDocKind =
-    DocumentTypeRegistry.byWireKind(_panelWireKind)!.kind;
+final WorkspaceDocKind _menuDocKind = DocumentTypeRegistry.byWireKind(
+  _menuWireKind,
+)!.kind;
+final WorkspaceDocKind _panelDocKind = DocumentTypeRegistry.byWireKind(
+  _panelWireKind,
+)!.kind;
 const int huiEditorSyncMaxProjectBytes = 32 * 1024 * 1024;
 const int huiEditorSyncMaxDocuments = 512;
 const int huiEditorSyncMaxResponseEnvelopeBytes = 256 * 1024;
@@ -342,8 +344,7 @@ final class EditorSyncProject {
     }
     if (!_isSorted(
       documents.map(
-        (EditorSyncDocument document) =>
-            '${document.kind}\u0000${document.id}',
+        (EditorSyncDocument document) => '${document.kind}\u0000${document.id}',
       ),
     )) {
       throw const FormatException(
@@ -551,7 +552,10 @@ final class EditorSyncProject {
     if (entry is! Map ||
         entry.keys.any(
           (Object? key) =>
-              key != 'kind' && key != 'id' && key != 'revision' && key != 'json',
+              key != 'kind' &&
+              key != 'id' &&
+              key != 'revision' &&
+              key != 'json',
         )) {
       throw const FormatException('Invalid Gloss sync document entry.');
     }
@@ -1139,20 +1143,21 @@ Future<EditorSyncBinding> importEditorSyncProject({
 
   final String workspaceRollback = workspace.createRollbackSnapshot();
   try {
-    final String folderId;
-    if (boardMatches.isNotEmpty) {
-      folderId = boardMatches.single.folderId;
-    } else if (project.kind == _panelWireKind) {
-      folderId = workspace.createFolder(title: project.subjectId).id;
+    final String? folderId;
+    if (project.kind == _panelWireKind) {
+      folderId = boardMatches.isNotEmpty
+          ? boardMatches.single.folderId ??
+                workspace.createFolder(title: project.subjectId).id
+          : workspace.createFolder(title: project.subjectId).id;
     } else {
-      folderId = workspace.unfiledFolderId;
+      folderId = null;
     }
     final Map<String, String> menuDocumentIds = <String, String>{};
     for (final EditorSyncDocument menu in projectMenus) {
       final List<WorkspaceDoc> existing = matches[menu.id] ?? <WorkspaceDoc>[];
       if (existing.isNotEmpty) {
         final WorkspaceDoc doc = existing.single;
-        final String targetFolderId = project.kind == _menuWireKind
+        final String? targetFolderId = project.kind == _menuWireKind
             ? doc.folderId
             : folderId;
         final String targetTitle = project.kind == _menuWireKind
@@ -1460,9 +1465,7 @@ EditorSyncProject collectEditorSyncProject({
   for (final MapEntry<String, String> entry
       in binding.menuDocumentIds.entries) {
     final WorkspaceDoc? doc = workspace.byId(entry.value);
-    if (doc == null ||
-        doc.kind != _menuDocKind ||
-        doc.runtimeId != entry.key) {
+    if (doc == null || doc.kind != _menuDocKind || doc.runtimeId != entry.key) {
       throw EditorSyncFailure(
         'The bound menu ${entry.key} is missing or renamed.',
       );
@@ -2281,6 +2284,7 @@ final RegExp _revisionPattern = RegExp(r'^sha256:[0-9a-f]{64}$');
 /// no relay change — just an editor-side codec.
 final RegExp editorSyncKindPattern = RegExp(r'^[a-z][a-z0-9-]{0,31}$');
 final RegExp _capabilityPattern = RegExp(r'^[A-Za-z0-9_-]{22,128}$');
+
 /// Matches player open-menu commands for panel reachability collection.
 /// Accepts both the Gloss command tree and the retired HoloUi spellings,
 /// because imported legacy menus still carry the old command strings.

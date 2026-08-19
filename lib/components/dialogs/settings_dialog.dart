@@ -12,15 +12,12 @@ import 'package:jaspr/jaspr.dart' show ListenableBuilder;
 
 import '../../services/catalogs.dart';
 import '../../services/file_transfer.dart';
+import '../../services/local_data_reset.dart';
 import '../../services/storage_service.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import '../panels/two_step_button.dart';
 import 'dialog_parts.dart';
-
-/// Mirrors the key in `lib/theme/theme_state.dart`. Only re-stamped here, never
-/// read: the shell owns the brightness.
-const String _themeStorageKey = 'gloss.theme';
 
 class SettingsDialog extends StatelessWidget {
   const SettingsDialog({
@@ -47,37 +44,15 @@ class SettingsDialog extends StatelessWidget {
   /// flags), then storage is dropped, then the in-memory state is rebuilt from
   /// the now empty keys.
   Future<void> _resetLocalData() async {
-    store.flushAutosave();
-    final bool reset = await store.workspace.reset();
-    if (!reset) {
-      toast.error(
-        store.workspace.lastError ?? 'Browser storage refused the reset.',
-      );
-      return;
-    }
-    final bool imagesCleared = store.images?.clear() ?? true;
-    final bool localStorageCleared = StorageService.clearAll();
-    // The brightness belongs to the shell, not to the document data, so it is
-    // re-stamped: a reload after a reset keeps the theme on screen.
-    final bool themeSaved = StorageService.write(
-      _themeStorageKey,
-      isDarkMode ? 'dark' : 'light',
+    final LocalDataResetResult result = await resetAllLocalEditorData(
+      store,
+      isDarkMode: isDarkMode,
     );
-    store.images?.load();
-    store.resetLocalPreferences();
-    final bool documentCreated = store.newDocument();
-    await store.workspace.writesSettled;
-    final bool workspaceReady =
-        documentCreated && !store.workspace.hasUnsavedChanges;
-    if (imagesCleared && localStorageCleared && themeSaved && workspaceReady) {
-      toast.warning('Local data cleared. A new empty workspace is ready.');
-      return;
+    if (result.success) {
+      toast.warning(result.message);
+    } else {
+      toast.error(result.message);
     }
-    toast.error(
-      'The workspace was reset, but some browser data could not be cleared or '
-      'the new empty document could not be saved. Reload and verify local data '
-      'before continuing.',
-    );
   }
 
   @override

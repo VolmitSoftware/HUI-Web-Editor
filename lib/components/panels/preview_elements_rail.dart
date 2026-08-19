@@ -13,6 +13,7 @@
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
+import 'package:arcane_jaspr/core/dom_value.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show ListenableBuilder;
 
@@ -33,6 +34,8 @@ class PreviewElementsRail extends StatefulWidget {
 
 class _PreviewElementsRailState extends State<PreviewElementsRail> {
   int? _armedDeleteIndex;
+  int? _menuIndex;
+  HuiActionMenuPoint _menuPoint = const HuiActionMenuPoint(8, 8);
   bool _typesOpen = false;
 
   EditorStore get _store => component.store;
@@ -74,6 +77,8 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
               _row(i, elements[i], elements.length),
           ],
         ),
+      if (_menuIndex != null && _menuIndex! < elements.length)
+        _elementMenu(elements.length),
     ]);
   }
 
@@ -205,6 +210,13 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
             selected ? 'is-selected' : null,
             armed ? 'is-armed' : null,
           ]),
+          events: <String, void Function(Object)>{
+            'contextmenu': (Object event) => _openElementMenu(
+              index,
+              triggerId: _menuTriggerId(index),
+              event: event,
+            ),
+          },
           <Widget>[
             dom.button(
               classes: 'hui-rail-main',
@@ -289,21 +301,76 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                 Button(
                   variant: ButtonVariant.ghost,
                   size: ButtonSize.iconSm,
-                  onPressed: () => _store.duplicatePreviewElement(index),
+                  id: _menuTriggerId(index),
+                  onPressed: () =>
+                      _openElementMenu(index, triggerId: _menuTriggerId(index)),
                   attributes: <String, String>{
-                    'aria-label': 'Duplicate $label',
+                    'aria-label': 'Actions for $label',
+                    'aria-haspopup': 'menu',
+                    'aria-expanded': _menuIndex == index ? 'true' : 'false',
+                    'data-arcane-interactive': 'true',
                   },
-                  child: ArcaneIcon.copy(size: IconSize.sm),
-                ),
-                Button(
-                  variant: ButtonVariant.ghost,
-                  size: ButtonSize.iconSm,
-                  onPressed: () => setState(() => _armedDeleteIndex = index),
-                  attributes: <String, String>{'aria-label': 'Delete $label'},
-                  child: ArcaneIcon.trash2(size: IconSize.sm),
+                  child: ArcaneIcon.ellipsisVertical(size: IconSize.sm),
                 ),
               ]),
           ],
+        ),
+      ],
+    );
+  }
+
+  String _menuTriggerId(int index) => 'hui-preview-element-actions-$index';
+
+  void _openElementMenu(int index, {required String triggerId, Object? event}) {
+    if (event != null) {
+      domPreventDefault(event);
+      domStopPropagation(event);
+    }
+    final HuiActionMenuPoint point = event == null
+        ? huiActionMenuAnchor(triggerId)
+        : huiActionMenuEventPoint(event);
+    _store.selectPreviewElement(index);
+    setState(() {
+      _menuIndex = index;
+      _menuPoint = point;
+      _armedDeleteIndex = null;
+    });
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu('hui-preview-element-menu');
+    });
+  }
+
+  Widget _elementMenu(int total) {
+    final int index = _menuIndex!;
+    return HuiActionMenu(
+      id: 'hui-preview-element-menu',
+      label: 'Actions for preview element ${index + 1}',
+      point: _menuPoint,
+      onClose: () => setState(() => _menuIndex = null),
+      items: <HuiActionMenuItem>[
+        HuiActionMenuItem(
+          label: 'Duplicate',
+          icon: ArcaneIcon.copy(size: IconSize.sm),
+          onSelect: () => _store.duplicatePreviewElement(index),
+        ),
+        HuiActionMenuItem(
+          label: 'Move to top',
+          icon: ArcaneIcon.arrowUp(size: IconSize.sm),
+          disabled: index == 0,
+          onSelect: () => _store.reorderPreviewElement(index, 0),
+        ),
+        HuiActionMenuItem(
+          label: 'Move to bottom',
+          icon: ArcaneIcon.arrowDown(size: IconSize.sm),
+          disabled: index >= total - 1,
+          onSelect: () => _store.reorderPreviewElement(index, total - 1),
+        ),
+        HuiActionMenuItem(
+          label: 'Delete element',
+          icon: ArcaneIcon.trash2(size: IconSize.sm),
+          destructive: true,
+          separatorBefore: true,
+          onSelect: () => setState(() => _armedDeleteIndex = index),
         ),
       ],
     );

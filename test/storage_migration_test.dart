@@ -29,7 +29,7 @@ Map<String, dynamic> _workspacePayload() => <String, dynamic>{
   'folders': <Map<String, dynamic>>[
     <String, dynamic>{
       'id': '00000000-0000-4000-8000-000000000002',
-      'title': Workspace.unfiledTitle,
+      'title': 'Unfiled',
       'parentId': null,
       'updatedAt': 0,
     },
@@ -113,6 +113,8 @@ void main() {
 
       expect(workspace.docs, hasLength(1));
       expect(workspace.active?.runtimeId, 'village-store');
+      expect(workspace.docs.single.folderId, isNull);
+      expect(workspace.folders, isEmpty);
       expect(StorageService.read(Workspace.storageKey), payload);
     });
 

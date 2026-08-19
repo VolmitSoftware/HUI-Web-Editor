@@ -117,7 +117,7 @@ void main() {
   });
 
   group('v1 migration', () {
-    test('atomically migrates every valid document into Unfiled', () {
+    test('atomically migrates every valid document into the root', () {
       final _FakeStorage storage = _FakeStorage();
       storage.values[Workspace.legacyStorageKey] = jsonEncode(<String, dynamic>{
         'docs': <Map<String, dynamic>>[
@@ -140,13 +140,10 @@ void main() {
 
       final Workspace workspace = _workspace(storage);
       expect(workspace.docs, hasLength(2));
-      expect(workspace.folders, hasLength(1));
-      expect(workspace.folders.single.title, Workspace.unfiledTitle);
+      expect(workspace.folders, isEmpty);
       expect(
         workspace.docs.every(
-          (WorkspaceDoc doc) =>
-              doc.folderId == workspace.unfiledFolderId &&
-              isWorkspaceUuid(doc.id),
+          (WorkspaceDoc doc) => doc.folderId == null && isWorkspaceUuid(doc.id),
         ),
         isTrue,
       );
@@ -159,7 +156,7 @@ void main() {
       final Map<String, dynamic> decoded =
           jsonDecode(v2!) as Map<String, dynamic>;
       expect(decoded['schemaVersion'], Workspace.schemaVersion);
-      expect(decoded['folders'], hasLength(1));
+      expect(decoded['folders'], isEmpty);
       expect(decoded['documents'], hasLength(2));
       expect(storage.writeCount, 1);
     });
@@ -221,7 +218,7 @@ void main() {
       final Workspace workspace = _workspace(storage);
       expect(workspace.docs, isEmpty);
       expect(workspace.lastError, isNotNull);
-      expect(workspace.folders.single.title, Workspace.unfiledTitle);
+      expect(workspace.folders, isEmpty);
     });
 
     test('a future schema version is left untouched', () {
@@ -267,7 +264,7 @@ void main() {
       final Workspace workspace = _workspace(storage);
       expect(workspace.docs, hasLength(1));
       expect(workspace.docs.single.runtimeId, 'good');
-      expect(workspace.docs.single.folderId, workspace.unfiledFolderId);
+      expect(workspace.docs.single.folderId, isNull);
       expect(workspace.lastError, contains('repaired or skipped'));
     });
 
@@ -280,7 +277,7 @@ void main() {
         'folders': <Object?>[
           <String, dynamic>{
             'id': '00000000-0000-4000-8000-000000000002',
-            'title': Workspace.unfiledTitle,
+            'title': 'Unfiled',
             'parentId': null,
             'updatedAt': 0,
           },
@@ -296,7 +293,7 @@ void main() {
       });
 
       final Workspace workspace = _workspace(storage);
-      expect(workspace.folders, hasLength(1));
+      expect(workspace.folders, isEmpty);
       expect(
         workspace.folderById('00000000-0000-4000-8000-000000000003'),
         isNull,
@@ -421,14 +418,8 @@ void main() {
       );
       expect(workspace.moveFolder(parent.id, child.id), isFalse);
       expect(parent.parentId, isNull);
-      expect(
-        workspace.moveFolder(workspace.unfiledFolderId, parent.id),
-        isFalse,
-      );
-      expect(
-        workspace.renameFolder(workspace.unfiledFolderId, 'Renamed'),
-        isFalse,
-      );
+      expect(workspace.moveFolder('missing', parent.id), isFalse);
+      expect(workspace.renameFolder('missing', 'Renamed'), isFalse);
     });
 
     test('deleting a folder rehomes its children instead of deleting them', () {
@@ -446,9 +437,8 @@ void main() {
       );
       expect(workspace.deleteFolder(parent.id), isTrue);
       expect(workspace.folderById(parent.id), isNull);
-      expect(child.parentId, workspace.unfiledFolderId);
-      expect(doc.folderId, workspace.unfiledFolderId);
-      expect(workspace.deleteFolder(workspace.unfiledFolderId), isFalse);
+      expect(child.parentId, isNull);
+      expect(doc.folderId, isNull);
     });
 
     test('deleting a nested folder rehomes documents to its parent', () {

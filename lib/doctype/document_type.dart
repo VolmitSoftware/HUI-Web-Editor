@@ -17,7 +17,8 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart' show Widget;
 
 import '../logic/canvas_scene.dart';
-import '../logic/gloss_text.dart' show GlossAnimationResolver, GlossEmojiResolver;
+import '../logic/gloss_text.dart'
+    show GlossAnimationResolver, GlossEmojiResolver;
 import '../logic/validation.dart' show HuiIssue;
 import '../model/model.dart';
 import '../services/catalogs.dart';
@@ -192,8 +193,9 @@ abstract class DocumentTypeAdapter {
   Widget createIcon() => railIcon();
 
   /// Creates a fresh document of this kind in [folderId] and adopts it.
+  /// A null folder places the document at the workspace root.
   /// [runtimeId] overrides the default id for kinds that have one.
-  void createNew(EditorStore store, {required String folderId, String? runtimeId});
+  void createNew(EditorStore store, {String? folderId, String? runtimeId});
 
   /// Decodes [doc] for adoption. Never throws: an unreadable document comes
   /// back as a default replacement model with [AdoptedDocument.failure] set.

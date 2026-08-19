@@ -14,6 +14,8 @@ import '../../state/workspace_route.dart';
 import '../../services/clipboard.dart';
 import '../../services/editor_sync.dart';
 import '../../services/file_transfer.dart';
+import '../../services/local_data_reset.dart';
+import '../../services/showcase_randomizer.dart';
 import '../../services/workspace_location.dart';
 import '../common/common.dart';
 
@@ -24,12 +26,14 @@ class EditorRail extends StatefulWidget {
     required this.store,
     required this.contents,
     this.syncBinding,
+    this.isDarkMode = true,
     super.key,
   });
 
   final EditorStore store;
   final Widget contents;
   final EditorSyncBinding? syncBinding;
+  final bool isDarkMode;
 
   @override
   State<EditorRail> createState() => _EditorRailState();
@@ -42,12 +46,18 @@ class _EditorRailState extends State<EditorRail> {
   String? _editingId;
   String? _movingId;
   String? _armedDeleteId;
+  String? _menuItemId;
+  String? _menuTriggerId;
+  HuiActionMenuPoint _menuPoint = const HuiActionMenuPoint(8, 8);
   String? _lastActiveId;
   WorkspaceBundle? _pendingBundle;
   WorkspacePortableStateCheck? _pendingBundleCheck;
   String? _bundleFileName;
   String? _bundleError;
   bool _importingBundle = false;
+  bool _resetArmed = false;
+  bool _resetting = false;
+  String? _lastShowcaseTemplateId;
 
   EditorStore get _store => component.store;
 
@@ -113,6 +123,8 @@ class _EditorRailState extends State<EditorRail> {
       _editingId = null;
       _movingId = null;
       _armedDeleteId = null;
+      _menuItemId = null;
+      _menuTriggerId = null;
       _expandActivePath();
     }
     setState(() {});
@@ -161,12 +173,15 @@ class _EditorRailState extends State<EditorRail> {
         ),
       ]),
       if (library) _library() else component.contents,
+      if (_menuItemId != null) _itemContextMenu(),
     ]);
   }
 
   Widget _library() {
     final List<WorkspaceFolder> roots = _workspace.childFolders(null).toList();
     roots.sort(_compareFolders);
+    final List<WorkspaceDoc> rootDocuments =
+        _workspace.documentsInFolder(null).toList()..sort(_compareDocuments);
     return dom.div(classes: 'hui-library hui-rail-pane', <Widget>[
       dom.div(classes: 'hui-library-inner', <Widget>[
         _header(),
@@ -180,7 +195,8 @@ class _EditorRailState extends State<EditorRail> {
         ]),
         if (_pendingBundle != null || _bundleError != null)
           _bundleImportPrompt(),
-        if (roots.isEmpty)
+        if (_resetArmed) _resetPrompt(),
+        if (roots.isEmpty && rootDocuments.isEmpty)
           const dom.div(classes: 'hui-library-empty', <Widget>[
             Text('Create a folder or document to begin.'),
           ])
@@ -190,6 +206,7 @@ class _EditorRailState extends State<EditorRail> {
             attributes: const <String, String>{'role': 'tree'},
             <Widget>[
               for (final WorkspaceFolder folder in roots) _folder(folder, 0),
+              for (final WorkspaceDoc doc in rootDocuments) _document(doc, 0),
             ],
           ),
       ]),
@@ -209,6 +226,11 @@ class _EditorRailState extends State<EditorRail> {
         icon: ArcaneIcon.folderPlus(size: IconSize.sm),
         onPressed: _createFolder,
       ),
+      _iconButton(
+        label: 'Random Gloss showcase',
+        icon: ArcaneIcon.dices(size: IconSize.sm),
+        onPressed: _createRandomShowcase,
+      ),
       for (final DocumentTypeAdapter type in DocumentTypeRegistry.all)
         _iconButton(
           label: type.createLabel,
@@ -224,6 +246,12 @@ class _EditorRailState extends State<EditorRail> {
         label: 'Export workspace bundle',
         icon: ArcaneIcon.download(size: IconSize.sm),
         onPressed: _exportWorkspaceBundle,
+      ),
+      _iconButton(
+        label: 'Erase all local data',
+        icon: ArcaneIcon.trash2(size: IconSize.sm),
+        onPressed: () => setState(() => _resetArmed = true),
+        destructive: true,
       ),
     ]),
   ]);
@@ -249,6 +277,11 @@ class _EditorRailState extends State<EditorRail> {
           ),
           events: <String, void Function(Object)>{
             'click': (Object _) => _select(folder.id),
+            'contextmenu': (Object event) => _openItemMenu(
+              folder.id,
+              event: event,
+              triggerId: _folderMenuTriggerId(folder.id),
+            ),
           },
           <Widget>[
             dom.button(
@@ -282,9 +315,14 @@ class _EditorRailState extends State<EditorRail> {
             dom.span(classes: 'hui-library-count', <Widget>[
               Text('${children.length + documents.length}'),
             ]),
+            _rowMenuButton(
+              itemId: folder.id,
+              label: folder.title,
+              triggerId: _folderMenuTriggerId(folder.id),
+            ),
           ],
         ),
-        if (selected) _folderActions(folder),
+        if (selected && _hasOpenEditor(folder.id)) _folderActions(folder),
         if (expanded)
           dom.div(classes: 'hui-library-children', <Widget>[
             for (final WorkspaceFolder child in children)
@@ -308,59 +346,76 @@ class _EditorRailState extends State<EditorRail> {
       key: ValueKey<String>('workspace-document-${doc.id}'),
       classes: 'hui-library-document',
       <Widget>[
-        dom.button(
+        dom.div(
           classes:
               'hui-library-row is-document${selected ? ' is-selected' : ''}'
               '${active ? ' is-active' : ''}',
           styles: dom.Styles(
             raw: <String, String>{'--hui-tree-depth': '$depth'},
           ),
-          attributes: <String, String>{
-            'type': 'button',
-            'aria-current': active ? 'page' : 'false',
-          },
           events: <String, void Function(Object)>{
-            'click': (Object _) {
-              _select(doc.id);
-              _store.openDocument(doc.id);
-            },
+            'contextmenu': (Object event) => _openItemMenu(
+              doc.id,
+              event: event,
+              triggerId: _documentMenuTriggerId(doc.id),
+            ),
           },
           <Widget>[
-            const dom.span(classes: 'hui-library-document-spacer', <Widget>[]),
-            _documentIcon(doc.kind),
-            dom.span(classes: 'hui-library-document-copy', <Widget>[
-              dom.span(classes: 'hui-library-label', <Widget>[Text(doc.title)]),
-              dom.code(<Widget>[
-                Text(doc.runtimeId ?? 'editor-only flow map'),
-              ]),
-            ]),
-            if (conflict)
-              dom.span(
-                classes: 'hui-library-warning',
-                attributes: const <String, String>{
-                  'title': 'Duplicate runtime id',
+            dom.button(
+              classes: 'hui-library-row-primary',
+              attributes: <String, String>{
+                'type': 'button',
+                'aria-current': active ? 'page' : 'false',
+              },
+              events: <String, void Function(Object)>{
+                'click': (Object _) {
+                  _select(doc.id);
+                  _store.openDocument(doc.id);
                 },
-                <Widget>[ArcaneIcon.triangleAlert(size: IconSize.sm)],
-              ),
-            if (active)
-              const dom.span(
-                classes: 'hui-library-active-dot',
-                attributes: <String, String>{'aria-label': 'Open'},
-                <Widget>[],
-              ),
+              },
+              <Widget>[
+                const dom.span(
+                  classes: 'hui-library-document-spacer',
+                  <Widget>[],
+                ),
+                _documentIcon(doc.kind),
+                dom.span(classes: 'hui-library-document-copy', <Widget>[
+                  dom.span(classes: 'hui-library-label', <Widget>[
+                    Text(doc.title),
+                  ]),
+                  dom.code(<Widget>[
+                    Text(doc.runtimeId ?? 'editor-only flow map'),
+                  ]),
+                ]),
+                if (conflict)
+                  dom.span(
+                    classes: 'hui-library-warning',
+                    attributes: const <String, String>{
+                      'title': 'Duplicate runtime id',
+                    },
+                    <Widget>[ArcaneIcon.triangleAlert(size: IconSize.sm)],
+                  ),
+                if (active)
+                  const dom.span(
+                    classes: 'hui-library-active-dot',
+                    attributes: <String, String>{'aria-label': 'Open'},
+                    <Widget>[],
+                  ),
+              ],
+            ),
+            _rowMenuButton(
+              itemId: doc.id,
+              label: doc.title,
+              triggerId: _documentMenuTriggerId(doc.id),
+            ),
           ],
         ),
-        if (selected) _documentActions(doc),
+        if (selected && _hasOpenEditor(doc.id)) _documentActions(doc),
       ],
     );
   }
 
   Widget _folderActions(WorkspaceFolder folder) {
-    if (folder.id == _workspace.unfiledFolderId) {
-      return const dom.div(classes: 'hui-library-editor is-system', <Widget>[
-        Text('Unfiled is the protected fallback folder.'),
-      ]);
-    }
     return _itemEditor(
       id: folder.id,
       title: folder.title,
@@ -393,15 +448,20 @@ class _EditorRailState extends State<EditorRail> {
     onRenameRuntimeId: doc.runtimeId == null
         ? null
         : (String value) => _renameRuntimeId(doc, value),
-    moveValue: doc.folderId,
+    moveValue: doc.folderId ?? _rootFolderValue,
     moveOptions: <ArcaneSelectOption>[
+      const ArcaneSelectOption(
+        label: 'Workspace root',
+        value: _rootFolderValue,
+      ),
       for (final WorkspaceFolder destination in _sortedFolders())
         ArcaneSelectOption(
           label: _folderPath(destination),
           value: destination.id,
         ),
     ],
-    onMove: (String value) => _moveDocument(doc, value),
+    onMove: (String value) =>
+        _moveDocument(doc, value == _rootFolderValue ? null : value),
     onCopyLink: () => _copyDocumentLink(doc),
     onDelete: () => _store.deleteDocument(doc.id),
   );
@@ -531,24 +591,205 @@ class _EditorRailState extends State<EditorRail> {
     ]);
   }
 
+  bool _hasOpenEditor(String id) =>
+      _editingId == id || _movingId == id || _armedDeleteId == id;
+
+  String _folderMenuTriggerId(String id) => 'hui-folder-actions-$id';
+
+  String _documentMenuTriggerId(String id) => 'hui-document-actions-$id';
+
+  String get _itemMenuId => 'hui-library-item-menu';
+
+  Widget _rowMenuButton({
+    required String itemId,
+    required String label,
+    required String triggerId,
+  }) => dom.button(
+    id: triggerId,
+    classes: 'hui-library-row-menu',
+    attributes: <String, String>{
+      'type': 'button',
+      'aria-label': 'Actions for $label',
+      'aria-haspopup': 'menu',
+      'aria-expanded': _menuItemId == itemId ? 'true' : 'false',
+      'aria-controls': _itemMenuId,
+      'data-arcane-interactive': 'true',
+    },
+    events: <String, void Function(Object)>{
+      'click': (Object event) {
+        domStopPropagation(event);
+        _openItemMenu(itemId, triggerId: triggerId);
+      },
+    },
+    <Widget>[ArcaneIcon.ellipsisVertical(size: IconSize.sm)],
+  );
+
+  void _openItemMenu(
+    String itemId, {
+    Object? event,
+    required String triggerId,
+  }) {
+    if (event != null) {
+      domPreventDefault(event);
+      domStopPropagation(event);
+    }
+    final HuiActionMenuPoint point = event == null
+        ? huiActionMenuAnchor(triggerId)
+        : huiActionMenuEventPoint(event);
+    setState(() {
+      _selectedId = itemId;
+      _menuItemId = itemId;
+      _menuTriggerId = triggerId;
+      _menuPoint = point;
+      _editingId = null;
+      _movingId = null;
+      _armedDeleteId = null;
+    });
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu(_itemMenuId);
+    });
+  }
+
+  void _closeItemMenu({bool restoreFocus = false}) {
+    final String? triggerId = _menuTriggerId;
+    setState(() {
+      _menuItemId = null;
+      _menuTriggerId = null;
+    });
+    if (!restoreFocus || triggerId == null) return;
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu(triggerId);
+    });
+  }
+
+  Widget _itemContextMenu() {
+    final String? id = _menuItemId;
+    final WorkspaceFolder? folder = _workspace.folderById(id);
+    final WorkspaceDoc? doc = _workspace.byId(id);
+    if (id == null || (folder == null && doc == null)) {
+      return const dom.span(<Widget>[]);
+    }
+    final String label = folder?.title ?? doc!.title;
+    return HuiActionMenu(
+      id: _itemMenuId,
+      label: 'Actions for $label',
+      point: _menuPoint,
+      onClose: () => _closeItemMenu(),
+      items: folder != null
+          ? _folderMenuItems(folder)
+          : _documentMenuItems(doc!),
+    );
+  }
+
+  List<HuiActionMenuItem> _folderMenuItems(WorkspaceFolder folder) =>
+      <HuiActionMenuItem>[
+        HuiActionMenuItem(
+          label: 'New folder here',
+          icon: ArcaneIcon.folderPlus(size: IconSize.sm),
+          onSelect: _createFolder,
+        ),
+        HuiActionMenuItem(
+          label: 'New menu here',
+          icon: ArcaneIcon.filePlus(size: IconSize.sm),
+          onSelect: () => _createDocument(DocumentTypes.menu),
+        ),
+        HuiActionMenuItem(
+          label: 'Rename',
+          icon: ArcaneIcon.pencil(size: IconSize.sm),
+          separatorBefore: true,
+          onSelect: () => setState(() => _editingId = folder.id),
+        ),
+        HuiActionMenuItem(
+          label: 'Move',
+          icon: ArcaneIcon.folderInput(size: IconSize.sm),
+          onSelect: () => setState(() => _movingId = folder.id),
+        ),
+        HuiActionMenuItem(
+          label: 'Delete folder',
+          hint: 'Keeps contents',
+          icon: ArcaneIcon.trash2(size: IconSize.sm),
+          destructive: true,
+          separatorBefore: true,
+          onSelect: () => setState(() => _armedDeleteId = folder.id),
+        ),
+      ];
+
+  List<HuiActionMenuItem> _documentMenuItems(WorkspaceDoc doc) {
+    final bool bound =
+        component.syncBinding?.menuDocumentIds.containsValue(doc.id) ?? false;
+    return <HuiActionMenuItem>[
+      HuiActionMenuItem(
+        label: 'Open',
+        icon: ArcaneIcon.externalLink(size: IconSize.sm),
+        disabled: doc.id == _workspace.activeId,
+        onSelect: () => _store.openDocument(doc.id),
+      ),
+      HuiActionMenuItem(
+        label: 'Rename',
+        icon: ArcaneIcon.pencil(size: IconSize.sm),
+        separatorBefore: true,
+        onSelect: () => setState(() => _editingId = doc.id),
+      ),
+      HuiActionMenuItem(
+        label: 'Duplicate',
+        icon: ArcaneIcon.copy(size: IconSize.sm),
+        disabled: bound,
+        hint: bound ? 'Server bound' : null,
+        onSelect: () {
+          final WorkspaceDoc? copy = _store.duplicateDocument(doc.id);
+          if (copy != null) ArcaneSonner.success('Created ${copy.title}.');
+        },
+      ),
+      HuiActionMenuItem(
+        label: 'Move',
+        icon: ArcaneIcon.folderInput(size: IconSize.sm),
+        onSelect: () => setState(() => _movingId = doc.id),
+      ),
+      HuiActionMenuItem(
+        label: 'Copy link',
+        icon: ArcaneIcon.link(size: IconSize.sm),
+        onSelect: () => _copyDocumentLink(doc),
+      ),
+      HuiActionMenuItem(
+        label: 'Delete document',
+        icon: ArcaneIcon.trash2(size: IconSize.sm),
+        destructive: true,
+        separatorBefore: true,
+        onSelect: () => setState(() => _armedDeleteId = doc.id),
+      ),
+    ];
+  }
+
   Widget _iconButton({
     required String label,
     required Widget icon,
     required void Function() onPressed,
-  }) => Button(
-    variant: ButtonVariant.ghost,
-    size: ButtonSize.iconSm,
-    onPressed: onPressed,
-    attributes: <String, String>{'aria-label': label, 'title': label},
-    child: icon,
-  );
+    bool destructive = false,
+  }) {
+    final Widget button = Button(
+      variant: ButtonVariant.ghost,
+      size: ButtonSize.iconSm,
+      onPressed: onPressed,
+      attributes: <String, String>{'aria-label': label, 'title': label},
+      child: icon,
+    );
+    return destructive
+        ? dom.span(classes: 'hui-library-reset', <Widget>[button])
+        : button;
+  }
 
   Widget _documentIcon(WorkspaceDocKind kind) =>
       DocumentTypeRegistry.of(kind).railIcon();
 
   void _setTab(String? value) {
     for (final _EditorRailTab tab in _EditorRailTab.values) {
-      if (tab.name == value) setState(() => _tab = tab);
+      if (tab.name == value) {
+        setState(() {
+          _tab = tab;
+          _menuItemId = null;
+          _menuTriggerId = null;
+        });
+      }
     }
   }
 
@@ -557,36 +798,38 @@ class _EditorRailState extends State<EditorRail> {
     _editingId = null;
     _movingId = null;
     _armedDeleteId = null;
+    _menuItemId = null;
+    _menuTriggerId = null;
   });
 
   void _toggleFolder(String id) => setState(() {
     if (!_expanded.remove(id)) _expanded.add(id);
   });
 
-  String get _targetFolderId {
+  String? get _targetFolderId {
     final WorkspaceFolder? selectedFolder = _workspace.folderById(_selectedId);
     if (selectedFolder != null) return selectedFolder.id;
     final WorkspaceDoc? selectedDocument = _workspace.byId(_selectedId);
-    return selectedDocument?.folderId ??
-        _workspace.active?.folderId ??
-        _workspace.unfiledFolderId;
+    return selectedDocument?.folderId ?? _workspace.active?.folderId;
   }
 
   void _createFolder() {
+    final WorkspaceFolder? selectedFolder = _workspace.folderById(_selectedId);
+    final String? parentId = selectedFolder?.id;
     final WorkspaceFolder folder = _workspace.createFolder(
       title: 'New folder',
-      parentId: _targetFolderId,
+      parentId: parentId,
     );
     setState(() {
-      _expanded.add(_targetFolderId);
+      if (parentId != null) _expanded.add(parentId);
       _selectedId = folder.id;
       _editingId = folder.id;
     });
   }
 
   void _createDocument(DocumentTypeAdapter type) {
-    final String folderId = _targetFolderId;
-    _expanded.add(folderId);
+    final String? folderId = _targetFolderId;
+    if (folderId != null) _expanded.add(folderId);
     type.createNew(
       _store,
       folderId: folderId,
@@ -594,9 +837,24 @@ class _EditorRailState extends State<EditorRail> {
     );
   }
 
+  void _createRandomShowcase() {
+    final ShowcaseSelection? selection = createRandomGlossShowcase(
+      _store,
+      previousTemplateId: _lastShowcaseTemplateId,
+    );
+    if (selection == null) {
+      ArcaneSonner.error('No Gloss showcase templates are available.');
+      return;
+    }
+    _lastShowcaseTemplateId = selection.template.id;
+    ArcaneSonner.success(
+      'Created ${selection.template.name} as a ${selection.type.noun} showcase.',
+    );
+  }
+
   /// A synced world-panel session mints new subject-kind documents inside its
   /// folder under the server's reserved id prefix.
-  String? _syncRuntimeIdOverride(DocumentTypeAdapter type, String folderId) {
+  String? _syncRuntimeIdOverride(DocumentTypeAdapter type, String? folderId) {
     final EditorSyncBinding? binding = component.syncBinding;
     final String? prefix = binding?.constraints.newMenuPrefix;
     if (binding?.kind == 'panel' &&
@@ -628,7 +886,7 @@ class _EditorRailState extends State<EditorRail> {
     _store.renameDocumentRuntimeId(doc.id, canonical);
   }
 
-  void _moveDocument(WorkspaceDoc doc, String folderId) {
+  void _moveDocument(WorkspaceDoc doc, String? folderId) {
     if (folderId == _syncPanelFolderId &&
         doc.kind == DocumentTypes.menu.kind &&
         !_runtimeIdAllowedInSyncPanel(doc.runtimeId)) {
@@ -660,6 +918,65 @@ class _EditorRailState extends State<EditorRail> {
       candidate = '${prefix}new-menu-$suffix';
     }
     return candidate;
+  }
+
+  Widget _resetPrompt() => dom.div(
+    classes: 'hui-library-bundle is-danger',
+    attributes: const <String, String>{'role': 'alert'},
+    <Widget>[
+      const dom.strong(<Widget>[Text('Erase all local editor data?')]),
+      dom.span(<Widget>[
+        Text(
+          '${_workspace.docs.length} documents, '
+          '${_workspace.folders.length} folders and every stored image will '
+          'be removed from this browser.',
+        ),
+      ]),
+      const dom.span(<Widget>[
+        Text('Export a workspace bundle first if anything must be kept.'),
+      ]),
+      dom.div(classes: 'hui-library-bundle-actions', <Widget>[
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          label: 'Export backup',
+          icon: ArcaneIcon.download(size: IconSize.sm),
+          onPressed: _resetting ? null : _exportWorkspaceBundle,
+        ),
+        Button.destructive(
+          size: ButtonSize.sm,
+          label: 'Erase everything',
+          icon: ArcaneIcon.trash2(size: IconSize.sm),
+          loading: _resetting,
+          onPressed: _resetting ? null : _resetAllLocalData,
+        ),
+        Button.ghost(
+          size: ButtonSize.sm,
+          label: 'Cancel',
+          onPressed: _resetting
+              ? null
+              : () => setState(() => _resetArmed = false),
+        ),
+      ]),
+    ],
+  );
+
+  Future<void> _resetAllLocalData() async {
+    setState(() => _resetting = true);
+    final LocalDataResetResult result = await resetAllLocalEditorData(
+      _store,
+      isDarkMode: component.isDarkMode,
+    );
+    if (!mounted) return;
+    setState(() {
+      _resetting = false;
+      if (result.success) _resetArmed = false;
+    });
+    if (result.success) {
+      ArcaneSonner.warning(result.message);
+    } else {
+      ArcaneSonner.error(result.message);
+    }
   }
 
   Widget _bundleImportPrompt() {

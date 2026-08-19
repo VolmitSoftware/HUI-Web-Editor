@@ -735,6 +735,7 @@ class _AppState extends State<App> {
           store: _store,
           contents: ComponentsRail(store: _store),
           syncBinding: _syncBinding,
+          isDarkMode: _brightness == Brightness.dark,
         ),
         canvas: CanvasViewport(
           store: _store,

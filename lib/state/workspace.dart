@@ -103,7 +103,7 @@ class WorkspaceDoc {
   String? runtimeId;
   String json;
   WorkspaceDocKind kind;
-  String folderId;
+  String? folderId;
   int updatedAt;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -125,7 +125,10 @@ class WorkspaceDoc {
     if (id is! String || !isWorkspaceUuid(id)) return null;
     if (json is! String || json.isEmpty || !_isJson(json)) return null;
     if (kind == null) return null;
-    if (folderId is! String || !isWorkspaceUuid(folderId)) return null;
+    if (folderId != null &&
+        (folderId is! String || !isWorkspaceUuid(folderId))) {
+      return null;
+    }
 
     String? runtimeId;
     if (kind.hasRuntimeId) {
@@ -146,7 +149,7 @@ class WorkspaceDoc {
       json: json,
       updatedAt: updatedAt is num ? updatedAt.toInt() : 0,
       kind: kind,
-      folderId: folderId,
+      folderId: folderId as String?,
     );
   }
 }
@@ -236,7 +239,6 @@ class Workspace extends ChangeNotifier {
   /// must also drop these so old data cannot re-migrate after a reset.
   static const String preRebrandStorageKey = 'holoui.workspace.v2';
   static const String preRebrandLegacyStorageKey = 'holoui.workspace.v1';
-  static const String unfiledTitle = 'Unfiled';
 
   final StorageReader read;
   final StorageWriter write;
@@ -246,7 +248,6 @@ class Workspace extends ChangeNotifier {
   final List<WorkspaceDoc> _docs = <WorkspaceDoc>[];
   final List<WorkspaceFolder> _folders = <WorkspaceFolder>[];
   late String _workspaceId;
-  late String _unfiledFolderId;
   String? _activeId;
   String? _lastError;
   bool _quotaExceeded = false;
@@ -277,8 +278,6 @@ class Workspace extends ChangeNotifier {
   }
 
   String get id => _workspaceId;
-
-  String get unfiledFolderId => _unfiledFolderId;
 
   Future<void> get ready => _ready;
 
@@ -372,7 +371,7 @@ class Workspace extends ChangeNotifier {
         _folders.where((WorkspaceFolder folder) => folder.parentId == parentId),
       );
 
-  List<WorkspaceDoc> documentsInFolder(String folderId) =>
+  List<WorkspaceDoc> documentsInFolder(String? folderId) =>
       List<WorkspaceDoc>.unmodifiable(
         _docs.where((WorkspaceDoc doc) => doc.folderId == folderId),
       );
@@ -391,7 +390,7 @@ class Workspace extends ChangeNotifier {
   }) {
     _requireReady();
     _requireWritable();
-    final String targetFolder = folderById(folderId)?.id ?? _unfiledFolderId;
+    final String? targetFolder = folderById(folderId)?.id;
     final String? canonicalRuntimeId = kind.hasRuntimeId
         ? sanitizeMenuId(runtimeId ?? title)
         : null;
@@ -485,10 +484,12 @@ class Workspace extends ChangeNotifier {
     required String title,
     required String json,
     required WorkspaceDocKind kind,
-    required String folderId,
+    String? folderId,
     String? runtimeId,
   }) {
-    if (!canWrite || !_isJson(json) || folderById(folderId) == null) {
+    if (!canWrite ||
+        !_isJson(json) ||
+        (folderId != null && folderById(folderId) == null)) {
       return false;
     }
     final WorkspaceDoc? doc = byId(id);
@@ -533,10 +534,12 @@ class Workspace extends ChangeNotifier {
     return true;
   }
 
-  bool moveDocument(String id, String folderId) {
+  bool moveDocument(String id, String? folderId) {
     if (!canWrite) return false;
     final WorkspaceDoc? doc = byId(id);
-    if (doc == null || folderById(folderId) == null) return false;
+    if (doc == null || (folderId != null && folderById(folderId) == null)) {
+      return false;
+    }
     if (doc.folderId == folderId) return true;
     doc.folderId = folderId;
     doc.updatedAt = _stamp();
@@ -566,10 +569,10 @@ class Workspace extends ChangeNotifier {
   bool renameFolder(String id, String title) {
     if (!canWrite) return false;
     final WorkspaceFolder? folder = folderById(id);
-    if (folder == null || id == _unfiledFolderId) return false;
+    if (folder == null) return false;
     final String normalized = normalizeWorkspaceTitle(
       title,
-      fallback: id == _unfiledFolderId ? unfiledTitle : 'Folder',
+      fallback: 'Folder',
     );
     if (folder.title == normalized) return true;
     folder.title = normalized;
@@ -582,7 +585,7 @@ class Workspace extends ChangeNotifier {
   bool moveFolder(String id, String? parentId) {
     if (!canWrite) return false;
     final WorkspaceFolder? folder = folderById(id);
-    if (folder == null || id == _unfiledFolderId) return false;
+    if (folder == null) return false;
     final String? canonicalParent = parentId == null
         ? null
         : folderById(parentId)?.id;
@@ -601,8 +604,8 @@ class Workspace extends ChangeNotifier {
   bool deleteFolder(String id) {
     if (!canWrite) return false;
     final WorkspaceFolder? folder = folderById(id);
-    if (folder == null || id == _unfiledFolderId) return false;
-    final String replacement = folder.parentId ?? _unfiledFolderId;
+    if (folder == null) return false;
+    final String? replacement = folder.parentId;
     for (final WorkspaceDoc doc in _docs) {
       if (doc.folderId == id) doc.folderId = replacement;
     }
@@ -1084,23 +1087,18 @@ class Workspace extends ChangeNotifier {
       }
     }
 
-    String? unfiledId = decoded['unfiledFolderId'] is String
+    final String? legacyUnfiledId = decoded['unfiledFolderId'] is String
         ? decoded['unfiledFolderId'] as String
         : null;
-    if (unfiledId == null || folderIds.contains(unfiledId) == false) {
-      unfiledId = _newUniqueId(folderIds);
-      folderIds.add(unfiledId);
-      folders.add(
-        WorkspaceFolder(id: unfiledId, title: unfiledTitle, updatedAt: 0),
+    if (legacyUnfiledId != null && folderIds.remove(legacyUnfiledId)) {
+      folders.removeWhere(
+        (WorkspaceFolder folder) => folder.id == legacyUnfiledId,
       );
-      repaired++;
+      for (final WorkspaceFolder folder in folders) {
+        if (folder.parentId == legacyUnfiledId) folder.parentId = null;
+      }
     }
-    final WorkspaceFolder unfiled = folders.firstWhere(
-      (WorkspaceFolder folder) => folder.id == unfiledId,
-    );
-    unfiled.parentId = null;
-    unfiled.title = unfiledTitle;
-    repaired += _repairFolderTree(folders, unfiledId);
+    repaired += _repairFolderTree(folders);
 
     final Set<String> documentIds = <String>{};
     final List<WorkspaceDoc> docs = <WorkspaceDoc>[];
@@ -1114,8 +1112,10 @@ class Workspace extends ChangeNotifier {
         repaired++;
         continue;
       }
-      if (!folderIds.contains(doc.folderId)) {
-        doc.folderId = unfiledId;
+      if (doc.folderId == legacyUnfiledId) {
+        doc.folderId = null;
+      } else if (doc.folderId != null && !folderIds.contains(doc.folderId)) {
+        doc.folderId = null;
         repaired++;
       }
       docs.add(doc);
@@ -1143,7 +1143,6 @@ class Workspace extends ChangeNotifier {
     }
     final _WorkspaceState state = _WorkspaceState(
       workspaceId: workspaceId,
-      unfiledFolderId: unfiledId,
       folders: folders,
       docs: docs,
       activeId: activeId,
@@ -1163,14 +1162,6 @@ class Workspace extends ChangeNotifier {
     final Set<String> used = <String>{};
     final String workspaceId = _newUniqueId(used);
     used.add(workspaceId);
-    final String unfiledId = _newUniqueId(used);
-    used.add(unfiledId);
-    final WorkspaceFolder unfiled = WorkspaceFolder(
-      id: unfiledId,
-      title: unfiledTitle,
-      updatedAt: 0,
-    );
-
     final Map<String, String> migratedIds = <String, String>{};
     final List<WorkspaceDoc> docs = <WorkspaceDoc>[];
     int skipped = 0;
@@ -1216,7 +1207,7 @@ class Workspace extends ChangeNotifier {
             runtimeId: runtimeId,
             json: rawJson,
             updatedAt: rawUpdatedAt is num ? rawUpdatedAt.toInt() : 0,
-            folderId: unfiledId,
+            folderId: null,
             kind: kind,
           ),
         );
@@ -1231,8 +1222,7 @@ class Workspace extends ChangeNotifier {
     return _DecodedWorkspace(
       _WorkspaceState(
         workspaceId: workspaceId,
-        unfiledFolderId: unfiledId,
-        folders: <WorkspaceFolder>[unfiled],
+        folders: const <WorkspaceFolder>[],
         docs: docs,
         activeId: activeId,
       ),
@@ -1249,7 +1239,6 @@ class Workspace extends ChangeNotifier {
     bool loadProtected = false,
   }) {
     _workspaceId = state.workspaceId;
-    _unfiledFolderId = state.unfiledFolderId;
     _folders
       ..clear()
       ..addAll(state.folders);
@@ -1283,16 +1272,7 @@ class Workspace extends ChangeNotifier {
     final Set<String> used = <String>{};
     _workspaceId = _newUniqueId(used);
     used.add(_workspaceId);
-    _unfiledFolderId = _newUniqueId(used);
-    _folders
-      ..clear()
-      ..add(
-        WorkspaceFolder(
-          id: _unfiledFolderId,
-          title: unfiledTitle,
-          updatedAt: 0,
-        ),
-      );
+    _folders.clear();
     _docs.clear();
     _activeId = null;
     _lastStamp = 0;
@@ -1303,7 +1283,6 @@ class Workspace extends ChangeNotifier {
 
   _WorkspaceState _snapshot() => _WorkspaceState(
     workspaceId: _workspaceId,
-    unfiledFolderId: _unfiledFolderId,
     folders: _folders,
     docs: _docs,
     activeId: _activeId,
@@ -1438,26 +1417,24 @@ class Workspace extends ChangeNotifier {
     return '$first $second';
   }
 
-  int _repairFolderTree(List<WorkspaceFolder> folders, String unfiledId) {
+  int _repairFolderTree(List<WorkspaceFolder> folders) {
     int repaired = 0;
     final Map<String, WorkspaceFolder> byId = <String, WorkspaceFolder>{
       for (final WorkspaceFolder folder in folders) folder.id: folder,
     };
     for (final WorkspaceFolder folder in folders) {
-      if (folder.id == unfiledId) continue;
       final String? parentId = folder.parentId;
       if (parentId != null && !byId.containsKey(parentId)) {
-        folder.parentId = unfiledId;
+        folder.parentId = null;
         repaired++;
       }
     }
     for (final WorkspaceFolder folder in folders) {
-      if (folder.id == unfiledId) continue;
       final Set<String> seen = <String>{folder.id};
       String? cursor = folder.parentId;
       while (cursor != null) {
         if (!seen.add(cursor)) {
-          folder.parentId = unfiledId;
+          folder.parentId = null;
           repaired++;
           break;
         }
@@ -1479,14 +1456,12 @@ class Workspace extends ChangeNotifier {
 class _WorkspaceState {
   const _WorkspaceState({
     required this.workspaceId,
-    required this.unfiledFolderId,
     required this.folders,
     required this.docs,
     required this.activeId,
   });
 
   final String workspaceId;
-  final String unfiledFolderId;
   final List<WorkspaceFolder> folders;
   final List<WorkspaceDoc> docs;
   final String? activeId;
@@ -1494,7 +1469,6 @@ class _WorkspaceState {
   Map<String, dynamic> toJson() => <String, dynamic>{
     'schemaVersion': Workspace.schemaVersion,
     'workspaceId': workspaceId,
-    'unfiledFolderId': unfiledFolderId,
     'folders': folders
         .map((WorkspaceFolder folder) => folder.toJson())
         .toList(),
