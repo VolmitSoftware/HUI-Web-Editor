@@ -14,6 +14,8 @@ import 'package:gloss_editor/logic/preview_variant_resolver.dart';
 import 'package:gloss_editor/model/preview_doc.dart';
 import 'package:test/test.dart';
 
+import 'support/gloss_repository.dart';
+
 const List<String> _shippedPreviewIds = <String>[
   'beehive',
   'brewing_stand',
@@ -138,7 +140,7 @@ void main() {
         expect(embedded.trim(), fixture.trim());
 
         final File plugin = File(
-          '../Gloss/src/main/resources/previews/$id.json',
+          glossRepositoryFilePath('src/main/resources/previews/$id.json'),
         );
         expect(plugin.existsSync(), isTrue, reason: plugin.path);
         expect(embedded.trim(), plugin.readAsStringSync().trim());

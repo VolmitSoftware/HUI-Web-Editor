@@ -26,7 +26,8 @@ import 'dart:io';
 import 'package:gloss_editor/model/model.dart';
 
 /// Default source, relative to this repo — the plugin checkout sits beside it.
-const String defaultSource = '../Gloss/src/main/resources/defaults/emoji';
+final String defaultSource =
+    '${Platform.environment['GLOSS_REPOSITORY'] ?? '../Gloss'}/src/main/resources/defaults/emoji';
 
 const String outputPath = 'web/assets/catalog/emoji.json';
 
@@ -42,8 +43,10 @@ void main(List<String> args) {
   final List<Map<String, Object?>> entries = <Map<String, Object?>>[];
   for (final FileSystemEntity entity in source.listSync()) {
     if (entity is! File || !entity.path.endsWith('.json')) continue;
-    final String name = entity.uri.pathSegments.last
-        .replaceFirst(RegExp(r'\.json$'), '');
+    final String name = entity.uri.pathSegments.last.replaceFirst(
+      RegExp(r'\.json$'),
+      '',
+    );
     final GlossEmojiDoc doc;
     try {
       doc = decodeGlossEmojiDoc(entity.readAsStringSync());

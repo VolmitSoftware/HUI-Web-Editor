@@ -17,6 +17,8 @@ import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
+import 'support/gloss_repository.dart';
+
 void main() {
   group('hologram blank stays the plugin baseline', () {
     test('embedded copy matches the fixture and the plugin resource', () {
@@ -25,7 +27,7 @@ void main() {
       ).readAsStringSync();
       expect(kGlossHologramBaselineJson, fixture);
       final File plugin = File(
-        '../Gloss/src/main/resources/baselines/hologram.json',
+        glossRepositoryFilePath('src/main/resources/baselines/hologram.json'),
       );
       expect(plugin.existsSync(), isTrue);
       expect(kGlossHologramBaselineJson, plugin.readAsStringSync());
@@ -49,7 +51,9 @@ void main() {
       ).readAsStringSync();
       expect(kGlossAnimationRainbowJson, fixture);
       final File plugin = File(
-        '../Gloss/src/main/resources/defaults/animations/rainbow.json',
+        glossRepositoryFilePath(
+          'src/main/resources/defaults/animations/rainbow.json',
+        ),
       );
       expect(plugin.existsSync(), isTrue);
       expect(kGlossAnimationRainbowJson, plugin.readAsStringSync());
@@ -83,8 +87,9 @@ void main() {
     // The |animation.rainbow| line warns until the workspace has that
     // animation document — deliberate: the template teaches the reference.
     expect(
-      issues.any((HuiIssue issue) =>
-          issue.message.contains('animation.rainbow')),
+      issues.any(
+        (HuiIssue issue) => issue.message.contains('animation.rainbow'),
+      ),
       isTrue,
     );
   });
@@ -96,7 +101,9 @@ void main() {
       ).readAsStringSync();
       expect(kGlossScoreboardDefaultJson, fixture);
       final File plugin = File(
-        '../Gloss/src/main/resources/defaults/boards/default.json',
+        glossRepositoryFilePath(
+          'src/main/resources/defaults/boards/default.json',
+        ),
       );
       expect(plugin.existsSync(), isTrue);
       expect(kGlossScoreboardDefaultJson, plugin.readAsStringSync());
@@ -108,8 +115,11 @@ void main() {
       expect(identical(first, second), isFalse);
       expect(first.title, '&d&lGloss');
       expect(first.lines, hasLength(3));
-      expect(first.primary, isFalse,
-          reason: 'the shipped default never forces a sidebar');
+      expect(
+        first.primary,
+        isFalse,
+        reason: 'the shipped default never forces a sidebar',
+      );
       expect(first.permission, 'default');
       expect(validateScoreboardDoc(first), isEmpty);
     });
@@ -122,7 +132,7 @@ void main() {
       ).readAsStringSync();
       expect(kGlossMotdDefaultJson, fixture);
       final File plugin = File(
-        '../Gloss/src/main/resources/defaults/motd/motd.json',
+        glossRepositoryFilePath('src/main/resources/defaults/motd/motd.json'),
       );
       expect(plugin.existsSync(), isTrue);
       expect(kGlossMotdDefaultJson, plugin.readAsStringSync());
@@ -163,7 +173,7 @@ void main() {
       ).readAsStringSync();
       expect(kGlossEmojiHeartJson, fixture);
       final File plugin = File(
-        '../Gloss/src/main/resources/defaults/emoji/heart.json',
+        glossRepositoryFilePath('src/main/resources/defaults/emoji/heart.json'),
       );
       expect(plugin.existsSync(), isTrue);
       expect(kGlossEmojiHeartJson, plugin.readAsStringSync());
@@ -195,7 +205,9 @@ void main() {
       ).readAsStringSync();
       expect(kGlossBubbleDefaultJson, fixture);
       final File plugin = File(
-        '../Gloss/src/main/resources/defaults/bubbles/default.json',
+        glossRepositoryFilePath(
+          'src/main/resources/defaults/bubbles/default.json',
+        ),
       );
       expect(plugin.existsSync(), isTrue);
       expect(kGlossBubbleDefaultJson, plugin.readAsStringSync());
@@ -222,8 +234,9 @@ void main() {
     expect(doc.select, isNotNull);
     expect(doc.select!.priority, 10);
     expect(
-      validateBubbleStyleDoc(doc)
-          .where((HuiIssue issue) => issue.severity == HuiSeverity.error),
+      validateBubbleStyleDoc(
+        doc,
+      ).where((HuiIssue issue) => issue.severity == HuiSeverity.error),
       isEmpty,
     );
   });
@@ -235,7 +248,9 @@ void main() {
       ).readAsStringSync();
       expect(kGlossTablistDefaultJson, fixture);
       final File plugin = File(
-        '../Gloss/src/main/resources/defaults/tablist/tablist.json',
+        glossRepositoryFilePath(
+          'src/main/resources/defaults/tablist/tablist.json',
+        ),
       );
       expect(plugin.existsSync(), isTrue);
       expect(kGlossTablistDefaultJson, plugin.readAsStringSync());

@@ -27,8 +27,8 @@ import 'dart:io';
 const String idPrefix = 'gloss.preview.';
 
 /// Default source, relative to this repo — the plugin checkout sits beside it.
-const String defaultSource =
-    '../Gloss/src/main/java/art/arcane/gloss/locale/GlossMessages.java';
+final String defaultSource =
+    '${Platform.environment['GLOSS_REPOSITORY'] ?? '../Gloss'}/src/main/java/art/arcane/gloss/locale/GlossMessages.java';
 
 const String outputPath = 'web/assets/catalog/preview-lang-en.json';
 
@@ -41,7 +41,9 @@ void main(List<String> args) {
     return;
   }
 
-  final Map<String, String> messages = extractPreviewMessages(source.readAsStringSync());
+  final Map<String, String> messages = extractPreviewMessages(
+    source.readAsStringSync(),
+  );
   if (messages.isEmpty) {
     stderr.writeln('no $idPrefix keys found in $sourcePath');
     exitCode = 1;

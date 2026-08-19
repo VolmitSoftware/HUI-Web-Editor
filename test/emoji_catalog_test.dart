@@ -16,20 +16,25 @@ import 'package:gloss_editor/services/catalogs.dart';
 import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:test/test.dart';
 
-const String _pluginDefaults = '../Gloss/src/main/resources/defaults/emoji';
+import 'support/gloss_repository.dart';
+
+final String _pluginDefaults = glossRepositoryFilePath(
+  'src/main/resources/defaults/emoji',
+);
 const String _asset = 'web/assets/catalog/emoji.json';
 
 void main() {
-  test('the shipped catalog matches the plugin defaults, entry for entry',
-      () {
+  test('the shipped catalog matches the plugin defaults, entry for entry', () {
     final Directory defaults = Directory(_pluginDefaults);
     expect(defaults.existsSync(), isTrue);
 
     final Map<String, GlossEmojiDoc> expected = <String, GlossEmojiDoc>{};
     for (final FileSystemEntity entity in defaults.listSync()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
-      final String name = entity.uri.pathSegments.last
-          .replaceFirst(RegExp(r'\.json$'), '');
+      final String name = entity.uri.pathSegments.last.replaceFirst(
+        RegExp(r'\.json$'),
+        '',
+      );
       expected[name] = decodeGlossEmojiDoc(entity.readAsStringSync());
     }
     expect(expected, isNotEmpty);

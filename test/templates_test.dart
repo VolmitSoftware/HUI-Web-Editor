@@ -5,6 +5,8 @@ import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
+import 'support/gloss_repository.dart';
+
 void main() {
   test(
     'every starter template builds a fresh menu without validation errors',
@@ -46,7 +48,7 @@ void main() {
     ).readAsStringSync();
     expect(kBlankHologramJson.trim(), fixture.trim());
     final File plugin = File(
-      '../Gloss/src/main/resources/baselines/menu-blank.json',
+      glossRepositoryFilePath('src/main/resources/baselines/menu-blank.json'),
     );
     expect(plugin.existsSync(), isTrue);
     expect(kBlankHologramJson.trim(), plugin.readAsStringSync().trim());
