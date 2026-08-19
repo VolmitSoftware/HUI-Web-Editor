@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
-/// Verbatim copy of `HoloUi/src/main/resources/previews/furnace.json` (the
+/// Verbatim copy of `Gloss/src/main/resources/previews/furnace.json` (the
 /// plugin's own shipped preview document), not a hand-authored fixture: it
 /// exercises real key ordering (`visible`/`repeat` hoisted ahead of `x`/`y`
 /// in several cell elements), variants, and every expression shape the
@@ -28,11 +28,11 @@ const String furnaceJson = r'''
       "smoke0": "#FF5E5E66",
       "smoke1": "#FF8A8A92",
       "smoke2": "#FFB8B8C0",
-      "activeItemKey": "holoui.preview.state.smelting_item",
-      "activeKey": "holoui.preview.state.smelting",
+      "activeItemKey": "gloss.preview.state.smelting_item",
+      "activeKey": "gloss.preview.state.smelting",
       "stateColor": "<#F2A535>",
       "surgeColor": "<#FFD978>",
-      "titleKey": "holoui.preview.theme.title.furnace",
+      "titleKey": "gloss.preview.theme.title.furnace",
       "accent": "#F2A535"
     }
   },
@@ -49,11 +49,11 @@ const String furnaceJson = r'''
         "flame0": "#FF4FA8E8",
         "flame1": "#FF8ED4FF",
         "flame2": "#FFE8F7FF",
-        "activeItemKey": "holoui.preview.state.blasting_item",
-        "activeKey": "holoui.preview.state.blasting",
+        "activeItemKey": "gloss.preview.state.blasting_item",
+        "activeKey": "gloss.preview.state.blasting",
         "stateColor": "<#6FB8E8>",
         "surgeColor": "<#E8F7FF>",
-        "titleKey": "holoui.preview.theme.title.blast_furnace",
+        "titleKey": "gloss.preview.theme.title.blast_furnace",
         "accent": "#6FEAEA"
       }
     },
@@ -69,11 +69,11 @@ const String furnaceJson = r'''
         "flame0": "#FFE25822",
         "flame1": "#FFF2A535",
         "flame2": "#FFC23B22",
-        "activeItemKey": "holoui.preview.state.smoking_item",
-        "activeKey": "holoui.preview.state.smoking",
+        "activeItemKey": "gloss.preview.state.smoking_item",
+        "activeKey": "gloss.preview.state.smoking",
         "stateColor": "<#C8893A>",
         "surgeColor": "<#F2C878>",
-        "titleKey": "holoui.preview.theme.title.smoker",
+        "titleKey": "gloss.preview.theme.title.smoker",
         "accent": "#F2D451"
       }
     }
@@ -124,13 +124,13 @@ const String furnaceJson = r'''
       "type": "label",
       "x": 0,
       "y": -32,
-      "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? readable(item(0)) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('holoui.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('holoui.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('holoui.preview.state.no_input') : '&7' + lang('holoui.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('holoui.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
+      "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? readable(item(0)) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('gloss.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('gloss.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('gloss.preview.state.no_input') : '&7' + lang('gloss.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
     },
     {
       "type": "label",
       "x": 0,
       "y": -46,
-      "text": "(burnTime > 0 ? '&e' + lang('holoui.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('holoui.preview.stat.fuel_ready') : '&8' + lang('holoui.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('holoui.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('holoui.preview.stat.xp_zero') + '</dark_gray>') : '')"
+      "text": "(burnTime > 0 ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('gloss.preview.stat.fuel_ready') : '&8' + lang('gloss.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('gloss.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('gloss.preview.stat.xp_zero') + '</dark_gray>') : '')"
     }
   ]
 }

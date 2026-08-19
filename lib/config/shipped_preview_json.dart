@@ -1,4 +1,4 @@
-/// Byte-identical copies of `HoloUi/src/main/resources/previews/*.json`.
+/// Byte-identical copies of `Gloss/src/main/resources/previews/*.json`.
 ///
 /// Do not hand-edit. Re-copy from the plugin and keep
 /// `test/fixtures/previews/` in lockstep. `preview_templates_test.dart`
@@ -15,14 +15,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "cells": 3,
       "beeColor": "#FF8A6618",
       "wellColor": "#FF15151B",
-      "titleKey": "holoui.preview.theme.title.beehive",
+      "titleKey": "gloss.preview.theme.title.beehive",
       "accent": "#F2D451"
     }
   },
   "variants": [
     {
       "blocks": ["BEE_NEST"],
-      "vars": { "titleKey": "holoui.preview.theme.title.bee_nest" }
+      "vars": { "titleKey": "gloss.preview.theme.title.bee_nest" }
     }
   ],
   "card": {
@@ -42,7 +42,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "type": "label",
       "x": 0,
       "y": 21,
-      "text": "'&6' + lang('holoui.preview.stat.bees_and_honey', bees, maxBees, honey, maxHoney)"
+      "text": "'&6' + lang('gloss.preview.stat.bees_and_honey', bees, maxBees, honey, maxHoney)"
     }
   ]
 }
@@ -64,7 +64,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "fuelColor": "#FFF2A535",
       "stateColor": "<#B152DA>",
       "surgeColor": "<#E8A6F2>",
-      "titleKey": "holoui.preview.theme.title.brewing_stand",
+      "titleKey": "gloss.preview.theme.title.brewing_stand",
       "accent": "#EC88EC"
     }
   },
@@ -103,13 +103,13 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "type": "label",
       "x": 0,
       "y": -32,
-      "text": "(brewTime > 0 ? vars.stateColor + lang('holoui.preview.state.brewing', round(clamp(1 - brewTime / brewTotal, 0, 1) * 100)) : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) && fuelLevel <= 0 ? '&c' + lang('holoui.preview.state.needs_blaze_powder') : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) ? '&7' + lang('holoui.preview.state.waiting') : (occupied(0) || occupied(1) || occupied(2) ? '&7' + lang('holoui.preview.state.no_ingredient') : '&8' + lang('holoui.preview.state.empty'))))) + (surge.active ? vars.surgeColor + lang('holoui.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
+      "text": "(brewTime > 0 ? vars.stateColor + lang('gloss.preview.state.brewing', round(clamp(1 - brewTime / brewTotal, 0, 1) * 100)) : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) && fuelLevel <= 0 ? '&c' + lang('gloss.preview.state.needs_blaze_powder') : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) ? '&7' + lang('gloss.preview.state.waiting') : (occupied(0) || occupied(1) || occupied(2) ? '&7' + lang('gloss.preview.state.no_ingredient') : '&8' + lang('gloss.preview.state.empty'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
     },
     {
       "type": "label",
       "x": 0,
       "y": -46,
-      "text": "(fuelLevel > 0 ? '&e' + lang('holoui.preview.stat.fuel_level', fuelLevel, maxFuel) : '&8' + lang('holoui.preview.stat.no_fuel')) + '<dark_gray>  •  </dark_gray>' + ((occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0) > 0 ? '<light_purple>' + lang('holoui.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</light_purple>' : '<dark_gray>' + lang('holoui.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</dark_gray>')"
+      "text": "(fuelLevel > 0 ? '&e' + lang('gloss.preview.stat.fuel_level', fuelLevel, maxFuel) : '&8' + lang('gloss.preview.stat.no_fuel')) + '<dark_gray>  •  </dark_gray>' + ((occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0) > 0 ? '<light_purple>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</light_purple>' : '<dark_gray>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</dark_gray>')"
     }
   ]
 }
@@ -123,7 +123,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "cells": 3,
       "fluidColor": "#FF2E5E8C",
       "wellColor": "#FF15151B",
-      "titleKey": "holoui.preview.theme.title.cauldron",
+      "titleKey": "gloss.preview.theme.title.cauldron",
       "accent": "#A6ACB6"
     }
   },
@@ -132,7 +132,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "blocks": ["WATER_CAULDRON"],
       "vars": {
         "fluidColor": "#FF2E5E8C",
-        "titleKey": "holoui.preview.theme.title.water_cauldron",
+        "titleKey": "gloss.preview.theme.title.water_cauldron",
         "accent": "#5E82FF"
       }
     },
@@ -140,7 +140,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "blocks": ["LAVA_CAULDRON"],
       "vars": {
         "fluidColor": "#FFA14C16",
-        "titleKey": "holoui.preview.theme.title.lava_cauldron",
+        "titleKey": "gloss.preview.theme.title.lava_cauldron",
         "accent": "#F2A535"
       }
     },
@@ -148,7 +148,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "blocks": ["POWDER_SNOW_CAULDRON"],
       "vars": {
         "fluidColor": "#FFD8E5EF",
-        "titleKey": "holoui.preview.theme.title.powder_snow_cauldron",
+        "titleKey": "gloss.preview.theme.title.powder_snow_cauldron",
         "accent": "#CBD0D9"
       }
     }
@@ -170,7 +170,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "type": "label",
       "x": 0,
       "y": 21,
-      "text": "level <= 0 ? '&7' + lang('holoui.preview.stat.cauldron_empty', level, maxLevel) : '&b' + lang('holoui.preview.stat.cauldron_level', level, maxLevel)"
+      "text": "level <= 0 ? '&7' + lang('gloss.preview.stat.cauldron_empty', level, maxLevel) : '&b' + lang('gloss.preview.stat.cauldron_level', level, maxLevel)"
     }
   ]
 }
@@ -183,7 +183,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "vars": {
       "cols": 9,
       "maxRows": 6,
-      "titleKey": "holoui.preview.theme.title.chest",
+      "titleKey": "gloss.preview.theme.title.chest",
       "titleArg": "",
       "accent": "#F2A535"
     }
@@ -191,83 +191,83 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   "variants": [
     {
       "blocks": ["TRAPPED_CHEST"],
-      "vars": { "titleKey": "holoui.preview.theme.title.trapped_chest", "accent": "#EC6464" }
+      "vars": { "titleKey": "gloss.preview.theme.title.trapped_chest", "accent": "#EC6464" }
     },
     {
       "blocks": ["BARREL"],
-      "vars": { "titleKey": "holoui.preview.theme.title.barrel", "accent": "#F2D451" }
+      "vars": { "titleKey": "gloss.preview.theme.title.barrel", "accent": "#F2D451" }
     },
     {
       "blocks": ["*COPPER_CHEST"],
-      "vars": { "titleKey": "holoui.preview.theme.title.copper_chest", "accent": "#F2A535" }
+      "vars": { "titleKey": "gloss.preview.theme.title.copper_chest", "accent": "#F2A535" }
     },
     {
       "blocks": ["WHITE_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "White", "accent": "#CBD0D9" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "White", "accent": "#CBD0D9" }
     },
     {
       "blocks": ["ORANGE_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Orange", "accent": "#F2A535" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Orange", "accent": "#F2A535" }
     },
     {
       "blocks": ["MAGENTA_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Magenta", "accent": "#EC88EC" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Magenta", "accent": "#EC88EC" }
     },
     {
       "blocks": ["LIGHT_BLUE_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Light Blue", "accent": "#6FEAEA" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Light Blue", "accent": "#6FEAEA" }
     },
     {
       "blocks": ["YELLOW_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Yellow", "accent": "#F2D451" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Yellow", "accent": "#F2D451" }
     },
     {
       "blocks": ["LIME_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Lime", "accent": "#6FE06F" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Lime", "accent": "#6FE06F" }
     },
     {
       "blocks": ["PINK_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Pink", "accent": "#EC88EC" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Pink", "accent": "#EC88EC" }
     },
     {
       "blocks": ["GRAY_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Gray", "accent": "#6E747E" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Gray", "accent": "#6E747E" }
     },
     {
       "blocks": ["LIGHT_GRAY_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Light Gray", "accent": "#A6ACB6" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Light Gray", "accent": "#A6ACB6" }
     },
     {
       "blocks": ["CYAN_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Cyan", "accent": "#3AC4C4" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Cyan", "accent": "#3AC4C4" }
     },
     {
       "blocks": ["PURPLE_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
     },
     {
       "blocks": ["BLUE_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Blue", "accent": "#5E82FF" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Blue", "accent": "#5E82FF" }
     },
     {
       "blocks": ["BROWN_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Brown", "accent": "#F2A535" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Brown", "accent": "#F2A535" }
     },
     {
       "blocks": ["GREEN_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Green", "accent": "#3FB84F" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Green", "accent": "#3FB84F" }
     },
     {
       "blocks": ["RED_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Red", "accent": "#EC6464" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Red", "accent": "#EC6464" }
     },
     {
       "blocks": ["BLACK_SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Black", "accent": "#202028" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Black", "accent": "#202028" }
     },
     {
       "blocks": ["SHULKER_BOX"],
-      "vars": { "titleKey": "holoui.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
+      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
     }
   ],
   "card": {
@@ -297,7 +297,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "vars": {
       "cols": 3,
       "rows": 2,
-      "titleKey": "holoui.preview.theme.title.chiseled_bookshelf",
+      "titleKey": "gloss.preview.theme.title.chiseled_bookshelf",
       "accent": "#F2A535"
     }
   },
@@ -325,7 +325,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "vars": {
       "cols": 3,
       "rows": 3,
-      "titleKey": "holoui.preview.theme.title.dispenser",
+      "titleKey": "gloss.preview.theme.title.dispenser",
       "accent": "#A6ACB6"
     }
   },
@@ -333,7 +333,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "blocks": ["DROPPER"],
       "vars": {
-        "titleKey": "holoui.preview.theme.title.dropper",
+        "titleKey": "gloss.preview.theme.title.dropper",
         "accent": "#6E747E"
       }
     }
@@ -363,7 +363,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "vars": {
       "cols": 9,
       "maxRows": 6,
-      "titleKey": "holoui.preview.theme.title.ender_chest",
+      "titleKey": "gloss.preview.theme.title.ender_chest",
       "accent": "#B152DA"
     }
   },
@@ -406,11 +406,11 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "smoke0": "#FF5E5E66",
       "smoke1": "#FF8A8A92",
       "smoke2": "#FFB8B8C0",
-      "activeItemKey": "holoui.preview.state.smelting_item",
-      "activeKey": "holoui.preview.state.smelting",
+      "activeItemKey": "gloss.preview.state.smelting_item",
+      "activeKey": "gloss.preview.state.smelting",
       "stateColor": "<#F2A535>",
       "surgeColor": "<#FFD978>",
-      "titleKey": "holoui.preview.theme.title.furnace",
+      "titleKey": "gloss.preview.theme.title.furnace",
       "accent": "#F2A535"
     }
   },
@@ -427,11 +427,11 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
         "flame0": "#FF4FA8E8",
         "flame1": "#FF8ED4FF",
         "flame2": "#FFE8F7FF",
-        "activeItemKey": "holoui.preview.state.blasting_item",
-        "activeKey": "holoui.preview.state.blasting",
+        "activeItemKey": "gloss.preview.state.blasting_item",
+        "activeKey": "gloss.preview.state.blasting",
         "stateColor": "<#6FB8E8>",
         "surgeColor": "<#E8F7FF>",
-        "titleKey": "holoui.preview.theme.title.blast_furnace",
+        "titleKey": "gloss.preview.theme.title.blast_furnace",
         "accent": "#6FEAEA"
       }
     },
@@ -447,11 +447,11 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
         "flame0": "#FFE25822",
         "flame1": "#FFF2A535",
         "flame2": "#FFC23B22",
-        "activeItemKey": "holoui.preview.state.smoking_item",
-        "activeKey": "holoui.preview.state.smoking",
+        "activeItemKey": "gloss.preview.state.smoking_item",
+        "activeKey": "gloss.preview.state.smoking",
         "stateColor": "<#C8893A>",
         "surgeColor": "<#F2C878>",
-        "titleKey": "holoui.preview.theme.title.smoker",
+        "titleKey": "gloss.preview.theme.title.smoker",
         "accent": "#F2D451"
       }
     }
@@ -502,13 +502,13 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "type": "label",
       "x": 0,
       "y": -32,
-      "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? readable(item(0)) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('holoui.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('holoui.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('holoui.preview.state.no_input') : '&7' + lang('holoui.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('holoui.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
+      "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? readable(item(0)) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('gloss.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('gloss.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('gloss.preview.state.no_input') : '&7' + lang('gloss.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
     },
     {
       "type": "label",
       "x": 0,
       "y": -46,
-      "text": "(burnTime > 0 ? '&e' + lang('holoui.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('holoui.preview.stat.fuel_ready') : '&8' + lang('holoui.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('holoui.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('holoui.preview.stat.xp_zero') + '</dark_gray>') : '')"
+      "text": "(burnTime > 0 ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('gloss.preview.stat.fuel_ready') : '&8' + lang('gloss.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('gloss.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('gloss.preview.stat.xp_zero') + '</dark_gray>') : '')"
     }
   ]
 }
@@ -520,7 +520,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "priority": 10,
     "vars": {
       "slots": 5,
-      "titleKey": "holoui.preview.theme.title.hopper",
+      "titleKey": "gloss.preview.theme.title.hopper",
       "accent": "#6E747E"
     }
   },
@@ -546,7 +546,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "blocks": ["JUKEBOX"],
     "priority": 10,
     "vars": {
-      "titleKey": "holoui.preview.theme.title.jukebox",
+      "titleKey": "gloss.preview.theme.title.jukebox",
       "accent": "#EC88EC"
     }
   },
@@ -560,7 +560,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "type": "label",
       "x": 0,
       "y": -21,
-      "text": "record != '' ? (playing ? '&a' + lang('holoui.preview.state.disc_playing', record) : '&7' + lang('holoui.preview.state.disc_loaded', record)) : '&8' + lang('holoui.preview.state.no_disc')"
+      "text": "record != '' ? (playing ? '&a' + lang('gloss.preview.state.disc_playing', record) : '&7' + lang('gloss.preview.state.disc_loaded', record)) : '&8' + lang('gloss.preview.state.no_disc')"
     }
   ]
 }
@@ -593,7 +593,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "maxRows": 6,
       "slots": 5,
       "row": false,
-      "titleKey": "holoui.preview.theme.title.mobile",
+      "titleKey": "gloss.preview.theme.title.mobile",
       "accent": "#A6ACB6"
     }
   },
@@ -602,14 +602,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "entities": ["HOPPER_MINECART"],
       "vars": {
         "row": true,
-        "titleKey": "holoui.preview.theme.title.hopper_minecart",
+        "titleKey": "gloss.preview.theme.title.hopper_minecart",
         "accent": "#6E747E"
       }
     },
     {
       "entities": ["CHEST_MINECART"],
       "vars": {
-        "titleKey": "holoui.preview.theme.title.chest_minecart",
+        "titleKey": "gloss.preview.theme.title.chest_minecart",
         "accent": "#F2A535"
       }
     }
@@ -649,7 +649,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "blocks": ["*_SHELF"],
     "priority": 10,
     "vars": {
-      "titleKey": "holoui.preview.theme.title.shelf",
+      "titleKey": "gloss.preview.theme.title.shelf",
       "accent": "#F2A535"
     }
   },

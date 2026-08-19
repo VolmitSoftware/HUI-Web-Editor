@@ -3,7 +3,7 @@
 /// against.
 ///
 /// `web/assets/catalog/preview-variables.json` is
-/// `HoloUi/src/test/resources/preview-variables.json` copied verbatim — the
+/// `Gloss/src/test/resources/preview-variables.json` copied verbatim — the
 /// plugin's own `VariableCatalogSyncTest` pins that file against
 /// `PreviewStateAdapters.catalog()`, so pinning [PreviewSim] against the same
 /// file makes any plugin-side variable change fail here too.
@@ -21,7 +21,7 @@ import 'package:test/test.dart';
 const String variablesAssetPath = 'web/assets/catalog/preview-variables.json';
 const String langAssetPath = 'web/assets/catalog/preview-lang-en.json';
 
-/// `holoui.preview.*` key count at the time the snapshot was generated; a
+/// `gloss.preview.*` key count at the time the snapshot was generated; a
 /// truncated or unresolved asset must fail loudly rather than pass with
 /// nothing to check.
 const int minimumLangMessages = 50;
@@ -29,7 +29,7 @@ const int minimumLangMessages = 50;
 /// Sample arguments for every function the catalog documents, so the
 /// `functions` section is pinned the same way the variables are.
 const Map<String, List<Object?>> functionSampleArgs = <String, List<Object?>>{
-  'lang': <Object?>['holoui.preview.state.idle'],
+  'lang': <Object?>['gloss.preview.state.idle'],
   'count': <Object?>[0.0],
   'occupied': <Object?>[0.0],
   'item': <Object?>[0.0],
@@ -193,8 +193,8 @@ void main() {
     test('renders the shipped furnace state line', () {
       final PreviewSim sim = PreviewSim('furnace', lang: lang)
         ..vars = PreviewSim.parseVars(<String, Object?>{
-          'activeItemKey': 'holoui.preview.state.smelting_item',
-          'activeKey': 'holoui.preview.state.smelting',
+          'activeItemKey': 'gloss.preview.state.smelting_item',
+          'activeKey': 'gloss.preview.state.smelting',
         });
       const String source =
           'lang(occupied(0) ? vars.activeItemKey : vars.activeKey, '
@@ -269,7 +269,7 @@ void main() {
     test('binds positional arguments onto the template placeholders', () {
       expect(
         sim.call('lang', <Object?>[
-          'holoui.preview.state.smelting_item',
+          'gloss.preview.state.smelting_item',
           'Iron Ore',
           42.0,
         ]),
@@ -279,18 +279,18 @@ void main() {
 
     test('renders numbers through the integral-string rule', () {
       expect(
-        sim.call('lang', <Object?>['holoui.preview.stat.fuel_seconds', 15.0]),
+        sim.call('lang', <Object?>['gloss.preview.stat.fuel_seconds', 15.0]),
         'Fuel 15s',
       );
       expect(
-        sim.call('lang', <Object?>['holoui.preview.state.surge_suffix', 1.5]),
+        sim.call('lang', <Object?>['gloss.preview.state.surge_suffix', 1.5]),
         '  +1.5s',
       );
     });
 
     test('a key with no placeholders ignores extra arguments', () {
       expect(
-        sim.call('lang', <Object?>['holoui.preview.state.idle', 'unused']),
+        sim.call('lang', <Object?>['gloss.preview.state.idle', 'unused']),
         'Idle',
       );
     });
@@ -302,10 +302,24 @@ void main() {
       );
     });
 
-    test('an unbound placeholder stays literal', () {
+    test('a legacy holoui.preview key resolves through its gloss twin', () {
       expect(
         sim.call('lang', <Object?>[
           'holoui.preview.state.smelting_item',
+          'Iron Ore',
+          42.0,
+        ]),
+        'Smelting Iron Ore 42%',
+      );
+      expect(previewRenamedLangKey('holoui.preview.state.idle'),
+          'gloss.preview.state.idle');
+      expect(previewRenamedLangKey('gloss.preview.state.idle'), isNull);
+    });
+
+    test('an unbound placeholder stays literal', () {
+      expect(
+        sim.call('lang', <Object?>[
+          'gloss.preview.state.smelting_item',
           'Iron Ore',
         ]),
         'Smelting Iron Ore {percent}%',
@@ -315,7 +329,7 @@ void main() {
     test('inserted values are untrusted: section codes are stripped', () {
       expect(
         sim.call('lang', <Object?>[
-          'holoui.preview.theme.title.mobile',
+          'gloss.preview.theme.title.mobile',
           '§cRed§r Cart',
         ]),
         '&7&lRed Cart',
@@ -458,7 +472,7 @@ void main() {
       final PreviewSim sim = PreviewSim('furnace', lang: lang)
         ..setSurge(true, gain: 1.5);
       const String source =
-          "surge.active ? lang('holoui.preview.state.surge_suffix', "
+          "surge.active ? lang('gloss.preview.state.surge_suffix', "
           'surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : \'\'';
       expect(eval(source, sim), '  +1.5s');
     });
@@ -593,36 +607,36 @@ void main() {
   });
 
   group('shipped lang snapshot', () {
-    test('carries the whole holoui.preview namespace', () {
+    test('carries the whole gloss.preview namespace', () {
       expect(lang.messages.length, greaterThanOrEqualTo(minimumLangMessages));
       for (final String id in lang.messages.keys) {
-        expect(id, startsWith('holoui.preview.'), reason: id);
+        expect(id, startsWith('gloss.preview.'), reason: id);
       }
     });
 
-    test('matches HoloMessages.java entry for entry', () {
+    test('matches GlossMessages.java entry for entry', () {
       expect(
-        lang.template('holoui.preview.state.smelting_item'),
+        lang.template('gloss.preview.state.smelting_item'),
         'Smelting {item} {percent}%',
       );
       expect(
-        lang.template('holoui.preview.stat.bees_and_honey'),
+        lang.template('gloss.preview.stat.bees_and_honey'),
         'Bees {bees}/{maximumBees}   Honey {honey}/{maximumHoney}',
       );
       expect(
-        lang.template('holoui.preview.state.surge_suffix'),
+        lang.template('gloss.preview.state.surge_suffix'),
         '  +{seconds}s',
       );
       expect(
-        lang.template('holoui.preview.theme.title.shulker'),
+        lang.template('gloss.preview.theme.title.shulker'),
         '&l{color} Shulker',
       );
-      expect(lang.template('holoui.preview.stat.xp_gain'), 'XP +{experience}');
+      expect(lang.template('gloss.preview.stat.xp_gain'), 'XP +{experience}');
     });
 
     test('holds no chat or command keys', () {
-      expect(lang.template('holoui.message.preview_scale.size'), isNull);
-      expect(lang.template('holoui.command.previews.list'), isNull);
+      expect(lang.template('gloss.message.preview_scale.size'), isNull);
+      expect(lang.template('gloss.command.previews.list'), isNull);
     });
   });
 
@@ -660,8 +674,8 @@ void main() {
     test('a sim with no snapshot still renders keys as themselves', () {
       final PreviewSim sim = PreviewSim('chest');
       expect(
-        sim.call('lang', <Object?>['holoui.preview.state.idle']),
-        'holoui.preview.state.idle',
+        sim.call('lang', <Object?>['gloss.preview.state.idle']),
+        'gloss.preview.state.idle',
       );
     });
 

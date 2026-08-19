@@ -85,7 +85,9 @@ final class GlossEmojiDoc extends GlossDoc {
   String emoji;
 
   /// A disabled emoji stays listed but is never substituted
-  /// (`EmojiReplacer` constructor filters on `enabled`).
+  /// (`EmojiReplacer` constructor filters on `enabled`). A file that omits
+  /// the key is ENABLED — `EmojiDoc.java` defaults a null wrapper to TRUE in
+  /// its compact constructor.
   bool enabled;
 
   Map<String, dynamic> extras;
@@ -103,7 +105,7 @@ final class GlossEmojiDoc extends GlossDoc {
       revision: glossReadRevision(map),
       trigger: huiReadString(map, 'trigger'),
       emoji: huiReadString(map, 'emoji'),
-      enabled: huiReadBool(map, 'enabled'),
+      enabled: map['enabled'] == null ? true : huiReadBool(map, 'enabled'),
       extras: huiCollectExtras(map, _docKnown),
       absentKeys: <String>{
         if (map['revision'] == null) 'revision',
@@ -122,7 +124,7 @@ final class GlossEmojiDoc extends GlossDoc {
       if (!absentKeys.contains('trigger') || trigger.isNotEmpty)
         'trigger': trigger,
       if (!absentKeys.contains('emoji') || emoji.isNotEmpty) 'emoji': emoji,
-      if (!absentKeys.contains('enabled') || enabled) 'enabled': enabled,
+      if (!absentKeys.contains('enabled') || !enabled) 'enabled': enabled,
     };
     return huiMergeExtras(out, extras);
   }

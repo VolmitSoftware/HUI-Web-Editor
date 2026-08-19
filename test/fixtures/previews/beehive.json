@@ -6,14 +6,14 @@
       "cells": 3,
       "beeColor": "#FF8A6618",
       "wellColor": "#FF15151B",
-      "titleKey": "holoui.preview.theme.title.beehive",
+      "titleKey": "gloss.preview.theme.title.beehive",
       "accent": "#F2D451"
     }
   },
   "variants": [
     {
       "blocks": ["BEE_NEST"],
-      "vars": { "titleKey": "holoui.preview.theme.title.bee_nest" }
+      "vars": { "titleKey": "gloss.preview.theme.title.bee_nest" }
     }
   ],
   "card": {
@@ -33,7 +33,7 @@
       "type": "label",
       "x": 0,
       "y": 21,
-      "text": "'&6' + lang('holoui.preview.stat.bees_and_honey', bees, maxBees, honey, maxHoney)"
+      "text": "'&6' + lang('gloss.preview.stat.bees_and_honey', bees, maxBees, honey, maxHoney)"
     }
   ]
 }

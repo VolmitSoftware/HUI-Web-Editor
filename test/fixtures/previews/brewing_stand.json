@@ -14,7 +14,7 @@
       "fuelColor": "#FFF2A535",
       "stateColor": "<#B152DA>",
       "surgeColor": "<#E8A6F2>",
-      "titleKey": "holoui.preview.theme.title.brewing_stand",
+      "titleKey": "gloss.preview.theme.title.brewing_stand",
       "accent": "#EC88EC"
     }
   },
@@ -53,13 +53,13 @@
       "type": "label",
       "x": 0,
       "y": -32,
-      "text": "(brewTime > 0 ? vars.stateColor + lang('holoui.preview.state.brewing', round(clamp(1 - brewTime / brewTotal, 0, 1) * 100)) : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) && fuelLevel <= 0 ? '&c' + lang('holoui.preview.state.needs_blaze_powder') : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) ? '&7' + lang('holoui.preview.state.waiting') : (occupied(0) || occupied(1) || occupied(2) ? '&7' + lang('holoui.preview.state.no_ingredient') : '&8' + lang('holoui.preview.state.empty'))))) + (surge.active ? vars.surgeColor + lang('holoui.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
+      "text": "(brewTime > 0 ? vars.stateColor + lang('gloss.preview.state.brewing', round(clamp(1 - brewTime / brewTotal, 0, 1) * 100)) : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) && fuelLevel <= 0 ? '&c' + lang('gloss.preview.state.needs_blaze_powder') : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) ? '&7' + lang('gloss.preview.state.waiting') : (occupied(0) || occupied(1) || occupied(2) ? '&7' + lang('gloss.preview.state.no_ingredient') : '&8' + lang('gloss.preview.state.empty'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
     },
     {
       "type": "label",
       "x": 0,
       "y": -46,
-      "text": "(fuelLevel > 0 ? '&e' + lang('holoui.preview.stat.fuel_level', fuelLevel, maxFuel) : '&8' + lang('holoui.preview.stat.no_fuel')) + '<dark_gray>  •  </dark_gray>' + ((occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0) > 0 ? '<light_purple>' + lang('holoui.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</light_purple>' : '<dark_gray>' + lang('holoui.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</dark_gray>')"
+      "text": "(fuelLevel > 0 ? '&e' + lang('gloss.preview.stat.fuel_level', fuelLevel, maxFuel) : '&8' + lang('gloss.preview.stat.no_fuel')) + '<dark_gray>  •  </dark_gray>' + ((occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0) > 0 ? '<light_purple>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</light_purple>' : '<dark_gray>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</dark_gray>')"
     }
   ]
 }

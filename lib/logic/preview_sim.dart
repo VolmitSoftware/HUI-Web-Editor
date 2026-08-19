@@ -166,12 +166,27 @@ class SimSlotItem {
   String toString() => 'SimSlotItem($slot, $material x$count)';
 }
 
+/// The lang-key prefix HoloUI shipped before the Gloss merger renamed the
+/// preview keys to [kPreviewLangPrefix]. Gloss's importer rewrites these on
+/// import; the editor resolves them for display and warns in validation.
+const String kLegacyPreviewLangPrefix = 'holoui.preview.';
+
+/// The current preview lang-key prefix, matching `GlossMessages.java`.
+const String kPreviewLangPrefix = 'gloss.preview.';
+
+/// The `gloss.preview.*` twin of a legacy `holoui.preview.*` id, or null when
+/// [key] does not carry the legacy prefix.
+String? previewRenamedLangKey(String key) =>
+    key.startsWith(kLegacyPreviewLangPrefix)
+    ? '$kPreviewLangPrefix${key.substring(kLegacyPreviewLangPrefix.length)}'
+    : null;
+
 /// The English message templates `lang()` renders against.
 ///
 /// `web/assets/catalog/preview-lang-en.json` is generated from the plugin's
-/// `HoloMessages.java` by `tool/extract_preview_lang.dart`; only the templates'
-/// placeholder names and order matter, which is why the snapshot has to come
-/// from the Java constants rather than a locale file.
+/// `GlossMessages.java` by `tool/extract_preview_lang.dart`; only the
+/// templates' placeholder names and order matter, which is why the snapshot
+/// has to come from the Java constants rather than a locale file.
 class PreviewLangCatalog {
   const PreviewLangCatalog(this.messages);
 
@@ -185,6 +200,16 @@ class PreviewLangCatalog {
   bool get isEmpty => messages.isEmpty;
 
   String? template(String key) => messages[key];
+
+  /// [template] for [key], falling back to its `gloss.preview.*` twin when
+  /// [key] still carries the legacy `holoui.preview.*` prefix — the same
+  /// rename Gloss's importer applies to a whole document on import.
+  String? _resolvedTemplate(String key) {
+    final String? direct = messages[key];
+    if (direct != null) return direct;
+    final String? renamed = previewRenamedLangKey(key);
+    return renamed == null ? null : messages[renamed];
+  }
 
   /// Decodes `{"messages":{"<id>":"<template>"}}`. Never throws: a missing or
   /// malformed snapshot degrades to [empty], and every key then renders as
@@ -206,15 +231,16 @@ class PreviewLangCatalog {
   /// Renders [key] with [args] bound positionally onto the template's own
   /// placeholder names: argument 1 fills the first `{name}`, argument 2 the
   /// second, and so on. That is what lets a document write
-  /// `lang("holoui.preview.state.smelting_item", item, percent)` and get
+  /// `lang("gloss.preview.state.smelting_item", item, percent)` and get
   /// `Smelting Iron Ore 42%` out of `Smelting {item} {percent}%`.
   ///
-  /// An unknown id renders as itself, arguments past the last placeholder go
-  /// unused, and a placeholder no argument reached stays literal — the lenient
-  /// rendering `HoloLocalization.renderTemplate` performs, which is also the
-  /// path the plugin's own golden snapshots were captured through.
+  /// An unknown id renders as itself (a legacy `holoui.preview.*` id first
+  /// tries its `gloss.preview.*` twin), arguments past the last placeholder
+  /// go unused, and a placeholder no argument reached stays literal — the
+  /// lenient rendering `GlossLocalization.renderTemplate` performs, which is
+  /// also the path the plugin's own golden snapshots were captured through.
   String render(String key, List<Object?> args) {
-    final String template = messages[key] ?? key;
+    final String template = _resolvedTemplate(key) ?? key;
     if (args.isEmpty) return template;
     final List<String> names = orderedPlaceholders(template);
     final Map<String, String> bound = <String, String>{};

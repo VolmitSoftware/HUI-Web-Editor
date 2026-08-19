@@ -1,5 +1,5 @@
-/// The BubbleLines port: `§`-only colour stripping, the VolmLib soft wrap as
-/// it actually behaves (quirk included), and the blank-line drop.
+/// The BubbleLines port: `§`-only colour stripping, the VolmLib soft wrap,
+/// and the blank-line drop.
 library;
 
 import 'package:gloss_editor/logic/bubble_lines.dart';
@@ -23,16 +23,19 @@ void main() {
       expect(glossFormWrapWords('', 32), '');
     });
 
-    test('wraps on spaces within the window — quirk included', () {
-      // First window ("one two th") wraps at its LAST space, absolute. The
-      // second window ("three four") holds a single space, which the shipped
-      // VolmLib records window-relative (5) and then compares against the
-      // absolute offset (8) — so the wrap point is "missed" and the window
-      // hard-cuts. Java behavior is the contract; the port replays it.
+    test('wraps at the actual space instead of hard-cutting mid-word', () {
       expect(
         glossFormWrapWords('one two three four', 9),
-        'one two\nthree fou\nr',
+        'one two\nthree\nfour',
       );
+    });
+
+    test('breaks a single-space pair at the space', () {
+      expect(glossFormWrapWords('hello world', 5), 'hello\nworld');
+    });
+
+    test('breaks exact-width words at every space', () {
+      expect(glossFormWrapWords('aaa bbb ccc', 3), 'aaa\nbbb\nccc');
     });
 
     test('hard-cuts a word longer than the window (soft mode)', () {
@@ -46,11 +49,9 @@ void main() {
 
   group('glossBubbleSplit', () {
     test('strips, wraps at the style width and drops blank lines', () {
-      // "wonderful wor" + "ld" is the shipped wrap's own answer — the
-      // single-space window quirk again (see the wrap test above).
       expect(
         glossBubbleSplit('§dhello there wonderful world', 13),
-        <String>['hello there', 'wonderful wor', 'ld'],
+        <String>['hello there', 'wonderful', 'world'],
       );
     });
 

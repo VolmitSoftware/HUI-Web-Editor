@@ -6,7 +6,7 @@
     "vars": {
       "cols": 9,
       "maxRows": 6,
-      "titleKey": "holoui.preview.theme.title.ender_chest",
+      "titleKey": "gloss.preview.theme.title.ender_chest",
       "accent": "#B152DA"
     }
   },

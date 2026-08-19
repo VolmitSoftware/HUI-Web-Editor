@@ -577,8 +577,54 @@ void main() {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(
           blocks: <String>['CHEST'],
-          vars: <String, dynamic>{'key': 'holoui.preview.theme.title'},
+          vars: <String, dynamic>{'key': 'gloss.preview.theme.title'},
         ),
+      );
+      expect(validatePreviewDoc(doc), isEmpty);
+    });
+
+    test('a legacy holoui.preview vars value warns with the rename note', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        match: HuiPreviewMatch(
+          blocks: <String>['CHEST'],
+          vars: <String, dynamic>{'key': 'holoui.preview.theme.title.chest'},
+        ),
+      );
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'match.vars.key');
+      expect(issue.severity, HuiSeverity.warning);
+      expect(issue.message, contains('renamed in Gloss'));
+      expect(issue.message, contains('rewritten on import'));
+      expect(issue.fix, contains('gloss.preview.theme.title.chest'));
+    });
+
+    test('a legacy holoui.preview lang() literal warns on its field', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        match: HuiPreviewMatch(blocks: <String>['CHEST']),
+        elements: <HuiPreviewElement>[
+          HuiPreviewElement(
+            'label',
+            text: "lang('holoui.preview.state.idle')",
+          ),
+        ],
+      );
+      final HuiIssue issue = validatePreviewDoc(
+        doc,
+      ).firstWhere((HuiIssue i) => i.path == 'elements[0].text');
+      expect(issue.severity, HuiSeverity.warning);
+      expect(issue.message, contains('renamed in Gloss'));
+    });
+
+    test('a gloss.preview lang() literal does not warn', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        match: HuiPreviewMatch(blocks: <String>['CHEST']),
+        elements: <HuiPreviewElement>[
+          HuiPreviewElement(
+            'label',
+            text: "lang('gloss.preview.state.idle')",
+          ),
+        ],
       );
       expect(validatePreviewDoc(doc), isEmpty);
     });

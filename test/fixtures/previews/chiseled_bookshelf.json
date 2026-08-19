@@ -5,7 +5,7 @@
     "vars": {
       "cols": 3,
       "rows": 2,
-      "titleKey": "holoui.preview.theme.title.chiseled_bookshelf",
+      "titleKey": "gloss.preview.theme.title.chiseled_bookshelf",
       "accent": "#F2A535"
     }
   },

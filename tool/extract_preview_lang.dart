@@ -1,16 +1,16 @@
 /// Regenerates `web/assets/catalog/preview-lang-en.json` from the plugin's
-/// `HoloMessages.java`.
+/// `GlossMessages.java`.
 ///
 /// The plugin carries every English message template inline, as the second
-/// argument of a `TextKey.of("<id>", "<english>")` constant. The editor's
-/// `lang()` simulation needs the same templates to bind positional call
-/// arguments onto placeholder names, so this script lifts the
-/// `holoui.preview.*` subset out of the Java source rather than having anyone
+/// argument of a `text("<id>", "<english>")` constant declaration. The
+/// editor's `lang()` simulation needs the same templates to bind positional
+/// call arguments onto placeholder names, so this script lifts the
+/// `gloss.preview.*` subset out of the Java source rather than having anyone
 /// retype it. Re-run it whenever the plugin adds or edits a preview key:
 ///
 /// ```
 /// dart run tool/extract_preview_lang.dart
-/// dart run tool/extract_preview_lang.dart /path/to/HoloMessages.java
+/// dart run tool/extract_preview_lang.dart /path/to/GlossMessages.java
 /// ```
 ///
 /// Output is sorted by id and pretty-printed, so a regeneration produces a
@@ -22,13 +22,13 @@ import 'dart:io';
 
 /// Only these ids are lifted: the state, stat and theme-title keys a preview
 /// document can pass to `lang()`. Command and chat messages live under
-/// `holoui.message.*` / `holoui.command.*` and are not reachable from a
+/// unprefixed `command.*` / `message.*` ids and are not reachable from a
 /// document.
-const String idPrefix = 'holoui.preview.';
+const String idPrefix = 'gloss.preview.';
 
 /// Default source, relative to this repo — the plugin checkout sits beside it.
 const String defaultSource =
-    '../Gloss/src/main/java/art/arcane/gloss/locale/HoloMessages.java';
+    '../Gloss/src/main/java/art/arcane/gloss/locale/GlossMessages.java';
 
 const String outputPath = 'web/assets/catalog/preview-lang-en.json';
 
@@ -36,7 +36,7 @@ void main(List<String> args) {
   final String sourcePath = args.isEmpty ? defaultSource : args.first;
   final File source = File(sourcePath);
   if (!source.existsSync()) {
-    stderr.writeln('missing HoloMessages.java: $sourcePath');
+    stderr.writeln('missing GlossMessages.java: $sourcePath');
     exitCode = 1;
     return;
   }
@@ -58,11 +58,11 @@ void main(List<String> args) {
   stdout.writeln('wrote ${messages.length} messages to $outputPath');
 }
 
-/// Every `TextKey.of("<id>", "<english>")` pair whose id starts with
-/// [idPrefix]. Scans the whole source text rather than line by line so a
-/// wrapped declaration is still picked up.
+/// Every `text("<id>", "<english>")` pair whose id starts with [idPrefix].
+/// Scans the whole source text rather than line by line so a wrapped
+/// declaration is still picked up.
 Map<String, String> extractPreviewMessages(String source) {
-  const String marker = 'TextKey.of(';
+  const String marker = 'text(';
   final Map<String, String> out = <String, String>{};
   int cursor = 0;
   while (true) {

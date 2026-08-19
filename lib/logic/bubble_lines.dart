@@ -5,12 +5,10 @@
 /// style.wordWrapChars())`: strip `§` colour pairs (only `§`, never `&` —
 /// `stripColors`), soft-wrap through VolmLib's `Form.wrapWords`, split on
 /// newlines and drop blank lines. [glossFormWrapWords] is a literal port of
-/// `Form.wrapPrefixed(s, "", len, null, true, " ")` as that code actually
-/// reads — including its one divergence from the commons-lang original: the
-/// FIRST space found in a window is recorded window-relative (no `+ offset`),
-/// so a window whose only space sits before the current absolute offset takes
-/// the hard-cut branch. The Java behavior is the contract; the quirk is
-/// ported, not fixed.
+/// `Form.wrap(s, len, null, true, " ")` as that code actually reads: every
+/// space found in a window is recorded at its absolute index (`start +
+/// offset`), so wrapping always breaks at the last space that fits the
+/// window and only hard-cuts a word longer than the window.
 library;
 
 /// `BubbleLines.split`.
@@ -63,9 +61,7 @@ String glossFormWrapWords(String s, int len) {
         offset += matches.current.end;
         continue;
       }
-      // The literal port: window-relative, no `+ offset` — see the library
-      // comment.
-      spaceToWrapAt = matches.current.start;
+      spaceToWrapAt = matches.current.start + offset;
     }
 
     if (inputLength - offset <= len) break;

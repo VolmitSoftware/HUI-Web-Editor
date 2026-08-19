@@ -4,7 +4,7 @@
     "priority": 10,
     "vars": {
       "slots": 5,
-      "titleKey": "holoui.preview.theme.title.hopper",
+      "titleKey": "gloss.preview.theme.title.hopper",
       "accent": "#6E747E"
     }
   },

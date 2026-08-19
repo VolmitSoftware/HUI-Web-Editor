@@ -3,7 +3,7 @@
     "blocks": ["JUKEBOX"],
     "priority": 10,
     "vars": {
-      "titleKey": "holoui.preview.theme.title.jukebox",
+      "titleKey": "gloss.preview.theme.title.jukebox",
       "accent": "#EC88EC"
     }
   },
@@ -17,7 +17,7 @@
       "type": "label",
       "x": 0,
       "y": -21,
-      "text": "record != '' ? (playing ? '&a' + lang('holoui.preview.state.disc_playing', record) : '&7' + lang('holoui.preview.state.disc_loaded', record)) : '&8' + lang('holoui.preview.state.no_disc')"
+      "text": "record != '' ? (playing ? '&a' + lang('gloss.preview.state.disc_playing', record) : '&7' + lang('gloss.preview.state.disc_loaded', record)) : '&8' + lang('gloss.preview.state.no_disc')"
     }
   ]
 }

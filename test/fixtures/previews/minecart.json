@@ -8,7 +8,7 @@
       "maxRows": 6,
       "slots": 5,
       "row": false,
-      "titleKey": "holoui.preview.theme.title.mobile",
+      "titleKey": "gloss.preview.theme.title.mobile",
       "accent": "#A6ACB6"
     }
   },
@@ -17,14 +17,14 @@
       "entities": ["HOPPER_MINECART"],
       "vars": {
         "row": true,
-        "titleKey": "holoui.preview.theme.title.hopper_minecart",
+        "titleKey": "gloss.preview.theme.title.hopper_minecart",
         "accent": "#6E747E"
       }
     },
     {
       "entities": ["CHEST_MINECART"],
       "vars": {
-        "titleKey": "holoui.preview.theme.title.chest_minecart",
+        "titleKey": "gloss.preview.theme.title.chest_minecart",
         "accent": "#F2A535"
       }
     }

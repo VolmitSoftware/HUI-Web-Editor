@@ -14,7 +14,11 @@
 library;
 
 import 'preview_expr.dart';
-import 'preview_sim.dart' show previewSimGroupVariables;
+import 'preview_sim.dart'
+    show
+        kLegacyPreviewLangPrefix,
+        previewRenamedLangKey,
+        previewSimGroupVariables;
 import 'preview_variant_resolver.dart' show previewMatchesGlob;
 import 'validation.dart';
 import '../model/preview_doc.dart';
@@ -170,6 +174,41 @@ void previewCollectVarRefs(PExpr expr, void Function(String name) visit) {
       }
     case PNum():
     case PStr():
+    case PBool():
+      break;
+  }
+}
+
+/// Visits every `PStr` literal anywhere in [expr], mirroring
+/// [previewCollectVarRefs]'s traversal — used to spot legacy
+/// `holoui.preview.*` lang keys passed to `lang()` or concatenated into text.
+void _previewCollectStrLiterals(PExpr expr, void Function(String value) visit) {
+  switch (expr) {
+    case PStr(value: final String value):
+      visit(value);
+    case PList(items: final List<PExpr> items):
+      for (final PExpr item in items) {
+        _previewCollectStrLiterals(item, visit);
+      }
+    case PUnary(operand: final PExpr operand):
+      _previewCollectStrLiterals(operand, visit);
+    case PBinary(left: final PExpr left, right: final PExpr right):
+      _previewCollectStrLiterals(left, visit);
+      _previewCollectStrLiterals(right, visit);
+    case PTernary(
+      condition: final PExpr condition,
+      ifTrue: final PExpr ifTrue,
+      ifFalse: final PExpr ifFalse,
+    ):
+      _previewCollectStrLiterals(condition, visit);
+      _previewCollectStrLiterals(ifTrue, visit);
+      _previewCollectStrLiterals(ifFalse, visit);
+    case PCall(args: final List<PExpr> args):
+      for (final PExpr arg in args) {
+        _previewCollectStrLiterals(arg, visit);
+      }
+    case PNum():
+    case PVar():
     case PBool():
       break;
   }
@@ -364,6 +403,17 @@ List<HuiIssue> validatePreviewDoc(
 
   final Set<String> declaredVars = previewDeclaredVars(doc);
 
+  void warnLegacyLangKey(String value, String path) {
+    if (!value.startsWith(kLegacyPreviewLangPrefix)) return;
+    add(
+      HuiSeverity.warning,
+      path,
+      'Lang key "$value" uses the legacy "$kLegacyPreviewLangPrefix" prefix, '
+      'renamed in Gloss; imported docs are rewritten on import.',
+      fix: 'Use "${previewRenamedLangKey(value)}".',
+    );
+  }
+
   /// Parses [raw] (when it is an expression string) and checks every
   /// variable reference plus, when the whole expression is constant, that it
   /// evaluates cleanly (catching a constant division by zero, for instance).
@@ -391,6 +441,9 @@ List<HuiIssue> validatePreviewDoc(
       );
       if (problem != null) add(problem.severity, path, problem.message);
     });
+    _previewCollectStrLiterals(expr, (String value) {
+      warnLegacyLangKey(value, path);
+    });
     if (previewIsConstantExpr(expr)) {
       try {
         evalPreviewExpr(expr, _previewEmptyScope);
@@ -405,6 +458,7 @@ List<HuiIssue> validatePreviewDoc(
       if (value is num || value is bool) return;
       final String path = '$pathPrefix.$key';
       if (value is String) {
+        warnLegacyLangKey(value, path);
         if (!value.startsWith('#')) return;
         try {
           final PExpr expr = parsePreviewExpr(value);

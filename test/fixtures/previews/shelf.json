@@ -3,7 +3,7 @@
     "blocks": ["*_SHELF"],
     "priority": 10,
     "vars": {
-      "titleKey": "holoui.preview.theme.title.shelf",
+      "titleKey": "gloss.preview.theme.title.shelf",
       "accent": "#F2A535"
     }
   },

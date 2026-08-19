@@ -1,11 +1,12 @@
 /// Mirror of the static half of Gloss `TablistService.java`: which format a
 /// player's list name uses, and how tokens substitute into it.
 ///
-/// `chooseListName` (`TablistService.java:54-66`) resolves in this order:
-/// an operator takes `_op` when it exists; a non-blank primary group takes
-/// its own entry; `default` catches the rest (keeping the player's group
-/// name for `$group`); and with no `default` the literal `$player` fallback
-/// applies. `substituteTokens` (`TablistService.java:46-52`) then replaces
+/// `chooseListName` (`TablistService.java`) resolves in this order: an
+/// operator takes `_op` when it exists; a non-blank primary group takes its
+/// own entry, looked up trimmed and lowercased the way `TablistDoc.copyFormats`
+/// normalizes the keys; `default` catches the rest (keeping the player's
+/// group name for `$group`); and with no `default` the literal `$player`
+/// fallback applies. `substituteTokens` (`TablistService.java:46-52`) then replaces
 /// `$player` and `$group`. A blank chosen template makes the plugin RESET
 /// the list name to vanilla rather than applying an empty one
 /// (`TablistService.applyListName`).
@@ -30,10 +31,11 @@ GlossTablistChoice glossTablistChooseListName(
       groupName: glossTablistOpGroupKey,
     );
   }
-  if (primaryGroup != null &&
-      primaryGroup.trim().isNotEmpty &&
-      nameFormats.containsKey(primaryGroup)) {
-    return (template: nameFormats[primaryGroup]!, groupName: primaryGroup);
+  if (primaryGroup != null && primaryGroup.trim().isNotEmpty) {
+    final String groupKey = primaryGroup.trim().toLowerCase();
+    if (nameFormats.containsKey(groupKey)) {
+      return (template: nameFormats[groupKey]!, groupName: primaryGroup);
+    }
   }
   if (nameFormats.containsKey(glossTablistDefaultGroupKey)) {
     return (

@@ -1,6 +1,7 @@
-/// GlossEmojiDoc: round-trips, the Gson realities (a missing `enabled` is
-/// false), the `UnicodeText.parse` mirror character for character, and the
-/// shape check import routing relies on.
+/// GlossEmojiDoc: round-trips, the wrapper default (a missing `enabled` is
+/// TRUE, per `EmojiDoc.java`'s compact constructor), the `UnicodeText.parse`
+/// mirror character for character, and the shape check import routing relies
+/// on.
 library;
 
 import 'dart:convert';
@@ -40,12 +41,32 @@ void main() {
       );
     });
 
-    test('a missing enabled is false — Gson primitive default', () {
+    test('a missing enabled is TRUE — EmojiDoc wrapper default', () {
       final GlossEmojiDoc doc = decodeGlossEmojiDoc(
         '{"schemaVersion": 1, "revision": 1, "emoji": "x"}',
       );
-      expect(doc.enabled, isFalse);
+      expect(doc.enabled, isTrue);
       expect(doc.trigger, isEmpty);
+    });
+
+    test('an explicit false enabled stays disabled', () {
+      final GlossEmojiDoc doc = decodeGlossEmojiDoc(
+        '{"schemaVersion": 1, "revision": 1, "emoji": "x", "enabled": false}',
+      );
+      expect(doc.enabled, isFalse);
+    });
+
+    test('an absent enabled stays absent on re-encode while true', () {
+      final GlossEmojiDoc doc = decodeGlossEmojiDoc(
+        '{"schemaVersion": 1, "revision": 1, "emoji": "x"}',
+      );
+      final Map<String, dynamic> out =
+          jsonDecode(encodeGlossEmojiDoc(doc)) as Map<String, dynamic>;
+      expect(out.containsKey('enabled'), isFalse);
+      doc.enabled = false;
+      final Map<String, dynamic> disabled =
+          jsonDecode(encodeGlossEmojiDoc(doc)) as Map<String, dynamic>;
+      expect(disabled['enabled'], isFalse);
     });
 
     test('a blank emoji decodes leniently for repair', () {

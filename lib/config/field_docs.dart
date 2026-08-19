@@ -604,7 +604,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'A disabled emoji stays in the list (and in tab-complete data the '
         'service builds) but is filtered out of the replacer, so nothing '
-        'substitutes until it is enabled again.',
+        'substitutes until it is enabled again. A file that omits the key '
+        'is enabled.',
     citation: 'EmojiReplacer.java:14-19',
   ),
 

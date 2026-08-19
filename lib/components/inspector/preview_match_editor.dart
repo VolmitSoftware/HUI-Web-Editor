@@ -327,7 +327,7 @@ class PreviewMatchEditor extends StatelessWidget {
     title: 'Install on the server',
     children: <Widget>[
       HuiDetailRow('Preview file', '$huiPreviewFolder${store.menuId}.json'),
-      const HuiDetailRow('Permission', 'holoui.preview'),
+      const HuiDetailRow('Permission', 'gloss.preview'),
     ],
   );
 

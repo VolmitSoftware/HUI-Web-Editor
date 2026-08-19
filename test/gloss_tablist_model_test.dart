@@ -113,6 +113,16 @@ void main() {
       expect(choice.groupName, 'vip');
     });
 
+    test('a mixed-case Vault group matches its lowercased format key', () {
+      final GlossTablistChoice choice = glossTablistChooseListName(
+        false,
+        'VIP',
+        formats,
+      );
+      expect(choice.template, r'&6[$group] $player');
+      expect(choice.groupName, 'VIP');
+    });
+
     test('default catches unlisted groups, keeping the group name', () {
       final GlossTablistChoice choice = glossTablistChooseListName(
         false,
