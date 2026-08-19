@@ -296,12 +296,12 @@
 
 /* Vanilla sidebar: darkened rows, title centered, scores right in dim red. */
 .hui-scoreboard-sidebar {
-  width: min(720px, 72cqi);
-  min-width: min(280px, 100%);
+  width: max-content;
+  min-width: min(180px, 100%);
   max-width: 100%;
   font-family: var(--hui-mc-font);
-  font-size: clamp(15px, 1.35cqi, 22px);
-  line-height: 1.45;
+  font-size: clamp(13px, 1.05cqi, 17px);
+  line-height: 1.3;
   color: #ffffff;
 }
 
@@ -317,7 +317,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px;
   background: rgba(0, 0, 0, 0.3);
   padding: 1px 8px 1px 6px;
   white-space: pre;
@@ -326,8 +326,8 @@
 .hui-scoreboard-row-text { min-width: 0; overflow: hidden; }
 
 .hui-scoreboard-score {
-  color: rgba(255, 85, 85, 0.55);
-  font-size: 13px;
+  color: #ff5555;
+  font-size: inherit;
   flex: none;
 }
 

@@ -40,6 +40,8 @@ const int glossBoardMaxLines = 15;
 /// characters, colour codes included.
 const int glossBoardMaxTitleLength = 32;
 
+int glossBoardScoreForRow(int index) => glossBoardMaxLines - index;
+
 /// True when [json] has the shape of a Gloss scoreboard document: the
 /// versioned envelope, board keys, and none of the other kinds' markers.
 bool looksLikeScoreboardDoc(Object? json) {

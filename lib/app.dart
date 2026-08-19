@@ -220,8 +220,13 @@ class _AppState extends State<App> {
       return;
     }
     final String? documentId = _store.workspace.activeId;
-    if (documentId == null) return;
     final String current = readWorkspaceLocationHash();
+    if (documentId == null) {
+      if (current.startsWith('#/workspace/')) {
+        writeWorkspaceLocationHash('', replace: true);
+      }
+      return;
+    }
     writeWorkspaceLocationHash(
       workspaceDocumentHash(_store.workspace.id, documentId),
       replace: replace || current.startsWith('#/import/menu/'),

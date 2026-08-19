@@ -57,7 +57,6 @@ class _EditorRailState extends State<EditorRail> {
   bool _importingBundle = false;
   bool _resetArmed = false;
   bool _resetting = false;
-  String? _lastShowcaseTemplateId;
 
   EditorStore get _store => component.store;
 
@@ -225,11 +224,6 @@ class _EditorRailState extends State<EditorRail> {
         label: 'New folder',
         icon: ArcaneIcon.folderPlus(size: IconSize.sm),
         onPressed: _createFolder,
-      ),
-      _iconButton(
-        label: 'Random Gloss showcase',
-        icon: ArcaneIcon.dices(size: IconSize.sm),
-        onPressed: _createRandomShowcase,
       ),
       for (final DocumentTypeAdapter type in DocumentTypeRegistry.all)
         _iconButton(
@@ -725,6 +719,18 @@ class _EditorRailState extends State<EditorRail> {
         onSelect: () => _store.openDocument(doc.id),
       ),
       HuiActionMenuItem(
+        label: 'Create random ${DocumentTypeRegistry.of(doc.kind).noun}',
+        hint: 'Replaces its code',
+        icon: ArcaneIcon.dices(size: IconSize.sm),
+        disabled: !canRandomizeShowcase(DocumentTypeRegistry.of(doc.kind)),
+        onSelect: () {
+          final bool changed = randomizeShowcaseDocument(_store, doc.id);
+          if (changed) {
+            ArcaneSonner.success('Randomized ${doc.title}.');
+          }
+        },
+      ),
+      HuiActionMenuItem(
         label: 'Rename',
         icon: ArcaneIcon.pencil(size: IconSize.sm),
         separatorBefore: true,
@@ -834,21 +840,6 @@ class _EditorRailState extends State<EditorRail> {
       _store,
       folderId: folderId,
       runtimeId: _syncRuntimeIdOverride(type, folderId),
-    );
-  }
-
-  void _createRandomShowcase() {
-    final ShowcaseSelection? selection = createRandomGlossShowcase(
-      _store,
-      previousTemplateId: _lastShowcaseTemplateId,
-    );
-    if (selection == null) {
-      ArcaneSonner.error('No Gloss showcase templates are available.');
-      return;
-    }
-    _lastShowcaseTemplateId = selection.template.id;
-    ArcaneSonner.success(
-      'Created ${selection.template.name} as a ${selection.type.noun} showcase.',
     );
   }
 

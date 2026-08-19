@@ -631,54 +631,68 @@ class _CenterArea extends StatelessWidget {
   final Widget codeEditor;
 
   @override
-  Widget build(BuildContext context) => StoreSelector<EditorView>(
-    listenable: store,
-    selector: () => store.view,
-    builder: (BuildContext context, EditorView view) => dom.section(
-      classes: switch (view) {
-        EditorView.visual => 'hui-pane hui-center is-visual',
-        EditorView.preview => 'hui-pane hui-center is-preview',
-        EditorView.code => 'hui-pane hui-center is-code',
-        EditorView.split => 'hui-pane hui-center is-split',
-        EditorView.previewCard => 'hui-pane hui-center is-preview-card',
-        EditorView.panel => 'hui-pane hui-center is-board',
-        EditorView.hologram => 'hui-pane hui-center is-hologram',
-        EditorView.animation => 'hui-pane hui-center is-animation',
-        EditorView.scoreboard => 'hui-pane hui-center is-scoreboard',
-        EditorView.motd => 'hui-pane hui-center is-motd',
-        EditorView.emoji => 'hui-pane hui-center is-emoji',
-        EditorView.bubble => 'hui-pane hui-center is-bubble',
-        EditorView.tablist => 'hui-pane hui-center is-tablist',
-      },
-      <Widget>[
-        dom.div(classes: 'hui-split-cell', <Widget>[canvas]),
-        dom.div(classes: 'hui-split-cell is-preview-card', <Widget>[
-          previewCard,
-        ]),
-        if (view == EditorView.preview)
-          dom.div(classes: 'hui-split-cell is-preview', <Widget>[preview]),
-        if (view == EditorView.panel)
-          dom.div(classes: 'hui-split-cell is-board', <Widget>[panel]),
-        if (view == EditorView.hologram)
-          dom.div(classes: 'hui-split-cell is-hologram', <Widget>[hologram]),
-        if (view == EditorView.animation)
-          dom.div(classes: 'hui-split-cell is-animation', <Widget>[animation]),
-        if (view == EditorView.scoreboard)
-          dom.div(classes: 'hui-split-cell is-scoreboard', <Widget>[
-            scoreboard,
-          ]),
-        if (view == EditorView.motd)
-          dom.div(classes: 'hui-split-cell is-motd', <Widget>[motd]),
-        if (view == EditorView.emoji)
-          dom.div(classes: 'hui-split-cell is-emoji', <Widget>[emoji]),
-        if (view == EditorView.bubble)
-          dom.div(classes: 'hui-split-cell is-bubble', <Widget>[bubble]),
-        if (view == EditorView.tablist)
-          dom.div(classes: 'hui-split-cell is-tablist', <Widget>[tablist]),
-        if (view == EditorView.code || view == EditorView.split)
-          dom.div(classes: 'hui-split-cell is-code', <Widget>[codeEditor]),
-      ],
-    ),
+  Widget build(BuildContext context) =>
+      StoreSelector<({bool active, EditorView view})>(
+        listenable: store,
+        selector: () => (active: store.hasActiveDocument, view: store.view),
+        builder:
+            (BuildContext context, ({bool active, EditorView view}) state) =>
+                state.active
+                ? _active(state.view)
+                : dom.section(
+                    classes: 'hui-pane hui-center is-empty-workspace',
+                    <Widget>[
+                      ArcaneEmptyState(
+                        title: 'Workspace is empty',
+                        description:
+                            'Create a document in the Library or start from a '
+                            'template.',
+                        icon: ArcaneIcon.filePlus(size: IconSize.lg),
+                      ),
+                    ],
+                  ),
+      );
+
+  Widget _active(EditorView view) => dom.section(
+    classes: switch (view) {
+      EditorView.visual => 'hui-pane hui-center is-visual',
+      EditorView.preview => 'hui-pane hui-center is-preview',
+      EditorView.code => 'hui-pane hui-center is-code',
+      EditorView.split => 'hui-pane hui-center is-split',
+      EditorView.previewCard => 'hui-pane hui-center is-preview-card',
+      EditorView.panel => 'hui-pane hui-center is-board',
+      EditorView.hologram => 'hui-pane hui-center is-hologram',
+      EditorView.animation => 'hui-pane hui-center is-animation',
+      EditorView.scoreboard => 'hui-pane hui-center is-scoreboard',
+      EditorView.motd => 'hui-pane hui-center is-motd',
+      EditorView.emoji => 'hui-pane hui-center is-emoji',
+      EditorView.bubble => 'hui-pane hui-center is-bubble',
+      EditorView.tablist => 'hui-pane hui-center is-tablist',
+    },
+    <Widget>[
+      dom.div(classes: 'hui-split-cell', <Widget>[canvas]),
+      dom.div(classes: 'hui-split-cell is-preview-card', <Widget>[previewCard]),
+      if (view == EditorView.preview)
+        dom.div(classes: 'hui-split-cell is-preview', <Widget>[preview]),
+      if (view == EditorView.panel)
+        dom.div(classes: 'hui-split-cell is-board', <Widget>[panel]),
+      if (view == EditorView.hologram)
+        dom.div(classes: 'hui-split-cell is-hologram', <Widget>[hologram]),
+      if (view == EditorView.animation)
+        dom.div(classes: 'hui-split-cell is-animation', <Widget>[animation]),
+      if (view == EditorView.scoreboard)
+        dom.div(classes: 'hui-split-cell is-scoreboard', <Widget>[scoreboard]),
+      if (view == EditorView.motd)
+        dom.div(classes: 'hui-split-cell is-motd', <Widget>[motd]),
+      if (view == EditorView.emoji)
+        dom.div(classes: 'hui-split-cell is-emoji', <Widget>[emoji]),
+      if (view == EditorView.bubble)
+        dom.div(classes: 'hui-split-cell is-bubble', <Widget>[bubble]),
+      if (view == EditorView.tablist)
+        dom.div(classes: 'hui-split-cell is-tablist', <Widget>[tablist]),
+      if (view == EditorView.code || view == EditorView.split)
+        dom.div(classes: 'hui-split-cell is-code', <Widget>[codeEditor]),
+    ],
   );
 }
 

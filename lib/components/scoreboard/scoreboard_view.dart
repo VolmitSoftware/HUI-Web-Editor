@@ -145,7 +145,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
                   ),
                 ]),
                 dom.span(classes: 'hui-scoreboard-score', <Widget>[
-                  Text('${rendered - 1 - index}'),
+                  Text('${glossBoardScoreForRow(index)}'),
                 ]),
               ]),
           ]),

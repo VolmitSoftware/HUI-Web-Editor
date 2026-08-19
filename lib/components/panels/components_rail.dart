@@ -19,6 +19,7 @@ import '../../config/defaults.dart';
 import '../../logic/validation.dart';
 import '../../model/model.dart';
 import '../../services/catalogs.dart';
+import '../../services/showcase_randomizer.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'drag_data.dart';
@@ -770,49 +771,60 @@ class _ComponentsRailState extends State<ComponentsRail> {
         ),
       ]);
 
-  List<Widget> _rowMenu(int index, String id, String label, int total) =>
-      <Widget>[
-        HuiActionMenu(
-          id: _rowMenuId,
-          label: 'Actions for $label',
-          point: _menuPoint,
-          onClose: _dismissMenu,
-          items: <HuiActionMenuItem>[
-            HuiActionMenuItem(
-              label: 'Rename',
-              icon: ArcaneIcon.pencil(size: IconSize.sm),
-              onSelect: () => setState(() {
-                _renameId = id;
-                _renameDraft = id;
-              }),
-            ),
-            HuiActionMenuItem(
-              label: 'Duplicate',
-              icon: ArcaneIcon.copy(size: IconSize.sm),
-              onSelect: () => _store.duplicateComponent(id),
-            ),
-            HuiActionMenuItem(
-              label: 'Move to top',
-              icon: ArcaneIcon.arrowUp(size: IconSize.sm),
-              disabled: index == 0,
-              onSelect: () => _move(id, 0),
-            ),
-            HuiActionMenuItem(
-              label: 'Move to bottom',
-              icon: ArcaneIcon.arrowDown(size: IconSize.sm),
-              disabled: index >= total - 1,
-              onSelect: () => _move(id, total - 1),
-            ),
-            HuiActionMenuItem(
-              label: 'Delete',
-              icon: ArcaneIcon.trash2(size: IconSize.sm),
-              destructive: true,
-              separatorBefore: true,
-              onSelect: () => setState(() => _armedDeleteId = id),
-            ),
-          ],
+  List<Widget> _rowMenu(
+    int index,
+    String id,
+    String label,
+    int total,
+  ) => <Widget>[
+    HuiActionMenu(
+      id: _rowMenuId,
+      label: 'Actions for $label',
+      point: _menuPoint,
+      onClose: _dismissMenu,
+      items: <HuiActionMenuItem>[
+        HuiActionMenuItem(
+          label:
+              'Randomize ${_typeLabel(_store.menu.componentById(id)!.data.type).toLowerCase()}',
+          icon: ArcaneIcon.dices(size: IconSize.sm),
+          onSelect: () => randomizeMenuComponent(_store, id),
         ),
-      ];
+        HuiActionMenuItem(
+          label: 'Rename',
+          icon: ArcaneIcon.pencil(size: IconSize.sm),
+          separatorBefore: true,
+          onSelect: () => setState(() {
+            _renameId = id;
+            _renameDraft = id;
+          }),
+        ),
+        HuiActionMenuItem(
+          label: 'Duplicate',
+          icon: ArcaneIcon.copy(size: IconSize.sm),
+          onSelect: () => _store.duplicateComponent(id),
+        ),
+        HuiActionMenuItem(
+          label: 'Move to top',
+          icon: ArcaneIcon.arrowUp(size: IconSize.sm),
+          disabled: index == 0,
+          onSelect: () => _move(id, 0),
+        ),
+        HuiActionMenuItem(
+          label: 'Move to bottom',
+          icon: ArcaneIcon.arrowDown(size: IconSize.sm),
+          disabled: index >= total - 1,
+          onSelect: () => _move(id, total - 1),
+        ),
+        HuiActionMenuItem(
+          label: 'Delete',
+          icon: ArcaneIcon.trash2(size: IconSize.sm),
+          destructive: true,
+          separatorBefore: true,
+          onSelect: () => setState(() => _armedDeleteId = id),
+        ),
+      ],
+    ),
+  ];
 
   Widget _typeIcon(String type, bool active) => switch (type) {
     'button' => ArcaneIcon.mousePointerClick(size: IconSize.sm),

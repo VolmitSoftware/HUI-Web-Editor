@@ -20,10 +20,8 @@ final class _Animations implements GlossAnimationResolver {
   GlossAnimationDoc? byId(String id) => docs[id];
 }
 
-GlossScoreboardDoc _valid() => GlossScoreboardDoc(
-  title: '&d&lGloss',
-  lines: <String>['&fWelcome!'],
-);
+GlossScoreboardDoc _valid() =>
+    GlossScoreboardDoc(title: '&d&lGloss', lines: <String>['&fWelcome!']);
 
 List<String> _paths(List<HuiIssue> issues, HuiSeverity severity) => <String>[
   for (final HuiIssue issue in issues)
@@ -31,6 +29,15 @@ List<String> _paths(List<HuiIssue> issues, HuiSeverity severity) => <String>[
 ];
 
 void main() {
+  test('sidebar row scores descend from fifteen like the runtime', () {
+    expect(
+      <int>[
+        for (int index = 0; index < 3; index++) glossBoardScoreForRow(index),
+      ],
+      <int>[15, 14, 13],
+    );
+  });
+
   test('the shipped default shape is clean', () {
     expect(validateScoreboardDoc(_valid()), isEmpty);
   });
@@ -90,11 +97,9 @@ void main() {
   group('title truncation', () {
     test('counts colour codes the way BoardService does', () {
       // 18 visible + [RRGGBB] costing 14 = 32 rendered: exactly at the cap.
-      final GlossScoreboardDoc atCap = _valid()
-        ..title = '[FF00AA]${'x' * 18}';
+      final GlossScoreboardDoc atCap = _valid()..title = '[FF00AA]${'x' * 18}';
       expect(validateScoreboardDoc(atCap), isEmpty);
-      final GlossScoreboardDoc over = _valid()
-        ..title = '[FF00AA]${'x' * 19}';
+      final GlossScoreboardDoc over = _valid()..title = '[FF00AA]${'x' * 19}';
       final HuiIssue warning = validateScoreboardDoc(over).single;
       expect(warning.path, r'$.title');
       expect(warning.message, contains('33 characters'));

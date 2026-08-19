@@ -14,7 +14,6 @@ import '../../model/model.dart';
 import '../../services/clipboard.dart';
 import '../../config/editing.dart';
 import '../../services/file_transfer.dart';
-import '../../services/showcase_randomizer.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 
@@ -54,7 +53,6 @@ class ShellIntents {
   /// store, so these live as long as the document does.
   final McTextCache _textCache = McTextCache();
   final ImageCharCache _charCache = ImageCharCache();
-  String? _lastShowcaseTemplateId;
 
   // --- history --------------------------------------------------------------
 
@@ -135,21 +133,6 @@ class ShellIntents {
     if (store.newDocument()) {
       ArcaneSonner.success('Started a new menu.');
     }
-  }
-
-  void randomShowcase() {
-    final ShowcaseSelection? selection = createRandomGlossShowcase(
-      store,
-      previousTemplateId: _lastShowcaseTemplateId,
-    );
-    if (selection == null) {
-      ArcaneSonner.error('No Gloss showcase templates are available.');
-      return;
-    }
-    _lastShowcaseTemplateId = selection.template.id;
-    ArcaneSonner.success(
-      'Created ${selection.template.name} as a ${selection.type.noun} showcase.',
-    );
   }
 
   void openDocument(String docId) {

@@ -1,5 +1,7 @@
 library;
 
+import 'dart:math' as math;
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -8,6 +10,7 @@ import '../config/templates.dart';
 import '../logic/canvas_scene.dart';
 import '../logic/validation.dart';
 import '../model/model.dart';
+import '../services/showcase_randomizer.dart';
 import '../state/editor_store.dart';
 import '../state/workspace.dart';
 import 'document_type.dart';
@@ -181,6 +184,23 @@ final class MenuDocumentType extends DocumentTypeAdapter {
       <DocumentTemplateSection>[
         DocumentTemplateSection(
           templates: <DocumentTemplate>[
+            DocumentTemplate(
+              id: 'feature-gallery',
+              name: 'Everything showcase',
+              description:
+                  'A complete editable menu with every component type, all '
+                  'six action types, click triggers, custom hitboxes, styled '
+                  'icons, resizing, and live placeholders.',
+              highlights: const <String>[
+                'All component types',
+                'All action types',
+                'Styles + hitboxes',
+              ],
+              create: (EditorStore store) => store.createDocumentFromMenu(
+                'feature-gallery',
+                buildRandomMenuShowcase(store, math.Random(20260819)),
+              ),
+            ),
             for (final HuiTemplate template in huiTemplates)
               DocumentTemplate(
                 id: template.id,

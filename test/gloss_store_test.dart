@@ -186,8 +186,7 @@ void main() {
       expect(store.docKind, WorkspaceDocKind.menu);
     });
 
-    test('a versioned document with a title routes to the scoreboard kind',
-        () {
+    test('a versioned document with a title routes to the scoreboard kind', () {
       final EditorStore store = _store(_FakeStorage());
       store.importJson(
         'mystery.json',
@@ -196,15 +195,17 @@ void main() {
       expect(store.docKind, WorkspaceDocKind.scoreboard);
     });
 
-    test('a versioned document with no kind marker falls through to menu',
-        () {
+    test('a versioned document with no kind marker falls through to menu', () {
       final EditorStore store = _store(_FakeStorage());
       store.importJson(
         'mystery.json',
         '{"schemaVersion": 1, "revision": 1, "lines": ["x"]}',
       );
-      expect(store.docKind, WorkspaceDocKind.menu,
-          reason: 'unrecognized shapes fall through to the menu decoder');
+      expect(
+        store.docKind,
+        WorkspaceDocKind.menu,
+        reason: 'unrecognized shapes fall through to the menu decoder',
+      );
     });
   });
 
@@ -300,7 +301,7 @@ void main() {
       store.importJson(
         'glow.json',
         '{"schemaVersion": 1, "revision": 1, "mode": "descend", '
-        '"frameIntervalMs": 250, "frames": ["a", "b"]}',
+            '"frameIntervalMs": 250, "frames": ["a", "b"]}',
       );
       expect(store.docKind, WorkspaceDocKind.animation);
       expect(store.animationDoc!.mode, 'descend');
@@ -349,31 +350,33 @@ void main() {
       store.importJson(
         'vip.json',
         '{"schemaVersion": 1, "revision": 3, "title": "&6VIP", '
-        '"lines": ["&fone"], "primary": false, "permission": "vip", '
-        '"groups": ["vip"]}',
+            '"lines": ["&fone"], "primary": false, "permission": "vip", '
+            '"groups": ["vip"]}',
       );
       expect(store.docKind, WorkspaceDocKind.scoreboard);
       expect(store.scoreboardDoc!.permission, 'vip');
       expect(store.scoreboardDoc!.revision, 3);
     });
 
-    test('a scoreboard warning clears when the referenced animation lands',
-        () {
+    test('a scoreboard warning clears when a custom animation lands', () {
       final EditorStore store = _store(_FakeStorage());
       store.newGlossDocument(
         DocumentTypes.scoreboard,
         name: 'showcase',
-        from: buildShowcaseGlossScoreboard(),
+        from: GlossScoreboardDoc(
+          title: '&dGloss',
+          lines: <String>['|animation.pulse|'],
+        ),
       );
       expect(
         store.issues.any(
-          (HuiIssue issue) => issue.message.contains('animation.rainbow'),
+          (HuiIssue issue) => issue.message.contains('animation.pulse'),
         ),
         isTrue,
       );
       store.newGlossDocument(
         DocumentTypes.animation,
-        name: 'rainbow',
+        name: 'pulse',
         from: buildRainbowGlossAnimation(),
       );
       // Back on the scoreboard, the warning is gone.
@@ -383,7 +386,7 @@ void main() {
       expect(store.openDocument(board.id), isTrue);
       expect(
         store.issues.any(
-          (HuiIssue issue) => issue.message.contains('animation.rainbow'),
+          (HuiIssue issue) => issue.message.contains('animation.pulse'),
         ),
         isFalse,
       );
@@ -428,10 +431,7 @@ void main() {
       other.importJson('welcome.json', exported);
       expect(other.docKind, WorkspaceDocKind.hologram);
       expect(other.exportJson(), exported);
-      expect(
-        jsonDecode(other.exportJson()),
-        jsonDecode(exported),
-      );
+      expect(jsonDecode(other.exportJson()), jsonDecode(exported));
       expect(other.hologramDoc!.anchor.position, <double>[12, 80.5, -7]);
       expect(other.hologramDoc!.lines.last, '&badded line');
     });

@@ -115,11 +115,17 @@ const String kGlossScoreboardShowcaseJson = r'''
   "revision": 1,
   "title": "[FF55FF]&lMy Server",
   "lines": [
-    "&7Welcome, &f%player_name%",
+    "&7Player: &f%player_name%",
+    "&7Rank: &6VIP",
     "",
-    "&fRank: &6VIP",
+    "&7Online: &a64&8/&a200",
+    "&7Balance: &6$12,450",
+    "&7Kills: &c128",
+    "&7TPS: &a|metric.react.tps|",
+    "",
     "|animation.rainbow|",
-    "&8volmitsoftware.com"
+    "&d:heart: &fWelcome!",
+    "[55FFFF]play.example.net"
   ],
   "primary": true,
   "permission": "vip",
@@ -149,7 +155,7 @@ const String kGlossMotdDefaultJson = r'''
 }
 ''';
 
-/// A richer sample: three entries the ping randomizes over, two-line entries,
+/// A richer sample: four entries the ping randomizes over, two-line entries,
 /// bracket hex, and an animated line — everything `renderStatic` supports.
 const String kGlossMotdShowcaseJson = r'''
 {
@@ -170,14 +176,21 @@ const String kGlossMotdShowcaseJson = r'''
     },
     {
       "lines": [
-        "&bCome say hi."
+        "&d:heart: &fWelcome, %player_name%"
+      ]
+    },
+    {
+      "lines": [
+        "&bNew worlds. New menus.",
+        "&7play.example.net"
       ]
     }
   ]
 }
 ''';
 
-GlossMotdDoc buildDefaultGlossMotd() => decodeGlossMotdDoc(kGlossMotdDefaultJson);
+GlossMotdDoc buildDefaultGlossMotd() =>
+    decodeGlossMotdDoc(kGlossMotdDefaultJson);
 
 GlossMotdDoc buildShowcaseGlossMotd() =>
     decodeGlossMotdDoc(kGlossMotdShowcaseJson);

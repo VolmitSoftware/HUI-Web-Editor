@@ -128,6 +128,15 @@ class _InspectorPaneState extends State<InspectorPane> {
     // hui-inspector">` cell around this slot, so the pane root is a plain
     // filler div: no second scroll container, no second border. The body
     // itself belongs to the active document kind's registered builder.
+    if (!component.store.hasActiveDocument) {
+      return dom.div(classes: 'hui-inspector-pane', <Widget>[
+        ArcaneEmptyState(
+          title: 'No document selected',
+          description: 'Create or open a document to inspect its settings.',
+          icon: ArcaneIcon.panelRight(size: IconSize.lg),
+        ),
+      ]);
+    }
     return dom.div(
       classes: 'hui-inspector-pane',
       buildDocumentInspector(

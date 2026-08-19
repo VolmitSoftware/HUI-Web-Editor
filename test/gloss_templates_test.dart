@@ -151,7 +151,7 @@ void main() {
 
   test('the motd showcase builds without errors', () {
     final GlossMotdDoc doc = buildShowcaseGlossMotd();
-    expect(doc.entries, hasLength(3));
+    expect(doc.entries, hasLength(4));
     final List<HuiIssue> issues = validateMotdDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),
@@ -291,7 +291,7 @@ void main() {
 
   test('the scoreboard showcase builds without errors', () {
     final GlossScoreboardDoc doc = buildShowcaseGlossScoreboard();
-    expect(doc.lines, hasLength(5));
+    expect(doc.lines, hasLength(11));
     expect(doc.primary, isTrue);
     expect(doc.permissionGated, isTrue);
     final List<HuiIssue> issues = validateScoreboardDoc(doc);

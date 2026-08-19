@@ -1,5 +1,7 @@
 library;
 
+import 'dart:math' as math;
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -8,6 +10,7 @@ import '../config/preview_templates.dart';
 import '../logic/preview_doc_validation.dart';
 import '../logic/validation.dart' show HuiIssue;
 import '../model/model.dart';
+import '../services/showcase_randomizer.dart';
 import '../state/editor_store.dart';
 import '../state/workspace.dart';
 import 'document_type.dart';
@@ -141,6 +144,23 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
   List<DocumentTemplate> _templates({
     required bool inGame,
   }) => <DocumentTemplate>[
+    if (!inGame)
+      DocumentTemplate(
+        id: 'all-elements',
+        name: 'All element types',
+        description:
+            'One working card demonstrating panel, cell, slot, label, repeat, '
+            'expressions, colour, and responsive dimensions together.',
+        highlights: const <String>[
+          'Panel + cell',
+          'Slots + labels',
+          'Repeat + expressions',
+        ],
+        create: (EditorStore store) => store.createDocumentFromPreview(
+          'all-elements',
+          buildRandomPreviewShowcase(math.Random(20260819)),
+        ),
+      ),
     for (final HuiPreviewTemplate template in huiPreviewTemplates)
       if (template.inGame == inGame)
         DocumentTemplate(

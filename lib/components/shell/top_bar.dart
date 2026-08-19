@@ -132,11 +132,12 @@ class _TopBarState extends State<TopBar> {
         ]),
       ]),
       dom.div(classes: 'hui-bar-group hui-bar-center', <Widget>[
-        ViewSwitcher(
-          view: _store.view,
-          views: _store.availableViews,
-          onChanged: _intents.setView,
-        ),
+        if (_store.hasActiveDocument)
+          ViewSwitcher(
+            view: _store.view,
+            views: _store.availableViews,
+            onChanged: _intents.setView,
+          ),
       ]),
       dom.div(classes: 'hui-bar-group hui-bar-right', <Widget>[
         _cluster('History', <Widget>[
@@ -371,7 +372,9 @@ class _TopBarState extends State<TopBar> {
 
   Widget _documentSwitcher() => dom.div(classes: 'hui-doc', <Widget>[
     dom.span(classes: 'hui-doc-id', <Widget>[
-      if (_store.isPanelDoc)
+      if (!_store.hasActiveDocument)
+        const Text('No document')
+      else if (_store.isPanelDoc)
         Text(_store.workspace.active?.title ?? 'Menu flow map')
       else
         MutableText(
@@ -382,7 +385,8 @@ class _TopBarState extends State<TopBar> {
         ),
     ]),
     dom.span(classes: 'hui-doc-ext', <Widget>[
-      Text(_store.isPanelDoc ? ' · flow map' : '.json'),
+      if (_store.hasActiveDocument)
+        Text(_store.isPanelDoc ? ' · flow map' : '.json'),
     ]),
     BarMenu(
       id: 'hui-doc-menu',
@@ -422,7 +426,9 @@ class _TopBarState extends State<TopBar> {
           label: 'Delete this document',
           icon: ArcaneIcon.trash2(size: IconSize.sm),
           destructive: true,
-          onSelect: () => setState(() => _armedDelete = true),
+          onSelect: _store.hasActiveDocument
+              ? () => setState(() => _armedDelete = true)
+              : null,
         ),
       );
     return items;

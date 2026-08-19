@@ -108,6 +108,37 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
                 from: buildBlankGlossAnimation(),
               ),
             ),
+            for (final String mode in <String>[
+              'descend',
+              'ascend_descend',
+              'random',
+            ])
+              DocumentTemplate(
+                id: 'animation-${mode.replaceAll('_', '-')}',
+                name: switch (mode) {
+                  'descend' => 'Descending frames',
+                  'ascend_descend' => 'Ping-pong frames',
+                  _ => 'Random frames',
+                },
+                description:
+                    'A working multi-frame example of Gloss animation mode '
+                    '$mode.',
+                highlights: <String>['$mode mode', '4 frames', '250 ms'],
+                create: (EditorStore store) => store.newGlossDocument(
+                  this,
+                  name: 'example-${mode.replaceAll('_', '-')}',
+                  from: GlossAnimationDoc(
+                    mode: mode,
+                    frameIntervalMs: 250,
+                    frames: <String>[
+                      '&cFrame one',
+                      '&6Frame two',
+                      '&aFrame three',
+                      '&bFrame four',
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ];

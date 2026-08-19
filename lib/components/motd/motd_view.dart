@@ -5,8 +5,8 @@
 /// entry (`handlePing`: `ThreadLocalRandom.nextInt(entries.size())`) and
 /// renders its joined lines through `renderStatic` — text functions (so
 /// `|animation.<id>|`) and colours apply, PlaceholderAPI tokens stay literal
-/// because a ping has no viewer. Shuffle preview replays that pick; the
-/// entry chips address one entry directly. The ping bars and player count are
+/// because a ping has no viewer. The entry chips address one entry directly.
+/// The ping bars and player count are
 /// cosmetic — the client fills those, never the plugin.
 ///
 /// Owns a playback clock while the shown entry plays an animation and the
@@ -15,7 +15,6 @@
 library;
 
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
@@ -41,7 +40,6 @@ class MotdView extends StatefulWidget {
 
 class _MotdViewState extends State<MotdView> {
   Timer? _ticker;
-  final math.Random _random = math.Random();
 
   /// The previewed entry. Clamped on read: the inspector can shorten the
   /// list under it.
@@ -85,16 +83,6 @@ class _MotdViewState extends State<MotdView> {
       _ticker?.cancel();
       _ticker = null;
     }
-  }
-
-  /// `MotdService.handlePing`'s pick, replayed on demand.
-  void _shufflePreview(GlossMotdDoc doc) {
-    if (doc.entries.length <= 1) return;
-    final int current = _entryIndex.clamp(0, doc.entries.length - 1);
-    final int next =
-        (current + 1 + _random.nextInt(doc.entries.length - 1)) %
-        doc.entries.length;
-    setState(() => _entryIndex = next);
   }
 
   @override
@@ -170,15 +158,9 @@ class _MotdViewState extends State<MotdView> {
             ]),
           ]),
           dom.div(classes: 'hui-motd-controls', <Widget>[
-            Button(
-              variant: ButtonVariant.outline,
-              size: ButtonSize.sm,
-              icon: ArcaneIcon.dices(size: IconSize.sm),
-              onPressed: doc.entries.length > 1
-                  ? () => _shufflePreview(doc)
-                  : null,
-              child: const Text('Shuffle preview'),
-            ),
+            const dom.span(classes: 'hui-motd-entry-label', <Widget>[
+              Text('Preview entry'),
+            ]),
             dom.div(classes: 'hui-motd-entry-chips', <Widget>[
               for (int index = 0; index < doc.entries.length; index++)
                 dom.button(

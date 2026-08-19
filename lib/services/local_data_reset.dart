@@ -33,21 +33,23 @@ Future<LocalDataResetResult> resetAllLocalEditorData(
   );
   store.images?.load();
   store.resetLocalPreferences();
-  final bool documentCreated = store.newDocument();
+  store.adoptEmptyWorkspace();
   await store.workspace.writesSettled;
   final bool workspaceReady =
-      documentCreated && !store.workspace.hasUnsavedChanges;
+      store.workspace.docs.isEmpty &&
+      store.workspace.folders.isEmpty &&
+      !store.workspace.hasUnsavedChanges;
   if (imagesCleared && localStorageCleared && themeSaved && workspaceReady) {
     return const LocalDataResetResult(
       success: true,
-      message: 'Local data cleared. A new empty workspace is ready.',
+      message: 'Local data cleared. The workspace is empty.',
     );
   }
   return const LocalDataResetResult(
     success: false,
     message:
         'The workspace was reset, but some browser data could not be cleared '
-        'or the new empty document could not be saved. Reload and verify local '
+        'or the empty workspace could not be saved. Reload and verify local '
         'data before continuing.',
   );
 }

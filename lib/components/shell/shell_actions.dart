@@ -111,14 +111,6 @@ List<ShellAction> buildShellActions(
       run: intents.openTemplates,
     ),
     ShellAction(
-      id: 'file.random-showcase',
-      group: shellGroupFile,
-      label: 'Create random Gloss showcase',
-      icon: ArcaneIcon.dices(size: IconSize.sm),
-      keywords: const <String>['randomize', 'demo', 'sample', 'surprise'],
-      run: intents.randomShowcase,
-    ),
-    ShellAction(
       id: 'file.images',
       group: shellGroupFile,
       label: 'Manage images',

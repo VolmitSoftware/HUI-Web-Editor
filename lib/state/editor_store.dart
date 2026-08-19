@@ -18,6 +18,7 @@ import 'dart:math' as math;
 import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 
 import '../config/defaults.dart';
+import '../config/gloss_templates.dart';
 import '../doctype/doctype.dart';
 import '../logic/canvas_scene.dart';
 import '../logic/gloss_text.dart';
@@ -77,6 +78,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     // every existing `store.addListener` call site that for free.
     previewSim.addListener(_notify);
     _menu = createDefaultMenu();
+    _keepWorkspaceEmpty = this.workspace.read(emptyWorkspaceKey) == 'true';
     if (autoLoad) {
       _loadPreferences();
       _adoptActiveDocument();
@@ -88,6 +90,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// Preview and canvas flags, persisted separately from the documents so a
   /// corrupt preference blob can never take the menus down with it.
   static const String preferencesKey = 'gloss.prefs.v1';
+  static const String emptyWorkspaceKey = 'gloss.empty-workspace.v1';
 
   final Workspace workspace;
 
@@ -194,6 +197,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   String? _coalesceLabel;
   DateTime? _coalesceAt;
   bool _disposed = false;
+  bool _keepWorkspaceEmpty = false;
   String? _lastError;
   String? _codeError;
   String? _preservedMenuSource;
@@ -220,11 +224,13 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
 
   bool get isMenuDoc => identical(_docType, DocumentTypes.menu);
 
+  bool get hasActiveDocument => workspace.active != null;
+
   bool get isPreviewDoc => identical(_docType, DocumentTypes.containerPreview);
 
   bool get isPanelDoc => identical(_docType, DocumentTypes.panel);
 
-  bool get canTransferDocument => _docType.transferable;
+  bool get canTransferDocument => hasActiveDocument && _docType.transferable;
 
   WorkspacePanelDecodeResult? get activePanel {
     if (!isPanelDoc) return null;
@@ -323,7 +329,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
 
   /// Every write path below (`mutate`, `replaceMenu`, `applyCode`) requires
   /// this to keep the guarantee that [_menu] is really the live document.
-  bool get _menuWritable => isMenuDoc;
+  bool get _menuWritable => hasActiveDocument && isMenuDoc;
 
   /// Export file base name, always sanitized.
   String get menuId => _menuId;
@@ -1065,8 +1071,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   Map<String, GlossAnimationDoc?> _animationDocs() {
     final Map<String, GlossAnimationDoc?>? cached = _animationCache;
     if (cached != null) return cached;
-    final Map<String, GlossAnimationDoc?> built =
-        <String, GlossAnimationDoc?>{};
+    final Map<String, GlossAnimationDoc?> built = <String, GlossAnimationDoc?>{
+      'rainbow': buildRainbowGlossAnimation(),
+    };
     final WorkspaceDocKind? kind = DocumentTypeRegistry.byWireKind(
       'animation',
     )?.kind;
@@ -2233,6 +2240,12 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     return true;
   }
 
+  void adoptEmptyWorkspace() {
+    _keepWorkspaceEmpty = true;
+    workspace.write(emptyWorkspaceKey, 'true');
+    _adoptActiveDocument();
+  }
+
   /// Writes pending changes immediately. Called by the debounce timer, before a
   /// document switch, and on dispose.
   ///
@@ -2489,6 +2502,10 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   void _adoptActiveDocument() {
     final WorkspaceDoc? doc = workspace.active;
     if (doc == null) {
+      if (_keepWorkspaceEmpty) {
+        _adoptEmptyWorkspace();
+        return;
+      }
       final HuiMenu fresh = createDefaultMenu();
       if (workspace.isLoadProtected) {
         _adoptMenu(fresh, huiDefaultMenuId);
@@ -2503,8 +2520,36 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       _adoptMenu(fresh, huiDefaultMenuId);
       return;
     }
+    if (_keepWorkspaceEmpty) {
+      _keepWorkspaceEmpty = false;
+      workspace.write(emptyWorkspaceKey, 'false');
+    }
     final DocumentTypeAdapter type = DocumentTypeRegistry.of(doc.kind);
     _adoptDocument(type, type.adopt(doc));
+  }
+
+  void _adoptEmptyWorkspace() {
+    _docType = DocumentTypes.menu;
+    _menu = HuiMenu();
+    _menuId = '';
+    _preservedMenuSource = null;
+    _setPreviewDoc(null);
+    _setGlossDoc(null);
+    _animationCache = null;
+    _emojiCache = null;
+    _selection.clear();
+    _previewSelection = null;
+    _togglePreviewState.clear();
+    _codeError = null;
+    _clearCoalesce();
+    _undo.clear();
+    _issues = const <HuiIssue>[];
+    _documentDirty = false;
+    _documentPersistedInWorkspace = false;
+    _pendingDocumentRevision = null;
+    _pendingWorkspaceRevision = null;
+    _coerceView();
+    _notify();
   }
 
   void _adoptMenu(HuiMenu menu, String menuId, {String? source}) =>
@@ -2527,6 +2572,10 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// per-document piece of editor state and reports a decode failure after
   /// the replacement document is fully up.
   void _adoptDocument(DocumentTypeAdapter type, AdoptedDocument adopted) {
+    if (_keepWorkspaceEmpty && workspace.active != null) {
+      _keepWorkspaceEmpty = false;
+      workspace.write(emptyWorkspaceKey, 'false');
+    }
     _docType = type;
     _preservedMenuSource = adopted.preservedSource;
     final Object? model = adopted.model;

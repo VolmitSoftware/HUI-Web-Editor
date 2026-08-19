@@ -115,30 +115,33 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
     children: <Widget>[_body()],
   );
 
-  Widget _body() => dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
-    dom.div(classes: 'hui-template-tabs', <Widget>[
-      ArcaneToggleGroup(
-        value: _kind.kind.name,
-        variant: ToggleGroupVariant.outline,
-        size: ToggleGroupSize.sm,
-        onChanged: (String? value) {
-          if (value == null) return;
-          for (final DocumentTypeAdapter type in _tabs) {
-            if (type.kind.name == value) setState(() => _kind = type);
-          }
-        },
-        items: <ToggleGroupItem>[
-          for (final DocumentTypeAdapter type in _tabs)
-            ToggleGroupItem(
-              value: type.kind.name,
-              child: Text(type.templatesTabLabel!),
-            ),
-        ],
-      ),
-    ]),
-    dom.p(classes: 'hui-dialog-note', <Widget>[Text(_kind.templatesNote)]),
-    ..._sections(),
-  ]);
+  Widget _body() => dom.div(
+    classes: 'hui-dialog-body hui-template-dialog-body hui-stagger',
+    <Widget>[
+      dom.div(classes: 'hui-template-tabs', <Widget>[
+        ArcaneToggleGroup(
+          value: _kind.kind.name,
+          variant: ToggleGroupVariant.outline,
+          size: ToggleGroupSize.sm,
+          onChanged: (String? value) {
+            if (value == null) return;
+            for (final DocumentTypeAdapter type in _tabs) {
+              if (type.kind.name == value) setState(() => _kind = type);
+            }
+          },
+          items: <ToggleGroupItem>[
+            for (final DocumentTypeAdapter type in _tabs)
+              ToggleGroupItem(
+                value: type.kind.name,
+                child: Text(type.templatesTabLabel!),
+              ),
+          ],
+        ),
+      ]),
+      dom.p(classes: 'hui-dialog-note', <Widget>[Text(_kind.templatesNote)]),
+      ..._sections(),
+    ],
+  );
 
   List<Widget> _sections() {
     final List<DocumentTemplateSection> sections = _kind.templateSections;
