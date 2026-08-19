@@ -1,6 +1,6 @@
 library;
 
-import 'package:holoui_editor/components/dialogs/editor_sync_dialog.dart';
+import 'package:gloss_editor/components/dialogs/editor_sync_dialog.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -9,7 +9,7 @@ void main() {
     () {
       expect(
         editorSyncImportDialogShouldOpen(
-          relayEndpoint: Uri.parse('https://relay.example/v1'),
+          relayEndpoint: Uri.parse('https://relay.example/v2'),
           loading: false,
           error: null,
           session: null,

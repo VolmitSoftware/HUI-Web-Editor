@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:holoui_editor/config/defaults.dart';
-import 'package:holoui_editor/model/model.dart';
+import 'package:gloss_editor/config/defaults.dart';
+import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 /// Verbatim from report-holoui.md section 1.7 (the code-correct canonical

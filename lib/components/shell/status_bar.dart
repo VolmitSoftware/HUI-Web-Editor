@@ -8,6 +8,7 @@ import 'package:jaspr/jaspr.dart' show Listenable;
 import '../../config/build_info.dart';
 import '../../model/model.dart';
 import '../../services/page_reload.dart';
+import '../../doctype/doctype.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../common/class_names.dart';
@@ -74,7 +75,7 @@ class StatusBar extends StatelessWidget {
       '${store.workspace.lastError}';
 
   Widget _issuesChip() {
-    if (store.isBoardDoc) {
+    if (store.isPanelDoc) {
       return const dom.span(classes: 'hui-status-item', <Widget>[
         Text('Flow diagnostics shown on map'),
       ]);
@@ -119,9 +120,9 @@ class StatusBar extends StatelessWidget {
   /// still reachable — they move into the hover text, which is the only place
   /// eight of them fit in a 32px strip.
   Widget _selectionReadout() {
-    if (store.isBoardDoc) {
+    if (store.isPanelDoc) {
       final int menus = store.workspace.docs
-          .where((WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.menu)
+          .where((WorkspaceDoc doc) => doc.kind == DocumentTypes.menu.kind)
           .length;
       return dom.span(classes: 'hui-status-item hui-status-selection', <Widget>[
         Text('$menus menu${menus == 1 ? '' : 's'} in workspace'),
@@ -164,7 +165,7 @@ class StatusBar extends StatelessWidget {
   }
 
   Widget _canvasReadout() {
-    if (store.isBoardDoc) {
+    if (store.isPanelDoc) {
       return const dom.div(classes: 'hui-status-right', <Widget>[]);
     }
     final ShellStatus? live = status;

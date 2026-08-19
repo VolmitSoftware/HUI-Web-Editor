@@ -1,3 +1,11 @@
+export 'gloss_animation.dart';
+export 'gloss_bubble_style.dart';
+export 'gloss_doc.dart';
+export 'gloss_emoji.dart';
+export 'gloss_hologram.dart';
+export 'gloss_motd.dart';
+export 'gloss_scoreboard.dart';
+export 'gloss_tablist.dart';
 export 'hui_actions.dart';
 export 'hui_component.dart';
 export 'hui_icons.dart';

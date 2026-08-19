@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "prefix": "&7",
+  "offset": [0.0, 1.0, 0.0],
+  "wordWrapChars": 32,
+  "lineStaggerTicks": 5,
+  "maxAliveMs": 5000,
+  "flyAway": true,
+  "followPlayer": true,
+  "hideOwn": true
+}

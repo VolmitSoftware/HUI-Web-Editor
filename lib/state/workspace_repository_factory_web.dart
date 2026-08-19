@@ -18,10 +18,12 @@ final class IndexedDbWorkspaceRepository
         RecoverableWorkspaceRepository,
         WorkspaceMaintenanceRepository,
         ObservableWorkspaceRepository {
-  static const String _databaseName = 'holoui.editor';
+  static const String _databaseName = 'gloss.editor';
+  static const String _legacyDatabaseName = 'holoui.editor';
   static const String _recordsStore = 'workspace-records';
   static const String _backupsStore = 'workspace-backups';
-  static const String _channelName = 'holoui.workspace.changes';
+  static const String _channelName = 'gloss.workspace.changes';
+  static const String _legacyChannelName = 'holoui.workspace.changes';
   static const String _indexedDbUnavailable =
       'IndexedDB could not be opened. Existing localStorage data was left '
       'untouched.';
@@ -35,6 +37,17 @@ final class IndexedDbWorkspaceRepository
     } catch (_) {
       _channel = null;
     }
+    // A tab still running the HoloUI-branded editor announces on the old
+    // channel with old key names; translate so its writes surface as conflicts
+    // here instead of being silently ignored.
+    try {
+      _legacyChannel = web.BroadcastChannel(_legacyChannelName);
+      _legacyChannel!.onmessage = ((web.MessageEvent event) {
+        _receiveBroadcast(event.data, translateLegacyKeys: true);
+      }).toJS;
+    } catch (_) {
+      _legacyChannel = null;
+    }
   }
 
   final Map<String, int> _knownRevisions = <String, int>{};
@@ -42,6 +55,8 @@ final class IndexedDbWorkspaceRepository
   Future<web.IDBDatabase>? _database;
   web.IDBDatabase? _openedDatabase;
   web.BroadcastChannel? _channel;
+  web.BroadcastChannel? _legacyChannel;
+  bool _legacyDatabaseAbsent = false;
   WorkspaceRepositoryNoticeListener? _noticeListener;
   String? _lastFailure;
   bool _databaseUnavailable = false;
@@ -82,6 +97,9 @@ final class IndexedDbWorkspaceRepository
       throw WorkspaceRepositoryCorruption(_lastFailure!);
     }
 
+    final String? fromLegacyDatabase = await _migrateLegacyRecord(key);
+    if (fromLegacyDatabase != null) return fromLegacyDatabase;
+
     final String? legacy = StorageService.read(key);
     if (legacy == null || legacy.isEmpty) return null;
     final bool migrated = await write(key, legacy);
@@ -91,6 +109,116 @@ final class IndexedDbWorkspaceRepository
           'The localStorage copy was retained.';
     }
     return legacy;
+  }
+
+  /// One-time rescue of a record written by the HoloUI-branded editor: reads
+  /// the old `holoui.editor` database under the old key name and rewrites the
+  /// record (and its backup) under the new identity. The old database is left
+  /// untouched so an older deployed editor still finds its data; [clear]
+  /// deletes it so a reset cannot resurrect anything.
+  Future<String?> _migrateLegacyRecord(String key) async {
+    if (_legacyDatabaseAbsent) return null;
+    final String legacyKey = key.startsWith(StorageService.keyPrefix)
+        ? StorageService.legacyKeyPrefix +
+              key.substring(StorageService.keyPrefix.length)
+        : key;
+    web.IDBDatabase? legacy;
+    try {
+      legacy = await _openLegacyDatabase();
+      if (legacy == null) {
+        _legacyDatabaseAbsent = true;
+        return null;
+      }
+      if (!legacy.objectStoreNames.contains(_recordsStore)) return null;
+      final _RecordReadResult stored = await _readRecord(
+        legacy,
+        _recordsStore,
+        legacyKey,
+      );
+      if (stored.kind != _RecordReadKind.valid) return null;
+      final String value = stored.record!.value;
+      if (value.isEmpty) return null;
+      _RecordReadResult backup = const _RecordReadResult.missing();
+      if (legacy.objectStoreNames.contains(_backupsStore)) {
+        try {
+          backup = await _readRecord(legacy, _backupsStore, legacyKey);
+        } catch (_) {}
+      }
+      final bool migrated = await write(key, value);
+      if (!migrated) {
+        _lastFailure ??=
+            'The saved HoloUI workspace was found, but could not be migrated '
+            'into the new database. The original copy was left untouched.';
+      } else if (backup.kind == _RecordReadKind.valid) {
+        await _putMigratedBackup(key, backup.record!);
+      }
+      return value;
+    } catch (_) {
+      return null;
+    } finally {
+      try {
+        legacy?.close();
+      } catch (_) {}
+    }
+  }
+
+  /// Opens the pre-rebrand database without creating it: a fresh browser hits
+  /// `onupgradeneeded`, which aborts the versionchange transaction so no empty
+  /// `holoui.editor` database is left behind.
+  Future<web.IDBDatabase?> _openLegacyDatabase() {
+    final Completer<web.IDBDatabase?> completer = Completer<web.IDBDatabase?>();
+    try {
+      final web.IDBOpenDBRequest request = web.window.indexedDB.open(
+        _legacyDatabaseName,
+      );
+      request.onupgradeneeded = ((web.Event event) {
+        try {
+          request.transaction?.abort();
+        } catch (_) {}
+      }).toJS;
+      request.onsuccess = ((web.Event event) {
+        final web.IDBDatabase database = request.result as web.IDBDatabase;
+        if (completer.isCompleted) {
+          database.close();
+          return;
+        }
+        completer.complete(database);
+      }).toJS;
+      request.onerror = ((web.Event event) {
+        if (!completer.isCompleted) completer.complete(null);
+      }).toJS;
+      request.onblocked = ((web.Event event) {
+        if (!completer.isCompleted) completer.complete(null);
+      }).toJS;
+    } catch (_) {
+      if (!completer.isCompleted) completer.complete(null);
+    }
+    return completer.future;
+  }
+
+  /// Carries the pre-rebrand backup entry over so recovery depth survives the
+  /// migration. Best-effort: the freshly migrated record is already stored.
+  Future<void> _putMigratedBackup(String key, _StoredRecord record) async {
+    final web.IDBDatabase? database = await _openOrNull();
+    if (database == null) return;
+    final Completer<void> completer = Completer<void>();
+    try {
+      final web.IDBTransaction transaction = database.transaction(
+        _backupsStore.toJS,
+        'readwrite',
+      );
+      transaction.objectStore(_backupsStore).put(_encodeRecord(record), key.toJS);
+      transaction.oncomplete = ((web.Event event) {
+        if (!completer.isCompleted) completer.complete();
+      }).toJS;
+      transaction.onabort = ((web.Event event) {
+        if (!completer.isCompleted) completer.complete();
+      }).toJS;
+      transaction.onerror = ((web.Event event) {}).toJS;
+    } catch (_) {
+      if (!completer.isCompleted) completer.complete();
+    }
+    return completer.future;
   }
 
   @override
@@ -311,6 +439,7 @@ final class IndexedDbWorkspaceRepository
       transaction.oncomplete = ((web.Event event) {
         _knownRevisions.clear();
         _requiresReload = false;
+        _deleteLegacyDatabase();
         _broadcastClear();
         _complete(completer, true);
       }).toJS;
@@ -326,6 +455,17 @@ final class IndexedDbWorkspaceRepository
       return Future<bool>.value(false);
     }
     return completer.future;
+  }
+
+  /// Best-effort removal of the pre-rebrand database after an explicit reset,
+  /// so [_migrateLegacyRecord] cannot resurrect cleared data. May be blocked
+  /// by an old tab holding the database open; that is fine — this tab's
+  /// [_legacyDatabaseAbsent] latch already stops re-migration for the session.
+  void _deleteLegacyDatabase() {
+    _legacyDatabaseAbsent = true;
+    try {
+      web.window.indexedDB.deleteDatabase(_legacyDatabaseName);
+    } catch (_) {}
   }
 
   Future<web.IDBDatabase?> _openOrNull() async {
@@ -479,14 +619,21 @@ final class IndexedDbWorkspaceRepository
     } catch (_) {}
   }
 
-  void _receiveBroadcast(JSAny? raw) {
+  void _receiveBroadcast(JSAny? raw, {bool translateLegacyKeys = false}) {
     if (raw == null || !raw.isA<JSString>()) return;
     final JSString message = raw as JSString;
     try {
       final Object? decoded = jsonDecode(message.toDart);
       if (decoded is! Map) return;
       final Object? kind = decoded['kind'];
-      final Object? key = decoded['key'];
+      Object? key = decoded['key'];
+      if (translateLegacyKeys &&
+          key is String &&
+          key.startsWith(StorageService.legacyKeyPrefix)) {
+        key =
+            StorageService.keyPrefix +
+            key.substring(StorageService.legacyKeyPrefix.length);
+      }
       final Object? revision = decoded['revision'];
       final Object? source = decoded['source'];
       if (source == _sourceId) return;

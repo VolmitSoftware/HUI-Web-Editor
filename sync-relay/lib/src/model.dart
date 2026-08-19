@@ -7,6 +7,14 @@ import 'package:crypto/crypto.dart';
 enum RelayPublicationState { pending, applied, conflict, rejected }
 
 const int relayMaximumSafeInteger = 9007199254740991;
+
+/// Protocol v2 caps the uniform `documents` collection; per-document budgets
+/// beyond this are plugin policy, bounded here only by the snapshot size.
+const int relayMaximumDocuments = 512;
+
+/// The open protocol-v2 kind slug grammar. The relay validates ONLY this
+/// pattern — kinds are never interpreted, so new kinds need no relay change.
+final RegExp relayKindSlug = RegExp(r'^[a-z][a-z0-9-]{0,31}$');
 const int relaySnapshotReservationEnvelopeBytes = 256 * 1024;
 const int relayMinimumReservedSessionBytes =
     relaySnapshotReservationEnvelopeBytes + (2 * 1024);

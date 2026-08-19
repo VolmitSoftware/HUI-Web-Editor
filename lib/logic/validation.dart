@@ -65,15 +65,50 @@ const int huiMaxStackCount = 99;
 /// already 1.75 blocks wide — wider than most authors picture.
 const int huiWideTextHitboxChars = 16;
 
-/// `/holoui` plus its aliases (`HoloCommand.java:38`). Director resolves both
-/// command and subcommand names with `equalsIgnoreCase`
-/// (`DirectorRuntimeEngine.java:365,613,668`).
-const Set<String> _huiCommandRoots = <String>{
+/// The merged plugin's one root plus its Director aliases
+/// (`CommandGloss.java:10`). Director resolves both command and subcommand
+/// names with `equalsIgnoreCase`.
+const Set<String> _glossCommandRoots = <String>{'gloss', 'gl', 'glo', 'gg'};
+
+/// The retired `/holoui` root and its aliases (`HoloCommand.java:38` in the
+/// pre-merger plugin). The merged plugin registers NONE of these — a click
+/// dispatching one prints Bukkit's unknown-command line — but imports
+/// carrying them stay recognized forever so old documents never hard-fail;
+/// validation warns and names the `/gloss` replacement instead.
+const Set<String> _retiredHoloCommandRoots = <String>{
   'holoui',
   'holo',
   'hui',
   'holou',
   'hu',
+};
+
+/// The `/gloss menu` subtree's group name plus its alias
+/// (`CommandGlossMenu.java:36`).
+const Set<String> _glossMenuGroupNames = <String>{'menu', 'menus'};
+
+/// `/gloss menu` subcommands (`CommandGlossMenu.java`), used to spell the
+/// replacement for a retired `/holoui <sub>` — the old tree's root-level
+/// subs moved under `menu` wholesale.
+const Set<String> _glossMenuSubcommands = <String>{
+  'list',
+  'create',
+  'open',
+  'back',
+  'close',
+  'move',
+  'builder',
+  'edit',
+  'addrow',
+  'insertrow',
+  'setrow',
+  'removerow',
+  'offsetrow',
+  'seticon',
+  'style',
+  'image',
+  'new',
+  'copy',
 };
 
 /// Subcommands that return early unless the sender is a `Player`.
@@ -86,26 +121,86 @@ const Set<String> _huiPlayerOnlySubcommands = <String>{
 
 final RegExp _whitespacePattern = RegExp(r'\s+');
 
-/// The player-only `/holoui` subcommand [command] dispatches, or null.
-///
-/// `open` is the exception: its menu argument defaults to `*`, and `*` returns
-/// through `list(sender)` before the Player check (`HoloCommand.java:94-97`),
-/// so a bare `open` genuinely does work from the console.
-String? huiPlayerOnlySubcommand(String command) {
+List<String> _commandTokens(String command) {
   final String trimmed = command.trim();
   final String body = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
-  final List<String> tokens = body
+  return body
       .split(_whitespacePattern)
       .where((String token) => token.isNotEmpty)
       .toList();
+}
+
+/// The player-only subcommand [command] dispatches, or null. Recognizes both
+/// trees: the merged `/gloss menu <sub>` (`CommandGlossMenu.java`) and the
+/// retired flat `/holoui <sub>`.
+///
+/// `open` is the exception in both: its menu argument defaults to `*`, and
+/// `*` returns through `list(sender)` before the Player check
+/// (`CommandGlossMenu.java:134-137`), so a bare `open` genuinely does work
+/// from the console.
+String? huiPlayerOnlySubcommand(String command) =>
+    _playerOnlyCommand(command)?.subcommand;
+
+/// The player-only command as the file spells its tree — `gloss menu move`
+/// or `holoui move` — for messages that quote it. Null when [command] is not
+/// player-only.
+String? huiPlayerOnlyCommandLabel(String command) {
+  final ({String label, String subcommand})? match = _playerOnlyCommand(
+    command,
+  );
+  return match?.label;
+}
+
+({String label, String subcommand})? _playerOnlyCommand(String command) {
+  final List<String> tokens = _commandTokens(command);
   if (tokens.length < 2) return null;
-  if (!_huiCommandRoots.contains(tokens[0].toLowerCase())) return null;
-  final String subcommand = tokens[1].toLowerCase();
-  if (!_huiPlayerOnlySubcommands.contains(subcommand)) return null;
-  if (subcommand == 'open' && (tokens.length < 3 || tokens[2] == '*')) {
+  final String root = tokens[0].toLowerCase();
+  final String subcommand;
+  final String label;
+  final List<String> arguments;
+  if (_glossCommandRoots.contains(root)) {
+    // The merged tree: the player-only subs live under `gloss menu`.
+    if (tokens.length < 3 ||
+        !_glossMenuGroupNames.contains(tokens[1].toLowerCase())) {
+      return null;
+    }
+    subcommand = tokens[2].toLowerCase();
+    label = 'gloss menu $subcommand';
+    arguments = tokens.sublist(3);
+  } else if (_retiredHoloCommandRoots.contains(root)) {
+    // The retired flat tree, kept recognized for imported documents.
+    subcommand = tokens[1].toLowerCase();
+    label = 'holoui $subcommand';
+    arguments = tokens.sublist(2);
+  } else {
     return null;
   }
-  return subcommand;
+  if (!_huiPlayerOnlySubcommands.contains(subcommand)) return null;
+  if (subcommand == 'open' && (arguments.isEmpty || arguments[0] == '*')) {
+    return null;
+  }
+  return (label: label, subcommand: subcommand);
+}
+
+/// The `/gloss` spelling a retired `/holoui` command should use, or null
+/// when [command] does not target a retired root. Known old subcommands
+/// moved under `gloss menu`; anything else at least moves to the `/gloss`
+/// root.
+String? huiRetiredCommandReplacement(String command) {
+  final List<String> tokens = _commandTokens(command);
+  if (tokens.isEmpty) return null;
+  if (!_retiredHoloCommandRoots.contains(tokens[0].toLowerCase())) {
+    return null;
+  }
+  if (tokens.length >= 2 &&
+      _glossMenuSubcommands.contains(tokens[1].toLowerCase())) {
+    return <String>[
+      'gloss menu',
+      tokens[1].toLowerCase(),
+      ...tokens.sublist(2),
+    ].join(' ');
+  }
+  return <String>['gloss', ...tokens.sublist(1)].join(' ');
 }
 
 final RegExp _idPattern = RegExp(r'^[A-Za-z0-9_.-]+$');
@@ -1026,16 +1121,31 @@ class _Validator {
             'verbatim',
       );
     }
+    // The merged plugin has no /holoui root: the command still dispatches,
+    // but Bukkit answers with its unknown-command line. Old imports must
+    // never hard-fail on this, so it warns and names the /gloss spelling.
+    final String? replacement = huiRetiredCommandReplacement(action.command);
+    if (replacement != null) {
+      _add(
+        HuiSeverity.warning,
+        '$path.command',
+        'This command targets the retired /holoui root; the merged Gloss '
+            'plugin does not register it, so clicking prints an '
+            'unknown-command message',
+        fix: 'Use "$replacement"',
+      );
+    }
+
     // Imported Java enum names have already been canonicalized. A genuinely
     // unknown spelling resolves to null and takes the player default.
     final bool consoleForCertain = action.source == 'server';
-    final String? playerOnly = huiPlayerOnlySubcommand(action.command);
+    final String? playerOnly = huiPlayerOnlyCommandLabel(action.command);
 
     if (playerOnly != null && consoleForCertain) {
       _add(
         HuiSeverity.warning,
         '$path.source',
-        '"holoui $playerOnly" only works for a player, and source "server" '
+        '"$playerOnly" only works for a player, and source "server" '
             'runs this action from the console, so clicking does nothing but '
             'print a player-only notice to the server log',
         fix: 'Set the source to "player"',

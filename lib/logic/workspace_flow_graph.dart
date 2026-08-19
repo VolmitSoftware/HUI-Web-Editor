@@ -1,8 +1,9 @@
 library;
 
 import '../model/model.dart';
+import '../doctype/doctype.dart';
 import '../state/workspace.dart';
-import '../state/workspace_board.dart';
+import '../state/workspace_panel.dart';
 
 enum WorkspaceFlowTargetKind {
   menu,
@@ -67,12 +68,12 @@ class WorkspaceFlowGraph {
 
 WorkspaceFlowGraph buildWorkspaceFlowGraph(
   Workspace workspace,
-  WorkspaceBoardData board,
+  WorkspacePanelData panel,
 ) {
   final List<WorkspaceDoc> allMenus = workspace.docs
-      .where((WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.menu)
+      .where((WorkspaceDoc doc) => doc.kind == DocumentTypes.menu.kind)
       .toList(growable: false);
-  final _WorkspaceScope scope = _resolveScope(workspace, board.scopeFolderId);
+  final _WorkspaceScope scope = _resolveScope(workspace, panel.scopeFolderId);
   final List<WorkspaceDoc> documents = allMenus
       .where((WorkspaceDoc doc) => scope.folderIds.contains(doc.folderId))
       .toList();
@@ -141,7 +142,7 @@ WorkspaceFlowGraph buildWorkspaceFlowGraph(
   );
 }
 
-Map<String, WorkspaceBoardPoint> arrangeWorkspaceFlowGraph(
+Map<String, WorkspacePanelPoint> arrangeWorkspaceFlowGraph(
   WorkspaceFlowGraph graph,
 ) {
   final Map<String, Set<String>> outgoing = <String, Set<String>>{
@@ -183,13 +184,13 @@ Map<String, WorkspaceBoardPoint> arrangeWorkspaceFlowGraph(
   }
 
   final Map<int, int> rows = <int, int>{};
-  final Map<String, WorkspaceBoardPoint> positions =
-      <String, WorkspaceBoardPoint>{};
+  final Map<String, WorkspacePanelPoint> positions =
+      <String, WorkspacePanelPoint>{};
   for (final WorkspaceDoc doc in graph.documents) {
     final int column = depth[doc.id]!;
     final int row = rows[column] ?? 0;
     rows[column] = row + 1;
-    positions[doc.id] = WorkspaceBoardPoint(64 + column * 292, 72 + row * 172);
+    positions[doc.id] = WorkspacePanelPoint(64 + column * 292, 72 + row * 172);
   }
   return positions;
 }

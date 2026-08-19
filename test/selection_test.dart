@@ -7,11 +7,11 @@
 /// rather than resurrecting an old selection.
 library;
 
-import 'package:holoui_editor/config/defaults.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/preview/preview_types.dart';
-import 'package:holoui_editor/state/editor_store.dart';
-import 'package:holoui_editor/state/workspace.dart';
+import 'package:gloss_editor/config/defaults.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/preview/preview_types.dart';
+import 'package:gloss_editor/state/editor_store.dart';
+import 'package:gloss_editor/state/workspace.dart';
 import 'package:test/test.dart';
 
 class _FakeStorage {

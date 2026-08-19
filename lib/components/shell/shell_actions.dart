@@ -227,7 +227,7 @@ List<ShellAction> buildShellActions(
         label: 'Add ${_typeLabel(type)}',
         icon: ArcaneIcon.plus(size: IconSize.sm),
         keywords: <String>[type, 'component', 'new'],
-        enabled: store.docKind == WorkspaceDocKind.menu,
+        enabled: store.isMenuDoc,
         run: () => intents.addComponent(type),
       ),
     ShellAction(
@@ -280,7 +280,7 @@ List<ShellAction> buildShellActions(
       group: shellGroupCanvas,
       label: store.showGrid ? 'Hide block grid' : 'Show block grid',
       icon: ArcaneIcon.grid3x3(size: IconSize.sm),
-      enabled: store.docKind == WorkspaceDocKind.menu,
+      enabled: store.isMenuDoc,
       run: intents.toggleGrid,
     ),
     ShellAction(
@@ -289,7 +289,7 @@ List<ShellAction> buildShellActions(
       label: store.snapToGrid ? 'Disable snapping' : 'Enable snapping',
       icon: ArcaneIcon.magnet(size: IconSize.sm),
       keywords: const <String>['grid', 'align'],
-      enabled: store.docKind == WorkspaceDocKind.menu,
+      enabled: store.isMenuDoc,
       run: intents.toggleSnap,
     ),
     ShellAction(
@@ -298,7 +298,7 @@ List<ShellAction> buildShellActions(
       label: store.showHitboxes ? 'Hide hitboxes' : 'Show hitboxes',
       icon: ArcaneIcon.square(size: IconSize.sm),
       keywords: const <String>['click', 'bounds'],
-      enabled: store.docKind == WorkspaceDocKind.menu,
+      enabled: store.isMenuDoc,
       run: intents.toggleHitboxes,
     ),
     ShellAction(
@@ -307,7 +307,7 @@ List<ShellAction> buildShellActions(
       label: store.showAnchors ? 'Hide anchors' : 'Show anchors',
       icon: ArcaneIcon.mousePointer(size: IconSize.sm),
       keywords: const <String>['offset', 'origin'],
-      enabled: store.docKind == WorkspaceDocKind.menu,
+      enabled: store.isMenuDoc,
       run: intents.toggleAnchors,
     ),
     ShellAction(
@@ -318,7 +318,7 @@ List<ShellAction> buildShellActions(
           : 'Show true in-game positions',
       icon: ArcaneIcon.maximize(size: IconSize.sm),
       keywords: const <String>['bias', 'offset', 'display entity'],
-      enabled: store.docKind == WorkspaceDocKind.menu,
+      enabled: store.isMenuDoc,
       run: intents.toggleTrueRender,
     ),
     ShellAction(
@@ -327,7 +327,7 @@ List<ShellAction> buildShellActions(
       label: 'Show validation issues',
       icon: ArcaneIcon.triangleAlert(size: IconSize.sm),
       keywords: const <String>['errors', 'warnings', 'problems'],
-      enabled: !store.isBoardDoc,
+      enabled: !store.isPanelDoc,
       run: intents.openValidation,
     ),
     ShellAction(

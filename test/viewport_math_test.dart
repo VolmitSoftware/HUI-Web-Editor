@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:holoui_editor/logic/viewport_math.dart';
+import 'package:gloss_editor/logic/viewport_math.dart';
 import 'package:test/test.dart';
 
 const double _epsilon = 1e-9;

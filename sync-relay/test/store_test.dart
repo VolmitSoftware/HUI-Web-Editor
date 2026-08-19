@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 
-import 'package:holoui_sync_relay/holoui_sync_relay.dart';
+import 'package:gloss_sync_relay/gloss_sync_relay.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -1,0 +1,64 @@
+{
+  "protocol": 2,
+  "sessionId": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "status": "pending",
+  "expiresAt": "2026-08-18T13:00:00.000Z",
+  "baseRevision": "sha256:6d7f76b8c8b0cc2eac71dcec9f497e73e5a5719e7bc6a68d2337611dcf18e0dd",
+  "snapshot": {
+    "format": "gloss-sync-project",
+    "version": 2,
+    "kind": "menu",
+    "subjectId": "main",
+    "documents": [
+      {
+        "kind": "menu",
+        "id": "main",
+        "json": "{\"components\":[]}"
+      }
+    ],
+    "images": [],
+    "constraints": {
+      "subjectId": "main",
+      "menuIds": [
+        "main"
+      ],
+      "imagePaths": [],
+      "newImagePrefix": "sync/menus/main/",
+      "allowDeletes": false
+    },
+    "warnings": [],
+    "baseRevision": "sha256:6d7f76b8c8b0cc2eac71dcec9f497e73e5a5719e7bc6a68d2337611dcf18e0dd"
+  },
+  "publication": {
+    "revision": 1,
+    "baseRevision": "sha256:6d7f76b8c8b0cc2eac71dcec9f497e73e5a5719e7bc6a68d2337611dcf18e0dd",
+    "snapshot": {
+      "format": "gloss-sync-project",
+      "version": 2,
+      "kind": "menu",
+      "subjectId": "main",
+      "documents": [
+        {
+          "kind": "menu",
+          "id": "main",
+          "json": "{\"components\":[],\"followPlayer\":true}"
+        }
+      ],
+      "images": [],
+      "constraints": {
+        "subjectId": "main",
+        "menuIds": [
+          "main"
+        ],
+        "imagePaths": [],
+        "newImagePrefix": "sync/menus/main/",
+        "allowDeletes": false
+      },
+      "warnings": [],
+      "baseRevision": "sha256:78afcaf40bb43e61baf39872f21410eca7abe59cf21ea8dcc3c7768e9ab4313a"
+    },
+    "publishedAt": "2026-08-18T12:05:00.000Z",
+    "state": "pending",
+    "ack": null
+  }
+}

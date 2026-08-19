@@ -13,7 +13,7 @@
 /// mounts. A step whose target is missing at this viewport width still shows
 /// its card, centred, rather than breaking the run.
 ///
-/// The seen flag lives under `holoui.tour.v1` in the workspace's storage, not
+/// The seen flag lives under `gloss.tour.v1` in the workspace's storage, not
 /// in the store: it is a property of this browser, never of the document, and
 /// it must not ride along in an export or an undo step.
 library;
@@ -25,7 +25,7 @@ import 'package:jaspr/dom.dart' as dom;
 import 'package:web/web.dart' as web;
 
 /// Storage key for "this browser has been shown the tour".
-const String huiTourSeenKey = 'holoui.tour.v1';
+const String huiTourSeenKey = 'gloss.tour.v1';
 
 class HuiTourStep {
   const HuiTourStep({
@@ -75,7 +75,7 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
     body:
         'Everything about the selection is edited here: id, offset, icon, '
         'actions and any extra keys the file carried. The ? button beside a '
-        'field explains what HoloUi does with it.',
+        'field explains what Gloss does with it.',
     selectors: <String>['.hui-inspector', '.hui-mobile-panes'],
   ),
   HuiTourStep(
@@ -93,10 +93,10 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
     title: 'Export puts it on the server',
     body:
         'This page never writes your Minecraft server. Download the JSON, '
-        'drop it into plugins/holoui/menus/, then /holoui open <id>. Live '
-        'sync only exists when /holoui edit gave you a capability link.',
+        'drop it into plugins/Gloss/menus/, then /gloss open <id>. Live '
+        'sync only exists when /gloss edit gave you a capability link.',
     selectors: <String>['.hui-bar'],
-    hint: 'File → Export, or the command palette. Images unzip into plugins/holoui/images/.',
+    hint: 'File → Export, or the command palette. Images unzip into plugins/Gloss/images/.',
   ),
   HuiTourStep(
     title: 'Everything else is one keystroke away',

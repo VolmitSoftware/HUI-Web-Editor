@@ -1,7 +1,7 @@
-import 'package:holoui_editor/logic/hui_geometry.dart';
-import 'package:holoui_editor/logic/viewport_math.dart';
-import 'package:holoui_editor/model/hui_component.dart';
-import 'package:holoui_editor/model/vec3.dart';
+import 'package:gloss_editor/logic/hui_geometry.dart';
+import 'package:gloss_editor/logic/viewport_math.dart';
+import 'package:gloss_editor/model/hui_component.dart';
+import 'package:gloss_editor/model/vec3.dart';
 import 'package:test/test.dart';
 
 const double _epsilon = 1e-12;

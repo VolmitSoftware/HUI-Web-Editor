@@ -3,13 +3,13 @@
 /// The plugin names a menu after its file, so the file name is the menu id and
 /// the permission node — that is why it is editable here and sanitized on the
 /// way out. Images are shipped as a zip whose entry names are exactly the paths
-/// stored in the JSON, so unzipping into `plugins/holoui/images/` resolves every
+/// stored in the JSON, so unzipping into `plugins/Gloss/images/` resolves every
 /// icon without renaming anything.
 ///
 /// A container-preview document exports as a bare `<name>.json` download —
 /// there is no images zip (the format has no image icons at all) and no
-/// per-document permission node (`plugins/holoui/previews/` files carry no id
-/// of their own; only `holoui.preview` gates seeing any of them). [EditorStore]
+/// per-document permission node (`plugins/Gloss/previews/` files carry no id
+/// of their own; only `gloss.preview` gates seeing any of them). [EditorStore]
 /// already picks the right JSON shape for [EditorStore.exportJson], so this
 /// dialog only has to pick the right BODY for the active [EditorStore.docKind].
 library;
@@ -162,7 +162,7 @@ class _ExportDialogState extends State<ExportDialog> {
               '${_store.errorCount} error'
               '${_store.errorCount == 1 ? '' : 's'} in this menu',
           message:
-              'The file will still export, but HoloUI may refuse to open '
+              'The file will still export, but Gloss may refuse to open '
               'it. Check the validation panel before you ship it.',
         ),
       HuiDialogSection(
@@ -244,7 +244,7 @@ class _ExportDialogState extends State<ExportDialog> {
       ),
       HuiDialogSection(
         title: 'Install on your server',
-        description: 'HoloUI watches the folder, so no restart is needed.',
+        description: 'Gloss watches the folder, so no restart is needed.',
         children: <Widget>[
           HuiSteps(
             steps: <String>[
@@ -256,18 +256,18 @@ class _ExportDialogState extends State<ExportDialog> {
               'Changed menus re-register within about 5 ticks and any open '
                   'session of that id is closed with DEFINITION_RELOADED. '
                   'New and deleted files are noticed within about 20 ticks.',
-              'Grant holoui.command, holoui.command.open, '
-                  'holoui.command.move and holoui.open.$_menuId — the '
+              'Grant gloss.command, gloss.command.open, '
+                  'gloss.command.move and gloss.open.$_menuId — the '
                   'per-menu node is not declared in plugin.yml, so it has '
                   'to be granted explicitly.',
-              'Test it with /holoui open $_menuId (aliases: holo, hui, '
-                  'holou, hu).',
+              'Test it with /gloss open $_menuId (aliases: holoui, holo, '
+                  'hui, holou, hu).',
               'To re-anchor the open session, stand at its new origin and '
-                  'run /holoui move. This keeps the configured offset and '
+                  'run /gloss move. This keeps the configured offset and '
                   'does not rewrite $_fileName.',
             ],
           ),
-          HuiCodeBlock(text: '/holoui open $_menuId\n/holoui move'),
+          HuiCodeBlock(text: '/gloss open $_menuId\n/gloss move'),
         ],
       ),
       HuiDialogSection(
@@ -350,7 +350,7 @@ class _ExportDialogState extends State<ExportDialog> {
                   'files in subfolders are never registered.',
               'Editing, adding or deleting a file there takes effect within '
                   'a few ticks: no reload command and no restart.',
-              'Grant holoui.preview to whoever should see it (operators '
+              'Grant gloss.preview to whoever should see it (operators '
                   'have it by default); a viewer without it sees the locked '
                   'document instead.',
               'It draws automatically over any block or entity its `match` '

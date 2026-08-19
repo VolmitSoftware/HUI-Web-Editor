@@ -8,11 +8,11 @@ library;
 
 import 'dart:io';
 
-import 'package:holoui_editor/logic/mc_text.dart';
-import 'package:holoui_editor/logic/preview_card_edit.dart';
-import 'package:holoui_editor/logic/preview_card_scene.dart';
-import 'package:holoui_editor/logic/preview_sim.dart';
-import 'package:holoui_editor/model/preview_doc.dart';
+import 'package:gloss_editor/logic/mc_text.dart';
+import 'package:gloss_editor/logic/preview_card_edit.dart';
+import 'package:gloss_editor/logic/preview_card_scene.dart';
+import 'package:gloss_editor/logic/preview_sim.dart';
+import 'package:gloss_editor/model/preview_doc.dart';
 import 'package:test/test.dart';
 
 PreviewCardScene _build(HuiPreviewDoc doc, [String category = 'statics']) =>

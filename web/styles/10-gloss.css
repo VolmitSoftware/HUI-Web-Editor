@@ -1,0 +1,871 @@
+/* Gloss document surfaces: hologram stage, animation player, scoreboard mock,
+   and the shared pipeline-text chrome. */
+
+/* --- centre-pane switching, mirroring .is-board ------------------------- */
+
+.hui-center.is-hologram > .hui-split-cell:not(.is-hologram) { display: none; }
+.hui-center.is-hologram > .hui-split-cell.is-hologram { display: block; border-left: 0; }
+
+/* --- shared pipeline text ------------------------------------------------ */
+
+.hui-gloss-line { white-space: pre; }
+
+.hui-gloss-chip {
+  display: inline-block;
+  padding: 0 0.35em;
+  margin: 0 0.1em;
+  border: 1px dashed color-mix(in srgb, var(--color-primary) 55%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  font-size: 0.82em;
+  line-height: 1.5;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+
+/* --- hologram stage ------------------------------------------------------ */
+
+.hui-hologram-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 20%,
+      color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 60%),
+    var(--color-background);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.hui-hologram-stage:active { cursor: grabbing; }
+
+.hui-hologram-grid-line {
+  position: absolute;
+  height: 1px;
+  background: color-mix(in srgb, var(--color-foreground) 14%, transparent);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.hui-hologram-grid-line.is-axis {
+  background: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.hui-hologram-billboard {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--hui-mc-font);
+  pointer-events: none;
+  text-align: center;
+}
+
+/* Vanilla TextDisplay default background: 0x40000000. */
+.hui-hologram-line {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0 0.15em;
+  color: #ffffff;
+  white-space: pre;
+}
+
+.hui-hologram-anchor {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: color-mix(in srgb, var(--color-primary) 80%, transparent);
+  pointer-events: none;
+}
+
+.hui-hologram-readout {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+  pointer-events: none;
+}
+
+/* --- hologram inspector -------------------------------------------------- */
+
+.hui-hologram-position-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.hui-hologram-lines-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.hui-hologram-line-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.hui-hologram-line-preview {
+  grid-column: 1 / -1;
+  font-family: var(--hui-mc-font);
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #000 24%, var(--color-card));
+  overflow-x: auto;
+}
+
+/* --- animation player ----------------------------------------------------- */
+
+.hui-center.is-animation > .hui-split-cell:not(.is-animation) { display: none; }
+.hui-center.is-animation > .hui-split-cell.is-animation { display: block; border-left: 0; }
+
+.hui-animation-player {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  padding: 18px;
+  overflow-y: auto;
+  background: var(--color-background);
+}
+
+.hui-animation-frame-stage {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 180px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 26px 18px;
+  background:
+    radial-gradient(90% 120% at 50% 0%,
+      color-mix(in srgb, var(--color-primary) 8%, transparent), transparent 65%),
+    color-mix(in srgb, #000 22%, var(--color-card));
+}
+
+.hui-animation-frame-large {
+  font-family: var(--hui-mc-font);
+  font-size: 30px;
+  line-height: 1.3;
+  color: #ffffff;
+}
+
+.hui-animation-frame-meta {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.hui-animation-transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hui-animation-scrub {
+  flex: 1;
+  accent-color: var(--color-primary);
+  min-width: 0;
+}
+
+.hui-animation-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hui-animation-strip-frame {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, #000 18%, var(--color-card));
+  font-family: var(--hui-mc-font);
+  font-size: 13px;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.hui-animation-strip-frame.is-active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.hui-animation-strip-index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+
+/* --- scoreboard sidebar mock ---------------------------------------------- */
+
+.hui-center.is-scoreboard > .hui-split-cell:not(.is-scoreboard) { display: none; }
+.hui-center.is-scoreboard > .hui-split-cell.is-scoreboard { display: block; border-left: 0; }
+
+.hui-scoreboard-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-background);
+}
+
+/* A hint of in-game backdrop so the right-anchored overlay reads as one. */
+.hui-scoreboard-sky {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 28px;
+  overflow: auto;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary) 9%, transparent),
+      transparent 55%),
+    color-mix(in srgb, #000 14%, var(--color-background));
+}
+
+/* Vanilla sidebar: darkened rows, title centered, scores right in dim red. */
+.hui-scoreboard-sidebar {
+  min-width: 200px;
+  max-width: min(60%, 460px);
+  font-family: var(--hui-mc-font);
+  font-size: 15px;
+  line-height: 1.45;
+  color: #ffffff;
+}
+
+.hui-scoreboard-title {
+  background: rgba(0, 0, 0, 0.4);
+  text-align: center;
+  padding: 2px 8px;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.hui-scoreboard-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 8px 1px 6px;
+  white-space: pre;
+}
+
+.hui-scoreboard-row-text { min-width: 0; overflow: hidden; }
+
+.hui-scoreboard-score {
+  color: rgba(255, 85, 85, 0.55);
+  font-size: 13px;
+  flex: none;
+}
+
+.hui-scoreboard-readout {
+  padding: 8px 12px 10px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.hui-gloss-chip.is-missing {
+  border-color: color-mix(in srgb, var(--color-destructive) 65%, transparent);
+  background: color-mix(in srgb, var(--color-destructive) 12%, transparent);
+  color: var(--color-destructive);
+}
+
+.hui-hologram-line-row.is-beyond-render { opacity: 0.55; }
+
+.hui-scoreboard-group-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+/* --- MOTD server-list mock ------------------------------------------------ */
+
+.hui-center.is-motd > .hui-split-cell:not(.is-motd) { display: none; }
+.hui-center.is-motd > .hui-split-cell.is-motd { display: block; border-left: 0; }
+
+.hui-motd-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-background);
+}
+
+/* The multiplayer screen: dirt-dark backdrop, one hovered server row. */
+.hui-motd-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 28px;
+  overflow: auto;
+  background:
+    radial-gradient(110% 80% at 50% 0%,
+      color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 60%),
+    color-mix(in srgb, #000 30%, var(--color-background));
+}
+
+.hui-motd-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: min(640px, 100%);
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, #fff 22%, transparent);
+  background: rgba(0, 0, 0, 0.55);
+  font-family: var(--hui-mc-font);
+  color: #ffffff;
+}
+
+.hui-motd-icon {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--color-primary) 55%, #222),
+      color-mix(in srgb, var(--color-primary) 20%, #111));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.hui-motd-icon-glyph {
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.hui-motd-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+
+.hui-motd-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hui-motd-server-name { font-size: 15px; }
+
+.hui-motd-row-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.hui-motd-players {
+  font-size: 12px;
+  color: #aaaaaa;
+}
+
+.hui-motd-ping {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 12px;
+}
+
+.hui-motd-ping-bar {
+  width: 3px;
+  background: rgba(85, 255, 85, 0.25);
+}
+
+.hui-motd-ping-bar:nth-child(1) { height: 4px; }
+.hui-motd-ping-bar:nth-child(2) { height: 6px; }
+.hui-motd-ping-bar:nth-child(3) { height: 8px; }
+.hui-motd-ping-bar:nth-child(4) { height: 10px; }
+.hui-motd-ping-bar:nth-child(5) { height: 12px; }
+
+.hui-motd-ping-bar.is-filled { background: #55ff55; }
+
+.hui-motd-line {
+  font-size: 14px;
+  line-height: 1.35;
+  white-space: pre;
+  overflow: hidden;
+  color: #aaaaaa;
+}
+
+.hui-motd-line.is-blank {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.hui-motd-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hui-motd-entry-chips {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.hui-motd-entry-chip {
+  min-width: 26px;
+  padding: 3px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, #000 18%, var(--color-card));
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.hui-motd-entry-chip.is-active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.hui-motd-readout {
+  padding: 8px 12px 10px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+/* --- MOTD inspector ------------------------------------------------------- */
+
+.hui-motd-entry-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, #000 8%, var(--color-card));
+}
+
+.hui-motd-entry-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hui-motd-entry-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+.hui-motd-entry-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* --- emoji glyph grid ------------------------------------------------------ */
+
+.hui-center.is-emoji > .hui-split-cell:not(.is-emoji) { display: none; }
+.hui-center.is-emoji > .hui-split-cell.is-emoji { display: block; border-left: 0; }
+
+.hui-emoji-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding: 18px;
+  overflow-y: auto;
+  background: var(--color-background);
+}
+
+.hui-emoji-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, #000 24%, var(--color-card));
+  font-family: var(--hui-mc-font);
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.hui-emoji-chat-line { white-space: pre-wrap; }
+
+.hui-emoji-chat-line.is-raw { color: #888888; }
+
+.hui-emoji-chat-speaker { color: #aaaaaa; }
+
+.hui-emoji-chat-meta {
+  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.hui-emoji-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hui-emoji-count {
+  flex: none;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.hui-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.hui-emoji-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, #000 12%, var(--color-card));
+  color: var(--color-foreground);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.hui-emoji-cell.is-catalog {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.hui-emoji-cell.is-disabled { opacity: 0.4; }
+
+.hui-emoji-cell.is-open {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.hui-emoji-cell-glyph {
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.hui-emoji-cell-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+
+.hui-emoji-cell-trigger {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
+}
+
+.hui-emoji-readout {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+/* --- emoji inspector ------------------------------------------------------- */
+
+.hui-emoji-resolved {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #000 24%, var(--color-card));
+}
+
+.hui-emoji-resolved-glyph {
+  font-size: 22px;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+.hui-emoji-resolved-note {
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+
+/* --- chat-bubble stack mock ------------------------------------------------ */
+
+.hui-center.is-bubble > .hui-split-cell:not(.is-bubble) { display: none; }
+.hui-center.is-bubble > .hui-split-cell.is-bubble { display: block; border-left: 0; }
+
+.hui-bubble-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-background);
+}
+
+.hui-bubble-sky {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 28px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary) 9%, transparent),
+      transparent 55%),
+    color-mix(in srgb, #000 14%, var(--color-background));
+}
+
+/* Anchored at the silhouette's eye line; bubbles absolute-position off its
+   bottom edge, which stands in for eye + style offset. */
+.hui-bubble-scene {
+  position: relative;
+  width: min(520px, 100%);
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.hui-bubble-line {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0 0.2em;
+  font-family: var(--hui-mc-font);
+  font-size: 14px;
+  color: #ffffff;
+  white-space: pre;
+  pointer-events: none;
+}
+
+/* A blocky player silhouette: head, torso, arms. */
+.hui-bubble-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.hui-bubble-player-head {
+  width: 26px;
+  height: 26px;
+  background: color-mix(in srgb, var(--color-primary) 45%, #6b5335);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.hui-bubble-player-body {
+  width: 26px;
+  height: 38px;
+  background: color-mix(in srgb, var(--color-primary) 30%, #2d4a6b);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.hui-bubble-player-arms {
+  width: 46px;
+  height: 6px;
+  margin-top: -40px;
+  background: color-mix(in srgb, var(--color-primary) 30%, #2d4a6b);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.hui-bubble-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 10px;
+}
+
+.hui-bubble-readout-inline {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+/* --- tab-screen mock ------------------------------------------------------- */
+
+.hui-center.is-tablist > .hui-split-cell:not(.is-tablist) { display: none; }
+.hui-center.is-tablist > .hui-split-cell.is-tablist { display: block; border-left: 0; }
+
+.hui-tablist-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-background);
+}
+
+.hui-tablist-sky {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px;
+  overflow: auto;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary) 9%, transparent),
+      transparent 55%),
+    color-mix(in srgb, #000 14%, var(--color-background));
+}
+
+.hui-tablist-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: min(560px, 100%);
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  font-family: var(--hui-mc-font);
+  color: #ffffff;
+}
+
+.hui-tablist-header,
+.hui-tablist-footer {
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.hui-tablist-pipeline-line { white-space: pre; }
+
+.hui-tablist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 8px;
+  width: 100%;
+}
+
+.hui-tablist-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 4px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  min-width: 0;
+}
+
+.hui-tablist-row-face {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--color-primary) 40%, #6b5335),
+      #4a3a24);
+}
+
+.hui-tablist-row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.hui-tablist-row-ping {
+  flex: none;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 10px;
+}
+
+.hui-tablist-ping-bar {
+  width: 2px;
+  background: rgba(85, 255, 85, 0.25);
+}
+
+.hui-tablist-ping-bar:nth-child(1) { height: 3px; }
+.hui-tablist-ping-bar:nth-child(2) { height: 5px; }
+.hui-tablist-ping-bar:nth-child(3) { height: 7px; }
+.hui-tablist-ping-bar:nth-child(4) { height: 8px; }
+.hui-tablist-ping-bar:nth-child(5) { height: 10px; }
+
+.hui-tablist-ping-bar.is-filled { background: #55ff55; }
+
+.hui-tablist-readout {
+  padding: 8px 12px 10px;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+/* --- tablist inspector ----------------------------------------------------- */
+
+.hui-tablist-token-chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.hui-tablist-token-chip { cursor: pointer; }
+
+.hui-tablist-format-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.4fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.hui-tablist-live-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, #000 18%, var(--color-card));
+}
+
+.hui-tablist-live-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hui-tablist-live-meta {
+  font-size: 10px;
+  color: var(--color-muted-foreground);
+}
+
+.hui-tablist-live-name {
+  font-family: var(--hui-mc-font);
+  font-size: 13px;
+  color: #ffffff;
+  white-space: pre;
+}

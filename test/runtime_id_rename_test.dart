@@ -1,11 +1,11 @@
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/state/editor_store.dart';
-import 'package:holoui_editor/state/workspace.dart';
-import 'package:holoui_editor/state/workspace_board.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/state/editor_store.dart';
+import 'package:gloss_editor/state/workspace.dart';
+import 'package:gloss_editor/state/workspace_panel.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('menu rename updates navigation and linked world-board references', () {
+  test('menu rename updates navigation and linked world-panel references', () {
     final EditorStore store = _store();
     store.setMenuId('shop');
     store.flushAutosave();
@@ -21,14 +21,14 @@ void main() {
     store.flushAutosave();
     final WorkspaceDoc navigator = store.workspace.active!;
 
-    store.newBoardDocument(name: 'World board');
-    store.updateBoard(
-      store.activeBoard!.data.copyWith(
+    store.newPanelDocument(name: 'World panel');
+    store.updatePanel(
+      store.activePanel!.data.copyWith(
         runtimeBoard: <String, dynamic>{'rootMenuId': 'shop'},
         syncMenuIds: const <String>['shop'],
       ),
     );
-    final WorkspaceDoc board = store.workspace.active!;
+    final WorkspaceDoc panel = store.workspace.active!;
     final int revision = store.workspace.saveRevision;
 
     expect(store.renameDocumentRuntimeId(target.id, 'store'), isTrue);
@@ -45,8 +45,8 @@ void main() {
                 .data
             as HuiButtonData;
     expect((changedButton.actions.single as HuiNavigateAction).target, 'store');
-    final WorkspaceBoardData changedBoard = decodeWorkspaceBoard(
-      store.workspace.byId(board.id)!.json,
+    final WorkspacePanelData changedBoard = decodeWorkspacePanel(
+      store.workspace.byId(panel.id)!.json,
     ).data;
     expect(changedBoard.runtimeBoard!['rootMenuId'], 'store');
     expect(changedBoard.syncMenuIds, const <String>['store']);

@@ -170,7 +170,7 @@ WorkspaceRouteResult _decodeSyncRoute(String sessionId, String tokenAndQuery) {
   if (relay == null) {
     return const WorkspaceRouteResult(
       error:
-          'The server sync relay must use HTTPS (localhost may use HTTP) and end in /v1.',
+          'The server sync relay must use HTTPS (localhost may use HTTP) and end in /v2.',
     );
   }
   return WorkspaceRouteResult(
@@ -208,7 +208,7 @@ Uri? validateEditorSyncRelay(String raw) {
   while (path.length > 1 && path.endsWith('/')) {
     path = path.substring(0, path.length - 1);
   }
-  if (!path.endsWith('/v1')) return null;
+  if (!path.endsWith('/v2')) return null;
   return relay.replace(path: path);
 }
 

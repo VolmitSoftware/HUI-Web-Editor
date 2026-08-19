@@ -1,6 +1,6 @@
-name: holoui_editor
-description: "Visual web editor for HoloUI menu configurations."
-version: 3.1.0
+name: gloss_editor
+description: "Visual web editor for Gloss menu configurations."
+version: 4.0.0
 publish_to: 'none'
 
 environment:

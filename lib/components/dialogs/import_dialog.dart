@@ -6,7 +6,7 @@
 /// Replace, the parse result is shown first, and the replacement is a single
 /// undo step.
 ///
-/// The pasted or picked JSON is auto-detected as either a HoloUI menu or a
+/// The pasted or picked JSON is auto-detected as either a Gloss menu or a
 /// container-preview document via [looksLikePreviewDoc] — the same detection
 /// [EditorStore.importJson] itself runs, so the dialog's preview and the
 /// actual replacement always agree on what they are looking at. A preview
@@ -215,7 +215,7 @@ class _ImportDialogState extends State<ImportDialog> {
       title: 'Or paste it',
       description:
           'Anything the plugin accepts: single-value lists and '
-          'missing booleans are read the same way HoloUI reads them.',
+          'missing booleans are read the same way Gloss reads them.',
       children: <Widget>[
         TextArea(
           key: ValueKey<int>(_generation),

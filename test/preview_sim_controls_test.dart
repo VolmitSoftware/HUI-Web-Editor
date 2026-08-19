@@ -6,9 +6,9 @@
 /// DOM-free: everything here runs on the VM, exactly like [PreviewSim] itself.
 library;
 
-import 'package:holoui_editor/logic/preview_sim.dart';
-import 'package:holoui_editor/logic/preview_sim_controls.dart';
-import 'package:holoui_editor/model/preview_doc.dart';
+import 'package:gloss_editor/logic/preview_sim.dart';
+import 'package:gloss_editor/logic/preview_sim_controls.dart';
+import 'package:gloss_editor/model/preview_doc.dart';
 import 'package:test/test.dart';
 
 HuiPreviewDoc _furnaceDoc() =>

@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:holoui_editor/logic/canvas_scene.dart' show CanvasOverlap;
-import 'package:holoui_editor/logic/hui_geometry.dart' show HuiRect;
-import 'package:holoui_editor/logic/validation.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/services/catalogs.dart';
+import 'package:gloss_editor/logic/canvas_scene.dart' show CanvasOverlap;
+import 'package:gloss_editor/logic/hui_geometry.dart' show HuiRect;
+import 'package:gloss_editor/logic/validation.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/services/catalogs.dart';
 import 'package:test/test.dart';
 
 HuiMenu _menu(List<HuiComponent> components) =>
@@ -1111,7 +1111,7 @@ void main() {
       }
     });
 
-    test('move resolves through every root alias', () {
+    test('move resolves through every retired flat-tree root alias', () {
       for (final String root in <String>[
         'holoui',
         'holo',
@@ -1121,6 +1121,41 @@ void main() {
       ]) {
         expect(huiPlayerOnlySubcommand('/$root move'), 'move', reason: root);
       }
+    });
+
+    test('the merged tree resolves under gloss menu, never at the root', () {
+      for (final String root in <String>['gloss', 'gl', 'glo', 'gg']) {
+        expect(
+          huiPlayerOnlySubcommand('/$root menu move'),
+          'move',
+          reason: root,
+        );
+        expect(
+          huiPlayerOnlySubcommand('/$root menus close'),
+          'close',
+          reason: '$root + the menus alias',
+        );
+        // The merged plugin has no root-level move/close/back/open.
+        expect(huiPlayerOnlySubcommand('/$root move'), isNull, reason: root);
+      }
+      expect(
+        huiPlayerOnlyCommandLabel('/gloss menu open shop'),
+        'gloss menu open',
+      );
+      expect(huiPlayerOnlySubcommand('/gloss menu open *'), isNull);
+      expect(huiPlayerOnlySubcommand('/gloss menu open'), isNull);
+      expect(huiPlayerOnlySubcommand('/gloss menu list'), isNull);
+    });
+
+    test('gloss menu close from the console warns like the old tree did', () {
+      final HuiIssue issue = _matching(
+        validateHuiMenu(
+          _withCommand('/gloss menu close', source: 'server'),
+        ),
+        HuiSeverity.warning,
+        'only works for a player',
+      ).single;
+      expect(issue.message, contains('gloss menu close'));
     });
 
     test('the root aliases resolve the same command', () {
@@ -1209,9 +1244,86 @@ void main() {
         );
       }
     });
+  });
+
+  group('retired /holoui root', () {
+    test('any retired alias warns and names the /gloss spelling', () {
+      for (final String root in <String>[
+        'holoui',
+        'holo',
+        'hui',
+        'holou',
+        'hu',
+      ]) {
+        final HuiIssue issue = _matching(
+          validateHuiMenu(_withCommand('/$root close')),
+          HuiSeverity.warning,
+          'retired /holoui root',
+        ).single;
+        expect(issue.path, endsWith('.command'), reason: root);
+        expect(issue.fix, contains('gloss menu close'), reason: root);
+      }
+    });
+
+    test('known old subcommands map under gloss menu, arguments kept', () {
+      expect(
+        huiRetiredCommandReplacement('/holoui open shops/main'),
+        'gloss menu open shops/main',
+      );
+      expect(huiRetiredCommandReplacement('holoui move'), 'gloss menu move');
+      expect(
+        huiRetiredCommandReplacement('/holoui item export'),
+        'gloss item export',
+        reason: 'non-menu subcommands move to the /gloss root',
+      );
+      expect(huiRetiredCommandReplacement('/holoui'), 'gloss');
+      expect(huiRetiredCommandReplacement('/gloss menu close'), isNull);
+      expect(huiRetiredCommandReplacement('/warp shop'), isNull);
+    });
+
+    test('the reachability set keeps accepting both trees — imports never '
+        'hard-fail', () {
+      // A retired-root command yields WARNINGS only, never an error.
+      expect(
+        validateHuiMenu(_withCommand('/holoui close', source: 'player'))
+            .where((HuiIssue issue) => issue.severity == HuiSeverity.error),
+        isEmpty,
+      );
+      // And the player-only recognition still fires for the old tree.
+      expect(
+        _has(
+          validateHuiMenu(_withCommand('/holoui close', source: 'server')),
+          HuiSeverity.warning,
+          'only works for a player',
+        ),
+        isTrue,
+      );
+    });
+
+    test('the merged spelling never draws the retired warning', () {
+      expect(
+        _has(
+          validateHuiMenu(_withCommand('/gloss menu close')),
+          HuiSeverity.warning,
+          'retired /holoui root',
+        ),
+        isFalse,
+      );
+    });
 
     test('an absent source is not flagged: it runs as the player', () {
-      expect(validateHuiMenu(_withCommand('/holoui open shop')), isEmpty);
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withCommand('/holoui open shop'),
+      );
+      expect(
+        _has(issues, HuiSeverity.warning, 'only works for a player'),
+        isFalse,
+      );
+      // Only the retired-root warning remains for the old spelling.
+      expect(
+        issues.single.message,
+        contains('retired /holoui root'),
+      );
     });
 
     test('an unrecognised source keeps its fallback warning instead', () {

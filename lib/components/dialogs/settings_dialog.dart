@@ -2,7 +2,7 @@
 ///
 /// Nothing here is part of the menu format. Everything is a preview or an
 /// editor preference, which is why the canvas section says so explicitly — the
-/// server's real `uiScale` lives in `plugins/holoui/settings.json` and is
+/// server's real `uiScale` lives in `plugins/Gloss/settings.json` and is
 /// global, not per menu.
 library;
 
@@ -20,7 +20,7 @@ import 'dialog_parts.dart';
 
 /// Mirrors the key in `lib/theme/theme_state.dart`. Only re-stamped here, never
 /// read: the shell owns the brightness.
-const String _themeStorageKey = 'holoui.theme';
+const String _themeStorageKey = 'gloss.theme';
 
 class SettingsDialog extends StatelessWidget {
   const SettingsDialog({
@@ -110,7 +110,7 @@ class SettingsDialog extends StatelessWidget {
     final HuiCustomItemCatalog? parsed = HuiCustomItemCatalog.parse(picked.$2);
     if (parsed == null) {
       toast.error(
-        '${picked.$1} is not a HoloUI custom item catalog. Run /holoui item '
+        '${picked.$1} is not a Gloss custom item catalog. Run /gloss item '
         'export and pick the file it names.',
       );
       return;
@@ -167,8 +167,8 @@ class SettingsDialog extends StatelessWidget {
         ),
         const dom.p(classes: 'hui-dialog-note', <Widget>[
           Text(
-            'Run /holoui item export on your server, then import '
-            'plugins/holoui/custom-items.json here. The server is still '
+            'Run /gloss item export on your server, then import '
+            'plugins/Gloss/custom-items.json here. The server is still '
             'the only thing that can confirm an id.',
           ),
         ]),
@@ -193,7 +193,7 @@ class SettingsDialog extends StatelessWidget {
 
   Widget _appearance() => HuiDialogSection(
     title: 'Appearance',
-    description: 'Stored in this browser at holoui.theme.',
+    description: 'Stored in this browser at gloss.theme.',
     children: <Widget>[
       HuiField(
         label: 'Dark mode',
@@ -315,7 +315,7 @@ class SettingsDialog extends StatelessWidget {
     return HuiField(
       label: 'Server uiScale (preview)',
       help:
-          'The real value lives in plugins/holoui/settings.json and is '
+          'The real value lives in plugins/Gloss/settings.json and is '
           'global for the server. It multiplies every offset and every '
           'icon size.',
       // Always mounted, disabled at 1.00: a button that appears only once the

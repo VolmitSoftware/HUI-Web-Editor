@@ -6,12 +6,12 @@ library;
 
 import 'dart:io';
 
-import 'package:holoui_editor/config/preview_templates.dart';
-import 'package:holoui_editor/config/shipped_preview_json.dart';
-import 'package:holoui_editor/logic/preview_card_scene.dart';
-import 'package:holoui_editor/logic/preview_sim.dart';
-import 'package:holoui_editor/logic/preview_variant_resolver.dart';
-import 'package:holoui_editor/model/preview_doc.dart';
+import 'package:gloss_editor/config/preview_templates.dart';
+import 'package:gloss_editor/config/shipped_preview_json.dart';
+import 'package:gloss_editor/logic/preview_card_scene.dart';
+import 'package:gloss_editor/logic/preview_sim.dart';
+import 'package:gloss_editor/logic/preview_variant_resolver.dart';
+import 'package:gloss_editor/model/preview_doc.dart';
 import 'package:test/test.dart';
 
 const List<String> _shippedPreviewIds = <String>[
@@ -138,7 +138,7 @@ void main() {
         expect(embedded.trim(), fixture.trim());
 
         final File plugin = File(
-          '../HoloUi/src/main/resources/previews/$id.json',
+          '../Gloss/src/main/resources/previews/$id.json',
         );
         expect(plugin.existsSync(), isTrue, reason: plugin.path);
         expect(embedded.trim(), plugin.readAsStringSync().trim());

@@ -41,9 +41,9 @@ const List<HuiTemplate> huiTemplates = <HuiTemplate>[
     id: 'blank',
     name: 'Blank hologram',
     description:
-        'The richer starter menu from /holoui menu create: a title, hint, and '
+        'The richer starter menu from /gloss menu new: a title, hint, and '
         'Close button. For the quickest in-game hologram, run '
-        '/holo create <id> [text].',
+        '/gloss menu create <id> [text].',
     highlights: <String>['3 components', 'Text icons', 'Native close'],
     build: buildBlankHologramTemplate,
   ),
@@ -53,8 +53,8 @@ const List<HuiTemplate> huiTemplates = <HuiTemplate>[
     description:
         'A titled hub with three command buttons and a close button. The '
         'starting point for a server spawn menu. The close button runs '
-        '/holoui close, so players need holoui.command and '
-        'holoui.command.close (both default to op).',
+        '/gloss menu close, so players need gloss.menus.close (default '
+        'op).',
     highlights: <String>['5 components', 'Text icons', 'Commands + sounds'],
     build: buildWelcomeTemplate,
   ),
@@ -83,8 +83,7 @@ const List<HuiTemplate> huiTemplates = <HuiTemplate>[
         'Two toggles driven by PlaceholderAPI values, showing how conditions '
         'pick an icon and how the true/false actions fire. Requires EssentialsX '
         'plus PlaceholderAPI\'s Essentials expansion. The close button runs '
-        '/holoui close, so players need holoui.command and holoui.command.close '
-        '(both default to op).',
+        '/gloss menu close, so players need gloss.menus.close (default op).',
     highlights: <String>['5 components', 'Toggles', 'Placeholders'],
     build: buildSettingsTemplate,
   ),
@@ -230,7 +229,7 @@ HuiMenu buildWelcomeTemplate() => _menu(<HuiComponent>[
     0,
     -0.7,
     HuiTextIcon('&c[ Close ]'),
-    '/holoui close',
+    '/gloss menu close',
     sound: 'block.note_block.bass',
   ),
 ]);
@@ -360,7 +359,7 @@ HuiMenu buildSettingsTemplate() => _menu(<HuiComponent>[
     0,
     -0.8,
     HuiTextIcon('&c[ Close ]'),
-    '/holoui close',
+    '/gloss menu close',
     sound: 'block.note_block.bass',
   ),
 ]);

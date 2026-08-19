@@ -6,7 +6,7 @@
 /// each one is a fact a builder gets wrong without being told.
 library;
 
-import 'package:holoui_editor/config/field_docs.dart';
+import 'package:gloss_editor/config/field_docs.dart';
 import 'package:test/test.dart';
 
 /// Every key the inspector mounts help for.
@@ -50,6 +50,21 @@ const List<String> _contractKeys = <String>[
   'action.message.message',
   'action.teleport.world',
   'action.connect.server',
+  'hologram.id',
+  'hologram.anchor.world',
+  'hologram.anchor.position',
+  'hologram.lines',
+  'hologram.revision',
+  'animation.id',
+  'animation.mode',
+  'animation.frameIntervalMs',
+  'animation.frames',
+  'scoreboard.id',
+  'scoreboard.title',
+  'scoreboard.lines',
+  'scoreboard.primary',
+  'scoreboard.permission',
+  'scoreboard.groups',
 ];
 
 /// `File.java:12` or `File.java:12-34`, nothing else.

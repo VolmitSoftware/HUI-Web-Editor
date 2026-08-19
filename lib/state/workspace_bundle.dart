@@ -9,7 +9,11 @@ final class WorkspaceBundle {
   const WorkspaceBundle({required this.workspaceState, required this.images});
 
   static const int version = 1;
-  static const String format = 'holoui-editor-workspace';
+  static const String format = 'gloss-editor-workspace';
+
+  /// The pre-rebrand format string. Bundles exported by the HoloUI-branded
+  /// editor keep importing forever: read-old, write-new.
+  static const String legacyFormat = 'holoui-editor-workspace';
 
   final Map<String, dynamic> workspaceState;
   final List<StoredImage> images;
@@ -80,10 +84,11 @@ WorkspaceBundleDecodeResult decodeWorkspaceBundle(
     );
   }
   if (decoded is! Map ||
-      decoded['format'] != WorkspaceBundle.format ||
+      (decoded['format'] != WorkspaceBundle.format &&
+          decoded['format'] != WorkspaceBundle.legacyFormat) ||
       decoded['version'] != WorkspaceBundle.version) {
     return const WorkspaceBundleDecodeResult(
-      error: 'That is not a supported HoloUI editor workspace bundle.',
+      error: 'That is not a supported Gloss editor workspace bundle.',
     );
   }
   final Object? rawWorkspace = decoded['workspace'];

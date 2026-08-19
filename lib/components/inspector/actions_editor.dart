@@ -13,6 +13,7 @@ import '../../config/defaults.dart';
 import '../../logic/validation.dart';
 import '../../model/model.dart';
 import '../../services/catalogs.dart';
+import '../../doctype/doctype.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../common/common.dart';
@@ -859,7 +860,7 @@ class _NavigateActionFields extends StatelessWidget {
     final List<RegistryOption> results = <RegistryOption>[];
     for (final WorkspaceDoc doc in store.workspace.docs) {
       final String? runtimeId = doc.runtimeId;
-      if (doc.kind != WorkspaceDocKind.menu || runtimeId == null) continue;
+      if (doc.kind != DocumentTypes.menu.kind || runtimeId == null) continue;
       if (normalized.isNotEmpty &&
           !runtimeId.toLowerCase().contains(normalized) &&
           !doc.title.toLowerCase().contains(normalized)) {
@@ -913,7 +914,7 @@ class _NavigateActionFields extends StatelessWidget {
                 showThumbnail: false,
                 lowercase: false,
                 catalogAvailable: store.workspace.docs.any(
-                  (WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.menu,
+                  (WorkspaceDoc doc) => doc.kind == DocumentTypes.menu.kind,
                 ),
                 search: _searchMenus,
                 onChanged: (String value) =>

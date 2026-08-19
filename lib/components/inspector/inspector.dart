@@ -3,7 +3,7 @@
 library;
 
 export 'actions_editor.dart';
-export 'board_inspector.dart';
+export 'panel_inspector.dart';
 export 'component_inspector.dart';
 export 'icon_editor.dart';
 export 'inspector_pane.dart';

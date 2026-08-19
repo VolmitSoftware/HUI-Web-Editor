@@ -1,5 +1,5 @@
-import 'package:holoui_editor/components/shell/editor_sync_bar.dart';
-import 'package:holoui_editor/services/editor_sync.dart';
+import 'package:gloss_editor/components/shell/editor_sync_bar.dart';
+import 'package:gloss_editor/services/editor_sync.dart';
 import 'package:test/test.dart';
 
 void main() {

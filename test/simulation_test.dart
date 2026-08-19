@@ -7,10 +7,10 @@
 /// Java that produces it.
 library;
 
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/preview/action_log.dart';
-import 'package:holoui_editor/preview/preview_types.dart';
-import 'package:holoui_editor/preview/simulation.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/preview/action_log.dart';
+import 'package:gloss_editor/preview/preview_types.dart';
+import 'package:gloss_editor/preview/simulation.dart';
 import 'package:test/test.dart';
 
 HuiComponent _button(

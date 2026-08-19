@@ -1,4 +1,4 @@
-import 'package:holoui_editor/logic/mc_text.dart';
+import 'package:gloss_editor/logic/mc_text.dart';
 import 'package:test/test.dart';
 
 const String section = '§';

@@ -8,9 +8,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:holoui_editor/services/catalogs.dart';
-import 'package:holoui_editor/services/image_library.dart';
-import 'package:holoui_editor/services/storage_service.dart';
+import 'package:gloss_editor/services/catalogs.dart';
+import 'package:gloss_editor/services/image_library.dart';
+import 'package:gloss_editor/services/storage_service.dart';
 import 'package:test/test.dart';
 
 /// A two-provider catalog in the exact shape `/holoui item export` writes.
@@ -79,22 +79,32 @@ void main() {
 
   group('StorageService', () {
     test('round-trips values and reports writes', () {
-      expect(StorageService.write('holoui.demo', 'v'), isTrue);
-      expect(StorageService.read('holoui.demo'), 'v');
-      StorageService.remove('holoui.demo');
-      expect(StorageService.read('holoui.demo'), isNull);
+      expect(StorageService.write('gloss.demo', 'v'), isTrue);
+      expect(StorageService.read('gloss.demo'), 'v');
+      StorageService.remove('gloss.demo');
+      expect(StorageService.read('gloss.demo'), isNull);
     });
 
-    test('keys and usage only cover the holoui prefix', () {
-      StorageService.write('holoui.a', '12345');
+    test('keys and usage only cover the gloss prefix', () {
+      StorageService.write('gloss.a', '12345');
       StorageService.write('other.b', '12345');
-      expect(StorageService.keys(), <String>['holoui.a']);
-      expect(StorageService.estimateUsageBytes(), ('holoui.a'.length + 5) * 2);
+      expect(
+        StorageService.keys(),
+        unorderedEquals(<String>[
+          'gloss.a',
+          StorageService.migrationMarkerKey,
+        ]),
+      );
+      expect(
+        StorageService.estimateUsageBytes(),
+        ('gloss.a'.length + 5) * 2 +
+            (StorageService.migrationMarkerKey.length + 1) * 2,
+      );
       StorageService.remove('other.b');
     });
 
     test('missing keys read as null', () {
-      expect(StorageService.read('holoui.missing'), isNull);
+      expect(StorageService.read('gloss.missing'), isNull);
     });
   });
 

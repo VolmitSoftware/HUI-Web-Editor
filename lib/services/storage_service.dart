@@ -14,13 +14,52 @@ class StorageService {
 
   /// Every key this app owns starts with it; used for usage accounting and for
   /// the "reset local data" action.
-  static const String keyPrefix = 'holoui.';
+  static const String keyPrefix = 'gloss.';
+
+  /// The pre-rebrand prefix. [_ensureMigrated] copies data written under it to
+  /// [keyPrefix] once, and [clearAll] still clears it so "reset local data"
+  /// cannot resurrect old values.
+  static const String legacyKeyPrefix = 'holoui.';
+
+  /// Present once the one-time `holoui.*` -> `gloss.*` copy has run. Lives
+  /// under [keyPrefix] so a full reset re-arms the (then no-op) migration.
+  static const String migrationMarkerKey = '${keyPrefix}migrated.v1';
+
+  /// One-time, non-destructive `holoui.*` -> `gloss.*` copy. Old keys are kept
+  /// so an older deployed editor still finds its data; copy-if-absent keeps a
+  /// rerun (marker write failed) harmless. Uses the raw backend so it cannot
+  /// recurse through the public API.
+  static void _ensureMigrated() {
+    try {
+      if (storageGetItem(migrationMarkerKey) != null) return;
+      final List<String> legacyKeys = <String>[];
+      final int count = storageLength();
+      for (int i = 0; i < count; i++) {
+        final String? key = storageKeyAt(i);
+        if (key != null && key.startsWith(legacyKeyPrefix)) {
+          legacyKeys.add(key);
+        }
+      }
+      for (final String legacyKey in legacyKeys) {
+        final String newKey =
+            keyPrefix + legacyKey.substring(legacyKeyPrefix.length);
+        if (storageGetItem(newKey) != null) continue;
+        final String? value = storageGetItem(legacyKey);
+        if (value != null) storageSetItem(newKey, value);
+      }
+      storageSetItem(migrationMarkerKey, '1');
+    } catch (_) {
+      // Storage unavailable or full: the next access retries; readers then
+      // simply miss and fall back exactly as before the migration existed.
+    }
+  }
 
   /// Browsers do not expose the localStorage budget. 5 MB is the near-universal
   /// value and is only used to draw a usage meter.
   static const int approximateQuotaBytes = 5 * 1024 * 1024;
 
   static String? read(String key) {
+    _ensureMigrated();
     try {
       return storageGetItem(key);
     } catch (_) {
@@ -32,6 +71,7 @@ class StorageService {
   /// storage disabled, private mode). Callers must treat false as "the previous
   /// persisted state is still what is on disk".
   static bool write(String key, String value) {
+    _ensureMigrated();
     try {
       storageSetItem(key, value);
       return true;
@@ -41,6 +81,7 @@ class StorageService {
   }
 
   static bool remove(String key) {
+    _ensureMigrated();
     try {
       storageRemoveItem(key);
       return true;
@@ -58,6 +99,7 @@ class StorageService {
 
   /// All keys under [prefix], in whatever order the browser reports them.
   static List<String> keys({String prefix = keyPrefix}) {
+    _ensureMigrated();
     final List<String> found = <String>[];
     try {
       final int count = storageLength();
@@ -84,14 +126,19 @@ class StorageService {
     return total;
   }
 
-  /// Drops every key this app owns. Used by the "reset local data" action.
+  /// Drops every key this app owns, including keys still under the pre-rebrand
+  /// [legacyKeyPrefix] so a reset cannot be undone by re-migration. Used by the
+  /// "reset local data" action.
   static bool clearAll({String prefix = keyPrefix}) {
     try {
       final List<String> found = <String>[];
       final int count = storageLength();
       for (int i = 0; i < count; i++) {
         final String? key = storageKeyAt(i);
-        if (key != null && key.startsWith(prefix)) found.add(key);
+        if (key != null &&
+            (key.startsWith(prefix) || key.startsWith(legacyKeyPrefix))) {
+          found.add(key);
+        }
       }
       for (final String key in found) {
         storageRemoveItem(key);

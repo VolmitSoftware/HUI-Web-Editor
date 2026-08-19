@@ -3,13 +3,13 @@
 /// whole layer is exercised on the VM with injected storage functions.
 library;
 
-import 'package:holoui_editor/config/defaults.dart';
-import 'package:holoui_editor/logic/canvas_scene.dart';
-import 'package:holoui_editor/logic/validation.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/state/editor_store.dart';
-import 'package:holoui_editor/state/undo_stack.dart';
-import 'package:holoui_editor/state/workspace.dart';
+import 'package:gloss_editor/config/defaults.dart';
+import 'package:gloss_editor/logic/canvas_scene.dart';
+import 'package:gloss_editor/logic/validation.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/state/editor_store.dart';
+import 'package:gloss_editor/state/undo_stack.dart';
+import 'package:gloss_editor/state/workspace.dart';
 import 'package:test/test.dart';
 
 /// In-memory stand-in for `localStorage` so no test touches the shared

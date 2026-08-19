@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:holoui_sync_relay/holoui_sync_relay.dart';
+import 'package:gloss_sync_relay/gloss_sync_relay.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 Future<void> main() async {
   final RelayConfig config = RelayConfig.fromEnvironment(Platform.environment);
-  final HoloUiSyncRelay relay = HoloUiSyncRelay(
+  final GlossSyncRelay relay = GlossSyncRelay(
     config: config,
     store: FileRelayStore(config.dataDirectory),
   );
@@ -19,7 +19,7 @@ Future<void> main() async {
   );
   server.idleTimeout = const Duration(seconds: 30);
   stdout.writeln(
-    'HoloUI sync relay listening on ${server.address.address}:${server.port}${config.apiPrefix}',
+    'Gloss sync relay listening on ${server.address.address}:${server.port}${config.apiPrefix}',
   );
   final Completer<void> stopping = Completer<void>();
   final List<StreamSubscription<ProcessSignal>> signalSubscriptions =
@@ -36,7 +36,7 @@ Future<void> main() async {
       }
       await relay.close();
     } catch (error, stackTrace) {
-      stderr.writeln('HoloUI sync relay shutdown failed: $error');
+      stderr.writeln('Gloss sync relay shutdown failed: $error');
       stderr.writeln(stackTrace);
       exitCode = 1;
     } finally {

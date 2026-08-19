@@ -1,19 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:holoui_sync_relay/holoui_sync_relay.dart';
+import 'package:gloss_sync_relay/gloss_sync_relay.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 void main() {
   late MemoryRelayStore store;
-  late HoloUiSyncRelay relay;
+  late GlossSyncRelay relay;
   late DateTime now;
 
   setUp(() async {
     now = DateTime.utc(2026, 8, 12, 12);
     store = MemoryRelayStore();
-    relay = HoloUiSyncRelay(
+    relay = GlossSyncRelay(
       config: RelayConfig(
         dataDirectory: Directory.systemTemp,
         allowedOrigins: const <String>{'https://editor.test'},
@@ -27,6 +27,106 @@ void main() {
 
   tearDown(() => relay.close());
 
+  test('v2-only: protocol 1 requests fail with a clear error', () async {
+    final Response response = await _jsonRequest(
+      relay,
+      'POST',
+      '/v2/sessions',
+      <String, Object?>{
+        'protocol': 1,
+        'expiresInSeconds': 3600,
+        'snapshot': _project('a'),
+      },
+    );
+    expect(response.statusCode, 400);
+    expect(await _errorCode(response), 'unsupported_protocol');
+  });
+
+  test('v2-only: holoui-sync-project snapshots fail with a clear error', () async {
+    final Map<String, Object?> legacy = _project('a');
+    legacy['format'] = 'holoui-sync-project';
+    legacy['version'] = 1;
+    final Response response = await _createResponse(relay, legacy);
+    expect(response.statusCode, 400);
+    expect(await _errorCode(response), 'unsupported_project_format');
+
+    final Map<String, Object?> wrongFormat = _project('a');
+    wrongFormat['format'] = 'something-else';
+    final Response other = await _createResponse(relay, wrongFormat);
+    expect(other.statusCode, 400);
+    expect(await _errorCode(other), 'unsupported_project_format');
+  });
+
+  test('kind slugs are validated but never interpreted', () async {
+    // A future kind must work against this relay with no redeploy: only the
+    // slug grammar and transport bounds are checked.
+    final Map<String, Object?> future = _project('a');
+    future['kind'] = 'hologram';
+    future['documents'] = <Object?>[
+      <String, Object?>{
+        'kind': 'hologram',
+        'id': 'main',
+        'revision': 7,
+        'json': '{"lines":["hello"]}',
+      },
+      <String, Object?>{
+        'kind': 'some-future-kind-8',
+        'id': 'main/extra',
+        'json': '{"anything":true}',
+      },
+    ];
+    final Response accepted = await _createResponse(relay, future);
+    expect(accepted.statusCode, 201);
+
+    final Map<String, Object?> badKind = _project('a');
+    badKind['kind'] = 'Not-A-Slug';
+    final Response rejectedKind = await _createResponse(relay, badKind);
+    expect(rejectedKind.statusCode, 400);
+    expect(await _errorCode(rejectedKind), 'invalid_project_kind');
+  });
+
+  test('document entries are transport-validated only', () async {
+    final Map<String, Object?> badSlug = _project('a');
+    badSlug['documents'] = <Object?>[
+      <String, Object?>{'kind': '9bad', 'id': 'main', 'json': '{}'},
+    ];
+    final Response slugRejected = await _createResponse(relay, badSlug);
+    expect(slugRejected.statusCode, 400);
+    expect(await _errorCode(slugRejected), 'invalid_project_documents');
+
+    final Map<String, Object?> extraKey = _project('a');
+    extraKey['documents'] = <Object?>[
+      <String, Object?>{
+        'kind': 'menu',
+        'id': 'main',
+        'json': '{}',
+        'extra': true,
+      },
+    ];
+    final Response extraRejected = await _createResponse(relay, extraKey);
+    expect(extraRejected.statusCode, 400);
+    expect(await _errorCode(extraRejected), 'invalid_project_documents');
+
+    final Map<String, Object?> missing = _project('a');
+    missing.remove('documents');
+    final Response missingRejected = await _createResponse(relay, missing);
+    expect(missingRejected.statusCode, 400);
+    expect(await _errorCode(missingRejected), 'invalid_project_documents');
+
+    final Map<String, Object?> badRevision = _project('a');
+    badRevision['documents'] = <Object?>[
+      <String, Object?>{
+        'kind': 'menu',
+        'id': 'main',
+        'revision': 0,
+        'json': '{}',
+      },
+    ];
+    final Response revisionRejected = await _createResponse(relay, badRevision);
+    expect(revisionRejected.statusCode, 400);
+    expect(await _errorCode(revisionRejected), 'invalid_project_documents');
+  });
+
   test(
     'editor and server capabilities are isolated through a full publish',
     () async {
@@ -39,11 +139,11 @@ void main() {
       expect(_capabilityBytes(server), hasLength(32));
       expect(<String>{id, editor, server}, hasLength(3));
 
-      expect((await _get(relay, '/v1/sessions/$id', server)).statusCode, 401);
+      expect((await _get(relay, '/v2/sessions/$id', server)).statusCode, 401);
       expect(
         (await _get(
           relay,
-          '/v1/sessions/$id/publication?after=0',
+          '/v2/sessions/$id/publication?after=0',
           editor,
         )).statusCode,
         401,
@@ -53,9 +153,9 @@ void main() {
       final Response published = await _jsonRequest(
         relay,
         'PUT',
-        '/v1/sessions/$id/publication',
+        '/v2/sessions/$id/publication',
         <String, Object?>{
-          'protocol': 1,
+          'protocol': 2,
           'baseRevision': _revisionA,
           'snapshot': edited,
         },
@@ -63,7 +163,7 @@ void main() {
       );
       expect(published.statusCode, 202);
       final Map<String, Object?> pending = await _responseJson(
-        await _get(relay, '/v1/sessions/$id/publication?after=0', server),
+        await _get(relay, '/v2/sessions/$id/publication?after=0', server),
       );
       final Map<String, Object?> publication =
           pending['publication']! as Map<String, Object?>;
@@ -75,9 +175,9 @@ void main() {
       final Response ack = await _jsonRequest(
         relay,
         'POST',
-        '/v1/sessions/$id/publication/1/ack',
+        '/v2/sessions/$id/publication/1/ack',
         <String, Object?>{
-          'protocol': 1,
+          'protocol': 2,
           'status': 'applied',
           'message': 'Applied safely.',
           'serverRevision': _revisionServer,
@@ -89,13 +189,13 @@ void main() {
       expect(
         (await _get(
           relay,
-          '/v1/sessions/$id/publication?after=0',
+          '/v2/sessions/$id/publication?after=0',
           server,
         )).statusCode,
         204,
       );
       final Map<String, Object?> fetched = await _responseJson(
-        await _get(relay, '/v1/sessions/$id', editor),
+        await _get(relay, '/v2/sessions/$id', editor),
       );
       expect(fetched['status'], 'applied');
       expect(fetched['baseRevision'], _revisionServer);
@@ -110,9 +210,9 @@ void main() {
     final Response stale = await _jsonRequest(
       relay,
       'PUT',
-      '/v1/sessions/$id/publication',
+      '/v2/sessions/$id/publication',
       <String, Object?>{
-        'protocol': 1,
+        'protocol': 2,
         'baseRevision': _revisionB,
         'snapshot': _project('b'),
       },
@@ -130,7 +230,7 @@ void main() {
     expect(
       (await _get(
         relay,
-        '/v1/sessions/$id/publication',
+        '/v2/sessions/$id/publication',
         created['serverToken']! as String,
       )).statusCode,
       400,
@@ -138,7 +238,7 @@ void main() {
     expect(
       (await _get(
         relay,
-        '/v1/sessions/$id/publication?after=0&after=1',
+        '/v2/sessions/$id/publication?after=0&after=1',
         created['serverToken']! as String,
       )).statusCode,
       400,
@@ -149,13 +249,13 @@ void main() {
     final Map<String, Object?> revoked = await _create(relay, _project('a'));
     final Response revoke = await _delete(
       relay,
-      '/v1/sessions/${revoked['sessionId']}',
+      '/v2/sessions/${revoked['sessionId']}',
       revoked['serverToken']! as String,
     );
     expect(revoke.statusCode, 204);
     final Response gone = await _get(
       relay,
-      '/v1/sessions/${revoked['sessionId']}',
+      '/v2/sessions/${revoked['sessionId']}',
       revoked['editorToken']! as String,
     );
     expect(gone.statusCode, 410);
@@ -165,7 +265,7 @@ void main() {
     now = now.add(const Duration(hours: 2));
     final Response timeout = await _get(
       relay,
-      '/v1/sessions/${expired['sessionId']}',
+      '/v2/sessions/${expired['sessionId']}',
       expired['editorToken']! as String,
     );
     expect(timeout.statusCode, 410);
@@ -188,7 +288,7 @@ void main() {
     () async {
       await relay.close();
       store = MemoryRelayStore();
-      relay = HoloUiSyncRelay(
+      relay = GlossSyncRelay(
         config: RelayConfig(
           dataDirectory: Directory.systemTemp,
           maximumActiveSessions: 1,
@@ -218,7 +318,7 @@ void main() {
       await relay.close();
       store = MemoryRelayStore();
       const int snapshotLimit = 2 * 1024 * 1024;
-      relay = HoloUiSyncRelay(
+      relay = GlossSyncRelay(
         config: RelayConfig(
           dataDirectory: Directory.systemTemp,
           maximumSnapshotBytes: snapshotLimit,
@@ -236,7 +336,7 @@ void main() {
       expect(
         (await _delete(
           relay,
-          '/v1/sessions/${created['sessionId']}',
+          '/v2/sessions/${created['sessionId']}',
           created['serverToken']! as String,
         )).statusCode,
         204,
@@ -251,14 +351,14 @@ void main() {
       final Response wrongType = await relay.handler(
         Request(
           'POST',
-          Uri.parse('http://relay.test/v1/sessions'),
+          Uri.parse('http://relay.test/v2/sessions'),
           headers: const <String, String>{'content-type': 'text/plain'},
           body: '{}',
         ),
       );
       expect(wrongType.statusCode, 415);
       final MemoryRelayStore boundedStore = MemoryRelayStore();
-      final HoloUiSyncRelay boundedRelay = HoloUiSyncRelay(
+      final GlossSyncRelay boundedRelay = GlossSyncRelay(
         config: RelayConfig(
           dataDirectory: Directory.systemTemp,
           maximumSnapshotBytes: 1024,
@@ -274,7 +374,7 @@ void main() {
       final Response streamedOversize = await boundedRelay.handler(
         Request(
           'POST',
-          Uri.parse('http://relay.test/v1/sessions'),
+          Uri.parse('http://relay.test/v2/sessions'),
           headers: const <String, String>{'content-type': 'application/json'},
           body: Stream<List<int>>.fromIterable(<List<int>>[
             utf8.encode('{"padding":"'),
@@ -285,8 +385,8 @@ void main() {
       );
       expect(streamedOversize.statusCode, 413);
       final Response extra =
-          await _jsonRequest(relay, 'POST', '/v1/sessions', <String, Object?>{
-            'protocol': 1,
+          await _jsonRequest(relay, 'POST', '/v2/sessions', <String, Object?>{
+            'protocol': 2,
             'expiresInSeconds': 3600,
             'snapshot': _project('a'),
             'unexpected': true,
@@ -295,7 +395,7 @@ void main() {
       final Response preflight = await relay.handler(
         Request(
           'OPTIONS',
-          Uri.parse('http://relay.test/v1/sessions/x'),
+          Uri.parse('http://relay.test/v2/sessions/x'),
           headers: const <String, String>{'origin': 'https://editor.test'},
         ),
       );
@@ -309,7 +409,7 @@ void main() {
       final Response unsafePreflight = await relay.handler(
         Request(
           'OPTIONS',
-          Uri.parse('http://relay.test/v1/sessions/x'),
+          Uri.parse('http://relay.test/v2/sessions/x'),
           headers: const <String, String>{
             'origin': 'https://editor.test',
             'access-control-request-method': 'TRACE',
@@ -320,7 +420,7 @@ void main() {
       final Response blockedOrigin = await relay.handler(
         Request(
           'GET',
-          Uri.parse('http://relay.test/v1/health'),
+          Uri.parse('http://relay.test/v2/health'),
           headers: const <String, String>{'origin': 'https://attacker.test'},
         ),
       );
@@ -343,7 +443,7 @@ void main() {
     expect(config.maximumRequestBytes, 8 * 1024 * 1024 + 256 * 1024);
     expect(config.maximumResponseBytes, 16 * 1024 * 1024 + 256 * 1024);
     final RelayConfig maximum = RelayConfig.fromEnvironment(<String, String>{
-      'HOLOUI_RELAY_MAX_SNAPSHOT_BYTES': '${32 * 1024 * 1024}',
+      'GLOSS_RELAY_MAX_SNAPSHOT_BYTES': '${32 * 1024 * 1024}',
     });
     expect(maximum.maximumSnapshotBytes, 32 * 1024 * 1024);
     expect(maximum.maximumRequestBytes, 32 * 1024 * 1024 + 256 * 1024);
@@ -352,9 +452,9 @@ void main() {
 
   test('request and response bytes derive from the configured snapshot', () {
     final RelayConfig config = RelayConfig.fromEnvironment(<String, String>{
-      'HOLOUI_RELAY_MAX_SNAPSHOT_BYTES': '${8 * 1024 * 1024}',
-      'HOLOUI_RELAY_MAX_REQUEST_BYTES': '${64 * 1024 * 1024}',
-      'HOLOUI_RELAY_MAX_RESPONSE_BYTES': '${128 * 1024 * 1024}',
+      'GLOSS_RELAY_MAX_SNAPSHOT_BYTES': '${8 * 1024 * 1024}',
+      'GLOSS_RELAY_MAX_REQUEST_BYTES': '${64 * 1024 * 1024}',
+      'GLOSS_RELAY_MAX_RESPONSE_BYTES': '${128 * 1024 * 1024}',
     });
     expect(config.maximumSnapshotBytes, 8 * 1024 * 1024);
     expect(config.maximumRequestBytes, 8 * 1024 * 1024 + 256 * 1024);
@@ -365,13 +465,13 @@ void main() {
     'create token configuration is validated and retained only as a hash',
     () {
       final RelayConfig anonymous = RelayConfig.fromEnvironment(
-        <String, String>{'HOLOUI_RELAY_CREATE_TOKEN': ''},
+        <String, String>{'GLOSS_RELAY_CREATE_TOKEN': ''},
       );
       expect(anonymous.createTokenHashes, isEmpty);
       expect(anonymous.allowAnonymousCreate, isFalse);
 
       final RelayConfig secured = RelayConfig.fromEnvironment(<String, String>{
-        'HOLOUI_RELAY_CREATE_TOKEN': _createToken,
+        'GLOSS_RELAY_CREATE_TOKEN': _createToken,
       });
       expect(secured.createTokenHashes, <String>{tokenHash(_createToken)});
       expect(secured.createTokenHashes, isNot(contains(_createToken)));
@@ -379,7 +479,7 @@ void main() {
       final String minimumToken = List<String>.filled(22, 'm').join();
       final String maximumToken = List<String>.filled(128, 'x').join();
       final RelayConfig multiple = RelayConfig.fromEnvironment(<String, String>{
-        'HOLOUI_RELAY_CREATE_TOKENS':
+        'GLOSS_RELAY_CREATE_TOKENS':
             '$minimumToken, $maximumToken,$minimumToken',
       });
       expect(multiple.createTokenHashes, <String>{
@@ -395,21 +495,21 @@ void main() {
       for (final String invalid in invalidTokens) {
         expect(
           () => RelayConfig.fromEnvironment(<String, String>{
-            'HOLOUI_RELAY_CREATE_TOKEN': invalid,
+            'GLOSS_RELAY_CREATE_TOKEN': invalid,
           }),
           throwsFormatException,
         );
       }
       expect(
         () => RelayConfig.fromEnvironment(<String, String>{
-          'HOLOUI_RELAY_CREATE_TOKEN': _createToken,
-          'HOLOUI_RELAY_CREATE_TOKENS': minimumToken,
+          'GLOSS_RELAY_CREATE_TOKEN': _createToken,
+          'GLOSS_RELAY_CREATE_TOKENS': minimumToken,
         }),
         throwsFormatException,
       );
       expect(
         () => RelayConfig.fromEnvironment(<String, String>{
-          'HOLOUI_RELAY_CREATE_TOKENS': List<String>.generate(
+          'GLOSS_RELAY_CREATE_TOKENS': List<String>.generate(
             RelayConfig.maximumCreateTokens + 1,
             (int index) => 'operator_${index.toString().padLeft(14, '0')}',
           ).join(','),
@@ -418,8 +518,8 @@ void main() {
       );
       expect(
         () => RelayConfig.fromEnvironment(<String, String>{
-          'HOLOUI_RELAY_CREATE_TOKEN': _createToken,
-          'HOLOUI_RELAY_ALLOW_ANONYMOUS_CREATE': 'true',
+          'GLOSS_RELAY_CREATE_TOKEN': _createToken,
+          'GLOSS_RELAY_ALLOW_ANONYMOUS_CREATE': 'true',
         }),
         throwsFormatException,
       );
@@ -431,7 +531,7 @@ void main() {
     () async {
       await relay.close();
       store = MemoryRelayStore();
-      relay = HoloUiSyncRelay(
+      relay = GlossSyncRelay(
         config: RelayConfig(dataDirectory: Directory.systemTemp),
         store: store,
         clock: () => now,
@@ -446,7 +546,7 @@ void main() {
     () async {
       await relay.close();
       store = MemoryRelayStore();
-      relay = HoloUiSyncRelay(
+      relay = GlossSyncRelay(
         config: RelayConfig(
           dataDirectory: Directory.systemTemp,
           createTokenHashes: <String>{tokenHash(_createToken)},
@@ -460,7 +560,7 @@ void main() {
       final Response missing = await relay.handler(
         Request(
           'POST',
-          Uri.parse('http://relay.test/v1/sessions'),
+          Uri.parse('http://relay.test/v2/sessions'),
           headers: const <String, String>{'content-type': 'text/plain'},
           body: 'not json',
         ),
@@ -509,12 +609,12 @@ void main() {
       );
 
       final Response health = await relay.handler(
-        Request('GET', Uri.parse('http://relay.test/v1/health')),
+        Request('GET', Uri.parse('http://relay.test/v2/health')),
       );
       expect(health.statusCode, 200);
       expect(await _responseJson(health), <String, Object?>{
         'status': 'ok',
-        'protocol': 1,
+        'protocol': 2,
       });
     },
   );
@@ -532,7 +632,7 @@ void main() {
     () async {
       await relay.close();
       store = MemoryRelayStore();
-      relay = HoloUiSyncRelay(
+      relay = GlossSyncRelay(
         config: RelayConfig(
           dataDirectory: Directory.systemTemp,
           createTokenHashes: <String>{
@@ -569,7 +669,7 @@ void main() {
       expect(
         (await _delete(
           relay,
-          '/v1/sessions/${first['sessionId']}',
+          '/v2/sessions/${first['sessionId']}',
           first['serverToken']! as String,
         )).statusCode,
         204,
@@ -580,7 +680,7 @@ void main() {
       expect(
         (await _delete(
           relay,
-          '/v1/sessions/${replacement['sessionId']}',
+          '/v2/sessions/${replacement['sessionId']}',
           replacement['serverToken']! as String,
         )).statusCode,
         204,
@@ -606,7 +706,7 @@ void main() {
               (RelaySession session) =>
                   session.createPrincipalHash ==
                   tokenHash(
-                    'holoui-create-principal-v1:${tokenHash(_createToken)}',
+                    'gloss-create-principal-v2:${tokenHash(_createToken)}',
                   ),
             )
             .length,
@@ -620,7 +720,7 @@ void main() {
     store = MemoryRelayStore();
     const int snapshotLimit = 2 * 1024 * 1024;
     const int reserved = snapshotLimit * 2 + RelayConfig.protocolEnvelopeBytes;
-    relay = HoloUiSyncRelay(
+    relay = GlossSyncRelay(
       config: RelayConfig(
         dataDirectory: Directory.systemTemp,
         maximumSnapshotBytes: snapshotLimit,
@@ -670,7 +770,7 @@ void main() {
     expect(
       (await _delete(
         relay,
-        '/v1/sessions/${first['sessionId']}',
+        '/v2/sessions/${first['sessionId']}',
         first['serverToken']! as String,
       )).statusCode,
       204,
@@ -690,7 +790,7 @@ void main() {
     await relay.close();
     store = MemoryRelayStore();
     const int storedLimit = 70 * 1024 * 1024;
-    relay = HoloUiSyncRelay(
+    relay = GlossSyncRelay(
       config: RelayConfig(
         dataDirectory: Directory.systemTemp,
         maximumSnapshotBytes: 32 * 1024 * 1024,
@@ -712,7 +812,7 @@ void main() {
     );
 
     await relay.close();
-    relay = HoloUiSyncRelay(
+    relay = GlossSyncRelay(
       config: RelayConfig(
         dataDirectory: Directory.systemTemp,
         maximumSnapshotBytes: 8 * 1024 * 1024,
@@ -734,7 +834,7 @@ void main() {
   test('raising the snapshot limit cannot enlarge retained sessions', () async {
     await relay.close();
     store = MemoryRelayStore();
-    relay = HoloUiSyncRelay(
+    relay = GlossSyncRelay(
       config: RelayConfig(
         dataDirectory: Directory.systemTemp,
         maximumSnapshotBytes: 1024,
@@ -747,7 +847,7 @@ void main() {
     final Map<String, Object?> created = await _create(relay, _project('a'));
 
     await relay.close();
-    relay = HoloUiSyncRelay(
+    relay = GlossSyncRelay(
       config: RelayConfig(
         dataDirectory: Directory.systemTemp,
         maximumSnapshotBytes: 2048,
@@ -773,7 +873,7 @@ void main() {
   test('create rate limiting ignores forwarding headers by default', () async {
     await relay.close();
     store = MemoryRelayStore();
-    relay = HoloUiSyncRelay(
+    relay = GlossSyncRelay(
       config: RelayConfig(
         dataDirectory: Directory.systemTemp,
         maximumSessionsPerAddressPerMinute: 1,
@@ -804,7 +904,7 @@ void main() {
   test('rate-limit address cardinality is bounded', () async {
     await relay.close();
     store = MemoryRelayStore();
-    relay = HoloUiSyncRelay(
+    relay = GlossSyncRelay(
       config: RelayConfig(
         dataDirectory: Directory.systemTemp,
         maximumRateLimitAddresses: 1,
@@ -875,7 +975,7 @@ void main() {
     );
     expect((accepted['publication']! as Map)['revision'], 2);
     final Map<String, Object?> polled = await _responseJson(
-      await _get(relay, '/v1/sessions/$id/publication?after=1', server),
+      await _get(relay, '/v2/sessions/$id/publication?after=1', server),
     );
     expect((polled['publication']! as Map)['revision'], 2);
   });
@@ -894,7 +994,7 @@ void main() {
     expect(acknowledgement['status'], 'rejected');
     expect(acknowledgement['serverRevision'], isNull);
     final Map<String, Object?> session = await _responseJson(
-      await _get(relay, '/v1/sessions/$id', editor),
+      await _get(relay, '/v2/sessions/$id', editor),
     );
     expect(session['baseRevision'], _revisionA);
     expect(
@@ -940,7 +1040,7 @@ void main() {
       expect(
         (await _get(
           relay,
-          '/v1/sessions/${created['sessionId']}',
+          '/v2/sessions/${created['sessionId']}',
           'not-the-editor-token',
         )).statusCode,
         401,
@@ -957,7 +1057,7 @@ void main() {
       final Response encodedSlash = await relay.handler(
         Request(
           'GET',
-          Uri.parse('http://relay.test/v1/sessions/$id%2Fpublication'),
+          Uri.parse('http://relay.test/v2/sessions/$id%2Fpublication'),
           headers: <String, String>{'authorization': 'Bearer $editor'},
         ),
       );
@@ -965,7 +1065,7 @@ void main() {
       final Response encodedDot = await relay.handler(
         Request(
           'GET',
-          Uri.parse('http://relay.test/v1/sessions/%2e%2e'),
+          Uri.parse('http://relay.test/v2/sessions/%2e%2e'),
           headers: <String, String>{'authorization': 'Bearer $editor'},
         ),
       );
@@ -975,17 +1075,17 @@ void main() {
 }
 
 Future<Response> _createResponse(
-  HoloUiSyncRelay relay,
+  GlossSyncRelay relay,
   Map<String, Object?> project, {
   Map<String, String> headers = const <String, String>{},
-}) => _jsonRequest(relay, 'POST', '/v1/sessions', <String, Object?>{
-  'protocol': 1,
+}) => _jsonRequest(relay, 'POST', '/v2/sessions', <String, Object?>{
+  'protocol': 2,
   'expiresInSeconds': 3600,
   'snapshot': project,
 }, headers: headers);
 
 Future<Response> _authorizedCreateResponse(
-  HoloUiSyncRelay relay,
+  GlossSyncRelay relay,
   Map<String, Object?> project,
   String createToken, {
   Map<String, String> headers = const <String, String>{},
@@ -1007,8 +1107,8 @@ const String _createToken = 'create_token_0123456789abcdef';
 const String _secondCreateToken = 'second_create_token_0123456789';
 
 Map<String, Object?> _project(String value) => <String, Object?>{
-  'format': 'holoui-sync-project',
-  'version': 1,
+  'format': 'gloss-sync-project',
+  'version': 2,
   'kind': 'menu',
   'subjectId': 'main',
   'baseRevision': switch (value) {
@@ -1017,8 +1117,8 @@ Map<String, Object?> _project(String value) => <String, Object?>{
     'd' => _revisionD,
     _ => _revisionServer,
   },
-  'menus': <Object?>[
-    <String, Object?>{'id': 'main', 'json': '{"value":"$value"}'},
+  'documents': <Object?>[
+    <String, Object?>{'kind': 'menu', 'id': 'main', 'json': '{"value":"$value"}'},
   ],
   'images': <Object?>[],
   'constraints': <String, Object?>{
@@ -1032,18 +1132,18 @@ Map<String, Object?> _project(String value) => <String, Object?>{
 };
 
 Future<Map<String, Object?>> _create(
-  HoloUiSyncRelay relay,
+  GlossSyncRelay relay,
   Map<String, Object?> project,
 ) async => _responseJson(
-  await _jsonRequest(relay, 'POST', '/v1/sessions', <String, Object?>{
-    'protocol': 1,
+  await _jsonRequest(relay, 'POST', '/v2/sessions', <String, Object?>{
+    'protocol': 2,
     'expiresInSeconds': 3600,
     'snapshot': project,
   }),
 );
 
 Future<Response> _publish(
-  HoloUiSyncRelay relay,
+  GlossSyncRelay relay,
   String id,
   String token,
   String base,
@@ -1051,13 +1151,13 @@ Future<Response> _publish(
 ) => _jsonRequest(
   relay,
   'PUT',
-  '/v1/sessions/$id/publication',
-  <String, Object?>{'protocol': 1, 'baseRevision': base, 'snapshot': project},
+  '/v2/sessions/$id/publication',
+  <String, Object?>{'protocol': 2, 'baseRevision': base, 'snapshot': project},
   token: token,
 );
 
 Future<Response> _ack(
-  HoloUiSyncRelay relay,
+  GlossSyncRelay relay,
   String id,
   String token,
   int revision,
@@ -1067,7 +1167,7 @@ Future<Response> _ack(
   Map<String, Object?>? snapshot,
 }) {
   final Map<String, Object?> body = <String, Object?>{
-    'protocol': 1,
+    'protocol': 2,
     'status': status,
     'message': message,
   };
@@ -1076,13 +1176,13 @@ Future<Response> _ack(
   return _jsonRequest(
     relay,
     'POST',
-    '/v1/sessions/$id/publication/$revision/ack',
+    '/v2/sessions/$id/publication/$revision/ack',
     body,
     token: token,
   );
 }
 
-Future<Response> _get(HoloUiSyncRelay relay, String path, String token) async =>
+Future<Response> _get(GlossSyncRelay relay, String path, String token) async =>
     await relay.handler(
       Request(
         'GET',
@@ -1092,7 +1192,7 @@ Future<Response> _get(HoloUiSyncRelay relay, String path, String token) async =>
     );
 
 Future<Response> _delete(
-  HoloUiSyncRelay relay,
+  GlossSyncRelay relay,
   String path,
   String token,
 ) async => await relay.handler(
@@ -1104,7 +1204,7 @@ Future<Response> _delete(
 );
 
 Future<Response> _jsonRequest(
-  HoloUiSyncRelay relay,
+  GlossSyncRelay relay,
   String method,
   String path,
   Map<String, Object?> body, {

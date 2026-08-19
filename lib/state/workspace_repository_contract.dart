@@ -123,8 +123,12 @@ final class LocalStorageWorkspaceRepository
 
   @override
   bool clear() {
-    final bool current = StorageService.remove('holoui.workspace.v2');
-    final bool legacy = StorageService.remove('holoui.workspace.v1');
+    final bool current = StorageService.remove('gloss.workspace.v2');
+    final bool legacy = StorageService.remove('gloss.workspace.v1');
+    // Pre-rebrand copies must go too, or the one-time key migration could
+    // resurrect them after a reset.
+    StorageService.remove('holoui.workspace.v2');
+    StorageService.remove('holoui.workspace.v1');
     return current && legacy;
   }
 }

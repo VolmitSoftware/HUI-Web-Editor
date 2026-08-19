@@ -3,9 +3,9 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:holoui_editor/state/editor_store.dart';
-import 'package:holoui_editor/state/workspace.dart';
-import 'package:holoui_editor/state/workspace_repository.dart';
+import 'package:gloss_editor/state/editor_store.dart';
+import 'package:gloss_editor/state/workspace.dart';
+import 'package:gloss_editor/state/workspace_repository.dart';
 import 'package:test/test.dart';
 
 final class _DeferredRepository implements WorkspaceRepository {

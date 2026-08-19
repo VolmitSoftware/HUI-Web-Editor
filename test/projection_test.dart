@@ -4,8 +4,8 @@
 /// are pinned independently so visual quads and click planes cannot drift.
 library;
 
-import 'package:holoui_editor/preview/projection.dart';
-import 'package:holoui_editor/preview/preview_types.dart';
+import 'package:gloss_editor/preview/projection.dart';
+import 'package:gloss_editor/preview/preview_types.dart';
 import 'package:test/test.dart';
 
 void expectVec(PVec3 actual, PVec3 expected, {double epsilon = 1e-9}) {

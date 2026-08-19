@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "anchor": {
+    "world": "world",
+    "position": [0.0, 0.0, 0.0]
+  },
+  "lines": [
+    "&dNew hologram"
+  ]
+}

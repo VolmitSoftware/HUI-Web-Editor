@@ -1,19 +1,15 @@
 /// Outbound links surfaced in the help dialog and the top bar.
-///
-/// Every URL is verified against the live HoloUI project. The docs host uses
-/// `holoui` (no `g`); the old editor linked `hologui` in two places, which is a
-/// dead path.
 library;
 
-const String huiGitHubUrl = 'https://github.com/VolmitSoftware/HoloUi';
+const String huiGitHubUrl = 'https://github.com/VolmitSoftware/Gloss';
 const String huiDiscordUrl =
     'https://discord.com/invite/volmit-software-189665083817852928';
-const String huiDocsUrl = 'https://docs.volmit.com/holoui';
+const String huiDocsUrl = 'https://docs.volmit.com/gloss';
 const String huiSiteUrl = 'https://www.volmit.com';
 
 /// Where the plugin looks for menus, images and container-preview documents,
 /// quoted verbatim in help copy.
-const String huiPluginFolder = 'plugins/holoui/';
+const String huiPluginFolder = 'plugins/Gloss/';
 const String huiMenuFolder = '${huiPluginFolder}menus/';
 const String huiImageFolder = '${huiPluginFolder}images/';
 const String huiPreviewFolder = '${huiPluginFolder}previews/';

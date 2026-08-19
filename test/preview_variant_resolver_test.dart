@@ -6,8 +6,8 @@
 /// file — they must stay green unchanged.
 library;
 
-import 'package:holoui_editor/logic/preview_variant_resolver.dart';
-import 'package:holoui_editor/model/preview_doc.dart';
+import 'package:gloss_editor/logic/preview_variant_resolver.dart';
+import 'package:gloss_editor/model/preview_doc.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -4,9 +4,16 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:arcane_jaspr_shadcn/arcane_jaspr_shadcn.dart';
 
 import 'components/canvas/canvas.dart';
-import 'components/board/board.dart';
+import 'components/panel/panel.dart';
 import 'components/code_editor/code_editor_view.dart';
 import 'components/dialogs/dialogs.dart';
+import 'components/animation/animation_view.dart';
+import 'components/bubble/bubble_view.dart';
+import 'components/emoji/emoji_view.dart';
+import 'components/motd/motd_view.dart';
+import 'components/scoreboard/scoreboard_view.dart';
+import 'components/tablist/tablist_view.dart';
+import 'components/hologram/hologram_view.dart';
 import 'components/inspector/inspector.dart';
 import 'components/panels/panels.dart';
 import 'components/preview/preview_view.dart';
@@ -20,9 +27,10 @@ import 'services/image_library.dart';
 import 'services/page_lifecycle.dart';
 import 'services/workspace_location.dart';
 import 'state/editor_scope.dart';
+import 'doctype/doctype.dart';
 import 'state/editor_store.dart';
 import 'state/workspace.dart';
-import 'state/workspace_board.dart';
+import 'state/workspace_panel.dart';
 import 'state/workspace_bundle.dart';
 import 'state/workspace_route.dart';
 import 'theme/theme_state.dart';
@@ -315,22 +323,22 @@ class _AppState extends State<App> {
     final EditorSyncProject? project = _syncImportSession?.project;
     if (project == null) return false;
     final Set<String> ids = project.menus
-        .map((EditorSyncMenu menu) => menu.id)
+        .map((EditorSyncDocument menu) => menu.id)
         .toSet();
     final bool documentConflict = _store.workspace.docs.any(
       (WorkspaceDoc doc) =>
-          doc.kind == WorkspaceDocKind.menu && ids.contains(doc.runtimeId),
+          doc.kind == DocumentTypes.menu.kind && ids.contains(doc.runtimeId),
     );
     final bool imageConflict = project.images.any((EditorSyncImage incoming) {
       final StoredImage? local = _images.byPath(incoming.path);
       return local != null && local.dataUri != incoming.data;
     });
     final bool boardConflict =
-        project.kind == 'board' &&
+        project.kind == 'panel' &&
         _store.workspace.docs.any(
           (WorkspaceDoc doc) =>
-              doc.kind == WorkspaceDocKind.board &&
-              decodeWorkspaceBoard(doc.json).data.runtimeBoardId ==
+              doc.kind == DocumentTypes.panel.kind &&
+              decodeWorkspacePanel(doc.json).data.runtimeBoardId ==
                   project.subjectId,
         );
     return documentConflict || imageConflict || boardConflict;
@@ -648,7 +656,7 @@ class _AppState extends State<App> {
 
   void _exportConflictWork() {
     downloadText(
-      'holoui-workspace.json',
+      'gloss-workspace.json',
       encodeWorkspaceBundle(_store.workspace, _images),
       mime: 'application/json',
     );
@@ -660,7 +668,7 @@ class _AppState extends State<App> {
         kind: binding.kind,
         subjectId: binding.subjectId,
         baseRevision: binding.baseRevision,
-        menus: const <EditorSyncMenu>[],
+        documents: const <EditorSyncDocument>[],
         images: const <EditorSyncImage>[],
         constraints: binding.constraints,
       );
@@ -669,9 +677,9 @@ class _AppState extends State<App> {
   Widget build(BuildContext context) => ArcaneApp(
     stylesheet: const _OfflineShadcnStylesheet(theme: ShadcnTheme.midnight),
     brightness: _brightness,
-    title: 'HoloUI Editor',
+    title: 'Gloss Editor',
     description:
-        'Visual web editor for creating and previewing HoloUI menu configurations.',
+        'Visual web editor for creating and previewing Gloss menu configurations.',
     // Stays true, and the reason is not the one the flag's name suggests.
     // `ArcaneApp` gates ONE component on it (`support/app.dart:114`) and
     // that component emits `ArcaneScripts.all` — the modern
@@ -744,7 +752,14 @@ class _AppState extends State<App> {
           images: _images,
           catalogs: _catalogs,
         ),
-        board: BoardView(store: _store),
+        panel: PanelView(store: _store),
+        hologram: HologramView(store: _store),
+        animation: AnimationView(store: _store),
+        scoreboard: ScoreboardView(store: _store),
+        motd: MotdView(store: _store),
+        emoji: EmojiView(store: _store),
+        bubble: BubbleView(store: _store),
+        tablist: TablistView(store: _store),
         inspector: InspectorPane(
           store: _store,
           images: _images,

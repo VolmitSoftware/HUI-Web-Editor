@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:holoui_editor/components/code_editor/json_highlight.dart';
+import 'package:gloss_editor/components/code_editor/json_highlight.dart';
 import 'package:test/test.dart';
 
 String _joined(List<JsonToken> tokens) =>

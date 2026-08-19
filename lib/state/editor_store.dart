@@ -18,24 +18,39 @@ import 'dart:math' as math;
 import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 
 import '../config/defaults.dart';
+import '../doctype/doctype.dart';
 import '../logic/canvas_scene.dart';
-import '../logic/preview_doc_validation.dart';
-import '../logic/preview_sim_controls.dart';
+import '../logic/gloss_text.dart';
 import '../logic/validation.dart';
+import '../logic/preview_sim_controls.dart';
 import '../model/model.dart';
 import '../preview/preview_types.dart';
 import '../services/catalogs.dart';
 import '../services/image_library.dart';
 import 'undo_stack.dart';
 import 'workspace.dart';
-import 'workspace_board.dart';
+import 'workspace_panel.dart';
 import 'workspace_bundle.dart';
 
 /// Which surface the centre pane shows. [previewCard] is the pixel-space
 /// container-preview editor and is only ever reachable while a
 /// container-preview document is open; the other four are the menu editor's and
 /// are only reachable while a menu is. See [EditorStore.availableViews].
-enum EditorView { visual, preview, code, split, previewCard, board }
+enum EditorView {
+  visual,
+  preview,
+  code,
+  split,
+  previewCard,
+  panel,
+  hologram,
+  animation,
+  scoreboard,
+  motd,
+  emoji,
+  bubble,
+  tablist,
+}
 
 /// Canvas background treatment. Lives in the store because the settings dialog
 /// persists it and the status bar reflects it.
@@ -43,7 +58,7 @@ enum HuiBackdropMode { none, dark, light, image }
 
 typedef EditorMessageSink = void Function(String message);
 
-class EditorStore extends ChangeNotifier {
+class EditorStore extends ChangeNotifier implements DocumentStateView {
   EditorStore({
     Workspace? workspace,
     HuiCatalogs? catalogs,
@@ -66,13 +81,13 @@ class EditorStore extends ChangeNotifier {
       _loadPreferences();
       _adoptActiveDocument();
     } else {
-      _issues = _validate();
+      _refreshIssues();
     }
   }
 
   /// Preview and canvas flags, persisted separately from the documents so a
   /// corrupt preference blob can never take the menus down with it.
-  static const String preferencesKey = 'holoui.prefs.v1';
+  static const String preferencesKey = 'gloss.prefs.v1';
 
   final Workspace workspace;
 
@@ -86,18 +101,27 @@ class EditorStore extends ChangeNotifier {
   late HuiMenu _menu;
   String _menuId = huiDefaultMenuId;
 
-  /// Which model [_menu]/[_previewDoc] the active document actually holds.
-  /// Every menu-editing method below (`mutate`, `replaceMenu`) requires
-  /// [WorkspaceDocKind.menu] and is a documented no-op otherwise; the
-  /// container-preview document has its own write path ([mutatePreview]) with
-  /// the same undo, autosave and notification mechanics. Menus are entirely
-  /// unaffected: this field starts and stays at [WorkspaceDocKind.menu] unless
-  /// a preview document is explicitly opened, created or imported.
-  WorkspaceDocKind _docKind = WorkspaceDocKind.menu;
+  /// Which model [_menu]/[_previewDoc] the active document actually holds,
+  /// as the adapter that owns the kind's behavior. Every menu-editing method
+  /// below (`mutate`, `replaceMenu`) requires the menu type and is a
+  /// documented no-op otherwise; the container-preview document has its own
+  /// write path ([mutatePreview]) with the same undo, autosave and
+  /// notification mechanics. Menus are entirely unaffected: this field starts
+  /// and stays at [DocumentTypes.menu] unless another document kind is
+  /// explicitly opened, created or imported.
+  DocumentTypeAdapter _docType = DocumentTypes.menu;
 
-  /// The active container-preview document, or null while [docKind] is
-  /// [WorkspaceDocKind.menu]. Always written through [_setPreviewDoc].
+  /// The active container-preview document, or null while another kind is
+  /// open. Always written through [_setPreviewDoc].
   HuiPreviewDoc? _previewDoc;
+
+  /// The active Gloss document (hologram, animation or scoreboard model), or
+  /// null while another kind is open. Always written through [_setGlossDoc].
+  GlossDoc? _glossDoc;
+
+  /// Bumped on every change to [_glossDoc] — the Gloss surfaces' memo key,
+  /// the exact counterpart of [_previewRevision].
+  int _glossRevision = 0;
 
   /// Bumped on every change to [_previewDoc], whether it was swapped wholesale
   /// or edited in place.
@@ -183,28 +207,100 @@ class EditorStore extends ChangeNotifier {
   /// undoable, validated and saved. Meaningless while [isPreviewDoc] is true —
   /// still a valid, harmless [HuiMenu] (never null), just not the active
   /// document.
+  @override
   HuiMenu get menu => _menu;
 
   List<HuiComponent> get components => _menu.components;
 
+  /// The adapter owning the active document kind's behavior.
+  DocumentTypeAdapter get docType => _docType;
+
   /// Which model the active document holds.
-  WorkspaceDocKind get docKind => _docKind;
+  WorkspaceDocKind get docKind => _docType.kind;
 
-  bool get isPreviewDoc => _docKind == WorkspaceDocKind.containerPreview;
+  bool get isMenuDoc => identical(_docType, DocumentTypes.menu);
 
-  bool get isBoardDoc => _docKind == WorkspaceDocKind.board;
+  bool get isPreviewDoc => identical(_docType, DocumentTypes.containerPreview);
 
-  bool get canTransferDocument => !isBoardDoc;
+  bool get isPanelDoc => identical(_docType, DocumentTypes.panel);
 
-  WorkspaceBoardDecodeResult? get activeBoard {
-    if (!isBoardDoc) return null;
+  bool get canTransferDocument => _docType.transferable;
+
+  WorkspacePanelDecodeResult? get activePanel {
+    if (!isPanelDoc) return null;
     final WorkspaceDoc? doc = workspace.active;
-    return doc == null ? null : decodeWorkspaceBoard(doc.json);
+    return doc == null ? null : decodeWorkspacePanel(doc.json);
   }
 
   /// The active container-preview document, or null while [isPreviewDoc] is
   /// false.
+  @override
   HuiPreviewDoc? get previewDoc => _previewDoc;
+
+  /// The active Gloss document, or null while [isGlossDoc] is false.
+  @override
+  GlossDoc? get glossDoc => _glossDoc;
+
+  /// Whether the active document is one of the Gloss kinds.
+  bool get isGlossDoc => _docType is GlossDocumentTypeAdapter;
+
+  /// The active hologram, or null while another kind is open.
+  GlossHologramDoc? get hologramDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossHologramDoc ? doc : null;
+  }
+
+  /// The active animation, or null while another kind is open.
+  GlossAnimationDoc? get animationDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossAnimationDoc ? doc : null;
+  }
+
+  /// The active scoreboard, or null while another kind is open.
+  GlossScoreboardDoc? get scoreboardDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossScoreboardDoc ? doc : null;
+  }
+
+  /// The active MOTD document, or null while another kind is open.
+  GlossMotdDoc? get motdDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossMotdDoc ? doc : null;
+  }
+
+  /// The active emoji document, or null while another kind is open.
+  GlossEmojiDoc? get emojiDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossEmojiDoc ? doc : null;
+  }
+
+  /// The active bubble style, or null while another kind is open.
+  GlossBubbleStyleDoc? get bubbleStyleDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossBubbleStyleDoc ? doc : null;
+  }
+
+  /// The active tablist, or null while another kind is open.
+  GlossTablistDoc? get tablistDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossTablistDoc ? doc : null;
+  }
+
+  /// Monotonic counter over every change to [glossDoc] — an edit, an undo, a
+  /// code commit, an import, a document switch.
+  int get glossRevision => _glossRevision;
+
+  /// The one place [_glossDoc] is assigned, so no swap can be made without
+  /// the revision moving with it.
+  void _setGlossDoc(GlossDoc? doc) {
+    _glossDoc = doc;
+    _glossRevision++;
+  }
+
+  /// The byte-exact source the active menu document was decoded from, kept
+  /// until the first semantic edit. Null for every other kind.
+  @override
+  String? get preservedMenuSource => _preservedMenuSource;
 
   /// Monotonic counter over every change to [previewDoc] — an edit, an undo, a
   /// code commit, an import, a document switch.
@@ -227,7 +323,7 @@ class EditorStore extends ChangeNotifier {
 
   /// Every write path below (`mutate`, `replaceMenu`, `applyCode`) requires
   /// this to keep the guarantee that [_menu] is really the live document.
-  bool get _menuWritable => _docKind == WorkspaceDocKind.menu;
+  bool get _menuWritable => isMenuDoc;
 
   /// Export file base name, always sanitized.
   String get menuId => _menuId;
@@ -237,7 +333,7 @@ class EditorStore extends ChangeNotifier {
   String get exportFileName => '$_menuId.json';
 
   void setMenuId(String value) {
-    if (isBoardDoc) return;
+    if (!_docType.hasRuntimeId) return;
     final String sanitized = sanitizeMenuId(value);
     if (sanitized == _menuId) return;
     _menuId = sanitized;
@@ -265,13 +361,13 @@ class EditorStore extends ChangeNotifier {
     );
     if (conflict) {
       _fail(
-        'A ${target.kind == WorkspaceDocKind.menu ? 'menu' : 'preview'} already uses "$next".',
+        'A ${DocumentTypeRegistry.of(target.kind).noun} already uses "$next".',
       );
       return false;
     }
 
     flushAutosave();
-    if (target.kind != WorkspaceDocKind.menu) {
+    if (target.kind != DocumentTypes.menu.kind) {
       final bool renamed = workspace.updateDocuments(<WorkspaceDocumentUpdate>[
         WorkspaceDocumentUpdate(documentId: target.id, runtimeId: next),
       ]);
@@ -293,71 +389,27 @@ class EditorStore extends ChangeNotifier {
   bool _renameMenuProject(WorkspaceDoc target, String previous, String next) {
     final List<WorkspaceDocumentUpdate> updates = <WorkspaceDocumentUpdate>[];
     int navigationLinks = 0;
-    int boardRoots = 0;
+    int panelRoots = 0;
 
     for (final WorkspaceDoc document in workspace.docs) {
-      if (document.kind == WorkspaceDocKind.menu) {
-        final HuiMenu menu;
-        try {
-          menu = decodeHuiMenu(document.json);
-        } catch (_) {
-          _fail(
-            'Cannot safely rename while menu "${document.runtimeId}" is unreadable.',
-          );
-          return false;
-        }
-        final int changed = _rewriteNavigationTargets(menu, previous, next);
-        navigationLinks += changed;
-        if (changed > 0 || document.id == target.id) {
-          updates.add(
-            WorkspaceDocumentUpdate(
-              documentId: document.id,
-              runtimeId: document.id == target.id ? next : null,
-              json: changed > 0 ? encodeHuiMenu(menu) : null,
-            ),
-          );
-        }
-        continue;
-      }
-      if (document.kind != WorkspaceDocKind.board) continue;
-      final WorkspaceBoardDecodeResult decoded = decodeWorkspaceBoard(
-        document.json,
-      );
-      if (decoded.warning != null) {
-        _fail(
-          'Cannot safely rename while menu flow map "${document.title}" is unreadable.',
-        );
+      final MenuRenameRewrite rewrite = DocumentTypeRegistry.of(document.kind)
+          .rewriteForMenuRename(document, previous, next);
+      final String? failure = rewrite.failure;
+      if (failure != null) {
+        _fail(failure);
         return false;
       }
-      final Map<String, dynamic>? runtimeBoard = decoded.data.runtimeBoard;
-      final bool rootChanged = runtimeBoard?['rootMenuId'] == previous;
-      final List<String> syncMenuIds = <String>[
-        for (final String menuId in decoded.data.syncMenuIds)
-          menuId == previous ? next : menuId,
-      ];
-      final bool syncChanged = !_sameStrings(
-        syncMenuIds,
-        decoded.data.syncMenuIds,
-      );
-      if (!rootChanged && !syncChanged) continue;
-      final Map<String, dynamic>? changedBoard = runtimeBoard == null
-          ? null
-          : <String, dynamic>{
-              ...runtimeBoard,
-              if (rootChanged) 'rootMenuId': next,
-            };
-      updates.add(
-        WorkspaceDocumentUpdate(
-          documentId: document.id,
-          json: encodeWorkspaceBoard(
-            decoded.data.copyWith(
-              runtimeBoard: changedBoard,
-              syncMenuIds: syncMenuIds,
-            ),
+      navigationLinks += rewrite.navigationLinks;
+      panelRoots += rewrite.panelRoots;
+      if (rewrite.json != null || document.id == target.id) {
+        updates.add(
+          WorkspaceDocumentUpdate(
+            documentId: document.id,
+            runtimeId: document.id == target.id ? next : null,
+            json: rewrite.json,
           ),
-        ),
-      );
-      if (rootChanged) boardRoots++;
+        );
+      }
     }
 
     if (!workspace.updateDocuments(updates)) {
@@ -375,45 +427,14 @@ class EditorStore extends ChangeNotifier {
     final List<String> effects = <String>[
       if (navigationLinks > 0)
         '$navigationLinks navigation link${navigationLinks == 1 ? '' : 's'}',
-      if (boardRoots > 0)
-        '$boardRoots world-board root${boardRoots == 1 ? '' : 's'}',
+      if (panelRoots > 0)
+        '$panelRoots world-panel root${panelRoots == 1 ? '' : 's'}',
     ];
     onInfo?.call(
       effects.isEmpty
           ? 'Renamed $previous to $next.'
           : 'Renamed $previous to $next and updated ${effects.join(' and ')}.',
     );
-    return true;
-  }
-
-  int _rewriteNavigationTargets(HuiMenu menu, String previous, String next) {
-    int changed = 0;
-    for (final HuiComponent component in menu.components) {
-      final List<List<HuiAction>> branches = switch (component.data) {
-        final HuiButtonData button => <List<HuiAction>>[button.actions],
-        final HuiToggleData toggle => <List<HuiAction>>[
-          toggle.trueActions,
-          toggle.falseActions,
-        ],
-        HuiDecorationData() => const <List<HuiAction>>[],
-      };
-      for (final List<HuiAction> actions in branches) {
-        for (final HuiAction action in actions) {
-          if (action is HuiNavigateAction && action.target == previous) {
-            action.target = next;
-            changed++;
-          }
-        }
-      }
-    }
-    return changed;
-  }
-
-  bool _sameStrings(List<String> first, List<String> second) {
-    if (first.length != second.length) return false;
-    for (int index = 0; index < first.length; index++) {
-      if (first[index] != second[index]) return false;
-    }
     return true;
   }
 
@@ -527,29 +548,7 @@ class EditorStore extends ChangeNotifier {
 
   /// The views the active document kind actually has a surface for, in the
   /// order the switcher lists them. First entry is that kind's default.
-  ///
-  /// A menu keeps the original four untouched. A container-preview document
-  /// has neither components to lay out nor a 3D scene to fly around, so it
-  /// gets the pixel card surface and the raw JSON.
-  List<EditorView> get availableViews => switch (_docKind) {
-    WorkspaceDocKind.menu => _menuDocViews,
-    WorkspaceDocKind.containerPreview => _previewDocViews,
-    WorkspaceDocKind.board => _boardDocViews,
-  };
-
-  static const List<EditorView> _menuDocViews = <EditorView>[
-    EditorView.visual,
-    EditorView.preview,
-    EditorView.code,
-    EditorView.split,
-  ];
-
-  static const List<EditorView> _previewDocViews = <EditorView>[
-    EditorView.previewCard,
-    EditorView.code,
-  ];
-
-  static const List<EditorView> _boardDocViews = <EditorView>[EditorView.board];
+  List<EditorView> get availableViews => _docType.availableViews;
 
   /// Called after every document adoption: the stored view belongs to whichever
   /// document was open when it was saved, and the new one may not have it.
@@ -766,13 +765,18 @@ class EditorStore extends ChangeNotifier {
   List<CanvasOverlap> get overlapPairs =>
       _scene?.overlaps ?? const <CanvasOverlap>[];
 
+  @override
   HuiCatalogs get catalogs => _catalogs;
 
+  @override
   ImageLibrary? get images => _images;
 
   /// Swaps in the catalogs once they finish loading and re-runs validation.
   void setCatalogs(HuiCatalogs value) {
     _catalogs = value;
+    // The emoji resolver folds the catalog in, so its memo dies with the old
+    // catalog snapshot.
+    _emojiCache = null;
     _refreshIssues();
     _notify();
   }
@@ -782,22 +786,11 @@ class EditorStore extends ChangeNotifier {
     _notify();
   }
 
-  /// Recomputes [_issues] against whichever document is active. Menu-mode
-  /// resolves a fresh [CanvasScene] the way it always has; preview-mode runs
-  /// [validatePreviewDoc] against the live catalogs. Neither branch throws, so
-  /// every call site can run this unconditionally.
+  /// Recomputes [_issues] against whichever document is active. The active
+  /// kind's adapter never throws, so every call site can run this
+  /// unconditionally.
   void _refreshIssues() {
-    if (_menuWritable) {
-      _issues = _validate();
-      return;
-    }
-    final HuiPreviewDoc? doc = _previewDoc;
-    _issues = doc == null
-        ? const <HuiIssue>[]
-        : validatePreviewDoc(
-            doc,
-            knownMaterials: _catalogs.loaded ? _catalogs.materialKeys : null,
-          );
+    _issues = _docType.validate(this);
   }
 
   // --- history --------------------------------------------------------------
@@ -899,6 +892,201 @@ class EditorStore extends ChangeNotifier {
     _pushUndo(label, before, coalesce: false);
     _prunePreviewSelection();
     _afterChange();
+  }
+
+  // --- gloss documents ------------------------------------------------------
+
+  /// The only write path into a Gloss document (hologram, animation or
+  /// scoreboard) — the exact twin of [mutatePreview]: snapshot, run, compare,
+  /// push one undo entry, revalidate, autosave, notify. A no-op while
+  /// [isGlossDoc] is false.
+  void mutateGloss(String label, void Function(GlossDoc doc) fn) {
+    final GlossDoc? doc = _glossDoc;
+    if (doc == null || !isGlossDoc) return;
+    final String before = _snapshot();
+    fn(doc);
+    final String after = _snapshot();
+    if (after == before) {
+      _notify();
+      return;
+    }
+    // Edited in place, so nothing assigned [_glossDoc] and the revision has
+    // to be moved by hand — the counter is what the surfaces memoize on.
+    _glossRevision++;
+    _animationCache = null;
+    _emojiCache = null;
+    _pushUndo(label, before);
+    _afterChange();
+  }
+
+  /// Typed arm of [mutateGloss] for the hologram inspector and surface; a
+  /// no-op while the active document is not a hologram.
+  void mutateHologram(String label, void Function(GlossHologramDoc doc) fn) {
+    final GlossHologramDoc? doc = hologramDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  /// Typed arm of [mutateGloss] for the animation inspector and surface; a
+  /// no-op while the active document is not an animation.
+  void mutateAnimation(String label, void Function(GlossAnimationDoc doc) fn) {
+    final GlossAnimationDoc? doc = animationDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  /// Typed arm of [mutateGloss] for the scoreboard inspector and surface; a
+  /// no-op while the active document is not a scoreboard.
+  void mutateScoreboard(
+    String label,
+    void Function(GlossScoreboardDoc doc) fn,
+  ) {
+    final GlossScoreboardDoc? doc = scoreboardDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  /// Typed arm of [mutateGloss] for the MOTD inspector and surface; a no-op
+  /// while the active document is not a MOTD.
+  void mutateMotd(String label, void Function(GlossMotdDoc doc) fn) {
+    final GlossMotdDoc? doc = motdDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  /// Typed arm of [mutateGloss] for the emoji inspector and surface; a no-op
+  /// while the active document is not an emoji.
+  void mutateEmoji(String label, void Function(GlossEmojiDoc doc) fn) {
+    final GlossEmojiDoc? doc = emojiDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  /// Typed arm of [mutateGloss] for the bubble-style inspector and surface;
+  /// a no-op while the active document is not a bubble style.
+  void mutateBubbleStyle(
+    String label,
+    void Function(GlossBubbleStyleDoc doc) fn,
+  ) {
+    final GlossBubbleStyleDoc? doc = bubbleStyleDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  /// Typed arm of [mutateGloss] for the tablist inspector and surface; a
+  /// no-op while the active document is not a tablist.
+  void mutateTablist(String label, void Function(GlossTablistDoc doc) fn) {
+    final GlossTablistDoc? doc = tablistDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  /// Replaces the whole Gloss document in one undoable step.
+  void replaceGlossDoc(String label, GlossDoc next) {
+    if (!isGlossDoc) return;
+    final String before = _snapshot();
+    _setGlossDoc(next);
+    _animationCache = null;
+    _emojiCache = null;
+    _pushUndo(label, before, coalesce: false);
+    _afterChange();
+  }
+
+  /// Decoded animation documents by runtime id, rebuilt lazily after any
+  /// workspace or Gloss-document change. An unreadable document maps to null
+  /// so it is only decoded once per generation.
+  Map<String, GlossAnimationDoc?>? _animationCache;
+
+  late final GlossAnimationResolver _workspaceAnimations =
+      _StoreAnimationResolver(this);
+
+  /// The workspace's animation documents, resolved for `|animation.<id>|`
+  /// rendering and reference validation. Before the animation kind exists in
+  /// the registry this resolves nothing.
+  @override
+  GlossAnimationResolver get workspaceAnimations => _workspaceAnimations;
+
+  /// Merged emoji entries, rebuilt lazily after any workspace, Gloss-document
+  /// or catalog change: the shipped catalog first, workspace emoji documents
+  /// layered over it by id.
+  List<GlossEmojiEntry>? _emojiCache;
+
+  late final GlossEmojiResolver _workspaceEmoji = _StoreEmojiResolver(this);
+
+  /// The emoji available to text rendering: shipped catalog entries with the
+  /// workspace's emoji documents overriding by id, sorted the way
+  /// `EmojiService.rebuild` sorts.
+  @override
+  GlossEmojiResolver get workspaceEmoji => _workspaceEmoji;
+
+  List<GlossEmojiEntry> _emojiEntries() {
+    final List<GlossEmojiEntry>? cached = _emojiCache;
+    if (cached != null) return cached;
+    final Map<String, GlossEmojiEntry> byId = <String, GlossEmojiEntry>{
+      for (final GlossEmojiEntry entry in _catalogs.emoji) entry.id: entry,
+    };
+    final WorkspaceDocKind? kind = DocumentTypeRegistry.byWireKind(
+      'emoji',
+    )?.kind;
+    if (kind != null) {
+      for (final WorkspaceDoc doc in workspace.docs) {
+        final String? id = doc.runtimeId;
+        if (doc.kind != kind || id == null) continue;
+        // The stored JSON lags the live model by the autosave debounce, so
+        // the open emoji resolves from the model itself below.
+        GlossEmojiDoc? model;
+        if (doc.id == workspace.activeId && _glossDoc is GlossEmojiDoc) {
+          model = _glossDoc! as GlossEmojiDoc;
+        } else {
+          try {
+            model = decodeGlossEmojiDoc(doc.json);
+          } catch (_) {
+            // An unreadable document substitutes nothing, exactly like a
+            // file the plugin's registry failed to parse.
+            continue;
+          }
+        }
+        byId[id] = GlossEmojiEntry(
+          id: id,
+          trigger: model.trigger,
+          glyph: model.resolvedGlyph,
+          enabled: model.enabled,
+          fromWorkspace: true,
+        );
+      }
+    }
+    final List<GlossEmojiEntry> built = byId.values.toList()
+      ..sort((GlossEmojiEntry a, GlossEmojiEntry b) => a.id.compareTo(b.id));
+    _emojiCache = built;
+    return built;
+  }
+
+  Map<String, GlossAnimationDoc?> _animationDocs() {
+    final Map<String, GlossAnimationDoc?>? cached = _animationCache;
+    if (cached != null) return cached;
+    final Map<String, GlossAnimationDoc?> built = <String, GlossAnimationDoc?>{};
+    final WorkspaceDocKind? kind = DocumentTypeRegistry.byWireKind(
+      'animation',
+    )?.kind;
+    if (kind != null) {
+      for (final WorkspaceDoc doc in workspace.docs) {
+        final String? id = doc.runtimeId;
+        if (doc.kind != kind || id == null) continue;
+        // The stored JSON lags the live model by the autosave debounce, so
+        // the open animation resolves from the model itself below.
+        if (doc.id == workspace.activeId && _glossDoc is GlossAnimationDoc) {
+          built[id] = _glossDoc! as GlossAnimationDoc;
+          continue;
+        }
+        try {
+          built[id] = decodeGlossAnimationDoc(doc.json);
+        } catch (_) {
+          built[id] = null;
+        }
+      }
+    }
+    _animationCache = built;
+    return built;
   }
 
   /// Index into `previewDoc.elements` of the selected element, or null.
@@ -1069,7 +1257,7 @@ class EditorStore extends ChangeNotifier {
   }
 
   bool performUndo() {
-    if (isBoardDoc) return false;
+    if (!_docType.undoable) return false;
     _clearCoalesce();
     final String? restored = _undo.undo(_snapshot());
     if (restored == null) return false;
@@ -1077,7 +1265,7 @@ class EditorStore extends ChangeNotifier {
   }
 
   bool performRedo() {
-    if (isBoardDoc) return false;
+    if (!_docType.undoable) return false;
     _clearCoalesce();
     final String? restored = _undo.redo(_snapshot());
     if (restored == null) return false;
@@ -1377,25 +1565,9 @@ class EditorStore extends ChangeNotifier {
   // --- import / export ------------------------------------------------------
 
   /// The active document's JSON, in whichever shape [docKind] says it is.
-  String exportJson() {
-    if (isBoardDoc) {
-      throw StateError('Board metadata is editor-only and cannot be exported.');
-    }
-    return isPreviewDoc
-        ? encodeHuiPreviewDoc(_previewDoc!)
-        : _preservedMenuSource ?? encodeHuiMenu(_menu);
-  }
+  String exportJson() => _docType.exportJson(this);
 
-  String formattedJson() {
-    if (isBoardDoc) {
-      throw StateError(
-        'Board metadata is editor-only and cannot be formatted.',
-      );
-    }
-    return isPreviewDoc
-        ? encodeHuiPreviewDoc(_previewDoc!)
-        : encodeHuiMenu(_menu);
-  }
+  String formattedJson() => _docType.formattedJson(this);
 
   /// Replaces the active document with [content], auto-detecting whether it
   /// is a HoloUI menu or a container-preview document via
@@ -1404,7 +1576,7 @@ class EditorStore extends ChangeNotifier {
   /// through [onInfo]. A parse failure reports through [onError] and leaves
   /// the current document untouched.
   void importJson(String name, String content) {
-    if (isBoardDoc) {
+    if (isPanelDoc) {
       _fail('Open a menu or preview document before importing runtime JSON.');
       return;
     }
@@ -1417,9 +1589,27 @@ class EditorStore extends ChangeNotifier {
     }
     if (looksLikePreviewDoc(decoded)) {
       _importPreviewJson(name, content);
+      return;
+    }
+    final GlossDocumentTypeAdapter? gloss = _glossKindOf(decoded);
+    if (gloss != null) {
+      _importGlossJson(gloss, name, content);
     } else {
       _importMenuJson(name, content);
     }
+  }
+
+  /// The Gloss kind [decoded] looks like, or null when it is a menu or
+  /// nothing recognizable. The kinds' shape checks are mutually exclusive
+  /// (anchor / frames / title+lines under a versioned envelope), so registry
+  /// order does not decide anything here.
+  GlossDocumentTypeAdapter? _glossKindOf(Object? decoded) {
+    for (final DocumentTypeAdapter adapter in DocumentTypeRegistry.all) {
+      if (adapter is GlossDocumentTypeAdapter && adapter.looksLike(decoded)) {
+        return adapter;
+      }
+    }
+    return null;
   }
 
   /// Imports [content] into a new workspace document. This is the safe default
@@ -1444,8 +1634,12 @@ class EditorStore extends ChangeNotifier {
     if (looksLikePreviewDoc(decoded)) {
       return _importPreviewAsNewDocument(requestedId, content);
     }
+    final GlossDocumentTypeAdapter? gloss = _glossKindOf(decoded);
+    if (gloss != null) {
+      return _importGlossAsNewDocument(gloss, requestedId, content);
+    }
     final String runtimeId = _availableRuntimeId(
-      WorkspaceDocKind.menu,
+      DocumentTypes.menu.kind,
       requestedId,
     );
     final bool created = newMenuDocumentFromJson(
@@ -1455,6 +1649,73 @@ class EditorStore extends ChangeNotifier {
     );
     if (created) onInfo?.call('Imported $runtimeId as a new menu.');
     return created;
+  }
+
+  bool _importGlossAsNewDocument(
+    GlossDocumentTypeAdapter type,
+    String requestedId,
+    String content,
+  ) {
+    final GlossDoc parsed;
+    try {
+      parsed = type.decodeDoc(content);
+    } on HuiFormatException catch (error) {
+      _fail('${error.message} (at ${error.path})');
+      return false;
+    } catch (_) {
+      _fail('That file could not be read as a ${type.noun} document.');
+      return false;
+    }
+    final String runtimeId = _availableRuntimeId(type.kind, requestedId);
+    flushAutosave();
+    workspace.create(
+      title: runtimeId,
+      runtimeId: runtimeId,
+      json: content,
+      kind: type.kind,
+    );
+    _adoptDocument(
+      type,
+      AdoptedDocument(editorId: sanitizeMenuId(runtimeId), model: parsed),
+    );
+    onInfo?.call('Imported $runtimeId as a new ${type.noun}.');
+    return true;
+  }
+
+  /// Replaces the active document with Gloss-kind JSON — the Gloss arm of
+  /// [importJson], mirroring [_importPreviewJson].
+  void _importGlossJson(
+    GlossDocumentTypeAdapter type,
+    String name,
+    String content,
+  ) {
+    final GlossDoc parsed;
+    try {
+      parsed = type.decodeDoc(content);
+    } on HuiFormatException catch (e) {
+      _fail('${e.message} (at ${e.path})');
+      return;
+    } catch (_) {
+      _fail('That file could not be read as a ${type.noun} document.');
+      return;
+    }
+    _lastError = null;
+    _codeError = null;
+    _selection.clear();
+    _previewSelection = null;
+    _togglePreviewState.clear();
+    final String importedId = menuIdFromFileName(name);
+    _undo.clear();
+    _clearCoalesce();
+    _docType = type;
+    _setPreviewDoc(null);
+    _setGlossDoc(parsed);
+    _animationCache = null;
+    _emojiCache = null;
+    _menuId = importedId;
+    _coerceView();
+    _afterChange();
+    onInfo?.call('Imported $importedId.');
   }
 
   bool _importPreviewAsNewDocument(String requestedId, String content) {
@@ -1469,7 +1730,7 @@ class EditorStore extends ChangeNotifier {
       return false;
     }
     final String runtimeId = _availableRuntimeId(
-      WorkspaceDocKind.containerPreview,
+      DocumentTypes.containerPreview.kind,
       requestedId,
     );
     flushAutosave();
@@ -1477,7 +1738,7 @@ class EditorStore extends ChangeNotifier {
       title: runtimeId,
       runtimeId: runtimeId,
       json: content,
-      kind: WorkspaceDocKind.containerPreview,
+      kind: DocumentTypes.containerPreview.kind,
     );
     _adoptPreview(parsed, runtimeId);
     onInfo?.call('Imported $runtimeId as a new preview.');
@@ -1527,10 +1788,11 @@ class EditorStore extends ChangeNotifier {
     _previewSelection = null;
     _togglePreviewState.clear();
     final String importedId = menuIdFromFileName(name);
-    final bool wasMenu = _docKind == WorkspaceDocKind.menu;
+    final bool wasMenu = _menuWritable;
     final String before = _snapshot();
-    _docKind = WorkspaceDocKind.menu;
+    _docType = DocumentTypes.menu;
     _setPreviewDoc(null);
+    _setGlossDoc(null);
     _menu = parsed;
     _menuId = importedId;
     _coerceView();
@@ -1567,8 +1829,9 @@ class EditorStore extends ChangeNotifier {
     final String importedId = menuIdFromFileName(name);
     _undo.clear();
     _clearCoalesce();
-    _docKind = WorkspaceDocKind.containerPreview;
+    _docType = DocumentTypes.containerPreview;
     _setPreviewDoc(parsed);
+    _setGlossDoc(null);
     _menuId = importedId;
     _coerceView();
     _afterChange();
@@ -1581,8 +1844,10 @@ class EditorStore extends ChangeNotifier {
   /// Returns false and keeps the text when it does not parse, so the editor can
   /// show the error without losing the user's typing.
   bool applyCode(String text) {
-    if (isBoardDoc) return false;
+    if (isPanelDoc) return false;
     if (isPreviewDoc) return _applyPreviewCode(text);
+    final DocumentTypeAdapter type = _docType;
+    if (type is GlossDocumentTypeAdapter) return _applyGlossCode(type, text);
     final HuiMenu parsed;
     try {
       parsed = decodeHuiMenu(text);
@@ -1660,6 +1925,51 @@ class EditorStore extends ChangeNotifier {
     return true;
   }
 
+  /// The Gloss arm of [applyCode], shared by the hologram, animation and
+  /// scoreboard kinds. Text that is not this kind's shape is REFUSED rather
+  /// than decoded, the same discipline as [_applyPreviewCode]: the decoders
+  /// are lenient by design, so pasting the wrong document in would silently
+  /// hollow the current one out instead of failing.
+  bool _applyGlossCode(GlossDocumentTypeAdapter type, String text) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(text);
+    } catch (_) {
+      _codeError = 'That is not valid JSON.';
+      _notify();
+      return false;
+    }
+    if (!type.looksLike(decoded)) {
+      _codeError = type.codeShapeError;
+      _notify();
+      return false;
+    }
+    final GlossDoc parsed;
+    try {
+      parsed = type.decodeDoc(text);
+    } on HuiFormatException catch (e) {
+      _codeError = '${e.message} (at ${e.path})';
+      _notify();
+      return false;
+    } catch (_) {
+      _codeError = 'That is not a valid ${type.noun} document.';
+      _notify();
+      return false;
+    }
+    _codeError = null;
+    final String before = _snapshot();
+    if (type.encodeDoc(parsed) == before) {
+      _notify();
+      return true;
+    }
+    _setGlossDoc(parsed);
+    _animationCache = null;
+    _emojiCache = null;
+    _pushUndo('code edit', before);
+    _afterChange();
+    return true;
+  }
+
   // --- documents ------------------------------------------------------------
 
   String? get lastError => _lastError;
@@ -1715,7 +2025,7 @@ class EditorStore extends ChangeNotifier {
       title: title,
       runtimeId: id,
       json: encodeHuiMenu(next),
-      kind: WorkspaceDocKind.menu,
+      kind: DocumentTypes.menu.kind,
       folderId: folderId,
     );
     _adoptMenu(next, id);
@@ -1751,7 +2061,7 @@ class EditorStore extends ChangeNotifier {
       title: name,
       runtimeId: id,
       json: json,
-      kind: WorkspaceDocKind.menu,
+      kind: DocumentTypes.menu.kind,
       folderId: folderId,
     );
     _adoptMenu(parsed, id, source: json);
@@ -1802,13 +2112,43 @@ class EditorStore extends ChangeNotifier {
       title: title,
       runtimeId: id,
       json: encodeHuiPreviewDoc(next),
-      kind: WorkspaceDocKind.containerPreview,
+      kind: DocumentTypes.containerPreview.kind,
       folderId: folderId,
     );
     _adoptPreview(next, id);
   }
 
-  void newBoardDocument({
+  /// Starts a new Gloss document (hologram, animation or scoreboard) in its
+  /// own workspace entry — the Gloss counterpart of [newDocument]. [from] is
+  /// a template model; without one the kind's blank applies.
+  void newGlossDocument(
+    GlossDocumentTypeAdapter type, {
+    String? name,
+    GlossDoc? from,
+    String? folderId,
+  }) {
+    if (!workspace.canWrite) {
+      _fail(
+        workspace.lastError ??
+            'The workspace is protected from overwrite until it is recovered.',
+      );
+      return;
+    }
+    flushAutosave();
+    final GlossDoc next = from ?? type.newBlank();
+    final String title = name ?? type.defaultDocumentName;
+    final String id = _availableRuntimeId(type.kind, sanitizeMenuId(title));
+    workspace.create(
+      title: id,
+      runtimeId: id,
+      json: type.encodeDoc(next),
+      kind: type.kind,
+      folderId: folderId,
+    );
+    _adoptDocument(type, AdoptedDocument(editorId: id, model: next));
+  }
+
+  void newPanelDocument({
     String? name,
     String? folderId,
     String? scopeFolderId,
@@ -1824,19 +2164,19 @@ class EditorStore extends ChangeNotifier {
     workspace.create(
       title: name ?? 'Menu flow map',
       runtimeId: null,
-      json: encodeWorkspaceBoard(
-        WorkspaceBoardData(scopeFolderId: scopeFolderId),
+      json: encodeWorkspacePanel(
+        WorkspacePanelData(scopeFolderId: scopeFolderId),
       ),
-      kind: WorkspaceDocKind.board,
+      kind: DocumentTypes.panel.kind,
       folderId: folderId,
     );
     _adoptActiveDocument();
   }
 
-  bool updateBoard(WorkspaceBoardData board) {
-    if (!isBoardDoc) return false;
+  bool updatePanel(WorkspacePanelData panel) {
+    if (!isPanelDoc) return false;
     final bool saved = workspace.updateActive(
-      json: encodeWorkspaceBoard(board),
+      json: encodeWorkspacePanel(panel),
     );
     if (saved) _lastSavedAt = DateTime.now();
     _notify();
@@ -1882,7 +2222,7 @@ class EditorStore extends ChangeNotifier {
       final bool documentSaved = workspace.updateActive(
         runtimeId: _menuId,
         json: _snapshot(),
-        kind: _docKind,
+        kind: docKind,
       );
       if (documentSaved) {
         _documentPersistedInWorkspace = true;
@@ -1947,18 +2287,9 @@ class EditorStore extends ChangeNotifier {
 
   /// The active document, encoded in whichever shape [docKind] says it is.
   /// Menu-editing call sites only ever run while [_menuWritable] is true, so
-  /// they always see the `encodeHuiMenu` branch; the preview branch is what
-  /// lets [flushAutosave] persist a preview document too.
-  String _snapshot() {
-    if (isBoardDoc) {
-      throw StateError(
-        'Board metadata does not use the runtime snapshot path.',
-      );
-    }
-    return isPreviewDoc
-        ? encodeHuiPreviewDoc(_previewDoc!)
-        : _preservedMenuSource ?? encodeHuiMenu(_menu);
-  }
+  /// they always see the menu encoding; the adapter dispatch is what lets
+  /// [flushAutosave] persist a preview document too.
+  String _snapshot() => _docType.snapshot(this);
 
   /// Blocks are authored to two or three decimals; killing float noise keeps
   /// exported JSON and snapshot comparisons stable.
@@ -1968,10 +2299,14 @@ class EditorStore extends ChangeNotifier {
   int _countSeverity(HuiSeverity severity) =>
       _issues.where((HuiIssue issue) => issue.severity == severity).length;
 
-  List<HuiIssue> _validate() {
-    // uiScale 1, always. Overlap is scale-invariant — positions and plane sizes
-    // both scale linearly — so the issue list must not move when someone drags
-    // the canvas toolbar's preview scale.
+  /// Resolves the validation-scale canvas scene for the menu slot and caches
+  /// it for [overlapPairs].
+  ///
+  /// uiScale 1, always. Overlap is scale-invariant — positions and plane sizes
+  /// both scale linearly — so the issue list must not move when someone drags
+  /// the canvas toolbar's preview scale.
+  @override
+  CanvasScene resolveValidationScene() {
     final CanvasScene scene = buildCanvasScene(
       menu: _menu,
       uiScale: 1,
@@ -1983,14 +2318,7 @@ class EditorStore extends ChangeNotifier {
       charCache: _charCache,
     );
     _scene = scene;
-    return validateHuiMenu(
-      _menu,
-      knownImagePaths: _images?.paths,
-      knownMaterials: _catalogs.loaded ? _catalogs.materialKeys : null,
-      knownSounds: _catalogs.loaded ? _catalogs.soundKeys : null,
-      customItems: _catalogs.customItems,
-      overlaps: scene.overlaps,
-    );
+    return scene;
   }
 
   /// Text fields and sliders mutate on every keystroke and every pointer move,
@@ -2038,15 +2366,11 @@ class EditorStore extends ChangeNotifier {
 
   /// Restores one history entry, in whichever shape the active document is.
   /// The stack only ever holds snapshots of the document that is open — every
-  /// kind switch clears it — so the branch here can never read a menu snapshot
-  /// into a preview document or the other way round.
+  /// kind switch clears it — so the adapter here can never read a menu
+  /// snapshot into a preview document or the other way round.
   bool _applySnapshot(String snapshot) {
     try {
-      if (isPreviewDoc) {
-        _setPreviewDoc(decodeHuiPreviewDoc(snapshot));
-      } else {
-        _menu = decodeHuiMenu(snapshot);
-      }
+      _installModel(_docType.decodeSnapshot(snapshot));
     } on HuiFormatException catch (e) {
       _fail('Could not restore that step: ${e.message}');
       return false;
@@ -2056,8 +2380,22 @@ class EditorStore extends ChangeNotifier {
     } else {
       _pruneSelection();
     }
-    _afterChange(menuSource: isPreviewDoc ? null : snapshot);
+    _afterChange(menuSource: _docType.sourcePreserving ? snapshot : null);
     return true;
+  }
+
+  /// Installs a decoded model into the slot its type belongs to, leaving the
+  /// other slots untouched — the kind cannot change across an undo step.
+  void _installModel(Object model) {
+    if (model is HuiMenu) {
+      _menu = model;
+    } else if (model is HuiPreviewDoc) {
+      _setPreviewDoc(model);
+    } else if (model is GlossDoc) {
+      _setGlossDoc(model);
+      _animationCache = null;
+      _emojiCache = null;
+    }
   }
 
   /// Selection is deliberately not part of the undo snapshot: a restored step
@@ -2076,11 +2414,15 @@ class EditorStore extends ChangeNotifier {
     // A re-uploaded path keeps its name but changes its pixels, and the plane
     // character count is memoized by path, so the memo has to go.
     _charCache.clear();
-    if (_menuWritable) _issues = _validate();
+    if (_menuWritable) _refreshIssues();
     _notify();
   }
 
   void _onWorkspaceChanged() {
+    // Any workspace write may have touched an animation document another
+    // surface renders through.
+    _animationCache = null;
+    _emojiCache = null;
     final bool saved = _finishPendingDocumentSave();
     if (saved) {
       _lastSavedAt = DateTime.now();
@@ -2131,96 +2473,44 @@ class EditorStore extends ChangeNotifier {
         title: huiDefaultMenuId,
         runtimeId: huiDefaultMenuId,
         json: encodeHuiMenu(fresh),
-        kind: WorkspaceDocKind.menu,
+        kind: DocumentTypes.menu.kind,
       );
       _adoptMenu(fresh, huiDefaultMenuId);
       return;
     }
-    switch (doc.kind) {
-      case WorkspaceDocKind.menu:
-        _adoptActiveMenuDocument(doc);
-      case WorkspaceDocKind.containerPreview:
-        _adoptActivePreviewDocument(doc);
-      case WorkspaceDocKind.board:
-        _adoptBoard(doc);
-    }
+    final DocumentTypeAdapter type = DocumentTypeRegistry.of(doc.kind);
+    _adoptDocument(type, type.adopt(doc));
   }
 
-  void _adoptActiveMenuDocument(WorkspaceDoc doc) {
-    HuiMenu menu;
-    String? failure;
-    try {
-      menu = decodeHuiMenu(doc.json);
-    } on HuiFormatException catch (e) {
-      menu = createDefaultMenu();
-      failure =
-          'The saved document "${doc.title}" was unreadable '
-          '(${e.message}) and was replaced with a new menu.';
-    } catch (_) {
-      menu = createDefaultMenu();
-      failure =
-          'The saved document "${doc.title}" was unreadable and was '
-          'replaced with a new menu.';
-    }
-    _adoptMenu(menu, doc.runtimeId!, source: failure == null ? doc.json : null);
-    if (failure != null) {
-      _lastError = failure;
-      onError?.call(failure);
-      _notify();
-    }
-  }
-
-  void _adoptActivePreviewDocument(WorkspaceDoc doc) {
-    HuiPreviewDoc previewDoc;
-    String? failure;
-    try {
-      previewDoc = decodeHuiPreviewDoc(doc.json);
-    } on HuiFormatException catch (e) {
-      previewDoc = HuiPreviewDoc();
-      failure =
-          'The saved document "${doc.title}" was unreadable '
-          '(${e.message}) and was replaced with a blank preview document.';
-    } catch (_) {
-      previewDoc = HuiPreviewDoc();
-      failure =
-          'The saved document "${doc.title}" was unreadable and was '
-          'replaced with a blank preview document.';
-    }
-    _adoptPreview(previewDoc, doc.runtimeId!);
-    if (failure != null) {
-      _lastError = failure;
-      onError?.call(failure);
-      _notify();
-    }
-  }
-
-  void _adoptMenu(HuiMenu menu, String menuId, {String? source}) {
-    _docKind = WorkspaceDocKind.menu;
-    _setPreviewDoc(null);
-    _menu = menu;
-    _preservedMenuSource = source;
-    _menuId = sanitizeMenuId(menuId);
-    _selection.clear();
-    _previewSelection = null;
-    _coerceView();
-    _codeError = null;
-    _togglePreviewState.clear();
-    _clearCoalesce();
-    _undo.clear();
-    _documentDirty = false;
-    _documentPersistedInWorkspace = false;
-    _pendingDocumentRevision = null;
-    _pendingWorkspaceRevision = null;
-    _refreshIssues();
-    _notify();
-  }
+  void _adoptMenu(HuiMenu menu, String menuId, {String? source}) =>
+      _adoptDocument(
+        DocumentTypes.menu,
+        AdoptedDocument(
+          editorId: sanitizeMenuId(menuId),
+          model: menu,
+          preservedSource: source,
+        ),
+      );
 
   /// The preview counterpart of [_adoptMenu].
-  void _adoptPreview(HuiPreviewDoc doc, String docId) {
-    _docKind = WorkspaceDocKind.containerPreview;
-    _preservedMenuSource = null;
-    _setPreviewDoc(doc);
-    _menuId = sanitizeMenuId(docId);
+  void _adoptPreview(HuiPreviewDoc doc, String docId) => _adoptDocument(
+    DocumentTypes.containerPreview,
+    AdoptedDocument(editorId: sanitizeMenuId(docId), model: doc),
+  );
+
+  /// Makes [adopted] the open document: installs the model, resets every
+  /// per-document piece of editor state and reports a decode failure after
+  /// the replacement document is fully up.
+  void _adoptDocument(DocumentTypeAdapter type, AdoptedDocument adopted) {
+    _docType = type;
+    _preservedMenuSource = adopted.preservedSource;
+    final Object? model = adopted.model;
+    if (model is HuiMenu) _menu = model;
+    _setPreviewDoc(model is HuiPreviewDoc ? model : null);
+    _setGlossDoc(model is GlossDoc ? model : null);
+    _animationCache = null;
+    _emojiCache = null;
+    _menuId = adopted.editorId;
     _selection.clear();
     _previewSelection = null;
     _coerceView();
@@ -2234,26 +2524,12 @@ class EditorStore extends ChangeNotifier {
     _pendingWorkspaceRevision = null;
     _refreshIssues();
     _notify();
-  }
-
-  void _adoptBoard(WorkspaceDoc doc) {
-    _docKind = WorkspaceDocKind.board;
-    _preservedMenuSource = null;
-    _setPreviewDoc(null);
-    _menuId = doc.title;
-    _selection.clear();
-    _previewSelection = null;
-    _coerceView();
-    _codeError = null;
-    _togglePreviewState.clear();
-    _clearCoalesce();
-    _undo.clear();
-    _documentDirty = false;
-    _documentPersistedInWorkspace = false;
-    _pendingDocumentRevision = null;
-    _pendingWorkspaceRevision = null;
-    _issues = const <HuiIssue>[];
-    _notify();
+    final String? failure = adopted.failure;
+    if (failure != null) {
+      _lastError = failure;
+      onError?.call(failure);
+      _notify();
+    }
   }
 
   void _loadPreferences() {
@@ -2347,6 +2623,9 @@ class EditorStore extends ChangeNotifier {
   }
 
   static EditorView _viewFromName(Object? raw) {
+    // The panel view was persisted as `board` before the Gloss rename; the
+    // old preference must keep selecting the same surface.
+    if (raw == 'board') return EditorView.panel;
     for (final EditorView value in EditorView.values) {
       if (value.name == raw) return value;
     }
@@ -2374,4 +2653,32 @@ class EditorStore extends ChangeNotifier {
     if (!value.isFinite) return fallback;
     return value.clamp(min, max).toDouble();
   }
+}
+
+/// [GlossAnimationResolver] over the store's workspace: animation documents
+/// by runtime id, with the open one served from its live model. A handle,
+/// not a snapshot — every read goes through the store's cache, which any
+/// workspace or Gloss-document change invalidates.
+final class _StoreAnimationResolver implements GlossAnimationResolver {
+  _StoreAnimationResolver(this._store);
+
+  final EditorStore _store;
+
+  @override
+  List<String> get ids {
+    final List<String> out = _store._animationDocs().keys.toList()..sort();
+    return out;
+  }
+
+  @override
+  GlossAnimationDoc? byId(String id) => _store._animationDocs()[id];
+}
+
+final class _StoreEmojiResolver implements GlossEmojiResolver {
+  _StoreEmojiResolver(this._store);
+
+  final EditorStore _store;
+
+  @override
+  List<GlossEmojiEntry> get entries => _store._emojiEntries();
 }

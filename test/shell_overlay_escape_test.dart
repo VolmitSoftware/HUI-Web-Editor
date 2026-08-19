@@ -1,4 +1,4 @@
-import 'package:holoui_editor/components/shell/shell_keys.dart';
+import 'package:gloss_editor/components/shell/shell_keys.dart';
 import 'package:test/test.dart';
 
 void main() {

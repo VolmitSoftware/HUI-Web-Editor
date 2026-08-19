@@ -3,18 +3,20 @@
 /// Applying a template never overwrites the open document: it creates a new
 /// workspace entry, so the menu you were editing is still one click away in the
 /// document switcher.
+///
+/// The tabs, notes and template grids all come from the document-type
+/// registry: a kind offers templates by returning a
+/// [DocumentTypeAdapter.templatesTabLabel] and sections, so a new kind never
+/// touches this dialog.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
-import '../../config/preview_templates.dart';
-import '../../config/templates.dart';
+import '../../doctype/doctype.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'dialog_parts.dart';
-
-enum _TemplateKind { menu, preview }
 
 class TemplatesDialog extends StatefulWidget {
   const TemplatesDialog({
@@ -33,47 +35,60 @@ class TemplatesDialog extends StatefulWidget {
 }
 
 class _TemplatesDialogState extends State<TemplatesDialog> {
-  _TemplateKind _kind = _TemplateKind.menu;
-  String _selectedMenuId = huiTemplates.first.id;
-  String _selectedPreviewId = huiPreviewTemplates.first.id;
+  static final List<DocumentTypeAdapter> _tabs = <DocumentTypeAdapter>[
+    for (final DocumentTypeAdapter type in DocumentTypeRegistry.all)
+      if (type.templatesTabLabel != null) type,
+  ];
+
+  DocumentTypeAdapter _kind = _tabs.first;
+  final Map<DocumentTypeAdapter, String> _selected =
+      <DocumentTypeAdapter, String>{};
 
   @override
   void didUpdateComponent(TemplatesDialog oldComponent) {
     super.didUpdateComponent(oldComponent);
     if (!oldComponent.isOpen && component.isOpen) {
-      // Opening on top of a container-preview document starts the picker on
-      // the matching tab: a menu template would just create an unrelated
-      // second document.
-      _kind = component.store.isPreviewDoc
-          ? _TemplateKind.preview
-          : _TemplateKind.menu;
-      _selectedMenuId = huiTemplates.first.id;
-      _selectedPreviewId = huiPreviewTemplates.first.id;
+      // Opening on top of a document whose kind has templates starts the
+      // picker on the matching tab: another kind's template would just create
+      // an unrelated second document.
+      final DocumentTypeAdapter active = component.store.docType;
+      _kind = active.templatesTabLabel != null ? active : _tabs.first;
+      for (final DocumentTypeAdapter type in _tabs) {
+        _selected[type] = _firstTemplateId(type);
+      }
     }
   }
 
-  void _apply() {
-    switch (_kind) {
-      case _TemplateKind.menu:
-        final HuiTemplate? template = huiTemplateById(_selectedMenuId);
-        if (template == null) return;
-        component.store.createDocumentFromMenu(template.id, template.build());
-        toast.success(
-          'Created "${template.id}" from the ${template.name} template',
-        );
-      case _TemplateKind.preview:
-        final HuiPreviewTemplate? template = huiPreviewTemplateById(
-          _selectedPreviewId,
-        );
-        if (template == null) return;
-        component.store.createDocumentFromPreview(
-          template.id,
-          template.build(),
-        );
-        toast.success(
-          'Created "${template.id}" from the ${template.name} template',
-        );
+  static String _firstTemplateId(DocumentTypeAdapter type) =>
+      type.templateSections.first.templates.first.id;
+
+  DocumentTemplate? _selectedTemplate() {
+    final String? id = _selected[_kind] ?? _firstTemplateIdOrNull(_kind);
+    if (id == null) return null;
+    for (final DocumentTemplateSection section in _kind.templateSections) {
+      for (final DocumentTemplate template in section.templates) {
+        if (template.id == id) return template;
+      }
     }
+    return null;
+  }
+
+  static String? _firstTemplateIdOrNull(DocumentTypeAdapter type) {
+    for (final DocumentTemplateSection section in type.templateSections) {
+      for (final DocumentTemplate template in section.templates) {
+        return template.id;
+      }
+    }
+    return null;
+  }
+
+  void _apply() {
+    final DocumentTemplate? template = _selectedTemplate();
+    if (template == null) return;
+    template.create(component.store);
+    toast.success(
+      'Created "${template.id}" from the ${template.name} template',
+    );
     component.onClose();
   }
 
@@ -105,63 +120,50 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
       styles: const dom.Styles(raw: <String, String>{'margin-bottom': '12px'}),
       <Widget>[
         ArcaneToggleGroup(
-          value: _kind.name,
+          value: _kind.kind.name,
           variant: ToggleGroupVariant.outline,
           size: ToggleGroupSize.sm,
           onChanged: (String? value) {
             if (value == null) return;
-            setState(() => _kind = _TemplateKind.values.byName(value));
+            for (final DocumentTypeAdapter type in _tabs) {
+              if (type.kind.name == value) setState(() => _kind = type);
+            }
           },
-          items: const <ToggleGroupItem>[
-            ToggleGroupItem(value: 'menu', child: Text('Menu')),
-            ToggleGroupItem(value: 'preview', child: Text('Container preview')),
+          items: <ToggleGroupItem>[
+            for (final DocumentTypeAdapter type in _tabs)
+              ToggleGroupItem(
+                value: type.kind.name,
+                child: Text(type.templatesTabLabel!),
+              ),
           ],
         ),
       ],
     ),
-    dom.p(classes: 'hui-dialog-note', <Widget>[
-      Text(
-        _kind == _TemplateKind.menu
-            ? 'Every template is valid as-is: sounds carry a category '
-                  'and a volume, commands carry a source, and no '
-                  'template references an image you do not have. It '
-                  'opens as a new document, so your current one is '
-                  'untouched.'
-            : 'On the server are the thirteen cards the plugin extracts '
-                  'into plugins/holoui/previews/, byte for byte. Starters '
-                  'are teaching documents the jar does not ship. Every '
-                  'template opens as a new document, so your current one '
-                  'is untouched.',
-      ),
-    ]),
-    if (_kind == _TemplateKind.menu)
-      dom.div(
-        classes: 'hui-option-grid',
-        <Widget>[for (final HuiTemplate t in huiTemplates) _menuCard(t)],
-      )
-    else
-      _previewGroups(),
+    dom.p(classes: 'hui-dialog-note', <Widget>[Text(_kind.templatesNote)]),
+    ..._sections(),
   ]);
 
-  Widget _previewGroups() =>
+  List<Widget> _sections() {
+    final List<DocumentTemplateSection> sections = _kind.templateSections;
+    if (sections.length == 1 && sections.single.title == null) {
+      return <Widget>[_grid(sections.single.templates)];
+    }
+    return <Widget>[
       dom.div(classes: 'hui-option-groups', <Widget>[
-        _groupHeading(
-          'On the server',
-          'These are the cards HoloUI already draws in game.',
-        ),
-        dom.div(classes: 'hui-option-grid', <Widget>[
-          for (final HuiPreviewTemplate template in huiPreviewTemplates)
-            if (template.inGame) _previewCard(template),
-        ]),
-        _groupHeading(
-          'Starters',
-          'Teaching documents. They are not extracted by the plugin.',
-        ),
-        dom.div(classes: 'hui-option-grid', <Widget>[
-          for (final HuiPreviewTemplate template in huiPreviewTemplates)
-            if (!template.inGame) _previewCard(template),
-        ]),
-      ]);
+        for (final DocumentTemplateSection section in sections) ...<Widget>[
+          _groupHeading(section.title ?? '', section.note ?? ''),
+          _grid(section.templates),
+        ],
+      ]),
+    ];
+  }
+
+  Widget _grid(List<DocumentTemplate> templates) => dom.div(
+    classes: 'hui-option-grid',
+    <Widget>[
+      for (final DocumentTemplate template in templates) _card(template),
+    ],
+  );
 
   Widget _groupHeading(String title, String note) =>
       dom.div(classes: 'hui-option-group-head', <Widget>[
@@ -169,55 +171,38 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
         dom.p(classes: 'hui-dialog-note', <Widget>[Text(note)]),
       ]);
 
-  Widget _menuCard(HuiTemplate template) => _card(
-    id: template.id,
-    name: template.name,
-    description: template.description,
-    highlights: template.highlights,
-    selected: template.id == _selectedMenuId,
-    onSelect: () => setState(() => _selectedMenuId = template.id),
-  );
-
-  Widget _previewCard(HuiPreviewTemplate template) => _card(
-    id: template.id,
-    name: template.name,
-    description: template.description,
-    highlights: template.highlights,
-    selected: template.id == _selectedPreviewId,
-    onSelect: () => setState(() => _selectedPreviewId = template.id),
-  );
-
-  Widget _card({
-    required String id,
-    required String name,
-    required String description,
-    required List<String> highlights,
-    required bool selected,
-    required void Function() onSelect,
-  }) => dom.button(
-    classes: classNames(<String?>[
-      'hui-option-card',
-      'hui-lift',
-      selected ? 'is-selected' : null,
-    ]),
-    attributes: <String, String>{
-      'type': 'button',
-      'aria-pressed': selected ? 'true' : 'false',
-    },
-    events: <String, void Function(Object)>{
-      'click': (Object _) => onSelect(),
-      'dblclick': (Object _) {
-        onSelect();
-        _apply();
-      },
-    },
-    <Widget>[
-      dom.div(classes: 'hui-option-card-head', <Widget>[
-        dom.strong(<Widget>[Text(name)]),
-        dom.code(classes: 'hui-option-card-id', <Widget>[Text('$id.json')]),
+  Widget _card(DocumentTemplate template) {
+    final bool selected =
+        (_selected[_kind] ?? _firstTemplateIdOrNull(_kind)) == template.id;
+    return dom.button(
+      classes: classNames(<String?>[
+        'hui-option-card',
+        'hui-lift',
+        selected ? 'is-selected' : null,
       ]),
-      dom.p(classes: 'hui-option-card-text', <Widget>[Text(description)]),
-      HuiChips(labels: highlights),
-    ],
-  );
+      attributes: <String, String>{
+        'type': 'button',
+        'aria-pressed': selected ? 'true' : 'false',
+      },
+      events: <String, void Function(Object)>{
+        'click': (Object _) => setState(() => _selected[_kind] = template.id),
+        'dblclick': (Object _) {
+          setState(() => _selected[_kind] = template.id);
+          _apply();
+        },
+      },
+      <Widget>[
+        dom.div(classes: 'hui-option-card-head', <Widget>[
+          dom.strong(<Widget>[Text(template.name)]),
+          dom.code(classes: 'hui-option-card-id', <Widget>[
+            Text('${template.id}.json'),
+          ]),
+        ]),
+        dom.p(classes: 'hui-option-card-text', <Widget>[
+          Text(template.description),
+        ]),
+        HuiChips(labels: template.highlights),
+      ],
+    );
+  }
 }

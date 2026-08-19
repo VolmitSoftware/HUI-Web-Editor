@@ -7,11 +7,11 @@
 /// are (`HuiSettings.java:60-66`, `MenuComponent.java:50-60`).
 library;
 
-import 'package:holoui_editor/logic/canvas_scene.dart';
-import 'package:holoui_editor/logic/hui_geometry.dart';
-import 'package:holoui_editor/logic/multi_select.dart';
-import 'package:holoui_editor/logic/viewport_math.dart';
-import 'package:holoui_editor/model/model.dart';
+import 'package:gloss_editor/logic/canvas_scene.dart';
+import 'package:gloss_editor/logic/hui_geometry.dart';
+import 'package:gloss_editor/logic/multi_select.dart';
+import 'package:gloss_editor/logic/viewport_math.dart';
+import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 /// A text-icon button. Text icons are the cleanest geometry to assert against:

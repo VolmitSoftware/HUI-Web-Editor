@@ -4,14 +4,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:holoui_editor/config/defaults.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/services/editor_sync.dart';
-import 'package:holoui_editor/services/image_library.dart';
-import 'package:holoui_editor/state/workspace.dart';
-import 'package:holoui_editor/state/workspace_board.dart';
-import 'package:holoui_editor/state/workspace_repository_contract.dart';
-import 'package:holoui_editor/state/workspace_route.dart';
+import 'package:gloss_editor/config/defaults.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/services/editor_sync.dart';
+import 'package:gloss_editor/services/image_library.dart';
+import 'package:gloss_editor/state/workspace.dart';
+import 'package:gloss_editor/state/workspace_panel.dart';
+import 'package:gloss_editor/state/workspace_repository_contract.dart';
+import 'package:gloss_editor/state/workspace_route.dart';
 import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
@@ -24,9 +24,9 @@ void main() {
   group('sync route', () {
     test('round-trips HTTPS and localhost HTTP relay capabilities', () {
       for (final Uri relay in <Uri>[
-        Uri.parse('https://sync.holoui.volmitsoftware.com/v1'),
-        Uri.parse('https://relay.example.net/custom/v1'),
-        Uri.parse('http://localhost:8787/v1'),
+        Uri.parse('https://sync.gloss.volmitsoftware.com/v2'),
+        Uri.parse('https://relay.example.net/custom/v2'),
+        Uri.parse('http://localhost:8787/v2'),
       ]) {
         final WorkspaceRouteResult result = parseWorkspaceRoute(
           workspaceSyncHash(
@@ -45,11 +45,11 @@ void main() {
 
     test('rejects insecure, credentialed, ambiguous and malformed relays', () {
       for (final String relay in <String>[
-        'http://relay.example/v1',
-        'https://user:secret@relay.example/v1',
-        'https://relay.example/v1?token=leak',
-        'https://relay.example/v2',
-        'file:///tmp/v1',
+        'http://relay.example/v2',
+        'https://user:secret@relay.example/v2',
+        'https://relay.example/v2?token=leak',
+        'https://relay.example/v1',
+        'file:///tmp/v2',
       ]) {
         final String encoded = base64Url
             .encode(utf8.encode(relay))
@@ -63,7 +63,7 @@ void main() {
         );
       }
       final String validRelay = base64Url
-          .encode(utf8.encode('https://relay.example/v1'))
+          .encode(utf8.encode('https://relay.example/v2'))
           .replaceAll('=', '');
       expect(
         parseWorkspaceRoute(
@@ -95,7 +95,11 @@ void main() {
   });
 
   group('sync project contract', () {
-    test('matches the Java canonical SHA-256 fixture', () {
+    test('pins the canonicalization algorithm via the v1 reference fixture', () {
+      // The v1 fixture file is retained as an ALGORITHM reference only: key
+      // ordering, array order, ECMAScript number spelling, and baseRevision
+      // exclusion are frozen across protocol versions even though the v1
+      // project shape itself is retired.
       final Object? fixture = jsonDecode(
         File('test/fixtures/editor-sync-canonical-v1.json').readAsStringSync(),
       );
@@ -110,7 +114,136 @@ void main() {
         editorSyncCanonicalProjectContent(project),
         root['canonicalWithoutBaseRevision'],
       );
-      expect(EditorSyncProject.decode(project).subjectId, 'fixture');
+    });
+
+    test('rejects protocol-v1 projects with a clear cutover error', () {
+      final Object? fixture = jsonDecode(
+        File('test/fixtures/editor-sync-canonical-v1.json').readAsStringSync(),
+      );
+      final Map<String, dynamic> project = Map<String, dynamic>.from(
+        (fixture! as Map)['project']! as Map,
+      );
+      expect(
+        () => EditorSyncProject.decode(project),
+        throwsA(
+          isA<FormatException>().having(
+            (FormatException error) => error.message,
+            'message',
+            contains('protocol-v1'),
+          ),
+        ),
+      );
+    });
+
+    test('matches the cross-repo v2 canonical SHA-256 fixture', () {
+      // Byte-copied into the Gloss plugin repo: pins the v2 project shape,
+      // the canonical string, the revision, and the open kind vocabulary.
+      final Object? fixture = jsonDecode(
+        File('test/fixtures/editor-sync-canonical-v2.json').readAsStringSync(),
+      );
+      final Map<String, dynamic> root = Map<String, dynamic>.from(
+        fixture! as Map,
+      );
+      final Map<String, dynamic> project = Map<String, dynamic>.from(
+        root['project']! as Map,
+      );
+      expect(project['format'], 'gloss-sync-project');
+      expect(project['version'], 2);
+      expect(editorSyncProjectRevision(project), project['baseRevision']);
+      expect(
+        editorSyncCanonicalProjectContent(project),
+        root['canonicalWithoutBaseRevision'],
+      );
+      // The fixture's panel document text is the canonical encoding of the
+      // raw panelSource map — this pins ECMAScript number canonicalization
+      // (1e20, -0.0, 1e-7, trailing .0) inside document text.
+      final List<dynamic> documents = project['documents']! as List<dynamic>;
+      final Map<String, dynamic> panelDoc = Map<String, dynamic>.from(
+        documents.firstWhere(
+              (Object? document) => (document! as Map)['kind'] == 'panel',
+            )
+            as Map,
+      );
+      expect(editorSyncCanonicalJson(root['panelSource']), panelDoc['json']);
+      // Kinds are OPEN slugs in v2: the hypothetical future 'hologram' kind
+      // is wire-legal today. This editor build has no hologram codec, so
+      // decode must fail with a clear unsupported-kind message — never a
+      // shape error, and never a relay change.
+      expect(
+        documents.map((Object? document) => (document! as Map)['kind']).toSet(),
+        containsAll(<String>['hologram', 'menu', 'panel']),
+      );
+      for (final Object? document in documents) {
+        expect(
+          editorSyncKindPattern.hasMatch(
+            (document! as Map)['kind']! as String,
+          ),
+          isTrue,
+        );
+      }
+      expect(
+        () => EditorSyncProject.decode(project),
+        throwsA(
+          isA<FormatException>().having(
+            (FormatException error) => error.message,
+            'message',
+            contains("cannot sync 'hologram'"),
+          ),
+        ),
+      );
+    });
+
+    test('requires canonical JSON text for panel documents', () {
+      final Map<String, dynamic> project = _projectMap(
+        kind: 'panel',
+        subjectId: 'board',
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
+        ],
+        board: _boardJson('board', 'board/root'),
+        newMenuPrefix: 'board/',
+      );
+      final List<dynamic> documents = project['documents']! as List<dynamic>;
+      final Map<String, dynamic> panelDoc =
+          documents.last as Map<String, dynamic>;
+      panelDoc['json'] = ' ${panelDoc['json']}';
+      project['baseRevision'] = editorSyncProjectRevision(project);
+      expect(() => EditorSyncProject.decode(project), throwsFormatException);
+    });
+
+    test('rejects unsorted document collections', () {
+      final Map<String, dynamic> project = _projectMap(
+        kind: 'panel',
+        subjectId: 'board',
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'board/a', json: _menuJson()),
+          EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
+        ],
+        board: _boardJson('board', 'board/root'),
+        newMenuPrefix: 'board/',
+      );
+      final List<dynamic> documents = project['documents']! as List<dynamic>;
+      documents.add(documents.removeAt(0));
+      project['baseRevision'] = editorSyncProjectRevision(project);
+      expect(() => EditorSyncProject.decode(project), throwsFormatException);
+    });
+
+    test('passes server-owned document revisions through decode', () {
+      final Map<String, dynamic> project = _projectMap(
+        kind: 'panel',
+        subjectId: 'board',
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
+        ],
+        board: _boardJson('board', 'board/root'),
+        newMenuPrefix: 'board/',
+      );
+      final List<dynamic> documents = project['documents']! as List<dynamic>;
+      (documents.last as Map<String, dynamic>)['revision'] = 7;
+      project['baseRevision'] = editorSyncProjectRevision(project);
+      final EditorSyncProject decoded = EditorSyncProject.decode(project);
+      expect(decoded.documents.last.kind, 'panel');
+      expect(decoded.documents.last.revision, 7);
     });
 
     test('counts the per-menu ceiling in UTF-8 bytes', () {
@@ -123,25 +256,24 @@ void main() {
         () => _project(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[EditorSyncMenu(id: 'fixture', json: json)],
+          menus: <EditorSyncDocument>[EditorSyncDocument(kind: 'menu', id: 'fixture', json: json)],
         ),
         throwsFormatException,
       );
     });
 
-    test('rejects board revisions outside the JavaScript safe range', () {
+    test('rejects panel revisions outside the JavaScript safe range', () {
+      final Map<String, dynamic> board = _boardJson('board', 'board/root')
+        ..['revision'] = huiEditorSyncMaxSafeInteger + 1;
       final Map<String, dynamic> project = _projectMap(
-        kind: 'board',
+        kind: 'panel',
         subjectId: 'board',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'board/root', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
         ],
-        board: _boardJson('board', 'board/root'),
+        board: board,
         newMenuPrefix: 'board/',
       );
-      (project['board']! as Map<String, dynamic>)['revision'] =
-          huiEditorSyncMaxSafeInteger + 1;
-      project['baseRevision'] = editorSyncProjectRevision(project);
       expect(() => EditorSyncProject.decode(project), throwsFormatException);
     });
 
@@ -234,8 +366,8 @@ void main() {
       final Map<String, dynamic> oversized = _projectMap(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
         ],
       );
       _setProjectImages(oversized, <String, String>{
@@ -250,8 +382,8 @@ void main() {
       final Map<String, dynamic> excessive = _projectMap(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
         ],
       );
       _setProjectImages(excessive, many);
@@ -276,8 +408,8 @@ void main() {
         final Map<String, dynamic> raw = _projectMap(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'fixture', json: encodeHuiMenu(menu)),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: encodeHuiMenu(menu)),
           ],
         );
         _setProjectImages(raw, <String, String>{path: _gifDataUri(1, 1)});
@@ -298,19 +430,19 @@ void main() {
       final Map<String, dynamic> menuExtra = _projectMap(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
         ],
       );
-      (menuExtra['menus']! as List<dynamic>).single['extra'] = true;
+      (menuExtra['documents']! as List<dynamic>).single['extra'] = true;
       menuExtra['baseRevision'] = editorSyncProjectRevision(menuExtra);
       expect(() => EditorSyncProject.decode(menuExtra), throwsFormatException);
 
       final Map<String, dynamic> imageExtra = _projectMap(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
         ],
       );
       imageExtra['images'] = <Map<String, dynamic>>[
@@ -328,8 +460,8 @@ void main() {
       final Map<String, dynamic> deletes = _projectMap(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
         ],
       );
       (deletes['constraints']! as Map<String, dynamic>)['allowDeletes'] = true;
@@ -337,11 +469,11 @@ void main() {
       expect(() => EditorSyncProject.decode(deletes), throwsFormatException);
 
       final Map<String, dynamic> escaped = _projectMap(
-        kind: 'board',
+        kind: 'panel',
         subjectId: 'board',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'root', json: _menuJson()),
-          EditorSyncMenu(id: 'outside/menu', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'root', json: _menuJson()),
+          EditorSyncDocument(kind: 'menu', id: 'outside/menu', json: _menuJson()),
         ],
         board: _boardJson('board', 'root'),
         newMenuPrefix: 'root/',
@@ -369,11 +501,11 @@ void main() {
             ),
           ];
         final Map<String, dynamic> raw = _projectMap(
-          kind: 'board',
+          kind: 'panel',
           subjectId: 'board',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'board/root', json: encodeHuiMenu(root)),
-            EditorSyncMenu(id: 'board/child', json: _menuJson()),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'board/root', json: encodeHuiMenu(root)),
+            EditorSyncDocument(kind: 'menu', id: 'board/child', json: _menuJson()),
           ],
           board: _boardJson('board', 'board/root'),
           newMenuPrefix: 'board/',
@@ -417,7 +549,7 @@ void main() {
           workspace: workspace,
           images: images,
         );
-        expect(collected.menus.map((EditorSyncMenu menu) => menu.id), <String>[
+        expect(collected.menus.map((EditorSyncDocument menu) => menu.id), <String>[
           'board/child',
           'board/root',
         ]);
@@ -442,8 +574,8 @@ void main() {
         final EditorSyncProject base = _project(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'fixture', json: _menuJson()),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
           ],
         );
         final EditorSyncBinding binding = await importEditorSyncProject(
@@ -484,7 +616,7 @@ void main() {
                 jsonDecode(utf8.decode(await request.finalize().toBytes()))
                     as Map<String, dynamic>;
             return _jsonResponse(202, <String, dynamic>{
-              'protocol': 1,
+              'protocol': 2,
               'publication': <String, dynamic>{
                 'revision': 1,
                 'state': 'pending',
@@ -509,10 +641,10 @@ void main() {
       'board collection adds only new menus reachable from the root graph',
       () async {
         final EditorSyncProject project = _project(
-          kind: 'board',
+          kind: 'panel',
           subjectId: 'board',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'board/root', json: _menuJson()),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
           ],
           board: _boardJson('board', 'board/root'),
           newMenuPrefix: 'board/',
@@ -572,7 +704,7 @@ void main() {
           workspace: workspace,
           images: images,
         );
-        expect(collected.menus.map((EditorSyncMenu menu) => menu.id), <String>[
+        expect(collected.menus.map((EditorSyncDocument menu) => menu.id), <String>[
           'board/child',
           'board/command-child',
           'board/root',
@@ -593,8 +725,8 @@ void main() {
         final EditorSyncProject base = _project(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'fixture', json: _menuJson()),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
           ],
         );
         final EditorSyncBinding imported = await importEditorSyncProject(
@@ -630,8 +762,8 @@ void main() {
         final EditorSyncProject promoted = _project(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'fixture', json: normalized),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: normalized),
           ],
         );
 
@@ -687,10 +819,10 @@ void main() {
           writer: (String key, String value) => true,
         );
         final EditorSyncProject first = _project(
-          kind: 'board',
+          kind: 'panel',
           subjectId: 'welcome',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'welcome/root', json: _menuJson()),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'welcome/root', json: _menuJson()),
           ],
           board: _boardJson('welcome', 'welcome/root'),
           newMenuPrefix: 'welcome/',
@@ -708,10 +840,10 @@ void main() {
         (nextBoard['transform']! as Map<String, dynamic>)['x'] = 12.5;
         final HuiMenu changed = decodeHuiMenu(_menuJson())..followPlayer = true;
         final EditorSyncProject second = _project(
-          kind: 'board',
+          kind: 'panel',
           subjectId: 'welcome',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'welcome/root', json: encodeHuiMenu(changed)),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'welcome/root', json: encodeHuiMenu(changed)),
           ],
           board: nextBoard,
           newMenuPrefix: 'welcome/',
@@ -726,9 +858,9 @@ void main() {
         );
         expect(workspace.folders.length, folders);
         expect(workspace.docs.length, documents);
-        expect(refreshed.boardDocumentId, imported.boardDocumentId);
-        final WorkspaceBoardData board = decodeWorkspaceBoard(
-          workspace.byId(refreshed.boardDocumentId)!.json,
+        expect(refreshed.panelDocumentId, imported.panelDocumentId);
+        final WorkspacePanelData board = decodeWorkspacePanel(
+          workspace.byId(refreshed.panelDocumentId)!.json,
         ).data;
         expect(
           (board.runtimeBoard!['transform']! as Map<String, dynamic>)['x'],
@@ -753,18 +885,18 @@ void main() {
       final WorkspaceDoc boardDoc = workspace.create(
         title: 'Welcome board',
         runtimeId: null,
-        json: encodeWorkspaceBoard(
-          WorkspaceBoardData(
+        json: encodeWorkspacePanel(
+          WorkspacePanelData(
             scopeFolderId: folder.id,
             runtimeBoardId: 'welcome',
             runtimeBoard: runtime,
             syncMenuIds: const <String>['welcome/root'],
           ),
         ),
-        kind: WorkspaceDocKind.board,
+        kind: WorkspaceDocKind.panel,
         folderId: folder.id,
       );
-      final WorkspaceBoardData decoded = decodeWorkspaceBoard(
+      final WorkspacePanelData decoded = decodeWorkspacePanel(
         boardDoc.json,
       ).data;
       expect(decoded.runtimeBoardId, 'welcome');
@@ -775,10 +907,10 @@ void main() {
 
     test('rejects unsupported world-board definition fields', () {
       final Map<String, dynamic> raw = _projectMap(
-        kind: 'board',
+        kind: 'panel',
         subjectId: 'board',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'board/root', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
         ],
         board: _boardJson('board', 'board/root')..['futureField'] = true,
         newMenuPrefix: 'board/',
@@ -792,8 +924,8 @@ void main() {
       final Map<String, dynamic> raw = _projectMap(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
         ],
       );
       raw['images'] = <Map<String, dynamic>>[
@@ -834,10 +966,10 @@ void main() {
         const String png =
             'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==';
         final Map<String, dynamic> raw = _projectMap(
-          kind: 'board',
+          kind: 'panel',
           subjectId: 'board',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'board/root', json: _menuJson()),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
           ],
           board: _boardJson('board', 'board/root'),
           newMenuPrefix: 'board/',
@@ -877,10 +1009,10 @@ void main() {
         writer: (String key, String value) => true,
       );
       final EditorSyncProject first = _project(
-        kind: 'board',
+        kind: 'panel',
         subjectId: 'board',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'board/root', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
         ],
         board: _boardJson('board', 'board/root'),
         newMenuPrefix: 'board/',
@@ -895,13 +1027,13 @@ void main() {
         binding.menuDocumentIds['board/root'],
       )!;
       final String original = menu.json;
-      expect(workspace.delete(binding.boardDocumentId!), isTrue);
+      expect(workspace.delete(binding.panelDocumentId!), isTrue);
       final HuiMenu changed = decodeHuiMenu(original)..followPlayer = true;
       final EditorSyncProject refreshed = _project(
-        kind: 'board',
+        kind: 'panel',
         subjectId: 'board',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'board/root', json: encodeHuiMenu(changed)),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'board/root', json: encodeHuiMenu(changed)),
         ],
         board: _boardJson('board', 'board/root'),
         newMenuPrefix: 'board/',
@@ -917,7 +1049,7 @@ void main() {
         throwsA(isA<EditorSyncConflict>()),
       );
       expect(workspace.byId(menu.id)!.json, original);
-      expect(workspace.byId(binding.boardDocumentId), isNull);
+      expect(workspace.byId(binding.panelDocumentId), isNull);
       expect(images.images, isEmpty);
       workspace.dispose();
       images.dispose();
@@ -931,8 +1063,8 @@ void main() {
         final Map<String, dynamic> raw = _projectMap(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'fixture', json: _menuJson()),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
           ],
         );
         raw['images'] = <Map<String, dynamic>>[
@@ -987,8 +1119,8 @@ void main() {
       final EditorSyncProject project = _project(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: encodeHuiMenu(changed)),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: encodeHuiMenu(changed)),
         ],
       );
 
@@ -1011,11 +1143,11 @@ void main() {
 
     test('refresh refuses to shrink the current bound baseline', () async {
       final Map<String, dynamic> firstRaw = _projectMap(
-        kind: 'board',
+        kind: 'panel',
         subjectId: 'board',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'board/root', json: _menuJson()),
-          EditorSyncMenu(id: 'board/added', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
+          EditorSyncDocument(kind: 'menu', id: 'board/added', json: _menuJson()),
         ],
         board: _boardJson('board', 'board/root'),
         newMenuPrefix: 'board/',
@@ -1037,10 +1169,10 @@ void main() {
         images: images,
       );
       final EditorSyncProject shrunk = _project(
-        kind: 'board',
+        kind: 'panel',
         subjectId: 'board',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'board/root', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
         ],
         board: _boardJson('board', 'board/root'),
         newMenuPrefix: 'board/',
@@ -1137,8 +1269,8 @@ void main() {
         final EditorSyncProject project = _project(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'fixture', json: _menuJson()),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
           ],
         );
         final EditorSyncBinding imported = await importEditorSyncProject(
@@ -1181,7 +1313,7 @@ void main() {
                     as Map<String, dynamic>;
             requestBase = body['baseRevision'] as String;
             return _jsonResponse(202, <String, dynamic>{
-              'protocol': 1,
+              'protocol': 2,
               'publication': <String, dynamic>{
                 'revision': 2,
                 'state': 'pending',
@@ -1241,8 +1373,8 @@ void main() {
       final EditorSyncProject project = _project(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
         ],
       );
       for (final String status in <String>[
@@ -1271,8 +1403,8 @@ void main() {
       final EditorSyncProject project = _project(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
         ],
       );
       final List<Map<String, dynamic>> malformed = <Map<String, dynamic>>[];
@@ -1317,16 +1449,16 @@ void main() {
         final EditorSyncProject base = _project(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'fixture', json: _menuJson()),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
           ],
         );
         final HuiMenu editedMenu = createDefaultMenu()..followPlayer = true;
         final EditorSyncProject submitted = _project(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'fixture', json: encodeHuiMenu(editedMenu)),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: encodeHuiMenu(editedMenu)),
           ],
         );
         final EditorSyncBinding binding = _capability(base.constraints)
@@ -1366,8 +1498,8 @@ void main() {
         final EditorSyncProject other = _project(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncMenu>[
-            EditorSyncMenu(id: 'fixture', json: encodeHuiMenu(otherMenu)),
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: encodeHuiMenu(otherMenu)),
           ],
         );
         final Map<String, dynamic> wrongSnapshot = Map<String, dynamic>.from(
@@ -1406,8 +1538,8 @@ void main() {
       final EditorSyncProject project = _project(
         kind: 'menu',
         subjectId: 'fixture',
-        menus: <EditorSyncMenu>[
-          EditorSyncMenu(id: 'fixture', json: _menuJson()),
+        menus: <EditorSyncDocument>[
+          EditorSyncDocument(kind: 'menu', id: 'fixture', json: _menuJson()),
         ],
       );
       for (final String code in <String>[
@@ -1417,7 +1549,7 @@ void main() {
         final EditorSyncClient client = EditorSyncClient(
           client: _HandlerClient(
             (_) async => _jsonResponse(410, <String, dynamic>{
-              'protocol': 1,
+              'protocol': 2,
               'error': <String, dynamic>{'code': code, 'message': code},
             }),
           ),
@@ -1554,7 +1686,7 @@ void main() {
 EditorSyncProject _project({
   required String kind,
   required String subjectId,
-  required List<EditorSyncMenu> menus,
+  required List<EditorSyncDocument> menus,
   Map<String, dynamic>? board,
   String? newMenuPrefix,
 }) => EditorSyncProject.decode(
@@ -1570,24 +1702,31 @@ EditorSyncProject _project({
 Map<String, dynamic> _projectMap({
   required String kind,
   required String subjectId,
-  required List<EditorSyncMenu> menus,
+  required List<EditorSyncDocument> menus,
   Map<String, dynamic>? board,
   String? newMenuPrefix,
 }) {
-  final List<EditorSyncMenu> orderedMenus = List<EditorSyncMenu>.of(menus)
-    ..sort((EditorSyncMenu a, EditorSyncMenu b) => a.id.compareTo(b.id));
+  final List<EditorSyncDocument> orderedMenus = List<EditorSyncDocument>.of(menus)
+    ..sort((EditorSyncDocument a, EditorSyncDocument b) => a.id.compareTo(b.id));
   final EditorSyncConstraints constraints = _constraints(
     subjectId,
-    orderedMenus.map((EditorSyncMenu menu) => menu.id).toList(),
+    orderedMenus.map((EditorSyncDocument menu) => menu.id).toList(),
     newMenuPrefix: newMenuPrefix,
   );
   final Map<String, dynamic> project = <String, dynamic>{
-    'format': 'holoui-sync-project',
-    'version': 1,
+    'format': 'gloss-sync-project',
+    'version': 2,
     'kind': kind,
     'subjectId': subjectId,
-    'menus': orderedMenus.map((EditorSyncMenu menu) => menu.toJson()).toList(),
-    'board': ?board,
+    'documents': <Map<String, dynamic>>[
+      for (final EditorSyncDocument menu in orderedMenus) menu.toJson(),
+      if (board != null)
+        <String, dynamic>{
+          'kind': 'panel',
+          'id': subjectId,
+          'json': editorSyncCanonicalJson(board),
+        },
+    ],
     'images': <Object>[],
     'constraints': constraints.toJson(),
     'warnings': <Object>[],
@@ -1639,8 +1778,8 @@ EditorSyncBinding _capability(EditorSyncConstraints constraints) =>
     EditorSyncBinding(
       sessionId: _sessionId,
       editorToken: _editorToken,
-      relayEndpoint: Uri.parse('https://relay.example/v1'),
-      kind: constraints.newMenuPrefix == null ? 'menu' : 'board',
+      relayEndpoint: Uri.parse('https://relay.example/v2'),
+      kind: constraints.newMenuPrefix == null ? 'menu' : 'panel',
       subjectId: constraints.subjectId,
       baseRevision: _zeroRevision,
       menuDocumentIds: const <String, String>{},
@@ -1716,7 +1855,7 @@ Workspace _workspaceFailingAtId(int failureCall) {
 
 Map<String, dynamic> _sessionBody(EditorSyncProject project, String status) =>
     <String, dynamic>{
-      'protocol': 1,
+      'protocol': 2,
       'sessionId': _sessionId,
       'status': status,
       'expiresAt': '2026-08-13T00:00:00Z',

@@ -12,9 +12,9 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:holoui_editor/logic/preview_expr.dart';
-import 'package:holoui_editor/logic/preview_sim.dart';
-import 'package:holoui_editor/services/catalogs.dart';
+import 'package:gloss_editor/logic/preview_expr.dart';
+import 'package:gloss_editor/logic/preview_sim.dart';
+import 'package:gloss_editor/services/catalogs.dart';
 import 'package:test/test.dart';
 
 /// The shipped assets, read straight from the bundle the editor serves.

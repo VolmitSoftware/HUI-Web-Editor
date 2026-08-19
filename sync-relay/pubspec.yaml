@@ -1,6 +1,6 @@
-name: holoui_sync_relay
-description: Capability-secured relay for HoloUI server and web-editor sync.
-version: 1.0.0
+name: gloss_sync_relay
+description: Capability-secured relay for Gloss server and web-editor sync.
+version: 2.0.0
 publish_to: none
 
 environment:

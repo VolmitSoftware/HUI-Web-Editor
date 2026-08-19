@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:holoui_editor/logic/preview_expr.dart';
-import 'package:holoui_editor/logic/preview_expr_functions.dart';
+import 'package:gloss_editor/logic/preview_expr.dart';
+import 'package:gloss_editor/logic/preview_expr_functions.dart';
 import 'package:test/test.dart';
 
 /// The cross-repo contract: `HoloUi/src/test/resources/expr_test_vectors.json`

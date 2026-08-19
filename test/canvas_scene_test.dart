@@ -2,12 +2,12 @@
 /// plane is measured, and which component a click resolves to.
 library;
 
-import 'package:holoui_editor/logic/canvas_scene.dart';
-import 'package:holoui_editor/logic/hui_geometry.dart';
-import 'package:holoui_editor/logic/viewport_math.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/services/catalogs.dart';
-import 'package:holoui_editor/services/image_library.dart';
+import 'package:gloss_editor/logic/canvas_scene.dart';
+import 'package:gloss_editor/logic/hui_geometry.dart';
+import 'package:gloss_editor/logic/viewport_math.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/services/catalogs.dart';
+import 'package:gloss_editor/services/image_library.dart';
 import 'package:test/test.dart';
 
 /// [rows] is one string per pixel row: `#` opaque, `.` fully transparent,

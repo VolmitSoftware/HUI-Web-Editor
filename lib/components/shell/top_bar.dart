@@ -357,11 +357,7 @@ class _TopBarState extends State<TopBar> {
     },
   );
 
-  String get _documentNoun => switch (_store.docKind) {
-    WorkspaceDocKind.menu => 'menu',
-    WorkspaceDocKind.containerPreview => 'preview',
-    WorkspaceDocKind.board => 'flow map',
-  };
+  String get _documentNoun => _store.docType.noun;
 
   Widget _brand() => const dom.div(classes: 'hui-brand', <Widget>[
     dom.img(
@@ -370,12 +366,12 @@ class _TopBarState extends State<TopBar> {
       classes: 'hui-brand-mark',
       attributes: <String, String>{'aria-hidden': 'true'},
     ),
-    dom.span(classes: 'hui-brand-word', <Widget>[Text('HoloUI')]),
+    dom.span(classes: 'hui-brand-word', <Widget>[Text('Gloss')]),
   ]);
 
   Widget _documentSwitcher() => dom.div(classes: 'hui-doc', <Widget>[
     dom.span(classes: 'hui-doc-id', <Widget>[
-      if (_store.isBoardDoc)
+      if (_store.isPanelDoc)
         Text(_store.workspace.active?.title ?? 'Menu flow map')
       else
         MutableText(
@@ -386,7 +382,7 @@ class _TopBarState extends State<TopBar> {
         ),
     ]),
     dom.span(classes: 'hui-doc-ext', <Widget>[
-      Text(_store.isBoardDoc ? ' · flow map' : '.json'),
+      Text(_store.isPanelDoc ? ' · flow map' : '.json'),
     ]),
     BarMenu(
       id: 'hui-doc-menu',
@@ -446,7 +442,7 @@ class _TopBarState extends State<TopBar> {
     <Widget>[
       dom.span(<Widget>[
         Text(
-          'Delete ${_store.workspace.active?.title ?? _store.menuId}${_store.isBoardDoc ? '' : '.json'}?',
+          'Delete ${_store.workspace.active?.title ?? _store.menuId}${_store.isPanelDoc ? '' : '.json'}?',
         ),
       ]),
       Button.destructive(

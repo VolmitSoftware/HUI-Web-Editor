@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:holoui_editor/model/model.dart';
+import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 /// Verbatim copy of `HoloUi/src/main/resources/previews/furnace.json` (the

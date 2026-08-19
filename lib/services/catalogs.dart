@@ -10,6 +10,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../logic/gloss_text.dart' show GlossEmojiEntry;
 import '../logic/preview_sim.dart';
 import 'storage_service.dart';
 
@@ -88,7 +89,7 @@ class HuiCustomItemCatalog {
 
   /// `localStorage` slot for a hand-imported catalog, kept as the raw body so a
   /// future parser change re-reads it rather than a stale decoded shape.
-  static const String storageKey = 'holoui.custom-items';
+  static const String storageKey = 'gloss.custom-items';
 
   static final HuiCustomItemCatalog _empty = HuiCustomItemCatalog._(
     items: const <CustomItemEntry>[],
@@ -381,6 +382,7 @@ class HuiCatalogs {
     required this.customItems,
     required this.previewVariables,
     required this.previewLang,
+    required this.emoji,
     required this.loaded,
   }) : _materials = materials,
        _materialIndex = materialIndex,
@@ -405,6 +407,13 @@ class HuiCatalogs {
   /// key as itself, exactly as the plugin does for an unknown id.
   final PreviewLangCatalog previewLang;
 
+  /// The shipped emoji defaults (`tool/extract_emoji_catalog.dart` from
+  /// `Gloss/src/main/resources/defaults/emoji/`), glyphs already resolved.
+  /// Workspace emoji documents override these by id in
+  /// `EditorStore.workspaceEmoji`; empty just means chat text keeps its
+  /// `:tokens:` literal.
+  final List<GlossEmojiEntry> emoji;
+
   /// False when either asset failed to fetch or parse. Consumers should keep
   /// working: validation degrades to "no catalog" (unknown keys are not
   /// flagged) and pickers fall back to free text.
@@ -416,6 +425,7 @@ class HuiCatalogs {
       'assets/catalog/preview-variables.json';
   static const String previewLangAssetUrl =
       'assets/catalog/preview-lang-en.json';
+  static const String emojiAssetUrl = 'assets/catalog/emoji.json';
 
   /// One URL, and the build always ships a file there — an empty catalog when
   /// nobody has exported one. Probing a second, usually-absent URL would print
@@ -435,6 +445,7 @@ class HuiCatalogs {
     String soundsUrl = soundsAssetUrl,
     String previewVariablesUrl = previewVariablesAssetUrl,
     String previewLangUrl = previewLangAssetUrl,
+    String emojiUrl = emojiAssetUrl,
     List<String> customItemUrls = customItemUrlCandidates,
   }) async {
     final List<String?> bodies = await Future.wait<String?>(<Future<String?>>[
@@ -442,11 +453,13 @@ class HuiCatalogs {
       _fetch(soundsUrl),
       _fetch(previewVariablesUrl),
       _fetch(previewLangUrl),
+      _fetch(emojiUrl),
     ]);
     final String? itemsBody = bodies[0];
     final String? soundsBody = bodies[1];
     final String? previewVariablesBody = bodies[2];
     final String? previewLangBody = bodies[3];
+    final String? emojiBody = bodies[4];
     final List<MaterialEntry> materials = itemsBody == null
         ? const <MaterialEntry>[]
         : parseMaterials(itemsBody);
@@ -464,6 +477,9 @@ class HuiCatalogs {
       previewLang: previewLangBody == null
           ? PreviewLangCatalog.empty
           : PreviewLangCatalog.parse(previewLangBody),
+      emoji: emojiBody == null
+          ? const <GlossEmojiEntry>[]
+          : parseEmoji(emojiBody),
       loaded: ok,
     );
   }
@@ -501,6 +517,7 @@ class HuiCatalogs {
     HuiPreviewVariableCatalog previewVariables =
         HuiPreviewVariableCatalog.empty,
     PreviewLangCatalog previewLang = PreviewLangCatalog.empty,
+    List<GlossEmojiEntry> emoji = const <GlossEmojiEntry>[],
   }) {
     final Map<String, MaterialEntry> index = <String, MaterialEntry>{};
     for (final MaterialEntry entry in materials) {
@@ -515,6 +532,7 @@ class HuiCatalogs {
       customItems: customItems ?? HuiCustomItemCatalog.empty(),
       previewVariables: previewVariables,
       previewLang: previewLang,
+      emoji: List<GlossEmojiEntry>.unmodifiable(emoji),
       loaded: loaded,
     );
   }
@@ -530,6 +548,7 @@ class HuiCatalogs {
     customItems: catalog,
     previewVariables: previewVariables,
     previewLang: previewLang,
+    emoji: emoji,
     loaded: loaded,
   );
 
@@ -629,6 +648,38 @@ class HuiCatalogs {
         ),
       );
     }
+    return out;
+  }
+
+  /// Decodes `{"emoji":[{"name":..,"trigger":..,"glyph":..,"enabled":..}]}`
+  /// — the shape `tool/extract_emoji_catalog.dart` writes. Entries without a
+  /// usable name or glyph are dropped; the result is sorted by id the way
+  /// `EmojiService.rebuild` sorts its entries.
+  static List<GlossEmojiEntry> parseEmoji(String body) {
+    final Object? decoded = _decode(body);
+    if (decoded is! Map<String, Object?>) return const <GlossEmojiEntry>[];
+    final Object? raw = decoded['emoji'];
+    if (raw is! List<Object?>) return const <GlossEmojiEntry>[];
+    final List<GlossEmojiEntry> out = <GlossEmojiEntry>[];
+    for (final Object? item in raw) {
+      if (item is! Map<String, Object?>) continue;
+      final Object? name = item['name'];
+      final Object? glyph = item['glyph'];
+      if (name is! String || name.isEmpty || glyph is! String) continue;
+      final Object? trigger = item['trigger'];
+      final Object? enabled = item['enabled'];
+      out.add(
+        GlossEmojiEntry(
+          id: name,
+          trigger: trigger is String ? trigger : '',
+          glyph: glyph,
+          enabled: enabled is! bool || enabled,
+        ),
+      );
+    }
+    out.sort(
+      (GlossEmojiEntry a, GlossEmojiEntry b) => a.id.compareTo(b.id),
+    );
     return out;
   }
 

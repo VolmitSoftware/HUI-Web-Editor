@@ -1,10 +1,10 @@
 library;
 
-import 'package:holoui_editor/logic/workspace_flow_graph.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/state/editor_store.dart';
-import 'package:holoui_editor/state/workspace.dart';
-import 'package:holoui_editor/state/workspace_board.dart';
+import 'package:gloss_editor/logic/workspace_flow_graph.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/state/editor_store.dart';
+import 'package:gloss_editor/state/workspace.dart';
+import 'package:gloss_editor/state/workspace_panel.dart';
 import 'package:test/test.dart';
 
 class _MemoryWorkspace {
@@ -50,41 +50,41 @@ HuiComponent _button(
 );
 
 void main() {
-  group('board metadata', () {
+  group('panel metadata', () {
     test('round-trips scope, mode and stable document positions', () {
       const String folderId = '00000000-0000-4000-8000-000000000001';
       const String documentId = '00000000-0000-4000-8000-000000000002';
-      const WorkspaceBoardData board = WorkspaceBoardData(
-        view: WorkspaceBoardView.list,
+      const WorkspacePanelData panel = WorkspacePanelData(
+        view: WorkspacePanelView.list,
         scopeFolderId: folderId,
-        positions: <String, WorkspaceBoardPoint>{
-          documentId: WorkspaceBoardPoint(12.5, 44),
+        positions: <String, WorkspacePanelPoint>{
+          documentId: WorkspacePanelPoint(12.5, 44),
         },
       );
 
-      final WorkspaceBoardDecodeResult restored = decodeWorkspaceBoard(
-        encodeWorkspaceBoard(board),
+      final WorkspacePanelDecodeResult restored = decodeWorkspacePanel(
+        encodeWorkspacePanel(panel),
       );
       expect(restored.warning, isNull);
-      expect(restored.data.view, WorkspaceBoardView.list);
+      expect(restored.data.view, WorkspacePanelView.list);
       expect(restored.data.scopeFolderId, folderId);
       expect(restored.data.positions[documentId]?.x, 12.5);
       expect(restored.data.positions[documentId]?.y, 44);
     });
 
     test('uses safe defaults for malformed or future metadata', () {
-      final WorkspaceBoardDecodeResult malformed = decodeWorkspaceBoard('[]');
+      final WorkspacePanelDecodeResult malformed = decodeWorkspacePanel('[]');
       expect(malformed.warning, isNotNull);
-      expect(malformed.data.view, WorkspaceBoardView.canvas);
+      expect(malformed.data.view, WorkspacePanelView.canvas);
 
-      final WorkspaceBoardDecodeResult future = decodeWorkspaceBoard(
+      final WorkspacePanelDecodeResult future = decodeWorkspacePanel(
         '{"schemaVersion": 99, "view": "list"}',
       );
       expect(future.warning, contains('unsupported'));
-      expect(future.data.view, WorkspaceBoardView.canvas);
+      expect(future.data.view, WorkspacePanelView.canvas);
     });
 
-    test('board lifecycle never changes runtime menu export bytes', () {
+    test('panel lifecycle never changes runtime menu export bytes', () {
       final _MemoryWorkspace memory = _MemoryWorkspace();
       final Workspace workspace = _workspace(memory);
       final EditorStore store = EditorStore(workspace: workspace);
@@ -92,22 +92,22 @@ void main() {
       final String before = store.exportJson();
       final WorkspaceFolder folder = workspace.createFolder(title: 'Flows');
 
-      store.newBoardDocument(
+      store.newPanelDocument(
         name: 'Main flow',
         folderId: folder.id,
         scopeFolderId: folder.id,
       );
-      expect(store.docKind, WorkspaceDocKind.board);
-      expect(store.view, EditorView.board);
+      expect(store.docKind, WorkspaceDocKind.panel);
+      expect(store.view, EditorView.panel);
       expect(workspace.active?.runtimeId, isNull);
       expect(store.exportJson, throwsStateError);
 
-      final WorkspaceBoardDecodeResult board = store.activeBoard!;
+      final WorkspacePanelDecodeResult panel = store.activePanel!;
       expect(
-        store.updateBoard(board.data.copyWith(view: WorkspaceBoardView.list)),
+        store.updatePanel(panel.data.copyWith(view: WorkspacePanelView.list)),
         isTrue,
       );
-      expect(store.activeBoard?.data.view, WorkspaceBoardView.list);
+      expect(store.activePanel?.data.view, WorkspacePanelView.list);
 
       expect(store.openDocument(menuDocumentId), isTrue);
       expect(store.docKind, WorkspaceDocKind.menu);
@@ -156,7 +156,7 @@ void main() {
 
       final WorkspaceFlowGraph graph = buildWorkspaceFlowGraph(
         workspace,
-        WorkspaceBoardData(scopeFolderId: flow.id),
+        WorkspacePanelData(scopeFolderId: flow.id),
       );
       expect(graph.documents.map((WorkspaceDoc doc) => doc.id), <String>[
         shop.id,
@@ -233,7 +233,7 @@ void main() {
 
       final WorkspaceFlowGraph graph = buildWorkspaceFlowGraph(
         workspace,
-        const WorkspaceBoardData(),
+        const WorkspacePanelData(),
       );
       expect(
         graph.cycleDocumentIds,
@@ -280,7 +280,7 @@ void main() {
 
       final WorkspaceFlowGraph graph = buildWorkspaceFlowGraph(
         workspace,
-        const WorkspaceBoardData(),
+        const WorkspacePanelData(),
       );
       expect(graph.edges, hasLength(3));
       expect(
@@ -333,7 +333,7 @@ void main() {
 
       final WorkspaceFlowGraph graph = buildWorkspaceFlowGraph(
         workspace,
-        const WorkspaceBoardData(),
+        const WorkspacePanelData(),
       );
       final List<WorkspaceFlowEdge> routes = graph.edges
           .where((WorkspaceFlowEdge edge) => edge.componentId == 'multi-route')
@@ -367,13 +367,13 @@ void main() {
       );
       final WorkspaceFlowGraph graph = buildWorkspaceFlowGraph(
         workspace,
-        const WorkspaceBoardData(),
+        const WorkspacePanelData(),
       );
 
-      final Map<String, WorkspaceBoardPoint> first = arrangeWorkspaceFlowGraph(
+      final Map<String, WorkspacePanelPoint> first = arrangeWorkspaceFlowGraph(
         graph,
       );
-      final Map<String, WorkspaceBoardPoint> second = arrangeWorkspaceFlowGraph(
+      final Map<String, WorkspacePanelPoint> second = arrangeWorkspaceFlowGraph(
         graph,
       );
       expect(first.keys, second.keys);
@@ -401,7 +401,7 @@ void main() {
 
       final WorkspaceFlowGraph graph = buildWorkspaceFlowGraph(
         workspace,
-        const WorkspaceBoardData(),
+        const WorkspacePanelData(),
       );
       expect(
         graph.edges

@@ -53,7 +53,14 @@ class EditorShell extends StatefulWidget {
     required this.canvas,
     required this.previewCard,
     required this.preview,
-    required this.board,
+    required this.panel,
+    required this.hologram,
+    required this.animation,
+    required this.scoreboard,
+    required this.motd,
+    required this.emoji,
+    required this.bubble,
+    required this.tablist,
     required this.inspector,
     required this.codeEditor,
     required this.overlays,
@@ -82,7 +89,34 @@ class EditorShell extends StatefulWidget {
 
   /// Mounted only while the preview view is active; see [_CenterArea].
   final Widget preview;
-  final Widget board;
+  final Widget panel;
+
+  /// The hologram stage. Mounted only while the hologram view is active, for
+  /// the same reason as [preview]: it owns a playback clock.
+  final Widget hologram;
+
+  /// The animation player, mounted only while its view is active — it owns a
+  /// playback clock too.
+  final Widget animation;
+
+  /// The scoreboard sidebar mock, mounted only while its view is active — it
+  /// owns a playback clock too.
+  final Widget scoreboard;
+
+  /// The MOTD server-list mock, mounted only while its view is active — it
+  /// owns a playback clock too.
+  final Widget motd;
+
+  /// The emoji glyph grid, mounted only while its view is active.
+  final Widget emoji;
+
+  /// The chat-bubble stack mock, mounted only while its view is active — it
+  /// owns a playback clock too.
+  final Widget bubble;
+
+  /// The tab-screen mock, mounted only while its view is active — it owns a
+  /// playback clock too.
+  final Widget tablist;
   final Widget inspector;
   final Widget codeEditor;
 
@@ -279,7 +313,7 @@ class _EditorShellState extends State<EditorShell> {
   /// Runs once per shell, before the first build, so an unseen tour is up in
   /// the first frame rather than arriving after the user has already started
   /// clicking. The flag is browser state, not document state: it lives in the
-  /// workspace's storage under `holoui.tour.v1` and never touches the store.
+  /// workspace's storage under `gloss.tour.v1` and never touches the store.
   void _maybeStartTour(EditorStore store) {
     if (_tourChecked) return;
     _tourChecked = true;
@@ -426,7 +460,14 @@ class _EditorShellState extends State<EditorShell> {
               canvas: component.canvas,
               previewCard: component.previewCard,
               preview: component.preview,
-              board: component.board,
+              panel: component.panel,
+              hologram: component.hologram,
+              animation: component.animation,
+              scoreboard: component.scoreboard,
+              motd: component.motd,
+              emoji: component.emoji,
+              bubble: component.bubble,
+              tablist: component.tablist,
               codeEditor: component.codeEditor,
             ),
             PaneSplitter(
@@ -564,7 +605,14 @@ class _CenterArea extends StatelessWidget {
     required this.canvas,
     required this.previewCard,
     required this.preview,
-    required this.board,
+    required this.panel,
+    required this.hologram,
+    required this.animation,
+    required this.scoreboard,
+    required this.motd,
+    required this.emoji,
+    required this.bubble,
+    required this.tablist,
     required this.codeEditor,
   });
 
@@ -572,7 +620,14 @@ class _CenterArea extends StatelessWidget {
   final Widget canvas;
   final Widget previewCard;
   final Widget preview;
-  final Widget board;
+  final Widget panel;
+  final Widget hologram;
+  final Widget animation;
+  final Widget scoreboard;
+  final Widget motd;
+  final Widget emoji;
+  final Widget bubble;
+  final Widget tablist;
   final Widget codeEditor;
 
   @override
@@ -586,7 +641,14 @@ class _CenterArea extends StatelessWidget {
         EditorView.code => 'hui-pane hui-center is-code',
         EditorView.split => 'hui-pane hui-center is-split',
         EditorView.previewCard => 'hui-pane hui-center is-preview-card',
-        EditorView.board => 'hui-pane hui-center is-board',
+        EditorView.panel => 'hui-pane hui-center is-board',
+        EditorView.hologram => 'hui-pane hui-center is-hologram',
+        EditorView.animation => 'hui-pane hui-center is-animation',
+        EditorView.scoreboard => 'hui-pane hui-center is-scoreboard',
+        EditorView.motd => 'hui-pane hui-center is-motd',
+        EditorView.emoji => 'hui-pane hui-center is-emoji',
+        EditorView.bubble => 'hui-pane hui-center is-bubble',
+        EditorView.tablist => 'hui-pane hui-center is-tablist',
       },
       <Widget>[
         dom.div(classes: 'hui-split-cell', <Widget>[canvas]),
@@ -595,8 +657,24 @@ class _CenterArea extends StatelessWidget {
         ]),
         if (view == EditorView.preview)
           dom.div(classes: 'hui-split-cell is-preview', <Widget>[preview]),
-        if (view == EditorView.board)
-          dom.div(classes: 'hui-split-cell is-board', <Widget>[board]),
+        if (view == EditorView.panel)
+          dom.div(classes: 'hui-split-cell is-board', <Widget>[panel]),
+        if (view == EditorView.hologram)
+          dom.div(classes: 'hui-split-cell is-hologram', <Widget>[hologram]),
+        if (view == EditorView.animation)
+          dom.div(classes: 'hui-split-cell is-animation', <Widget>[animation]),
+        if (view == EditorView.scoreboard)
+          dom.div(classes: 'hui-split-cell is-scoreboard', <Widget>[
+            scoreboard,
+          ]),
+        if (view == EditorView.motd)
+          dom.div(classes: 'hui-split-cell is-motd', <Widget>[motd]),
+        if (view == EditorView.emoji)
+          dom.div(classes: 'hui-split-cell is-emoji', <Widget>[emoji]),
+        if (view == EditorView.bubble)
+          dom.div(classes: 'hui-split-cell is-bubble', <Widget>[bubble]),
+        if (view == EditorView.tablist)
+          dom.div(classes: 'hui-split-cell is-tablist', <Widget>[tablist]),
         if (view == EditorView.code || view == EditorView.split)
           dom.div(classes: 'hui-split-cell is-code', <Widget>[codeEditor]),
       ],

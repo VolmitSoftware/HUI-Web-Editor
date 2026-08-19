@@ -19,7 +19,7 @@ final class RelayConfig {
     required this.dataDirectory,
     this.bindAddress = '127.0.0.1',
     this.port = 8080,
-    this.apiPrefix = '/v1',
+    this.apiPrefix = '/v2',
     this.maximumSnapshotBytes = defaultMaximumSnapshotBytes,
     int? maximumRequestBytes,
     int? maximumResponseBytes,
@@ -34,7 +34,7 @@ final class RelayConfig {
     this.minimumTtl = const Duration(minutes: 5),
     this.maximumTtl = const Duration(hours: 24),
     Set<String> allowedOrigins = const <String>{
-      'https://holoui.volmitsoftware.com',
+      'https://gloss.volmitsoftware.com',
     },
     this.trustProxy = false,
     Set<String> createTokenHashes = const <String>{},
@@ -113,8 +113,8 @@ final class RelayConfig {
 
   factory RelayConfig.fromEnvironment(Map<String, String> environment) {
     final String rawOrigins =
-        environment['HOLOUI_RELAY_ALLOWED_ORIGINS'] ??
-        'https://holoui.volmitsoftware.com';
+        environment['GLOSS_RELAY_ALLOWED_ORIGINS'] ??
+        'https://gloss.volmitsoftware.com';
     final Set<String> origins = rawOrigins
         .split(',')
         .map((String value) => value.trim())
@@ -122,14 +122,14 @@ final class RelayConfig {
         .toSet();
     final int minimumTtlSeconds = _integer(
       environment,
-      'HOLOUI_RELAY_MIN_TTL_SECONDS',
+      'GLOSS_RELAY_MIN_TTL_SECONDS',
       5 * 60,
       60,
       24 * 60 * 60,
     );
     final int configuredMaximumTtlSeconds = _integer(
       environment,
-      'HOLOUI_RELAY_MAX_TTL_SECONDS',
+      'GLOSS_RELAY_MAX_TTL_SECONDS',
       24 * 60 * 60,
       5 * 60,
       7 * 24 * 60 * 60,
@@ -140,21 +140,21 @@ final class RelayConfig {
         : configuredMaximumTtlSeconds;
     final int maximumSnapshotBytes = _integer(
       environment,
-      'HOLOUI_RELAY_MAX_SNAPSHOT_BYTES',
+      'GLOSS_RELAY_MAX_SNAPSHOT_BYTES',
       defaultMaximumSnapshotBytes,
       1024,
       maximumProtocolProjectBytes,
     );
     final int maximumStoredBytes = _integer(
       environment,
-      'HOLOUI_RELAY_MAX_STORED_BYTES',
+      'GLOSS_RELAY_MAX_STORED_BYTES',
       1024 * 1024 * 1024,
       4 * 1024 * 1024,
       1024 * 1024 * 1024 * 1024,
     );
     final int maximumActiveSessions = _integer(
       environment,
-      'HOLOUI_RELAY_MAX_ACTIVE_SESSIONS',
+      'GLOSS_RELAY_MAX_ACTIVE_SESSIONS',
       10000,
       1,
       1000000,
@@ -169,7 +169,7 @@ final class RelayConfig {
     final Set<String> createTokenHashes = _createTokenHashes(environment);
     final bool allowAnonymousCreate = _strictBoolean(
       environment,
-      'HOLOUI_RELAY_ALLOW_ANONYMOUS_CREATE',
+      'GLOSS_RELAY_ALLOW_ANONYMOUS_CREATE',
       false,
     );
     if (allowAnonymousCreate && createTokenHashes.isNotEmpty) {
@@ -179,52 +179,52 @@ final class RelayConfig {
     }
     return RelayConfig(
       dataDirectory: Directory(
-        environment['HOLOUI_RELAY_DATA'] ?? '/data/holoui-sync',
+        environment['GLOSS_RELAY_DATA'] ?? '/data/gloss-sync',
       ),
-      bindAddress: environment['HOLOUI_RELAY_BIND'] ?? '127.0.0.1',
+      bindAddress: environment['GLOSS_RELAY_BIND'] ?? '127.0.0.1',
       port: _integer(environment, 'PORT', 8080, 1, 65535),
-      apiPrefix: _prefix(environment['HOLOUI_RELAY_API_PREFIX'] ?? '/v1'),
+      apiPrefix: _prefix(environment['GLOSS_RELAY_API_PREFIX'] ?? '/v2'),
       maximumSnapshotBytes: maximumSnapshotBytes,
       maximumStoredBytes: maximumStoredBytes,
       maximumActiveSessions: maximumActiveSessions,
       maximumRetainedSessionsPerPrincipal: _integer(
         environment,
-        'HOLOUI_RELAY_MAX_RETAINED_SESSIONS_PER_PRINCIPAL',
+        'GLOSS_RELAY_MAX_RETAINED_SESSIONS_PER_PRINCIPAL',
         8,
         1,
         1000000,
       ),
       maximumActiveSessionsPerPrincipal: _integer(
         environment,
-        'HOLOUI_RELAY_MAX_ACTIVE_SESSIONS_PER_PRINCIPAL',
+        'GLOSS_RELAY_MAX_ACTIVE_SESSIONS_PER_PRINCIPAL',
         defaultPrincipalActive,
         1,
         maximumActiveSessions,
       ),
       maximumStoredBytesPerPrincipal: _integer(
         environment,
-        'HOLOUI_RELAY_MAX_STORED_BYTES_PER_PRINCIPAL',
+        'GLOSS_RELAY_MAX_STORED_BYTES_PER_PRINCIPAL',
         defaultPrincipalStorage,
         1024 * 1024,
         maximumStoredBytes,
       ),
       maximumSessionsPerAddressPerMinute: _integer(
         environment,
-        'HOLOUI_RELAY_CREATE_RATE',
+        'GLOSS_RELAY_CREATE_RATE',
         30,
         1,
         10000,
       ),
       maximumSessionsPerPrincipalPerMinute: _integer(
         environment,
-        'HOLOUI_RELAY_CREATE_RATE_PER_PRINCIPAL',
+        'GLOSS_RELAY_CREATE_RATE_PER_PRINCIPAL',
         10,
         1,
         10000,
       ),
       maximumRateLimitAddresses: _integer(
         environment,
-        'HOLOUI_RELAY_MAX_RATE_ADDRESSES',
+        'GLOSS_RELAY_MAX_RATE_ADDRESSES',
         10000,
         128,
         1000000,
@@ -233,7 +233,7 @@ final class RelayConfig {
       maximumTtl: Duration(seconds: maximumTtlSeconds),
       allowedOrigins: origins,
       trustProxy:
-          environment['HOLOUI_RELAY_TRUST_PROXY']?.toLowerCase() == 'true',
+          environment['GLOSS_RELAY_TRUST_PROXY']?.toLowerCase() == 'true',
       createTokenHashes: createTokenHashes,
       allowAnonymousCreate: allowAnonymousCreate,
     );
@@ -262,17 +262,17 @@ final class RelayConfig {
     if (!RegExp(
       r'^/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+$',
     ).hasMatch(normalized)) {
-      return '/v1';
+      return '/v2';
     }
     return normalized;
   }
 
   static Set<String> _createTokenHashes(Map<String, String> environment) {
-    final String singular = environment['HOLOUI_RELAY_CREATE_TOKEN'] ?? '';
-    final String plural = environment['HOLOUI_RELAY_CREATE_TOKENS'] ?? '';
+    final String singular = environment['GLOSS_RELAY_CREATE_TOKEN'] ?? '';
+    final String plural = environment['GLOSS_RELAY_CREATE_TOKENS'] ?? '';
     if (singular.isNotEmpty && plural.isNotEmpty) {
       throw const FormatException(
-        'HOLOUI_RELAY_CREATE_TOKEN and HOLOUI_RELAY_CREATE_TOKENS are mutually exclusive',
+        'GLOSS_RELAY_CREATE_TOKEN and GLOSS_RELAY_CREATE_TOKENS are mutually exclusive',
       );
     }
     final String raw = plural.isNotEmpty ? plural : singular;

@@ -8,11 +8,11 @@ library;
 
 import 'dart:convert';
 
-import 'package:holoui_editor/logic/canvas_scene.dart';
-import 'package:holoui_editor/logic/icon_content.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/services/image_library.dart';
-import 'package:holoui_editor/services/storage_service.dart';
+import 'package:gloss_editor/logic/canvas_scene.dart';
+import 'package:gloss_editor/logic/icon_content.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/services/image_library.dart';
+import 'package:gloss_editor/services/storage_service.dart';
 import 'package:test/test.dart';
 
 CanvasScene _scene(

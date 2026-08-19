@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "holoui-editor",
+    "site": "gloss-editor",
     "public": "build/jaspr",
     "ignore": [
       "firebase.json",

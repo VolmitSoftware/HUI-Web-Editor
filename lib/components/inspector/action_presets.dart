@@ -7,6 +7,7 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
+import '../../doctype/doctype.dart';
 import '../../model/model.dart';
 import '../../state/editor_scope.dart';
 import '../../state/workspace.dart';
@@ -30,7 +31,7 @@ class ActionPresetsRow extends StatelessWidget {
   List<HuiNavigateAction> _workspaceMenuPresets(BuildContext context) {
     final Workspace workspace = EditorScope.of(context).workspace;
     final List<WorkspaceDoc> menus = workspace.docs
-        .where((WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.menu)
+        .where((WorkspaceDoc doc) => doc.kind == DocumentTypes.menu.kind)
         .toList();
     menus.sort((WorkspaceDoc left, WorkspaceDoc right) {
       final int recent = right.updatedAt.compareTo(left.updatedAt);
@@ -75,7 +76,7 @@ class ActionPresetsRow extends StatelessWidget {
               icon: ArcaneIcon.externalLink(size: IconSize.sm),
               hint:
                   'Pushes $menuId onto this viewer\'s native page stack. The '
-                  'viewer needs holoui.open.$menuId.',
+                  'viewer needs gloss.open.$menuId.',
               build: () => HuiNavigateAction(menuId, 'push'),
             ),
             for (final HuiNavigateAction navigation in workspacePresets)
@@ -107,10 +108,10 @@ class ActionPresetsRow extends StatelessWidget {
               label: 'Move here',
               icon: ArcaneIcon.move(size: IconSize.sm),
               hint:
-                  'holoui move, as the player. Reanchors the open menu from '
-                  'their current position using its configured offset. The '
-                  'player needs holoui.command and holoui.command.move.',
-              build: () => HuiCommandAction('holoui move', 'player'),
+                  'gloss menu move, as the player. Reanchors the open menu '
+                  'from their current position using its configured offset. '
+                  'The player needs gloss.menus.move.',
+              build: () => HuiCommandAction('gloss menu move', 'player'),
             ),
             _preset(
               label: 'Tell player',

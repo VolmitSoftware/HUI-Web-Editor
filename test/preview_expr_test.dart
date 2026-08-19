@@ -1,5 +1,5 @@
-import 'package:holoui_editor/logic/preview_expr.dart';
-import 'package:holoui_editor/logic/preview_expr_functions.dart';
+import 'package:gloss_editor/logic/preview_expr.dart';
+import 'package:gloss_editor/logic/preview_expr_functions.dart';
 import 'package:test/test.dart';
 
 /// Targeted cases for what `expr_test_vectors.json` leaves thin: parse-error

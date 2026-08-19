@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:holoui_editor/config/editing.dart';
+import 'package:gloss_editor/config/editing.dart';
 import 'package:test/test.dart';
 
 /// Matches a top-level `const double huiX = ...;` declaration.

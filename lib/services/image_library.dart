@@ -507,7 +507,7 @@ class ImageLibrary extends ChangeNotifier {
     }
   }
 
-  static const String storageKey = 'holoui.images.v1';
+  static const String storageKey = 'gloss.images.v1';
 
   final List<StoredImage> _images = <StoredImage>[];
   late final List<StoredImage> _imagesView = UnmodifiableListView<StoredImage>(

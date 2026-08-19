@@ -2,10 +2,10 @@
 /// check for a container-preview document.
 library;
 
-import 'package:holoui_editor/logic/preview_doc_validation.dart';
-import 'package:holoui_editor/logic/preview_expr.dart';
-import 'package:holoui_editor/logic/validation.dart' show HuiIssue, HuiSeverity;
-import 'package:holoui_editor/model/preview_doc.dart';
+import 'package:gloss_editor/logic/preview_doc_validation.dart';
+import 'package:gloss_editor/logic/preview_expr.dart';
+import 'package:gloss_editor/logic/validation.dart' show HuiIssue, HuiSeverity;
+import 'package:gloss_editor/model/preview_doc.dart';
 import 'package:test/test.dart';
 
 void main() {

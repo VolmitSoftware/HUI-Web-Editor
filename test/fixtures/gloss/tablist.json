@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "useHeaderFooter": true,
+  "header": "&d&lGloss",
+  "footer": "&7VolmitSoftware.com",
+  "groupListNames": true,
+  "nameFormats": {
+    "default": "$player",
+    "_op": "&6$player"
+  }
+}

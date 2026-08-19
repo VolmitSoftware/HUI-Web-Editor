@@ -1,5 +1,5 @@
-import 'package:holoui_editor/components/inspector/inspector_session.dart';
-import 'package:holoui_editor/model/model.dart';
+import 'package:gloss_editor/components/inspector/inspector_session.dart';
+import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 void main() {

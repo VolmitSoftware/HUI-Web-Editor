@@ -5,7 +5,7 @@ import 'package:web/web.dart' as web;
 typedef EditorSyncBindingWriter =
     bool Function(String workspaceId, String value);
 
-String _key(String workspaceId) => 'holoui.sync.tab.$workspaceId';
+String _key(String workspaceId) => 'gloss.sync.tab.$workspaceId';
 
 String? readEditorSyncBinding(String workspaceId) =>
     web.window.sessionStorage.getItem(_key(workspaceId));

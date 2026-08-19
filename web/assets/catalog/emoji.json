@@ -1,0 +1,406 @@
+{
+  "emoji": [
+    {
+      "name": "1",
+      "trigger": "",
+      "glyph": "➊",
+      "enabled": true
+    },
+    {
+      "name": "10",
+      "trigger": "",
+      "glyph": "➓",
+      "enabled": true
+    },
+    {
+      "name": "10h",
+      "trigger": "",
+      "glyph": "➉",
+      "enabled": true
+    },
+    {
+      "name": "10t",
+      "trigger": "",
+      "glyph": "❿",
+      "enabled": true
+    },
+    {
+      "name": "1h",
+      "trigger": "",
+      "glyph": "➀",
+      "enabled": true
+    },
+    {
+      "name": "1t",
+      "trigger": "",
+      "glyph": "❶",
+      "enabled": true
+    },
+    {
+      "name": "2",
+      "trigger": "",
+      "glyph": "➋",
+      "enabled": true
+    },
+    {
+      "name": "2h",
+      "trigger": "",
+      "glyph": "➁",
+      "enabled": true
+    },
+    {
+      "name": "2t",
+      "trigger": "",
+      "glyph": "❷",
+      "enabled": true
+    },
+    {
+      "name": "3",
+      "trigger": "",
+      "glyph": "➌",
+      "enabled": true
+    },
+    {
+      "name": "3h",
+      "trigger": "",
+      "glyph": "➂",
+      "enabled": true
+    },
+    {
+      "name": "3t",
+      "trigger": "",
+      "glyph": "❸",
+      "enabled": true
+    },
+    {
+      "name": "4",
+      "trigger": "",
+      "glyph": "➍",
+      "enabled": true
+    },
+    {
+      "name": "4h",
+      "trigger": "",
+      "glyph": "➃",
+      "enabled": true
+    },
+    {
+      "name": "4t",
+      "trigger": "",
+      "glyph": "❹",
+      "enabled": true
+    },
+    {
+      "name": "5",
+      "trigger": "",
+      "glyph": "➎",
+      "enabled": true
+    },
+    {
+      "name": "5h",
+      "trigger": "",
+      "glyph": "➄",
+      "enabled": true
+    },
+    {
+      "name": "5t",
+      "trigger": "",
+      "glyph": "❺",
+      "enabled": true
+    },
+    {
+      "name": "6",
+      "trigger": "",
+      "glyph": "➏",
+      "enabled": true
+    },
+    {
+      "name": "6h",
+      "trigger": "",
+      "glyph": "➅",
+      "enabled": true
+    },
+    {
+      "name": "6t",
+      "trigger": "",
+      "glyph": "❻",
+      "enabled": true
+    },
+    {
+      "name": "7",
+      "trigger": "",
+      "glyph": "➐",
+      "enabled": true
+    },
+    {
+      "name": "7h",
+      "trigger": "",
+      "glyph": "➆",
+      "enabled": true
+    },
+    {
+      "name": "7t",
+      "trigger": "",
+      "glyph": "❼",
+      "enabled": true
+    },
+    {
+      "name": "8",
+      "trigger": "",
+      "glyph": "➑",
+      "enabled": true
+    },
+    {
+      "name": "8h",
+      "trigger": "",
+      "glyph": "➇",
+      "enabled": true
+    },
+    {
+      "name": "8t",
+      "trigger": "",
+      "glyph": "❽",
+      "enabled": true
+    },
+    {
+      "name": "9",
+      "trigger": "",
+      "glyph": "➒",
+      "enabled": true
+    },
+    {
+      "name": "9h",
+      "trigger": "",
+      "glyph": "➈",
+      "enabled": true
+    },
+    {
+      "name": "9t",
+      "trigger": "",
+      "glyph": "❾",
+      "enabled": true
+    },
+    {
+      "name": "airplane",
+      "trigger": "",
+      "glyph": "✈",
+      "enabled": true
+    },
+    {
+      "name": "blackdiamond",
+      "trigger": "",
+      "glyph": "❖",
+      "enabled": true
+    },
+    {
+      "name": "check",
+      "trigger": "",
+      "glyph": "✓",
+      "enabled": true
+    },
+    {
+      "name": "cross",
+      "trigger": "",
+      "glyph": "✕",
+      "enabled": true
+    },
+    {
+      "name": "cut",
+      "trigger": "",
+      "glyph": "✂",
+      "enabled": true
+    },
+    {
+      "name": "darkstarstar",
+      "trigger": "",
+      "glyph": "✴",
+      "enabled": true
+    },
+    {
+      "name": "down",
+      "trigger": "",
+      "glyph": "↓",
+      "enabled": true
+    },
+    {
+      "name": "downleft",
+      "trigger": "",
+      "glyph": "↙",
+      "enabled": true
+    },
+    {
+      "name": "downright",
+      "trigger": "",
+      "glyph": "↘",
+      "enabled": true
+    },
+    {
+      "name": "heart",
+      "trigger": "<3",
+      "glyph": "❤",
+      "enabled": true
+    },
+    {
+      "name": "heavystar",
+      "trigger": "",
+      "glyph": "✱",
+      "enabled": true
+    },
+    {
+      "name": "left",
+      "trigger": "",
+      "glyph": "←",
+      "enabled": true
+    },
+    {
+      "name": "leftright",
+      "trigger": "",
+      "glyph": "↔",
+      "enabled": true
+    },
+    {
+      "name": "lineplus",
+      "trigger": "",
+      "glyph": "✙",
+      "enabled": true
+    },
+    {
+      "name": "mail",
+      "trigger": "",
+      "glyph": "✉",
+      "enabled": true
+    },
+    {
+      "name": "maltcross",
+      "trigger": "",
+      "glyph": "✠",
+      "enabled": true
+    },
+    {
+      "name": "nib",
+      "trigger": "",
+      "glyph": "✒",
+      "enabled": true
+    },
+    {
+      "name": "opencross",
+      "trigger": "",
+      "glyph": "✛",
+      "enabled": true
+    },
+    {
+      "name": "pencil",
+      "trigger": "",
+      "glyph": "✏",
+      "enabled": true
+    },
+    {
+      "name": "right",
+      "trigger": "",
+      "glyph": "→",
+      "enabled": true
+    },
+    {
+      "name": "snowflake",
+      "trigger": "",
+      "glyph": "❄",
+      "enabled": true
+    },
+    {
+      "name": "sparkle",
+      "trigger": "",
+      "glyph": "❇",
+      "enabled": true
+    },
+    {
+      "name": "star",
+      "trigger": "",
+      "glyph": "✳",
+      "enabled": true
+    },
+    {
+      "name": "starofdavid",
+      "trigger": "",
+      "glyph": "✡",
+      "enabled": true
+    },
+    {
+      "name": "sun",
+      "trigger": "",
+      "glyph": "☼",
+      "enabled": true
+    },
+    {
+      "name": "tapedrive",
+      "trigger": "",
+      "glyph": "✇",
+      "enabled": true
+    },
+    {
+      "name": "thickcheck",
+      "trigger": "",
+      "glyph": "✔",
+      "enabled": true
+    },
+    {
+      "name": "thickcross",
+      "trigger": "",
+      "glyph": "✖",
+      "enabled": true
+    },
+    {
+      "name": "thickopencross",
+      "trigger": "",
+      "glyph": "✜",
+      "enabled": true
+    },
+    {
+      "name": "thickplus",
+      "trigger": "",
+      "glyph": "✚",
+      "enabled": true
+    },
+    {
+      "name": "up",
+      "trigger": "",
+      "glyph": "↑",
+      "enabled": true
+    },
+    {
+      "name": "updown",
+      "trigger": "",
+      "glyph": "↕",
+      "enabled": true
+    },
+    {
+      "name": "upleft",
+      "trigger": "",
+      "glyph": "↖",
+      "enabled": true
+    },
+    {
+      "name": "upright",
+      "trigger": "",
+      "glyph": "↗",
+      "enabled": true
+    },
+    {
+      "name": "vbar1",
+      "trigger": "",
+      "glyph": "❘",
+      "enabled": true
+    },
+    {
+      "name": "vbar2",
+      "trigger": "",
+      "glyph": "❙",
+      "enabled": true
+    },
+    {
+      "name": "vbar3",
+      "trigger": "",
+      "glyph": "❚",
+      "enabled": true
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 /// The 3D layout pass: menu transforms, display billboards and collision planes.
 library;
 
-import 'package:holoui_editor/logic/canvas_scene.dart';
-import 'package:holoui_editor/logic/hui_geometry.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/preview/preview_scene.dart';
-import 'package:holoui_editor/preview/preview_types.dart';
-import 'package:holoui_editor/preview/projection.dart';
+import 'package:gloss_editor/logic/canvas_scene.dart';
+import 'package:gloss_editor/logic/hui_geometry.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/preview/preview_scene.dart';
+import 'package:gloss_editor/preview/preview_types.dart';
+import 'package:gloss_editor/preview/projection.dart';
 import 'package:test/test.dart';
 
 import 'projection_test.dart' show expectVec;

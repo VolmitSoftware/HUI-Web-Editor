@@ -1,5 +1,5 @@
 /// Help: quick start, the coordinate frame, the text-format cheatsheet, and an
-/// explicit list of things HoloUI does not do.
+/// explicit list of things Gloss does not do.
 ///
 /// The non-features list is deliberate. Most support questions about the old
 /// editor were about backgrounds, per-component scale and localized menu text,
@@ -34,7 +34,7 @@ class HelpDialog extends StatelessWidget {
     id: 'hui-help-dialog',
     isOpen: isOpen,
     onClose: onClose,
-    title: 'HoloUI editor help',
+    title: 'Gloss editor help',
     maxWidth: 880,
     actions: <Widget>[
       Button(
@@ -73,10 +73,10 @@ class HelpDialog extends StatelessWidget {
               'will refuse or misbehave, not just that a key is missing.',
           'This editor does not push files to a default server. Export, '
               'drop the JSON into $huiMenuFolder, then run '
-              '/holoui open ${store.menuId}. Live sync needs a capability '
-              'link from /holoui edit.',
+              '/gloss open ${store.menuId}. Live sync needs a capability '
+              'link from /gloss edit.',
           'To re-anchor that open session, stand at its new origin and run '
-              '/holoui move. It keeps the configured offset and opening '
+              '/gloss move. It keeps the configured offset and opening '
               'direction; it does not rewrite the menu file.',
         ],
       ),
@@ -84,15 +84,15 @@ class HelpDialog extends StatelessWidget {
         text:
             '$huiMenuFolder${store.exportFileName}\n'
             '${huiImageFolder}your-icon.png\n\n'
-            '/holoui open ${store.menuId}\n'
-            '/holoui move',
+            '/gloss open ${store.menuId}\n'
+            '/gloss move',
       ),
       const dom.p(classes: 'hui-dialog-note', <Widget>[
         Text(
           'Saving a menu file re-registers it within about 5 ticks and '
           'closes any session that has it open. New and deleted files are '
-          'picked up within about 20 ticks. Players need holoui.command, '
-          'holoui.command.open, holoui.open.<id> and holoui.command.move. '
+          'picked up within about 20 ticks. Players need gloss.command, '
+          'gloss.command.open, gloss.open.<id> and gloss.command.move. '
           'The per-menu node is not declared in plugin.yml, so grant it '
           'explicitly.',
         ),
@@ -108,8 +108,8 @@ class HelpDialog extends StatelessWidget {
       const ArcaneAlert.info(
         title: 'Server sync is always explicit',
         message:
-            'A capability link from /holoui edit can connect one menu or a '
-            'persistent world-board project. Review it before import. Local '
+            'A capability link from /gloss edit can connect one menu or a '
+            'persistent world-panel project. Review it before import. Local '
             'autosave never contacts the server: use Publish to Server, then '
             'wait for Applied. Pending, rejected, expired and revision-conflict '
             'states remain visible. Fix a rejected publication and publish it '
@@ -120,9 +120,9 @@ class HelpDialog extends StatelessWidget {
       ),
       const dom.p(classes: 'hui-dialog-note', <Widget>[
         Text(
-          'The connection shows the only allowed prefixes for new board menus '
-          'and image assets. New board menus publish only when navigation from '
-          'the board root reaches them; unrelated folder documents stay local. '
+          'The connection shows the only allowed prefixes for new panel menus '
+          'and image assets. New panel menus publish only when navigation from '
+          'the panel root reaches them; unrelated folder documents stay local. '
           'Sync v1 retains captured resources instead of deleting them. '
           'Raster assets are capped at 64 by 64 pixels, with bounded stored '
           'pixels and repeated image-frame render work across the project. '
@@ -286,15 +286,15 @@ class HelpDialog extends StatelessWidget {
             'The static catalog and optional menu-sync scope do not expose '
             'your server\'s plugin registries, so an id the editor has never '
             'heard of is never an error. If the '
-            'provider is missing or the id is wrong, HoloUI logs a warning '
+            'provider is missing or the id is wrong, Gloss logs a warning '
             'naming both and draws its magenta/black placeholder; the rest '
             'of the menu still opens.',
       ),
       const HuiSteps(
         steps: <String>[
-          'Run /holoui item status on the server to see which providers are '
+          'Run /gloss item status on the server to see which providers are '
               'present, ready, and how many ids they expose.',
-          'Run /holoui item export to write '
+          'Run /gloss item export to write '
               '${huiPluginFolder}custom-items.json.',
           'Open Settings in the hosted editor and import that file. The '
               'plugin does not host or upload it.',
@@ -303,7 +303,7 @@ class HelpDialog extends StatelessWidget {
               'export.',
         ],
       ),
-      const HuiCodeBlock(text: '/holoui item status\n/holoui item export'),
+      const HuiCodeBlock(text: '/gloss item status\n/gloss item export'),
     ],
   );
 
@@ -321,7 +321,7 @@ class HelpDialog extends StatelessWidget {
       ]);
 
   Widget _nonFeatures() => HuiDialogSection(
-    title: 'What HoloUI does not do',
+    title: 'What Gloss does not do',
     description:
         'These do not exist in the format. The editor will not '
         'offer them, so you do not go looking.',
@@ -369,7 +369,7 @@ class HelpDialog extends StatelessWidget {
 const List<String> _nonFeatureList = <String>[
   'No background: a menu has no panel, colour or image behind its components.',
   'No independent component transform beyond offset. Display-backed icons '
-      'can own scale and alignment, while a persistent board rotates and '
+      'can own scale and alignment, while a persistent panel rotates and '
       'scales the whole menu.',
   "No localization of menu text. language.yml only translates the plugin's own "
       'messages, never the contents of a menu.',
@@ -389,7 +389,7 @@ const List<String> _nonFeatureList = <String>[
       'whatever its provider plugin builds, but the JSON cannot add to it.',
   'No format version or migration: what you export is exactly what the plugin '
       'reads.',
-  'Persistent world boards open automatically for eligible nearby players. '
+  'Persistent world panels open automatically for eligible nearby players. '
       'Menu JSON has no join, block or NPC trigger; personal menus still open '
       'through a command or the Java API.',
 ];

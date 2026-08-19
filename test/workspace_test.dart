@@ -3,8 +3,8 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:holoui_editor/state/workspace.dart';
-import 'package:holoui_editor/state/workspace_repository.dart';
+import 'package:gloss_editor/state/workspace.dart';
+import 'package:gloss_editor/state/workspace_repository.dart';
 import 'package:test/test.dart';
 
 class _FakeStorage {
@@ -56,7 +56,10 @@ void main() {
         WorkspaceDocKind.fromName('containerPreview'),
         WorkspaceDocKind.containerPreview,
       );
-      expect(WorkspaceDocKind.fromName('board'), WorkspaceDocKind.board);
+      expect(WorkspaceDocKind.fromName('panel'), WorkspaceDocKind.panel);
+      // Stored documents wrote the legacy slug before the Gloss rename and
+      // must keep loading forever.
+      expect(WorkspaceDocKind.fromName('board'), WorkspaceDocKind.panel);
       expect(WorkspaceDocKind.fromName(null), isNull);
       expect(WorkspaceDocKind.fromName('future-kind'), isNull);
     });
@@ -78,7 +81,7 @@ void main() {
       expect(restored.kind, WorkspaceDocKind.menu);
     });
 
-    test('a board has no runtime id', () {
+    test('a panel has no runtime id', () {
       final WorkspaceDoc doc = WorkspaceDoc(
         id: '00000000-0000-4000-8000-000000000001',
         title: 'Main flow',
@@ -86,10 +89,10 @@ void main() {
         json: '{}',
         updatedAt: 42,
         folderId: '00000000-0000-4000-8000-000000000002',
-        kind: WorkspaceDocKind.board,
+        kind: WorkspaceDocKind.panel,
       );
       final WorkspaceDoc? restored = WorkspaceDoc.fromJson(doc.toJson());
-      expect(restored?.kind, WorkspaceDocKind.board);
+      expect(restored?.kind, WorkspaceDocKind.panel);
       expect(restored?.runtimeId, isNull);
     });
 

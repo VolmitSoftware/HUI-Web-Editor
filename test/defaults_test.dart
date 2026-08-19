@@ -1,8 +1,8 @@
 /// The factory defaults and the authoring tables that go with them.
 library;
 
-import 'package:holoui_editor/config/defaults.dart';
-import 'package:holoui_editor/model/model.dart';
+import 'package:gloss_editor/config/defaults.dart';
+import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -8,7 +8,7 @@ library;
 
 import 'dart:convert';
 
-import 'package:holoui_editor/logic/json_value.dart';
+import 'package:gloss_editor/logic/json_value.dart';
 import 'package:test/test.dart';
 
 void main() {

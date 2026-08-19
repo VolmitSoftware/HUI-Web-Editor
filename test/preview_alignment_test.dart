@@ -10,11 +10,11 @@ library;
 
 import 'dart:math' as math;
 
-import 'package:holoui_editor/logic/canvas_scene.dart';
-import 'package:holoui_editor/logic/hui_geometry.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/preview/preview_scene.dart';
-import 'package:holoui_editor/preview/preview_types.dart';
+import 'package:gloss_editor/logic/canvas_scene.dart';
+import 'package:gloss_editor/logic/hui_geometry.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/preview/preview_scene.dart';
+import 'package:gloss_editor/preview/preview_types.dart';
 import 'package:test/test.dart';
 
 HuiComponent _button(String id, HuiIcon icon) =>

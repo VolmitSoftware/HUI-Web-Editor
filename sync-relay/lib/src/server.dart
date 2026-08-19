@@ -14,8 +14,8 @@ import 'store.dart';
 
 typedef RelayClock = DateTime Function();
 
-final class HoloUiSyncRelay {
-  HoloUiSyncRelay({
+final class GlossSyncRelay {
+  GlossSyncRelay({
     required this.config,
     required this.store,
     RelayClock? clock,
@@ -95,7 +95,7 @@ final class HoloUiSyncRelay {
         : '/${request.url.path}';
     final String prefix = config.apiPrefix;
     if (path == '$prefix/health' && request.method == 'GET') {
-      return _json(200, <String, Object?>{'status': 'ok', 'protocol': 1});
+      return _json(200, <String, Object?>{'status': 'ok', 'protocol': 2});
     }
     if (path == '$prefix/sessions' && request.method == 'POST') {
       final String address = _clientAddress(request);
@@ -144,6 +144,7 @@ final class HoloUiSyncRelay {
       'snapshot',
     );
     _snapshotSize(snapshot);
+    _snapshotShape(snapshot);
     requireRevision(snapshot, 'baseRevision');
     final Object? rawTtl = body['expiresInSeconds'];
     if (rawTtl is! int) throw const RelayProblem(400, 'invalid_ttl');
@@ -164,7 +165,7 @@ final class HoloUiSyncRelay {
   String _authorizeCreate(Request request, String address) {
     final Set<String> expectedHashes = config.createTokenHashes;
     if (expectedHashes.isEmpty) {
-      return tokenHash('holoui-anonymous-create-principal-v1:$address');
+      return tokenHash('gloss-anonymous-create-principal-v2:$address');
     }
     final String? authorization = request.headers['authorization'];
     if (authorization == null || !authorization.startsWith('Bearer ')) {
@@ -181,7 +182,7 @@ final class HoloUiSyncRelay {
     if (!validShape || !matches || matchedHash == null) {
       throw const RelayProblem(401, 'unauthorized');
     }
-    return tokenHash('holoui-create-principal-v1:$matchedHash');
+    return tokenHash('gloss-create-principal-v2:$matchedHash');
   }
 
   Future<Response> _createSession({
@@ -258,7 +259,7 @@ final class HoloUiSyncRelay {
     );
     await store.create(session);
     return _json(201, <String, Object?>{
-      'protocol': 1,
+      'protocol': 2,
       'sessionId': id,
       'editorToken': editorToken,
       'serverToken': serverToken,
@@ -296,6 +297,7 @@ final class HoloUiSyncRelay {
       'snapshot',
     );
     _snapshotSize(snapshot, reservedBytes: authorized.reservedBytes);
+    _snapshotShape(snapshot);
     requireRevision(snapshot, 'baseRevision');
     if (baseRevision != authorized.baseRevision) {
       return _error(409, 'base_revision_conflict');
@@ -321,7 +323,7 @@ final class HoloUiSyncRelay {
       return current.publish(publication);
     });
     return _json(202, <String, Object?>{
-      'protocol': 1,
+      'protocol': 2,
       'publication': <String, Object?>{
         'revision': publication.revision,
         'state': publication.state.name,
@@ -350,7 +352,7 @@ final class HoloUiSyncRelay {
       return Response(204);
     }
     return _json(200, <String, Object?>{
-      'protocol': 1,
+      'protocol': 2,
       'sessionId': id,
       'publication': <String, Object?>{
         'revision': publication.revision,
@@ -411,6 +413,7 @@ final class HoloUiSyncRelay {
         : null;
     if (promotes) {
       _snapshotSize(snapshot!, reservedBytes: authorized.reservedBytes);
+      _snapshotShape(snapshot);
       if (requireRevision(snapshot, 'baseRevision') != serverRevision) {
         return _error(400, 'server_revision_mismatch');
       }
@@ -443,7 +446,7 @@ final class HoloUiSyncRelay {
       );
     });
     return _json(200, <String, Object?>{
-      'protocol': 1,
+      'protocol': 2,
       'baseRevision': updated.baseRevision,
       'publication': <String, Object?>{
         'revision': updated.publication!.revision,
@@ -557,7 +560,63 @@ final class HoloUiSyncRelay {
   }
 
   void _protocol(Map<String, Object?> body) {
-    if (body['protocol'] != 1) throw const RelayProblem(400, 'bad_protocol');
+    if (body['protocol'] != 2) {
+      throw const RelayProblem(400, 'unsupported_protocol');
+    }
+  }
+
+  /// Transport-shape validation for protocol-v2 snapshots. The relay checks
+  /// ONLY the format identity, the open kind-slug grammar, and bounded sizes.
+  /// It never interprets kinds — a new document kind must work against this
+  /// relay without a redeploy.
+  void _snapshotShape(Map<String, Object?> snapshot) {
+    final Object? format = snapshot['format'];
+    final Object? version = snapshot['version'];
+    if (format == 'holoui-sync-project' || version == 1) {
+      throw const RelayProblem(400, 'unsupported_project_format');
+    }
+    if (format != 'gloss-sync-project' || version != 2) {
+      throw const RelayProblem(400, 'unsupported_project_format');
+    }
+    final Object? kind = snapshot['kind'];
+    if (kind is! String || !relayKindSlug.hasMatch(kind)) {
+      throw const RelayProblem(400, 'invalid_project_kind');
+    }
+    final Object? documents = snapshot['documents'];
+    if (documents is! List ||
+        documents.isEmpty ||
+        documents.length > relayMaximumDocuments) {
+      throw const RelayProblem(400, 'invalid_project_documents');
+    }
+    for (final Object? entry in documents) {
+      if (entry is! Map) {
+        throw const RelayProblem(400, 'invalid_project_documents');
+      }
+      final Object? entryKind = entry['kind'];
+      final Object? id = entry['id'];
+      final Object? json = entry['json'];
+      final Object? revision = entry['revision'];
+      if (entryKind is! String ||
+          !relayKindSlug.hasMatch(entryKind) ||
+          id is! String ||
+          id.isEmpty ||
+          id.length > 256 ||
+          json is! String ||
+          json.isEmpty ||
+          (revision != null &&
+              (revision is! int ||
+                  revision < 1 ||
+                  revision > relayMaximumSafeInteger)) ||
+          entry.keys.any(
+            (Object? key) =>
+                key != 'kind' &&
+                key != 'id' &&
+                key != 'revision' &&
+                key != 'json',
+          )) {
+        throw const RelayProblem(400, 'invalid_project_documents');
+      }
+    }
   }
 
   void _exactKeys(Map<String, Object?> body, Set<String> allowed) {
@@ -661,7 +720,7 @@ final class HoloUiSyncRelay {
 
   Map<String, Object?> _sessionEnvelope(RelaySession session) =>
       <String, Object?>{
-        'protocol': 1,
+        'protocol': 2,
         'sessionId': session.id,
         'status': session.status,
         'expiresAt': session.expiresAt.toIso8601String(),
@@ -736,7 +795,7 @@ final class HoloUiSyncRelay {
       return Response(
         500,
         body: jsonEncode(<String, Object?>{
-          'protocol': 1,
+          'protocol': 2,
           'error': <String, Object?>{
             'code': 'response_too_large',
             'message': 'response too large',
@@ -757,7 +816,7 @@ final class HoloUiSyncRelay {
   }
 
   Response _error(int status, String code) => _json(status, <String, Object?>{
-    'protocol': 1,
+    'protocol': 2,
     'error': <String, Object?>{
       'code': code,
       'message': code.replaceAll('_', ' '),

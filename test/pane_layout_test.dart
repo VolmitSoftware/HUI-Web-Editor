@@ -1,5 +1,5 @@
-import 'package:holoui_editor/components/shell/pane_layout.dart';
-import 'package:holoui_editor/services/storage_service.dart';
+import 'package:gloss_editor/components/shell/pane_layout.dart';
+import 'package:gloss_editor/services/storage_service.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -110,7 +110,7 @@ void main() {
     });
 
     test('uses the versioned key so a format change cannot be misread', () {
-      expect(PaneLayout.storageKey, 'holoui.panes.v1');
+      expect(PaneLayout.storageKey, 'gloss.panes.v1');
       expect(
         PaneLayout.storageKey.startsWith(StorageService.keyPrefix),
         isTrue,

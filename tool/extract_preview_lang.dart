@@ -28,7 +28,7 @@ const String idPrefix = 'holoui.preview.';
 
 /// Default source, relative to this repo — the plugin checkout sits beside it.
 const String defaultSource =
-    '../HoloUi/src/main/java/art/arcane/holoui/localization/HoloMessages.java';
+    '../Gloss/src/main/java/art/arcane/gloss/locale/HoloMessages.java';
 
 const String outputPath = 'web/assets/catalog/preview-lang-en.json';
 

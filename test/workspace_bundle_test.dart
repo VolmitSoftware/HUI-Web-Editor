@@ -2,13 +2,13 @@ library;
 
 import 'dart:convert';
 
-import 'package:holoui_editor/config/defaults.dart';
-import 'package:holoui_editor/model/model.dart';
-import 'package:holoui_editor/services/image_library.dart';
-import 'package:holoui_editor/services/storage_service.dart';
-import 'package:holoui_editor/state/workspace.dart';
-import 'package:holoui_editor/state/workspace_board.dart';
-import 'package:holoui_editor/state/workspace_bundle.dart';
+import 'package:gloss_editor/config/defaults.dart';
+import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/services/image_library.dart';
+import 'package:gloss_editor/services/storage_service.dart';
+import 'package:gloss_editor/state/workspace.dart';
+import 'package:gloss_editor/state/workspace_panel.dart';
+import 'package:gloss_editor/state/workspace_bundle.dart';
 import 'package:test/test.dart';
 
 class _MemoryWorkspace {
@@ -73,9 +73,9 @@ void main() {
       source.create(
         title: 'Shop flow',
         runtimeId: null,
-        json: encodeWorkspaceBoard(WorkspaceBoardData(scopeFolderId: shops.id)),
+        json: encodeWorkspacePanel(WorkspacePanelData(scopeFolderId: shops.id)),
         folderId: shops.id,
-        kind: WorkspaceDocKind.board,
+        kind: WorkspaceDocKind.panel,
       );
       final ImageLibrary sourceImages = ImageLibrary(autoLoad: false);
       expect(
@@ -124,7 +124,7 @@ void main() {
       expect(
         target.docs
             .singleWhere(
-              (WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.board,
+              (WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.panel,
             )
             .runtimeId,
         isNull,
@@ -159,6 +159,36 @@ void main() {
       );
     },
   );
+
+  test('accepts pre-rebrand HoloUI bundles but writes the new format', () {
+    final Workspace workspace = _workspace(_MemoryWorkspace());
+    final Map<String, dynamic> bundle = <String, dynamic>{
+      'format': WorkspaceBundle.legacyFormat,
+      'version': WorkspaceBundle.version,
+      'workspace': workspace.exportPortableState(),
+      'images': <Object?>[],
+    };
+
+    final WorkspaceBundleDecodeResult decoded = decodeWorkspaceBundle(
+      jsonEncode(bundle),
+      workspace,
+    );
+    expect(decoded.error, isNull);
+    expect(decoded.bundle, isNotNull);
+
+    expect(WorkspaceBundle.format, 'gloss-editor-workspace');
+    expect(WorkspaceBundle.legacyFormat, 'holoui-editor-workspace');
+    expect(
+      encodeWorkspaceBundle(workspace, null),
+      contains('"format": "gloss-editor-workspace"'),
+    );
+
+    bundle['format'] = 'unrelated-format';
+    expect(
+      decodeWorkspaceBundle(jsonEncode(bundle), workspace).error,
+      contains('not a supported'),
+    );
+  });
 
   test('image replacement validates the whole set before mutation', () {
     final ImageLibrary images = ImageLibrary(autoLoad: false);

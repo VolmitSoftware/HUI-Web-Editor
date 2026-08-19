@@ -52,7 +52,7 @@ class PaneLayout {
   static const double keyStep = 8;
   static const double keyStepCoarse = 40;
 
-  static const String storageKey = 'holoui.panes.v1';
+  static const String storageKey = 'gloss.panes.v1';
 
   static const PaneLayout defaults = PaneLayout();
 

@@ -22,11 +22,24 @@ bool defaultStorageWrite(String key, String value) =>
 enum WorkspaceDocKind {
   menu,
   containerPreview,
-  board;
+  panel,
+  hologram,
+  animation,
+  scoreboard,
+  motd,
+  emoji,
+  bubbleStyle,
+  tablist;
 
-  bool get hasRuntimeId => this != WorkspaceDocKind.board;
+  bool get hasRuntimeId => this != WorkspaceDocKind.panel;
+
+  /// World panels were stored as `board` before the Gloss rename. Stored
+  /// documents carrying the old slug must keep loading forever, so the legacy
+  /// name maps here rather than being migrated in place.
+  static const String _legacyPanelName = 'board';
 
   static WorkspaceDocKind? fromName(Object? raw) {
+    if (raw == _legacyPanelName) return WorkspaceDocKind.panel;
     for (final WorkspaceDocKind value in values) {
       if (value.name == raw) return value;
     }
@@ -127,7 +140,7 @@ class WorkspaceDoc {
       id: id,
       title: normalizeWorkspaceTitle(
         raw['title'],
-        fallback: runtimeId ?? 'Untitled board',
+        fallback: runtimeId ?? 'Untitled panel',
       ),
       runtimeId: runtimeId,
       json: json,
@@ -194,6 +207,8 @@ class Workspace extends ChangeNotifier {
           clearer: () {
             final bool current = StorageService.remove(storageKey);
             final bool legacy = StorageService.remove(legacyStorageKey);
+            StorageService.remove(preRebrandStorageKey);
+            StorageService.remove(preRebrandLegacyStorageKey);
             return current && legacy;
           },
         );
@@ -213,8 +228,14 @@ class Workspace extends ChangeNotifier {
   }
 
   static const int schemaVersion = 2;
-  static const String storageKey = 'holoui.workspace.v2';
-  static const String legacyStorageKey = 'holoui.workspace.v1';
+  static const String storageKey = 'gloss.workspace.v2';
+  static const String legacyStorageKey = 'gloss.workspace.v1';
+
+  /// Pre-rebrand key names. [StorageService] migrates the localStorage copies
+  /// and the IndexedDB repository migrates its records, but explicit clears
+  /// must also drop these so old data cannot re-migrate after a reset.
+  static const String preRebrandStorageKey = 'holoui.workspace.v2';
+  static const String preRebrandLegacyStorageKey = 'holoui.workspace.v1';
   static const String unfiledTitle = 'Unfiled';
 
   final StorageReader read;
@@ -378,7 +399,7 @@ class Workspace extends ChangeNotifier {
       id: _newUniqueId(<String>{for (final WorkspaceDoc doc in _docs) doc.id}),
       title: normalizeWorkspaceTitle(
         title,
-        fallback: canonicalRuntimeId ?? 'Untitled board',
+        fallback: canonicalRuntimeId ?? 'Untitled panel',
       ),
       runtimeId: canonicalRuntimeId,
       json: json,
@@ -399,7 +420,7 @@ class Workspace extends ChangeNotifier {
     if (doc == null) return false;
     final String normalized = normalizeWorkspaceTitle(
       title,
-      fallback: doc.runtimeId ?? 'Untitled board',
+      fallback: doc.runtimeId ?? 'Untitled panel',
     );
     if (doc.title == normalized) return true;
     doc.title = normalized;
@@ -478,7 +499,7 @@ class Workspace extends ChangeNotifier {
     doc
       ..title = normalizeWorkspaceTitle(
         title,
-        fallback: canonicalRuntimeId ?? 'Untitled board',
+        fallback: canonicalRuntimeId ?? 'Untitled panel',
       )
       ..runtimeId = canonicalRuntimeId
       ..json = json
@@ -608,7 +629,7 @@ class Workspace extends ChangeNotifier {
     if (title != null) {
       final String normalized = normalizeWorkspaceTitle(
         title,
-        fallback: doc.runtimeId ?? 'Untitled board',
+        fallback: doc.runtimeId ?? 'Untitled panel',
       );
       if (normalized != doc.title) {
         doc.title = normalized;
@@ -1174,7 +1195,7 @@ class Workspace extends ChangeNotifier {
         final WorkspaceDocKind? kind = entry['kind'] == null
             ? WorkspaceDocKind.menu
             : WorkspaceDocKind.fromName(entry['kind']);
-        if (kind == null || kind == WorkspaceDocKind.board) {
+        if (kind == null || kind == WorkspaceDocKind.panel) {
           skipped++;
           continue;
         }

@@ -8,7 +8,7 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:web/web.dart' as web;
 
-const String _themeStorageKey = 'holoui.theme';
+const String _themeStorageKey = 'gloss.theme';
 
 Brightness loadStoredBrightness() {
   try {

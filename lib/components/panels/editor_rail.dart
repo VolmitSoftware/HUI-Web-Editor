@@ -5,10 +5,11 @@ import 'package:arcane_jaspr/core/dom_value.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import '../../config/defaults.dart';
+import '../../doctype/doctype.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../../state/workspace_bundle.dart';
-import '../../state/workspace_board.dart';
+import '../../state/workspace_panel.dart';
 import '../../state/workspace_route.dart';
 import '../../services/clipboard.dart';
 import '../../services/editor_sync.dart';
@@ -52,12 +53,12 @@ class _EditorRailState extends State<EditorRail> {
 
   Workspace get _workspace => _store.workspace;
 
-  String? get _syncBoardFolderId {
+  String? get _syncPanelFolderId {
     final EditorSyncBinding? binding = component.syncBinding;
-    if (binding?.kind != 'board') return null;
-    final WorkspaceDoc? board = _workspace.byId(binding?.boardDocumentId);
+    if (binding?.kind != 'panel') return null;
+    final WorkspaceDoc? board = _workspace.byId(binding?.panelDocumentId);
     if (board == null) return null;
-    return decodeWorkspaceBoard(board.json).data.scopeFolderId;
+    return decodeWorkspacePanel(board.json).data.scopeFolderId;
   }
 
   String? get _syncScopeHint {
@@ -68,7 +69,7 @@ class _EditorRailState extends State<EditorRail> {
       return 'Synced menu id is locked; new images must start with '
           '"$imagePrefix".';
     }
-    return 'Synced board: new menu ids must start with '
+    return 'Synced panel: new menu ids must start with '
         '"${binding.constraints.newMenuPrefix}" and new images with '
         '"$imagePrefix".';
   }
@@ -130,7 +131,7 @@ class _EditorRailState extends State<EditorRail> {
 
   @override
   Widget build(BuildContext context) {
-    final bool library = _store.isBoardDoc || _tab == _EditorRailTab.library;
+    final bool library = _store.isPanelDoc || _tab == _EditorRailTab.library;
     return dom.div(classes: 'hui-editor-rail', <Widget>[
       dom.div(classes: 'hui-editor-rail-tabs', <Widget>[
         ArcaneToggleGroup(
@@ -139,7 +140,7 @@ class _EditorRailState extends State<EditorRail> {
               : _EditorRailTab.contents.name,
           variant: ToggleGroupVariant.outline,
           size: ToggleGroupSize.sm,
-          onChanged: _store.isBoardDoc ? null : _setTab,
+          onChanged: _store.isPanelDoc ? null : _setTab,
           items: <ToggleGroupItem>[
             ToggleGroupItem(
               value: _EditorRailTab.library.name,
@@ -148,7 +149,7 @@ class _EditorRailState extends State<EditorRail> {
                 const Text('Library'),
               ]),
             ),
-            if (!_store.isBoardDoc)
+            if (!_store.isPanelDoc)
               ToggleGroupItem(
                 value: _EditorRailTab.contents.name,
                 child: dom.span(<Widget>[
@@ -172,7 +173,7 @@ class _EditorRailState extends State<EditorRail> {
         dom.p(classes: 'hui-library-hint', <Widget>[
           Text(
             _syncScopeHint ??
-                (_store.isBoardDoc
+                (_store.isPanelDoc
                     ? 'Flow maps stay in this browser.'
                     : 'Folders organize files; runtime ids remain canonical.'),
           ),
@@ -208,21 +209,12 @@ class _EditorRailState extends State<EditorRail> {
         icon: ArcaneIcon.folderPlus(size: IconSize.sm),
         onPressed: _createFolder,
       ),
-      _iconButton(
-        label: 'New menu',
-        icon: ArcaneIcon.filePlus(size: IconSize.sm),
-        onPressed: _createMenu,
-      ),
-      _iconButton(
-        label: 'New preview document',
-        icon: ArcaneIcon.layoutGrid(size: IconSize.sm),
-        onPressed: _createPreview,
-      ),
-      _iconButton(
-        label: 'New menu flow map',
-        icon: ArcaneIcon.workflow(size: IconSize.sm),
-        onPressed: _createBoard,
-      ),
+      for (final DocumentTypeAdapter type in DocumentTypeRegistry.all)
+        _iconButton(
+          label: type.createLabel,
+          icon: type.createIcon(),
+          onPressed: () => _createDocument(type),
+        ),
       _iconButton(
         label: 'Import workspace bundle',
         icon: ArcaneIcon.upload(size: IconSize.sm),
@@ -551,13 +543,8 @@ class _EditorRailState extends State<EditorRail> {
     child: icon,
   );
 
-  Widget _documentIcon(WorkspaceDocKind kind) => switch (kind) {
-    WorkspaceDocKind.menu => ArcaneIcon.fileBraces(size: IconSize.sm),
-    WorkspaceDocKind.containerPreview => ArcaneIcon.layoutGrid(
-      size: IconSize.sm,
-    ),
-    WorkspaceDocKind.board => ArcaneIcon.workflow(size: IconSize.sm),
-  };
+  Widget _documentIcon(WorkspaceDocKind kind) =>
+      DocumentTypeRegistry.of(kind).railIcon();
 
   void _setTab(String? value) {
     for (final _EditorRailTab tab in _EditorRailTab.values) {
@@ -597,22 +584,28 @@ class _EditorRailState extends State<EditorRail> {
     });
   }
 
-  void _createMenu() {
+  void _createDocument(DocumentTypeAdapter type) {
     final String folderId = _targetFolderId;
     _expanded.add(folderId);
+    type.createNew(
+      _store,
+      folderId: folderId,
+      runtimeId: _syncRuntimeIdOverride(type, folderId),
+    );
+  }
+
+  /// A synced world-panel session mints new subject-kind documents inside its
+  /// folder under the server's reserved id prefix.
+  String? _syncRuntimeIdOverride(DocumentTypeAdapter type, String folderId) {
     final EditorSyncBinding? binding = component.syncBinding;
     final String? prefix = binding?.constraints.newMenuPrefix;
-    if (binding?.kind == 'board' &&
+    if (binding?.kind == 'panel' &&
         prefix != null &&
-        folderId == _syncBoardFolderId) {
-      _store.newDocument(
-        name: 'New menu',
-        runtimeId: _uniqueSyncRuntimeId(prefix),
-        folderId: folderId,
-      );
-      return;
+        folderId == _syncPanelFolderId &&
+        type.syncWireKind == 'menu') {
+      return _uniqueSyncRuntimeId(prefix);
     }
-    _store.newDocument(name: 'New menu', folderId: folderId);
+    return null;
   }
 
   void _renameRuntimeId(WorkspaceDoc doc, String value) {
@@ -624,10 +617,10 @@ class _EditorRailState extends State<EditorRail> {
       }
       return;
     }
-    if (doc.folderId == _syncBoardFolderId &&
-        !_runtimeIdAllowedInSyncBoard(canonical)) {
+    if (doc.folderId == _syncPanelFolderId &&
+        !_runtimeIdAllowedInSyncPanel(canonical)) {
       ArcaneSonner.error(
-        'Synced board menu ids must start with '
+        'Synced panel menu ids must start with '
         '"${component.syncBinding?.constraints.newMenuPrefix}".',
       );
       return;
@@ -636,22 +629,22 @@ class _EditorRailState extends State<EditorRail> {
   }
 
   void _moveDocument(WorkspaceDoc doc, String folderId) {
-    if (folderId == _syncBoardFolderId &&
-        doc.kind == WorkspaceDocKind.menu &&
-        !_runtimeIdAllowedInSyncBoard(doc.runtimeId)) {
+    if (folderId == _syncPanelFolderId &&
+        doc.kind == DocumentTypes.menu.kind &&
+        !_runtimeIdAllowedInSyncPanel(doc.runtimeId)) {
       ArcaneSonner.error(
         'Rename this menu into the server prefix before moving it into the '
-        'synced board.',
+        'synced panel.',
       );
       return;
     }
     _workspace.moveDocument(doc.id, folderId);
   }
 
-  bool _runtimeIdAllowedInSyncBoard(String? runtimeId) {
+  bool _runtimeIdAllowedInSyncPanel(String? runtimeId) {
     if (runtimeId == null) return false;
     final EditorSyncBinding? binding = component.syncBinding;
-    if (binding == null || binding.kind != 'board') return true;
+    if (binding == null || binding.kind != 'panel') return true;
     if (binding.menuDocumentIds.containsKey(runtimeId)) return true;
     final String? prefix = binding.constraints.newMenuPrefix;
     return prefix != null && runtimeId.startsWith(prefix);
@@ -667,22 +660,6 @@ class _EditorRailState extends State<EditorRail> {
       candidate = '${prefix}new-menu-$suffix';
     }
     return candidate;
-  }
-
-  void _createPreview() {
-    final String folderId = _targetFolderId;
-    _expanded.add(folderId);
-    _store.newPreviewDocument(name: 'New preview', folderId: folderId);
-  }
-
-  void _createBoard() {
-    final String folderId = _targetFolderId;
-    _expanded.add(folderId);
-    _store.newBoardDocument(
-      name: 'Menu flow map',
-      folderId: folderId,
-      scopeFolderId: folderId,
-    );
   }
 
   Widget _bundleImportPrompt() {
@@ -747,11 +724,11 @@ class _EditorRailState extends State<EditorRail> {
 
   void _exportWorkspaceBundle() {
     downloadText(
-      'holoui-workspace.json',
+      'gloss-workspace.json',
       encodeWorkspaceBundle(_workspace, _store.images),
       mime: 'application/json',
     );
-    ArcaneSonner.success('Saved holoui-workspace.json.');
+    ArcaneSonner.success('Saved gloss-workspace.json.');
   }
 
   Future<void> _confirmWorkspaceBundle() async {

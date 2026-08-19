@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  <title>HoloUI Editor</title>
-  <meta name="description" content="Visual web editor for creating and previewing HoloUI menu configurations.">
+  <title>Gloss Editor</title>
+  <meta name="description" content="Visual web editor for creating and previewing Gloss menu configurations.">
   <meta name="theme-color" content="#050505">
-  <meta property="og:title" content="HoloUI Editor">
-  <meta property="og:description" content="Visual web editor for creating and previewing HoloUI menu configurations.">
+  <meta property="og:title" content="Gloss Editor">
+  <meta property="og:description" content="Visual web editor for creating and previewing Gloss menu configurations.">
   <meta property="og:image" content="assets/brand/logo.webp">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@VolmitSoftware">
@@ -21,7 +21,8 @@
     (function () {
       var mode = 'dark';
       try {
-        var stored = window.localStorage.getItem('holoui.theme');
+        var stored = window.localStorage.getItem('gloss.theme')
+          || window.localStorage.getItem('holoui.theme');
         if (stored === 'light' || stored === 'dark') { mode = stored; }
       } catch (e) { /* private mode */ }
       var root = document.documentElement;
@@ -43,6 +44,7 @@
   <link rel="stylesheet" href="styles/07-preview.css">
   <link rel="stylesheet" href="styles/08-preview-card.css">
   <link rel="stylesheet" href="styles/09-workspace.css">
+  <link rel="stylesheet" href="styles/10-gloss.css">
 
   <style>
     html, body { margin: 0; padding: 0; min-height: 100vh; }

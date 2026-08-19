@@ -96,10 +96,10 @@ class EditorSyncImportDialog extends StatelessWidget {
                     'this confirmation.',
               ),
             HuiDialogSection(
-              title: project.kind == 'board' ? 'World board' : 'Menu',
+              title: project.kind == 'panel' ? 'World panel' : 'Menu',
               description:
-                  'Exact menu source is retained. World boards use the strict '
-                  'runtime board contract.',
+                  'Exact menu source is retained. World panels use the strict '
+                  'runtime panel contract.',
               children: <Widget>[
                 dom.dl(classes: 'hui-handoff-details', <Widget>[
                   const dom.dt(<Widget>[Text('Server id')]),

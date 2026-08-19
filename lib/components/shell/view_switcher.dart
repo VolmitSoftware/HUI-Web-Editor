@@ -51,7 +51,14 @@ class ViewSwitcher extends StatelessWidget {
     EditorView.code => 'Code',
     EditorView.split => 'Split',
     EditorView.previewCard => 'Card',
-    EditorView.board => 'Flow map',
+    EditorView.panel => 'Flow map',
+    EditorView.hologram => 'Stage',
+    EditorView.animation => 'Player',
+    EditorView.scoreboard => 'Sidebar',
+    EditorView.motd => 'Server list',
+    EditorView.emoji => 'Glyphs',
+    EditorView.bubble => 'Bubbles',
+    EditorView.tablist => 'Tab',
   };
 
   static Widget _iconOf(EditorView value) => switch (value) {
@@ -60,7 +67,14 @@ class ViewSwitcher extends StatelessWidget {
     EditorView.code => ArcaneIcon.code(size: IconSize.sm),
     EditorView.split => ArcaneIcon.columns2(size: IconSize.sm),
     EditorView.previewCard => ArcaneIcon.layoutGrid(size: IconSize.sm),
-    EditorView.board => ArcaneIcon.workflow(size: IconSize.sm),
+    EditorView.panel => ArcaneIcon.workflow(size: IconSize.sm),
+    EditorView.hologram => ArcaneIcon.rotate3d(size: IconSize.sm),
+    EditorView.animation => ArcaneIcon.play(size: IconSize.sm),
+    EditorView.scoreboard => ArcaneIcon.panelRight(size: IconSize.sm),
+    EditorView.motd => ArcaneIcon.server(size: IconSize.sm),
+    EditorView.emoji => ArcaneIcon.smile(size: IconSize.sm),
+    EditorView.bubble => ArcaneIcon.messageCircle(size: IconSize.sm),
+    EditorView.tablist => ArcaneIcon.users(size: IconSize.sm),
   };
 
   void _onChanged(String? value) {
