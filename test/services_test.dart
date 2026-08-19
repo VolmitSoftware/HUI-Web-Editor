@@ -59,6 +59,21 @@ void main() {
         );
       }
     });
+
+    test('GIF frames receive ordered server-safe PNG paths', () {
+      expect(
+        animationFrameImagePath('effects/rainbow.gif', 0),
+        'effects/rainbow/frame-001.png',
+      );
+      expect(
+        animationFrameImagePath('effects/rainbow.gif', 127),
+        'effects/rainbow/frame-128.png',
+      );
+      final String long = animationFrameImagePath('${'a' * 400}.gif', 4);
+      expect(long.length, lessThanOrEqualTo(huiMaxImagePathLength));
+      expect(validateImagePath(long), isNull);
+      expect(long.endsWith('/frame-005.png'), isTrue);
+    });
   });
 
   group('validateImagePath', () {
@@ -90,10 +105,7 @@ void main() {
       StorageService.write('other.b', '12345');
       expect(
         StorageService.keys(),
-        unorderedEquals(<String>[
-          'gloss.a',
-          StorageService.migrationMarkerKey,
-        ]),
+        unorderedEquals(<String>['gloss.a', StorageService.migrationMarkerKey]),
       );
       expect(
         StorageService.estimateUsageBytes(),

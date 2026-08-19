@@ -18,6 +18,7 @@ dependencies:
   archive: ^4.0.2
   crypto: ^3.0.7
   http: ^1.6.0
+  image: ^4.9.1
 
 dev_dependencies:
   build_daemon: 4.1.4 # pinned: jaspr_cli <-> build_runner protocol

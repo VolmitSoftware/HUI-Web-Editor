@@ -459,26 +459,90 @@ class IconRenderers {
     if (width < 0.5 || height < 0.5) return;
     final double left = brush.sx(rect.left);
     final double top = brush.sy(rect.top);
-    final double radius = math.min(8, math.min(width, height) * 0.16);
+    final String key = item.entityKey.contains(':')
+        ? item.entityKey.substring(item.entityKey.indexOf(':') + 1)
+        : item.entityKey;
+    int hash = 0;
+    for (final int unit in key.codeUnits) {
+      hash = (hash * 31 + unit) & 0x7fffffff;
+    }
+    const List<String> bodyColors = <String>[
+      '#55b7a5',
+      '#8c7bd8',
+      '#d29a52',
+      '#6aa9d8',
+      '#c56f91',
+      '#83ad55',
+    ];
+    final String bodyColor = bodyColors[hash % bodyColors.length];
+    final double outline = math.max(1, math.min(2, width / 24));
+    final double headSize = math.min(width * 0.52, height * 0.34);
+    final double bodyWidth = math.min(width * 0.46, height * 0.3);
+    final double bodyHeight = math.min(height * 0.38, width * 0.62);
+    final double centerX = left + width / 2;
+    final double headLeft = centerX - headSize / 2;
+    final double headTop = top + height * 0.08;
+    final double bodyLeft = centerX - bodyWidth / 2;
+    final double bodyTop = headTop + headSize + math.max(1, height * 0.03);
+    final double legWidth = math.max(2, bodyWidth * 0.28);
+    final double legHeight = math.max(2, top + height - bodyTop - bodyHeight);
     brush.save();
-    brush.fill = brush.palette.player;
-    brush.stroke = brush.palette.playerEdge;
-    brush.lineWidth = 1.2;
-    brush.roundedRectPx(left, top, width, height, radius);
-    brush.ctx.fill();
-    brush.ctx.stroke();
-    if (width >= 32 && height >= 24) {
-      final String key = item.entityKey.contains(':')
-          ? item.entityKey.substring(item.entityKey.indexOf(':') + 1)
-          : item.entityKey;
+    brush.fill = 'rgba(0, 0, 0, 0.28)';
+    brush.fillRectPx(left + width * 0.15, top + height - 2, width * 0.7, 3);
+    brush.fill = bodyColor;
+    brush.stroke = brush.palette.label;
+    brush.lineWidth = outline;
+    brush.fillRectPx(bodyLeft, bodyTop, bodyWidth, bodyHeight);
+    brush.strokeRectPx(bodyLeft, bodyTop, bodyWidth, bodyHeight);
+    brush.fillRectPx(
+      centerX - bodyWidth * 0.42,
+      bodyTop + bodyHeight,
+      legWidth,
+      legHeight,
+    );
+    brush.strokeRectPx(
+      centerX - bodyWidth * 0.42,
+      bodyTop + bodyHeight,
+      legWidth,
+      legHeight,
+    );
+    brush.fillRectPx(
+      centerX + bodyWidth * 0.14,
+      bodyTop + bodyHeight,
+      legWidth,
+      legHeight,
+    );
+    brush.strokeRectPx(
+      centerX + bodyWidth * 0.14,
+      bodyTop + bodyHeight,
+      legWidth,
+      legHeight,
+    );
+    brush.fillRectPx(headLeft, headTop, headSize, headSize);
+    brush.strokeRectPx(headLeft, headTop, headSize, headSize);
+    final double eyeSize = math.max(1.5, headSize * 0.09);
+    brush.fill = '#101719';
+    brush.fillRectPx(
+      headLeft + headSize * 0.22,
+      headTop + headSize * 0.34,
+      eyeSize,
+      eyeSize,
+    );
+    brush.fillRectPx(
+      headLeft + headSize * 0.68,
+      headTop + headSize * 0.34,
+      eyeSize,
+      eyeSize,
+    );
+    if (width >= 44 && height >= 36) {
       brush.setUiFont(math.min(11, math.max(8, width / 8)), bold: true);
       brush.textAlign = 'center';
-      brush.textBaseline = 'middle';
-      brush.fill = brush.palette.labelMuted;
+      brush.textBaseline = 'top';
+      brush.fill = brush.palette.label;
       brush.fillTextPx(
         brush.ellipsize(key.replaceAll('_', ' '), width - 8),
         left + width / 2,
-        top + height / 2,
+        top,
       );
     }
     brush.restore();

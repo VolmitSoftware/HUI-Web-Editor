@@ -39,6 +39,7 @@ class ScoreboardView extends StatefulWidget {
 
 class _ScoreboardViewState extends State<ScoreboardView> {
   Timer? _ticker;
+  bool _sceneBackdrop = false;
 
   EditorStore get _store => component.store;
 
@@ -117,40 +118,54 @@ class _ScoreboardViewState extends State<ScoreboardView> {
         glossBoardMaxTitleLength;
 
     return dom.div(classes: 'hui-scoreboard-stage', <Widget>[
-      dom.div(classes: 'hui-scoreboard-sky', <Widget>[
-        GlossPreviewZoom(
-          label: 'Scoreboard preview',
-          alignment: GlossPreviewAlignment.end,
-          child: dom.div(classes: 'hui-scoreboard-sidebar', <Widget>[
-            dom.div(classes: 'hui-scoreboard-title', <Widget>[
-              GlossTextLine(
-                render: renderGlossLine(
-                  doc.title,
-                  animations: animations,
-                  emoji: emoji,
-                  nowMs: nowMs,
-                ),
-              ),
-            ]),
-            for (int index = 0; index < rendered; index++)
-              dom.div(classes: 'hui-scoreboard-row', <Widget>[
-                dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
-                  GlossTextLine(
-                    render: renderGlossLine(
-                      doc.lines[index],
-                      animations: animations,
-                      emoji: emoji,
-                      nowMs: nowMs,
-                    ),
+      dom.div(
+        classes: 'hui-scoreboard-sky${_sceneBackdrop ? ' is-scene' : ''}',
+        <Widget>[
+          GlossPreviewZoom(
+            label: 'Scoreboard preview',
+            alignment: _sceneBackdrop
+                ? GlossPreviewAlignment.end
+                : GlossPreviewAlignment.center,
+            child: dom.div(classes: 'hui-scoreboard-sidebar', <Widget>[
+              dom.div(classes: 'hui-scoreboard-title', <Widget>[
+                GlossTextLine(
+                  render: renderGlossLine(
+                    doc.title,
+                    animations: animations,
+                    emoji: emoji,
+                    nowMs: nowMs,
                   ),
-                ]),
-                dom.span(classes: 'hui-scoreboard-score', <Widget>[
-                  Text('${glossBoardScoreForRow(index)}'),
-                ]),
+                ),
               ]),
+              for (int index = 0; index < rendered; index++)
+                dom.div(classes: 'hui-scoreboard-row', <Widget>[
+                  dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
+                    GlossTextLine(
+                      render: renderGlossLine(
+                        doc.lines[index],
+                        animations: animations,
+                        emoji: emoji,
+                        nowMs: nowMs,
+                      ),
+                    ),
+                  ]),
+                  dom.span(classes: 'hui-scoreboard-score', <Widget>[
+                    Text('${glossBoardScoreForRow(index)}'),
+                  ]),
+                ]),
+            ]),
+          ),
+          dom.div(classes: 'hui-scoreboard-view-controls', <Widget>[
+            Button(
+              variant: ButtonVariant.outline,
+              size: ButtonSize.small,
+              onPressed: () => setState(() => _sceneBackdrop = !_sceneBackdrop),
+              icon: ArcaneIcon.image(size: IconSize.sm),
+              label: _sceneBackdrop ? 'Centered stage' : 'Right-side scene',
+            ),
           ]),
-        ),
-      ]),
+        ],
+      ),
       dom.div(classes: 'hui-scoreboard-readout', <Widget>[
         Text(_readout(doc, clipped, titleTruncated)),
       ]),

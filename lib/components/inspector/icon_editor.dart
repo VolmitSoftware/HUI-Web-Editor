@@ -829,6 +829,7 @@ class _ImageIconEditor extends StatelessWidget {
         ImageUploadButton(
           images: images,
           inputId: inputId,
+          label: 'Upload PNG, WebP or GIF',
           onAdded: (List<String> paths) {
             if (paths.isNotEmpty) _setPath(paths.first);
           },
@@ -1052,6 +1053,7 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
     ImageUploadButton(
       images: component.images,
       inputId: component.inputId,
+      label: 'Upload image or GIF frames',
       onAdded: _addFrames,
     ),
   ]);

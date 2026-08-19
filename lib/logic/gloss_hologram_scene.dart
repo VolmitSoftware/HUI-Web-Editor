@@ -202,16 +202,20 @@ bool hologramIsAnimated(
 /// frame the stack and the grid, aimed at the middle of the line stack.
 OrbitCamera hologramDefaultCamera(GlossHologramDoc doc) {
   final List<double> position = doc.anchor.position;
-  final double stackHeight =
-      doc.lines.length * glossHologramLineHeightBlocks;
+  final double stackHeight = doc.lines.length * glossHologramLineHeightBlocks;
   return OrbitCamera(
-    target: PVec3(
-      position[0],
-      position[1] + stackHeight / 2,
-      position[2],
-    ),
+    target: PVec3(position[0], position[1] + stackHeight / 2, position[2]),
     yawDegrees: 180,
     pitchDegrees: -12,
     distance: 6,
   );
+}
+
+OrbitCamera reframeHologramCamera(
+  OrbitCamera camera,
+  PVec3 previousFocus,
+  GlossHologramDoc doc,
+) {
+  final PVec3 nextFocus = hologramDefaultCamera(doc).target;
+  return camera.copyWith(target: camera.target + nextFocus - previousFocus);
 }

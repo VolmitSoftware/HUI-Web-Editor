@@ -17,11 +17,13 @@ import '../model/gloss_bubble_style.dart';
 import 'bubble_lines.dart';
 import 'bubble_stack_math.dart';
 
-/// The canned conversation the preview replays.
 const List<String> glossBubblePreviewMessages = <String>[
-  'Hey! Anyone up for the nether run tonight?',
-  'Sure — let me grab my gear and some golden apples first.',
-  'ok <3',
+  'Magic_Psycho: Important server news: SwiftSwamp smells >.< and I have gathered extremely scientific evidence.',
+  'SwiftSwamp: I reject this allegation. That was clearly Cyberpwn testing a suspicious new particle effect nearby.',
+  'Cyberpwn: The profiler says the smell started exactly when SwiftSwamp joined, but correlation is not causation.',
+  'Puretie: I brought soap, flowers, and a written incident report. We can settle this responsibly at spawn.',
+  'Magic_Psycho: Great. Meeting in five minutes; bring screenshots, snacks, and the animated rainbow evidence.',
+  'SwiftSwamp: Fine, but when I prove it was the swamp biome, everyone owes me diamonds and a public apology.',
 ];
 
 /// Gap between canned messages. Editor fiction: a believable chat rhythm.
@@ -74,8 +76,7 @@ final class GlossBubblePreviewTimeline {
     _periodMs = lastExpiry + 1000;
   }
 
-  final List<({int at, String text})> _spawns =
-      <({int at, String text})>[];
+  final List<({int at, String text})> _spawns = <({int at, String text})>[];
   final double _spread;
   final int _maxAliveMs;
   final bool _flyAway;

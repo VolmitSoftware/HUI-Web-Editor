@@ -49,6 +49,7 @@ class _HologramViewState extends State<HologramView> {
 
   OrbitCamera _camera = const OrbitCamera();
   String? _cameraDocId;
+  PVec3? _cameraFocus;
   bool _dragging = false;
   double _lastX = 0;
   double _lastY = 0;
@@ -89,14 +90,25 @@ class _HologramViewState extends State<HologramView> {
     setState(_syncCameraToDocument);
   }
 
-  /// Re-aims the default orbit when a DIFFERENT document arrives; edits to
-  /// the open one leave the author's camera alone.
+  /// A different document gets its default orbit. Edits to the open document
+  /// preserve the author's orbit but carry its target with a moved anchor.
   void _syncCameraToDocument() {
     final String? activeId = _store.workspace.activeId;
-    if (activeId == _cameraDocId) return;
-    _cameraDocId = activeId;
     final GlossHologramDoc? doc = _store.hologramDoc;
-    if (doc != null) _camera = hologramDefaultCamera(doc);
+    if (doc == null) {
+      _cameraDocId = activeId;
+      _cameraFocus = null;
+      return;
+    }
+    final OrbitCamera defaultCamera = hologramDefaultCamera(doc);
+    final PVec3? previousFocus = _cameraFocus;
+    if (activeId != _cameraDocId || previousFocus == null) {
+      _camera = defaultCamera;
+    } else {
+      _camera = reframeHologramCamera(_camera, previousFocus, doc);
+    }
+    _cameraDocId = activeId;
+    _cameraFocus = defaultCamera.target;
   }
 
   void _observeSize() {
@@ -188,7 +200,10 @@ class _HologramViewState extends State<HologramView> {
   void _resetCamera() {
     final GlossHologramDoc? doc = _store.hologramDoc;
     if (doc == null) return;
-    setState(() => _camera = hologramDefaultCamera(doc));
+    setState(() {
+      _camera = hologramDefaultCamera(doc);
+      _cameraFocus = _camera.target;
+    });
   }
 
   @override

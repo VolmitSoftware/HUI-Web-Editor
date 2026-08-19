@@ -4,6 +4,7 @@
 library;
 
 import 'package:gloss_editor/logic/bubble_preview.dart';
+import 'package:gloss_editor/logic/bubble_lines.dart';
 import 'package:gloss_editor/logic/bubble_stack_math.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
@@ -21,6 +22,27 @@ GlossBubbleStyleDoc _style({
 );
 
 void main() {
+  test(
+    'the showcase conversation is long, named and single-line at max wrap',
+    () {
+      expect(glossBubblePreviewMessages, hasLength(greaterThanOrEqualTo(6)));
+      expect(glossBubblePreviewMessages.join('\n'), contains('Magic_Psycho'));
+      expect(
+        glossBubblePreviewMessages.join('\n'),
+        contains('SwiftSwamp smells >.<'),
+      );
+      expect(glossBubblePreviewMessages.join('\n'), contains('Cyberpwn'));
+      expect(glossBubblePreviewMessages.join('\n'), contains('Puretie'));
+      for (final String message in glossBubblePreviewMessages) {
+        expect(
+          glossBubbleSplit(message, glossBubbleMaxWordWrapChars),
+          hasLength(1),
+          reason: message,
+        );
+      }
+    },
+  );
+
   test('the same millisecond always shows the same stack', () {
     final GlossBubbleStyleDoc style = _style();
     final GlossBubblePreviewTimeline first = GlossBubblePreviewTimeline(style);
@@ -55,9 +77,9 @@ void main() {
     );
     expect(timeline.bubblesAt(0), isNotEmpty);
     expect(
-      timeline.bubblesAt(999).any(
-        (GlossBubblePreviewBubble bubble) => bubble.remainingMs == 1,
-      ),
+      timeline
+          .bubblesAt(999)
+          .any((GlossBubblePreviewBubble bubble) => bubble.remainingMs == 1),
       isTrue,
     );
     // At 1000 the first message's bubbles are gone (second not yet sent
@@ -98,8 +120,11 @@ void main() {
     );
     final double dyingLift = flying.bubblesAt(990).first.offsetY;
     final double steadyLift = grounded.bubblesAt(990).first.offsetY;
-    expect(dyingLift, greaterThan(steadyLift + 5),
-        reason: '10 ms from expiry the launch is near its full 10 blocks');
+    expect(
+      dyingLift,
+      greaterThan(steadyLift + 5),
+      reason: '10 ms from expiry the launch is near its full 10 blocks',
+    );
   });
 
   test('the loop period clears the stage before restarting', () {

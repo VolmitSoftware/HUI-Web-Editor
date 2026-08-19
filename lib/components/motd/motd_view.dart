@@ -180,17 +180,24 @@ class _MotdViewState extends State<MotdView> {
         ]),
       ),
       dom.div(classes: 'hui-motd-readout', <Widget>[
-        Text(_readout(doc, entry, shown)),
+        Text(_readout(doc, entry, shown, animated)),
       ]),
     ]);
   }
 
-  String _readout(GlossMotdDoc doc, GlossMotdEntry? entry, int shown) {
+  String _readout(
+    GlossMotdDoc doc,
+    GlossMotdEntry? entry,
+    int shown,
+    bool animated,
+  ) {
     final List<String> parts = <String>[
       doc.entries.isEmpty
           ? 'no entries'
           : 'entry ${shown + 1} of ${doc.entries.length} — every ping picks '
                 'one at random',
+      if (animated)
+        'animation plays here; Minecraft samples its current frame per ping',
       if (entry != null && entry.lines.length > glossMotdMaxLinesPerEntry)
         'entry has ${entry.lines.length} lines; Gloss rejects past '
             '$glossMotdMaxLinesPerEntry',

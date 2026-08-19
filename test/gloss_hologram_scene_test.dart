@@ -44,8 +44,7 @@ void main() {
 
   group('billboard placement', () {
     test('an anchor dead ahead lands at the viewport centre', () {
-      final HologramBillboardPlacement? placement =
-          hologramBillboardPlacement(
+      final HologramBillboardPlacement? placement = hologramBillboardPlacement(
         basis: _basis(),
         anchor: _doc().anchor,
         viewportWidth: 800,
@@ -55,19 +54,12 @@ void main() {
       expect(placement!.x, closeTo(400, 1e-6));
       expect(placement.y, closeTo(300, 1e-6));
       expect(placement.distance, closeTo(6, 1e-9));
-      expect(
-        placement.pxPerBlock,
-        closeTo(huiPreviewPerspectivePx / 6, 1e-9),
-      );
+      expect(placement.pxPerBlock, closeTo(huiPreviewPerspectivePx / 6, 1e-9));
     });
 
     test('an anchor behind the camera projects to null', () {
       final CameraBasis basis = CameraBasis.orbit(
-        const OrbitCamera(
-          target: PVec3(0, 64, 0),
-          yawDegrees: 0,
-          distance: 4,
-        ),
+        const OrbitCamera(target: PVec3(0, 64, 0), yawDegrees: 0, distance: 4),
       );
       // Looking along +z from behind the target: a point far behind the
       // camera position.
@@ -103,8 +95,11 @@ void main() {
         viewportHeight: 600,
       );
       const int expected = (glossHologramGridRadiusBlocks * 2 + 1) * 2;
-      expect(segments.length, expected,
-          reason: 'every line survives a camera above the plane');
+      expect(
+        segments.length,
+        expected,
+        reason: 'every line survives a camera above the plane',
+      );
       expect(
         segments.where((HologramGridSegment s) => s.throughAnchor).length,
         2,
@@ -171,5 +166,31 @@ void main() {
       closeTo(64 + glossHologramLineHeightBlocks, 1e-9),
       reason: 'two lines: half the stack above the anchor',
     );
+  });
+
+  test('reframing follows a randomized anchor without losing the orbit', () {
+    const OrbitCamera authored = OrbitCamera(
+      target: PVec3(2, 65, 1),
+      yawDegrees: 137,
+      pitchDegrees: -31,
+      distance: 9,
+    );
+    final GlossHologramDoc moved = GlossHologramDoc(
+      anchor: GlossHologramAnchor(
+        world: 'world',
+        positionRaw: <num>[120, 82, -45],
+      ),
+      lines: <String>['one', 'two', 'three', 'four'],
+    );
+    final OrbitCamera reframed = reframeHologramCamera(
+      authored,
+      hologramDefaultCamera(_doc()).target,
+      moved,
+    );
+
+    expect(reframed.target, const PVec3(122, 83.25, -44));
+    expect(reframed.yawDegrees, authored.yawDegrees);
+    expect(reframed.pitchDegrees, authored.pitchDegrees);
+    expect(reframed.distance, authored.distance);
   });
 }

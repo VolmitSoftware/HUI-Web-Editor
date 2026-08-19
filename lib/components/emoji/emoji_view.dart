@@ -135,22 +135,19 @@ class _EmojiViewState extends State<EmojiView> {
   Widget _chatPreview(GlossEmojiDoc doc, String openId) {
     final String token = ':$openId:';
     final String sample = doc.trigger.isEmpty
-        ? 'Nice one $token'
-        : 'Nice one $token ${doc.trigger}';
-    final String substituted = glossApplyEmoji(
-      sample,
-      _store.workspaceEmoji,
-    );
+        ? 'SwiftSwamp smells >.< $token'
+        : 'SwiftSwamp smells >.< $token ${doc.trigger}';
+    final String substituted = glossApplyEmoji(sample, _store.workspaceEmoji);
     return dom.div(classes: 'hui-emoji-chat', <Widget>[
       dom.div(classes: 'hui-emoji-chat-line is-raw', <Widget>[
         const dom.span(classes: 'hui-emoji-chat-speaker', <Widget>[
-          Text('<Steve>'),
+          Text('<Magic_Psycho>'),
         ]),
         Text(' $sample'),
       ]),
       dom.div(classes: 'hui-emoji-chat-line', <Widget>[
         const dom.span(classes: 'hui-emoji-chat-speaker', <Widget>[
-          Text('<Steve>'),
+          Text('<Magic_Psycho>'),
         ]),
         Text(' $substituted'),
       ]),

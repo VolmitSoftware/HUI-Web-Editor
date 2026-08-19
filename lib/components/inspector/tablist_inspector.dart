@@ -19,12 +19,12 @@ import 'animation_reference_picker.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 
-/// The sample players the live preview resolves, mirroring the surface.
 const List<({String name, String? group, bool op})> _samples =
     <({String name, String? group, bool op})>[
-      (name: 'Steve', group: 'default', op: false),
-      (name: 'Herobrine', group: 'admin', op: true),
-      (name: 'Alex', group: 'vip', op: false),
+      (name: 'Cyberpwn', group: 'owner', op: true),
+      (name: 'Magic_Psycho', group: 'developer', op: false),
+      (name: 'SwiftSwamp', group: 'moderator', op: false),
+      (name: 'Puretie', group: 'vip', op: false),
     ];
 
 class TablistInspector extends StatefulWidget {
@@ -61,25 +61,25 @@ class _TablistInspectorState extends State<TablistInspector> {
     ]);
   }
 
-  Widget _header(GlossTablistDoc doc) =>
-      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
-        dom.div(classes: 'hui-inspector-header is-tablist', <Widget>[
-          const HuiEyebrow('Tablist'),
-          dom.div(classes: 'hui-inspector-title-row', <Widget>[
-            dom.h2(classes: 'hui-inspector-title', <Widget>[
-              Text(_store.menuId),
-            ]),
-            const HuiFieldHelp('tablist.id'),
-          ]),
+  Widget _header(GlossTablistDoc doc) => dom.div(
+    classes: 'hui-inspector-headgroup',
+    <Widget>[
+      dom.div(classes: 'hui-inspector-header is-tablist', <Widget>[
+        const HuiEyebrow('Tablist'),
+        dom.div(classes: 'hui-inspector-title-row', <Widget>[
+          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
+          const HuiFieldHelp('tablist.id'),
         ]),
-        dom.p(classes: 'hui-inspector-lede', <Widget>[
-          Text(
-            'The tab screen: header and footer over the player grid, and '
-            'per-group list names. Revision ${doc.revision} is server-owned '
-            'and travels with the file.',
-          ),
-        ]),
-      ]);
+      ]),
+      dom.p(classes: 'hui-inspector-lede', <Widget>[
+        Text(
+          'The tab screen: header and footer over the player grid, and '
+          'per-group list names. Revision ${doc.revision} is server-owned '
+          'and travels with the file.',
+        ),
+      ]),
+    ],
+  );
 
   Widget _pipelinePreview(String text) =>
       dom.div(classes: 'hui-hologram-line-preview', <Widget>[
@@ -129,13 +129,12 @@ class _TablistInspectorState extends State<TablistInspector> {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: '&d&lGloss',
-            onInput: (String value) => _store.mutateTablist(
-              'tablist header',
-              (GlossTablistDoc edited) {
-                edited.header = value;
-                edited.absentKeys.remove('header');
-              },
-            ),
+            onInput: (String value) => _store.mutateTablist('tablist header', (
+              GlossTablistDoc edited,
+            ) {
+              edited.header = value;
+              edited.absentKeys.remove('header');
+            }),
             onFocus: () => _focused = _Focus.header,
             attributes: const <String, String>{
               'autocomplete': 'off',
@@ -156,13 +155,12 @@ class _TablistInspectorState extends State<TablistInspector> {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: '&7VolmitSoftware.com',
-            onInput: (String value) => _store.mutateTablist(
-              'tablist footer',
-              (GlossTablistDoc edited) {
-                edited.footer = value;
-                edited.absentKeys.remove('footer');
-              },
-            ),
+            onInput: (String value) => _store.mutateTablist('tablist footer', (
+              GlossTablistDoc edited,
+            ) {
+              edited.footer = value;
+              edited.absentKeys.remove('footer');
+            }),
             onFocus: () => _focused = _Focus.footer,
             attributes: const <String, String>{
               'autocomplete': 'off',
@@ -206,19 +204,17 @@ class _TablistInspectorState extends State<TablistInspector> {
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
           icon: ArcaneIcon.plus(size: IconSize.sm),
-          onPressed: () => _store.mutateTablist(
-            'add format',
-            (GlossTablistDoc edited) {
-              String key = 'group';
-              int suffix = 2;
-              while (edited.nameFormats.containsKey(key)) {
-                key = 'group-$suffix';
-                suffix++;
-              }
-              edited.nameFormats[key] = r'&7$player';
-              edited.absentKeys.remove('nameFormats');
-            },
-          ),
+          onPressed: () =>
+              _store.mutateTablist('add format', (GlossTablistDoc edited) {
+                String key = 'group';
+                int suffix = 2;
+                while (edited.nameFormats.containsKey(key)) {
+                  key = 'group-$suffix';
+                  suffix++;
+                }
+                edited.nameFormats[key] = r'&7$player';
+                edited.absentKeys.remove('nameFormats');
+              }),
           child: const Text('Add format'),
         ),
         HuiInlineIssues(_issuesFor(r'$.nameFormats')),
@@ -239,9 +235,7 @@ class _TablistInspectorState extends State<TablistInspector> {
       'title': '$hint Click to append to the focused header/footer field.',
       'aria-label': 'Insert $token',
     },
-    events: <String, EventCallback>{
-      'click': (Object? _) => _insert(token),
-    },
+    events: <String, EventCallback>{'click': (Object? _) => _insert(token)},
     <Widget>[Text(token)],
   );
 
@@ -252,25 +246,23 @@ class _TablistInspectorState extends State<TablistInspector> {
         value: key,
         size: ComponentSize.sm,
         placeholder: 'vip',
-        onInput: (String next) => _store.mutateTablist(
-          'rename format',
-          (GlossTablistDoc edited) {
-            if (!edited.nameFormats.containsKey(key) ||
-                edited.nameFormats.containsKey(next)) {
-              return;
-            }
-            // Rebuild in place to keep the entry's position — the file is
-            // insertion-ordered like the LinkedHashMap the plugin builds.
-            final Map<String, String> rebuilt = <String, String>{
-              for (final MapEntry<String, String> entry
-                  in edited.nameFormats.entries)
-                (entry.key == key ? next : entry.key): entry.value,
-            };
-            edited.nameFormats
-              ..clear()
-              ..addAll(rebuilt);
-          },
-        ),
+        onInput: (String next) =>
+            _store.mutateTablist('rename format', (GlossTablistDoc edited) {
+              if (!edited.nameFormats.containsKey(key) ||
+                  edited.nameFormats.containsKey(next)) {
+                return;
+              }
+              // Rebuild in place to keep the entry's position — the file is
+              // insertion-ordered like the LinkedHashMap the plugin builds.
+              final Map<String, String> rebuilt = <String, String>{
+                for (final MapEntry<String, String> entry
+                    in edited.nameFormats.entries)
+                  (entry.key == key ? next : entry.key): entry.value,
+              };
+              edited.nameFormats
+                ..clear()
+                ..addAll(rebuilt);
+            }),
         attributes: const <String, String>{
           'autocomplete': 'off',
           'spellcheck': 'false',
@@ -282,14 +274,12 @@ class _TablistInspectorState extends State<TablistInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: r'&7$player',
-        onInput: (String next) => _store.mutateTablist(
-          'edit format',
-          (GlossTablistDoc edited) {
-            if (edited.nameFormats.containsKey(key)) {
-              edited.nameFormats[key] = next;
-            }
-          },
-        ),
+        onInput: (String next) =>
+            _store.mutateTablist('edit format', (GlossTablistDoc edited) {
+              if (edited.nameFormats.containsKey(key)) {
+                edited.nameFormats[key] = next;
+              }
+            }),
         attributes: <String, String>{
           'autocomplete': 'off',
           'spellcheck': 'false',
@@ -307,24 +297,28 @@ class _TablistInspectorState extends State<TablistInspector> {
     ]);
   }
 
-  Widget _livePreview(GlossTablistDoc doc) => dom.div(
-    classes: 'hui-tablist-live-preview',
-    <Widget>[
-      const HuiEyebrow('Live preview'),
-      for (final ({String name, String? group, bool op}) sample in _samples)
-        dom.div(classes: 'hui-tablist-live-row', <Widget>[
-          dom.span(classes: 'hui-tablist-live-meta', <Widget>[
-            Text(
-              '${sample.name} — '
-              '${sample.op ? 'op, ' : ''}group ${sample.group ?? 'none'}',
-            ),
+  Widget _livePreview(GlossTablistDoc doc) =>
+      dom.div(classes: 'hui-tablist-live-preview', <Widget>[
+        const HuiEyebrow('Live preview'),
+        for (final ({String name, String? group, bool op}) sample in _samples)
+          dom.div(classes: 'hui-tablist-live-row', <Widget>[
+            dom.span(classes: 'hui-tablist-live-meta', <Widget>[
+              Text(
+                '${sample.name} — '
+                '${sample.op ? 'op, ' : ''}group ${sample.group ?? 'none'}',
+              ),
+            ]),
+            dom.span(classes: 'hui-tablist-live-name', <Widget>[
+              GlossTextLine(
+                render: renderGlossLine(
+                  _resolved(doc, sample),
+                  animations: _store.workspaceAnimations,
+                  emoji: _store.workspaceEmoji,
+                ),
+              ),
+            ]),
           ]),
-          dom.span(classes: 'hui-tablist-live-name', <Widget>[
-            GlossTextLine(render: renderGlossLine(_resolved(doc, sample))),
-          ]),
-        ]),
-    ],
-  );
+      ]);
 
   String _resolved(
     GlossTablistDoc doc,

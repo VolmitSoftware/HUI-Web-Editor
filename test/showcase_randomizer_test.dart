@@ -3,6 +3,7 @@ library;
 import 'dart:math' as math;
 
 import 'package:gloss_editor/doctype/doctype.dart';
+import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:gloss_editor/services/showcase_randomizer.dart';
@@ -134,8 +135,47 @@ void main() {
       isTrue,
     );
     expect(
-      motd.entries.expand((GlossMotdEntry entry) => entry.lines),
-      contains('|animation.rainbow|'),
+      motd.entries.every(
+        (GlossMotdEntry entry) => entry.lines.any(
+          (String line) => line.contains('|animation.rainbow|'),
+        ),
+      ),
+      isTrue,
+      reason: 'every entry should visibly animate when randomization opens it',
+    );
+
+    final EditorStore motdStore = _store();
+    DocumentTypes.motd.createNew(motdStore);
+    final String motdId = motdStore.workspace.activeId!;
+    expect(
+      randomizeShowcaseDocument(motdStore, motdId, random: math.Random(4)),
+      isTrue,
+    );
+    final String animatedLine = motdStore.motdDoc!.entries.first.lines.last;
+    final GlossLineRender firstFrame = renderGlossLine(
+      animatedLine,
+      animations: motdStore.workspaceAnimations,
+      nowMs: 0,
+    );
+    final GlossLineRender secondFrame = renderGlossLine(
+      animatedLine,
+      animations: motdStore.workspaceAnimations,
+      nowMs: 500,
+    );
+    expect(firstFrame.isAnimated, isTrue);
+    expect(secondFrame.isAnimated, isTrue);
+    final List<int> firstColors = firstFrame.pieces
+        .whereType<GlossTextRun>()
+        .map((GlossTextRun run) => run.span.color)
+        .toList();
+    final List<int> secondColors = secondFrame.pieces
+        .whereType<GlossTextRun>()
+        .map((GlossTextRun run) => run.span.color)
+        .toList();
+    expect(
+      firstColors,
+      isNot(secondColors),
+      reason: 'the shipped rainbow changes its rendered colour every 500 ms',
     );
 
     final GlossScoreboardDoc scoreboard = buildRandomScoreboardShowcase(
@@ -148,6 +188,37 @@ void main() {
     expect(
       scoreboard.lines.any((String line) => line.contains('%player_name%')),
       isTrue,
+    );
+    expect(scoreboard.lines.join('\n'), contains('Magic_Psycho'));
+    expect(scoreboard.lines.join('\n'), contains('SwiftSwamp smells >.<'));
+
+    final GlossHologramDoc hologram = buildRandomHologramShowcase(
+      GlossHologramDoc(revision: 3),
+      math.Random(4),
+    );
+    expect(hologram.lines.join('\n'), contains('Cyberpwn'));
+    expect(hologram.lines.join('\n'), contains('Puretie'));
+
+    final GlossBubbleStyleDoc bubble = buildRandomBubbleShowcase(
+      GlossBubbleStyleDoc(revision: 5),
+      math.Random(4),
+    );
+    expect(bubble.effectiveWordWrapChars, glossBubbleMaxWordWrapChars);
+    expect(bubble.effectiveMaxAliveMs, greaterThanOrEqualTo(12000));
+    expect(bubble.effectivePrefix, isNotEmpty);
+
+    final GlossTablistDoc tablist = buildRandomTablistShowcase(
+      GlossTablistDoc(revision: 6),
+      math.Random(4),
+    );
+    expect(tablist.header, contains('|animation.rainbow|'));
+    expect(tablist.footer, contains('Magic_Psycho'));
+    expect(tablist.footer, contains('SwiftSwamp'));
+    expect(tablist.footer, contains('Cyberpwn'));
+    expect(tablist.footer, contains('Puretie'));
+    expect(
+      tablist.effectiveNameFormats.keys,
+      containsAll(<String>['_op', 'owner', 'developer', 'moderator', 'vip']),
     );
   });
 

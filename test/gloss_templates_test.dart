@@ -152,6 +152,13 @@ void main() {
   test('the motd showcase builds without errors', () {
     final GlossMotdDoc doc = buildShowcaseGlossMotd();
     expect(doc.entries, hasLength(4));
+    expect(
+      doc.entries.first.lines.any(
+        (String line) => line.contains('|animation.rainbow|'),
+      ),
+      isTrue,
+      reason: 'the initially previewed entry should demonstrate animation',
+    );
     final List<HuiIssue> issues = validateMotdDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),

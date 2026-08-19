@@ -213,9 +213,11 @@ GlossHologramDoc buildRandomHologramShowcase(
   ),
   lines: <String>[
     '[FF55FF]&lGloss Hologram',
-    '&7Welcome, &f%player_name%',
+    '&7Magic_Psycho &8• &fCyberpwn',
     '|animation.rainbow|',
-    '&b:heart: &7Live text, colour and emoji',
+    '&bPuretie: &fSwiftSwamp smells >.<',
+    '&d:heart: &7Live colour + emoji',
+    '&7Placeholder: &f%player_name%',
   ],
 );
 
@@ -245,17 +247,19 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
   revision: current.revision,
   title: '[FF55FF]&lGLOSS',
   lines: <String>[
-    '&7Player: &fAlex',
-    '&7Rank: &6VIP',
+    '&7Player: &f%player_name%',
+    '&7Rank: &6Architect',
+    '',
+    '&dMagic_Psycho &a●',
+    '&bCyberpwn &a●',
+    '&6Puretie &a●',
+    '&5SwiftSwamp &eAFK',
     '',
     '&7Online: &a${12 + random.nextInt(188)}&8/&a200',
     '&7Balance: &6\$${500 + random.nextInt(49500)}',
-    '&7Kills: &c${random.nextInt(500)}',
     '&7TPS: &a20.0',
-    '',
     '|animation.rainbow|',
-    '&d:heart: &f%player_name%',
-    '[55FFFF]play.example.net',
+    '&dSwiftSwamp smells >.<',
   ],
   primary: random.nextBool(),
   permission: random.nextBool() ? 'default' : 'vip',
@@ -271,16 +275,24 @@ GlossMotdDoc buildRandomMotdShowcase(
   entries: <GlossMotdEntry>[
     GlossMotdEntry(
       lines: <String>[
-        '[FF55FF]&lGloss Network &8- &7Season ${2 + random.nextInt(9)}',
-        '&7Join &a${20 + random.nextInt(180)} &7players online',
+        '[FF55FF]&lGloss Network &8- &7Magic_Psycho hosts Season ${2 + random.nextInt(9)}',
+        '&7Join &a${20 + random.nextInt(180)} &7players with &bCyberpwn &8• |animation.rainbow|',
       ],
     ),
     GlossMotdEntry(
-      lines: <String>['&6&lWeekend event!', '|animation.rainbow|'],
+      lines: <String>[
+        '&6&lPuretie\'s weekend event!',
+        '&7Status: |animation.rainbow|',
+      ],
     ),
-    GlossMotdEntry(lines: <String>['&d:heart: &fWelcome, %player_name%']),
     GlossMotdEntry(
-      lines: <String>['&bNew worlds. New menus.', '&7play.example.net'],
+      lines: <String>['|animation.rainbow| &d:heart: &fSwiftSwamp smells >.<'],
+    ),
+    GlossMotdEntry(
+      lines: <String>[
+        '&bNew worlds. New menus.',
+        '|animation.rainbow| &8• &7play.example.net',
+      ],
     ),
   ],
 );
@@ -311,18 +323,22 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
 ) => GlossBubbleStyleDoc(
   schemaVersion: current.schemaVersion,
   revision: current.revision,
-  prefix: <String>['&7', '&d', '[55FFFF]'][random.nextInt(3)],
-  offsetRaw: <num>[0, 0.8 + random.nextDouble() * 1.2, 0],
-  wordWrapChars: 18 + random.nextInt(31),
-  lineStaggerTicks: 2 + random.nextInt(11),
-  maxAliveMs: 2500 + random.nextInt(7501),
-  flyAway: random.nextBool(),
-  followPlayer: random.nextBool(),
+  prefix: '|animation.rainbow| &f',
+  offsetRaw: <num>[
+    _round((random.nextDouble() - 0.5) * 1.2),
+    _round(1.2 + random.nextDouble() * 1.4),
+    _round((random.nextDouble() - 0.5) * 0.8),
+  ],
+  wordWrapChars: glossBubbleMaxWordWrapChars,
+  lineStaggerTicks: random.nextInt(5),
+  maxAliveMs: 12000 + random.nextInt(12001),
+  flyAway: true,
+  followPlayer: true,
   hideOwn: random.nextBool(),
   select: GlossBubbleSelect(
-    worlds: <String>['world*'],
-    groups: <String>['vip'],
-    priority: 1 + random.nextInt(20),
+    worlds: <String>['world*', 'spawn*'],
+    groups: <String>['owner', 'developer', 'vip'],
+    priority: 10 + random.nextInt(41),
   ),
 );
 
@@ -333,13 +349,21 @@ GlossTablistDoc buildRandomTablistShowcase(
   schemaVersion: current.schemaVersion,
   revision: current.revision,
   useHeaderFooter: true,
-  header: '[FF55FF]&lGLOSS\n&7Season ${2 + random.nextInt(9)}',
-  footer: '|animation.rainbow|\n&bplay.example.net',
+  header:
+      '|animation.rainbow| &fNETWORK\n'
+      '[FF55FF]&lSeason ${2 + random.nextInt(9)}\n'
+      '&7Online: &a${40 + random.nextInt(160)} &8• &7TPS: &a20.0',
+  footer:
+      '&7Magic_Psycho &8• &7SwiftSwamp &8• &7Cyberpwn &8• &7Puretie\n'
+      '&bplay.volmitsoftware.com &8• &d:heart:',
   groupListNames: true,
   nameFormats: <String, String>{
-    'default': '&7\$player',
-    '_op': '&c[OP] &f\$player',
-    'vip': '&6[\$group] &f\$player',
+    'default': r'&7[Player] &f$player',
+    '_op': r'|animation.rainbow| &c[Founder] &f$player',
+    'owner': r'&d[Owner] &f$player',
+    'developer': r'&b[Developer] &f$player',
+    'moderator': r'&a[Moderator] &f$player',
+    'vip': r'&6[$group] &f$player',
   },
 );
 

@@ -7,26 +7,35 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:js_interop';
 import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
 
-typedef DecodedImageFile = ({
+import 'gif_frame_codec.dart';
+
+typedef DecodedImageFile = ({String dataUri, int width, int height});
+
+typedef DecodedImageBatch = ({
   String name,
-  String dataUri,
-  int width,
-  int height,
+  List<DecodedImageFile> frames,
+  int totalFrames,
 });
 
 typedef DecodedPixels = ({int width, int height, List<int> argb});
 
 const int maxDecodablePixels = 2048 * 2048;
+const int maxDecodedAnimationFrames = maxImportedGifFrames;
 
 /// [file] must be a `package:web` `File`; it is typed as [Object] so the
 /// pure-Dart facade never has to import `dart:js_interop`.
-Future<DecodedImageFile?> decodeImageFileToPng(Object file) async {
+Future<DecodedImageBatch?> decodeImageFileToPngFrames(Object file) async {
   final web.File source = file as web.File;
+  if (source.type.toLowerCase() == 'image/gif' ||
+      source.name.toLowerCase().endsWith('.gif')) {
+    return _decodeGif(source);
+  }
   final String url = web.URL.createObjectURL(source);
   try {
     final web.HTMLImageElement image = await _loadImage(url);
@@ -42,14 +51,43 @@ Future<DecodedImageFile?> decodeImageFileToPng(Object file) async {
     context.drawImage(image, 0, 0);
     return (
       name: source.name,
-      dataUri: context.canvas.toDataURL('image/png'),
-      width: width,
-      height: height,
+      frames: <DecodedImageFile>[
+        (
+          dataUri: context.canvas.toDataURL('image/png'),
+          width: width,
+          height: height,
+        ),
+      ],
+      totalFrames: 1,
     );
   } catch (_) {
     return null;
   } finally {
     web.URL.revokeObjectURL(url);
+  }
+}
+
+Future<DecodedImageBatch?> _decodeGif(web.File source) async {
+  try {
+    final JSArrayBuffer buffer = await source.arrayBuffer().toDart;
+    final Uint8List bytes = buffer.toDart.asUint8List();
+    final GifPngAnimation? decoded = decodeGifPngAnimation(bytes);
+    if (decoded == null) return null;
+    final List<DecodedImageFile> frames = <DecodedImageFile>[];
+    for (final GifPngFrame frame in decoded.frames) {
+      frames.add((
+        dataUri: 'data:image/png;base64,${base64Encode(frame.bytes)}',
+        width: frame.width,
+        height: frame.height,
+      ));
+    }
+    return (
+      name: source.name,
+      frames: frames,
+      totalFrames: decoded.totalFrames,
+    );
+  } catch (_) {
+    return null;
   }
 }
 

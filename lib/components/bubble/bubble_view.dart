@@ -133,7 +133,9 @@ class _BubbleViewState extends State<BubbleView> {
     }
     _syncTicker();
     final GlossBubblePreviewTimeline timeline = _timelineFor(doc);
-    final List<GlossBubblePreviewBubble> bubbles = timeline.bubblesAt(_nowMs());
+    final int nowMs = _nowMs();
+    final List<GlossBubblePreviewBubble> bubbles = timeline.bubblesAt(nowMs);
+    final List<double> offset = doc.offset;
 
     return dom.div(classes: 'hui-bubble-stage', <Widget>[
       dom.div(classes: 'hui-bubble-sky', <Widget>[
@@ -147,7 +149,9 @@ class _BubbleViewState extends State<BubbleView> {
                 styles: dom.Styles(
                   raw: <String, String>{
                     'bottom':
-                        '${(bubble.offsetY * _pixelsPerBlock).toStringAsFixed(1)}px',
+                        '${((bubble.offsetY + offset[1]) * _pixelsPerBlock).toStringAsFixed(1)}px',
+                    'left':
+                        'calc(50% + ${(offset[0] * _pixelsPerBlock).toStringAsFixed(1)}px)',
                     'opacity': bubble.remainingMs < 400
                         ? (bubble.remainingMs / 400).toStringAsFixed(2)
                         : '1',
@@ -157,7 +161,9 @@ class _BubbleViewState extends State<BubbleView> {
                   GlossTextLine(
                     render: renderGlossLine(
                       doc.effectivePrefix + bubble.text,
+                      animations: _store.workspaceAnimations,
                       emoji: _store.workspaceEmoji,
+                      nowMs: nowMs,
                     ),
                   ),
                 ],
@@ -192,6 +198,7 @@ class _BubbleViewState extends State<BubbleView> {
   String _readout(GlossBubbleStyleDoc doc) {
     final List<String> parts = <String>[
       'wrap ${doc.effectiveWordWrapChars} chars',
+      'offset ${doc.offset.map((double value) => value.toStringAsFixed(1)).join(', ')}',
       'stagger ${doc.effectiveLineStaggerTicks} ticks '
           '(${doc.effectiveLineStaggerTicks * 50} ms)',
       'alive ${doc.effectiveMaxAliveMs} ms',

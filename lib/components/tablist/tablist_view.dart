@@ -35,12 +35,11 @@ const Duration _tickPeriod = Duration(milliseconds: 100);
 /// One mock player row.
 typedef _MockPlayer = ({String name, String? group, bool op, int pingBars});
 
-/// The three sample players whose names resolve through `chooseListName`,
-/// then cosmetic filler the client would show anyway.
 const List<_MockPlayer> _players = <_MockPlayer>[
-  (name: 'Steve', group: 'default', op: false, pingBars: 5),
-  (name: 'Herobrine', group: 'admin', op: true, pingBars: 4),
-  (name: 'Alex', group: 'vip', op: false, pingBars: 5),
+  (name: 'Cyberpwn', group: 'owner', op: true, pingBars: 5),
+  (name: 'Magic_Psycho', group: 'developer', op: false, pingBars: 5),
+  (name: 'SwiftSwamp', group: 'moderator', op: false, pingBars: 4),
+  (name: 'Puretie', group: 'vip', op: false, pingBars: 5),
   (name: 'Squid', group: null, op: false, pingBars: 3),
   (name: 'Creeper_Fan', group: null, op: false, pingBars: 5),
   (name: 'RedstoneRik', group: null, op: false, pingBars: 4),
@@ -221,7 +220,8 @@ class _TablistViewState extends State<TablistView> {
           : 'header/footer off — the tab screen keeps its vanilla top and '
                 'bottom',
       doc.groupListNames
-          ? 'list names: Steve→default, Herobrine→_op (op), Alex→vip'
+          ? 'list names: Cyberpwn→_op, Magic_Psycho→developer, '
+                'SwiftSwamp→moderator, Puretie→vip'
           : 'list names vanilla (groupListNames off)',
       'ping bars and filler players are client cosmetics',
     ];

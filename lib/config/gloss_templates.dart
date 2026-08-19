@@ -165,7 +165,7 @@ const String kGlossMotdShowcaseJson = r'''
     {
       "lines": [
         "[FF55FF]&lMy Server &8- &7Season 4",
-        "&7Now with &dGloss"
+        "&7Now with |animation.rainbow|"
       ]
     },
     {

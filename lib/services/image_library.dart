@@ -35,6 +35,7 @@ const int huiRecommendedMaxImageDimension = 64;
 /// it. Gloss images are a couple of KB.
 const int huiMaxStoredImageBytes = 512 * 1024;
 const int huiMaxDecodedImagePixels = 2048 * 2048;
+const int huiMaxImportedAnimationFrames = maxDecodedAnimationFrames;
 const String huiNormalizedPngDataUriPrefix = 'data:image/png;base64,';
 
 typedef ImageStorageWriter = bool Function(String key, String value);
@@ -593,40 +594,76 @@ class ImageLibrary extends ChangeNotifier {
     final List<String> errors = <String>[];
     final List<String> warnings = <String>[];
     for (final Object file in files) {
-      final DecodedImageFile? decoded = await decodeImageFileToPng(file);
-      if (decoded == null) {
+      final DecodedImageBatch? decoded = await decodeImageFileToPngFrames(file);
+      if (decoded == null || decoded.frames.isEmpty) {
         errors.add('A file could not be decoded as an image and was skipped.');
         continue;
       }
-      final int bytes = decodeDataUriBytes(decoded.dataUri)?.length ?? 0;
-      String path = _withPngExtension(sanitizeImagePath(decoded.name));
-      if (bytes > huiMaxStoredImageBytes) {
-        errors.add(
-          '"$path" is ${(bytes / 1024).round()} KB after conversion; the limit is '
-          '${huiMaxStoredImageBytes ~/ 1024} KB. Scale it down before uploading.',
+      final bool animated = decoded.totalFrames > 1;
+      final List<StoredImage> fileCandidates = <StoredImage>[];
+      String? fileError;
+      for (int index = 0; index < decoded.frames.length; index++) {
+        final DecodedImageFile frame = decoded.frames[index];
+        final int bytes = decodeDataUriBytes(frame.dataUri)?.length ?? 0;
+        String path = animated
+            ? animationFrameImagePath(decoded.name, index)
+            : _withPngExtension(sanitizeImagePath(decoded.name));
+        if (bytes > huiMaxStoredImageBytes) {
+          fileError =
+              '"$path" is ${(bytes / 1024).round()} KB after conversion; the limit is '
+              '${huiMaxStoredImageBytes ~/ 1024} KB. Scale it down before uploading.';
+          break;
+        }
+        if (!replaceExisting &&
+            (_paths.contains(path) ||
+                candidates.any((StoredImage image) => image.path == path) ||
+                fileCandidates.any(
+                  (StoredImage image) => image.path == path,
+                ))) {
+          path = _uniquePath(path, <StoredImage>[
+            ...candidates,
+            ...fileCandidates,
+          ]);
+        }
+        fileCandidates.add(
+          StoredImage(
+            path: path,
+            dataUri: frame.dataUri,
+            width: frame.width,
+            height: frame.height,
+          ),
         );
+      }
+      if (fileError != null) {
+        errors.add(fileError);
         continue;
       }
-      if (!replaceExisting &&
-          (_paths.contains(path) ||
-              candidates.any((StoredImage c) => c.path == path))) {
-        path = _uniquePath(path, candidates);
-      }
-      final StoredImage image = StoredImage(
-        path: path,
-        dataUri: decoded.dataUri,
-        width: decoded.width,
-        height: decoded.height,
-      );
-      if (image.isOversized) {
+      if (fileCandidates.any((StoredImage image) => image.isOversized)) {
+        final StoredImage image = fileCandidates.firstWhere(
+          (StoredImage candidate) => candidate.isOversized,
+        );
         warnings.add(
-          '"$path" is ${image.width}x${image.height}. Gloss renders one text display '
+          '"${decoded.name}" is ${image.width}x${image.height}. Gloss renders one text display '
           'per row and one character per pixel; keep images at or under '
           '${huiRecommendedMaxImageDimension}x$huiRecommendedMaxImageDimension.',
         );
       }
-      candidates.removeWhere((StoredImage c) => c.path == path);
-      candidates.add(image);
+      if (animated) {
+        warnings.add(
+          decoded.totalFrames > decoded.frames.length
+              ? 'Expanded "${decoded.name}" into ${decoded.frames.length} PNG frames; '
+                    '${decoded.totalFrames - decoded.frames.length} frames were omitted at the '
+                    '$huiMaxImportedAnimationFrames-frame import limit.'
+              : 'Expanded "${decoded.name}" into ${decoded.frames.length} PNG frames for '
+                    'an animatedTextImage icon.',
+        );
+      }
+      for (final StoredImage image in fileCandidates) {
+        candidates.removeWhere(
+          (StoredImage candidate) => candidate.path == image.path,
+        );
+        candidates.add(image);
+      }
     }
     if (candidates.isEmpty) {
       return ImageAddOutcome(
@@ -887,4 +924,17 @@ class ImageLibrary extends ChangeNotifier {
     }
     return '$path.png';
   }
+}
+
+String animationFrameImagePath(String sourceName, int frameIndex) {
+  final String path = sanitizeImagePath(sourceName);
+  final int dot = path.lastIndexOf('.');
+  final int slash = path.lastIndexOf('/');
+  String stem = dot > slash && dot > 0 ? path.substring(0, dot) : path;
+  const int reserved = 14;
+  if (stem.length > huiMaxImagePathLength - reserved) {
+    stem = stem.substring(0, huiMaxImagePathLength - reserved);
+  }
+  final String number = (frameIndex + 1).toString().padLeft(3, '0');
+  return '$stem/frame-$number.png';
 }
