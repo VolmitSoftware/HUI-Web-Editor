@@ -284,6 +284,15 @@
   color: var(--color-destructive);
 }
 
+/* |metric.<key>| — a live sample from another Volmit plugin, so the editor
+   shows the token rather than a number it cannot read. */
+.hui-gloss-chip.is-metric {
+  border-style: dotted;
+  border-color: color-mix(in srgb, var(--color-muted-foreground) 65%, transparent);
+  background: color-mix(in srgb, var(--color-muted-foreground) 10%, transparent);
+  color: var(--color-muted-foreground);
+}
+
 .hui-hologram-line-row.is-beyond-render { opacity: 0.55; }
 
 .hui-scoreboard-group-row {

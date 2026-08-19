@@ -477,7 +477,12 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     }
     _syncSim(doc, component.store.previewRevision);
     final List<String> errors = <String>[];
-    _scene = buildCardScene(doc, _sim, onError: errors.add);
+    _scene = buildCardScene(
+      doc,
+      _sim,
+      onError: errors.add,
+      emoji: component.store.workspaceEmoji,
+    );
     _buildErrors = errors;
     return _scene;
   }

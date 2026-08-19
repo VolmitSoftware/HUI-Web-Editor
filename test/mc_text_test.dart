@@ -147,6 +147,45 @@ void main() {
     });
   });
 
+  group('legacy hex sequences', () {
+    // `TextUtils.legacyHex`: the `&x&r&r&g&g&b&b` form Bungee's ChatColor
+    // serializes a hex colour to. It is checked BEFORE the single-character
+    // codes, so the six pairs never read as six colours.
+    String bungee(String hex) =>
+        '§x${hex.split('').map((String d) => '§$d').join()}';
+
+    test('the ampersand form becomes one colour', () {
+      final McSpan span = onlySpan('&x&f&f&8&8&0&0Sale');
+      expect(span.text, 'Sale');
+      expect(span.rgb, 0xFF8800);
+    });
+
+    test('the section form becomes the same colour', () {
+      expect(onlySpan('${bungee('ff8800')}Sale').rgb, 0xFF8800);
+    });
+
+    test('mixed markers and mixed case parse', () {
+      expect(onlySpan('&x§F&f§8&8§0&0X').rgb, 0xFF8800);
+    });
+
+    test('a truncated sequence stays literal', () {
+      // One pair short: the leading `&x` is not a known code, and the pairs
+      // that follow fall through to the single-character translation.
+      final List<McSpan> spans = onlyLine('&x&f&f&8&8&0X');
+      expect(spans.first.text, '&x', reason: '&x is not a colour code');
+      expect(spans.last.text, 'X');
+      expect(spans.last.rgb, 0x000000, reason: 'the trailing &0 coloured it');
+    });
+
+    test('a non-hex digit stays literal', () {
+      expect(onlyLine('&x&f&f&8&8&0&zX').first.text, startsWith('&x'));
+    });
+
+    test('the sequence costs no visible characters', () {
+      expect(parseMcText('&x&f&f&8&8&0&0Sale').maxLineLength, 4);
+    });
+  });
+
   group('MiniMessage colours', () {
     test('named colour tags', () {
       expect(onlySpan('<gold>X').rgb, 0xFFAA00);

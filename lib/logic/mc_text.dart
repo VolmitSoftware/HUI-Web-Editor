@@ -1,7 +1,13 @@
 /// Minecraft text parsing for the HoloUI editor preview.
 ///
 /// Mirrors the plugin pipeline in `util/common/TextUtils.java`: legacy `&` and
-/// `§` codes are converted to valid MiniMessage tags before parsing.
+/// `§` codes — including the `&x&r&r&g&g&b&b` hex form — are converted to valid
+/// MiniMessage tags before parsing.
+///
+/// This is only `TextUtils.parse`. A menu text icon reaches it through
+/// `TextPipeline.menuText` first (emoji substitution, then the `[RRGGBB]`
+/// bracket-hex translation): see `glossRenderMenuText` in `logic/gloss_text.dart`,
+/// which is what [McTextCache] applies before parsing.
 ///
 /// Line splitting happens BEFORE parsing (`TextMenuIcon` splits on `\n` and
 /// parses each line on its own), so tag state never carries across lines.
@@ -220,6 +226,15 @@ const Map<String, String> _legacyCodeTags = <String, String>{
 String _legacyToMiniMessage(String line) {
   final StringBuffer out = StringBuffer();
   for (int i = 0; i < line.length; i++) {
+    // The hex form is checked first, exactly as `TextUtils.translateLegacy`
+    // does: `&x&f&f&0&0&0&0` is one 14-character token, not `&x` followed by
+    // six colour codes.
+    final String? hex = _legacyHex(line, i);
+    if (hex != null) {
+      out.write(hex);
+      i += 13;
+      continue;
+    }
     final String prefix = line[i];
     if ((prefix == '&' || prefix == '§') && i + 1 < line.length) {
       final String? tag = _legacyCodeTags[line[i + 1].toLowerCase()];
@@ -232,6 +247,32 @@ String _legacyToMiniMessage(String line) {
     out.write(line[i]);
   }
   return out.toString();
+}
+
+/// `TextUtils.legacyHex`: an `&`/`§` marker, `x`, then six `&<hex digit>` pairs
+/// become `<#rrggbb>`. One character short of the full token and it stays
+/// literal — the Java guard is `offset + 13 >= text.length()`.
+String? _legacyHex(String text, int offset) {
+  if (offset + 13 >= text.length) return null;
+  final String marker = text[offset];
+  if (marker != '&' && marker != '§') return null;
+  if (text[offset + 1].toLowerCase() != 'x') return null;
+  final StringBuffer hex = StringBuffer('<#');
+  for (int index = offset + 2; index < offset + 14; index += 2) {
+    final String lead = text[index];
+    final String digit = text[index + 1];
+    if ((lead != '&' && lead != '§') || !_isHexDigit(digit)) return null;
+    hex.write(digit);
+  }
+  return (hex..write('>')).toString();
+}
+
+/// `Character.digit(c, 16) >= 0`.
+bool _isHexDigit(String char) {
+  final int code = char.codeUnitAt(0);
+  return (code >= 0x30 && code <= 0x39) ||
+      (code >= 0x61 && code <= 0x66) ||
+      (code >= 0x41 && code <= 0x46);
 }
 
 // ---------------------------------------------------------------------------

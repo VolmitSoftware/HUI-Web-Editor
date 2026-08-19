@@ -152,5 +152,16 @@ void main() {
         ..groups = <String>['vip', 'mvp'];
       expect(validateScoreboardDoc(doc), isEmpty);
     });
+
+    test('metric references in the title and the lines are one note', () {
+      final GlossScoreboardDoc doc = _valid()
+        ..title = '&aTPS |metric.react.tps|'
+        ..lines.add('|metric.iris.chunks|');
+      final HuiIssue info = validateScoreboardDoc(doc).single;
+      expect(info.severity, HuiSeverity.info);
+      expect(info.path, r'$');
+      expect(info.message, contains('react.tps'));
+      expect(info.message, contains('iris.chunks'));
+    });
   });
 }

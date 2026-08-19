@@ -158,6 +158,12 @@ List<HuiIssue> validateScoreboardDoc(
     );
   }
 
+  final HuiIssue? metrics = glossMetricInfo(<String>[
+    doc.title,
+    ...doc.lines,
+  ]);
+  if (metrics != null) issues.add(metrics);
+
   return issues;
 }
 

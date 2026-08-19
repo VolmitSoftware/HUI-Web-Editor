@@ -3,18 +3,23 @@
 /// Rendered as styled DOM spans rather than on a canvas so it stays selectable,
 /// scales with the browser and needs no paint loop. The parse comes from
 /// `logic/mc_text.dart`, which mirrors the plugin's `TextUtils.parse` exactly —
-/// including the two legacy codes that turn into literal text in game.
+/// including the two legacy codes that turn into literal text in game — behind
+/// `glossRenderMenuText`, the emoji and bracket-hex prelude `TextMenuIcon`
+/// runs before it.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
+import '../../logic/gloss_text.dart'
+    show GlossEmojiResolver, GlossNoEmoji, glossRenderMenuText;
 import '../../logic/mc_text.dart';
 import '../common/common.dart';
 
 class McTextPreview extends StatelessWidget {
   const McTextPreview({
     required this.raw,
+    this.emoji = const GlossNoEmoji(),
     this.showWarnings = true,
     this.showMetrics = true,
     this.classes = '',
@@ -22,6 +27,10 @@ class McTextPreview extends StatelessWidget {
   });
 
   final String raw;
+
+  /// Emoji available to the menu text stage — the shipped catalog with the
+  /// workspace's emoji documents layered over it.
+  final GlossEmojiResolver emoji;
 
   /// Parser warnings for unknown tags listed under the preview.
   final bool showWarnings;
@@ -35,7 +44,9 @@ class McTextPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final McTextResult result = parseMcText(raw);
+    final McTextResult result = parseMcText(
+      glossRenderMenuText(raw, emoji: emoji),
+    );
     return dom.div(
       classes: classNames(<String?>['hui-mc-preview', classes]),
       <Widget>[

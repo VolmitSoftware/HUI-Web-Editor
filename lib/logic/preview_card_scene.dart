@@ -53,6 +53,8 @@
 library;
 
 import '../model/preview_doc.dart';
+import 'gloss_text.dart'
+    show GlossEmojiResolver, GlossNoEmoji, glossApplyEmoji;
 import 'mc_text.dart';
 import 'preview_expr.dart';
 import 'preview_sim.dart';
@@ -244,6 +246,7 @@ PreviewCardScene buildCardScene(
   HuiPreviewDoc doc,
   PreviewSim sim, {
   void Function(String)? onError,
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
 }) {
   final void Function(String) sink = onError ?? _noOpSink;
   try {
@@ -265,7 +268,7 @@ PreviewCardScene buildCardScene(
       }
       final int before = content.length;
       try {
-        _expand(template, sim, budget, content, sink);
+        _expand(template, sim, budget, content, sink, emoji);
       } catch (failure) {
         sink('${_describe(template)}: ${_reason(failure)}');
       }
@@ -318,11 +321,12 @@ void _expand(
   _Budget budget,
   List<CardItem> out,
   void Function(String) sink,
+  GlossEmojiResolver emoji,
 ) {
   final HuiPreviewRepeat? repeat = template.repeat;
   if (repeat == null) {
     budget.take();
-    _emit(template, sim, sim, out, sink);
+    _emit(template, sim, sim, out, sink, emoji);
     return;
   }
   int count = _repeatCount(repeat, sim, sink);
@@ -339,7 +343,14 @@ void _expand(
     // One scope per instance, holding this instance's loop value. The plugin
     // hands the same scope to the live cell/label closures it builds here; the
     // editor evaluates them inline instead, off the same scope.
-    _emit(template, sim, _RepeatScope(sim, name, index.toDouble()), out, sink);
+    _emit(
+      template,
+      sim,
+      _RepeatScope(sim, name, index.toDouble()),
+      out,
+      sink,
+      emoji,
+    );
   }
 }
 
@@ -386,6 +397,7 @@ void _emit(
   PExprScope scope,
   List<CardItem> out,
   void Function(String) sink,
+  GlossEmojiResolver emoji,
 ) {
   final String type = template.type;
   if (!_elementTypes.contains(type)) {
@@ -459,7 +471,13 @@ void _emit(
         'background',
       );
       out.add(
-        CardLabel(x, y, z, _labelText(template.text, scope, sink), background),
+        CardLabel(
+          x,
+          y,
+          z,
+          _labelText(template.text, scope, sink, emoji),
+          background,
+        ),
       );
   }
 }
@@ -506,9 +524,12 @@ List<StyledTextRun> _labelText(
   String? raw,
   PExprScope scope,
   void Function(String) sink,
+  GlossEmojiResolver emoji,
 ) {
   try {
-    return _parseRuns(_string(_required(raw, 'text'), scope, 'text'));
+    return _parseRuns(
+      glossApplyEmoji(_string(_required(raw, 'text'), scope, 'text'), emoji),
+    );
   } catch (failure) {
     sink('label text: ${_reason(failure)}');
     return const <StyledTextRun>[];

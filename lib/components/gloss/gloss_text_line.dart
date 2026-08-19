@@ -42,6 +42,16 @@ class GlossTextLine extends StatelessWidget {
               },
               <Widget>[Text(token)],
             ),
+            GlossMetricChip(:final String token, :final String key) => dom.span(
+              classes: 'hui-gloss-chip is-metric',
+              attributes: <String, String>{
+                'title':
+                    '$token — the "$key" metric, sampled from other Volmit '
+                    'plugins via the integration bridge. It shows a compact '
+                    'number in game and is empty until the first sample.',
+              },
+              <Widget>[Text(token)],
+            ),
           },
     ],
   );

@@ -1,11 +1,24 @@
 import 'dart:convert';
 
 import 'package:gloss_editor/logic/canvas_scene.dart' show CanvasOverlap;
+import 'package:gloss_editor/logic/gloss_text.dart'
+    show GlossEmojiEntry, GlossEmojiResolver;
 import 'package:gloss_editor/logic/hui_geometry.dart' show HuiRect;
 import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:gloss_editor/services/catalogs.dart';
 import 'package:test/test.dart';
+
+final class _Emoji implements GlossEmojiResolver {
+  const _Emoji();
+
+  @override
+  List<GlossEmojiEntry> get entries => const <GlossEmojiEntry>[
+    GlossEmojiEntry(id: 'heart', trigger: '<3', glyph: '❤', enabled: true),
+  ];
+}
+
+const _Emoji _emoji = _Emoji();
 
 HuiMenu _menu(List<HuiComponent> components) =>
     HuiMenu(offset: Vec3(0, 1.7, 2.5), components: components);
@@ -987,6 +1000,49 @@ void main() {
           'character count',
         ),
         isTrue,
+      );
+    });
+
+    test('the emoji glyph is measured, not the token that spells it', () {
+      // TextMenuIcon renders through TextPipeline.menuText, so the plane is
+      // sized on the substituted string: 15 visible characters, not the 21
+      // the field holds.
+      final HuiTextIcon icon = HuiTextIcon('0123456789ab:heart:');
+      expect(
+        _has(
+          validateHuiMenu(_menu(<HuiComponent>[_button('a', icon: icon)])),
+          HuiSeverity.info,
+          'character count',
+        ),
+        isTrue,
+        reason: 'unsubstituted, the token itself is 19 characters',
+      );
+      expect(
+        _has(
+          validateHuiMenu(
+            _menu(<HuiComponent>[_button('a', icon: icon)]),
+            emoji: _emoji,
+          ),
+          HuiSeverity.info,
+          'character count',
+        ),
+        isFalse,
+        reason: 'substituted it is 13 characters',
+      );
+    });
+
+    test('bracket hex does not count towards the width', () {
+      expect(
+        _has(
+          validateHuiMenu(
+            _menu(<HuiComponent>[
+              _button('a', icon: HuiTextIcon('[ff8800]Village Store')),
+            ]),
+          ),
+          HuiSeverity.info,
+          'character count',
+        ),
+        isFalse,
       );
     });
 

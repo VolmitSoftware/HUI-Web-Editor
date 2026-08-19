@@ -139,6 +139,13 @@ List<HuiIssue> validateTablistDoc(
     );
   }
 
+  final HuiIssue? metrics = glossMetricInfo(<String>[
+    doc.header,
+    doc.footer,
+    ...doc.nameFormats.values,
+  ]);
+  if (metrics != null) issues.add(metrics);
+
   return issues;
 }
 

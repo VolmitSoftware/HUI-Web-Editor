@@ -115,6 +115,7 @@ final class MenuDocumentType extends DocumentTypeAdapter {
       knownSounds: state.catalogs.loaded ? state.catalogs.soundKeys : null,
       customItems: state.catalogs.customItems,
       overlaps: scene.overlaps,
+      emoji: state.workspaceEmoji,
     );
   }
 

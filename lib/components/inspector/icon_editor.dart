@@ -261,6 +261,7 @@ class IconEditor extends StatelessWidget {
           key: ValueKey<String>(_fieldId),
           fieldId: _fieldId,
           text: text.text,
+          emoji: store.workspaceEmoji,
           issues: _issuesEndingWith('.text'),
           label: 'Text',
           onChanged: (String label, String value) => _write(

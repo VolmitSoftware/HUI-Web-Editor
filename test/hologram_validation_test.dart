@@ -126,4 +126,18 @@ void main() {
       expect(issues, isEmpty);
     });
   });
+
+  group('infos — worth knowing, not worth fixing', () {
+    test('metric references are one note listing the keys', () {
+      final GlossHologramDoc doc = _valid()
+        ..lines.add('TPS |metric.react.tps|')
+        ..lines.add('|metric.iris.chunks| chunks');
+      final HuiIssue info = validateHologramDoc(doc).single;
+      expect(info.severity, HuiSeverity.info);
+      expect(info.path, r'$');
+      expect(info.message, contains('react.tps'));
+      expect(info.message, contains('iris.chunks'));
+      expect(info.message, contains('integration bridge'));
+    });
+  });
 }

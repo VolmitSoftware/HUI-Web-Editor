@@ -335,6 +335,7 @@ class ShellIntents {
     images: store.images,
     catalogs: store.catalogs,
     charCache: _charCache,
+    emoji: store.workspaceEmoji,
   );
 
   /// `EditorStore._round` — four decimals, so exported JSON stays stable.

@@ -6,9 +6,14 @@
 ///
 ///  1. `|function|` substitution — registered names only; this editor build
 ///     registers the `animation.<id>` family for the workspace's animation
-///     documents (`AnimationService.java:16,88`). An unregistered name stays
+///     documents (`AnimationService.java:16,88`) and knows the `metric.<key>`
+///     family the integration bridge registers
+///     (`IntegrationBridgeService.java:16,102-104`). An unregistered name stays
 ///     literal, and the scan then treats its closing pipe as the next
 ///     candidate opener (`TextPipeline.applyFunctions`: `open = close`).
+///     A metric reference has no editor-side value — the samples come from
+///     other Volmit plugins at runtime — so it keeps its token, is scanned
+///     like the registered function it is, and renders as a chip.
 ///  2. `%placeholder%` PAPI expansion — the editor cannot run PAPI, so tokens
 ///     become chips instead of values.
 ///  3. Emoji substitution (`EmojiReplacer.apply` via the pipeline's emoji
@@ -24,6 +29,12 @@
 ///     machine — a colour code resets the decorations, `&r` resets
 ///     everything, and Bungee's `§x§R§R§G§G§B§B` hex form is honoured.
 ///
+/// Menu text icons are the one Gloss surface that does NOT run stages 1 and 2
+/// here: `TextMenuIcon.render` expands PlaceholderAPI itself and then calls
+/// `TextPipeline.menuText`, which is emoji plus colours only
+/// (`TextPipeline.renderMenuText`). [glossRenderMenuText] is that shorter path;
+/// a literal `|` in a menu label stays literal.
+///
 /// Everything here is DOM-free and clock-free: the caller passes `nowMs` and
 /// an animation resolver, so the whole pipeline is testable on the VM and
 /// deterministic under an injected clock.
@@ -36,6 +47,13 @@ import 'mc_text.dart' show McSpan, mcDefaultTextColor;
 /// The function-name family `AnimationService` registers per document:
 /// `animation.` + the document id (its file path).
 const String glossAnimationFunctionPrefix = 'animation.';
+
+/// The function-name family `IntegrationBridgeService` registers per metric
+/// key published by another Volmit plugin: `metric.` + the key
+/// (`IntegrationBridgeService.java:16,102-104`). Gloss content kinds
+/// (hologram, scoreboard, tablist, motd, chat bubbles) run the full pipeline
+/// and therefore resolve these; menus do not.
+const String glossMetricFunctionPrefix = 'metric.';
 
 /// Resolves the workspace's animation documents for text rendering. The
 /// editor's stand-in for `TextPipeline`'s registered-function map.
@@ -157,6 +175,27 @@ final class GlossPlaceholderChip extends GlossTextPiece {
   String get name => token.substring(1, token.length - 1);
 }
 
+/// A `|metric.<key>|` reference. The plugin substitutes the last sample the
+/// integration bridge took from whichever Volmit plugin publishes [key]
+/// (`IntegrationBridge.render` → `MetricFormat.compact`); the editor has no
+/// sample to show, so the token stays visible as a chip.
+final class GlossMetricChip extends GlossTextPiece {
+  const GlossMetricChip({
+    required this.key,
+    required this.token,
+    required this.style,
+  });
+
+  /// The metric key without the `metric.` prefix, e.g. `react.tps`.
+  final String key;
+
+  /// The raw token including both pipes, e.g. `|metric.react.tps|`.
+  final String token;
+
+  /// The colour/decoration state in scope where the token sat.
+  final McSpan style;
+}
+
 /// One line rendered through the editor's pipeline mirror.
 final class GlossLineRender {
   const GlossLineRender({
@@ -164,6 +203,7 @@ final class GlossLineRender {
     required this.usedAnimations,
     required this.missingAnimations,
     required this.placeholders,
+    required this.metrics,
   });
 
   final List<GlossTextPiece> pieces;
@@ -180,15 +220,20 @@ final class GlossLineRender {
   /// `%placeholder%` tokens found after substitution, in order.
   final List<String> placeholders;
 
+  /// `metric.<key>` references in the line, keys only, in order. The editor
+  /// cannot sample them, so they render as chips rather than values.
+  final List<String> metrics;
+
   bool get isAnimated => usedAnimations.isNotEmpty;
 
-  /// The line as plain characters: colour codes consumed, placeholder tokens
-  /// verbatim.
+  /// The line as plain characters: colour codes consumed, placeholder and
+  /// metric tokens verbatim.
   String get plainText => <String>[
     for (final GlossTextPiece piece in pieces)
       switch (piece) {
         GlossTextRun(:final McSpan span) => span.text,
         GlossPlaceholderChip(:final String token) => token,
+        GlossMetricChip(:final String token) => token,
       },
   ].join();
 }
@@ -202,8 +247,9 @@ GlossLineRender renderGlossLine(
 }) {
   final List<String> used = <String>[];
   final List<String> missing = <String>[];
+  final List<String> metrics = <String>[];
   final String substituted = glossApplyEmoji(
-    _applyFunctions(raw, animations, nowMs, used, missing),
+    _applyFunctions(raw, animations, nowMs, used, missing, metrics: metrics),
     emoji,
   );
   final List<String> placeholders = <String>[];
@@ -216,7 +262,42 @@ GlossLineRender renderGlossLine(
     usedAnimations: List<String>.unmodifiable(used),
     missingAnimations: List<String>.unmodifiable(missing),
     placeholders: List<String>.unmodifiable(placeholders),
+    metrics: List<String>.unmodifiable(metrics),
   );
+}
+
+/// The `metric.<key>` keys [raw] references, in order — the editor's stand-in
+/// for the samples `IntegrationBridge` would substitute.
+List<String> glossLineMetricRefs(String raw) {
+  final List<String> metrics = <String>[];
+  _applyFunctions(
+    raw,
+    const GlossNoAnimations(),
+    0,
+    <String>[],
+    <String>[],
+    metrics: metrics,
+  );
+  return metrics;
+}
+
+/// `TextPipeline.renderMenuText` — the string a menu text icon hands to
+/// `TextUtils.parse`.
+///
+/// `TextMenuIcon.render` expands PlaceholderAPI itself and then calls
+/// `TextPipeline.menuText`, which is `applyColors(applyEmoji(...))`: emoji
+/// substitution, then the `[RRGGBB]` bracket-hex translation, and no
+/// `|function|` stage at all — a literal `|` in a menu label stays literal.
+///
+/// The plugin's colour step also rewrites `&` codes to `§`, which is a no-op
+/// here: `parseMcText` mirrors `TextUtils.translateLegacy`, which reads both
+/// markers identically.
+String glossRenderMenuText(
+  String raw, {
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
+}) {
+  if (raw.isEmpty) return '';
+  return _translateBracketHex(glossApplyEmoji(raw, emoji));
 }
 
 /// The animation ids [raw] actually plays — [GlossLineRender.usedAnimations]
@@ -323,6 +404,8 @@ String _plainLength(String text) {
         out.write(span.text);
       case GlossPlaceholderChip(:final String token):
         out.write(token);
+      case GlossMetricChip(:final String token):
+        out.write(token);
     }
   }
   return out.toString();
@@ -338,7 +421,7 @@ String _applyFunctions(
   int nowMs,
   List<String> used,
   List<String> missing,
-  {String Function(GlossAnimationDoc doc)? frameOf}
+  {String Function(GlossAnimationDoc doc)? frameOf, List<String>? metrics}
 ) {
   if (!input.contains('|')) return input;
   final StringBuffer out = StringBuffer();
@@ -349,6 +432,21 @@ String _applyFunctions(
     final int close = input.indexOf('|', open + 1);
     if (close < 0) break;
     final String name = input.substring(open + 1, close);
+    if (name.startsWith(glossMetricFunctionPrefix) &&
+        name.length > glossMetricFunctionPrefix.length) {
+      // A registered name plugin-side, so the scan consumes both pipes exactly
+      // as the Java one does — but the value is a live sample the editor has
+      // no way to read, so the token is written back verbatim and chipped by
+      // the colour stage.
+      final String key = name.substring(glossMetricFunctionPrefix.length);
+      if (metrics != null && !metrics.contains(key)) metrics.add(key);
+      out.write(input.substring(cursor, open));
+      out.write(input.substring(open, close + 1));
+      replaced = true;
+      cursor = close + 1;
+      open = input.indexOf('|', cursor);
+      continue;
+    }
     if (!name.startsWith(glossAnimationFunctionPrefix)) {
       // Not a name this build registers: literal, and the closing pipe is the
       // next candidate opener — exactly the Java scan's `open = close`.
@@ -386,6 +484,17 @@ String _applyFunctions(
 /// PAPI's own token shape: `%` + one or more non-`%` characters + `%`
 /// (`PlaceholderAPI.PLACEHOLDER_PATTERN`).
 final RegExp _placeholderPattern = RegExp('%([^%]+)%');
+
+/// A surviving `|metric.<key>|` token — one the function stage kept because
+/// the editor has no sample for it.
+///
+/// The scan is positional, so a token that arrived INSIDE an animation frame
+/// is chipped here too even though the plugin would leave it as text (its
+/// single pass never rescans what a function substituted). Both render the
+/// same characters; only the chip styling differs, and
+/// [GlossLineRender.metrics] still lists only the references the line itself
+/// wrote.
+final RegExp _metricPattern = RegExp(r'\|metric\.([^|]+)\|');
 
 const Map<String, int> _legacyColors = <String, int>{
   '0': 0x000000,
@@ -533,6 +642,23 @@ List<GlossTextPiece> _renderColors(String input, List<String> placeholders) {
       // step leaving `&z` alone.
     }
 
+    // `|metric.<key>|` — the token the function stage wrote back.
+    if (char == '|') {
+      final Match? match = _metricPattern.matchAsPrefix(input, i);
+      if (match != null) {
+        flushRun();
+        pieces.add(
+          GlossMetricChip(
+            key: match.group(1)!,
+            token: match.group(0)!,
+            style: state.span(''),
+          ),
+        );
+        i = match.end;
+        continue;
+      }
+    }
+
     // `%placeholder%`.
     if (char == '%') {
       final Match? match = _placeholderPattern.matchAsPrefix(input, i);
@@ -551,6 +677,44 @@ List<GlossTextPiece> _renderColors(String input, List<String> placeholders) {
   }
   flushRun();
   return pieces;
+}
+
+/// `TextPipeline.translateBracketHex`: every `[rrggbb]` (exactly six hex digits
+/// then `]`) becomes Bungee's `§x§r§r§g§g§b§b`, which `parseMcText` then folds
+/// into a `<#rrggbb>` tag the same way `TextUtils.legacyHex` does. A token that
+/// fails the guard stays literal and the scan resumes at the next `[`.
+String _translateBracketHex(String input) {
+  if (!input.contains('[')) return input;
+  StringBuffer? out;
+  int cursor = 0;
+  int open = input.indexOf('[');
+  while (open >= 0) {
+    if (open + 7 >= input.length ||
+        input[open + 7] != ']' ||
+        !_isBracketHex(input, open + 1)) {
+      open = input.indexOf('[', open + 1);
+      continue;
+    }
+    out ??= StringBuffer();
+    out.write(input.substring(cursor, open));
+    out.write(_bungeeHex(input.substring(open + 1, open + 7).toLowerCase()));
+    cursor = open + 8;
+    open = input.indexOf('[', cursor);
+  }
+  if (out == null) return input;
+  out.write(input.substring(cursor));
+  return out.toString();
+}
+
+/// `ChatColor.of("#rrggbb").toString()` — `§x` then one `§` per hex digit.
+String _bungeeHex(String hex) {
+  final StringBuffer out = StringBuffer('§x');
+  for (int i = 0; i < hex.length; i++) {
+    out
+      ..write('§')
+      ..write(hex[i]);
+  }
+  return out.toString();
 }
 
 String? _readBungeeHex(String input, int start) {

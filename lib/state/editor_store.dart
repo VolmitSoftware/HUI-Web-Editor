@@ -2268,6 +2268,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     images: _images,
     catalogs: _catalogs,
     charCache: _charCache,
+    emoji: workspaceEmoji,
   ).byId(id);
 
   /// `button-2` duplicates as `button-3` and `slot-1` as `slot-2`: an existing
@@ -2316,6 +2317,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       images: _images,
       catalogs: _catalogs,
       charCache: _charCache,
+      emoji: workspaceEmoji,
     );
     _scene = scene;
     return scene;

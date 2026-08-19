@@ -108,4 +108,16 @@ void main() {
     expect(issues.single.message, contains('%player_name%'));
     expect(issues.single.message, contains('no viewer'));
   });
+
+  test('metric references are one info listing the keys', () {
+    final List<HuiIssue> issues = validateMotdDoc(
+      _doc(<List<String>>[
+        <String>['&7TPS |metric.react.tps|', '|metric.iris.chunks|'],
+      ]),
+    );
+    expect(issues.single.severity, HuiSeverity.info);
+    expect(issues.single.path, r'$');
+    expect(issues.single.message, contains('react.tps'));
+    expect(issues.single.message, contains('iris.chunks'));
+  });
 }

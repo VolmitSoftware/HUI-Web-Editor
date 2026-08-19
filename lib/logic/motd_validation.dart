@@ -127,5 +127,10 @@ List<HuiIssue> validateMotdDoc(
     }
   }
 
+  final HuiIssue? metrics = glossMetricInfo(<String>[
+    for (final GlossMotdEntry entry in doc.entries) ...entry.lines,
+  ]);
+  if (metrics != null) issues.add(metrics);
+
   return issues;
 }

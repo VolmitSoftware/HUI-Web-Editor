@@ -18,6 +18,7 @@
 library;
 
 import '../logic/canvas_scene.dart';
+import '../logic/gloss_text.dart' show GlossEmojiResolver, GlossNoEmoji;
 import '../model/model.dart';
 import '../services/catalogs.dart';
 import '../services/image_library.dart';
@@ -191,6 +192,7 @@ PreviewScene buildPreviewScene({
   ImageLibrary? images,
   HuiCatalogs? catalogs,
   ImageCharCache? charCache,
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
   int animationTicks = 0,
 }) {
   assert(
@@ -208,6 +210,7 @@ PreviewScene buildPreviewScene({
         images: images,
         catalogs: catalogs,
         charCache: charCache,
+        emoji: emoji,
         animationTicks: animationTicks,
       );
 

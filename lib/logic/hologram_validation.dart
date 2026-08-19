@@ -103,5 +103,8 @@ List<HuiIssue> validateHologramDoc(
     }
   }
 
+  final HuiIssue? metrics = glossMetricInfo(doc.lines);
+  if (metrics != null) issues.add(metrics);
+
   return issues;
 }

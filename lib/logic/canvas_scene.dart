@@ -17,6 +17,8 @@ import 'dart:math' as math;
 import '../model/model.dart';
 import '../services/catalogs.dart';
 import '../services/image_library.dart';
+import 'gloss_text.dart'
+    show GlossEmojiEntry, GlossEmojiResolver, GlossNoEmoji, glossRenderMenuText;
 import 'hui_geometry.dart';
 import 'mc_text.dart';
 import 'viewport_math.dart';
@@ -300,16 +302,34 @@ class CanvasScene {
 
 /// Parsed-text memo. Text icons are re-resolved on every repaint, and a
 /// 60 fps drag would otherwise re-parse every string 60 times a second.
+///
+/// The memo holds the whole menu text path — `glossRenderMenuText` (emoji, then
+/// bracket hex) followed by `parseMcText` — so the cache key is the raw field
+/// value. Emoji entries are workspace state, so the memo is dropped whenever
+/// the resolver hands back a different entry list; the store rebuilds that list
+/// on every emoji-document or catalog change and otherwise returns the same
+/// instance, which makes the identity check exact and free.
 class McTextCache {
   McTextCache({this.capacity = 256});
 
   final int capacity;
   final Map<String, McTextResult> _entries = <String, McTextResult>{};
+  List<GlossEmojiEntry>? _emoji;
 
-  McTextResult parse(String raw) {
+  McTextResult parse(
+    String raw, {
+    GlossEmojiResolver emoji = const GlossNoEmoji(),
+  }) {
+    final List<GlossEmojiEntry> entries = emoji.entries;
+    if (!identical(entries, _emoji)) {
+      _entries.clear();
+      _emoji = entries;
+    }
     final McTextResult? cached = _entries[raw];
     if (cached != null) return cached;
-    final McTextResult parsed = parseMcText(raw);
+    final McTextResult parsed = parseMcText(
+      glossRenderMenuText(raw, emoji: emoji),
+    );
     if (_entries.length >= capacity) {
       _entries.remove(_entries.keys.first);
     }
@@ -373,6 +393,7 @@ CanvasScene buildCanvasScene({
   ImageLibrary? images,
   HuiCatalogs? catalogs,
   ImageCharCache? charCache,
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
   int animationTicks = 0,
 }) {
   final List<CanvasItem> items = <CanvasItem>[];
@@ -389,6 +410,7 @@ CanvasScene buildCanvasScene({
         images: images,
         catalogs: catalogs,
         charCache: charCache,
+        emoji: emoji,
         animationTicks: animationTicks,
       ),
     );
@@ -421,6 +443,7 @@ CanvasItem _resolveItem({
   required ImageLibrary? images,
   required HuiCatalogs? catalogs,
   required ImageCharCache? charCache,
+  required GlossEmojiResolver emoji,
   required int animationTicks,
 }) {
   final HuiComponentData data = component.data;
@@ -458,7 +481,7 @@ CanvasItem _resolveItem({
     case HuiTextIcon():
       // A text icon that parses to nothing renders nothing in game; it is not
       // the missing placeholder, so it keeps its kind and a zero-size shape.
-      final McTextResult parsed = textCache.parse(icon.text);
+      final McTextResult parsed = textCache.parse(icon.text, emoji: emoji);
       kind = CanvasIconKind.text;
       text = parsed;
       shape = IconShape.text(

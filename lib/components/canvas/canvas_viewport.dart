@@ -705,6 +705,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
       images: component.images,
       catalogs: huiFreshestCatalogs(store.catalogs, component.catalogs),
       charCache: _charCache,
+      emoji: store.workspaceEmoji,
       animationTicks: _animationElapsedMs ~/ 50,
     );
     _scene = scene;

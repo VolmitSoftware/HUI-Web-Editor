@@ -264,12 +264,14 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Text',
     body:
         'A newline splits it into one text display per line. Ampersand codes, '
-        'legacy section codes and full MiniMessage tags all work, and '
-        'PlaceholderAPI runs over it when the icon is created and then on its '
-        'configured refresh interval. Note the hitbox is a character '
+        'legacy section codes, [RRGGBB] hex and full MiniMessage tags all '
+        'work, :emoji: tokens are substituted from the Gloss emoji documents, '
+        'and PlaceholderAPI runs over it when the icon is created and then on '
+        'its configured refresh interval. |functions| are NOT run on menu '
+        'text, so a pipe stays a pipe. Note the hitbox is a character '
         'count, not a glyph measurement: a wide line grabs clicks well past '
         'where the text appears to end.',
-    citation: 'TextUtils.java:37-43',
+    citation: 'TextPipeline.java:74-79',
   ),
   'icon.text.refreshTicks': HuiFieldDoc(
     title: 'Placeholder refresh',
@@ -433,8 +435,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'Rendered top to bottom, joined into ONE TextDisplay with newlines. '
         'Each line runs the text pipeline per viewer: |functions| such as '
-        'animation.<id>, then %placeholders%, then emoji, then [RRGGBB] hex '
-        'and & colour codes. An empty list is legal and renders nothing.',
+        'animation.<id> and metric.<key>, then %placeholders%, then emoji, '
+        'then [RRGGBB] hex and & colour codes. An empty list is legal and '
+        'renders nothing.',
     citation: 'PersistentHologram.java:408-436',
   ),
   'hologram.revision': HuiFieldDoc(
@@ -510,9 +513,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Lines',
     body:
         'Top to bottom, each through the text pipeline per viewer — '
-        'placeholders, |animation.<id>| references and colours all work. '
-        'Only the first 15 reach the client; everything after is silently '
-        'skipped, not an error.',
+        'placeholders, |animation.<id>| and |metric.<key>| references and '
+        'colours all work. Only the first 15 reach the client; everything '
+        'after is silently skipped, not an error.',
     citation: 'BoardService.java:377-380',
   ),
   'scoreboard.primary': HuiFieldDoc(
@@ -566,9 +569,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Entry lines',
     body:
         'One or two lines shown together in the server list, rendered '
-        'without a viewer: colours and |animation.<id>| functions work, but '
-        'PlaceholderAPI tokens stay literal because a ping has no player to '
-        'expand them for.',
+        'without a viewer: colours, |animation.<id>| and |metric.<key>| '
+        'functions work, but PlaceholderAPI tokens stay literal because a '
+        'ping has no player to expand them for.',
     citation: 'TextPipeline.java:59-61',
   ),
 
@@ -729,9 +732,10 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'tablist.header': HuiFieldDoc(
     title: 'Header',
     body:
-        'Shown above the player grid. Colours, placeholders and '
-        '|animation.<id>| references all work — the text re-renders per '
-        'viewer at the configured update interval, so animations play.',
+        'Shown above the player grid. Colours, placeholders, '
+        '|animation.<id>| and |metric.<key>| references all work — the text '
+        're-renders per viewer at the configured update interval, so '
+        'animations play.',
     citation: 'TablistService.java:188-196',
   ),
   'tablist.footer': HuiFieldDoc(

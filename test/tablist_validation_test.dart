@@ -101,4 +101,14 @@ void main() {
       isEmpty,
     );
   });
+
+  test('metric references are one info listing the keys', () {
+    final GlossTablistDoc doc = _clean()..header = '|metric.react.tps| TPS';
+    doc.nameFormats['default'] = r'|metric.iris.chunks| $player';
+    final List<HuiIssue> issues = validateTablistDoc(doc);
+    expect(issues.single.severity, HuiSeverity.info);
+    expect(issues.single.path, r'$');
+    expect(issues.single.message, contains('react.tps'));
+    expect(issues.single.message, contains('iris.chunks'));
+  });
 }

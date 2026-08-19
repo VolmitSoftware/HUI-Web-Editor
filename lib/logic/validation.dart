@@ -2,6 +2,12 @@ import '../config/defaults.dart' show validateMenuId;
 import '../model/model.dart';
 import '../services/catalogs.dart';
 import 'canvas_scene.dart' show CanvasOverlap, huiIsBlockLikeMaterial;
+import 'gloss_text.dart'
+    show
+        GlossEmojiResolver,
+        GlossNoEmoji,
+        glossLineMetricRefs,
+        glossRenderMenuText;
 import 'hui_geometry.dart' show huiLineHeight;
 import 'mc_text.dart' show parseMcText;
 
@@ -30,6 +36,39 @@ class HuiIssue {
   String toString() => '${severity.name.toUpperCase()} $path: $message';
 }
 
+/// The one document-level note every Gloss content kind shares: which
+/// `|metric.<key>|` references its text carries.
+///
+/// Informational, never a warning — a key the editor cannot resolve is not an
+/// authoring mistake. `IntegrationBridgeService` registers one function per key
+/// another Volmit plugin publishes, and the editor has no bridge, so the token
+/// renders as a chip here and as `MetricFormat.compact` of the last sample in
+/// game. Returns null when [texts] reference no metrics.
+///
+/// Lives here rather than in `gloss_text.dart` because it builds a [HuiIssue];
+/// every Gloss validator already imports this library for that type.
+HuiIssue? glossMetricInfo(Iterable<String> texts, {String path = r'$'}) {
+  final List<String> keys = <String>[];
+  for (final String text in texts) {
+    for (final String key in glossLineMetricRefs(text)) {
+      if (!keys.contains(key)) keys.add(key);
+    }
+  }
+  if (keys.isEmpty) return null;
+  return HuiIssue(
+    severity: HuiSeverity.info,
+    path: path,
+    message:
+        'Reads ${keys.length == 1 ? 'the metric' : '${keys.length} metrics'} '
+        '${keys.join(', ')} from other Volmit plugins through the integration '
+        'bridge. The editor has no bridge, so each one previews as its token; '
+        'in game it is empty until the first sample lands.',
+    fix:
+        'Nothing to fix if the publishing plugin is installed. Check the key '
+        'spelling if it stays blank in game.',
+  );
+}
+
 /// Semantic validation against the Java parser's real behaviour. Catalog sets
 /// are optional: when omitted, catalog membership is not checked.
 ///
@@ -44,6 +83,7 @@ List<HuiIssue> validateHuiMenu(
   Set<String>? knownSounds,
   HuiCustomItemCatalog? customItems,
   List<CanvasOverlap> overlaps = const <CanvasOverlap>[],
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
 }) {
   final _Validator validator = _Validator(
     knownImagePaths: knownImagePaths,
@@ -51,6 +91,7 @@ List<HuiIssue> validateHuiMenu(
     knownSounds: knownSounds,
     customItems: customItems,
     overlaps: overlaps,
+    emoji: emoji,
   );
   validator.validateMenu(menu);
   return validator.issues;
@@ -217,12 +258,14 @@ class _Validator {
     this.knownSounds,
     this.customItems,
     this.overlaps = const <CanvasOverlap>[],
+    this.emoji = const GlossNoEmoji(),
   });
 
   final Set<String>? knownImagePaths;
   final Set<String>? knownMaterials;
   final Set<String>? knownSounds;
   final HuiCustomItemCatalog? customItems;
+  final GlossEmojiResolver emoji;
 
   /// Intersecting clickable hitboxes, resolved by the caller's scene.
   final List<CanvasOverlap> overlaps;
@@ -823,10 +866,14 @@ class _Validator {
     required bool clickable,
     required int? refreshTicks,
   }) {
-    // Plain length never exceeds raw length (parsing only strips tags), so a
-    // short field can skip the parse entirely — this runs on every keystroke.
-    if (clickable && text.length >= huiWideTextHitboxChars) {
-      final int chars = parseMcText(text).maxLineLength;
+    // The hitbox is measured on what the icon actually renders, so the emoji
+    // and bracket-hex prelude runs first — an emoji token is wider as source
+    // than as the glyph it becomes. Plain length never exceeds the resolved
+    // length (parsing only strips tags), so a short field still skips the
+    // parse entirely — this runs on every keystroke.
+    final String resolved = glossRenderMenuText(text, emoji: emoji);
+    if (clickable && resolved.length >= huiWideTextHitboxChars) {
+      final int chars = parseMcText(resolved).maxLineLength;
       if (chars >= huiWideTextHitboxChars) {
         final String blocks = (chars * huiLineHeight / 2).toStringAsFixed(2);
         _add(

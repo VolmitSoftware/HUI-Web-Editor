@@ -716,6 +716,7 @@ class _PreviewStageState extends State<PreviewStage>
         images: component.images,
         catalogs: huiFreshestCatalogs(store.catalogs, component.catalogs),
         charCache: _charCache,
+        emoji: store.workspaceEmoji,
         animationTicks: _animationTicks,
       );
       _measureSceneClocks(canvas);

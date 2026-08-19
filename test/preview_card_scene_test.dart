@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/logic/mc_text.dart';
 import 'package:gloss_editor/logic/preview_card_scene.dart';
 import 'package:gloss_editor/logic/preview_sim.dart';
@@ -773,6 +774,47 @@ void main() {
     });
   });
 
+  group('label emoji', () {
+    // `CompiledPreviewDocument.renderText` wraps the evaluated string in
+    // `TextPipeline.emojiText` before `TextUtils.parse`. Nothing else in the
+    // document does: the card title goes straight to `TextUtils.parse`.
+    test('a label substitutes emoji after the expression evaluates', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        elements: <HuiPreviewElement>[
+          HuiPreviewElement('label', text: "':heart: ' + 'Bees'"),
+        ],
+      );
+      final CardLabel label =
+          buildCardScene(doc, PreviewSim('statics'), emoji: _emoji).items.single
+              as CardLabel;
+      expect(label.text.single.text, '❤ Bees');
+    });
+
+    test('without a resolver the token stays literal', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        elements: <HuiPreviewElement>[
+          HuiPreviewElement('label', text: "':heart:'"),
+        ],
+      );
+      final CardLabel label =
+          buildCardScene(doc, PreviewSim('statics')).items.single as CardLabel;
+      expect(label.text.single.text, ':heart:');
+    });
+
+    test('the card title is NOT emoji-substituted', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        card: HuiPreviewCard(title: "':heart:'"),
+        elements: <HuiPreviewElement>[],
+      );
+      final CardLabel title = buildCardScene(
+        doc,
+        PreviewSim('statics'),
+        emoji: _emoji,
+      ).items.whereType<CardLabel>().single;
+      expect(title.text.single.text, ':heart:');
+    });
+  });
+
   group('live fields rebuild', () {
     test('a cell colour follows the ticking simulation', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
@@ -843,6 +885,17 @@ PreviewCardScene _buildScenario(_Scenario scenario, List<String> errors) {
 
 /// A framed card over [elements], with the document's own accent left absent so
 /// the neutral default applies.
+final class _Emoji implements GlossEmojiResolver {
+  const _Emoji();
+
+  @override
+  List<GlossEmojiEntry> get entries => const <GlossEmojiEntry>[
+    GlossEmojiEntry(id: 'heart', trigger: '<3', glyph: '❤', enabled: true),
+  ];
+}
+
+const _Emoji _emoji = _Emoji();
+
 PreviewCardScene _framed(List<HuiPreviewElement> elements) => buildCardScene(
   HuiPreviewDoc(card: HuiPreviewCard(), elements: elements),
   PreviewSim('statics'),

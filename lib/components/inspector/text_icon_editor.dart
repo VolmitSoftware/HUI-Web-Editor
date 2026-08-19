@@ -12,6 +12,7 @@ import 'package:jaspr/dom.dart' as dom;
 import 'package:arcane_jaspr/core/dom_value.dart';
 import 'package:jaspr/jaspr.dart' show Component, EventCallback;
 
+import '../../logic/gloss_text.dart' show GlossEmojiResolver, GlossNoEmoji;
 import '../../logic/validation.dart';
 import '../common/common.dart';
 import 'dom_bridge.dart';
@@ -39,6 +40,7 @@ class TextIconEditor extends StatefulWidget {
     required this.fieldId,
     required this.text,
     required this.onChanged,
+    this.emoji = const GlossNoEmoji(),
     this.issues = const <HuiIssue>[],
     this.label = 'Text',
     super.key,
@@ -47,6 +49,9 @@ class TextIconEditor extends StatefulWidget {
   /// DOM id of the textarea. Must be unique per slot.
   final String fieldId;
   final String text;
+
+  /// Emoji the menu text stage substitutes in the live preview.
+  final GlossEmojiResolver emoji;
 
   /// Called with a mutation label and the new text.
   final void Function(String label, String text) onChanged;
@@ -217,7 +222,7 @@ class _TextIconEditorState extends State<TextIconEditor> {
         ),
         dom.div(classes: 'hui-text-preview-block', <Widget>[
           const HuiEyebrow('In-game preview'),
-          McTextPreview(raw: _text),
+          McTextPreview(raw: _text, emoji: component.emoji),
         ]),
         const HuiMore(
           summary: 'Legacy formatting codes',
