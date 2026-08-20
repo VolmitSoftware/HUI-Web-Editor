@@ -262,6 +262,22 @@ GlossLineRender renderGlossLine(
   expressionSamples: expressionSamples,
 );
 
+GlossLineRender renderGlossAnimationFramePreview(
+  String raw, {
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
+}) {
+  final GlossLineRender rendered = renderGlossLine(raw, emoji: emoji);
+  final bool hasVisibleContent = rendered.pieces.any(
+    (GlossTextPiece piece) => switch (piece) {
+      GlossTextRun(:final McSpan span) => span.text.isNotEmpty,
+      GlossPlaceholderChip() || GlossMetricChip() => true,
+    },
+  );
+  return hasVisibleContent
+      ? rendered
+      : renderGlossLine('$raw&lRAINBOW', emoji: emoji);
+}
+
 GlossLineRender renderGlossScoreboardTitle(
   String raw, {
   GlossAnimationResolver animations = const GlossNoAnimations(),

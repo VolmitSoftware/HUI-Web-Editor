@@ -236,7 +236,7 @@ void main() {
       );
       store.flushAutosave();
       expect(store.workspaceAnimations.ids, contains('rainbow'));
-      expect(store.workspaceAnimations.byId('rainbow')!.frames, hasLength(4));
+      expect(store.workspaceAnimations.byId('rainbow')!.frames, hasLength(60));
       expect(store.workspaceAnimations.byId('missing'), isNull);
     });
 

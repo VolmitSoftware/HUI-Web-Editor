@@ -85,10 +85,10 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
           id: 'animation-rainbow',
           name: 'Rainbow',
           description:
-              'The shipped default: four colour-only frames on a 500 ms '
-              'ascend. Prefix text with |animation.rainbow| to colour it '
-              'without inserting another word.',
-          highlights: const <String>['Shipped default', '4 frames'],
+              'The shipped default: a 60-step RGB hue gradient advancing '
+              'once per tick. Prefix text with |animation.rainbow| to '
+              'colour it without inserting another word.',
+          highlights: const <String>['Shipped default', 'Smooth RGB'],
           create: (EditorStore store) => store.newGlossDocument(
             this,
             name: 'rainbow',

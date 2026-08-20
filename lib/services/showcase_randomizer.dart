@@ -416,20 +416,22 @@ GlossAnimationDoc buildRandomAnimationShowcase(
   GlossAnimationDoc current,
   math.Random random,
 ) {
-  final int count = 4 + random.nextInt(6);
+  final int count = 48 + random.nextInt(13);
+  final int startHue = random.nextInt(360);
   final String word = _pick(random, _animationWords);
-  final List<String> colors = List<String>.of(_legacyPalette)..shuffle(random);
+  final String effect = _pick(random, _effects);
+  final String content =
+      '$effect$word'
+      '${random.nextBool() ? ' ${_pick(random, _motionGlyphs)}' : ''}';
   final List<String> frames = <String>[
-    "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 3) + 1) / 2)) }}&l$word",
-    for (int index = 1; index < count; index++)
-      '${colors[index % colors.length]}${_pick(random, _effects)}$word'
-          '${random.nextBool() ? ' ${_pick(random, _motionGlyphs)}' : ''}',
+    for (int index = 0; index < count; index++)
+      '[${_hueRgbHex(startHue + ((360 * index) ~/ count))}]$content',
   ];
   return GlossAnimationDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
-    mode: _pick(random, glossAnimationModes),
-    frameIntervalMs: 90 + random.nextInt(911),
+    mode: random.nextBool() ? 'ascend' : 'descend',
+    frameIntervalMs: 50,
     frames: frames,
   );
 }
@@ -452,7 +454,7 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
     '&7TPS &a{{ fixed(server.tps, 1) }}',
     "&7Tick &f{{ fixed(metric('react.tick-ms', 1000 / server.tps), 1) }}ms",
     '',
-    '${_scoreboardAnimatedColor(random)}&l${_pick(random, _statusWords)}',
+    '${_scoreboardAnimatedPrefix(random)}&l${_pick(random, _statusWords)}',
     '&7$event',
     _scoreboardEasterEgg(random),
     '&8${_pick(random, _domains)}',
@@ -938,18 +940,54 @@ String _easterEgg(math.Random random) => _pick(random, _easterEggs);
 String _scoreboardEasterEgg(math.Random random) =>
     _pick(random, _scoreboardEasterEggs);
 
-String _scoreboardAnimatedColor(math.Random random) => _pick(random, <String>[
-  '|animation.rainbow|',
-  "{{ select(['&c', '&6', '&e', '&a', '&b', '&d'], "
-      'floor(time.seconds * ${2 + random.nextInt(5)})) }}',
+String _scoreboardAnimatedPrefix(math.Random random) => _pick(random, <String>[
+  "&d{{ select(['·', '•', '●', '•'], "
+      'floor(time.seconds * ${6 + random.nextInt(5)})) }} &f',
+  "&b{{ select(['◢', '◣', '◤', '◥'], "
+      'floor(time.seconds * ${5 + random.nextInt(5)})) }} &f',
 ]);
 
 String _animatedColor(math.Random random) => _pick(random, <String>[
   '|animation.rainbow|',
-  "{{ select(['&c', '&6', '&e', '&a', '&b', '&d'], "
-      'floor(time.seconds * ${2 + random.nextInt(5)})) }}',
+  "{{ hex(mix(#FF3355, #55DDFF, "
+      '(sin(time.seconds * ${2 + random.nextInt(5)}) + 1) / 2)) }}',
   "{{ hex(mix(#FF55FF, #55FFFF, "
       '(sin(time.seconds * ${2 + random.nextInt(4)}) + 1) / 2)) }}',
 ]);
+
+String _hueRgbHex(int hue) {
+  int normalized = hue % 360;
+  if (normalized < 0) normalized += 360;
+  final int sector = normalized ~/ 60;
+  final int rising = (((normalized % 60) * 255) / 60).round();
+  final int falling = 255 - rising;
+  int red = 0;
+  int green = 0;
+  int blue = 0;
+  switch (sector) {
+    case 0:
+      red = 255;
+      green = rising;
+    case 1:
+      red = falling;
+      green = 255;
+    case 2:
+      green = 255;
+      blue = rising;
+    case 3:
+      green = falling;
+      blue = 255;
+    case 4:
+      red = rising;
+      blue = 255;
+    default:
+      red = 255;
+      blue = falling;
+  }
+  return '${red.toRadixString(16).padLeft(2, '0')}'
+          '${green.toRadixString(16).padLeft(2, '0')}'
+          '${blue.toRadixString(16).padLeft(2, '0')}'
+      .toUpperCase();
+}
 
 double _round(double value) => (value * 100).roundToDouble() / 100;

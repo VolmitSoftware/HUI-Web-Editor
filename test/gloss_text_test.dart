@@ -31,6 +31,16 @@ List<McSpan> _spans(GlossLineRender render) => <McSpan>[
 ];
 
 void main() {
+  test('color-only animation frames get a preview-only sample word', () {
+    final GlossLineRender rendered = renderGlossAnimationFramePreview(
+      '[FF3300]',
+    );
+    final GlossTextRun run = rendered.pieces.whereType<GlossTextRun>().single;
+    expect(run.span.text, 'RAINBOW');
+    expect(run.span.color, 0xFF3300);
+    expect(run.span.bold, isTrue);
+  });
+
   group('function substitution (TextPipeline.applyFunctions)', () {
     test('a known animation reference plays its frame at nowMs', () {
       final _Animations animations = _Animations(<String, GlossAnimationDoc>{

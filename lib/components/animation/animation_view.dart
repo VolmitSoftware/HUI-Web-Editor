@@ -92,7 +92,10 @@ class _AnimationViewState extends State<AnimationView> {
     if (doc == null) {
       _ticker?.cancel();
       _ticker = null;
-      return const dom.div(classes: 'hui-animation-player is-empty', <Widget>[]);
+      return const dom.div(
+        classes: 'hui-animation-player is-empty',
+        <Widget>[],
+      );
     }
     _syncTicker(doc);
     final String id = _store.menuId;
@@ -103,7 +106,10 @@ class _AnimationViewState extends State<AnimationView> {
       dom.div(classes: 'hui-animation-frame-stage', <Widget>[
         dom.div(classes: 'hui-animation-frame-large', <Widget>[
           GlossTextLine(
-            render: renderGlossLine(frame, emoji: _store.workspaceEmoji),
+            render: renderGlossAnimationFramePreview(
+              frame,
+              emoji: _store.workspaceEmoji,
+            ),
           ),
         ]),
         dom.div(classes: 'hui-animation-frame-meta', <Widget>[
@@ -171,39 +177,40 @@ class _AnimationViewState extends State<AnimationView> {
         ),
       ]);
 
-  Widget _strip(GlossAnimationDoc doc, String id, int index) =>
-      dom.div(classes: 'hui-animation-strip', <Widget>[
-        for (int i = 0; i < doc.frames.length; i++)
-          dom.button(
-            classes: 'hui-animation-strip-frame${i == index ? ' is-active' : ''}',
-            attributes: <String, String>{
-              'type': 'button',
-              'aria-label': 'Show frame ${i + 1}',
-            },
-            events: <String, EventCallback>{
-              'click': (Object? _) => setState(() => _player.scrubTo(i, doc)),
-            },
-            <Widget>[
-              dom.span(classes: 'hui-animation-strip-index', <Widget>[
-                Text('${i + 1}'),
-              ]),
-              GlossTextLine(
-                render: renderGlossLine(
-                  doc.frames[i],
-                  emoji: _store.workspaceEmoji,
-                ),
+  Widget _strip(GlossAnimationDoc doc, String id, int index) => dom.div(
+    classes: 'hui-animation-strip',
+    <Widget>[
+      for (int i = 0; i < doc.frames.length; i++)
+        dom.button(
+          classes: 'hui-animation-strip-frame${i == index ? ' is-active' : ''}',
+          attributes: <String, String>{
+            'type': 'button',
+            'aria-label': 'Show frame ${i + 1}',
+          },
+          events: <String, EventCallback>{
+            'click': (Object? _) => setState(() => _player.scrubTo(i, doc)),
+          },
+          <Widget>[
+            dom.span(classes: 'hui-animation-strip-index', <Widget>[
+              Text('${i + 1}'),
+            ]),
+            GlossTextLine(
+              render: renderGlossAnimationFramePreview(
+                doc.frames[i],
+                emoji: _store.workspaceEmoji,
               ),
-            ],
-          ),
-      ]);
+            ),
+          ],
+        ),
+    ],
+  );
 
   /// The range input's value, off `event.target.value`.
   static String? _rangeValue(Object? event) {
     final JSObject? object = event as JSObject?;
     final JSAny? target = object?.getProperty<JSAny?>('target'.toJS);
     if (target == null || !target.isA<JSObject>()) return null;
-    final JSAny? value =
-        (target as JSObject).getProperty<JSAny?>('value'.toJS);
+    final JSAny? value = (target as JSObject).getProperty<JSAny?>('value'.toJS);
     return value.isA<JSString>() ? (value! as JSString).toDart : null;
   }
 }

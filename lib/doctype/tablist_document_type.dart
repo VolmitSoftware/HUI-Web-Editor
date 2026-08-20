@@ -78,42 +78,42 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
       'opens as a new document, so your current one is untouched.';
 
   @override
-  List<DocumentTemplateSection> get templateSections =>
-      <DocumentTemplateSection>[
-        DocumentTemplateSection(
-          templates: <DocumentTemplate>[
-            DocumentTemplate(
-              id: 'tablist-default',
-              name: 'Default tablist',
-              description:
-                  'The shipped default: Gloss header, VolmitSoftware footer, '
-                  'plain default names and gold operators. Exactly what '
-                  'plugins/Gloss/tablist.json starts with.',
-              highlights: const <String>['Shipped default', '2 formats'],
-              create: (EditorStore store) => store.newGlossDocument(
-                this,
-                name: 'tablist',
-                from: buildDefaultGlossTablist(),
-              ),
-            ),
-            DocumentTemplate(
-              id: 'tablist-showcase',
-              name: 'Grouped showcase',
-              description:
-                  'A live RGB header with PAPI, ping and metrics, an animated '
-                  'footer, and group formats including authored colour cycles.',
-              highlights: const <String>[
-                '3 formats',
-                'PAPI + metrics',
-                'Authored animation',
-              ],
-              create: (EditorStore store) => store.newGlossDocument(
-                this,
-                name: 'tablist',
-                from: buildShowcaseGlossTablist(),
-              ),
-            ),
-          ],
+  List<DocumentTemplateSection>
+  get templateSections => <DocumentTemplateSection>[
+    DocumentTemplateSection(
+      templates: <DocumentTemplate>[
+        DocumentTemplate(
+          id: 'tablist-default',
+          name: 'Default tablist',
+          description:
+              'The shipped default: Gloss header, VolmitSoftware footer, '
+              'plain default names and gold operators. Exactly what '
+              'plugins/Gloss/tablist.json starts with.',
+          highlights: const <String>['Shipped default', '2 formats'],
+          create: (EditorStore store) => store.newGlossDocument(
+            this,
+            name: 'tablist',
+            from: buildDefaultGlossTablist(),
+          ),
         ),
-      ];
+        DocumentTemplate(
+          id: 'tablist-showcase',
+          name: 'Grouped showcase',
+          description:
+              'A live RGB header with PAPI, ping and metrics, an animated '
+              'footer, and group formats including smooth authored RGB animation.',
+          highlights: const <String>[
+            '3 formats',
+            'PAPI + metrics',
+            'Authored animation',
+          ],
+          create: (EditorStore store) => store.newGlossDocument(
+            this,
+            name: 'tablist',
+            from: buildShowcaseGlossTablist(),
+          ),
+        ),
+      ],
+    ),
+  ];
 }

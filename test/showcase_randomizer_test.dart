@@ -3,6 +3,7 @@ library;
 import 'dart:math' as math;
 
 import 'package:gloss_editor/doctype/doctype.dart';
+import 'package:gloss_editor/logic/animation_validation.dart';
 import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/logic/preview_card_scene.dart';
 import 'package:gloss_editor/logic/preview_sim.dart';
@@ -180,6 +181,29 @@ void main() {
     expect(actionTypes, containsAll(huiActionTypes));
   });
 
+  test('random animation showcase is a smooth procedural hue gradient', () {
+    for (int seed = 0; seed < 64; seed++) {
+      final GlossAnimationDoc animation = buildRandomAnimationShowcase(
+        GlossAnimationDoc(revision: 9),
+        math.Random(seed),
+      );
+      expect(animation.revision, 9, reason: 'seed $seed');
+      expect(animation.frameIntervalMs, 50, reason: 'seed $seed');
+      expect(
+        animation.frames.length,
+        inInclusiveRange(48, 60),
+        reason: 'seed $seed',
+      );
+      expect(animation.frames.toSet(), hasLength(animation.frames.length));
+      expect(
+        animation.frames,
+        everyElement(matches(RegExp(r'^\[[0-9A-F]{6}\]'))),
+        reason: 'seed $seed',
+      );
+      expect(validateAnimationDoc(animation), isEmpty, reason: 'seed $seed');
+    }
+  });
+
   test('random MOTD and scoreboard are complete fake server examples', () {
     final GlossMotdDoc motd = buildRandomMotdShowcase(
       GlossMotdDoc(revision: 7),
@@ -244,7 +268,7 @@ void main() {
     expect(
       firstColors,
       isNot(secondColors),
-      reason: 'the shipped rainbow changes its rendered colour every 500 ms',
+      reason: 'the shipped rainbow advances through its smooth RGB gradient',
     );
 
     final GlossScoreboardDoc scoreboard = buildRandomScoreboardShowcase(

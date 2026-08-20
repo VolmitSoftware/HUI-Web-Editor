@@ -75,8 +75,24 @@ void main() {
       final GlossAnimationDoc second = buildRainbowGlossAnimation();
       expect(identical(first, second), isFalse);
       expect(first.mode, 'ascend');
-      expect(first.frameIntervalMs, 500);
-      expect(first.frames, hasLength(4));
+      expect(first.frameIntervalMs, 50);
+      expect(first.frames, hasLength(60));
+      expect(first.frames.toSet(), hasLength(60));
+      for (int index = 0; index < first.frames.length; index++) {
+        final int current = int.parse(
+          first.frames[index].substring(1, 7),
+          radix: 16,
+        );
+        final int next = int.parse(
+          first.frames[(index + 1) % first.frames.length].substring(1, 7),
+          radix: 16,
+        );
+        for (final int shift in <int>[16, 8, 0]) {
+          final int delta =
+              (((current >> shift) & 0xFF) - ((next >> shift) & 0xFF)).abs();
+          expect(delta, lessThanOrEqualTo(26));
+        }
+      }
       expect(validateAnimationDoc(first), isEmpty);
     });
   });
@@ -336,12 +352,13 @@ void main() {
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),
       isEmpty,
     );
-    // Same teaching reference as the hologram showcase.
     expect(
       issues.any(
         (HuiIssue issue) => issue.message.contains('animation.rainbow'),
       ),
-      isTrue,
+      isFalse,
+      reason:
+          'scoreboard uses a compact spinner that fits the 16+16 wire budget',
     );
     for (int index = 0; index < doc.lines.length; index++) {
       final String line = doc.lines[index];
