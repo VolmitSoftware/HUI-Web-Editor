@@ -5,7 +5,7 @@
 ///   "schemaVersion": 2,
 ///   "revision": 1,
 ///   "prefix": "&7",
-///   "offset": [0.0, 1.0, 0.0],
+///   "offset": [0.0, 0.3, 0.0],
 ///   "wordWrapChars": 32,
 ///   "maxAliveMs": 5000,
 ///   "motion": {
@@ -516,7 +516,7 @@ final class GlossBubbleStyleDoc extends GlossDoc {
   /// shape is not a triple — the renderable reading, never a replacement.
   List<double> get offset {
     final Object? raw = offsetRaw;
-    if (raw == null) return const <double>[0, 1, 0];
+    if (raw == null) return const <double>[0, 0.3, 0];
     final List<Object?> entries = raw is List ? raw : const <Object?>[];
     return List<double>.generate(3, (int axis) {
       if (axis >= entries.length) return 0;

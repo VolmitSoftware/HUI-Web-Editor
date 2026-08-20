@@ -1,6 +1,5 @@
 library;
 
-const double glossBubbleBaseLift = 0.86;
 const double glossBubbleDefaultStackSpread = 0.26;
 
 double glossBubbleStackOffset(
@@ -22,6 +21,4 @@ double glossBubbleStackY(
   double spread,
   int bubbleIndex,
   List<int> lineCounts,
-) =>
-    glossBubbleBaseLift +
-    glossBubbleStackOffset(spread, bubbleIndex, lineCounts);
+) => glossBubbleStackOffset(spread, bubbleIndex, lineCounts);

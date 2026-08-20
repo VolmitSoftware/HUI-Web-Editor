@@ -1027,8 +1027,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'bubble.offset': HuiFieldDoc(
     title: 'Offset',
     body:
-        'Blocks added to the sender\'s eye location before the stack lift. '
-        'Absent means [0, 1, 0]. When present it must be exactly three '
+        'Blocks added directly to the sender\'s eye location before older '
+        'messages stack above it. Absent means [0, 0.3, 0]. When present it '
+        'must be exactly three '
         'numbers — the strict vector adapter rejects the whole file '
         'otherwise.',
     citation: 'BubbleStyleDoc.java:24',

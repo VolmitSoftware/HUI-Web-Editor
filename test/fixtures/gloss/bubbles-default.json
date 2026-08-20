@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "revision": 1,
   "prefix": "&7",
-  "offset": [0.0, 1.0, 0.0],
+  "offset": [0.0, 0.3, 0.0],
   "wordWrapChars": 32,
   "maxAliveMs": 5000,
   "followPlayer": true,

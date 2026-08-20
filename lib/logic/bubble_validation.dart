@@ -30,7 +30,7 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
         message:
             'The offset must be exactly three finite numbers [x, y, z]; '
             'Gloss rejects anything else. Leaving the key out entirely is '
-            'fine — the plugin then uses [0, 1, 0].',
+            'fine — the plugin then uses [0, 0.3, 0].',
         fix: 'Write the offset as [x, y, z].',
       ),
     );

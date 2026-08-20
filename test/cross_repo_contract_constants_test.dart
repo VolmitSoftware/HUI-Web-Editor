@@ -372,25 +372,6 @@ void main() {
   });
 
   group('bubble stacking matches the plugin', () {
-    test('the base lift is BubbleStackMath.BASE_LIFT', () {
-      expect(
-        glossBubbleBaseLift,
-        closeTo(
-          constantNumber(
-            readGlossJava(
-              'src/main/java/art/arcane/gloss/bubble/BubbleStackMath.java',
-            ),
-            'BASE_LIFT',
-          ),
-          _epsilon,
-        ),
-        reason: _refresh(
-          'lib/logic/bubble_stack_math.dart',
-          'BubbleStackMath.java',
-        ),
-      );
-    });
-
     test('the default spread is the config default stackDistance', () {
       expect(
         glossBubbleDefaultStackSpread,

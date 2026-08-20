@@ -24,10 +24,7 @@ void main() {
     );
   });
 
-  test('stack Y composes base lift and line-aware offset', () {
-    expect(
-      glossBubbleStackY(0.26, 0, const <int>[2, 1]),
-      closeTo(0.86 + 0.78, 1e-12),
-    );
+  test('stack Y is the line-aware offset', () {
+    expect(glossBubbleStackY(0.26, 0, const <int>[2, 1]), closeTo(0.78, 1e-12));
   });
 }

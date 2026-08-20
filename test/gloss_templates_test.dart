@@ -263,7 +263,7 @@ void main() {
       final GlossBubbleStyleDoc second = buildDefaultGlossBubbleStyle();
       expect(identical(first, second), isFalse);
       expect(first.prefix, '&7');
-      expect(first.offset, <double>[0, 1, 0]);
+      expect(first.offset, <double>[0, 0.3, 0]);
       expect(first.effectiveWordWrapChars, 32);
       expect(first.schemaVersion, glossBubbleCurrentSchemaVersion);
       expect(first.motion.translation.x, '0');

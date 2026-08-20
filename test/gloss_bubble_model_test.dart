@@ -171,7 +171,7 @@ void main() {
       final GlossBubbleStyleDoc absent = decodeGlossBubbleStyleDoc(
         '{"schemaVersion":2,"revision":1}',
       );
-      expect(absent.offset, <double>[0, 1, 0]);
+      expect(absent.offset, <double>[0, 0.3, 0]);
       final GlossBubbleStyleDoc malformed = decodeGlossBubbleStyleDoc(
         '{"schemaVersion":2,"revision":1,"offset":[1,2]}',
       );
