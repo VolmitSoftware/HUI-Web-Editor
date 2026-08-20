@@ -12,6 +12,7 @@ import 'hologram_document_type.dart';
 import 'menu_document_type.dart';
 import 'motd_document_type.dart';
 import 'panel_document_type.dart';
+import 'real_drop_document_type.dart';
 import 'scoreboard_document_type.dart';
 import 'tablist_document_type.dart';
 
@@ -28,6 +29,7 @@ abstract final class DocumentTypes {
   static const EmojiDocumentType emoji = EmojiDocumentType();
   static const BubbleStyleDocumentType bubbleStyle = BubbleStyleDocumentType();
   static const TablistDocumentType tablist = TablistDocumentType();
+  static const RealDropDocumentType realDrops = RealDropDocumentType();
 }
 
 /// The closed set of adapters.
@@ -46,6 +48,7 @@ abstract final class DocumentTypeRegistry {
         WorkspaceDocKind.emoji: DocumentTypes.emoji,
         WorkspaceDocKind.bubbleStyle: DocumentTypes.bubbleStyle,
         WorkspaceDocKind.tablist: DocumentTypes.tablist,
+        WorkspaceDocKind.realDrops: DocumentTypes.realDrops,
       };
 
   /// Every adapter, in workspace-rail order.
@@ -60,6 +63,7 @@ abstract final class DocumentTypeRegistry {
     DocumentTypes.emoji,
     DocumentTypes.bubbleStyle,
     DocumentTypes.tablist,
+    DocumentTypes.realDrops,
   ];
 
   /// Every adapter in mode-tab order, which is [DocumentTypeAdapter.tabOrder]

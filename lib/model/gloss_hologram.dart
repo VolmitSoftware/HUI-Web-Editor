@@ -5,7 +5,8 @@
 ///   "schemaVersion": 1,
 ///   "revision": 1,
 ///   "anchor": {"world": "world", "position": [0.0, 0.0, 0.0]},
-///   "lines": ["&dNew hologram"]
+///   "lines": ["&dNew hologram"],
+///   "seeThrough": true
 /// }
 /// ```
 ///
@@ -54,6 +55,7 @@ const Set<String> _docKnown = <String>{
   'revision',
   'anchor',
   'lines',
+  'seeThrough',
 };
 
 const Set<String> _anchorKnown = <String>{'world', 'position'};
@@ -154,6 +156,7 @@ final class GlossHologramDoc extends GlossDoc {
     super.revision = glossInitialRevision,
     GlossHologramAnchor? anchor,
     List<String>? lines,
+    this.seeThrough = true,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
   }) : anchor = anchor ?? GlossHologramAnchor(),
@@ -168,6 +171,7 @@ final class GlossHologramDoc extends GlossDoc {
   /// each through the text pipeline. May legally be empty
   /// (`HologramDoc.copyLines` accepts null as an empty list).
   List<String> lines;
+  bool seeThrough;
 
   /// True when the document carried an `anchor` object at all — Gson leaves
   /// the record field null without one, which `HologramDoc`'s constructor
@@ -186,10 +190,12 @@ final class GlossHologramDoc extends GlossDoc {
       revision: glossReadRevision(map),
       anchor: GlossHologramAnchor.fromJson(anchorRaw),
       lines: glossReadStringList(map['lines']),
+      seeThrough: map['seeThrough'] is bool ? map['seeThrough'] as bool : true,
       extras: huiCollectExtras(map, _docKnown),
       absentKeys: <String>{
         if (map['revision'] == null) 'revision',
         if (map['lines'] == null) 'lines',
+        if (map['seeThrough'] == null) 'seeThrough',
       },
     )..anchorPresent = anchorRaw is Map;
   }
@@ -202,6 +208,8 @@ final class GlossHologramDoc extends GlossDoc {
       if (anchorPresent) 'anchor': anchor.toJson(),
       if (!absentKeys.contains('lines') || lines.isNotEmpty)
         'lines': List<String>.of(lines),
+      if (!absentKeys.contains('seeThrough') || !seeThrough)
+        'seeThrough': seeThrough,
     };
     return huiMergeExtras(out, extras);
   }
@@ -212,6 +220,7 @@ final class GlossHologramDoc extends GlossDoc {
       revision: revision,
       anchor: anchor.copy(),
       lines: List<String>.of(lines),
+      seeThrough: seeThrough,
       extras: huiDeepCopyMap(extras),
       absentKeys: Set<String>.of(absentKeys),
     );

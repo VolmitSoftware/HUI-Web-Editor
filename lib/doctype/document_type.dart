@@ -151,6 +151,7 @@ enum DocumentSurface {
   emoji,
   bubble,
   tablist,
+  realDrops,
 }
 
 /// One heading-plus-grid section of a kind's template tab.

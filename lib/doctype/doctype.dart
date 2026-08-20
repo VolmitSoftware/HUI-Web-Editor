@@ -11,5 +11,6 @@ export 'hologram_document_type.dart';
 export 'menu_document_type.dart';
 export 'motd_document_type.dart';
 export 'panel_document_type.dart';
+export 'real_drop_document_type.dart';
 export 'scoreboard_document_type.dart';
 export 'tablist_document_type.dart';

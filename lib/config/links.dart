@@ -20,6 +20,7 @@ const String huiEmojiFolder = '${huiPluginFolder}emoji/';
 const String huiBubbleFolder = '${huiPluginFolder}bubbles/';
 const String huiMotdFile = '${huiPluginFolder}motd.json';
 const String huiTablistFile = '${huiPluginFolder}tablist.json';
+const String huiRealDropsFile = '${huiPluginFolder}real-drops/default.json';
 
 /// One external destination in the help dialog's link grid.
 class HuiLink {

@@ -12,6 +12,7 @@ import 'components/bubble/bubble_view.dart';
 import 'components/emoji/emoji_view.dart';
 import 'components/motd/motd_view.dart';
 import 'components/scoreboard/scoreboard_view.dart';
+import 'components/real_drops/real_drops_view.dart';
 import 'components/tablist/tablist_view.dart';
 import 'components/hologram/hologram_view.dart';
 import 'components/inspector/inspector.dart';
@@ -817,6 +818,7 @@ class _AppState extends State<App> {
           DocumentSurface.emoji: EmojiView(store: _store),
           DocumentSurface.bubble: BubbleView(store: _store),
           DocumentSurface.tablist: TablistView(store: _store),
+          DocumentSurface.realDrops: RealDropsView(store: _store),
         },
         // The preview mode's in-game renderings. The menu's is the 3D stage;
         // every other kind renders through its own surface asked for game
@@ -852,6 +854,10 @@ class _AppState extends State<App> {
           DocumentSurface.emoji: EmojiView(store: _store, gameContext: true),
           DocumentSurface.bubble: BubbleView(store: _store, gameContext: true),
           DocumentSurface.tablist: TablistView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.realDrops: RealDropsView(
             store: _store,
             gameContext: true,
           ),

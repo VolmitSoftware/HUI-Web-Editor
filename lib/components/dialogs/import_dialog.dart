@@ -375,6 +375,10 @@ class _ImportDialogState extends State<ImportDialog> {
     final GlossTablistDoc tablist => <String>[
       '${tablist.nameFormats.length} name format${tablist.nameFormats.length == 1 ? '' : 's'}',
     ],
+    final GlossRealDropSettingsDoc realDrops => <String>[
+      '${realDrops.motion.speedMultiplier.toStringAsFixed(2)}x tumble speed',
+      '${realDrops.limits.maxVisualsPerStack} models per stack',
+    ],
     _ => const <String>[],
   };
 

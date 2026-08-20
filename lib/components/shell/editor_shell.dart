@@ -677,6 +677,7 @@ class _CenterArea extends StatelessWidget {
     DocumentSurface.emoji => 'is-emoji',
     DocumentSurface.bubble => 'is-bubble',
     DocumentSurface.tablist => 'is-tablist',
+    DocumentSurface.realDrops => 'is-real-drops',
   };
 
   /// A slot the owner did not supply. Reachable only from a wiring mistake, so

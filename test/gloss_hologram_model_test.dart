@@ -32,6 +32,7 @@ void main() {
       expect(doc.anchor.position, <double>[10.5, 64, -3.25]);
       expect(doc.anchor.positionIsValidTriple, isTrue);
       expect(doc.lines, <String>['&dTop', '&7Bottom']);
+      expect(doc.seeThrough, isTrue);
     });
 
     test('rejects a wrong schemaVersion like DocumentEnvelope does', () {
@@ -106,6 +107,18 @@ void main() {
       expect(jsonDecode(encoded), jsonDecode(_baseline));
     });
 
+    test('an explicit occluded hologram remains occluded', () {
+      final GlossHologramDoc doc = decodeGlossHologramDoc(
+        _baseline.replaceFirst(
+          '"lines": [',
+          '"seeThrough": false,\n  "lines": [',
+        ),
+      );
+
+      expect(doc.seeThrough, isFalse);
+      expect(jsonDecode(encodeGlossHologramDoc(doc))['seeThrough'], isFalse);
+    });
+
     test('unknown keys survive at both levels, after the known ones', () {
       const String withExtras = '''
 {
@@ -168,9 +181,11 @@ void main() {
       copied.lines.add('added');
       copied.anchor.world = 'other';
       copied.anchor.setPosition(9, 9, 9);
+      copied.seeThrough = false;
       expect(doc.lines, hasLength(2));
       expect(doc.anchor.world, 'world_nether');
       expect(doc.anchor.position, <double>[10.5, 64, -3.25]);
+      expect(doc.seeThrough, isTrue);
     });
   });
 

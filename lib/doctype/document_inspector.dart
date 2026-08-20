@@ -23,6 +23,7 @@ import '../components/inspector/preview_element_editor.dart';
 import '../components/inspector/scoreboard_inspector.dart';
 import '../components/inspector/tablist_inspector.dart';
 import '../components/inspector/preview_match_editor.dart';
+import '../components/inspector/real_drop_inspector.dart';
 import '../components/panels/preview_sim_panel.dart';
 import '../model/model.dart';
 import '../services/catalogs.dart';
@@ -67,6 +68,7 @@ final Map<WorkspaceDocKind, DocumentInspectorBuilder> _builders =
       DocumentTypes.emoji.kind: _emojiBody,
       DocumentTypes.bubbleStyle.kind: _bubbleBody,
       DocumentTypes.tablist.kind: _tablistBody,
+      DocumentTypes.realDrops.kind: _realDropBody,
     };
 
 /// The inspector body for the active document kind.
@@ -109,6 +111,10 @@ List<Widget> _bubbleBody(DocumentInspectorScope scope) => <Widget>[
 
 List<Widget> _tablistBody(DocumentInspectorScope scope) => <Widget>[
   TablistInspector(store: scope.store),
+];
+
+List<Widget> _realDropBody(DocumentInspectorScope scope) => <Widget>[
+  RealDropInspector(store: scope.store),
 ];
 
 List<Widget> _previewBody(DocumentInspectorScope scope) {

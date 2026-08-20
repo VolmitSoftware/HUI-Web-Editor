@@ -29,7 +29,8 @@ enum WorkspaceDocKind {
   motd,
   emoji,
   bubbleStyle,
-  tablist;
+  tablist,
+  realDrops;
 
   bool get hasRuntimeId => this != WorkspaceDocKind.panel;
 

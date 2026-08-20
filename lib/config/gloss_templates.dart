@@ -21,7 +21,8 @@ const String kGlossHologramBaselineJson = r'''
   },
   "lines": [
     "&dNew hologram"
-  ]
+  ],
+  "seeThrough": true
 }
 ''';
 
@@ -43,7 +44,8 @@ const String kGlossHologramShowcaseJson = r'''
     "&7Rank {{ papi('vault_prefix', '&7Member') }}",
     "|animation.rainbow|&lLive colour prefix",
     "&7TPS &a{{ fixed(server.tps, 1) }}"
-  ]
+  ],
+  "seeThrough": true
 }
 ''';
 
@@ -52,6 +54,66 @@ GlossHologramDoc buildBlankGlossHologram() =>
 
 GlossHologramDoc buildShowcaseGlossHologram() =>
     decodeGlossHologramDoc(kGlossHologramShowcaseJson);
+
+const String kGlossRealDropsDefaultJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "limits": {
+    "updateIntervalTicks": 2,
+    "settledPollIntervalTicks": 20,
+    "maxVisualsPerStack": 3,
+    "maxVisualsPerChunk": 128,
+    "viewRange": 32.0,
+    "spread": 0.18
+  },
+  "scale": {
+    "defaultScale": 0.4,
+    "flatItems": 0.65,
+    "thinBlocks": 0.45
+  },
+  "motion": {
+    "tumble": true,
+    "speedMultiplier": 1.35,
+    "degreesPerSecondX": 160.0,
+    "degreesPerSecondY": 120.0,
+    "degreesPerSecondZ": 100.0,
+    "variance": 0.2,
+    "changeOnBounce": true
+  },
+  "landing": {
+    "mode": "NATURAL",
+    "tiltDegrees": 10.0,
+    "randomYaw": true,
+    "transitionTicks": 4
+  },
+  "labels": {
+    "enabled": true,
+    "yOffset": 0.55,
+    "scale": 0.85,
+    "viewRange": 32.0,
+    "billboard": "CENTER",
+    "seeThrough": true,
+    "shadow": true,
+    "background": true,
+    "backgroundRed": 0,
+    "backgroundGreen": 0,
+    "backgroundBlue": 0,
+    "backgroundAlpha": 80
+  },
+  "filters": {
+    "disabledWorlds": [],
+    "materialBlacklist": [
+      "BEDROCK",
+      "BARRIER"
+    ],
+    "onlyPlayerDrops": false
+  }
+}
+''';
+
+GlossRealDropSettingsDoc buildDefaultGlossRealDrops() =>
+    decodeGlossRealDropSettingsDoc(kGlossRealDropsDefaultJson);
 
 /// `Gloss/src/main/resources/defaults/animations/rainbow.json`, byte for
 /// byte — the animation the plugin extracts into

@@ -305,6 +305,11 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     return doc is GlossTablistDoc ? doc : null;
   }
 
+  GlossRealDropSettingsDoc? get realDropSettingsDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossRealDropSettingsDoc ? doc : null;
+  }
+
   /// Monotonic counter over every change to [glossDoc] — an edit, an undo, a
   /// code commit, an import, a document switch.
   int get glossRevision => _glossRevision;
@@ -1060,6 +1065,15 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// no-op while the active document is not a tablist.
   void mutateTablist(String label, void Function(GlossTablistDoc doc) fn) {
     final GlossTablistDoc? doc = tablistDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  void mutateRealDropSettings(
+    String label,
+    void Function(GlossRealDropSettingsDoc doc) fn,
+  ) {
+    final GlossRealDropSettingsDoc? doc = realDropSettingsDoc;
     if (doc == null) return;
     mutateGloss(label, (GlossDoc _) => fn(doc));
   }

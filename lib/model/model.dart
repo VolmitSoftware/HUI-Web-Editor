@@ -4,6 +4,7 @@ export 'gloss_doc.dart';
 export 'gloss_emoji.dart';
 export 'gloss_hologram.dart';
 export 'gloss_motd.dart';
+export 'gloss_real_drops.dart';
 export 'gloss_scoreboard.dart';
 export 'gloss_tablist.dart';
 export 'hui_actions.dart';

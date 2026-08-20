@@ -50,6 +50,7 @@ const List<String> _handWrittenKeys = <String>[
   'hologram.id',
   'hologram.lines',
   'hologram.revision',
+  'hologram.seeThrough',
   'icon.animated.source',
   'icon.animated.speed',
   'icon.block.block',

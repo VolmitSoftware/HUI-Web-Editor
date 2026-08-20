@@ -925,6 +925,84 @@
 
 .hui-tablist-token-chip { cursor: pointer; }
 
+.hui-real-drops-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  overflow: hidden;
+  background: linear-gradient(#172333 0 58%, #263120 58% 100%);
+}
+
+.hui-real-drops-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hui-real-drops-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 38%;
+  background: repeating-linear-gradient(90deg, #495142 0 48px, #3f4938 48px 50px);
+  box-shadow: inset 0 2px rgba(255, 255, 255, .08);
+}
+
+.hui-real-drops-model {
+  position: absolute;
+  z-index: 2;
+  bottom: 82px;
+  border: 2px solid #71808b;
+  background: linear-gradient(135deg, #9aa4aa, #626d72 52%, #414a50);
+  box-shadow: inset -8px -8px rgba(0, 0, 0, .2), 0 9px 16px rgba(0, 0, 0, .35);
+  transform: translateX(-50%) rotateX(58deg) rotateZ(10deg);
+  transform-origin: 50% 80%;
+}
+
+.hui-real-drops-model.is-upright { transform: translateX(-50%); }
+.hui-real-drops-model.is-flat { transform: translateX(-50%) rotateX(78deg); }
+
+.hui-real-drops-model.is-tumbling {
+  animation-name: hui-real-drop-tumble;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes hui-real-drop-tumble {
+  from { transform: translateX(-50%) rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  to { transform: translateX(-50%) rotateX(360deg) rotateY(270deg) rotateZ(225deg); }
+}
+
+.hui-real-drops-label {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  padding: 3px 7px;
+  color: #fff;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  transform-origin: bottom center;
+}
+
+.hui-real-drops-label.is-see-through { z-index: 8; }
+
+.hui-real-drops-readout {
+  position: absolute;
+  z-index: 10;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-align: center;
+}
+
 .hui-tablist-format-row {
   display: grid;
   grid-template-columns: minmax(72px, 0.4fr) minmax(0, 1fr) auto;

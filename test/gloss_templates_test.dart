@@ -51,7 +51,30 @@ void main() {
       expect(first.revision, 1);
       expect(first.anchor.world, 'world');
       expect(first.lines, <String>['&dNew hologram']);
+      expect(first.seeThrough, isTrue);
       expect(validateHologramDoc(first), isEmpty);
+    });
+  });
+
+  group('real drops stay the shipped default', () {
+    test('embedded copy matches the plugin resource', () {
+      final File plugin = File(
+        glossRepositoryFilePath(
+          'src/main/resources/defaults/real-drops/default.json',
+        ),
+      );
+      expect(plugin.existsSync(), isTrue);
+      expect(kGlossRealDropsDefaultJson, plugin.readAsStringSync());
+    });
+
+    test('builds a fresh model each time and validates clean', () {
+      final GlossRealDropSettingsDoc first = buildDefaultGlossRealDrops();
+      final GlossRealDropSettingsDoc second = buildDefaultGlossRealDrops();
+      expect(identical(first, second), isFalse);
+      expect(first.motion.speedMultiplier, 1.35);
+      expect(first.labels.seeThrough, isTrue);
+      expect(first.limits.updateIntervalTicks, 2);
+      expect(first.filters.materialBlacklist, <String>['BEDROCK', 'BARRIER']);
     });
   });
 

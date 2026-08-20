@@ -64,6 +64,11 @@ bool randomizeShowcaseDocument(
         'Randomize tablist',
         buildRandomTablistShowcase(store.tablistDoc!, source),
       );
+    case RealDropDocumentType():
+      store.replaceGlossDoc(
+        'Randomize real drops',
+        buildRandomRealDropShowcase(store.realDropSettingsDoc!, source),
+      );
     case PanelDocumentType():
       return false;
   }
@@ -673,6 +678,26 @@ GlossTablistDoc buildRandomTablistShowcase(
       'vip': '$groupColor[\$group] &f\$player',
     },
   );
+}
+
+GlossRealDropSettingsDoc buildRandomRealDropShowcase(
+  GlossRealDropSettingsDoc current,
+  math.Random random,
+) {
+  final GlossRealDropSettingsDoc doc = current.copy();
+  doc.motion.speedMultiplier = 0.75 + random.nextDouble() * 2.25;
+  doc.motion.degreesPerSecondX = 80 + random.nextDouble() * 320;
+  doc.motion.degreesPerSecondY = 60 + random.nextDouble() * 280;
+  doc.motion.degreesPerSecondZ = 50 + random.nextDouble() * 240;
+  doc.motion.variance = 0.1 + random.nextDouble() * 0.5;
+  doc.limits.spread = 0.08 + random.nextDouble() * 0.42;
+  doc.landing.mode = _pick(random, const <String>[
+    'NATURAL',
+    'FLAT',
+    'UPRIGHT',
+  ]);
+  doc.labels.backgroundAlpha = 48 + random.nextInt(96);
+  return doc;
 }
 
 HuiButtonData _randomButtonData(

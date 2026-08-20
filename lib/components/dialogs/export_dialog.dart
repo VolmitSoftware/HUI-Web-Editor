@@ -62,11 +62,15 @@ class _ExportDialogState extends State<ExportDialog> {
 
   String? get _wireKind => _store.docType.syncWireKind;
 
-  bool get _fixedFileName => _wireKind == 'motd' || _wireKind == 'tablist';
+  bool get _fixedFileName =>
+      _wireKind == 'motd' ||
+      _wireKind == 'tablist' ||
+      _wireKind == 'real-drops';
 
   String get _fileName => switch (_wireKind) {
     'motd' => 'motd.json',
     'tablist' => 'tablist.json',
+    'real-drops' => 'default.json',
     _ => '$_documentId.json',
   };
 
@@ -79,6 +83,7 @@ class _ExportDialogState extends State<ExportDialog> {
     'emoji' => '$huiEmojiFolder$_fileName',
     'bubble-style' => '$huiBubbleFolder$_fileName',
     'tablist' => huiTablistFile,
+    'real-drops' => huiRealDropsFile,
     _ => '$huiPreviewFolder$_fileName',
   };
 

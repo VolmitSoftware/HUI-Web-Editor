@@ -54,9 +54,28 @@ class _HologramInspectorState extends State<HologramInspector> {
     return dom.div(classes: 'hui-inspector-body is-hologram', <Widget>[
       _header(doc),
       _anchor(doc),
+      _presentation(doc),
       _lines(doc),
     ]);
   }
+
+  Widget _presentation(GlossHologramDoc doc) => InspectorSection(
+    title: 'Presentation',
+    children: <Widget>[
+      HuiSwitchRow(
+        label: 'See through blocks',
+        value: doc.seeThrough,
+        trailing: const HuiFieldHelp('hologram.seeThrough'),
+        onChanged: (bool value) => _store.mutateHologram(
+          'hologram visibility',
+          (GlossHologramDoc edited) {
+            edited.seeThrough = value;
+            edited.absentKeys.remove('seeThrough');
+          },
+        ),
+      ),
+    ],
+  );
 
   Widget _header(GlossHologramDoc doc) => dom.div(
     classes: 'hui-inspector-headgroup',

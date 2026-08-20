@@ -810,6 +810,14 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'upward from here.',
     citation: 'BukkitTypeAdapters.java:30-49',
   ),
+  'hologram.seeThrough': HuiFieldDoc(
+    title: 'See through blocks',
+    body:
+        'Keeps this hologram readable through solid blocks. It is enabled '
+        'by default; turn it off when nearby terrain should hide the '
+        'TextDisplay normally.',
+    citation: 'HologramDoc.java:34-35',
+  ),
   'hologram.lines': HuiFieldDoc(
     title: 'Lines',
     body:

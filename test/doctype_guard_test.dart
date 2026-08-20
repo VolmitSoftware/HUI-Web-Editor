@@ -90,6 +90,10 @@ void main() {
     );
     expect(DocumentTypeRegistry.byWireKind('bubbles'), isNull);
     expect(DocumentTypeRegistry.byWireKind('tablist'), DocumentTypes.tablist);
+    expect(
+      DocumentTypeRegistry.byWireKind('real-drops'),
+      DocumentTypes.realDrops,
+    );
     expect(DocumentTypes.containerPreview.syncWireKind, isNull);
   });
 
