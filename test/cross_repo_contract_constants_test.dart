@@ -416,23 +416,26 @@ void main() {
       'src/main/java/art/arcane/gloss/bubble/BubbleShimmerPlan.java',
     );
 
-    test('the cycle is CYCLE_GLYPHS glyphs long', () {
+    test('the default bounded sweep timing matches runtime', () {
       expect(
-        glossBubbleShimmerCycleGlyphs,
-        constantInt(plan(), 'CYCLE_GLYPHS'),
+        glossBubbleShimmerDefaultDurationMs,
+        constantInt(plan(), 'DEFAULT_DURATION_MS'),
         reason: _refresh(
           'lib/model/gloss_bubble_style.dart',
           'BubbleShimmerPlan.java',
         ),
       );
-    });
-
-    test('the default durationMs is LEGACY_CYCLE_MS', () {
-      // The shipped cycle IS the default: a file with no durationMs runs it,
-      // and it is the wall time for one full 127-glyph cycle, not one pass.
       expect(
-        glossBubbleShimmerDefaultDurationMs,
-        constantInt(plan(), 'LEGACY_CYCLE_MS'),
+        glossBubbleShimmerDefaultSpawnDelayMs,
+        constantInt(plan(), 'DEFAULT_SPAWN_DELAY_MS'),
+        reason: _refresh(
+          'lib/model/gloss_bubble_style.dart',
+          'BubbleShimmerPlan.java',
+        ),
+      );
+      expect(
+        glossBubbleShimmerDefaultFlyAwayLeadMs,
+        constantInt(plan(), 'DEFAULT_FLY_AWAY_LEAD_MS'),
         reason: _refresh(
           'lib/model/gloss_bubble_style.dart',
           'BubbleShimmerPlan.java',
@@ -441,6 +444,14 @@ void main() {
       expect(
         GlossBubbleShimmer().durationMs,
         glossBubbleShimmerDefaultDurationMs,
+      );
+      expect(
+        GlossBubbleShimmer().spawnDelayMs,
+        glossBubbleShimmerDefaultSpawnDelayMs,
+      );
+      expect(
+        GlossBubbleShimmer().flyAwayLeadMs,
+        glossBubbleShimmerDefaultFlyAwayLeadMs,
       );
     });
 

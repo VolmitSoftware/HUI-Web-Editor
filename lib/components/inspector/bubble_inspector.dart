@@ -316,10 +316,9 @@ class _BubbleInspectorState extends State<BubbleInspector> {
     sectionKey: 'bubble.shimmer',
     children: <Widget>[
       const HuiNote(
-        'Original Gloss shine: a solid white three-glyph wave moves left to '
-        'right at exactly 30 glyphs a second. Each wrapped row restarts at its '
-        'left edge. With the default five-second lifetime it returns after '
-        '4.234 seconds while the bubble is flying away.',
+        'One solid three-glyph wave crosses the complete wrapped message. The '
+        'first pass waits 400 ms after chat; the second runs during the final '
+        '700 ms. Wrapped rows share one continuous band instead of restarting.',
       ),
       dom.div(classes: 'hui-bubble-motion-presets', <Widget>[
         Button(
@@ -336,9 +335,8 @@ class _BubbleInspectorState extends State<BubbleInspector> {
       HuiSwitchRow(
         label: 'At spawn',
         help:
-            'Anchor the free-running cycle at the bubble\'s birth, after the '
-            'configured spawn delay. This is the shine itself, not a one-off '
-            'pass.',
+            'Run one complete left-to-right sweep after the configured spawn '
+            'delay.',
         value: doc.shimmer.spawn,
         onChanged: (bool value) => _store.mutateBubbleStyle(
           'bubble spawn shimmer',
@@ -349,10 +347,8 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         label: 'At fly-away',
         trailing: const HuiFieldHelp('bubble.shimmer.flyAway'),
         help:
-            'Adds an EXTRA cycle anchored flyAwayLeadMs before expiry, '
-            'alongside whatever motion expressions are active then. Off by '
-            'default: the free-running cycle already produces a departure '
-            'pass on its own.',
+            'Run a second complete sweep beginning flyAwayLeadMs before '
+            'expiry, alongside the configured motion expressions.',
         value: doc.shimmer.flyAway,
         onChanged: (bool value) => _store.mutateBubbleStyle(
           'bubble fly-away shimmer',
@@ -406,12 +402,11 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         ),
       ),
       _clampedNumber(
-        label: 'Cycle duration',
+        label: 'Sweep duration',
         helpKey: 'bubble.shimmer.durationMs',
         help:
-            'Milliseconds for one full 127-glyph cycle, not for one pass over '
-            'the text: the band travels 127 / duration glyphs a second '
-            'whatever the line length. 100..10000.',
+            'Milliseconds for the band to cross the complete wrapped message. '
+            'Shorter durations refresh and travel faster. 100..10000.',
         value: doc.shimmer.durationMs,
         effective: doc.shimmer.effectiveDurationMs,
         path: r'$.shimmer.durationMs',
@@ -421,23 +416,32 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         onReset: doc.shimmer.durationMs == glossBubbleShimmerDefaultDurationMs
             ? null
             : () => _editShimmer(
-                'cycle duration',
+                'sweep duration',
                 (GlossBubbleShimmer shimmer) =>
                     shimmer.durationMs = glossBubbleShimmerDefaultDurationMs,
               ),
         onChanged: (int value) => _editShimmer(
-          'cycle duration',
+          'sweep duration',
           (GlossBubbleShimmer shimmer) => shimmer.durationMs = value,
         ),
       ),
       _clampedNumber(
         label: 'Spawn delay',
-        help: 'Milliseconds after the bubble appears before the cycle starts.',
+        help: 'Milliseconds after the bubble appears before the first sweep.',
         value: doc.shimmer.spawnDelayMs,
         effective: doc.shimmer.effectiveSpawnDelayMs,
         path: r'$.shimmer.spawnDelayMs',
         unit: HuiDurationUnit.milliseconds,
         step: 50,
+        defaultValue: '$glossBubbleShimmerDefaultSpawnDelayMs ms',
+        onReset:
+            doc.shimmer.spawnDelayMs == glossBubbleShimmerDefaultSpawnDelayMs
+            ? null
+            : () => _editShimmer(
+                'spawn delay',
+                (GlossBubbleShimmer shimmer) => shimmer.spawnDelayMs =
+                    glossBubbleShimmerDefaultSpawnDelayMs,
+              ),
         onChanged: (int value) => _editShimmer(
           'spawn delay',
           (GlossBubbleShimmer shimmer) => shimmer.spawnDelayMs = value,
@@ -446,14 +450,23 @@ class _BubbleInspectorState extends State<BubbleInspector> {
       _clampedNumber(
         label: 'Fly-away lead',
         help:
-            'Milliseconds before expiry when the extra cycle restarts from '
-            'the left edge. Match or exceed the cycle duration to show a '
+            'Milliseconds before expiry when the second sweep starts from '
+            'the left edge. Match or exceed the sweep duration to show a '
             'complete pass.',
         value: doc.shimmer.flyAwayLeadMs,
         effective: doc.shimmer.effectiveFlyAwayLeadMs,
         path: r'$.shimmer.flyAwayLeadMs',
         unit: HuiDurationUnit.milliseconds,
         step: 50,
+        defaultValue: '$glossBubbleShimmerDefaultFlyAwayLeadMs ms',
+        onReset:
+            doc.shimmer.flyAwayLeadMs == glossBubbleShimmerDefaultFlyAwayLeadMs
+            ? null
+            : () => _editShimmer(
+                'fly-away lead',
+                (GlossBubbleShimmer shimmer) => shimmer.flyAwayLeadMs =
+                    glossBubbleShimmerDefaultFlyAwayLeadMs,
+              ),
         onChanged: (int value) => _editShimmer(
           'fly-away lead',
           (GlossBubbleShimmer shimmer) => shimmer.flyAwayLeadMs = value,

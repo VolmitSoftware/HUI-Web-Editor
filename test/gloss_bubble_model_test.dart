@@ -111,15 +111,12 @@ void main() {
       expect(doc.motion.rotation.z, '0');
       expect(doc.motion.opacity, '1');
       expect(doc.shimmer.spawn, isTrue);
-      // `flyAway = flyAway != null && flyAway` in the Java record: the extra
-      // departure cycle is opt-in, because the spawn cycle free-runs to expiry.
-      expect(doc.shimmer.flyAway, isFalse);
+      expect(doc.shimmer.flyAway, isTrue);
       expect(doc.shimmer.color, glossBubbleShimmerDefaultColor);
       expect(doc.shimmer.width, 3);
-      // One full 127-glyph cycle, not one pass over the text.
       expect(doc.shimmer.durationMs, glossBubbleShimmerDefaultDurationMs);
-      expect(doc.shimmer.spawnDelayMs, 0);
-      expect(doc.shimmer.flyAwayLeadMs, 700);
+      expect(doc.shimmer.spawnDelayMs, glossBubbleShimmerDefaultSpawnDelayMs);
+      expect(doc.shimmer.flyAwayLeadMs, glossBubbleShimmerDefaultFlyAwayLeadMs);
       expect(doc.select, isNull);
     });
 

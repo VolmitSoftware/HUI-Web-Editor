@@ -16,11 +16,11 @@
 ///   },
 ///   "shimmer": {
 ///     "spawn": true,
-///     "flyAway": false,
+///     "flyAway": true,
 ///     "color": "#ffffff",
 ///     "width": 3,
-///     "durationMs": 4233,
-///     "spawnDelayMs": 0,
+///     "durationMs": 700,
+///     "spawnDelayMs": 400,
 ///     "flyAwayLeadMs": 700
 ///   },
 ///   "followPlayer": true,
@@ -59,15 +59,10 @@ const int glossBubbleMinShimmerDurationMs = 100;
 const int glossBubbleMaxShimmerDurationMs = 10000;
 const int glossBubbleMaxShimmerOffsetMs = 60000;
 
-/// `BubbleShimmerPlan.CYCLE_GLYPHS` — legacy `SHINETICK`. The band head is a
-/// whole visible-glyph index and repeats every 127 of them, so `durationMs` is
-/// the wall time for one full 127-glyph cycle rather than one pass over the
-/// text.
-const int glossBubbleShimmerCycleGlyphs = 127;
-
-/// `BubbleShimmerPlan.LEGACY_CYCLE_MS` — 127 glyphs at the legacy 30 glyphs per
-/// second, and the `durationMs` a file that omits the key runs.
-const int glossBubbleShimmerDefaultDurationMs = 4233;
+/// Shipped two-pass shimmer timing from `BubbleShimmerPlan`.
+const int glossBubbleShimmerDefaultDurationMs = 700;
+const int glossBubbleShimmerDefaultSpawnDelayMs = 400;
+const int glossBubbleShimmerDefaultFlyAwayLeadMs = 700;
 
 /// `BubbleStyleDoc.Shimmer.DEFAULT_COLOR` — the solid legacy band color.
 const String glossBubbleShimmerDefaultColor = '#ffffff';
@@ -370,24 +365,21 @@ final class GlossBubbleMotion {
 
 /// `BubbleStyleDoc.Shimmer` — the Gloss shine band.
 ///
-/// `spawn` anchors the free-running cycle at the bubble's birth, which is what
-/// the legacy filter did; `durationMs` is the wall time the band head needs for
-/// one full [glossBubbleShimmerCycleGlyphs] cycle, so the shipped
-/// [glossBubbleShimmerDefaultDurationMs] is the legacy 30 glyphs per second.
-/// `flyAway` adds a second cycle anchored to departure and defaults OFF — the
-/// free-running one already walks the band off the edge and back.
+/// `spawn` enables one bounded sweep after `spawnDelayMs`. `flyAway` enables a
+/// second bounded sweep beginning `flyAwayLeadMs` before expiry. Each pass
+/// takes `durationMs`, and one band crosses the complete multiline block.
 ///
 /// Every lit glyph uses `color`; the shipped three-glyph band is solid white,
 /// matching the original Gloss special-colour filter.
 final class GlossBubbleShimmer {
   GlossBubbleShimmer({
     this.spawn = true,
-    this.flyAway = false,
+    this.flyAway = true,
     this.color = glossBubbleShimmerDefaultColor,
     this.width = 3,
     this.durationMs = glossBubbleShimmerDefaultDurationMs,
-    this.spawnDelayMs = 0,
-    this.flyAwayLeadMs = 700,
+    this.spawnDelayMs = glossBubbleShimmerDefaultSpawnDelayMs,
+    this.flyAwayLeadMs = glossBubbleShimmerDefaultFlyAwayLeadMs,
     Map<String, dynamic>? extras,
   }) : extras = extras ?? <String, dynamic>{};
 
@@ -430,7 +422,7 @@ final class GlossBubbleShimmer {
     final Map<String, dynamic> map = huiReadObject(raw, r'$.shimmer');
     return GlossBubbleShimmer(
       spawn: map.containsKey('spawn') ? huiReadBool(map, 'spawn') : true,
-      flyAway: map.containsKey('flyAway') && huiReadBool(map, 'flyAway'),
+      flyAway: map.containsKey('flyAway') ? huiReadBool(map, 'flyAway') : true,
       color: map.containsKey('color')
           ? huiReadString(map, 'color')
           : glossBubbleShimmerDefaultColor,
@@ -440,10 +432,10 @@ final class GlossBubbleShimmer {
           : glossBubbleShimmerDefaultDurationMs,
       spawnDelayMs: map.containsKey('spawnDelayMs')
           ? huiReadInt(map, 'spawnDelayMs')
-          : 0,
+          : glossBubbleShimmerDefaultSpawnDelayMs,
       flyAwayLeadMs: map.containsKey('flyAwayLeadMs')
           ? huiReadInt(map, 'flyAwayLeadMs')
-          : 700,
+          : glossBubbleShimmerDefaultFlyAwayLeadMs,
       extras: huiCollectExtras(map, _shimmerKnown),
     );
   }

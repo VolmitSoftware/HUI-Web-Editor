@@ -34,9 +34,8 @@ import '../gloss/gloss_text_line.dart';
 /// Repaint period for motion alone. The stack eases every poll in game; 50 ms
 /// (one tick) keeps mathematical motion smooth without burning frames.
 ///
-/// It is far too coarse for the shine band, whose head steps every
-/// `durationMs / 127` — about 33 ms at the shipped cycle, and less on any
-/// shorter one — so a style with a band drives repaints from
+/// It is far too coarse for a bounded shine sweep across a long multiline
+/// message, so a style with a band drives repaints from
 /// `requestAnimationFrame` instead and this timer stays cancelled.
 const Duration _tickPeriod = Duration(milliseconds: 50);
 
@@ -213,7 +212,7 @@ class _BubbleViewState extends State<BubbleView> {
                 glossBubbleApplyShimmer(
                   doc.effectivePrefix + bubble.text,
                   doc.shimmer,
-                  bubble.shimmerHead,
+                  bubble.shimmerBandIndex,
                 ),
                 animations: _store.workspaceAnimations,
                 emoji: _store.workspaceEmoji,
@@ -279,16 +278,10 @@ class _BubbleViewState extends State<BubbleView> {
       'alive ${doc.effectiveMaxAliveMs} ms',
       'expression motion',
       if (doc.shimmer.spawn || doc.shimmer.flyAway)
-        'shine band ${_glyphsPerSecond(doc.shimmer)} glyphs/s',
+        'shine ${doc.shimmer.effectiveDurationMs} ms sweep',
       doc.followPlayer ? 'follows the player' : 'anchored where sent',
       if (doc.hideOwn) 'hidden from the sender',
     ];
     return parts.join(' · ');
   }
-
-  /// The band's constant travel speed, which is what `durationMs` really sets:
-  /// 127 glyph steps per cycle, 30 a second at the shipped 4233 ms.
-  int _glyphsPerSecond(GlossBubbleShimmer shimmer) =>
-      (glossBubbleShimmerCycleGlyphs * 1000 / shimmer.effectiveDurationMs)
-          .round();
 }

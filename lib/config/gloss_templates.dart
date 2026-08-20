@@ -323,11 +323,11 @@ const String kGlossBubbleDefaultJson = r'''
   },
   "shimmer": {
     "spawn": true,
-    "flyAway": false,
+    "flyAway": true,
     "color": "#ffffff",
     "width": 3,
-    "durationMs": 4233,
-    "spawnDelayMs": 0,
+    "durationMs": 700,
+    "spawnDelayMs": 400,
     "flyAwayLeadMs": 700
   }
 }

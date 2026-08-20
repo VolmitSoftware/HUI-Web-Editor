@@ -44,7 +44,7 @@ void main() {
         expect(a[index].text, b[index].text);
         expect(a[index].stackY, b[index].stackY);
         expect(a[index].motion.translationY, b[index].motion.translationY);
-        expect(a[index].shimmerHead, b[index].shimmerHead);
+        expect(a[index].shimmerBandIndex, b[index].shimmerBandIndex);
       }
     }
   });
@@ -119,20 +119,19 @@ void main() {
     expect(bubble.motion.translationY, greaterThan(9));
   });
 
-  test('preview exposes the free-running band head on the bubble frame', () {
+  test('preview exposes a bounded delayed spawn sweep', () {
     final GlossBubblePreviewTimeline timeline = GlossBubblePreviewTimeline(
       _style(shimmer: GlossBubbleShimmer(durationMs: 1000, spawnDelayMs: 100)),
     );
-    expect(timeline.bubblesAt(99).single.shimmerHead, isNull);
-    expect(timeline.bubblesAt(100).single.shimmerHead, 0);
-    expect(timeline.bubblesAt(600).single.shimmerHead, 63);
-    // Free running: the head keeps climbing to expiry instead of going null
-    // once a bounded pass would have finished.
-    expect(timeline.bubblesAt(2500).first.shimmerHead, 304);
-    expect(timeline.bubblesAt(4000).first.shimmerHead, 495);
+    expect(timeline.bubblesAt(99).single.shimmerBandIndex, isNull);
+    expect(timeline.bubblesAt(100).single.shimmerBandIndex, 0);
+    expect(timeline.bubblesAt(600).single.shimmerBandIndex, greaterThan(0));
+    expect(timeline.bubblesAt(1100).single.shimmerBandIndex, isNotNull);
+    expect(timeline.bubblesAt(1101).single.shimmerBandIndex, isNull);
+    expect(timeline.bubblesAt(2500).first.shimmerBandIndex, isNull);
   });
 
-  test('the optional departure cycle restarts the head near expiry', () {
+  test('the departure sweep restarts the band near expiry', () {
     final GlossBubblePreviewTimeline timeline = GlossBubblePreviewTimeline(
       _style(
         shimmer: GlossBubbleShimmer(
@@ -142,8 +141,8 @@ void main() {
         ),
       ),
     );
-    expect(timeline.bubblesAt(3999).first.shimmerHead, 507);
-    expect(timeline.bubblesAt(4000).first.shimmerHead, 0);
+    expect(timeline.bubblesAt(3999).first.shimmerBandIndex, isNull);
+    expect(timeline.bubblesAt(4000).first.shimmerBandIndex, 0);
   });
 
   test('the loop period clears the stage before restarting', () {

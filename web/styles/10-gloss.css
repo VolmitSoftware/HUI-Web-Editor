@@ -740,7 +740,7 @@
   line-height: 1.2;
   color: #ffffff;
   white-space: pre;
-  text-align: center;
+  text-align: left;
   transform-origin: center center;
   transform-style: preserve-3d;
   will-change: transform, opacity, bottom, left;

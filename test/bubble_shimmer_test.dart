@@ -6,20 +6,12 @@ import 'package:gloss_editor/logic/bubble_shimmer.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
-const int _shineTick = 127;
 const String _white = '§x§f§f§f§f§f§f';
 const String _tint = '§x§f§f§8§8§f§f';
 const String _glyphs =
     'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
 GlossBubbleShimmer _shipped() => GlossBubbleShimmer();
-
-int _legacyHead(int elapsedMs) => elapsedMs * 3 ~/ 100;
-
-bool _legacyLit(int elapsedMs, int at) {
-  final int delta = _legacyHead(elapsedMs) - at;
-  return (delta - (delta ~/ _shineTick) * _shineTick).abs() < 2;
-}
 
 String _line(int from, int glyphCount) {
   final StringBuffer text = StringBuffer('§7');
@@ -40,89 +32,67 @@ List<int> _glyphsWearing(String rendered, String code, int totalGlyphs) =>
         if (rendered.contains('$code${_glyphs[index]}')) index,
     ];
 
-int? _headAt(GlossBubbleShimmer shimmer, int ageMs, int lifetimeMs) =>
-    glossBubbleShimmerHead(shimmer, ageMs: ageMs, lifetimeMs: lifetimeMs);
+int? _band(
+  GlossBubbleShimmer shimmer,
+  String text,
+  int ageMs,
+  int lifetimeMs,
+) => glossBubbleShimmerBandIndex(
+  shimmer,
+  input: text,
+  ageMs: ageMs,
+  lifetimeMs: lifetimeMs,
+);
 
-String _renderAt(GlossBubbleShimmer shimmer, String text, int? head) =>
-    glossBubbleApplyShimmer(text, shimmer, head);
+String _renderAt(GlossBubbleShimmer shimmer, String text, int? band) =>
+    glossBubbleApplyShimmer(text, shimmer, band);
+
+int _occurrences(String input, String needle) {
+  int count = 0;
+  int cursor = 0;
+  while ((cursor = input.indexOf(needle, cursor)) >= 0) {
+    count++;
+    cursor += needle.length;
+  }
+  return count;
+}
 
 void main() {
-  group('legacy law', () {
-    test('matches the exact integer head timeline', () {
+  group('two-pass timeline', () {
+    test('waits before spawn and runs again during fly-away', () {
       final GlossBubbleShimmer shimmer = _shipped();
-      const List<int> ages = <int>[
-        0,
-        33,
-        34,
-        66,
-        67,
-        99,
-        100,
-        4200,
-        4233,
-        4234,
-        4266,
-        4267,
-        5000,
-      ];
-      const List<int> heads = <int>[
-        0,
-        0,
-        1,
-        1,
-        2,
-        2,
-        3,
-        126,
-        126,
-        127,
-        127,
-        128,
-        150,
-      ];
+      final String input = _line(0, 26);
 
-      for (int index = 0; index < ages.length; index++) {
-        expect(_headAt(shimmer, ages[index], 5000), heads[index]);
-      }
-    });
-
-    test('matches the original predicate on every wrapped row', () {
-      final GlossBubbleShimmer shimmer = _shipped();
-      final String input = _block(3, 10);
-
-      for (
-        int ageMs = 0;
-        ageMs <= glossBubbleShimmerDefaultDurationMs + 34;
-        ageMs++
-      ) {
-        final List<int> expected = <int>[
-          for (int row = 0; row < 3; row++)
-            for (int at = 0; at < 10; at++)
-              if (_legacyLit(ageMs, at)) row * 10 + at,
-        ];
-        expect(
-          _glyphsWearing(
-            _renderAt(shimmer, input, _headAt(shimmer, ageMs, 5000)),
-            _white,
-            30,
-          ),
-          expected,
-          reason: 'ageMs=$ageMs',
-        );
-      }
+      expect(_band(shimmer, input, 399, 5000), isNull);
+      expect(_band(shimmer, input, 400, 5000), 0);
+      expect(_band(shimmer, input, 750, 5000), 13);
+      expect(_band(shimmer, input, 1100, 5000), 25);
+      expect(_band(shimmer, input, 1101, 5000), isNull);
+      expect(_band(shimmer, input, 4299, 5000), isNull);
+      expect(_band(shimmer, input, 4300, 5000), 0);
+      expect(_band(shimmer, input, 4650, 5000), 13);
+      expect(_band(shimmer, input, 5000, 5000), 25);
     });
 
     test('uses one solid white three-glyph band', () {
-      final GlossBubbleShimmer shimmer = _shipped();
-      final String rendered = _renderAt(shimmer, _line(0, 26), 3);
+      final String rendered = _renderAt(_shipped(), _line(0, 26), 3);
 
       expect(_glyphsWearing(rendered, _white, 26), <int>[2, 3, 4]);
       expect(rendered, contains('${_white}c§7${_white}d§7${_white}e§7'));
     });
 
-    test('restarts the band at the left edge of every line', () {
-      final String rendered = _renderAt(_shipped(), _block(2, 8), 3);
-      expect(_glyphsWearing(rendered, _white, 16), <int>[2, 3, 4, 10, 11, 12]);
+    test('one band crosses wrapped rows without restarting', () {
+      final String rendered = _renderAt(_shipped(), _block(2, 8), 8);
+
+      expect(_glyphsWearing(rendered, _white, 16), <int>[7, 8, 9]);
+    });
+
+    test('long multiline blocks never create copied bands', () {
+      final String row = List<String>.filled(40, 'a').join();
+      final String input = List<String>.filled(4, row).join('\n');
+      final String rendered = _renderAt(_shipped(), input, 130);
+
+      expect(_occurrences(rendered, _white), 3);
     });
 
     test('restores active color and decorations after every lit glyph', () {
@@ -155,28 +125,28 @@ void main() {
       );
     });
 
-    test('spawn free-runs and the optional departure restart is explicit', () {
-      final GlossBubbleShimmer shipped = _shipped();
-      final GlossBubbleShimmer departure = GlossBubbleShimmer(flyAway: true);
-      final GlossBubbleShimmer delayed = GlossBubbleShimmer(spawnDelayMs: 500);
-
-      expect(shipped.flyAway, isFalse);
-      expect(_headAt(shipped, 4300, 5000), 129);
-      expect(_headAt(departure, 4300, 5000), 0);
-      expect(_headAt(delayed, 499, 5000), isNull);
-      expect(_headAt(delayed, 500, 5000), 0);
-    });
-
-    test('off-text frames return the original string unchanged', () {
+    test('disabled windows stay inactive', () {
+      final GlossBubbleShimmer shimmer = GlossBubbleShimmer(
+        spawn: false,
+        flyAway: false,
+      );
       const String input = '§7No band here';
-      expect(_renderAt(_shipped(), input, 60), same(input));
+
+      expect(_band(shimmer, input, 2500, 5000), isNull);
+      expect(_renderAt(shimmer, input, null), same(input));
     });
   });
 
   group('drive cadence', () {
-    test('the default step is faster than a Minecraft tick', () {
-      expect(glossBubbleShimmerStepMs(_shipped()), closeTo(33.33, 0.01));
-      expect(glossBubbleShimmerStepMs(_shipped()), lessThan(50));
+    test('a long default sweep changes on almost every animation frame', () {
+      final GlossBubbleShimmer shimmer = _shipped();
+      final String input = List<String>.filled(160, 'a').join();
+      final Set<int?> sampled = <int?>{
+        for (int ageMs = 400; ageMs <= 1100; ageMs += 8)
+          _band(shimmer, input, ageMs, 5000),
+      };
+
+      expect(sampled.length, greaterThanOrEqualTo(80));
     });
 
     test('the editor drives shimmer repaints from animation frames', () {
@@ -187,7 +157,7 @@ void main() {
       expect(view, contains('_playing && _store.animationsPlaying'));
     });
 
-    test('the inspector exposes the exact original Gloss preset', () {
+    test('the inspector exposes the original Gloss preset', () {
       final String inspector = File(
         'lib/components/inspector/bubble_inspector.dart',
       ).readAsStringSync();

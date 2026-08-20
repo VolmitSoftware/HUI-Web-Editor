@@ -25,7 +25,7 @@ final class GlossBubblePreviewBubble {
     required this.stackY,
     required this.remainingMs,
     required this.motion,
-    required this.shimmerHead,
+    required this.shimmerBandIndex,
   });
 
   final String text;
@@ -34,15 +34,14 @@ final class GlossBubblePreviewBubble {
   final int remainingMs;
   final GlossBubbleMotionFrame motion;
 
-  /// The shine band head in visible glyphs, or null while no cycle runs. Free
-  /// running: once a cycle starts this keeps climbing past the end of the text.
-  final int? shimmerHead;
+  final int? shimmerBandIndex;
 }
 
 final class GlossBubblePreviewTimeline {
   GlossBubblePreviewTimeline(GlossBubbleStyleDoc style, {double? spread})
     : _spread = spread ?? glossBubbleDefaultStackSpread,
       _maxAliveMs = style.effectiveMaxAliveMs,
+      _prefix = style.effectivePrefix,
       _motion = _compileMotion(style.motion),
       _shimmer = style.shimmer.copy() {
     int cursor = 0;
@@ -75,6 +74,7 @@ final class GlossBubblePreviewTimeline {
   final List<_BubbleSpawn> _spawns = <_BubbleSpawn>[];
   final double _spread;
   final int _maxAliveMs;
+  final String _prefix;
   final GlossBubbleMotionProgram? _motion;
   final GlossBubbleShimmer _shimmer;
   late final int _periodMs;
@@ -135,8 +135,9 @@ final class GlossBubblePreviewTimeline {
       stackY: stackY,
       remainingMs: remainingMs,
       motion: frame,
-      shimmerHead: glossBubbleShimmerHead(
+      shimmerBandIndex: glossBubbleShimmerBandIndex(
         _shimmer,
+        input: _prefix + spawn.text,
         ageMs: ageMs,
         lifetimeMs: _maxAliveMs,
       ),
