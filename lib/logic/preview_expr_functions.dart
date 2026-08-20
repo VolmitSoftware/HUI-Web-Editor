@@ -17,6 +17,37 @@ import 'dart:math' as math;
 
 import 'preview_expr.dart';
 
+/// Every pure function shared by authored text and container-preview
+/// expressions. Contexts add `lang`, inventory functions, PAPI and metrics.
+const List<String> previewStandardFunctionNames = <String>[
+  'clamp',
+  'lerp',
+  'min',
+  'max',
+  'floor',
+  'ceil',
+  'round',
+  'abs',
+  'mod',
+  'sin',
+  'cos',
+  'pow',
+  'smoothstep',
+  'rgb',
+  'argb',
+  'alpha',
+  'mix',
+  'palette',
+  'select',
+  'number',
+  'bar',
+  'hex',
+  'str',
+  'fixed',
+  'plain',
+  'readable',
+];
+
 Object? previewStdFunction(String name, List<Object?> args) {
   switch (name) {
     case 'clamp':
@@ -50,6 +81,34 @@ Object? previewStdFunction(String name, List<Object?> args) {
       return math.sin(_oneNumArg(name, args));
     case 'cos':
       return math.cos(_oneNumArg(name, args));
+    case 'pow':
+      _requireCount(name, args, 2);
+      final double power = math
+          .pow(_numArg(name, args, 0), _numArg(name, args, 1))
+          .toDouble();
+      if (!power.isFinite) {
+        throw const PExprException(
+          'pow result must be finite',
+          previewNoPosition,
+        );
+      }
+      return power;
+    case 'smoothstep':
+      _requireCount(name, args, 3);
+      final double lower = _numArg(name, args, 0);
+      final double upper = _numArg(name, args, 1);
+      final double value = _numArg(name, args, 2);
+      if (lower == upper) {
+        throw const PExprException(
+          'smoothstep edges must differ',
+          previewNoPosition,
+        );
+      }
+      final double t = math.min(
+        1.0,
+        math.max(0.0, (value - lower) / (upper - lower)),
+      );
+      return t * t * (3.0 - 2.0 * t);
     case 'rgb':
       _requireCount(name, args, 3);
       return _packArgb(

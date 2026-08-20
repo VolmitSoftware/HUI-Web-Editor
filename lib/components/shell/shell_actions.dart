@@ -65,6 +65,7 @@ List<ShellAction> buildShellActions(
 }) {
   final EditorStore store = intents.store;
   final int selected = store.selectionIds.length;
+  final String documentNoun = store.docType.noun;
   final List<ShellAction> actions = <ShellAction>[
     ShellAction(
       id: 'file.new',
@@ -77,16 +78,16 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'file.import',
       group: shellGroupFile,
-      label: 'Import menu JSON',
+      label: 'Import JSON',
       icon: ArcaneIcon.upload(size: IconSize.sm),
-      keywords: const <String>['open', 'load', 'file'],
+      keywords: <String>['open', 'load', 'file', documentNoun],
       enabled: store.canTransferDocument,
       run: () => intents.importMenu(),
     ),
     ShellAction(
       id: 'file.export',
       group: shellGroupFile,
-      label: 'Export menu JSON',
+      label: 'Export $documentNoun JSON',
       icon: ArcaneIcon.download(size: IconSize.sm),
       shortcut: huiShortcutSpec('file.export'),
       keywords: const <String>['save', 'download', 'json'],
@@ -96,7 +97,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'file.copy',
       group: shellGroupFile,
-      label: 'Copy menu JSON',
+      label: 'Copy $documentNoun JSON',
       icon: ArcaneIcon.copy(size: IconSize.sm),
       keywords: const <String>['clipboard'],
       enabled: store.canTransferDocument,

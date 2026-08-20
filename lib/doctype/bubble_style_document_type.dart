@@ -55,7 +55,7 @@ final class BubbleStyleDocumentType extends GlossDocumentTypeAdapter {
   @override
   String get codeShapeError =>
       'That is not a bubble-style document: it needs "schemaVersion" plus '
-      'bubble keys such as "wordWrapChars", "maxAliveMs" or "flyAway".';
+      'bubble keys such as "wordWrapChars", "maxAliveMs" or "motion".';
 
   @override
   String get defaultDocumentName => 'new-bubble-style';
@@ -73,50 +73,61 @@ final class BubbleStyleDocumentType extends GlossDocumentTypeAdapter {
   @override
   String get templatesNote =>
       'A bubble style shapes chat bubbles: prefix colour, eye offset, word '
-      'wrap, per-line stagger, lifetime and the fly-away launch. Out-of-range '
-      'numbers are clamped silently by the server — the editor warns with '
-      'the effective value instead. Default is byte-identical to what the '
+      'wrap, lifetime and mathematical translation, scale, rotation and '
+      'opacity over the block lifetime, plus bounded spawn and fly-away '
+      'shimmer sweeps. Out-of-range values are clamped by '
+      'the server and shown honestly by the preview. Default is '
+      'byte-identical to what the '
       'plugin ships. Every template opens as a new document, so your current '
       'one is untouched.';
 
   @override
-  List<DocumentTemplateSection> get templateSections =>
-      <DocumentTemplateSection>[
-        DocumentTemplateSection(
-          templates: <DocumentTemplate>[
-            DocumentTemplate(
-              id: 'bubble-default',
-              name: 'Default style',
-              description:
-                  'The shipped default: grey prefix, one block above the '
-                  'eyes, 32-character wrap, fly-away on. Exactly what '
-                  'plugins/Gloss/bubbles/default.json starts with — and the '
-                  'file name "default" is the fallback id.',
-              highlights: const <String>['Shipped default', 'Fallback style'],
-              create: (EditorStore store) => store.newGlossDocument(
-                this,
-                name: 'default',
-                from: buildDefaultGlossBubbleStyle(),
-              ),
-            ),
-            DocumentTemplate(
-              id: 'bubble-showcase',
-              name: 'VIP overworld',
-              description:
-                  'A gold, tight-wrapped, anchored style that auto-applies '
-                  'to the vip group in world* worlds at priority 10.',
-              highlights: const <String>[
-                'Select rule',
-                'World glob',
-                'Anchored',
-              ],
-              create: (EditorStore store) => store.newGlossDocument(
-                this,
-                name: 'vip',
-                from: buildShowcaseGlossBubbleStyle(),
-              ),
-            ),
+  List<DocumentTemplateSection>
+  get templateSections => <DocumentTemplateSection>[
+    DocumentTemplateSection(
+      templates: <DocumentTemplate>[
+        DocumentTemplate(
+          id: 'bubble-default',
+          name: 'Default style',
+          description:
+              'The shipped default: grey prefix, one block above the '
+              'eyes, 32-visible-character wrap, and the legacy fly-away '
+              'curve authored as an expression, with the original '
+              'left-to-right white shine at spawn and departure. Exactly what '
+              'plugins/Gloss/bubbles/default.json starts with — and the '
+              'file name "default" is the fallback id.',
+          highlights: const <String>[
+            'Shipped default',
+            'Fallback style',
+            'Two shimmer passes',
           ],
+          create: (EditorStore store) => store.newGlossDocument(
+            this,
+            name: 'default',
+            from: buildDefaultGlossBubbleStyle(),
+          ),
         ),
-      ];
+        DocumentTemplate(
+          id: 'bubble-showcase',
+          name: 'VIP overworld',
+          description:
+              'A formatted, animated, fading arc that auto-applies to '
+              'the vip group in world* worlds at priority 10, with a '
+              'wide pink shimmer crossing the whole multiline block.',
+          highlights: const <String>[
+            'Select rule',
+            'World glob',
+            'Anchored',
+            'Expression motion',
+            'Custom shimmer',
+          ],
+          create: (EditorStore store) => store.newGlossDocument(
+            this,
+            name: 'vip',
+            from: buildShowcaseGlossBubbleStyle(),
+          ),
+        ),
+      ],
+    ),
+  ];
 }

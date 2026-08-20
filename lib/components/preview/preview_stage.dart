@@ -627,11 +627,26 @@ class _PreviewStageState extends State<PreviewStage>
     final double modifier = primary == null
         ? 0
         : (_sim.highlightModifierFor(primary) ?? 0);
+    final int duration = primary == null ? 0 : _sim.hoverDurationFor(primary);
+    final double progress = ticks <= 0
+        ? 0
+        : duration == 0
+        ? 1
+        : (ticks / duration).clamp(0, 1);
+    final double pushBlocks =
+        modifier *
+        preview.uiScale *
+        hoverEasing(
+          progress,
+          primary == null
+              ? huiRuntimeDefaultHoverEasing
+              : _sim.hoverEasingFor(primary),
+        );
     _pose.live.update(
       hoveredId: primary,
       hoveredIds: result.hoveredIds.length,
       hoverTicks: ticks,
-      hoverPushBlocks: ticks <= 0 ? 0 : modifier,
+      hoverPushBlocks: pushBlocks,
       highlightModifier: modifier,
       distanceToCenter: result.distanceToCenter,
       isOpen: result.isOpen,
@@ -655,11 +670,14 @@ class _PreviewStageState extends State<PreviewStage>
   /// lets the tick timer stop.
   String _computeLiveSignature() {
     final StringBuffer buffer = StringBuffer();
-    for (final String id in _sim.hoveredIds) {
+    for (final SimClickable clickable in _sim.clickables) {
+      final String id = clickable.id;
+      final int ticks = _sim.hoverTicksFor(id);
+      if (ticks <= 0) continue;
       buffer
         ..write(id)
         ..write(':')
-        ..write(math.min(2, _sim.hoverTicksFor(id)))
+        ..write(ticks)
         ..write(';');
     }
     return (buffer
@@ -716,6 +734,7 @@ class _PreviewStageState extends State<PreviewStage>
         images: component.images,
         catalogs: huiFreshestCatalogs(store.catalogs, component.catalogs),
         charCache: _charCache,
+        animations: store.workspaceAnimations,
         emoji: store.workspaceEmoji,
         animationTicks: _animationTicks,
       );
@@ -763,6 +782,10 @@ class _PreviewStageState extends State<PreviewStage>
         animated = true;
         minSpeed = math.min(minSpeed, math.max(1, icon.speed));
       }
+      if (item.isDynamicText) {
+        animated = true;
+        minSpeed = math.min(minSpeed, item.textRefreshTicks);
+      }
     }
     _sceneHasObfuscation = obfuscated;
     _sceneHasAnimation = animated;
@@ -791,16 +814,24 @@ class _PreviewStageState extends State<PreviewStage>
       switch (item.data) {
         case HuiButtonData(
           :final double highlightModifier,
+          :final int hoverDurationTicks,
+          :final HuiHoverEasing hoverEasing,
           :final List<HuiAction> actions,
         ):
-          buffer.write('b$highlightModifier');
+          buffer.write(
+            'b$highlightModifier:$hoverDurationTicks:${hoverEasing.jsonValue}',
+          );
           _writeActions(buffer, actions);
         case HuiToggleData(
           :final double highlightModifier,
+          :final int hoverDurationTicks,
+          :final HuiHoverEasing hoverEasing,
           :final List<HuiAction> trueActions,
           :final List<HuiAction> falseActions,
         ):
-          buffer.write('t$highlightModifier');
+          buffer.write(
+            't$highlightModifier:$hoverDurationTicks:${hoverEasing.jsonValue}',
+          );
           _writeActions(buffer, trueActions);
           _writeActions(buffer, falseActions);
         case HuiDecorationData():
@@ -1133,8 +1164,10 @@ class _PreviewStageState extends State<PreviewStage>
       // The only observable trace of the animation clock: canvas pixels are not
       // DOM mutations, so without this the frame cadence cannot be checked from
       // outside the app. Written only when the appearance actually changed.
-      if (quad.item.isAnimated) {
+      if (quad.item.isAnimatedImage) {
         node.root.setAttribute('data-frame', '${quad.item.animationFrame}');
+      } else {
+        node.root.removeAttribute('data-frame');
       }
     }
 
@@ -1160,6 +1193,9 @@ class _PreviewStageState extends State<PreviewStage>
             aimQuadPlane(quad, eye),
             _sim.highlightModifierFor(quad.id) ?? 0,
             ticks,
+            uiScale: preview.uiScale,
+            durationTicks: _sim.hoverDurationFor(quad.id),
+            easing: _sim.hoverEasingFor(quad.id),
           );
     }
 

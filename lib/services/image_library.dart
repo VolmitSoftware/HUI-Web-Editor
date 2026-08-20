@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:image/image.dart' as img;
 import 'package:jaspr/jaspr.dart';
 
 import 'image_library_stub.dart'
@@ -37,6 +38,7 @@ const int huiMaxStoredImageBytes = 512 * 1024;
 const int huiMaxDecodedImagePixels = 2048 * 2048;
 const int huiMaxImportedAnimationFrames = maxDecodedAnimationFrames;
 const String huiNormalizedPngDataUriPrefix = 'data:image/png;base64,';
+final RegExp _animationFramePathPattern = RegExp(r'^(.*)/frame-\d{3}\.png$');
 
 typedef ImageStorageWriter = bool Function(String key, String value);
 
@@ -67,6 +69,111 @@ final class StoredImageData {
   final int width;
   final int height;
   final String mediaType;
+}
+
+final class NormalizedImageData {
+  const NormalizedImageData({
+    required this.dataUri,
+    required this.width,
+    required this.height,
+  });
+
+  final String dataUri;
+  final int width;
+  final int height;
+}
+
+NormalizedImageData? normalizeUploadedPng(
+  String dataUri, {
+  int maxDimension = huiRecommendedMaxImageDimension,
+}) {
+  if (maxDimension <= 0) return null;
+  final Uint8List? bytes = decodeDataUriBytes(dataUri);
+  if (bytes == null) return null;
+  final img.Image? decoded = img.decodePng(bytes);
+  if (decoded == null || decoded.width <= 0 || decoded.height <= 0) return null;
+  final ({int width, int height}) dimensions = fitImageDimensions(
+    decoded.width,
+    decoded.height,
+    maxDimension,
+  );
+  final img.Image normalized =
+      dimensions.width == decoded.width && dimensions.height == decoded.height
+      ? decoded
+      : img.copyResize(
+          decoded,
+          width: dimensions.width,
+          height: dimensions.height,
+          interpolation: img.Interpolation.average,
+        );
+  final Uint8List png = img.encodePng(normalized);
+  return NormalizedImageData(
+    dataUri: '$huiNormalizedPngDataUriPrefix${base64Encode(png)}',
+    width: normalized.width,
+    height: normalized.height,
+  );
+}
+
+({int width, int height}) fitImageDimensions(
+  int width,
+  int height,
+  int maxDimension,
+) {
+  if (width <= 0 || height <= 0 || maxDimension <= 0) {
+    return (width: 0, height: 0);
+  }
+  if (width <= maxDimension && height <= maxDimension) {
+    return (width: width, height: height);
+  }
+  final double scale = maxDimension / (width > height ? width : height);
+  return (
+    width: (width * scale).round().clamp(1, maxDimension),
+    height: (height * scale).round().clamp(1, maxDimension),
+  );
+}
+
+NormalizedImageData? minecraftHeadFromSkinPng(String dataUri) {
+  final Uint8List? bytes = decodeDataUriBytes(dataUri);
+  if (bytes == null) return null;
+  final img.Image? skin = img.decodePng(bytes);
+  if (skin == null || skin.width < 64 || skin.width % 64 != 0) return null;
+  final int scale = skin.width ~/ 64;
+  if (skin.height != 32 * scale && skin.height != 64 * scale) return null;
+  img.Image face = img.copyCrop(
+    skin,
+    x: 8 * scale,
+    y: 8 * scale,
+    width: 8 * scale,
+    height: 8 * scale,
+  );
+  img.Image hat = img.copyCrop(
+    skin,
+    x: 40 * scale,
+    y: 8 * scale,
+    width: 8 * scale,
+    height: 8 * scale,
+  );
+  if (scale != 1) {
+    face = img.copyResize(
+      face,
+      width: 8,
+      height: 8,
+      interpolation: img.Interpolation.nearest,
+    );
+    hat = img.copyResize(
+      hat,
+      width: 8,
+      height: 8,
+      interpolation: img.Interpolation.nearest,
+    );
+  }
+  img.compositeImage(face, hat);
+  final Uint8List png = img.encodePng(face);
+  return NormalizedImageData(
+    dataUri: '$huiNormalizedPngDataUriPrefix${base64Encode(png)}',
+    width: 8,
+    height: 8,
+  );
 }
 
 class StoredImage {
@@ -550,6 +657,24 @@ class ImageLibrary extends ChangeNotifier {
     return null;
   }
 
+  List<StoredImage> animationFramesFor(String path) {
+    final RegExpMatch? match = _animationFramePathPattern.firstMatch(path);
+    if (match == null) return const <StoredImage>[];
+    final String directory = match.group(1)!;
+    final List<StoredImage> frames = _images
+        .where(
+          (StoredImage image) =>
+              _animationFramePathPattern.firstMatch(image.path)?.group(1) ==
+              directory,
+        )
+        .toList(growable: false);
+    frames.sort(
+      (StoredImage first, StoredImage second) =>
+          first.path.compareTo(second.path),
+    );
+    return List<StoredImage>.unmodifiable(frames);
+  }
+
   /// Re-reads the persisted library, discarding caches.
   void load() {
     _images.clear();
@@ -602,9 +727,29 @@ class ImageLibrary extends ChangeNotifier {
       final bool animated = decoded.totalFrames > 1;
       final List<StoredImage> fileCandidates = <StoredImage>[];
       String? fileError;
+      bool resized = false;
+      int originalWidth = 0;
+      int originalHeight = 0;
+      int resizedWidth = 0;
+      int resizedHeight = 0;
       for (int index = 0; index < decoded.frames.length; index++) {
         final DecodedImageFile frame = decoded.frames[index];
-        final int bytes = decodeDataUriBytes(frame.dataUri)?.length ?? 0;
+        final NormalizedImageData? normalized = normalizeUploadedPng(
+          frame.dataUri,
+        );
+        if (normalized == null) {
+          fileError = '"${decoded.name}" could not be normalized as a PNG.';
+          break;
+        }
+        if (frame.width != normalized.width ||
+            frame.height != normalized.height) {
+          resized = true;
+          originalWidth = frame.width;
+          originalHeight = frame.height;
+          resizedWidth = normalized.width;
+          resizedHeight = normalized.height;
+        }
+        final int bytes = decodeDataUriBytes(normalized.dataUri)?.length ?? 0;
         String path = animated
             ? animationFrameImagePath(decoded.name, index)
             : _withPngExtension(sanitizeImagePath(decoded.name));
@@ -628,9 +773,9 @@ class ImageLibrary extends ChangeNotifier {
         fileCandidates.add(
           StoredImage(
             path: path,
-            dataUri: frame.dataUri,
-            width: frame.width,
-            height: frame.height,
+            dataUri: normalized.dataUri,
+            width: normalized.width,
+            height: normalized.height,
           ),
         );
       }
@@ -646,6 +791,12 @@ class ImageLibrary extends ChangeNotifier {
           '"${decoded.name}" is ${image.width}x${image.height}. Gloss renders one text display '
           'per row and one character per pixel; keep images at or under '
           '${huiRecommendedMaxImageDimension}x$huiRecommendedMaxImageDimension.',
+        );
+      }
+      if (resized) {
+        warnings.add(
+          'Resized "${decoded.name}" from ${originalWidth}x$originalHeight to '
+          '${resizedWidth}x$resizedHeight for Gloss.',
         );
       }
       if (animated) {
@@ -697,6 +848,89 @@ class ImageLibrary extends ChangeNotifier {
       added: candidates,
       errors: errors,
       warnings: warnings,
+      quotaExceeded: false,
+    );
+  }
+
+  Future<ImageAddOutcome> addPlayerHeadsFromFiles(
+    List<Object> files, {
+    bool replaceExisting = true,
+  }) async {
+    if (files.isEmpty) return ImageAddOutcome.empty;
+    final List<StoredImage> candidates = <StoredImage>[];
+    final List<String> errors = <String>[];
+    for (final Object file in files) {
+      final DecodedImageBatch? decoded = await decodeImageFileToPngFrames(file);
+      if (decoded == null || decoded.frames.isEmpty) {
+        errors.add('A skin file could not be decoded and was skipped.');
+        continue;
+      }
+      if (decoded.totalFrames != 1) {
+        errors.add(
+          '"${decoded.name}" is animated; player skins must be still images.',
+        );
+        continue;
+      }
+      final NormalizedImageData? head = minecraftHeadFromSkinPng(
+        decoded.frames.first.dataUri,
+      );
+      if (head == null) {
+        errors.add(
+          '"${decoded.name}" is not a valid 64x32, 64x64, or high-resolution '
+          'Minecraft skin.',
+        );
+        continue;
+      }
+      String path = _playerHeadPath(decoded.name);
+      if (!replaceExisting &&
+          (_paths.contains(path) ||
+              candidates.any((StoredImage image) => image.path == path))) {
+        path = _uniquePath(path, candidates);
+      }
+      candidates.removeWhere((StoredImage candidate) => candidate.path == path);
+      candidates.add(
+        StoredImage(
+          path: path,
+          dataUri: head.dataUri,
+          width: head.width,
+          height: head.height,
+        ),
+      );
+    }
+    if (candidates.isEmpty) {
+      return ImageAddOutcome(
+        added: const <StoredImage>[],
+        errors: errors,
+        warnings: const <String>[],
+        quotaExceeded: false,
+      );
+    }
+    final bool stored = _commit(() {
+      for (final StoredImage image in candidates) {
+        final int index = _images.indexWhere(
+          (StoredImage current) => current.path == image.path,
+        );
+        if (index >= 0) {
+          _images[index] = image;
+        } else {
+          _images.add(image);
+        }
+      }
+    });
+    if (!stored) {
+      return ImageAddOutcome(
+        added: const <StoredImage>[],
+        errors: <String>[...errors, _quotaMessage],
+        warnings: const <String>[],
+        quotaExceeded: true,
+      );
+    }
+    return ImageAddOutcome(
+      added: candidates,
+      errors: errors,
+      warnings: const <String>[
+        'Extracted each face and translucent hat layer as an 8x8 pixel image.',
+      ],
       quotaExceeded: false,
     );
   }
@@ -923,6 +1157,14 @@ class ImageLibrary extends ChangeNotifier {
       return '${path.substring(0, dot)}.png';
     }
     return '$path.png';
+  }
+
+  String _playerHeadPath(String sourceName) {
+    final String path = sanitizeImagePath(sourceName);
+    final int dot = path.lastIndexOf('.');
+    final int slash = path.lastIndexOf('/');
+    final String stem = dot > slash && dot > 0 ? path.substring(0, dot) : path;
+    return _withPngExtension(sanitizeImagePath('heads/$stem-head'));
   }
 }
 

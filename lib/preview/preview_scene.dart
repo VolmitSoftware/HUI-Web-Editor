@@ -18,7 +18,13 @@
 library;
 
 import '../logic/canvas_scene.dart';
-import '../logic/gloss_text.dart' show GlossEmojiResolver, GlossNoEmoji;
+import '../logic/gloss_text.dart'
+    show
+        GlossAnimationResolver,
+        GlossEmojiResolver,
+        GlossNoAnimations,
+        GlossNoEmoji,
+        GlossTextExpressionSamples;
 import '../model/model.dart';
 import '../services/catalogs.dart';
 import '../services/image_library.dart';
@@ -33,8 +39,11 @@ class PreviewQuad {
     required this.planeCenter,
     required this.visualCenter,
     required this.fixedPlane,
+    required this.visualFixedPlane,
     required this.billboard,
     required this.highlightModifier,
+    required this.hoverDurationTicks,
+    required this.hoverEasing,
   });
 
   /// The resolved 2D item: icon kind, sprite inputs, measured rectangles.
@@ -54,12 +63,17 @@ class PreviewQuad {
   /// The menu-transformed collision plane before client billboarding.
   final PlaneAim fixedPlane;
 
+  /// Visual orientation before billboarding; raw entities cannot inherit roll.
+  final PlaneAim visualFixedPlane;
+
   /// Runtime display metadata: fixed, vertical, horizontal, or center.
   final String billboard;
 
   /// Raw `highlightModifier`, unclamped, 0 for decorations. Gson bypasses the
   /// API's 0..1 clamp (`HoloComponent.java:33`), so a file may say anything.
   final double highlightModifier;
+  final int hoverDurationTicks;
+  final HuiHoverEasing hoverEasing;
 
   String get id => item.id;
 
@@ -192,7 +206,10 @@ PreviewScene buildPreviewScene({
   ImageLibrary? images,
   HuiCatalogs? catalogs,
   ImageCharCache? charCache,
+  GlossAnimationResolver animations = const GlossNoAnimations(),
   GlossEmojiResolver emoji = const GlossNoEmoji(),
+  GlossTextExpressionSamples expressionSamples =
+      const GlossTextExpressionSamples(),
   int animationTicks = 0,
 }) {
   assert(
@@ -210,7 +227,9 @@ PreviewScene buildPreviewScene({
         images: images,
         catalogs: catalogs,
         charCache: charCache,
+        animations: animations,
         emoji: emoji,
+        expressionSamples: expressionSamples,
         animationTicks: animationTicks,
       );
 
@@ -233,20 +252,31 @@ PreviewScene buildPreviewScene({
   final Set<String> componentIds = <String>{};
   for (final CanvasItem item in resolved.items) {
     if (!componentIds.add(item.id)) continue;
+    final PlaneAim fixedPlane = fixedMenuPlane(
+      center: lift(item.hitbox.x, item.hitbox.y, item.hitboxDepth),
+      facingYawDegrees: facingYawDeg,
+      pitchDegrees: pitchDeg,
+      rollDegrees: rollDeg,
+    );
+    final PlaneAim visualFixedPlane = item.kind == CanvasIconKind.entity
+        ? fixedMenuPlane(
+            center: lift(item.visual.x, item.visual.y, item.depth),
+            facingYawDegrees: facingYawDeg,
+            pitchDegrees: pitchDeg,
+          )
+        : movePlane(fixedPlane, lift(item.visual.x, item.visual.y, item.depth));
     quads.add(
       PreviewQuad(
         item: item,
         anchor: lift(item.anchor.x, item.anchor.y, item.depth),
         planeCenter: lift(item.hitbox.x, item.hitbox.y, item.hitboxDepth),
         visualCenter: lift(item.visual.x, item.visual.y, item.depth),
-        fixedPlane: fixedMenuPlane(
-          center: lift(item.hitbox.x, item.hitbox.y, item.hitboxDepth),
-          facingYawDegrees: facingYawDeg,
-          pitchDegrees: pitchDeg,
-          rollDegrees: rollDeg,
-        ),
+        fixedPlane: fixedPlane,
+        visualFixedPlane: visualFixedPlane,
         billboard: item.icon?.style?.billboard ?? 'fixed',
         highlightModifier: _highlightModifier(item.component.data),
+        hoverDurationTicks: _hoverDuration(item.component.data),
+        hoverEasing: _hoverEasing(item.component.data),
       ),
     );
   }
@@ -273,7 +303,7 @@ PlaneAim aimQuadPlane(PreviewQuad quad, PVec3 eye) => orientBillboardPlane(
 
 PlaneAim aimQuadVisual(PreviewQuad quad, PVec3 center, PVec3 eye) =>
     orientBillboardPlane(
-      fixed: movePlane(quad.fixedPlane, center),
+      fixed: movePlane(quad.visualFixedPlane, center),
       billboard: quad.billboard,
       viewer: eye,
     );
@@ -332,4 +362,16 @@ double _highlightModifier(HuiComponentData data) => switch (data) {
   HuiButtonData() => data.highlightModifier,
   HuiToggleData() => data.highlightModifier,
   HuiDecorationData() => 0,
+};
+
+int _hoverDuration(HuiComponentData data) => switch (data) {
+  HuiButtonData() => data.hoverDurationTicks,
+  HuiToggleData() => data.hoverDurationTicks,
+  HuiDecorationData() => 0,
+};
+
+HuiHoverEasing _hoverEasing(HuiComponentData data) => switch (data) {
+  HuiButtonData() => data.hoverEasing,
+  HuiToggleData() => data.hoverEasing,
+  HuiDecorationData() => huiRuntimeDefaultHoverEasing,
 };

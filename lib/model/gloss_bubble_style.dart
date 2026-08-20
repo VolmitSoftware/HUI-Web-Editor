@@ -2,14 +2,27 @@
 ///
 /// ```json
 /// {
-///   "schemaVersion": 1,
+///   "schemaVersion": 2,
 ///   "revision": 1,
 ///   "prefix": "&7",
 ///   "offset": [0.0, 1.0, 0.0],
 ///   "wordWrapChars": 32,
-///   "lineStaggerTicks": 5,
 ///   "maxAliveMs": 5000,
-///   "flyAway": true,
+///   "motion": {
+///     "translation": {"x": "0", "y": "8 * t", "z": "0"},
+///     "scale": {"x": "1", "y": "1", "z": "1"},
+///     "rotation": {"x": "0", "y": "0", "z": "0"},
+///     "opacity": "1"
+///   },
+///   "shimmer": {
+///     "spawn": true,
+///     "flyAway": true,
+///     "color": "#ffffff",
+///     "width": 3,
+///     "durationMs": 700,
+///     "spawnDelayMs": 0,
+///     "flyAwayLeadMs": 700
+///   },
 ///   "followPlayer": true,
 ///   "hideOwn": true,
 ///   "select": {"worlds": ["world*"], "groups": ["vip"], "priority": 10}
@@ -19,8 +32,8 @@
 /// The document id is the file path under `plugins/Gloss/bubbles/`. The Java
 /// record fixes almost everything SILENTLY (`BubbleStyleDoc.java:21-28`): a
 /// null prefix becomes `&7`, a null offset becomes `(0, 1, 0)`,
-/// `wordWrapChars` clamps into 8..128, `lineStaggerTicks` into 0..40 and
-/// `maxAliveMs` into 500..60000 — the editor preserves what was written and
+/// `wordWrapChars` clamps into 8..128 and `maxAliveMs` into 500..60000 — the
+/// editor preserves what was written and
 /// exposes the effective forms, so validation can warn with the value the
 /// server will actually run. `select` is genuinely optional (null skips
 /// auto-matching entirely, `BubbleStyles.resolveStyleId`); its `worlds` are
@@ -38,10 +51,18 @@ import 'json_codec.dart';
 /// `BubbleStyleDoc` clamp bounds.
 const int glossBubbleMinWordWrapChars = 8;
 const int glossBubbleMaxWordWrapChars = 128;
-const int glossBubbleMinLineStaggerTicks = 0;
-const int glossBubbleMaxLineStaggerTicks = 40;
 const int glossBubbleMinMaxAliveMs = 500;
 const int glossBubbleMaxMaxAliveMs = 60000;
+const int glossBubbleMinShimmerWidth = 1;
+const int glossBubbleMaxShimmerWidth = 16;
+const int glossBubbleMinShimmerDurationMs = 100;
+const int glossBubbleMaxShimmerDurationMs = 10000;
+const int glossBubbleMaxShimmerOffsetMs = 60000;
+
+const int glossBubbleCurrentSchemaVersion = 2;
+
+const String glossBubbleLegacyFlyAwayExpression =
+    '10 * pow(clamp((ageMs - lifetimeMs + 2000) / 2000, 0, 1), 16)';
 
 /// `BubbleStyleDoc.DEFAULTS` prefix, applied when the file carries none.
 const String glossBubbleDefaultPrefix = '&7';
@@ -67,8 +88,8 @@ bool looksLikeBubbleStyleDoc(Object? json) {
   }
   return json.containsKey('wordWrapChars') ||
       json.containsKey('maxAliveMs') ||
-      json.containsKey('lineStaggerTicks') ||
-      json.containsKey('flyAway') ||
+      json.containsKey('motion') ||
+      json.containsKey('shimmer') ||
       json.containsKey('followPlayer') ||
       json.containsKey('hideOwn');
 }
@@ -95,15 +116,31 @@ const Set<String> _docKnown = <String>{
   'prefix',
   'offset',
   'wordWrapChars',
-  'lineStaggerTicks',
   'maxAliveMs',
-  'flyAway',
+  'motion',
+  'shimmer',
   'followPlayer',
   'hideOwn',
   'select',
 };
 
 const Set<String> _selectKnown = <String>{'worlds', 'groups', 'priority'};
+const Set<String> _motionKnown = <String>{
+  'translation',
+  'scale',
+  'rotation',
+  'opacity',
+};
+const Set<String> _motionVectorKnown = <String>{'x', 'y', 'z'};
+const Set<String> _shimmerKnown = <String>{
+  'spawn',
+  'flyAway',
+  'color',
+  'width',
+  'durationMs',
+  'spawnDelayMs',
+  'flyAwayLeadMs',
+};
 
 /// `BubbleStyleDoc.Select` — the auto-match rule. A style without one never
 /// auto-matches and is only reachable by explicit player choice (or as the
@@ -167,8 +204,7 @@ final class GlossBubbleSelect {
       'worlds': List<String>.of(worlds),
     if (!absentKeys.contains('groups') || groups.isNotEmpty)
       'groups': List<String>.of(groups),
-    if (!absentKeys.contains('priority') || priority != 0)
-      'priority': priority,
+    if (!absentKeys.contains('priority') || priority != 0) 'priority': priority,
   }, extras);
 
   GlossBubbleSelect copy() => GlossBubbleSelect(
@@ -180,22 +216,245 @@ final class GlossBubbleSelect {
   );
 }
 
+String _readBubbleMotionValue(
+  Map<String, dynamic> map,
+  String key,
+  String fallback,
+  String path,
+) {
+  final Object? value = map[key];
+  if (value == null) return fallback;
+  if (value is String) return value;
+  throw HuiFormatException(
+    'Bubble motion values must be expression strings.',
+    '$path.$key',
+  );
+}
+
+final class GlossBubbleMotionVector {
+  GlossBubbleMotionVector({
+    required this.x,
+    required this.y,
+    required this.z,
+    Map<String, dynamic>? extras,
+  }) : extras = extras ?? <String, dynamic>{};
+
+  String x;
+  String y;
+  String z;
+  Map<String, dynamic> extras;
+
+  static GlossBubbleMotionVector translationDefaults() =>
+      GlossBubbleMotionVector(
+        x: '0',
+        y: glossBubbleLegacyFlyAwayExpression,
+        z: '0',
+      );
+
+  static GlossBubbleMotionVector scaleDefaults() =>
+      GlossBubbleMotionVector(x: '1', y: '1', z: '1');
+
+  static GlossBubbleMotionVector rotationDefaults() =>
+      GlossBubbleMotionVector(x: '0', y: '0', z: '0');
+
+  static GlossBubbleMotionVector fromJson(
+    Object? raw, {
+    required GlossBubbleMotionVector defaults,
+    required String path,
+  }) {
+    if (raw == null) return defaults.copy();
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return GlossBubbleMotionVector(
+      x: _readBubbleMotionValue(map, 'x', defaults.x, path),
+      y: _readBubbleMotionValue(map, 'y', defaults.y, path),
+      z: _readBubbleMotionValue(map, 'z', defaults.z, path),
+      extras: huiCollectExtras(map, _motionVectorKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() =>
+      huiMergeExtras(<String, dynamic>{'x': x, 'y': y, 'z': z}, extras);
+
+  GlossBubbleMotionVector copy() =>
+      GlossBubbleMotionVector(x: x, y: y, z: z, extras: huiDeepCopyMap(extras));
+}
+
+final class GlossBubbleMotion {
+  GlossBubbleMotion({
+    required this.translation,
+    required this.scale,
+    required this.rotation,
+    required this.opacity,
+    Map<String, dynamic>? extras,
+  }) : extras = extras ?? <String, dynamic>{};
+
+  GlossBubbleMotionVector translation;
+  GlossBubbleMotionVector scale;
+  GlossBubbleMotionVector rotation;
+  String opacity;
+  Map<String, dynamic> extras;
+
+  factory GlossBubbleMotion.legacyFlyAway() => GlossBubbleMotion(
+    translation: GlossBubbleMotionVector.translationDefaults(),
+    scale: GlossBubbleMotionVector.scaleDefaults(),
+    rotation: GlossBubbleMotionVector.rotationDefaults(),
+    opacity: '1',
+  );
+
+  factory GlossBubbleMotion.identity() => GlossBubbleMotion(
+    translation: GlossBubbleMotionVector(x: '0', y: '0', z: '0'),
+    scale: GlossBubbleMotionVector.scaleDefaults(),
+    rotation: GlossBubbleMotionVector.rotationDefaults(),
+    opacity: '1',
+  );
+
+  static GlossBubbleMotion fromJson(Object? raw) {
+    final GlossBubbleMotion defaults = GlossBubbleMotion.legacyFlyAway();
+    if (raw == null) return defaults;
+    final Map<String, dynamic> map = huiReadObject(raw, r'$.motion');
+    return GlossBubbleMotion(
+      translation: GlossBubbleMotionVector.fromJson(
+        map['translation'],
+        defaults: defaults.translation,
+        path: r'$.motion.translation',
+      ),
+      scale: GlossBubbleMotionVector.fromJson(
+        map['scale'],
+        defaults: defaults.scale,
+        path: r'$.motion.scale',
+      ),
+      rotation: GlossBubbleMotionVector.fromJson(
+        map['rotation'],
+        defaults: defaults.rotation,
+        path: r'$.motion.rotation',
+      ),
+      opacity: _readBubbleMotionValue(
+        map,
+        'opacity',
+        defaults.opacity,
+        r'$.motion',
+      ),
+      extras: huiCollectExtras(map, _motionKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'translation': translation.toJson(),
+    'scale': scale.toJson(),
+    'rotation': rotation.toJson(),
+    'opacity': opacity,
+  }, extras);
+
+  GlossBubbleMotion copy() => GlossBubbleMotion(
+    translation: translation.copy(),
+    scale: scale.copy(),
+    rotation: rotation.copy(),
+    opacity: opacity,
+    extras: huiDeepCopyMap(extras),
+  );
+}
+
+final class GlossBubbleShimmer {
+  GlossBubbleShimmer({
+    this.spawn = true,
+    this.flyAway = true,
+    this.color = '#ffffff',
+    this.width = 3,
+    this.durationMs = 700,
+    this.spawnDelayMs = 0,
+    this.flyAwayLeadMs = 700,
+    Map<String, dynamic>? extras,
+  }) : extras = extras ?? <String, dynamic>{};
+
+  bool spawn;
+  bool flyAway;
+  String color;
+  int width;
+  int durationMs;
+  int spawnDelayMs;
+  int flyAwayLeadMs;
+  Map<String, dynamic> extras;
+
+  int get effectiveWidth =>
+      width.clamp(glossBubbleMinShimmerWidth, glossBubbleMaxShimmerWidth);
+
+  int get effectiveDurationMs => durationMs.clamp(
+    glossBubbleMinShimmerDurationMs,
+    glossBubbleMaxShimmerDurationMs,
+  );
+
+  int get effectiveSpawnDelayMs =>
+      spawnDelayMs.clamp(0, glossBubbleMaxShimmerOffsetMs);
+
+  int get effectiveFlyAwayLeadMs =>
+      flyAwayLeadMs.clamp(0, glossBubbleMaxShimmerOffsetMs);
+
+  bool get colorIsValid => RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(color.trim());
+
+  String get effectiveColor =>
+      colorIsValid ? color.trim().toLowerCase() : '#ffffff';
+
+  static GlossBubbleShimmer fromJson(Object? raw) {
+    if (raw == null) return GlossBubbleShimmer();
+    final Map<String, dynamic> map = huiReadObject(raw, r'$.shimmer');
+    return GlossBubbleShimmer(
+      spawn: map.containsKey('spawn') ? huiReadBool(map, 'spawn') : true,
+      flyAway: map.containsKey('flyAway') ? huiReadBool(map, 'flyAway') : true,
+      color: map.containsKey('color') ? huiReadString(map, 'color') : '#ffffff',
+      width: map.containsKey('width') ? huiReadInt(map, 'width') : 3,
+      durationMs: map.containsKey('durationMs')
+          ? huiReadInt(map, 'durationMs')
+          : 700,
+      spawnDelayMs: map.containsKey('spawnDelayMs')
+          ? huiReadInt(map, 'spawnDelayMs')
+          : 0,
+      flyAwayLeadMs: map.containsKey('flyAwayLeadMs')
+          ? huiReadInt(map, 'flyAwayLeadMs')
+          : 700,
+      extras: huiCollectExtras(map, _shimmerKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'spawn': spawn,
+    'flyAway': flyAway,
+    'color': color,
+    'width': width,
+    'durationMs': durationMs,
+    'spawnDelayMs': spawnDelayMs,
+    'flyAwayLeadMs': flyAwayLeadMs,
+  }, extras);
+
+  GlossBubbleShimmer copy() => GlossBubbleShimmer(
+    spawn: spawn,
+    flyAway: flyAway,
+    color: color,
+    width: width,
+    durationMs: durationMs,
+    spawnDelayMs: spawnDelayMs,
+    flyAwayLeadMs: flyAwayLeadMs,
+    extras: huiDeepCopyMap(extras),
+  );
+}
+
 final class GlossBubbleStyleDoc extends GlossDoc {
   GlossBubbleStyleDoc({
-    super.schemaVersion = glossCurrentSchemaVersion,
+    super.schemaVersion = glossBubbleCurrentSchemaVersion,
     super.revision = glossInitialRevision,
     this.prefix = '',
     this.offsetRaw,
     this.wordWrapChars = 0,
-    this.lineStaggerTicks = 0,
     this.maxAliveMs = 0,
-    this.flyAway = false,
+    GlossBubbleMotion? motion,
+    GlossBubbleShimmer? shimmer,
     this.followPlayer = false,
     this.hideOwn = false,
     this.select,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
-  }) : extras = extras ?? <String, dynamic>{},
+  }) : motion = motion ?? GlossBubbleMotion.legacyFlyAway(),
+       shimmer = shimmer ?? GlossBubbleShimmer(),
+       extras = extras ?? <String, dynamic>{},
        absentKeys = absentKeys ?? <String>{};
 
   /// Colour prefix prepended to every bubble line, as written. Only a
@@ -209,10 +468,10 @@ final class GlossBubbleStyleDoc extends GlossDoc {
 
   /// As written; see the `effective*` getters for the silent clamps.
   int wordWrapChars;
-  int lineStaggerTicks;
   int maxAliveMs;
 
-  bool flyAway;
+  GlossBubbleMotion motion;
+  GlossBubbleShimmer shimmer;
   bool followPlayer;
   bool hideOwn;
 
@@ -268,26 +527,25 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     glossBubbleMaxWordWrapChars,
   );
 
-  int get effectiveLineStaggerTicks => lineStaggerTicks.clamp(
-    glossBubbleMinLineStaggerTicks,
-    glossBubbleMaxLineStaggerTicks,
-  );
-
   int get effectiveMaxAliveMs =>
       maxAliveMs.clamp(glossBubbleMinMaxAliveMs, glossBubbleMaxMaxAliveMs);
 
   static GlossBubbleStyleDoc fromJson(Object? raw) {
     final Map<String, dynamic> map = huiReadObject(raw, r'$');
-    glossReadSchemaVersion(map, 'bubbles');
+    glossReadSchemaVersion(
+      map,
+      'bubbles',
+      expected: glossBubbleCurrentSchemaVersion,
+    );
     return GlossBubbleStyleDoc(
-      schemaVersion: glossCurrentSchemaVersion,
+      schemaVersion: glossBubbleCurrentSchemaVersion,
       revision: glossReadRevision(map),
       prefix: huiReadString(map, 'prefix'),
       offsetRaw: huiDeepCopy(map['offset']),
       wordWrapChars: huiReadInt(map, 'wordWrapChars'),
-      lineStaggerTicks: huiReadInt(map, 'lineStaggerTicks'),
       maxAliveMs: huiReadInt(map, 'maxAliveMs'),
-      flyAway: huiReadBool(map, 'flyAway'),
+      motion: GlossBubbleMotion.fromJson(map['motion']),
+      shimmer: GlossBubbleShimmer.fromJson(map['shimmer']),
       followPlayer: huiReadBool(map, 'followPlayer'),
       hideOwn: huiReadBool(map, 'hideOwn'),
       select: map['select'] == null
@@ -299,9 +557,7 @@ final class GlossBubbleStyleDoc extends GlossDoc {
         if (map['prefix'] == null) 'prefix',
         if (map['offset'] == null) 'offset',
         if (map['wordWrapChars'] == null) 'wordWrapChars',
-        if (map['lineStaggerTicks'] == null) 'lineStaggerTicks',
         if (map['maxAliveMs'] == null) 'maxAliveMs',
-        if (map['flyAway'] == null) 'flyAway',
         if (map['followPlayer'] == null) 'followPlayer',
         if (map['hideOwn'] == null) 'hideOwn',
       },
@@ -313,16 +569,14 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     final Map<String, dynamic> out = <String, dynamic>{
       'schemaVersion': schemaVersion,
       if (!absentKeys.contains('revision')) 'revision': revision,
-      if (!absentKeys.contains('prefix') || prefix.isNotEmpty)
-        'prefix': prefix,
+      if (!absentKeys.contains('prefix') || prefix.isNotEmpty) 'prefix': prefix,
       if (offsetRaw != null) 'offset': huiDeepCopy(offsetRaw),
       if (!absentKeys.contains('wordWrapChars') || wordWrapChars != 0)
         'wordWrapChars': wordWrapChars,
-      if (!absentKeys.contains('lineStaggerTicks') || lineStaggerTicks != 0)
-        'lineStaggerTicks': lineStaggerTicks,
       if (!absentKeys.contains('maxAliveMs') || maxAliveMs != 0)
         'maxAliveMs': maxAliveMs,
-      if (!absentKeys.contains('flyAway') || flyAway) 'flyAway': flyAway,
+      'motion': motion.toJson(),
+      'shimmer': shimmer.toJson(),
       if (!absentKeys.contains('followPlayer') || followPlayer)
         'followPlayer': followPlayer,
       if (!absentKeys.contains('hideOwn') || hideOwn) 'hideOwn': hideOwn,
@@ -337,9 +591,9 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     prefix: prefix,
     offsetRaw: huiDeepCopy(offsetRaw),
     wordWrapChars: wordWrapChars,
-    lineStaggerTicks: lineStaggerTicks,
     maxAliveMs: maxAliveMs,
-    flyAway: flyAway,
+    motion: motion.copy(),
+    shimmer: shimmer.copy(),
     followPlayer: followPlayer,
     hideOwn: hideOwn,
     select: select?.copy(),

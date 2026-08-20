@@ -98,7 +98,9 @@ class ShellIntents {
 
   Future<void> importMenu() async {
     if (!store.canTransferDocument) {
-      ArcaneSonner.info('Open a menu or preview document before importing.');
+      ArcaneSonner.info(
+        'Open a runtime document before importing replacement JSON.',
+      );
       return;
     }
     final void Function()? dialog = onOpenImport;
@@ -125,7 +127,11 @@ class ShellIntents {
     ArcaneSonner.success('Saved ${store.exportFileName}.');
   }
 
-  String get _documentLabel => store.isPreviewDoc ? 'Preview' : 'Menu';
+  String get _documentLabel {
+    final String noun = store.docType.noun;
+    if (noun.isEmpty) return 'Document';
+    return '${noun.substring(0, 1).toUpperCase()}${noun.substring(1)}';
+  }
 
   // --- documents ------------------------------------------------------------
 
@@ -335,6 +341,7 @@ class ShellIntents {
     images: store.images,
     catalogs: store.catalogs,
     charCache: _charCache,
+    animations: store.workspaceAnimations,
     emoji: store.workspaceEmoji,
   );
 

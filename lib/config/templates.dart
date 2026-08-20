@@ -141,6 +141,8 @@ const String kBlankHologramJson = r'''
       "data": {
         "type": "button",
         "highlightModifier": 0.05,
+        "hoverDurationTicks": 7,
+        "hoverEasing": "back_out",
         "icon": {
           "type": "text",
           "text": "&cClose"
@@ -326,6 +328,9 @@ HuiMenu buildSettingsTemplate() => _menu(<HuiComponent>[
       ],
       HuiTextIcon('&a[ON]  &fFlight'),
       HuiTextIcon('&8[OFF] &7Flight'),
+      HuiHitbox(1.5, 0.3, Vec3.zero()),
+      6,
+      HuiHoverEasing.easeInOutCubic,
     ),
   ),
   HuiComponent(
@@ -345,6 +350,9 @@ HuiMenu buildSettingsTemplate() => _menu(<HuiComponent>[
       ],
       HuiTextIcon('&a[ON]  &fGod mode'),
       HuiTextIcon('&8[OFF] &7God mode'),
+      HuiHitbox(1.5, 0.3, Vec3.zero()),
+      3,
+      HuiHoverEasing.backOut,
     ),
   ),
   _text(

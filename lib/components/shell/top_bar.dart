@@ -163,7 +163,7 @@ class _TopBarState extends State<TopBar> {
         _cluster('File', <Widget>[
           _action(
             icon: ArcaneIcon.upload(size: IconSize.sm),
-            label: 'Import $_documentNoun JSON',
+            label: 'Import JSON',
             hint: 'Dropping a .json file anywhere works too.',
             onPressed: () => _intents.importMenu(),
             disabled: !_store.canTransferDocument,
@@ -227,7 +227,8 @@ class _TopBarState extends State<TopBar> {
           ),
         ]),
         _mobilePaneControls(),
-        _overflow(),
+        _compactOverflow(),
+        _mobileOverflow(),
       ]),
     ],
   );
@@ -238,21 +239,52 @@ class _TopBarState extends State<TopBar> {
     children,
   );
 
-  /// The `is-optional` actions, reachable once the bar is too narrow to show
-  /// them. Both forms are always in the markup and the stylesheet swaps which
-  /// one is visible — measuring the bar in Dart would cost a layout read per
-  /// resize, and wrapping the bar is what made it two rows tall.
-  Widget _overflow() =>
-      dom.div(classes: 'hui-bar-cluster hui-bar-overflow', <Widget>[
+  /// Only the actions hidden by `.is-optional` at tablet widths. File and
+  /// other visible actions are deliberately absent, so opening this menu does
+  /// not show duplicate Import/Export/Copy entry points.
+  Widget _compactOverflow() =>
+      dom.div(classes: 'hui-bar-cluster hui-bar-overflow is-compact', <Widget>[
         BarMenu(
-          id: 'hui-bar-more',
+          id: 'hui-bar-more-compact',
+          align: BarMenuAlign.right,
+          triggerIcon: ArcaneIcon.ellipsis(size: IconSize.sm),
+          triggerLabel: 'More actions',
+          entries: () => <BarMenuEntry>[
+            const BarMenuHeading('Resources'),
+            BarMenuAction(
+              label: 'Templates',
+              icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
+              onSelect: _intents.openTemplates,
+            ),
+            const BarMenuSeparator(),
+            const BarMenuHeading('Editor'),
+            BarMenuAction(
+              label: 'Command palette',
+              icon: ArcaneIcon.command(size: IconSize.sm),
+              onSelect: _intents.openPalette,
+            ),
+            BarMenuAction(
+              label: 'Settings',
+              icon: ArcaneIcon.settings(size: IconSize.sm),
+              onSelect: _intents.openSettings,
+            ),
+          ],
+        ),
+      ]);
+
+  /// Full action surface for phones, where the regular right-hand clusters are
+  /// hidden. Keyboard and command-palette routes remain available as well.
+  Widget _mobileOverflow() =>
+      dom.div(classes: 'hui-bar-cluster hui-bar-overflow is-mobile', <Widget>[
+        BarMenu(
+          id: 'hui-bar-more-mobile',
           align: BarMenuAlign.right,
           triggerIcon: ArcaneIcon.ellipsis(size: IconSize.sm),
           triggerLabel: 'More actions',
           entries: () => <BarMenuEntry>[
             const BarMenuHeading('Document'),
             BarMenuAction(
-              label: 'Import $_documentNoun JSON',
+              label: 'Import JSON',
               icon: ArcaneIcon.upload(size: IconSize.sm),
               onSelect: _store.canTransferDocument
                   ? () => _intents.importMenu()
@@ -270,14 +302,6 @@ class _TopBarState extends State<TopBar> {
                   ? () => _intents.copyJson()
                   : null,
             ),
-            if (component.syncControls != null)
-              BarMenuAction(
-                label: component.syncControls!.publishLabel,
-                icon: ArcaneIcon.cloudUpload(size: IconSize.sm),
-                onSelect: component.syncControls!.canPublish
-                    ? component.syncControls!.onPublish
-                    : null,
-              ),
             const BarMenuSeparator(),
             const BarMenuHeading('Resources'),
             BarMenuAction(

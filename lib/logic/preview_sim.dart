@@ -29,6 +29,8 @@ library;
 
 import 'dart:convert';
 
+import 'gloss_text.dart'
+    show GlossTextExpressionSamples, GlossTextExpressionScope;
 import 'preview_expr.dart';
 import 'preview_expr_functions.dart';
 
@@ -97,6 +99,22 @@ const Map<String, List<String>> previewSimGroupVariables =
       'jukebox': <String>['playing', 'record'],
     };
 
+/// Gloss's shared text-expression variables, evaluated after document vars
+/// and the preview target snapshot. Kept in the same order as the shipped
+/// catalog so inspector suggestions and the simulator stay deterministic.
+const List<String> previewStandardVariableNames = <String>[
+  'time.ms',
+  'time.seconds',
+  'time.ticks',
+  'server.online',
+  'server.maxPlayers',
+  'server.tps',
+  'player.name',
+  'player.ping',
+  'player.health',
+  'player.level',
+];
+
 /// [PreviewSim.variableNames] without needing a live instance: which names a
 /// category publishes never depends on any simulated state, only on the
 /// category name itself, so this is a pure function of [category] rather than
@@ -110,6 +128,7 @@ List<String> previewCategoryVariableNames(String category) => <String>[
   for (final String group
       in previewSimCategoryGroups[category] ?? const <String>['universal'])
     ...previewSimGroupVariables[group] ?? const <String>[],
+  ...previewStandardVariableNames,
 ];
 
 /// Every published variable whose value [PreviewSim.tick] moves.
@@ -122,6 +141,9 @@ List<String> previewCategoryVariableNames(String category) => <String>[
 /// nothing outside this set moved.
 const Set<String> previewTickVaryingVariables = <String>{
   'time',
+  'time.ms',
+  'time.seconds',
+  'time.ticks',
   // furnace: `advance`d by tick, plus the two values derived from `burnTime`.
   'cookTime',
   'burnTime',
@@ -324,8 +346,12 @@ Object? _decodeJson(String body) {
 /// One simulated preview target, resolving the same names and functions a live
 /// `PreviewStateContext` does.
 class PreviewSim implements PExprScope {
-  PreviewSim(this.category, {PreviewLangCatalog? lang})
-    : lang = lang ?? PreviewLangCatalog.empty {
+  PreviewSim(
+    this.category, {
+    PreviewLangCatalog? lang,
+    this.expressionSamples = const GlossTextExpressionSamples(),
+    this.viewerAware = true,
+  }) : lang = lang ?? PreviewLangCatalog.empty {
     reset();
   }
 
@@ -336,6 +362,15 @@ class PreviewSim implements PExprScope {
   /// The English snapshot `lang()` renders against; [PreviewLangCatalog.empty]
   /// renders every key as itself.
   PreviewLangCatalog lang;
+
+  /// Deterministic browser samples for the same native/PAPI/metric scope the
+  /// server supplies. External PAPI keys use their explicit fallback unless a
+  /// sample is present.
+  GlossTextExpressionSamples expressionSamples;
+
+  /// False models console/static validation: player variables are unresolved,
+  /// while time/server/native-server aliases remain available.
+  bool viewerAware;
 
   /// Values the simulation panel pinned by hand. A pinned name keeps its value
   /// through [tick]; removing it hands the name back to the simulation. Only
@@ -393,9 +428,14 @@ class PreviewSim implements PExprScope {
   /// The whole published sample, for the simulation panel's variable list. The
   /// expression evaluator goes through [variable] instead and allocates
   /// nothing.
-  Map<String, Object> snapshot() => <String, Object>{
-    for (final String name in variableNames) name: variable(name)!,
-  };
+  Map<String, Object> snapshot() {
+    final Map<String, Object> out = <String, Object>{};
+    for (final String name in variableNames) {
+      final Object? value = variable(name);
+      if (value != null) out[name] = value;
+    }
+    return out;
+  }
 
   /// Restores the category's canned state, dropping any surge but keeping
   /// [vars] and [overrides].
@@ -454,8 +494,8 @@ class PreviewSim implements PExprScope {
       return vars[dottedName.substring(_varsPrefix.length)];
     }
     final Object? sampled = _sample(dottedName);
-    if (sampled == null) return null;
-    return overrides[dottedName] ?? sampled;
+    if (sampled != null) return overrides[dottedName] ?? sampled;
+    return _standardScope.variable(dottedName);
   }
 
   @override
@@ -471,9 +511,15 @@ class PreviewSim implements PExprScope {
       case 'item':
         return _slotItem(name, args)?.material ?? '';
       default:
-        return previewStdFunction(name, args);
+        return _standardScope.call(name, args);
     }
   }
+
+  GlossTextExpressionScope get _standardScope => GlossTextExpressionScope(
+    (time * 50).round(),
+    expressionSamples,
+    viewerAware: viewerAware,
+  );
 
   // ---------------------------------------------------------------------
   // Sampling

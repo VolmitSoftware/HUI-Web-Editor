@@ -30,6 +30,8 @@ class SimClickable {
     required this.id,
     required this.kind,
     required this.highlightModifier,
+    required this.hoverDurationTicks,
+    required this.hoverEasing,
     required this.actions,
     required this.trueActions,
     required this.falseActions,
@@ -42,6 +44,8 @@ class SimClickable {
   /// clamp never runs on a parsed value and `ClickableComponent.java:63-65`
   /// multiplies the plane normal by whatever the file said.
   final double highlightModifier;
+  final int hoverDurationTicks;
+  final HuiHoverEasing hoverEasing;
 
   /// `button` only.
   final List<HuiAction> actions;
@@ -173,6 +177,12 @@ class PreviewSimulation {
 
   double? highlightModifierFor(String id) => _highlightById[id];
 
+  int hoverDurationFor(String id) =>
+      _clickableById(id)?.hoverDurationTicks ?? 0;
+
+  HuiHoverEasing hoverEasingFor(String id) =>
+      _clickableById(id)?.hoverEasing ?? huiRuntimeDefaultHoverEasing;
+
   /// Null for a decoration, an unknown id, or a button.
   bool? toggleStateFor(String id) {
     for (int i = 0; i < _clickables.length; i++) {
@@ -238,7 +248,7 @@ class PreviewSimulation {
     String? target = componentId;
     if (target == null) {
       for (final SimClickable clickable in _clickables) {
-        if (_hoverTicks.containsKey(clickable.id)) {
+        if (_hoveredIds.contains(clickable.id)) {
           target = clickable.id;
           break;
         }
@@ -298,13 +308,32 @@ class PreviewSimulation {
     for (final SimClickable clickable in _clickables) {
       if (requested.contains(clickable.id)) next.add(clickable.id);
     }
-    _hoverTicks.removeWhere((String id, int _) => !next.contains(id));
-    for (final String id in next) {
-      // Entry is tick 1; a held hover keeps climbing; an exit drops the entry
-      // entirely so re-entry starts over (ClickableComponent.java:63-69).
-      _hoverTicks[id] = (_hoverTicks[id] ?? 0) + 1;
+    for (final SimClickable clickable in _clickables) {
+      final String id = clickable.id;
+      final int current = _hoverTicks[id] ?? 0;
+      final int duration = clickable.hoverDurationTicks;
+      final int updated;
+      if (duration == 0) {
+        updated = next.contains(id) ? 1 : 0;
+      } else if (next.contains(id)) {
+        updated = current >= duration ? duration : current + 1;
+      } else {
+        updated = current <= 0 ? 0 : current - 1;
+      }
+      if (updated == 0) {
+        _hoverTicks.remove(id);
+      } else {
+        _hoverTicks[id] = updated;
+      }
     }
     _hoveredIds = Set<String>.unmodifiable(next);
+  }
+
+  SimClickable? _clickableById(String id) {
+    for (final SimClickable clickable in _clickables) {
+      if (clickable.id == id) return clickable;
+    }
+    return null;
   }
 
   PreviewTickResult _result({
@@ -341,6 +370,8 @@ class PreviewSimulation {
       switch (component.data) {
         case HuiButtonData(
           :final double highlightModifier,
+          :final int hoverDurationTicks,
+          :final HuiHoverEasing hoverEasing,
           :final List<HuiAction> actions,
         ):
           out.add(
@@ -348,6 +379,8 @@ class PreviewSimulation {
               id: component.id,
               kind: SimClickableKind.button,
               highlightModifier: highlightModifier,
+              hoverDurationTicks: hoverDurationTicks,
+              hoverEasing: hoverEasing,
               actions: List<HuiAction>.unmodifiable(actions),
               trueActions: const <HuiAction>[],
               falseActions: const <HuiAction>[],
@@ -355,6 +388,8 @@ class PreviewSimulation {
           );
         case HuiToggleData(
           :final double highlightModifier,
+          :final int hoverDurationTicks,
+          :final HuiHoverEasing hoverEasing,
           :final List<HuiAction> trueActions,
           :final List<HuiAction> falseActions,
         ):
@@ -363,6 +398,8 @@ class PreviewSimulation {
               id: component.id,
               kind: SimClickableKind.toggle,
               highlightModifier: highlightModifier,
+              hoverDurationTicks: hoverDurationTicks,
+              hoverEasing: hoverEasing,
               actions: const <HuiAction>[],
               trueActions: List<HuiAction>.unmodifiable(trueActions),
               falseActions: List<HuiAction>.unmodifiable(falseActions),

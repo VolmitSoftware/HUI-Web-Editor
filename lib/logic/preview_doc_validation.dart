@@ -14,11 +14,13 @@
 library;
 
 import 'preview_expr.dart';
+import 'preview_expr_functions.dart' show previewStandardFunctionNames;
 import 'preview_sim.dart'
     show
         kLegacyPreviewLangPrefix,
         previewRenamedLangKey,
-        previewSimGroupVariables;
+        previewSimGroupVariables,
+        previewStandardVariableNames;
 import 'preview_variant_resolver.dart' show previewMatchesGlob;
 import 'validation.dart';
 import '../model/preview_doc.dart';
@@ -85,7 +87,22 @@ List<HuiIssue> parseCheckPreviewDoc(HuiPreviewDoc doc) {
 /// bound to one category.
 final Set<String> previewFlatCatalog = <String>{
   for (final List<String> group in previewSimGroupVariables.values) ...group,
+  ...previewStandardVariableNames,
 };
+
+/// Functions available to every compiled preview expression. A chosen
+/// autocomplete entry includes `(` so the next keystroke is the first
+/// argument, while variable suggestions remain bare identifiers.
+const List<String> previewExpressionFunctionNames = <String>[
+  'lang',
+  'count',
+  'occupied',
+  'item',
+  'papi',
+  'papiNumber',
+  'metric',
+  ...previewStandardFunctionNames,
+];
 
 /// Every name a provider namespace may not take: each cataloged variable, the
 /// first segment of the dotted ones (`inventory`, `surge`), and `vars`. Port
@@ -345,7 +362,7 @@ final RegExp previewTrailingExprToken = RegExp(r'[A-Za-z_][A-Za-z0-9_.]*$');
 const int previewSuggestMinBareLength = 2;
 
 /// Every suggestion for the trailing identifier-ish token in [text]: the flat
-/// catalog, `vars.<name>` for each of [declaredVars], and the current
+/// catalog, functions, `vars.<name>` for each of [declaredVars], and the current
 /// element's repeat [scope] — merged, filtered to names that start with the
 /// token, excluding an exact match to the token itself (nothing left to
 /// complete once it is already typed in full), sorted and capped at eight.
@@ -362,6 +379,7 @@ List<String> previewSuggestExprTokens(
   }
   final Set<String> source = <String>{
     ...previewFlatCatalog,
+    for (final String name in previewExpressionFunctionNames) '$name(',
     for (final String name in declaredVars) 'vars.$name',
     ...scope,
   };

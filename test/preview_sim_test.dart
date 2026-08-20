@@ -33,6 +33,9 @@ const Map<String, List<Object?>> functionSampleArgs = <String, List<Object?>>{
   'count': <Object?>[0.0],
   'occupied': <Object?>[0.0],
   'item': <Object?>[0.0],
+  'papi': <Object?>['player_name'],
+  'papiNumber': <Object?>['player_ping'],
+  'metric': <Object?>['react.tps'],
   'plain': <Object?>['&aHi'],
   'readable': <Object?>['IRON_ORE'],
 };
@@ -94,6 +97,28 @@ void main() {
       );
     });
 
+    test('the standard catalog exactly matches the shared sim scope', () {
+      expect(
+        catalog.standardVariables.map(
+          (PreviewVariableEntry entry) => entry.name,
+        ),
+        previewStandardVariableNames,
+      );
+      final PreviewSim sim = PreviewSim('statics', lang: lang);
+      for (final PreviewVariableEntry entry in catalog.standardVariables) {
+        final Object? value = sim.variable(entry.name);
+        expect(value, isNotNull, reason: entry.name);
+        switch (entry.type) {
+          case 'number':
+            expect(value, isA<double>(), reason: entry.name);
+          case 'string':
+            expect(value, isA<String>(), reason: entry.name);
+          default:
+            fail('unhandled standard type ${entry.type} for ${entry.name}');
+        }
+      }
+    });
+
     for (final String category in previewSimCategories) {
       test(
         '$category resolves every cataloged variable with the right type',
@@ -142,6 +167,8 @@ void main() {
           for (final String group in previewSimCategoryGroups[category]!)
             for (final PreviewVariableEntry entry in catalog.variables(group))
               entry.name,
+          for (final PreviewVariableEntry entry in catalog.standardVariables)
+            entry.name,
         };
         expect(sim.variableNames.toSet(), unorderedEquals(cataloged));
         expect(sim.snapshot().keys.toSet(), unorderedEquals(cataloged));
@@ -164,6 +191,24 @@ void main() {
         );
       }
     });
+
+    test(
+      'viewerless simulation keeps server context and rejects player data',
+      () {
+        final PreviewSim sim = PreviewSim('statics', viewerAware: false);
+        expect(sim.variable('server.online'), 86.0);
+        expect(sim.variable('player.name'), isNull);
+        expect(sim.call('papi', <Object?>['server_online']), '86');
+        expect(
+          sim.call('papi', <Object?>['player_name', 'No viewer']),
+          'No viewer',
+        );
+        expect(
+          () => sim.call('papiNumber', <Object?>['player_ping']),
+          throwsA(isA<PExprException>()),
+        );
+      },
+    );
   });
 
   group('furnace preset', () {
@@ -243,7 +288,12 @@ void main() {
 
     test('an unknown category behaves like a target-less one', () {
       final PreviewSim sim = PreviewSim('nonsense', lang: lang);
-      expect(sim.variableNames, <String>['time', 'blockType', 'customName']);
+      expect(sim.variableNames, <String>[
+        'time',
+        'blockType',
+        'customName',
+        ...previewStandardVariableNames,
+      ]);
       expect(sim.variable('blockType'), '');
       sim.tick(20);
       expect(sim.variable('time'), 1254.0);
@@ -311,8 +361,10 @@ void main() {
         ]),
         'Smelting Iron Ore 42%',
       );
-      expect(previewRenamedLangKey('holoui.preview.state.idle'),
-          'gloss.preview.state.idle');
+      expect(
+        previewRenamedLangKey('holoui.preview.state.idle'),
+        'gloss.preview.state.idle',
+      );
       expect(previewRenamedLangKey('gloss.preview.state.idle'), isNull);
     });
 
@@ -702,7 +754,7 @@ void main() {
       expect(decoded, isA<Map<String, Object?>>());
       expect(
         (decoded! as Map<String, Object?>).keys,
-        containsAll(<String>['categories', 'functions']),
+        containsAll(<String>['categories', 'standardVariables', 'functions']),
       );
     });
   });
@@ -765,10 +817,10 @@ void main() {
     });
 
     test('an unknown category name falls back to the universal group', () {
-      expect(
-        previewCategoryVariableNames('not-a-real-category'),
-        previewSimGroupVariables['universal'],
-      );
+      expect(previewCategoryVariableNames('not-a-real-category'), <String>[
+        ...previewSimGroupVariables['universal']!,
+        ...previewStandardVariableNames,
+      ]);
     });
   });
 }

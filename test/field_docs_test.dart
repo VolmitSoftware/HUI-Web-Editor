@@ -21,6 +21,8 @@ const List<String> _contractKeys = <String>[
   'component.id',
   'component.offset',
   'button.highlightModifier',
+  'button.hoverDurationTicks',
+  'button.hoverEasing',
   'button.hitbox',
   'toggle.condition',
   'toggle.expectedValue',

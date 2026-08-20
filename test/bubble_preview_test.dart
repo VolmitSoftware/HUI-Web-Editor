@@ -1,130 +1,140 @@
-/// The bubble preview timeline: deterministic under an injected clock, and
-/// faithful to the ported plugin pieces it composes — split lines, staggered
-/// spawns, per-bubble lifetime, live-list stacking, fly-away easing.
 library;
 
-import 'package:gloss_editor/logic/bubble_preview.dart';
 import 'package:gloss_editor/logic/bubble_lines.dart';
+import 'package:gloss_editor/logic/bubble_preview.dart';
 import 'package:gloss_editor/logic/bubble_stack_math.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 GlossBubbleStyleDoc _style({
   int wrap = 32,
-  int staggerTicks = 5,
   int maxAliveMs = 5000,
-  bool flyAway = true,
+  GlossBubbleMotion? motion,
+  GlossBubbleShimmer? shimmer,
 }) => GlossBubbleStyleDoc(
   wordWrapChars: wrap,
-  lineStaggerTicks: staggerTicks,
   maxAliveMs: maxAliveMs,
-  flyAway: flyAway,
+  motion: motion ?? GlossBubbleMotion.legacyFlyAway(),
+  shimmer: shimmer ?? GlossBubbleShimmer(),
 );
 
 void main() {
-  test(
-    'the showcase conversation is long, named and single-line at max wrap',
-    () {
-      expect(glossBubblePreviewMessages, hasLength(greaterThanOrEqualTo(6)));
-      expect(glossBubblePreviewMessages.join('\n'), contains('Magic_Psycho'));
-      expect(
-        glossBubblePreviewMessages.join('\n'),
-        contains('SwiftSwamp smells >.<'),
-      );
-      expect(glossBubblePreviewMessages.join('\n'), contains('Cyberpwn'));
-      expect(glossBubblePreviewMessages.join('\n'), contains('Puretie'));
-      for (final String message in glossBubblePreviewMessages) {
-        expect(
-          glossBubbleSplit(message, glossBubbleMaxWordWrapChars),
-          hasLength(1),
-          reason: message,
-        );
-      }
-    },
-  );
+  test('the showcase conversation is long, named, and formatted', () {
+    final String conversation = glossBubblePreviewMessages.join('\n');
+    expect(glossBubblePreviewMessages, hasLength(greaterThanOrEqualTo(6)));
+    expect(conversation, contains('Magic_Psycho'));
+    expect(conversation, contains('SwiftSwamp smells >.<'));
+    expect(conversation, contains('Cyberpwn'));
+    expect(conversation, contains('Puretie'));
+    expect(conversation, contains('§'));
+  });
 
-  test('the same millisecond always shows the same stack', () {
-    final GlossBubbleStyleDoc style = _style();
-    final GlossBubblePreviewTimeline first = GlossBubblePreviewTimeline(style);
-    final GlossBubblePreviewTimeline second = GlossBubblePreviewTimeline(style);
+  test('the same millisecond always shows the same stack and motion', () {
+    final GlossBubblePreviewTimeline first = GlossBubblePreviewTimeline(
+      _style(),
+    );
+    final GlossBubblePreviewTimeline second = GlossBubblePreviewTimeline(
+      _style(),
+    );
     for (final int at in <int>[0, 500, 2500, 7000, 12000]) {
       final List<GlossBubblePreviewBubble> a = first.bubblesAt(at);
       final List<GlossBubblePreviewBubble> b = second.bubblesAt(at);
       expect(a.length, b.length, reason: 'at $at');
       for (int index = 0; index < a.length; index++) {
         expect(a[index].text, b[index].text);
-        expect(a[index].offsetY, b[index].offsetY);
+        expect(a[index].stackY, b[index].stackY);
+        expect(a[index].motion.translationY, b[index].motion.translationY);
+        expect(a[index].shimmerProgress, b[index].shimmerProgress);
       }
     }
   });
 
-  test('line 2 of a wrapped message appears one stagger later', () {
-    // 24-char wrap splits the second canned message into multiple lines;
-    // stagger 10 ticks = 500 ms.
+  test('a wrapped chat message remains one multiline bubble block', () {
     final GlossBubblePreviewTimeline timeline = GlossBubblePreviewTimeline(
-      _style(wrap: 24, staggerTicks: 10),
+      _style(wrap: 12),
     );
-    const int atFirstMessage2Line =
-        glossBubblePreviewMessageGapMs; // message 2 spawn instant
-    final int before = timeline.bubblesAt(atFirstMessage2Line + 499).length;
-    final int after = timeline.bubblesAt(atFirstMessage2Line + 500).length;
-    expect(after, before + 1);
+    final List<GlossBubblePreviewBubble> initial = timeline.bubblesAt(0);
+    expect(initial, hasLength(1));
+    expect(initial.single.text, contains('\n'));
+    expect(initial.single.lineCount, greaterThan(1));
+    expect(
+      initial.single.lineCount,
+      glossBubbleWrappedLineCount(initial.single.text),
+    );
+    expect(timeline.bubblesAt(glossBubblePreviewMessageGapMs), hasLength(2));
   });
 
-  test('a bubble expires exactly maxAliveMs after ITS spawn', () {
+  test('a bubble expires exactly maxAliveMs after its message spawn', () {
     final GlossBubblePreviewTimeline timeline = GlossBubblePreviewTimeline(
-      _style(staggerTicks: 0, maxAliveMs: 1000),
+      _style(maxAliveMs: 1000),
     );
-    expect(timeline.bubblesAt(0), isNotEmpty);
-    expect(
-      timeline
-          .bubblesAt(999)
-          .any((GlossBubblePreviewBubble bubble) => bubble.remainingMs == 1),
-      isTrue,
-    );
-    // At 1000 the first message's bubbles are gone (second not yet sent
-    // until 1800).
+    expect(timeline.bubblesAt(0), hasLength(1));
+    expect(timeline.bubblesAt(999).single.remainingMs, 1);
     expect(timeline.bubblesAt(1000), isEmpty);
   });
 
-  test('heights come straight from the BubbleStackMath port', () {
+  test('line-aware stack heights come from the shared stack math', () {
     final GlossBubblePreviewTimeline timeline = GlossBubblePreviewTimeline(
-      _style(staggerTicks: 0, flyAway: false),
+      _style(wrap: 20, motion: GlossBubbleMotion.identity()),
     );
-    final List<GlossBubblePreviewBubble> bubbles = timeline.bubblesAt(100);
-    expect(bubbles, isNotEmpty);
+    final List<GlossBubblePreviewBubble> bubbles = timeline.bubblesAt(2000);
+    final List<int> lineCounts = <int>[
+      for (final GlossBubblePreviewBubble bubble in bubbles) bubble.lineCount,
+    ];
     for (int index = 0; index < bubbles.length; index++) {
       expect(
-        bubbles[index].offsetY,
-        glossBubbleOffsetY(
-          glossBubbleDefaultStackSpread,
-          index,
-          bubbles.length,
-          bubbles[index].remainingMs,
-          flyAwayEnabled: false,
-        ),
+        bubbles[index].stackY,
+        glossBubbleStackY(glossBubbleDefaultStackSpread, index, lineCounts),
       );
-    }
-    // Oldest first: the head of the list carries the highest stack lift.
-    if (bubbles.length > 1) {
-      expect(bubbles.first.offsetY, greaterThan(bubbles.last.offsetY));
     }
   });
 
-  test('fly-away raises a dying bubble; disabled leaves it in place', () {
-    final GlossBubblePreviewTimeline flying = GlossBubblePreviewTimeline(
-      _style(staggerTicks: 0, maxAliveMs: 1000, flyAway: true),
+  test(
+    'preview evaluates translation, scale, rotation, and opacity exactly',
+    () {
+      final GlossBubbleMotion motion = GlossBubbleMotion(
+        translation: GlossBubbleMotionVector(x: 't', y: '10 * t', z: '-t'),
+        scale: GlossBubbleMotionVector(x: '1 + t', y: '1', z: 'remaining'),
+        rotation: GlossBubbleMotionVector(x: '720 * t', y: '0', z: '-90 * t'),
+        opacity: 'remaining',
+      );
+      final GlossBubblePreviewBubble bubble = GlossBubblePreviewTimeline(
+        _style(maxAliveMs: 1000, motion: motion),
+      ).bubblesAt(500).single;
+      expect(bubble.motion.translationX, closeTo(0.5, 1e-12));
+      expect(bubble.motion.translationY, closeTo(5, 1e-12));
+      expect(bubble.motion.translationZ, closeTo(-0.5, 1e-12));
+      expect(bubble.motion.scaleX, closeTo(1.5, 1e-12));
+      expect(bubble.motion.scaleZ, closeTo(0.5, 1e-12));
+      expect(bubble.motion.rotationX, closeTo(0, 1e-12));
+      expect(bubble.motion.rotationZ, closeTo(315, 1e-12));
+      expect(bubble.motion.opacity, closeTo(0.5, 1e-12));
+    },
+  );
+
+  test('the exact default expression reproduces the legacy final fly-away', () {
+    final GlossBubblePreviewBubble bubble = GlossBubblePreviewTimeline(
+      _style(maxAliveMs: 1000),
+    ).bubblesAt(990).single;
+    expect(bubble.motion.translationY, greaterThan(9));
+  });
+
+  test('preview exposes both bounded shimmer passes on the bubble frame', () {
+    final GlossBubblePreviewTimeline timeline = GlossBubblePreviewTimeline(
+      _style(
+        shimmer: GlossBubbleShimmer(
+          durationMs: 1000,
+          spawnDelayMs: 100,
+          flyAwayLeadMs: 1000,
+        ),
+      ),
     );
-    final GlossBubblePreviewTimeline grounded = GlossBubblePreviewTimeline(
-      _style(staggerTicks: 0, maxAliveMs: 1000, flyAway: false),
-    );
-    final double dyingLift = flying.bubblesAt(990).first.offsetY;
-    final double steadyLift = grounded.bubblesAt(990).first.offsetY;
-    expect(
-      dyingLift,
-      greaterThan(steadyLift + 5),
-      reason: '10 ms from expiry the launch is near its full 10 blocks',
-    );
+    expect(timeline.bubblesAt(99).single.shimmerProgress, isNull);
+    expect(timeline.bubblesAt(100).single.shimmerProgress, 0);
+    expect(timeline.bubblesAt(600).single.shimmerProgress, 0.5);
+    expect(timeline.bubblesAt(2500).first.shimmerProgress, isNull);
+    expect(timeline.bubblesAt(4000).first.shimmerProgress, 0);
+    expect(timeline.bubblesAt(4500).first.shimmerProgress, 0.5);
   });
 
   test('the loop period clears the stage before restarting', () {
@@ -132,10 +142,6 @@ void main() {
       _style(),
     );
     expect(timeline.bubblesAt(timeline.periodMs - 1), isEmpty);
-    expect(
-      timeline.bubblesAt(timeline.periodMs),
-      isNotEmpty,
-      reason: 'the cycle restarts at the period boundary',
-    );
+    expect(timeline.bubblesAt(timeline.periodMs), isNotEmpty);
   });
 }

@@ -15,8 +15,10 @@ import '../model/hui_component.dart'
         HuiButtonData,
         HuiComponent,
         HuiComponentData,
+        HuiDecorationData,
         HuiHitbox,
-        HuiHitboxAnchor;
+        HuiHitboxAnchor,
+        HuiToggleData;
 import '../model/vec3.dart' show Vec3;
 import 'viewport_math.dart' show WorldBounds, WorldPoint;
 
@@ -470,6 +472,7 @@ HuiRect hitboxFor({
   );
   final HuiHitbox? hitbox = switch (component.data) {
     HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+    HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
     _ => null,
   };
   final HuiRect automatic = hitboxAt(
@@ -523,14 +526,18 @@ double hitboxDepthFor({
 }) {
   final double scale = _safeScale(uiScale);
   final HuiComponentData data = component.data;
-  if (data is! HuiButtonData || data.hitbox == null) {
+  final HuiHitbox? hitbox = switch (data) {
+    HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+    HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+    HuiDecorationData() => null,
+  };
+  if (hitbox == null) {
     return depthFor(
       component: component,
       uiScale: uiScale,
       menuOffset: menuOffset,
     );
   }
-  final HuiHitbox hitbox = data.hitbox!;
   if (hitbox.anchor == HuiHitboxAnchor.menu) {
     return (menuOffset?.z ?? 0) + hitbox.offset.z * scale;
   }

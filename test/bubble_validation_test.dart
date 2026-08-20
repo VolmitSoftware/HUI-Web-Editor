@@ -1,6 +1,3 @@
-/// Bubble-style validation: the strict-offset rejection as an error, the
-/// silent clamps as warnings naming the effective value, and the select
-/// notes.
 library;
 
 import 'package:gloss_editor/logic/bubble_validation.dart';
@@ -10,14 +7,22 @@ import 'package:test/test.dart';
 
 GlossBubbleStyleDoc _clean() => decodeGlossBubbleStyleDoc('''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
   "prefix": "&7",
   "offset": [0.0, 1.0, 0.0],
   "wordWrapChars": 32,
-  "lineStaggerTicks": 5,
   "maxAliveMs": 5000,
-  "flyAway": true,
+  "motion": {
+    "translation": {
+      "x": "0",
+      "y": "10 * pow(clamp((ageMs - lifetimeMs + 2000) / 2000, 0, 1), 16)",
+      "z": "0"
+    },
+    "scale": {"x": "1", "y": "1", "z": "1"},
+    "rotation": {"x": "0", "y": "0", "z": "0"},
+    "opacity": "1"
+  },
   "followPlayer": true,
   "hideOwn": true,
   "select": {"worlds": ["world"], "groups": [], "priority": 0}
@@ -31,60 +36,127 @@ void main() {
 
   test('an out-of-range revision is an error', () {
     final GlossBubbleStyleDoc doc = _clean()..revision = 0;
-    final List<HuiIssue> issues = validateBubbleStyleDoc(doc);
-    expect(issues.single.severity, HuiSeverity.error);
-    expect(issues.single.path, r'$.revision');
+    final HuiIssue issue = validateBubbleStyleDoc(doc).single;
+    expect(issue.severity, HuiSeverity.error);
+    expect(issue.path, r'$.revision');
   });
 
   test('a malformed present offset is an error; an absent one is not', () {
     final GlossBubbleStyleDoc bad = _clean()..offsetRaw = <num>[1, 2];
-    final List<HuiIssue> issues = validateBubbleStyleDoc(bad);
-    expect(issues.single.severity, HuiSeverity.error);
-    expect(issues.single.path, r'$.offset');
-
+    expect(validateBubbleStyleDoc(bad).single.path, r'$.offset');
     final GlossBubbleStyleDoc absent = _clean()..offsetRaw = null;
     expect(validateBubbleStyleDoc(absent), isEmpty);
   });
 
-  test('each silent clamp warns with the effective value', () {
+  test('numeric document clamps warn with the effective value', () {
     final GlossBubbleStyleDoc doc = _clean()
       ..wordWrapChars = 4
-      ..lineStaggerTicks = 99
       ..maxAliveMs = 100;
     final List<HuiIssue> issues = validateBubbleStyleDoc(doc);
-    expect(issues, hasLength(3));
-    expect(
-      issues.every((HuiIssue issue) => issue.severity == HuiSeverity.warning),
-      isTrue,
-    );
+    expect(issues, hasLength(2));
+    expect(issues.map((HuiIssue issue) => issue.path), <String>[
+      r'$.wordWrapChars',
+      r'$.maxAliveMs',
+    ]);
+    expect(issues.first.message, contains('silently runs 8'));
+    expect(issues.last.message, contains('silently runs 500'));
+  });
+
+  test('invalid and clamped shimmer values mirror runtime diagnostics', () {
+    final GlossBubbleStyleDoc doc = _clean();
+    doc.shimmer.color = 'white';
+    doc.shimmer.width = 99;
+    doc.shimmer.durationMs = 1;
+    doc.shimmer.spawnDelayMs = -1;
+    doc.shimmer.flyAwayLeadMs = 999999;
+    final List<HuiIssue> issues = validateBubbleStyleDoc(doc);
     expect(
       issues.map((HuiIssue issue) => issue.path),
       containsAll(<String>[
-        r'$.wordWrapChars',
-        r'$.lineStaggerTicks',
-        r'$.maxAliveMs',
+        r'$.shimmer.color',
+        r'$.shimmer.width',
+        r'$.shimmer.durationMs',
+        r'$.shimmer.spawnDelayMs',
+        r'$.shimmer.flyAwayLeadMs',
       ]),
     );
     expect(
       issues
-          .firstWhere((HuiIssue issue) => issue.path == r'$.wordWrapChars')
-          .message,
-      contains('silently runs 8'),
-    );
-    expect(
-      issues
-          .firstWhere((HuiIssue issue) => issue.path == r'$.maxAliveMs')
-          .message,
-      contains('silently runs 500'),
+          .firstWhere((HuiIssue issue) => issue.path == r'$.shimmer.color')
+          .severity,
+      HuiSeverity.error,
     );
   });
 
-  test('no select is an info naming the explicit-choice path', () {
-    final GlossBubbleStyleDoc doc = _clean()..select = null;
+  test('shimmer warns when a configured pass cannot complete visibly', () {
+    final GlossBubbleStyleDoc doc = _clean();
+    doc.shimmer.spawnDelayMs = doc.effectiveMaxAliveMs;
+    doc.shimmer.flyAwayLeadMs = 0;
     final List<HuiIssue> issues = validateBubbleStyleDoc(doc);
-    expect(issues.single.severity, HuiSeverity.info);
-    expect(issues.single.message, contains('never auto-matches'));
-    expect(issues.single.message, contains('gloss.bubbles.style.'));
+    expect(
+      issues.map((HuiIssue issue) => issue.path),
+      containsAll(<String>[
+        r'$.shimmer.spawnDelayMs',
+        r'$.shimmer.flyAwayLeadMs',
+      ]),
+    );
+  });
+
+  test('invalid, unknown, and overlong motion expressions are errors', () {
+    final GlossBubbleStyleDoc doc = _clean();
+    doc.motion.translation.x = 'missing + 1';
+    doc.motion.translation.y = 'smoothstep(1, 1, t)';
+    doc.motion.translation.z = '1' * 513;
+    doc.motion.scale.x = 'mystery(t)';
+    final List<HuiIssue> issues = validateBubbleStyleDoc(doc);
+    expect(
+      issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),
+      hasLength(4),
+    );
+    expect(
+      issues.map((HuiIssue issue) => issue.path),
+      containsAll(<String>[
+        r'$.motion.translation.x',
+        r'$.motion.translation.y',
+        r'$.motion.translation.z',
+        r'$.motion.scale.x',
+      ]),
+    );
+    expect(
+      issues
+          .firstWhere(
+            (HuiIssue issue) => issue.path == r'$.motion.translation.y',
+          )
+          .message,
+      contains('smoothstep edges must differ'),
+    );
+  });
+
+  test(
+    'runtime-clamped motion values warn while rotations may exceed a turn',
+    () {
+      final GlossBubbleStyleDoc doc = _clean();
+      doc.motion.translation.x = '100';
+      doc.motion.scale.y = '-1';
+      doc.motion.opacity = '2';
+      doc.motion.rotation.z = '9000 * t';
+      final List<HuiIssue> issues = validateBubbleStyleDoc(doc);
+      expect(
+        issues.where((HuiIssue issue) => issue.severity == HuiSeverity.warning),
+        hasLength(3),
+      );
+      expect(
+        issues.any((HuiIssue issue) => issue.path == r'$.motion.rotation.z'),
+        isFalse,
+      );
+    },
+  );
+
+  test('no select explains explicit choice and default-name fallback', () {
+    final GlossBubbleStyleDoc doc = _clean()..select = null;
+    final HuiIssue issue = validateBubbleStyleDoc(doc).single;
+    expect(issue.severity, HuiSeverity.info);
+    expect(issue.message, contains('gloss.bubbles.style.'));
   });
 
   test('blank select entries and normalization are infos', () {
@@ -96,17 +168,13 @@ void main() {
       issues.map((HuiIssue issue) => issue.path),
       containsAll(<String>[r'$.select.worlds', r'$.select.groups']),
     );
-    expect(
-      issues.every((HuiIssue issue) => issue.severity == HuiSeverity.info),
-      isTrue,
-    );
   });
 
-  test('a select with nothing to match is an everything-matcher info', () {
+  test('a select with no constraints matches every player', () {
     final GlossBubbleStyleDoc doc = _clean();
     doc.select!.worlds.clear();
-    final List<HuiIssue> issues = validateBubbleStyleDoc(doc);
-    expect(issues.single.severity, HuiSeverity.info);
-    expect(issues.single.message, contains('every player'));
+    final HuiIssue issue = validateBubbleStyleDoc(doc).single;
+    expect(issue.severity, HuiSeverity.info);
+    expect(issue.message, contains('every player'));
   });
 }

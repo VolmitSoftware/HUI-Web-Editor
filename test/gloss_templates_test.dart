@@ -265,7 +265,16 @@ void main() {
       expect(first.prefix, '&7');
       expect(first.offset, <double>[0, 1, 0]);
       expect(first.effectiveWordWrapChars, 32);
-      expect(first.flyAway, isTrue);
+      expect(first.schemaVersion, glossBubbleCurrentSchemaVersion);
+      expect(first.motion.translation.x, '0');
+      expect(first.motion.translation.y, glossBubbleLegacyFlyAwayExpression);
+      expect(first.motion.opacity, '1');
+      expect(first.shimmer.spawn, isTrue);
+      expect(first.shimmer.flyAway, isTrue);
+      expect(first.shimmer.color, '#ffffff');
+      expect(first.shimmer.width, 3);
+      expect(first.shimmer.durationMs, 700);
+      expect(first.shimmer.flyAwayLeadMs, 700);
       final List<HuiIssue> issues = validateBubbleStyleDoc(first);
       // The shipped default HAS no select — it is the fallback by name.
       expect(issues.single.severity, HuiSeverity.info);
@@ -277,6 +286,8 @@ void main() {
     final GlossBubbleStyleDoc doc = buildShowcaseGlossBubbleStyle();
     expect(doc.select, isNotNull);
     expect(doc.select!.priority, 10);
+    expect(doc.shimmer.color, '#ff88ff');
+    expect(doc.shimmer.width, 5);
     expect(
       validateBubbleStyleDoc(
         doc,

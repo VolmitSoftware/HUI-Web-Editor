@@ -231,7 +231,12 @@ extension _CanvasInteractions on _CanvasViewportState {
 
   bool _isDetachedHitboxTarget(CanvasItem item, WorldPoint world) {
     final HuiComponentData data = item.component.data;
-    if (data is! HuiButtonData || data.hitbox?.anchor != HuiHitboxAnchor.menu) {
+    final HuiHitbox? hitbox = switch (data) {
+      HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+      HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+      HuiDecorationData() => null,
+    };
+    if (hitbox?.anchor != HuiHitboxAnchor.menu) {
       return false;
     }
     final HuiRect box = item.hitbox;
@@ -256,12 +261,17 @@ extension _CanvasInteractions on _CanvasViewportState {
       store.select(hit.id);
     }
     final HuiComponentData data = hit.component.data;
-    if (data is! HuiButtonData || data.hitbox == null) return;
+    final HuiHitbox? hitbox = switch (data) {
+      HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+      HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+      HuiDecorationData() => null,
+    };
+    if (hitbox == null) return;
     _dragMode = _DragMode.hitbox;
     _dragComponentId = hit.id;
     _grabOffsetX = world.x - hit.hitbox.x;
     _grabOffsetY = world.y - hit.hitbox.y;
-    _hitboxDragStart = data.hitbox!.offset.copy();
+    _hitboxDragStart = hitbox.offset.copy();
     store.beginDrag();
     _showReadout(_hitboxDragStart!);
   }
@@ -407,7 +417,12 @@ extension _CanvasInteractions on _CanvasViewportState {
       start.z,
     );
     final HuiComponentData? data = store.menu.componentById(id)?.data;
-    if (data is HuiButtonData && data.hitbox?.offset == offset) return;
+    final HuiHitbox? hitbox = switch (data) {
+      HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+      HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+      _ => null,
+    };
+    if (hitbox?.offset == offset) return;
     store.setHitboxOffset(id, offset);
     _showReadout(offset);
   }
@@ -492,7 +507,14 @@ extension _CanvasInteractions on _CanvasViewportState {
 
   // --- context menu, double click -------------------------------------------
 
-  void _handleContextMenu(web.Event event) => event.preventDefault();
+  void _handleContextMenu(web.Event event) {
+    if (!event.isA<web.MouseEvent>()) return;
+    final web.MouseEvent mouse = event as web.MouseEvent;
+    event.preventDefault();
+    final double clientX = _eventDouble(mouse, 'clientX');
+    final double clientY = _eventDouble(mouse, 'clientY');
+    _openCreationMenuAt(clientX, clientY);
+  }
 
   void _handleDoubleClick(web.Event event) {
     if (!event.isA<web.MouseEvent>()) return;
@@ -541,6 +563,16 @@ extension _CanvasInteractions on _CanvasViewportState {
     final web.KeyboardEvent key = event as web.KeyboardEvent;
     if (key.ctrlKey || key.metaKey || key.altKey) return;
     if (_isTextEntryFocused()) return;
+
+    if (key.key == 'ContextMenu' || (key.shiftKey && key.key == 'F10')) {
+      final web.DOMRect? rect = _canvas?.getBoundingClientRect();
+      if (rect != null) {
+        _openCreationMenuAt(rect.x + rect.width / 2, rect.y + rect.height / 2);
+      }
+      key.preventDefault();
+      key.stopPropagation();
+      return;
+    }
 
     bool handled = true;
     switch (key.key) {

@@ -18,7 +18,14 @@ import '../model/model.dart';
 import '../services/catalogs.dart';
 import '../services/image_library.dart';
 import 'gloss_text.dart'
-    show GlossEmojiEntry, GlossEmojiResolver, GlossNoEmoji, glossRenderMenuText;
+    show
+        GlossAnimationResolver,
+        GlossEmojiResolver,
+        GlossNoAnimations,
+        GlossNoEmoji,
+        GlossTextExpressionSamples,
+        glossMenuTextNeedsRefresh,
+        glossRenderMenuText;
 import 'hui_geometry.dart';
 import 'mc_text.dart';
 import 'viewport_math.dart';
@@ -58,6 +65,7 @@ class CanvasItem {
     this.entityTexture,
     this.animationFrame = -1,
     this.animationFrameCount = 0,
+    this.textRefreshTicks = 0,
   });
 
   final HuiComponent component;
@@ -115,10 +123,15 @@ class CanvasItem {
 
   final int animationFrame;
   final int animationFrameCount;
+  final int textRefreshTicks;
 
   String get id => component.id;
 
-  bool get isAnimated => animationFrameCount > 1;
+  bool get isAnimatedImage => animationFrameCount > 1;
+
+  bool get isDynamicText => textRefreshTicks > 0;
+
+  bool get isAnimated => isAnimatedImage || isDynamicText;
 
   /// Region a click may land on when nothing was hit on the drawn icon itself.
   /// The union is a fallback for icons whose visual extent exceeds the plane.
@@ -305,37 +318,37 @@ class CanvasScene {
 /// Parsed-text memo. Text icons are re-resolved on every repaint, and a
 /// 60 fps drag would otherwise re-parse every string 60 times a second.
 ///
-/// The memo holds the whole menu text path — `glossRenderMenuText` (emoji, then
-/// bracket hex) followed by `parseMcText` — so the cache key is the raw field
-/// value. Emoji entries are workspace state, so the memo is dropped whenever
-/// the resolver hands back a different entry list; the store rebuilds that list
-/// on every emoji-document or catalog change and otherwise returns the same
-/// instance, which makes the identity check exact and free.
+/// The memo holds the whole menu text path followed by `parseMcText`. Its key
+/// is the rendered string, so animation frames, expression samples and emoji
+/// changes invalidate only the output that actually changed.
 class McTextCache {
   McTextCache({this.capacity = 256});
 
   final int capacity;
   final Map<String, McTextResult> _entries = <String, McTextResult>{};
-  List<GlossEmojiEntry>? _emoji;
 
   McTextResult parse(
     String raw, {
+    GlossAnimationResolver animations = const GlossNoAnimations(),
     GlossEmojiResolver emoji = const GlossNoEmoji(),
+    int nowMs = 0,
+    GlossTextExpressionSamples expressionSamples =
+        const GlossTextExpressionSamples(),
   }) {
-    final List<GlossEmojiEntry> entries = emoji.entries;
-    if (!identical(entries, _emoji)) {
-      _entries.clear();
-      _emoji = entries;
-    }
-    final McTextResult? cached = _entries[raw];
-    if (cached != null) return cached;
-    final McTextResult parsed = parseMcText(
-      glossRenderMenuText(raw, emoji: emoji),
+    final String rendered = glossRenderMenuText(
+      raw,
+      animations: animations,
+      emoji: emoji,
+      nowMs: nowMs,
+      expressionSamples: expressionSamples,
     );
+    final McTextResult? cached = _entries[rendered];
+    if (cached != null) return cached;
+    final McTextResult parsed = parseMcText(rendered);
     if (_entries.length >= capacity) {
       _entries.remove(_entries.keys.first);
     }
-    _entries[raw] = parsed;
+    _entries[rendered] = parsed;
     return parsed;
   }
 
@@ -395,7 +408,10 @@ CanvasScene buildCanvasScene({
   ImageLibrary? images,
   HuiCatalogs? catalogs,
   ImageCharCache? charCache,
+  GlossAnimationResolver animations = const GlossNoAnimations(),
   GlossEmojiResolver emoji = const GlossNoEmoji(),
+  GlossTextExpressionSamples expressionSamples =
+      const GlossTextExpressionSamples(),
   int animationTicks = 0,
 }) {
   final List<CanvasItem> items = <CanvasItem>[];
@@ -412,7 +428,9 @@ CanvasScene buildCanvasScene({
         images: images,
         catalogs: catalogs,
         charCache: charCache,
+        animations: animations,
         emoji: emoji,
+        expressionSamples: expressionSamples,
         animationTicks: animationTicks,
       ),
     );
@@ -445,7 +463,9 @@ CanvasItem _resolveItem({
   required ImageLibrary? images,
   required HuiCatalogs? catalogs,
   required ImageCharCache? charCache,
+  required GlossAnimationResolver animations,
   required GlossEmojiResolver emoji,
+  required GlossTextExpressionSamples expressionSamples,
   required int animationTicks,
 }) {
   final HuiComponentData data = component.data;
@@ -477,6 +497,7 @@ CanvasItem _resolveItem({
   String? entityTexture;
   int animationFrame = -1;
   int animationFrameCount = 0;
+  int textRefreshTicks = 0;
 
   switch (icon) {
     case null:
@@ -484,7 +505,19 @@ CanvasItem _resolveItem({
     case HuiTextIcon():
       // A text icon that parses to nothing renders nothing in game; it is not
       // the missing placeholder, so it keeps its kind and a zero-size shape.
-      final McTextResult parsed = textCache.parse(icon.text, emoji: emoji);
+      textRefreshTicks = glossMenuTextNeedsRefresh(icon.text)
+          ? icon.refreshTicks ?? 10
+          : 0;
+      final int renderedTick = textRefreshTicks <= 0
+          ? 0
+          : (animationTicks ~/ textRefreshTicks) * textRefreshTicks;
+      final McTextResult parsed = textCache.parse(
+        icon.text,
+        animations: animations,
+        emoji: emoji,
+        nowMs: renderedTick * huiAnimationTick.inMilliseconds,
+        expressionSamples: expressionSamples,
+      );
       kind = CanvasIconKind.text;
       text = parsed;
       shape = IconShape.text(
@@ -653,6 +686,7 @@ CanvasItem _resolveItem({
     entityTexture: entityTexture,
     animationFrame: animationFrame,
     animationFrameCount: animationFrameCount,
+    textRefreshTicks: textRefreshTicks,
   );
 }
 

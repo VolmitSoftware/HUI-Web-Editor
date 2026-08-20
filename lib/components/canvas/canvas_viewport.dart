@@ -22,6 +22,7 @@ import 'package:jaspr/jaspr.dart' show Component, ListenableBuilder;
 import 'package:web/web.dart' as web;
 
 import '../../config/editing.dart';
+import '../../config/defaults.dart';
 import '../../logic/canvas_scene.dart';
 import '../../logic/hui_geometry.dart' show HuiRect;
 import '../../logic/mc_text.dart';
@@ -35,6 +36,7 @@ import '../render/canvas_assets.dart';
 import '../render/canvas_brush.dart';
 import '../render/icon_renderers.dart';
 import '../shell/shell_status.dart';
+import '../common/common.dart';
 import 'backdrop.dart';
 import 'canvas_painter.dart';
 import 'canvas_toolbar.dart';
@@ -115,6 +117,8 @@ class CanvasViewport extends StatefulWidget {
     required this.images,
     this.catalogs,
     this.status,
+    this.onAddMedia,
+    this.onAddPlayerHead,
     super.key,
   });
 
@@ -130,6 +134,8 @@ class CanvasViewport extends StatefulWidget {
   /// frame tick rather than from the pointer handler, so a 60 fps drag rebuilds
   /// the status strip at most once per painted frame.
   final ShellStatus? status;
+  final void Function(Vec3 offset)? onAddMedia;
+  final void Function(Vec3 offset)? onAddPlayerHead;
 
   @override
   State<CanvasViewport> createState() => _CanvasViewportState();
@@ -206,6 +212,9 @@ class _CanvasViewportState extends State<CanvasViewport> {
   double _lastClientY = 0;
   bool _spaceHeld = false;
   String? _hoveredId;
+  HuiActionMenuPoint? _creationMenuPoint;
+  Vec3? _creationOffset;
+  String? _creationDocumentId;
 
   // Multi-select gesture state.
   //
@@ -282,7 +291,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
       'role': 'application',
       'aria-label':
           'Gloss menu layout canvas. Scroll to zoom, drag to pan, '
-          'drag a component to move it.',
+          'drag a component to move it, and right-click to add one.',
     },
     <Widget>[
       Component.element(
@@ -317,6 +326,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
         ),
       ),
       _stageTree,
+      if (_creationMenuPoint != null) _creationMenu(),
       // One line, never two: the separators are drawn by CSS between the
       // items, and the trailing note is dropped by CSS before anything is
       // allowed to wrap. See `.hui-canvas-hint` in web/styles/03-canvas.css.
@@ -332,7 +342,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
           Component.text(
             'Drag empty space to marquee - Shift-click adds - '
-            'Alt-drag copies - arrows nudge',
+            'Alt-drag copies - right-click creates',
           ),
         ]),
         dom.span(classes: 'hui-canvas-hint-item hui-canvas-hint-note', <Widget>[
@@ -348,6 +358,114 @@ class _CanvasViewportState extends State<CanvasViewport> {
   // --- frame loop -----------------------------------------------------------
 
   void _onStoreChanged() => _markDirty();
+
+  Widget _creationMenu() {
+    final Vec3 offset = _creationOffset!.copy();
+    final String? documentId = _creationDocumentId;
+    return HuiActionMenu(
+      id: '$_uid-create-menu',
+      label: 'Add component at canvas position',
+      point: _creationMenuPoint!,
+      onClose: _closeCreationMenu,
+      items: <HuiActionMenuItem>[
+        HuiActionMenuItem(
+          label: 'Text decoration',
+          icon: ArcaneIcon.baseline(size: IconSize.sm),
+          onSelect: () =>
+              _addIconAt(createDefaultIcon('text'), offset, documentId),
+        ),
+        HuiActionMenuItem(
+          label: 'Image or GIF',
+          icon: ArcaneIcon.image(size: IconSize.sm),
+          onSelect: () => _addMediaAt(offset, documentId),
+        ),
+        HuiActionMenuItem(
+          label: 'Pixelated player head',
+          icon: ArcaneIcon.user(size: IconSize.sm),
+          onSelect: () => _addPlayerHeadAt(offset, documentId),
+        ),
+        HuiActionMenuItem(
+          label: 'Living entity',
+          icon: ArcaneIcon.userRound(size: IconSize.sm),
+          onSelect: () =>
+              _addIconAt(createDefaultIcon('entity'), offset, documentId),
+        ),
+        HuiActionMenuItem(
+          label: 'Item',
+          icon: ArcaneIcon.package(size: IconSize.sm),
+          onSelect: () =>
+              _addIconAt(createDefaultIcon('item'), offset, documentId),
+        ),
+        HuiActionMenuItem(
+          label: 'Block',
+          icon: ArcaneIcon.boxes(size: IconSize.sm),
+          onSelect: () =>
+              _addIconAt(createDefaultIcon('block'), offset, documentId),
+        ),
+        HuiActionMenuItem(
+          label: 'Interactive button',
+          icon: ArcaneIcon.mousePointerClick(size: IconSize.sm),
+          separatorBefore: true,
+          onSelect: () => _addDefaultAt('button', offset, documentId),
+        ),
+        HuiActionMenuItem(
+          label: 'Conditional toggle',
+          icon: ArcaneIcon.toggleRight(size: IconSize.sm),
+          onSelect: () => _addDefaultAt('toggle', offset, documentId),
+        ),
+      ],
+    );
+  }
+
+  void _openCreationMenuAt(double clientX, double clientY) {
+    final WorldPoint world = _worldPoint(clientX, clientY);
+    final Vec3 offset = component.store.snapVec(Vec3(world.x, world.y, 0));
+    setState(() {
+      _creationMenuPoint = HuiActionMenuPoint(clientX, clientY);
+      _creationOffset = offset;
+      _creationDocumentId = component.store.workspace.activeId;
+    });
+    context.binding.addPostFrameCallback(() {
+      focusHuiActionMenu('$_uid-create-menu');
+    });
+  }
+
+  void _closeCreationMenu() {
+    if (_creationMenuPoint == null) return;
+    setState(() {
+      _creationMenuPoint = null;
+      _creationOffset = null;
+      _creationDocumentId = null;
+    });
+    _stage?.focus();
+  }
+
+  bool _isCurrentCreationTarget(String? documentId) =>
+      component.store.workspace.activeId == documentId;
+
+  void _addDefaultAt(String type, Vec3 offset, String? documentId) {
+    if (!_isCurrentCreationTarget(documentId)) return;
+    component.store.addComponent(type, offset: offset);
+  }
+
+  void _addIconAt(HuiIcon icon, Vec3 offset, String? documentId) {
+    if (!_isCurrentCreationTarget(documentId)) return;
+    component.store.addComponentData(
+      HuiDecorationData(icon),
+      offset: offset,
+      id: icon.type,
+    );
+  }
+
+  void _addMediaAt(Vec3 offset, String? documentId) {
+    if (!_isCurrentCreationTarget(documentId)) return;
+    component.onAddMedia?.call(offset);
+  }
+
+  void _addPlayerHeadAt(Vec3 offset, String? documentId) {
+    if (!_isCurrentCreationTarget(documentId)) return;
+    component.onAddPlayerHead?.call(offset);
+  }
 
   void _onImagesChanged() {
     _assets.prunePixelCanvases(component.images.paths);
@@ -705,6 +823,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
       images: component.images,
       catalogs: huiFreshestCatalogs(store.catalogs, component.catalogs),
       charCache: _charCache,
+      animations: store.workspaceAnimations,
       emoji: store.workspaceEmoji,
       animationTicks: _animationElapsedMs ~/ 50,
     );
@@ -744,6 +863,10 @@ class _CanvasViewportState extends State<CanvasViewport> {
       if (icon is HuiAnimatedImageIcon && icon.source.length > 1) {
         animated = true;
         minSpeed = math.min(minSpeed, math.max(1, icon.speed));
+      }
+      if (item.isDynamicText) {
+        animated = true;
+        minSpeed = math.min(minSpeed, item.textRefreshTicks);
       }
     }
     _sceneHasObfuscation = obfuscated;

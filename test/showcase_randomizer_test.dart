@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:gloss_editor/doctype/doctype.dart';
 import 'package:gloss_editor/logic/animation_validation.dart';
+import 'package:gloss_editor/logic/bubble_validation.dart';
 import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/logic/preview_card_scene.dart';
 import 'package:gloss_editor/logic/preview_sim.dart';
@@ -179,6 +180,31 @@ void main() {
     }
     expect(componentTypes, containsAll(huiComponentTypes));
     expect(actionTypes, containsAll(huiActionTypes));
+    final List<HuiComponentData> clickables = menu.components
+        .map((HuiComponent component) => component.data)
+        .where(
+          (HuiComponentData data) =>
+              data is HuiButtonData || data is HuiToggleData,
+        )
+        .toList();
+    expect(
+      clickables.any(
+        (HuiComponentData data) => switch (data) {
+          HuiButtonData() =>
+            data.hoverDurationTicks != huiRuntimeDefaultHoverDurationTicks,
+          HuiToggleData() =>
+            data.hoverDurationTicks != huiRuntimeDefaultHoverDurationTicks,
+          HuiDecorationData() => false,
+        },
+      ),
+      isTrue,
+    );
+    expect(
+      clickables.whereType<HuiToggleData>().every(
+        (HuiToggleData data) => data.hitbox != null,
+      ),
+      isTrue,
+    );
   });
 
   test('random animation showcase is a smooth procedural hue gradient', () {
@@ -301,9 +327,19 @@ void main() {
       GlossBubbleStyleDoc(revision: 5),
       math.Random(4),
     );
-    expect(bubble.effectiveWordWrapChars, inInclusiveRange(64, 128));
+    expect(bubble.effectiveWordWrapChars, inInclusiveRange(36, 108));
     expect(bubble.effectiveMaxAliveMs, greaterThanOrEqualTo(9000));
     expect(bubble.effectivePrefix, isNotEmpty);
+    final String motion = bubble.motion.toJson().toString();
+    expect(motion, anyOf(contains('smoothstep'), contains('pow(')));
+    expect(motion, anyOf(contains('sin('), contains('* t')));
+    expect(bubble.shimmer.spawn, isTrue);
+    expect(bubble.shimmer.flyAway, isTrue);
+    expect(bubble.shimmer.colorIsValid, isTrue);
+    expect(
+      bubble.shimmer.effectiveFlyAwayLeadMs,
+      greaterThanOrEqualTo(bubble.shimmer.effectiveDurationMs),
+    );
 
     final GlossTablistDoc tablist = buildRandomTablistShowcase(
       GlossTablistDoc(revision: 6),
@@ -317,6 +353,37 @@ void main() {
       tablist.effectiveNameFormats.keys,
       containsAll(<String>['_op', 'owner', 'developer', 'moderator', 'vip']),
     );
+  });
+
+  test('random bubbles demonstrate diverse procedural motion safely', () {
+    final Set<String> expressions = <String>{};
+    final Set<String> shimmers = <String>{};
+    for (int seed = 0; seed < 128; seed++) {
+      final GlossBubbleStyleDoc bubble = buildRandomBubbleShowcase(
+        GlossBubbleStyleDoc(),
+        math.Random(seed),
+      );
+      final Map<String, dynamic> motion = bubble.motion.toJson();
+      expressions.add(motion.toString());
+      shimmers.add(bubble.shimmer.toJson().toString());
+      expect(
+        validateBubbleStyleDoc(
+          bubble,
+        ).where((HuiIssue issue) => issue.severity == HuiSeverity.error),
+        isEmpty,
+        reason: 'seed $seed',
+      );
+    }
+    final String combined = expressions.join('\n');
+    expect(expressions.length, greaterThan(100));
+    expect(combined, contains('smoothstep'));
+    expect(combined, contains('pow('));
+    expect(combined, contains('sin('));
+    expect(combined, contains('cos('));
+    expect(combined, contains('stackIndex'));
+    expect(combined, contains('lineCount'));
+    expect(combined, contains('seed'));
+    expect(shimmers.length, greaterThan(100));
   });
 
   test('procedural showcases vary and scatter every named easter egg', () {

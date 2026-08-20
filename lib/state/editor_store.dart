@@ -1289,15 +1289,24 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     final String normalized = huiComponentTypes.contains(type)
         ? type
         : 'decoration';
+    return addComponentData(
+      createDefaultComponentData(normalized),
+      offset: offset,
+      id: id ?? normalized,
+    );
+  }
+
+  String? addComponentData(HuiComponentData data, {Vec3? offset, String? id}) {
+    final String normalized = huiComponentTypes.contains(data.type)
+        ? data.type
+        : 'decoration';
     final String newId = uniqueComponentId(id ?? normalized, _takenIds());
     final Vec3 place = offset ?? nextFreeOffset(_menu);
     _selection
       ..clear()
       ..add(newId);
     mutate('add $normalized', (HuiMenu menu) {
-      menu.components.add(
-        HuiComponent(newId, place, createDefaultComponentData(normalized)),
-      );
+      menu.components.add(HuiComponent(newId, place, data.copy()));
     });
     return newId;
   }
@@ -1457,23 +1466,41 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
 
   void setHitboxOffset(String id, Vec3 offset) {
     final HuiComponent? component = _menu.componentById(id);
-    if (component == null || component.data is! HuiButtonData) return;
+    if (component == null || component.data is HuiDecorationData) return;
     mutate('move $id hitbox', (HuiMenu menu) {
       final HuiComponent? edited = menu.componentById(id);
       final HuiComponentData? rawData = edited?.data;
-      if (rawData is! HuiButtonData) return;
-      final HuiHitbox hitbox = rawData.hitbox ?? HuiHitbox();
+      final HuiHitbox? existing = switch (rawData) {
+        HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+        HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+        _ => null,
+      };
+      if (rawData == null || rawData is HuiDecorationData) return;
+      final HuiHitbox hitbox = existing ?? HuiHitbox();
       hitbox.offset = offset.copy();
-      rawData.hitbox = hitbox.isDefault ? null : hitbox;
+      final HuiHitbox? next = hitbox.isDefault ? null : hitbox;
+      switch (rawData) {
+        case HuiButtonData():
+          rawData.hitbox = next;
+        case HuiToggleData():
+          rawData.hitbox = next;
+        case HuiDecorationData():
+          break;
+      }
     });
   }
 
   void setHitboxAnchor(String id, HuiHitboxAnchor anchor) {
     final HuiComponent? component = _menu.componentById(id);
     final HuiComponentData? rawData = component?.data;
-    if (rawData is! HuiButtonData) return;
+    final HuiHitbox? currentHitbox = switch (rawData) {
+      HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+      HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+      _ => null,
+    };
+    if (rawData == null || rawData is HuiDecorationData) return;
     final HuiHitboxAnchor currentAnchor =
-        rawData.hitbox?.anchor ?? HuiHitboxAnchor.button;
+        currentHitbox?.anchor ?? HuiHitboxAnchor.button;
     if (currentAnchor == anchor) return;
     final CanvasItem? current = _runtimeCanvasItem(_menu, id);
     mutate(
@@ -1483,12 +1510,24 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       (HuiMenu menu) {
         final HuiComponent? edited = menu.componentById(id);
         final HuiComponentData? editedData = edited?.data;
-        if (editedData is! HuiButtonData) return;
-        final HuiHitbox hitbox = editedData.hitbox ?? HuiHitbox();
+        final HuiHitbox? existing = switch (editedData) {
+          HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+          HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+          _ => null,
+        };
+        if (editedData == null || editedData is HuiDecorationData) return;
+        final HuiHitbox hitbox = existing ?? HuiHitbox();
         hitbox
           ..anchor = anchor
           ..offset = Vec3.zero();
-        editedData.hitbox = hitbox;
+        switch (editedData) {
+          case HuiButtonData():
+            editedData.hitbox = hitbox;
+          case HuiToggleData():
+            editedData.hitbox = hitbox;
+          case HuiDecorationData():
+            break;
+        }
         final CanvasItem? base = _runtimeCanvasItem(menu, id);
         if (current != null && base != null) {
           hitbox.offset = Vec3(
@@ -1497,7 +1536,16 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
             _round(current.hitboxDepth - base.hitboxDepth),
           );
         }
-        if (hitbox.isDefault) editedData.hitbox = null;
+        if (hitbox.isDefault) {
+          switch (editedData) {
+            case HuiButtonData():
+              editedData.hitbox = null;
+            case HuiToggleData():
+              editedData.hitbox = null;
+            case HuiDecorationData():
+              break;
+          }
+        }
       },
     );
   }
@@ -2304,6 +2352,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     images: _images,
     catalogs: _catalogs,
     charCache: _charCache,
+    animations: workspaceAnimations,
     emoji: workspaceEmoji,
   ).byId(id);
 
@@ -2353,6 +2402,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       images: _images,
       catalogs: _catalogs,
       charCache: _charCache,
+      animations: workspaceAnimations,
       emoji: workspaceEmoji,
     );
     _scene = scene;

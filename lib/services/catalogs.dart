@@ -292,19 +292,29 @@ class PreviewFunctionEntry {
 /// apart silently. Consumers get variable pickers and inline documentation out
 /// of it, and must keep working when it is missing.
 class HuiPreviewVariableCatalog {
-  const HuiPreviewVariableCatalog._(this._categories, this.functions);
+  const HuiPreviewVariableCatalog._(
+    this._categories,
+    this.standardVariables,
+    this.functions,
+  );
 
   final Map<String, List<PreviewVariableEntry>> _categories;
+
+  /// Variables supplied by Gloss's shared text-expression scope after the
+  /// preview target snapshot: time, server, and viewer-backed player values.
+  final List<PreviewVariableEntry> standardVariables;
 
   /// Documented functions, in file order.
   final List<PreviewFunctionEntry> functions;
 
   static const HuiPreviewVariableCatalog empty = HuiPreviewVariableCatalog._(
     <String, List<PreviewVariableEntry>>{},
+    <PreviewVariableEntry>[],
     <PreviewFunctionEntry>[],
   );
 
-  bool get isEmpty => _categories.isEmpty && functions.isEmpty;
+  bool get isEmpty =>
+      _categories.isEmpty && standardVariables.isEmpty && functions.isEmpty;
 
   /// Group names in file order: `universal`, `inventory`, then one per
   /// container category.
@@ -351,6 +361,9 @@ class HuiPreviewVariableCatalog {
       }
     }
 
+    final List<PreviewVariableEntry> standardVariables = _parseVariableEntries(
+      decoded['standardVariables'],
+    );
     final List<PreviewFunctionEntry> functions = <PreviewFunctionEntry>[];
     final Object? rawFunctions = decoded['functions'];
     if (rawFunctions is Map<String, Object?>) {
@@ -374,7 +387,31 @@ class HuiPreviewVariableCatalog {
         );
       }
     }
-    return HuiPreviewVariableCatalog._(categories, functions);
+    return HuiPreviewVariableCatalog._(
+      categories,
+      standardVariables,
+      functions,
+    );
+  }
+
+  static List<PreviewVariableEntry> _parseVariableEntries(Object? raw) {
+    if (raw is! Map<String, Object?>) return const <PreviewVariableEntry>[];
+    final List<PreviewVariableEntry> entries = <PreviewVariableEntry>[];
+    for (final MapEntry<String, Object?> member in raw.entries) {
+      final Object? fields = member.value;
+      if (fields is! Map<String, Object?>) continue;
+      final Object? type = fields['type'];
+      if (type is! String || type.isEmpty) continue;
+      final Object? description = fields['description'];
+      entries.add(
+        PreviewVariableEntry(
+          member.key,
+          type,
+          description is String ? description : '',
+        ),
+      );
+    }
+    return entries;
   }
 }
 

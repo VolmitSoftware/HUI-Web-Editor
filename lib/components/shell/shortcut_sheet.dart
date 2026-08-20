@@ -152,7 +152,7 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'file.export',
         spec: 'mod+S',
-        label: 'Export the menu JSON',
+        label: 'Export the active document JSON',
         alwaysOn: true,
         matches: (ShellKey key) =>
             key.mod && !key.alt && !key.shift && key.lower == 's',

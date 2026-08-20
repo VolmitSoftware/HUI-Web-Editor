@@ -1,12 +1,9 @@
 /// The menu text path: `TextPipeline.renderMenuText` feeding
 /// `TextUtils.parse`.
 ///
-/// A menu text icon is the one Gloss surface that skips the `|function|` and
-/// PlaceholderAPI stages of the shared pipeline — `TextMenuIcon.render`
-/// expands PAPI itself and then calls `TextPipeline.menuText`, which is emoji
-/// substitution followed by the colour translation. These tests pin both what
-/// the shorter path DOES do (emoji, `[RRGGBB]`) and what it must not
-/// (functions), plus the memo the canvas builds on top of it.
+/// Menu text now uses the same full viewer-aware pipeline as other authored
+/// Gloss text. The browser supplies deterministic expression samples and
+/// leaves raw PlaceholderAPI tokens visible because it has no live server.
 library;
 
 import 'package:gloss_editor/logic/canvas_scene.dart';
@@ -21,6 +18,22 @@ final class _Emoji implements GlossEmojiResolver {
 
   @override
   final List<GlossEmojiEntry> entries;
+}
+
+final class _MenuAnimations implements GlossAnimationResolver {
+  _MenuAnimations()
+    : document = GlossAnimationDoc(
+        frameIntervalMs: 100,
+        frames: <String>['A', 'B'],
+      );
+
+  final GlossAnimationDoc document;
+
+  @override
+  List<String> get ids => const <String>['rainbow'];
+
+  @override
+  GlossAnimationDoc? byId(String id) => id == 'rainbow' ? document : null;
 }
 
 const GlossEmojiEntry _heart = GlossEmojiEntry(
@@ -41,18 +54,30 @@ const GlossEmojiEntry _check = GlossEmojiEntry(
 String _bungee(String hex) =>
     '§x${hex.split('').map((String d) => '§$d').join()}';
 
-CanvasItem _textItem(String text, GlossEmojiResolver emoji) => buildCanvasScene(
+CanvasItem _textItem(
+  String text,
+  GlossEmojiResolver emoji, {
+  GlossAnimationResolver animations = const GlossNoAnimations(),
+  int animationTicks = 0,
+  int? refreshTicks,
+}) => buildCanvasScene(
   menu: HuiMenu(
     offset: Vec3.zero(),
     components: <HuiComponent>[
-      HuiComponent('label', Vec3.zero(), HuiDecorationData(HuiTextIcon(text))),
+      HuiComponent(
+        'label',
+        Vec3.zero(),
+        HuiDecorationData(HuiTextIcon(text, null, refreshTicks)),
+      ),
     ],
   ),
   uiScale: 1,
   trueRender: true,
   togglePreview: (String _) => true,
   textCache: McTextCache(),
+  animations: animations,
   emoji: emoji,
+  animationTicks: animationTicks,
 ).items.single;
 
 void main() {
@@ -63,11 +88,16 @@ void main() {
       expect(glossRenderMenuText(':check: done', emoji: emoji), '✓ done');
     });
 
-    test('runs no |function| stage — a pipe in a label stays a pipe', () {
+    test('plays registered animations and keeps unknown functions literal', () {
       final _Emoji emoji = _Emoji(<GlossEmojiEntry>[_heart]);
       expect(
-        glossRenderMenuText('|animation.rainbow| :heart:', emoji: emoji),
-        '|animation.rainbow| ❤',
+        glossRenderMenuText(
+          '|animation.rainbow| :heart:',
+          animations: _MenuAnimations(),
+          emoji: emoji,
+          nowMs: 100,
+        ),
+        'B ❤',
       );
       expect(
         glossRenderMenuText('|metric.react.tps|', emoji: emoji),
@@ -76,7 +106,16 @@ void main() {
       expect(glossRenderMenuText('a | b'), 'a | b');
     });
 
-    test('leaves %placeholder% tokens alone — TextMenuIcon expands them', () {
+    test('evaluates viewer expressions and native PAPI helpers', () {
+      expect(
+        glossRenderMenuText(
+          "Hello {{ player.name }} {{ papi('server_online') }}",
+        ),
+        'Hello Builder 86',
+      );
+    });
+
+    test('leaves raw %placeholder% tokens visible in the browser', () {
       expect(glossRenderMenuText('%player_name%'), '%player_name%');
     });
 
@@ -111,8 +150,10 @@ void main() {
       ]);
       // A glyph that IS a bracket-hex token gets translated, which can only
       // happen when emoji substitute first.
-      expect(glossRenderMenuText(':brand:x', emoji: emoji),
-          '${_bungee('ff8800')}x');
+      expect(
+        glossRenderMenuText(':brand:x', emoji: emoji),
+        '${_bungee('ff8800')}x',
+      );
     });
 
     test('an empty string renders empty', () {
@@ -130,15 +171,12 @@ void main() {
     });
 
     test('the hex sequence costs no visible characters', () {
-      expect(
-        parseMcText(glossRenderMenuText('[ff8800]Sale')).maxLineLength,
-        4,
-      );
+      expect(parseMcText(glossRenderMenuText('[ff8800]Sale')).maxLineLength, 4);
     });
   });
 
   group('McTextCache', () {
-    test('memoizes on the raw field value', () {
+    test('memoizes identical rendered output', () {
       final McTextCache cache = McTextCache();
       final McTextResult first = cache.parse('&aShop');
       expect(identical(cache.parse('&aShop'), first), isTrue);
@@ -169,6 +207,34 @@ void main() {
       final McTextResult first = cache.parse(':heart:', emoji: emoji);
       expect(identical(cache.parse(':heart:', emoji: emoji), first), isTrue);
     });
+
+    test('animation time and expression samples participate in rendering', () {
+      final McTextCache cache = McTextCache();
+      final _MenuAnimations animations = _MenuAnimations();
+      expect(
+        cache
+            .parse(
+              '|animation.rainbow| {{ player.name }}',
+              animations: animations,
+              nowMs: 0,
+            )
+            .plainText,
+        'A Builder',
+      );
+      expect(
+        cache
+            .parse(
+              '|animation.rainbow| {{ player.name }}',
+              animations: animations,
+              nowMs: 100,
+              expressionSamples: const GlossTextExpressionSamples(
+                placeholders: <String, Object>{'player_name': 'Puretie'},
+              ),
+            )
+            .plainText,
+        'B Puretie',
+      );
+    });
   });
 
   group('buildCanvasScene resolves a text icon through the menu path', () {
@@ -180,7 +246,10 @@ void main() {
       final CanvasItem literal = _textItem('Buy :heart:', const GlossNoEmoji());
 
       expect(substituted.text!.plainText, 'Buy ❤');
-      expect(substituted.shape, const IconShape.text(lines: 1, maxLineChars: 5));
+      expect(
+        substituted.shape,
+        const IconShape.text(lines: 1, maxLineChars: 5),
+      );
       expect(literal.text!.plainText, 'Buy :heart:');
       expect(literal.shape, const IconShape.text(lines: 1, maxLineChars: 11));
     });
@@ -188,6 +257,29 @@ void main() {
     test('bracket hex colours the run without an emoji resolver', () {
       final CanvasItem item = _textItem('[ff8800]Sale', const GlossNoEmoji());
       expect(item.text!.lines.single.single.rgb, 0xFF8800);
+    });
+
+    test('dynamic menu text follows its runtime refresh interval', () {
+      final _MenuAnimations animations = _MenuAnimations();
+      final CanvasItem before = _textItem(
+        '|animation.rainbow|',
+        const GlossNoEmoji(),
+        animations: animations,
+        animationTicks: 1,
+        refreshTicks: 2,
+      );
+      final CanvasItem after = _textItem(
+        '|animation.rainbow|',
+        const GlossNoEmoji(),
+        animations: animations,
+        animationTicks: 2,
+        refreshTicks: 2,
+      );
+      expect(before.text!.plainText, 'A');
+      expect(after.text!.plainText, 'B');
+      expect(before.textRefreshTicks, 2);
+      expect(before.isDynamicText, isTrue);
+      expect(before.isAnimated, isTrue);
     });
   });
 }

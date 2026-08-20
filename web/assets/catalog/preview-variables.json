@@ -43,11 +43,26 @@
       "record": { "type": "string", "description": "Readable name of the loaded record, or empty when none is loaded." }
     }
   },
+  "standardVariables": {
+    "time.ms": { "type": "number", "description": "Current wall-clock time in milliseconds." },
+    "time.seconds": { "type": "number", "description": "Current wall-clock time in seconds." },
+    "time.ticks": { "type": "number", "description": "Current wall-clock time in 50 millisecond ticks." },
+    "server.online": { "type": "number", "description": "Current online player count; available with or without a viewer." },
+    "server.maxPlayers": { "type": "number", "description": "Configured maximum player count; available with or without a viewer." },
+    "server.tps": { "type": "number", "description": "Current server TPS sample; available with or without a viewer." },
+    "player.name": { "type": "string", "description": "Viewing player's name; unresolved when the surface has no viewer." },
+    "player.ping": { "type": "number", "description": "Viewing player's current ping; unresolved when the surface has no viewer." },
+    "player.health": { "type": "number", "description": "Viewing player's current health; unresolved when the surface has no viewer." },
+    "player.level": { "type": "number", "description": "Viewing player's current experience level; unresolved when the surface has no viewer." }
+  },
   "functions": {
     "lang": { "args": ["key: string", "...args: any"], "returns": "string", "description": "Resolves a localization key, binding positional arguments onto its placeholder names in order." },
     "count": { "args": ["slot: number"], "returns": "number", "description": "Item count in the given inventory slot, or 0 when empty, out of range, or there is no inventory." },
     "occupied": { "args": ["slot: number"], "returns": "boolean", "description": "True when the given inventory slot holds a non-empty item stack." },
     "item": { "args": ["slot: number"], "returns": "string", "description": "Material id in the given inventory slot, or empty string when empty, out of range, or there is no inventory." },
+    "papi": { "args": ["key: string", "fallback?: string"], "returns": "string", "description": "Resolves PlaceholderAPI with Gloss native player and server fallbacks where available." },
+    "papiNumber": { "args": ["key: string", "fallback?: number"], "returns": "number", "description": "Resolves a numeric PlaceholderAPI value with Gloss native player and server fallbacks where available." },
+    "metric": { "args": ["key: string", "fallback?: number"], "returns": "number", "description": "Reads a numeric integration metric, using the optional fallback while unavailable." },
     "plain": { "args": ["text: string"], "returns": "string", "description": "Strips legacy '&' color and format codes from text, leaving everything else untouched." },
     "readable": { "args": ["id: string"], "returns": "string", "description": "Converts an ENUM_STYLE id into Title Case display text, e.g. IRON_ORE becomes Iron Ore." }
   }

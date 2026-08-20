@@ -1,10 +1,11 @@
 /// Shared envelope for the Gloss document kinds (hologram, animation,
 /// scoreboard).
 ///
-/// Every Gloss content document carries `{"schemaVersion": 1, "revision": N}`
-/// (`DocumentEnvelope.java:4-25`): `schemaVersion != 1` is rejected outright
-/// by the plugin, and `revision` is a server-owned monotonic counter in
-/// `1..9007199254740991`. The id is the file path — never a JSON key.
+/// Every Gloss content document carries a schema version and revision. Most
+/// kinds currently speak schema 1; bubble styles speak schema 2. A mismatched
+/// version is rejected outright by the plugin, and `revision` is a server-owned
+/// monotonic counter in `1..9007199254740991`. The id is the file path — never
+/// a JSON key.
 ///
 /// Decode leniency follows the editor's one rule (`json_codec.dart`): a
 /// [HuiFormatException] is reserved for what makes the document unreadable as
@@ -24,7 +25,7 @@ const int glossInitialRevision = 1;
 /// `DocumentEnvelope.MAX_SAFE_REVISION` — JavaScript's `MAX_SAFE_INTEGER`.
 const int glossMaxSafeRevision = 9007199254740991;
 
-/// The one schema generation every Gloss kind currently speaks.
+/// The schema generation shared by every Gloss kind except bubble styles.
 const int glossCurrentSchemaVersion = 1;
 
 /// Base type for the mutable Gloss document models, so the store can hold the
@@ -33,7 +34,7 @@ const int glossCurrentSchemaVersion = 1;
 abstract base class GlossDoc {
   GlossDoc({required this.schemaVersion, required this.revision});
 
-  /// Always [glossCurrentSchemaVersion] after a successful decode; kept as a
+  /// The kind-specific current schema after a successful decode; kept as a
   /// field so `toJson` re-emits exactly what was read.
   int schemaVersion;
 
@@ -49,13 +50,17 @@ abstract base class GlossDoc {
 /// editor cannot faithfully edit. Mirrors
 /// `DocumentEnvelope.requireSchemaVersion` — a missing key is Gson's `0` and
 /// rejects the same way (`HologramDoc.java:29-31`).
-int glossReadSchemaVersion(Map<String, dynamic> raw, String kind) {
+int glossReadSchemaVersion(
+  Map<String, dynamic> raw,
+  String kind, {
+  int expected = glossCurrentSchemaVersion,
+}) {
   final Object? value = raw['schemaVersion'];
   final int version = value is num ? value.toInt() : 0;
-  if (version != glossCurrentSchemaVersion) {
+  if (version != expected) {
     throw HuiFormatException(
       'Unsupported $kind schemaVersion: ${value ?? 'missing'}. This editor '
-      'speaks schemaVersion $glossCurrentSchemaVersion.',
+          'speaks schemaVersion $expected.',
       r'$.schemaVersion',
     );
   }

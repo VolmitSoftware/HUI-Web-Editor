@@ -122,38 +122,55 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Highlight modifier',
     body:
         'How far the icon moves toward the player while the look ray remains '
-        'inside its hitbox. The click plane centre stays fixed while hovered; '
-        'its orientation still follows the icon billboard. On exit the icon '
-        'teleports straight back; there is no easing. Values loaded from JSON '
-        'are never clamped, only the Java API clamps them to 0 to 1.',
-    citation: 'ClickableComponent.java:111-116',
+        'inside its hitbox, measured at uiScale 1. The runtime multiplies the '
+        'travel by effective uiScale exactly once. The click plane stays fixed '
+        'while the visual moves and its normal follows the icon billboard.',
+    citation: 'ClickableComponent.java:117-160',
+  ),
+  'button.hoverDurationTicks': HuiFieldDoc(
+    title: 'Hover duration',
+    body:
+        'Ticks used to enter and leave the hovered pose. The runtime default '
+        'is 4, 0 switches instantly, and accepted values are 0 through 40. '
+        'Changing toggle state preserves the current progress.',
+    citation: 'ButtonComponentData.java:17-44',
+  ),
+  'button.hoverEasing': HuiFieldDoc(
+    title: 'Hover easing',
+    body:
+        'Controls the entry and exit curve: linear, cubic ease-out, cubic '
+        'ease-in/out, or back-out overshoot. The runtime default is cubic '
+        'ease-out.',
+    citation: 'HoverEasing.java:5-50',
   ),
   'button.hitbox': HuiFieldDoc(
-    title: 'Button hitbox',
+    title: 'Clickable hitbox',
     body:
         'Width and height are optional, paired block dimensions at uiScale 1. '
         'Without them the plane follows the icon size. Offset moves the plane '
         'in right, up and forward axes. The button anchor keeps the plane '
         'linked to the icon; the menu anchor detaches it so each can move '
-        'independently.',
+        'independently. Buttons and toggles use the same contract, so a toggle '
+        'can keep one stable plane while its true and false icons differ.',
     citation: 'ClickableComponent.java:123-160',
   ),
   'toggle.condition': HuiFieldDoc(
     title: 'Condition',
     body:
-        'A PlaceholderAPI string, expanded once when the menu opens and '
-        'compared case-insensitively against the expected value to pick the '
-        'starting state. It is never re-evaluated - after that first sample the '
-        'state only changes when a player clicks. A missing condition throws '
-        'while the menu is opening, so this field cannot be left out.',
+        'Rendered once through the full player-aware text pipeline when the '
+        'menu opens, then compared case-insensitively against the expected '
+        'value. Functions, {{ expressions }}, PAPI, emoji and colours are '
+        'available. It is never re-evaluated; later state changes come from '
+        'clicks. A missing condition fails the menu open.',
     citation: 'ToggleComponent.java:78-80',
   ),
   'toggle.expectedValue': HuiFieldDoc(
     title: 'Expected value',
     body:
-        'What the expanded condition has to equal, ignoring case, for the '
-        'toggle to open in its true state. Leaving it out does not crash: the '
-        'comparison simply never matches, so the toggle always opens false.',
+        'What the rendered condition has to equal, ignoring case, for the '
+        'toggle to open in its true state. It runs through the same pipeline '
+        'as the condition so colors and dynamic values compare consistently. '
+        'Leaving it out does not crash; the comparison never matches.',
     citation: 'ToggleComponent.java:78-80',
   ),
   'toggle.trueActions': HuiFieldDoc(
@@ -266,20 +283,22 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'A newline splits it into one text display per line. Ampersand codes, '
         'legacy section codes, [RRGGBB] hex and full MiniMessage tags all '
         'work, :emoji: tokens are substituted from the Gloss emoji documents, '
-        'and PlaceholderAPI runs over it when the icon is created and then on '
-        'its configured refresh interval. |functions| are NOT run on menu '
-        'text, so a pipe stays a pipe. Note the hitbox is a character '
+        'and the full viewer-aware Gloss pipeline runs when the icon is '
+        'created and on its configured refresh interval: |functions|, '
+        '{{ expressions }}, PlaceholderAPI, emoji and colours. Note the '
+        'hitbox is a character '
         'count, not a glyph measurement: a wide line grabs clicks well past '
         'where the text appears to end.',
     citation: 'TextPipeline.java:74-79',
   ),
   'icon.text.refreshTicks': HuiFieldDoc(
-    title: 'Placeholder refresh',
+    title: 'Dynamic text refresh',
     body:
-        'Ticks between live PlaceholderAPI expansions for text containing a '
-        '%name% token. The omitted default is 10 ticks, or twice per second. '
-        'Zero disables updates after the initial render; the accepted range '
-        'is 0 through 1200. Static text does no periodic work.',
+        'Ticks between renders for text containing a complete %placeholder%, '
+        '|function| or {{ expression }} token. The omitted default is 10 '
+        'ticks, or twice per second. Zero disables updates after the initial '
+        'render; the accepted range is 0 through 1200. Static text does no '
+        'periodic work.',
     citation: 'TextMenuIcon.java:69-81',
   ),
   'icon.entity.entity': HuiFieldDoc(
@@ -287,25 +306,30 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'A lowercase namespaced Bukkit entity id. Gloss accepts only '
         'spawnable living types, renders them entirely through packets, and '
-        'never inserts a real entity into the world. Invalid, player, item, '
-        'projectile, display and interaction types fall back to the missing '
-        'icon without preventing the rest of the menu from opening.',
+        'never inserts a real entity into the world. Body, pitch and head yaw '
+        'follow the menu transform, while a private client team disables '
+        'physical collision. Invalid, player, item, projectile, display and '
+        'interaction types fall back to the missing icon without preventing '
+        'the rest of the menu from opening.',
     citation: 'EntityIconData.java:62-70',
   ),
   'icon.entity.width': HuiFieldDoc(
     title: 'Entity click width',
     body:
-        'Width of the automatic click plane and editor silhouette in blocks '
-        'at UI scale 1. It does not resize the client entity model. Omitted '
-        'defaults to 1; values must be greater than 0 and at most 64.',
+        'Width of the automatic button or toggle click plane and editor '
+        'silhouette in blocks at UI scale 1. A decoration has no click plane, '
+        'and this never creates physical collision or resizes the client '
+        'entity model. Omitted defaults to 1; values must be greater than 0 '
+        'and at most 64.',
     citation: 'EntityIconData.java:54-60',
   ),
   'icon.entity.height': HuiFieldDoc(
     title: 'Entity click height',
     body:
-        'Height of the automatic click plane and editor silhouette in blocks '
-        'at UI scale 1. The component anchor is the entity\'s feet, so this '
-        'plane is centered half its height above the anchor. Omitted defaults '
+        'Height of the automatic button or toggle click plane and editor '
+        'silhouette in blocks at UI scale 1. The component anchor is the '
+        'entity\'s feet, so a clickable plane is centered half its height '
+        'above the anchor. Decorations have no click plane. Omitted defaults '
         'to 1; values must be greater than 0 and at most 64.',
     citation: 'EntityMenuIcon.java:71-79',
   ),
@@ -378,8 +402,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Player message',
     body:
         'Parsed as MiniMessage and sent only to the player who clicked. The '
-        'literal %player% becomes that player\'s name, then PlaceholderAPI '
-        'expands any installed placeholders before MiniMessage parsing. A '
+        'literal %player% becomes that player\'s name, then the full '
+        'viewer-aware text pipeline resolves functions, expressions, PAPI, '
+        'emoji and colours before MiniMessage parsing. A '
         'blank message is logged and dropped when the component is compiled.',
     citation: 'MessageMenuAction.java:30-43',
   ),
@@ -656,34 +681,18 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'bubble.wordWrapChars': HuiFieldDoc(
     title: 'Word wrap',
     body:
-        'Characters per bubble line before the soft word wrap splits the '
-        'message. Clamped silently into 8..128 on load — the file keeps '
-        'what you wrote, the server runs the clamped value.',
-    citation: 'BubbleStyleDoc.java:25',
-  ),
-  'bubble.lineStaggerTicks': HuiFieldDoc(
-    title: 'Line stagger',
-    body:
-        'Ticks between the lines of one wrapped message appearing (line N '
-        'spawns after N times this many ticks; a tick is 50 ms). Clamped '
-        'silently into 0..40.',
-    citation: 'BubbleStyleDoc.java:26',
+        'Visible characters per line inside one multiline bubble block. '
+        'Colour and formatting codes do not consume width and their active '
+        'style carries across wraps. Clamped silently into 8..128 on load.',
+    citation: 'BubbleStyleDoc.java:32',
   ),
   'bubble.maxAliveMs': HuiFieldDoc(
     title: 'Lifetime',
     body:
-        'Milliseconds a bubble lives from its own spawn. Clamped silently '
-        'into 500..60000. The fly-away launch, when enabled, eases through '
-        'the final 2000 of this window.',
-    citation: 'BubbleStyleDoc.java:27',
-  ),
-  'bubble.flyAway': HuiFieldDoc(
-    title: 'Fly away',
-    body:
-        'When on, a bubble rises through its last two seconds — the lift is '
-        '(1 - remaining/2000)^16 times 10 blocks, a sharp late launch — '
-        'instead of vanishing in place.',
-    citation: 'BubbleStackMath.java:19-27',
+        'Milliseconds one complete wrapped bubble block lives. Clamped '
+        'silently into 500..60000. Motion expressions receive this as '
+        'lifetimeMs and receive ageMs as the block advances.',
+    citation: 'BubbleStyleDoc.java:33',
   ),
   'bubble.followPlayer': HuiFieldDoc(
     title: 'Follow player',

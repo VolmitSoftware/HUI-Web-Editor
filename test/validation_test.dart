@@ -608,6 +608,37 @@ void main() {
       );
     });
 
+    test('rejects hover durations outside the runtime range', () {
+      final HuiButtonData button = HuiButtonData(
+        0.05,
+        const <HuiAction>[],
+        HuiTextIcon('x'),
+      )..hoverDurationTicks = 41;
+      final HuiToggleData toggle = HuiToggleData(
+        0.05,
+        'yes',
+        'yes',
+        const <HuiAction>[],
+        const <HuiAction>[],
+        HuiTextIcon('on'),
+        HuiTextIcon('off'),
+      )..hoverDurationTicks = -1;
+
+      expect(
+        _has(
+          validateHuiMenu(
+            _menu(<HuiComponent>[
+              _component('button', button),
+              _component('toggle', toggle),
+            ]),
+          ),
+          HuiSeverity.error,
+          'hoverDurationTicks',
+        ),
+        isTrue,
+      );
+    });
+
     test('rejects non-positive custom hitbox dimensions', () {
       final HuiButtonData width = HuiButtonData(
         0.05,

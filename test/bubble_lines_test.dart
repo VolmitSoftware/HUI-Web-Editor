@@ -1,75 +1,75 @@
-/// The BubbleLines port: `§`-only colour stripping, the VolmLib soft wrap,
-/// and the blank-line drop.
 library;
 
 import 'package:gloss_editor/logic/bubble_lines.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('glossBubbleStripColors', () {
-    test('drops § pairs and only § pairs', () {
-      expect(glossBubbleStripColors('§ahello §lworld'), 'hello world');
-      expect(glossBubbleStripColors('&ahello'), '&ahello',
-          reason: '& codes pass through — only the client § form strips');
-      expect(glossBubbleStripColors('trailing §'), 'trailing §',
-          reason: 'a § with nothing after it stays');
-      expect(glossBubbleStripColors(''), '');
-    });
-  });
-
-  group('glossFormWrapWords', () {
-    test('short text passes through unwrapped', () {
-      expect(glossFormWrapWords('hello world', 32), 'hello world');
-      expect(glossFormWrapWords('', 32), '');
+  group('glossBubbleWrap', () {
+    test('keeps a short message as one formatted block', () {
+      expect(glossBubbleWrap('§ahello world', 32), '§ahello world');
+      expect(glossBubbleWrappedLineCount('§ahello world'), 1);
     });
 
-    test('wraps at the actual space instead of hard-cutting mid-word', () {
+    test('soft-wraps words and hard-wraps oversized words', () {
+      expect(glossBubbleWrap('one two three four', 9), 'one two\nthree\nfour');
+      expect(glossBubbleWrap('abcdefghij', 4), 'abcd\nefgh\nij');
+    });
+
+    test('carries active color and decorations to inserted lines', () {
       expect(
-        glossFormWrapWords('one two three four', 9),
-        'one two\nthree\nfour',
+        glossBubbleWrap('§ahello §lworld again', 7),
+        '§ahello\n§a§lworld\n§a§lagain',
       );
+      expect(glossBubbleWrap('§a§lbold §rplain', 4), '§a§lbold\n§a§l§rplai\nn');
     });
 
-    test('breaks a single-space pair at the space', () {
-      expect(glossFormWrapWords('hello world', 5), 'hello\nworld');
-    });
-
-    test('breaks exact-width words at every space', () {
-      expect(glossFormWrapWords('aaa bbb ccc', 3), 'aaa\nbbb\nccc');
-    });
-
-    test('hard-cuts a word longer than the window (soft mode)', () {
-      expect(glossFormWrapWords('abcdefghij', 4), 'abcd\nefgh\nij');
-    });
-
-    test('leading spaces at a window start are consumed', () {
-      expect(glossFormWrapWords('a  b', 1), 'a\nb');
-    });
-  });
-
-  group('glossBubbleSplit', () {
-    test('strips, wraps at the style width and drops blank lines', () {
+    test('renders a trusted prefix without charging formatting width', () {
       expect(
-        glossBubbleSplit('§dhello there wonderful world', 13),
-        <String>['hello there', 'wonderful', 'world'],
+        glossBubbleWrap('hello world', 5, renderedPrefix: '§b'),
+        '§bhello\n§bworld',
+      );
+      expect(
+        glossBubbleWrap('§1Hello wonderful world', 8, renderedPrefix: '§7'),
+        '§7§1Hello\n§1wonderfu\n§1l world',
       );
     });
 
-    test('a whitespace-only message yields no lines', () {
-      expect(glossBubbleSplit('   ', 32), isEmpty);
-      expect(glossBubbleSplit('§a§b', 32), isEmpty);
+    test('carries a Bungee RGB color to inserted lines', () {
+      const String rgb = '§x§1§2§3§4§5§6';
+      expect(glossBubbleWrap('${rgb}abcd efgh', 4), '${rgb}abcd\n${rgb}efgh');
     });
 
-    test('the shipped default width keeps every line inside the window', () {
-      final List<String> lines = glossBubbleSplit(
-        'Sure — let me grab my gear and some golden apples first.',
-        32,
+    test('raw ampersand and bracket colors stay literal chat text', () {
+      expect(
+        glossBubbleVisibleText('&1Hello [FF00FF]world'),
+        '&1Hello [FF00FF]world',
       );
-      expect(lines.length, greaterThanOrEqualTo(2));
-      for (final String line in lines) {
-        expect(line.length, lessThanOrEqualTo(33));
-        expect(line.trim(), isNotEmpty);
-      }
+      expect(glossBubbleWrap('&ahello', 32), '&ahello');
+    });
+
+    test('preserves internal blank lines but drops trailing blank lines', () {
+      final String wrapped = glossBubbleWrap('first\n\nsecond', 32);
+      expect(wrapped, 'first\n\nsecond');
+      expect(glossBubbleWrappedLineCount(wrapped), 3);
+      expect(glossBubbleWrap('first\n\n', 32), 'first');
+      expect(glossBubbleWrap('\n\n', 32), '');
+    });
+
+    test('matches tabs, CRLF, Unicode newlines, and nonbreaking spaces', () {
+      expect(glossBubbleWrap('one\ttwo three', 5), 'one\ntwo\nthree');
+      expect(glossBubbleWrap('a\r\nb\rc\u2028d\u2029', 8), 'a\nb\nc\nd');
+      expect(glossBubbleWrap('a\u00A0b', 8), 'a\u00A0b');
+    });
+
+    test('counts a Unicode scalar as one visible character', () {
+      expect(glossBubbleWrap('ab😀cd', 3), 'ab😀\ncd');
+      expect(glossBubbleVisibleText('§d😀'), '😀');
+    });
+
+    test('formatting-only and whitespace-only messages yield no block', () {
+      expect(glossBubbleWrap('§a§l', 32), '');
+      expect(glossBubbleWrap('   ', 32), '');
+      expect(glossBubbleWrappedLineCount(''), 0);
     });
   });
 }

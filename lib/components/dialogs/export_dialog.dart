@@ -1,17 +1,5 @@
-/// Export dialog: file name, downloads, and what to do with the files.
-///
-/// The plugin names a menu after its file, so the file name is the menu id and
-/// the permission node — that is why it is editable here and sanitized on the
-/// way out. Images are shipped as a zip whose entry names are exactly the paths
-/// stored in the JSON, so unzipping into `plugins/Gloss/images/` resolves every
-/// icon without renaming anything.
-///
-/// A container-preview document exports as a bare `<name>.json` download —
-/// there is no images zip (the format has no image icons at all) and no
-/// per-document permission node (`plugins/Gloss/previews/` files carry no id
-/// of their own; only `gloss.preview` gates seeing any of them). [EditorStore]
-/// already picks the right JSON shape for [EditorStore.exportJson], so this
-/// dialog only has to pick the right BODY for the active [EditorStore.docKind].
+/// Export dialog: canonical runtime file name, downloads and install location
+/// for every transferable Gloss document kind.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
@@ -70,12 +58,33 @@ class _ExportDialogState extends State<ExportDialog> {
     }
   }
 
-  String get _menuId => sanitizeMenuId(_name);
+  String get _documentId => sanitizeMenuId(_name);
 
-  String get _fileName => '$_menuId.json';
+  String? get _wireKind => _store.docType.syncWireKind;
+
+  bool get _fixedFileName => _wireKind == 'motd' || _wireKind == 'tablist';
+
+  String get _fileName => switch (_wireKind) {
+    'motd' => 'motd.json',
+    'tablist' => 'tablist.json',
+    _ => '$_documentId.json',
+  };
+
+  String get _installPath => switch (_wireKind) {
+    'menu' => '$huiMenuFolder$_fileName',
+    'hologram' => '$huiHologramFolder$_fileName',
+    'animation' => '$huiAnimationFolder$_fileName',
+    'scoreboard' => '$huiScoreboardFolder$_fileName',
+    'motd' => huiMotdFile,
+    'emoji' => '$huiEmojiFolder$_fileName',
+    'bubble-style' => '$huiBubbleFolder$_fileName',
+    'tablist' => huiTablistFile,
+    _ => '$huiPreviewFolder$_fileName',
+  };
 
   void _commitName() {
-    if (_store.menuId != _menuId) _store.setMenuId(_menuId);
+    if (_fixedFileName) return;
+    if (_store.menuId != _documentId) _store.setMenuId(_documentId);
   }
 
   void _downloadJson() {
@@ -89,10 +98,7 @@ class _ExportDialogState extends State<ExportDialog> {
     final bool copied = await copyText(_store.exportJson());
     if (!mounted) return;
     if (copied) {
-      toast.success(
-        '${_store.isPreviewDoc ? 'Document' : 'Menu'} JSON copied '
-        'to the clipboard',
-      );
+      toast.success('${_store.docType.noun} JSON copied to the clipboard');
     } else {
       toast.error(
         'The browser refused clipboard access. Use Download instead.',
@@ -118,19 +124,13 @@ class _ExportDialogState extends State<ExportDialog> {
       id: 'hui-export-dialog',
       isOpen: component.isOpen,
       onClose: component.onClose,
-      title: _store.isPreviewDoc ? 'Export preview' : 'Export menu',
+      title: 'Export ${_store.docType.noun}',
       maxWidth: 720,
       actions: <Widget>[
         Button(
           variant: ButtonVariant.outline,
           onPressed: component.onClose,
           label: 'Close',
-        ),
-        Button(
-          variant: ButtonVariant.primary,
-          onPressed: _downloadJson,
-          icon: ArcaneIcon.download(size: IconSize.sm),
-          label: 'Download JSON',
         ),
       ],
       children: <Widget>[
@@ -140,7 +140,9 @@ class _ExportDialogState extends State<ExportDialog> {
             if (!_store.canTransferDocument) {
               return const dom.div(<Widget>[]);
             }
-            return _store.isPreviewDoc ? _previewBody() : _menuBody();
+            if (_store.isMenuDoc) return _menuBody();
+            if (_store.isPreviewDoc) return _previewBody();
+            return _runtimeBody();
           },
         ),
       ],
@@ -257,17 +259,17 @@ class _ExportDialogState extends State<ExportDialog> {
                   'session of that id is closed with DEFINITION_RELOADED. '
                   'New and deleted files are noticed within about 20 ticks.',
               'Grant gloss.menus.open, gloss.menus.move and '
-                  'gloss.open.$_menuId — the '
+                  'gloss.open.$_documentId — the '
                   'per-menu node is not declared in plugin.yml, so it has '
                   'to be granted explicitly.',
-              'Test it with /gloss menu open $_menuId '
+              'Test it with /gloss menu open $_documentId '
                   '(aliases: gl, glo, gg).',
               'To re-anchor the open session, stand at its new origin and '
                   'run /gloss menu move. This keeps the configured offset and '
                   'does not rewrite $_fileName.',
             ],
           ),
-          HuiCodeBlock(text: '/gloss menu open $_menuId\n/gloss menu move'),
+          HuiCodeBlock(text: '/gloss menu open $_documentId\n/gloss menu move'),
         ],
       ),
       HuiDialogSection(
@@ -364,6 +366,94 @@ class _ExportDialogState extends State<ExportDialog> {
         description:
             '${json.length} characters, $elementCount element'
             '${elementCount == 1 ? '' : 's'}.',
+        children: <Widget>[HuiCodeBlock(text: json, scroll: true)],
+      ),
+    ]);
+  }
+
+  Widget _runtimeBody() {
+    final String json = _store.exportJson();
+    final String noun = _store.docType.noun;
+
+    return dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
+      if (_store.hasErrors)
+        ArcaneAlert.error(
+          title:
+              '${_store.errorCount} error'
+              '${_store.errorCount == 1 ? '' : 's'} in this $noun',
+          message:
+              'The file will still export, but Gloss may refuse to load it. '
+              'Check the validation panel before installing it.',
+        ),
+      HuiDialogSection(
+        title: _fixedFileName ? 'Runtime file' : 'File name',
+        description: _fixedFileName
+            ? 'Gloss has exactly one $noun document, so its runtime file name '
+                  'is fixed.'
+            : 'The file name becomes this $noun document\'s runtime id.',
+        children: <Widget>[
+          if (!_fixedFileName)
+            HuiField(
+              label: 'Document id',
+              help:
+                  'Lowercase letters, digits, underscore, hyphen and nested '
+                  'path segments. Anything else is replaced.',
+              control: TextInput(
+                value: _name,
+                size: ComponentSize.sm,
+                fullWidth: true,
+                onInput: (String value) => setState(() => _name = value),
+                onBlur: _commitName,
+                attributes: const <String, String>{
+                  'aria-label': 'Document id',
+                  'autocomplete': 'off',
+                  'spellcheck': 'false',
+                },
+              ),
+            ),
+          HuiCodeBlock(text: _installPath),
+        ],
+      ),
+      HuiDialogSection(
+        title: 'Download',
+        description: 'Canonical JSON ready for the Gloss runtime.',
+        children: <Widget>[
+          dom.div(classes: 'hui-dialog-actions', <Widget>[
+            Button(
+              variant: ButtonVariant.primary,
+              size: ButtonSize.small,
+              onPressed: _downloadJson,
+              icon: ArcaneIcon.download(size: IconSize.sm),
+              label: 'Download $_fileName',
+            ),
+            Button(
+              variant: ButtonVariant.outline,
+              size: ButtonSize.small,
+              onPressed: _copyJson,
+              icon: ArcaneIcon.clipboardCopy(size: IconSize.sm),
+              label: 'Copy JSON',
+            ),
+          ]),
+        ],
+      ),
+      HuiDialogSection(
+        title: 'Install on your server',
+        description: 'Gloss watches runtime JSON and applies valid changes.',
+        children: <Widget>[
+          HuiSteps(
+            steps: <String>[
+              'Drop $_fileName at $_installPath.',
+              'Keep the schema version and server-owned revision valid; the '
+                  'validation panel reports anything Gloss will reject.',
+              'Check the server console after replacing the file. A parse '
+                  'failure leaves the last working $noun active.',
+            ],
+          ),
+        ],
+      ),
+      HuiDialogSection(
+        title: 'Preview',
+        description: '${json.length} characters in the exported $noun JSON.',
         children: <Widget>[HuiCodeBlock(text: json, scroll: true)],
       ),
     ]);

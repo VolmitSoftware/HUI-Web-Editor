@@ -28,6 +28,8 @@ library;
 
 import 'dart:math' as math;
 
+import '../model/hui_component.dart';
+
 import 'preview_types.dart';
 
 /// Default scene scale. One block is this many css pixels before perspective.
@@ -362,13 +364,39 @@ double? rayPlaneIntersectionDistance(
 bool rayHitsPlane(LookRay ray, PlaneAim aim, double width, double height) =>
     rayPlaneIntersectionDistance(ray, aim, width, height) != null;
 
-/// How far the icon leans toward the player on hover tick [hoverTicks].
-///
-/// Every hovered tick uses the raw `highlightModifier`. Gson writes that record
-/// field directly, so the API's 0..1 clamp does not run on JSON values.
-PVec3 hoverPush(PlaneAim aim, double modifier, int hoverTicks) {
+PVec3 hoverPush(
+  PlaneAim aim,
+  double modifier,
+  int hoverTicks, {
+  double uiScale = 1,
+  int durationTicks = huiRuntimeDefaultHoverDurationTicks,
+  HuiHoverEasing easing = huiRuntimeDefaultHoverEasing,
+}) {
   if (hoverTicks <= 0) return PVec3.zero;
-  return aim.normal * modifier;
+  final double progress = durationTicks == 0
+      ? 1
+      : (hoverTicks / durationTicks).clamp(0, 1);
+  return aim.normal * modifier * uiScale * hoverEasing(progress, easing);
+}
+
+double hoverEasing(double progress, HuiHoverEasing easing) {
+  final double value = progress.clamp(0, 1);
+  switch (easing) {
+    case HuiHoverEasing.linear:
+      return value;
+    case HuiHoverEasing.easeOutCubic:
+      final double inverse = 1 - value;
+      return 1 - inverse * inverse * inverse;
+    case HuiHoverEasing.easeInOutCubic:
+      if (value < 0.5) return 4 * value * value * value;
+      final double inverse = -2 * value + 2;
+      return 1 - inverse * inverse * inverse / 2;
+    case HuiHoverEasing.backOut:
+      final double shifted = value - 1;
+      return 1 +
+          2.70158 * shifted * shifted * shifted +
+          1.70158 * shifted * shifted;
+  }
 }
 
 /// Column-major 4x4 identity.

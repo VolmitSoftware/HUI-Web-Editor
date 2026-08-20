@@ -1,7 +1,7 @@
-/// Mirror of Gloss `TextPipeline.java` for the editor's Gloss document
-/// surfaces (holograms, scoreboards, animation frames).
+/// Mirror of Gloss `TextPipeline.java` for the editor's authored text
+/// surfaces.
 ///
-/// The plugin renders every content line through four ordered stages
+/// The plugin renders every authored line through five ordered stages
 /// (`TextPipeline.render`):
 ///
 ///  1. `|function|` substitution — registered names only; this editor build
@@ -14,26 +14,26 @@
 ///     A metric reference has no editor-side value — the samples come from
 ///     other Volmit plugins at runtime — so it keeps its token, is scanned
 ///     like the registered function it is, and renders as a chip.
-///  2. `%placeholder%` PAPI expansion — the editor cannot run PAPI, so tokens
+///  2. `{{ expression }}` evaluation with native player/server/time values,
+///     PAPI and integration-metric samples.
+///  3. `%placeholder%` PAPI expansion — the editor cannot run PAPI, so tokens
 ///     become chips instead of values.
-///  3. Emoji substitution (`EmojiReplacer.apply` via the pipeline's emoji
+///  4. Emoji substitution (`EmojiReplacer.apply` via the pipeline's emoji
 ///     filter, `EmojiService.enable`): `:id:` tokens and triggers become the
 ///     resolved glyphs. The editor's [GlossEmojiResolver] merges the shipped
 ///     catalog with the workspace's emoji documents. One honest divergence:
 ///     the plugin substitutes AFTER placeholders expand, but the editor
 ///     keeps placeholder tokens literal, so a trigger inside an expanded
 ///     placeholder value cannot be seen here.
-///  4. Colours: `[RRGGBB]` bracket hex (exactly six hex digits then `]`,
+///  5. Colours: `[RRGGBB]` bracket hex (exactly six hex digits then `]`,
 ///     `TextPipeline.translateBracketHex`), then legacy `&` codes via
 ///     `ChatColor.translateAlternateColorCodes` and the client's `§` state
 ///     machine — a colour code resets the decorations, `&r` resets
 ///     everything, and Bungee's `§x§R§R§G§G§B§B` hex form is honoured.
 ///
-/// Menu text icons are the one Gloss surface that does NOT run stages 1 and 2
-/// here: `TextMenuIcon.render` expands PlaceholderAPI itself and then calls
-/// `TextPipeline.menuText`, which is emoji plus colours only
-/// (`TextPipeline.renderMenuText`). [glossRenderMenuText] is that shorter path;
-/// a literal `|` in a menu label stays literal.
+/// Menu text icons use this same pipeline. [glossRenderMenuText] returns its
+/// string form for `TextUtils.parse`; unresolved PAPI stays literal because
+/// the browser has no live PlaceholderAPI server.
 ///
 /// Everything here is DOM-free and clock-free: the caller passes `nowMs` and
 /// an animation resolver, so the whole pipeline is testable on the VM and
@@ -53,8 +53,8 @@ const String glossAnimationFunctionPrefix = 'animation.';
 /// The function-name family `IntegrationBridgeService` registers per metric
 /// key published by another Volmit plugin: `metric.` + the key
 /// (`IntegrationBridgeService.java:16,102-104`). Gloss content kinds
-/// (hologram, scoreboard, tablist, motd, chat bubbles) run the full pipeline
-/// and therefore resolve these; menus do not.
+/// (hologram, scoreboard, tablist, motd, bubble prefixes and menus) run the
+/// full pipeline and therefore resolve these.
 const String glossMetricFunctionPrefix = 'metric.';
 
 /// Resolves the workspace's animation documents for text rendering. The
@@ -623,22 +623,48 @@ List<String> glossLineMetricRefs(String raw) {
 }
 
 /// `TextPipeline.renderMenuText` — the string a menu text icon hands to
-/// `TextUtils.parse`.
-///
-/// `TextMenuIcon.render` expands PlaceholderAPI itself and then calls
-/// `TextPipeline.menuText`, which is `applyColors(applyEmoji(...))`: emoji
-/// substitution, then the `[RRGGBB]` bracket-hex translation, and no
-/// `|function|` stage at all — a literal `|` in a menu label stays literal.
+/// `TextUtils.parse`. It now delegates to the full viewer-aware pipeline:
+/// functions, inline expressions, raw PAPI, emoji, then colours.
 ///
 /// The plugin's colour step also rewrites `&` codes to `§`, which is a no-op
 /// here: `parseMcText` mirrors `TextUtils.translateLegacy`, which reads both
 /// markers identically.
 String glossRenderMenuText(
   String raw, {
+  GlossAnimationResolver animations = const GlossNoAnimations(),
   GlossEmojiResolver emoji = const GlossNoEmoji(),
+  int nowMs = 0,
+  GlossTextExpressionSamples expressionSamples =
+      const GlossTextExpressionSamples(),
 }) {
   if (raw.isEmpty) return '';
-  return _translateBracketHex(glossApplyEmoji(raw, emoji));
+  final String functions = _applyFunctions(
+    raw,
+    animations,
+    nowMs,
+    <String>[],
+    <String>[],
+  );
+  final String expressions = _applyTextExpressions(
+    functions,
+    nowMs,
+    expressionSamples,
+    <String>[],
+    <String>[],
+  );
+  return _translateBracketHex(glossApplyEmoji(expressions, emoji));
+}
+
+bool glossMenuTextNeedsRefresh(String raw) {
+  if (raw.isEmpty) return false;
+  final int expression = raw.indexOf('{{');
+  if (expression >= 0 && raw.indexOf('}}', expression + 2) >= 0) return true;
+  return _hasDelimitedToken(raw, '%') || _hasDelimitedToken(raw, '|');
+}
+
+bool _hasDelimitedToken(String raw, String marker) {
+  final int opening = raw.indexOf(marker);
+  return opening >= 0 && raw.indexOf(marker, opening + 1) > opening + 1;
 }
 
 /// The animation ids [raw] actually plays — [GlossLineRender.usedAnimations]
@@ -771,7 +797,7 @@ String _applyTextExpressions(
   int cursor = 0;
   int open = input.indexOf('{{');
   bool replaced = false;
-  final _GlossTextExpressionScope scope = _GlossTextExpressionScope(
+  final GlossTextExpressionScope scope = GlossTextExpressionScope(
     nowMs,
     samples,
   );
@@ -801,11 +827,12 @@ String _applyTextExpressions(
   return output.toString();
 }
 
-final class _GlossTextExpressionScope extends PExprScope {
-  _GlossTextExpressionScope(this.nowMs, this.samples);
+final class GlossTextExpressionScope extends PExprScope {
+  GlossTextExpressionScope(this.nowMs, this.samples, {this.viewerAware = true});
 
   final int nowMs;
   final GlossTextExpressionSamples samples;
+  final bool viewerAware;
 
   @override
   Object? variable(String dottedName) {
@@ -817,13 +844,13 @@ final class _GlossTextExpressionScope extends PExprScope {
       case 'time.ticks':
         return nowMs / 50.0;
       case 'player.name':
-        return samples.placeholders['player_name'];
+        return viewerAware ? samples.placeholders['player_name'] : null;
       case 'player.ping':
-        return _sampleNumber('player_ping');
+        return viewerAware ? _sampleNumber('player_ping') : null;
       case 'player.health':
-        return _sampleNumber('player_health');
+        return viewerAware ? _sampleNumber('player_health') : null;
       case 'player.level':
-        return _sampleNumber('player_level');
+        return viewerAware ? _sampleNumber('player_level') : null;
       case 'server.online':
         return _sampleNumber('server_online');
       case 'server.maxPlayers':
@@ -892,8 +919,22 @@ final class _GlossTextExpressionScope extends PExprScope {
     final String key = raw.startsWith('%') && raw.endsWith('%')
         ? raw.substring(1, raw.length - 1)
         : raw;
-    final Object? value = samples.placeholders[key];
-    if (value == null) return fallback ?? '%$key%';
+    final Object? value = viewerAware
+        ? samples.placeholders[key]
+        : _viewerlessNativeValue(key);
+    if (value == null) {
+      if (fallback != null) return fallback;
+      if (numeric) {
+        if (viewerAware) {
+          return previewStdFunction('number', <Object?>['%$key%'])!;
+        }
+        throw const PExprException(
+          'papiNumber requires a player-backed surface',
+          previewNoPosition,
+        );
+      }
+      return '%$key%';
+    }
     if (!numeric) return previewStringify(value);
     try {
       return previewStdFunction('number', <Object?>[value])!;
@@ -902,6 +943,13 @@ final class _GlossTextExpressionScope extends PExprScope {
       rethrow;
     }
   }
+
+  Object? _viewerlessNativeValue(String key) => switch (key) {
+    'server_online' => variable('server.online'),
+    'server_max_players' => variable('server.maxPlayers'),
+    'server_tps' => variable('server.tps'),
+    _ => null,
+  };
 
   double? _sampleNumber(String key) {
     final Object? value = samples.placeholders[key];

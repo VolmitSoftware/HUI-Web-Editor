@@ -102,14 +102,7 @@ class ComponentInspector extends StatelessWidget {
     final HuiComponentData data = target.data;
     if (data is HuiButtonData) {
       return <Widget>[
-        _highlight(data.highlightModifier, (double value) {
-          store.editComponent(_id, 'highlight modifier', (HuiComponent edited) {
-            final HuiComponentData editedData = edited.data;
-            if (editedData is HuiButtonData) {
-              editedData.highlightModifier = value;
-            }
-          });
-        }),
+        _highlight(data),
         _hitbox(data),
         _iconEditor(IconSlot.icon),
         ActionsEditor(
@@ -144,14 +137,8 @@ class ComponentInspector extends StatelessWidget {
     }
     final HuiToggleData toggle = data as HuiToggleData;
     return <Widget>[
-      _highlight(toggle.highlightModifier, (double value) {
-        store.editComponent(_id, 'highlight modifier', (HuiComponent edited) {
-          final HuiComponentData editedData = edited.data;
-          if (editedData is HuiToggleData) {
-            editedData.highlightModifier = value;
-          }
-        });
-      }),
+      _highlight(toggle),
+      _hitbox(toggle),
       _condition(toggle),
       _toggleIcons(),
       ActionsEditor(
@@ -179,49 +166,128 @@ class ComponentInspector extends StatelessWidget {
     ];
   }
 
-  Widget _highlight(double value, void Function(double value) onChanged) =>
-      InspectorSection(
-        title: 'Highlight',
-        children: <Widget>[
-          HuiField(
-            label: 'Highlight modifier',
-            trailing: const HuiFieldHelp('button.highlightModifier'),
-            help:
-                'Blocks the icon leans toward the player under the cursor. '
-                '0.05 is usual; 0 disables the lean.',
-            control: dom.div(<Widget>[
-              HuiSliderField(
-                label: 'Highlight modifier',
-                value: value,
-                min: 0,
-                max: 1,
-                step: 0.01,
-                decimals: 3,
-                // The shipped-example value and what a new component is born
-                // with, so it is the one worth getting back to.
-                resetTo: huiDefaultHighlightModifier,
-                onChanged: onChanged,
-              ),
-              HuiInlineIssues(_issuesFor('.highlightModifier')),
-            ]),
+  Widget _highlight(HuiComponentData data) {
+    final double value = switch (data) {
+      HuiButtonData(:final double highlightModifier) => highlightModifier,
+      HuiToggleData(:final double highlightModifier) => highlightModifier,
+      HuiDecorationData() => 0,
+    };
+    final int duration = switch (data) {
+      HuiButtonData(:final int hoverDurationTicks) => hoverDurationTicks,
+      HuiToggleData(:final int hoverDurationTicks) => hoverDurationTicks,
+      HuiDecorationData() => huiRuntimeDefaultHoverDurationTicks,
+    };
+    final HuiHoverEasing easing = switch (data) {
+      HuiButtonData(:final HuiHoverEasing hoverEasing) => hoverEasing,
+      HuiToggleData(:final HuiHoverEasing hoverEasing) => hoverEasing,
+      HuiDecorationData() => huiRuntimeDefaultHoverEasing,
+    };
+    return InspectorSection(
+      title: 'Highlight',
+      children: <Widget>[
+        HuiField(
+          label: 'Highlight modifier',
+          trailing: const HuiFieldHelp('button.highlightModifier'),
+          help:
+              'Blocks the icon leans toward the player under the cursor. '
+              '0.05 is usual; 0 disables the lean.',
+          control: dom.div(<Widget>[
+            HuiSliderField(
+              label: 'Highlight modifier',
+              value: value,
+              min: 0,
+              max: 1,
+              step: 0.01,
+              decimals: 3,
+              // The shipped-example value and what a new component is born
+              // with, so it is the one worth getting back to.
+              resetTo: huiDefaultHighlightModifier,
+              onChanged: (double next) =>
+                  _editHover('highlight modifier', modifier: next),
+            ),
+            HuiInlineIssues(_issuesFor('.highlightModifier')),
+          ]),
+        ),
+        HuiField(
+          label: 'Duration',
+          trailing: const HuiFieldHelp('button.hoverDurationTicks'),
+          help: 'Ticks to enter or leave the hovered pose. 0 is instant.',
+          control: dom.div(<Widget>[
+            HuiNumberField(
+              value: duration.toDouble(),
+              min: 0,
+              max: 40,
+              step: 1,
+              decimals: 0,
+              suffix: 'ticks',
+              onChanged: (double next) =>
+                  _editHover('hover duration', duration: next.round()),
+            ),
+            HuiInlineIssues(_issuesFor('.hoverDurationTicks')),
+          ]),
+        ),
+        HuiField(
+          label: 'Easing',
+          trailing: const HuiFieldHelp('button.hoverEasing'),
+          help: 'Curve used for both hover entry and exit.',
+          control: ArcaneSelect(
+            value: easing.jsonValue,
+            fullWidth: true,
+            size: ComponentSize.sm,
+            options: <ArcaneSelectOption>[
+              for (final HuiHoverEasing value in HuiHoverEasing.values)
+                ArcaneSelectOption(label: value.label, value: value.jsonValue),
+            ],
+            onChange: (String next) => _editHover(
+              'hover easing',
+              easing: HuiHoverEasing.fromJson(next),
+            ),
           ),
-        ],
-      );
+        ),
+      ],
+    );
+  }
 
-  Widget _hitbox(HuiButtonData data) {
-    final HuiHitbox? hitbox = data.hitbox;
+  void _editHover(
+    String label, {
+    double? modifier,
+    int? duration,
+    HuiHoverEasing? easing,
+  }) {
+    store.editComponent(_id, label, (HuiComponent edited) {
+      switch (edited.data) {
+        case final HuiButtonData data:
+          if (modifier != null) data.highlightModifier = modifier;
+          if (duration != null) data.hoverDurationTicks = duration;
+          if (easing != null) data.hoverEasing = easing;
+        case final HuiToggleData data:
+          if (modifier != null) data.highlightModifier = modifier;
+          if (duration != null) data.hoverDurationTicks = duration;
+          if (easing != null) data.hoverEasing = easing;
+        case HuiDecorationData():
+          break;
+      }
+    });
+  }
+
+  Widget _hitbox(HuiComponentData data) {
+    final HuiHitbox? hitbox = switch (data) {
+      HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+      HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+      HuiDecorationData() => null,
+    };
     return InspectorSection(
       title: 'Hitbox',
       description:
-          'The click plane is always shown while this button is selected.',
+          'The click plane stays fixed while the icon animates on hover.',
       children: <Widget>[
         HuiSwitchRow(
-          label: 'Move with button',
+          label: 'Move with component',
           value: hitbox?.anchor != HuiHitboxAnchor.menu,
           trailing: const HuiFieldHelp('button.hitbox'),
           help: hitbox?.anchor == HuiHitboxAnchor.menu
-              ? 'Detached: drag the button and outlined plane independently.'
-              : 'Linked: moving the button carries its click plane.',
+              ? 'Detached: drag the component and outlined plane independently.'
+              : 'Linked: moving the component carries its click plane.',
           onChanged: (bool linked) => store.setHitboxAnchor(
             _id,
             linked ? HuiHitboxAnchor.button : HuiHitboxAnchor.menu,
@@ -230,7 +296,7 @@ class ComponentInspector extends StatelessWidget {
         HuiField(
           label: hitbox?.anchor == HuiHitboxAnchor.menu
               ? 'From the menu centre'
-              : 'From the button',
+              : 'From the component',
           trailing: const HuiFieldHelp('button.hitbox'),
           help: 'Right, up and forward in blocks at uiScale 1.',
           control: dom.div(<Widget>[
@@ -253,14 +319,27 @@ class ComponentInspector extends StatelessWidget {
             enabled ? 'enable custom hitbox' : 'use automatic hitbox',
             (HuiComponent edited) {
               final HuiComponentData editedData = edited.data;
-              if (editedData is HuiButtonData) {
-                final HuiHitbox editedHitbox = editedData.hitbox ?? HuiHitbox();
+              final HuiHitbox? existing = switch (editedData) {
+                HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+                HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+                HuiDecorationData() => null,
+              };
+              if (editedData is! HuiDecorationData) {
+                final HuiHitbox editedHitbox = existing ?? HuiHitbox();
                 editedHitbox
                   ..width = enabled ? huiDefaultHitboxWidth : null
                   ..height = enabled ? huiDefaultHitboxHeight : null;
-                editedData.hitbox = editedHitbox.isDefault
+                final HuiHitbox? next = editedHitbox.isDefault
                     ? null
                     : editedHitbox;
+                switch (editedData) {
+                  case HuiButtonData():
+                    editedData.hitbox = next;
+                  case HuiToggleData():
+                    editedData.hitbox = next;
+                  case HuiDecorationData():
+                    break;
+                }
               }
             },
           ),
@@ -308,8 +387,13 @@ class ComponentInspector extends StatelessWidget {
   void _editHitbox(String label, void Function(HuiHitbox hitbox) edit) {
     store.editComponent(_id, label, (HuiComponent edited) {
       final HuiComponentData data = edited.data;
-      if (data is HuiButtonData && data.hitbox != null) {
-        edit(data.hitbox!);
+      final HuiHitbox? hitbox = switch (data) {
+        HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
+        HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
+        HuiDecorationData() => null,
+      };
+      if (hitbox != null) {
+        edit(hitbox);
       }
     });
   }

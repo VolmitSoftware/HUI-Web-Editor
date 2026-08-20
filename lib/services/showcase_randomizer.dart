@@ -536,10 +536,10 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
     _round(1.2 + random.nextDouble() * 1.4),
     _round((random.nextDouble() - 0.5) * 0.8),
   ],
-  wordWrapChars: 64 + random.nextInt(65),
-  lineStaggerTicks: random.nextInt(13),
+  wordWrapChars: 36 + random.nextInt(73),
   maxAliveMs: 9000 + random.nextInt(21001),
-  flyAway: random.nextBool(),
+  motion: _randomBubbleMotion(random),
+  shimmer: _randomBubbleShimmer(random),
   followPlayer: random.nextBool(),
   hideOwn: random.nextBool(),
   select: GlossBubbleSelect(
@@ -548,6 +548,98 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
     priority: 10 + random.nextInt(41),
   ),
 );
+
+GlossBubbleShimmer _randomBubbleShimmer(math.Random random) {
+  final int durationMs = 450 + random.nextInt(1051);
+  return GlossBubbleShimmer(
+    spawn: true,
+    flyAway: true,
+    color: _pick(random, _shimmerColors),
+    width: 2 + random.nextInt(6),
+    durationMs: durationMs,
+    spawnDelayMs: random.nextInt(251),
+    flyAwayLeadMs: durationMs + random.nextInt(501),
+  );
+}
+
+GlossBubbleMotion _randomBubbleMotion(math.Random random) {
+  final double travel = _round(2.5 + random.nextDouble() * 5.5);
+  final double lift = _round(3.5 + random.nextDouble() * 7.5);
+  final double fall = _round(2.0 + random.nextDouble() * 8.0);
+  final double spin = _round(90 + random.nextDouble() * 630);
+  final double shrink = _round(0.35 + random.nextDouble() * 0.6);
+  final int mode = random.nextInt(4);
+  return switch (mode) {
+    0 => GlossBubbleMotion(
+      translation: GlossBubbleMotionVector(
+        x: '$travel * t',
+        y: '$lift * sin(pi * t) - $fall * t',
+        z: '${_round(travel / 2)} * sin(pi * 2 * t + seed * pi)',
+      ),
+      scale: GlossBubbleMotionVector(
+        x: '1 - $shrink * smoothstep(0.5, 1, t)',
+        y: '1 - $shrink * smoothstep(0.5, 1, t)',
+        z: '1 - $shrink * smoothstep(0.5, 1, t)',
+      ),
+      rotation: GlossBubbleMotionVector(
+        x: '${_round(spin / 4)} * t',
+        y: '${_round(spin / 2)} * t',
+        z: '$spin * t',
+      ),
+      opacity: '1 - smoothstep(0.72, 1, t)',
+    ),
+    1 => GlossBubbleMotion(
+      translation: GlossBubbleMotionVector(
+        x: '0.12 * (lineCount - 1) * sin(pi * 2 * t + seed * pi)',
+        y: '$lift * smoothstep(0, 1, t)',
+        z: '${_round(travel / 3)} * sin(pi * t)',
+      ),
+      scale: GlossBubbleMotionVector.scaleDefaults(),
+      rotation: GlossBubbleMotionVector(
+        x: '0',
+        y: '${_round(spin / 3)} * t',
+        z: '${_round(spin / 8)} * sin(pi * 2 * t)',
+      ),
+      opacity: '1 - smoothstep(0.6, 1, t)',
+    ),
+    2 => GlossBubbleMotion(
+      translation: GlossBubbleMotionVector(
+        x: '${_round(travel / 2)} * sin(pi * 2 * t + seed * pi * 2)',
+        y: '${_round(lift / 2)} * t + 0.08 * stackY',
+        z: '${_round(travel / 2)} * cos(pi * 2 * t + seed * pi * 2)',
+      ),
+      scale: GlossBubbleMotionVector(
+        x: '1 - $shrink * smoothstep(0.35, 1, t)',
+        y: '1 - $shrink * smoothstep(0.35, 1, t)',
+        z: '1 - $shrink * smoothstep(0.35, 1, t)',
+      ),
+      rotation: GlossBubbleMotionVector(
+        x: '$spin * t',
+        y: '${_round(spin / 2)} * t',
+        z: '${_round(0 - spin)} * t',
+      ),
+      opacity: '1',
+    ),
+    _ => GlossBubbleMotion(
+      translation: GlossBubbleMotionVector(
+        x: '$travel * (t - smoothstep(0.55, 1, t))',
+        y: '$lift * sin(pi * t) - $fall * pow(t, 3)',
+        z: '${_round(travel / 4)} * sin(pi * 4 * t + stackIndex)',
+      ),
+      scale: GlossBubbleMotionVector(
+        x: '1 + 0.18 * sin(pi * 4 * t)',
+        y: '1 - 0.25 * t',
+        z: '1 + 0.18 * cos(pi * 4 * t)',
+      ),
+      rotation: GlossBubbleMotionVector(
+        x: '${_round(spin / 5)} * sin(pi * 2 * t)',
+        y: '$spin * t',
+        z: '${_round(spin / 3)} * t',
+      ),
+      opacity: 'smoothstep(0, 0.08, t) * (1 - smoothstep(0.82, 1, t))',
+    ),
+  };
+}
 
 GlossTablistDoc buildRandomTablistShowcase(
   GlossTablistDoc current,
@@ -626,6 +718,8 @@ HuiButtonData _randomButtonData(
       hitboxOffset,
       menuAnchored ? HuiHitboxAnchor.menu : HuiHitboxAnchor.button,
     ),
+    random.nextInt(11),
+    _randomHoverEasing(random),
   );
 }
 
@@ -644,7 +738,17 @@ HuiToggleData _randomToggleData(EditorStore store, math.Random random) =>
       ],
       HuiTextIcon('&a[ON] &fTools', _randomStyle(random), 20),
       HuiTextIcon('&c[OFF] &7Tools', _randomStyle(random), 20),
+      HuiHitbox(
+        0.9 + random.nextDouble(),
+        0.3 + random.nextDouble() * 0.6,
+        Vec3(0, 0, random.nextDouble() * 0.06),
+      ),
+      random.nextInt(11),
+      _randomHoverEasing(random),
     );
+
+HuiHoverEasing _randomHoverEasing(math.Random random) =>
+    HuiHoverEasing.values[random.nextInt(HuiHoverEasing.values.length)];
 
 HuiIcon _randomIcon(EditorStore store, math.Random random) {
   final HuiIcon? asset = _randomAssetIcon(store, random);
@@ -811,6 +915,14 @@ const List<String> _animationWords = <String>[
 const List<String> _effects = <String>['&l', '&o', '&n', '&l&o', ''];
 
 const List<String> _motionGlyphs = <String>['»', '✦', '◆', '➜', '★'];
+
+const List<String> _shimmerColors = <String>[
+  '#ffffff',
+  '#ff88ff',
+  '#88ffff',
+  '#ffe066',
+  '#a8ff9e',
+];
 
 const List<String> _legacyPalette = <String>[
   '&c',

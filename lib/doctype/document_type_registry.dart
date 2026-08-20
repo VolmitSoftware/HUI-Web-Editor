@@ -1,11 +1,13 @@
 library;
 
+import '../model/model.dart' show looksLikePreviewDoc;
 import '../state/workspace.dart';
 import 'animation_document_type.dart';
 import 'bubble_style_document_type.dart';
 import 'container_preview_document_type.dart';
 import 'document_type.dart';
 import 'emoji_document_type.dart';
+import 'gloss_document_type.dart';
 import 'hologram_document_type.dart';
 import 'menu_document_type.dart';
 import 'motd_document_type.dart';
@@ -75,5 +77,20 @@ abstract final class DocumentTypeRegistry {
       if (adapter.syncWireKind == wireKind) return adapter;
     }
     return null;
+  }
+
+  /// Detects the transferable runtime document represented by decoded JSON.
+  ///
+  /// Container previews and Gloss envelope documents have identifying shape
+  /// keys. Menus are the deliberately lenient fallback because their runtime
+  /// format has no envelope or discriminator.
+  static DocumentTypeAdapter detectTransferable(Object? decoded) {
+    if (looksLikePreviewDoc(decoded)) return DocumentTypes.containerPreview;
+    for (final DocumentTypeAdapter adapter in all) {
+      if (adapter is GlossDocumentTypeAdapter && adapter.looksLike(decoded)) {
+        return adapter;
+      }
+    }
+    return DocumentTypes.menu;
   }
 }

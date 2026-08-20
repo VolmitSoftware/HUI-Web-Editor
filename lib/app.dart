@@ -19,6 +19,8 @@ import 'components/panels/panels.dart';
 import 'components/preview/preview_view.dart';
 import 'components/preview_card/preview_card.dart';
 import 'components/shell/shell.dart';
+import 'config/defaults.dart';
+import 'model/model.dart';
 import 'services/catalogs.dart';
 import 'services/clipboard.dart';
 import 'services/editor_sync.dart';
@@ -94,6 +96,7 @@ class _AppState extends State<App> {
 
   _EditorDialog _dialog = _EditorDialog.none;
   bool _validationOpen = false;
+  ({String? documentId, Vec3 offset})? _pendingCanvasMedia;
 
   @override
   void initState() {
@@ -149,13 +152,63 @@ class _AppState extends State<App> {
   }
 
   void _openDialog(_EditorDialog dialog) => setState(() {
+    _pendingCanvasMedia = null;
     _validationOpen = false;
     _dialog = dialog;
   });
 
-  void _closeDialog() => setState(() => _dialog = _EditorDialog.none);
+  void _closeDialog() => setState(() {
+    _pendingCanvasMedia = null;
+    _dialog = _EditorDialog.none;
+  });
+
+  void _openCanvasMedia(Vec3 offset) => setState(() {
+    _pendingCanvasMedia = (
+      documentId: _store.workspace.activeId,
+      offset: offset.copy(),
+    );
+    _validationOpen = false;
+    _dialog = _EditorDialog.images;
+  });
+
+  void _closeImageDialog() => setState(() {
+    _pendingCanvasMedia = null;
+    _dialog = _EditorDialog.none;
+  });
+
+  void _useCanvasImage(StoredImage image) {
+    final ({String? documentId, Vec3 offset})? pending = _pendingCanvasMedia;
+    if (pending == null || pending.documentId != _store.workspace.activeId) {
+      return;
+    }
+    _store.addComponentData(
+      HuiDecorationData(HuiTextImageIcon(image.path)),
+      offset: pending.offset,
+      id: 'image',
+    );
+  }
+
+  void _useCanvasAnimation(List<StoredImage> frames) {
+    final ({String? documentId, Vec3 offset})? pending = _pendingCanvasMedia;
+    if (pending == null ||
+        pending.documentId != _store.workspace.activeId ||
+        frames.isEmpty) {
+      return;
+    }
+    _store.addComponentData(
+      HuiDecorationData(
+        HuiAnimatedImageIcon(
+          frames.map((StoredImage image) => image.path).toList(),
+          huiDefaultAnimationSpeed,
+        ),
+      ),
+      offset: pending.offset,
+      id: 'animation',
+    );
+  }
 
   void _closeOverlay() => setState(() {
+    _pendingCanvasMedia = null;
     _dialog = _EditorDialog.none;
     _validationOpen = false;
   });
@@ -747,6 +800,8 @@ class _AppState extends State<App> {
           images: _images,
           catalogs: _catalogs,
           status: _status,
+          onAddMedia: _openCanvasMedia,
+          onAddPlayerHead: _openCanvasMedia,
         ),
         previewCard: PreviewCardViewport(
           store: _store,
@@ -788,7 +843,11 @@ class _AppState extends State<App> {
             store: _store,
             images: _images,
             isOpen: _dialog == _EditorDialog.images,
-            onClose: _closeDialog,
+            onClose: _closeImageDialog,
+            onUseImage: _pendingCanvasMedia == null ? null : _useCanvasImage,
+            onUseAnimation: _pendingCanvasMedia == null
+                ? null
+                : _useCanvasAnimation,
           ),
           TemplatesDialog(
             store: _store,

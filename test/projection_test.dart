@@ -4,6 +4,7 @@
 /// are pinned independently so visual quads and click planes cannot drift.
 library;
 
+import 'package:gloss_editor/model/hui_component.dart';
 import 'package:gloss_editor/preview/projection.dart';
 import 'package:gloss_editor/preview/preview_types.dart';
 import 'package:test/test.dart';
@@ -450,17 +451,43 @@ void main() {
       expect(hoverPush(aim, 0.05, -3), PVec3.zero);
     });
 
-    test('every hovered tick uses the raw highlightModifier', () {
+    test('linear easing advances over the authored duration', () {
       for (final double modifier in <double>[0, 0.05, 1, 3]) {
-        for (final int tick in <int>[1, 2, 3, 40]) {
-          expect(
-            hoverPush(aim, modifier, tick).length,
-            closeTo(modifier, 1e-12),
-            reason: 'modifier $modifier tick $tick',
-          );
-          expectVec(hoverPush(aim, modifier, tick), aim.normal * modifier);
-        }
+        expect(
+          hoverPush(
+            aim,
+            modifier,
+            1,
+            durationTicks: 4,
+            easing: HuiHoverEasing.linear,
+          ).length,
+          closeTo(modifier * 0.25, 1e-12),
+        );
+        expectVec(
+          hoverPush(
+            aim,
+            modifier,
+            4,
+            durationTicks: 4,
+            easing: HuiHoverEasing.linear,
+          ),
+          aim.normal * modifier,
+        );
       }
+    });
+
+    test('uiScale multiplies authored travel exactly once', () {
+      expect(
+        hoverPush(
+          aim,
+          0.05,
+          4,
+          uiScale: 2,
+          durationTicks: 4,
+          easing: HuiHoverEasing.linear,
+        ).length,
+        closeTo(0.1, 1e-12),
+      );
     });
 
     test('follows the resolved plane normal', () {
@@ -468,7 +495,16 @@ void main() {
         const PVec3(0, 0, 4),
         const PVec3(9, 0, 4),
       );
-      expectVec(hoverPush(sideways, 1, 2), const PVec3(1, 0, 0));
+      expectVec(
+        hoverPush(
+          sideways,
+          1,
+          2,
+          durationTicks: 2,
+          easing: HuiHoverEasing.linear,
+        ),
+        const PVec3(1, 0, 0),
+      );
     });
   });
 

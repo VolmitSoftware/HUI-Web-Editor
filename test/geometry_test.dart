@@ -1,6 +1,8 @@
 import 'package:gloss_editor/logic/hui_geometry.dart';
 import 'package:gloss_editor/logic/viewport_math.dart';
 import 'package:gloss_editor/model/hui_component.dart';
+import 'package:gloss_editor/model/hui_actions.dart';
+import 'package:gloss_editor/model/hui_icons.dart';
 import 'package:gloss_editor/model/vec3.dart';
 import 'package:test/test.dart';
 
@@ -505,6 +507,31 @@ void main() {
         shape: const IconShape.text(lines: 1, maxLineChars: 4),
       );
       expect(box.y, closeTo(2 - huiTextTrueRenderBias * 2, _epsilon));
+      expect(box.w, closeTo(2.5, _epsilon));
+      expect(box.h, closeTo(0.7, _epsilon));
+    });
+
+    test('toggle custom hitbox remains stable across icon states', () {
+      final HuiComponent component = HuiComponent(
+        'toggle',
+        Vec3(0, 1, 0),
+        HuiToggleData(
+          0.05,
+          'true',
+          'true',
+          const <HuiAction>[],
+          const <HuiAction>[],
+          HuiTextIcon('A very wide true state'),
+          HuiTextIcon('Off'),
+          HuiHitbox(1.25, 0.35),
+        ),
+      );
+      final HuiRect box = hitboxFor(
+        component: component,
+        uiScale: 2,
+        shape: const IconShape.text(lines: 1, maxLineChars: 4),
+      );
+
       expect(box.w, closeTo(2.5, _epsilon));
       expect(box.h, closeTo(0.7, _epsilon));
     });

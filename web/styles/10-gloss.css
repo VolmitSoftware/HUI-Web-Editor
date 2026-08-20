@@ -743,6 +743,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  perspective: 900px;
+  transform-style: preserve-3d;
 }
 
 .hui-bubble-stage .hui-gloss-preview-content {
@@ -750,17 +752,35 @@
   height: 100%;
 }
 
-.hui-bubble-line {
+.hui-bubble-block {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.25);
-  padding: 0 0.2em;
+  padding: 0.14em 0.3em;
   font-family: var(--hui-mc-font);
   font-size: clamp(9px, 1.25cqi, 14px);
+  line-height: 1.2;
   color: #ffffff;
   white-space: pre;
+  text-align: center;
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  will-change: transform, opacity, bottom, left;
   pointer-events: none;
+}
+
+.hui-bubble-motion-presets,
+.hui-bubble-motion-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.hui-bubble-motion-presets {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hui-bubble-motion-grid {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* A blocky player silhouette: head, torso, arms. */
@@ -990,6 +1010,8 @@
 }
 
 @media (max-width: 420px) {
+  .hui-bubble-motion-presets { grid-template-columns: minmax(0, 1fr); }
+
   .hui-gloss-preview-controls,
   .hui-hologram-controls { top: 8px; right: 8px; }
 

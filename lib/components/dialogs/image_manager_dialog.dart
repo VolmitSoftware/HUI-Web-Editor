@@ -28,6 +28,8 @@ class ImageManagerDialog extends StatefulWidget {
     required this.images,
     required this.isOpen,
     required this.onClose,
+    this.onUseImage,
+    this.onUseAnimation,
     super.key,
   });
 
@@ -35,6 +37,8 @@ class ImageManagerDialog extends StatefulWidget {
   final ImageLibrary images;
   final bool isOpen;
   final VoidCallback onClose;
+  final void Function(StoredImage image)? onUseImage;
+  final void Function(List<StoredImage> frames)? onUseAnimation;
 
   @override
   State<ImageManagerDialog> createState() => _ImageManagerDialogState();
@@ -67,6 +71,22 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
       return;
     }
     final ImageAddOutcome outcome = await _library.addFromFiles(files);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    _reportOutcome(outcome);
+  }
+
+  Future<void> _uploadPlayerHeads() async {
+    setState(() => _busy = true);
+    final List<Object> files = await pickImageFiles();
+    if (!mounted) return;
+    if (files.isEmpty) {
+      setState(() => _busy = false);
+      return;
+    }
+    final ImageAddOutcome outcome = await _library.addPlayerHeadsFromFiles(
+      files,
+    );
     if (!mounted) return;
     setState(() => _busy = false);
     _reportOutcome(outcome);
@@ -148,6 +168,16 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     downloadBytes(name, bytes, mime: 'image/png');
   }
 
+  void _useImage(StoredImage image) {
+    component.onUseImage?.call(image);
+    component.onClose();
+  }
+
+  void _useAnimation(List<StoredImage> frames) {
+    component.onUseAnimation?.call(frames);
+    component.onClose();
+  }
+
   Future<void> _downloadZip() async {
     setState(() => _busy = true);
     final List<int> bytes = await _library.exportZipBytes();
@@ -196,7 +226,11 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
       else
         dom.div(classes: 'hui-image-grid', <Widget>[
           for (final StoredImage image in images)
-            _card(image, used.contains(image.path)),
+            _card(
+              image,
+              used.contains(image.path),
+              _library.animationFramesFor(image.path),
+            ),
           if (_busy)
             const HuiSkeleton(
               label: 'Reading images',
@@ -222,6 +256,14 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
           Button(
             variant: ButtonVariant.outline,
             size: ButtonSize.small,
+            loading: _busy,
+            onPressed: _uploadPlayerHeads,
+            icon: ArcaneIcon.userRound(size: IconSize.sm),
+            label: 'Import skin heads',
+          ),
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.small,
             disabled: !hasImages || _busy,
             onPressed: hasImages ? _downloadZip : null,
             icon: ArcaneIcon.fileArchive(size: IconSize.sm),
@@ -230,9 +272,10 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
         ]),
         const dom.p(classes: 'hui-dialog-note', <Widget>[
           Text(
-            'You can also drop image files anywhere in the editor. Unzip '
-            'images.zip into plugins/Gloss/images/ and the paths below '
-            'resolve unchanged.',
+            'Uploads are automatically resized to fit 64x64. Skin head import '
+            'extracts the 8x8 face and hat layer from a Minecraft skin PNG. '
+            'You can also drop images anywhere in the editor. Unzip images.zip '
+            'into plugins/Gloss/images/ and the paths resolve unchanged.',
           ),
         ]),
       ]);
@@ -287,8 +330,9 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
       title: 'No images yet',
       description:
           'Upload PNG or GIF files to use them as textImage and '
-          'animatedTextImage icons. They are stored in this browser and '
-          'exported as $huiImageFolder in images.zip.',
+          'animatedTextImage icons, or import an uploaded Minecraft skin as '
+          'an 8x8 player head. Oversized uploads are resized automatically. '
+          'Assets are exported as $huiImageFolder in images.zip.',
       icon: ArcaneIcon.images(size: IconSize.lg),
       action: Button(
         variant: ButtonVariant.primary,
@@ -301,10 +345,16 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     ),
   ]);
 
-  Widget _card(StoredImage image, bool inUse) {
+  Widget _card(
+    StoredImage image,
+    bool inUse,
+    List<StoredImage> animationFrames,
+  ) {
     final String path = image.path;
     final String draft = _drafts[path] ?? path;
     final String? error = _errors[path];
+    final bool firstAnimationFrame =
+        animationFrames.isNotEmpty && animationFrames.first.path == path;
     return dom.div(
       classes: classNames(<String?>[
         'hui-image-card',
@@ -343,6 +393,22 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
               const dom.span(classes: 'hui-chip is-accent', <Widget>[
                 Text('used in this menu'),
               ]),
+            if (component.onUseImage != null)
+              Button(
+                variant: ButtonVariant.outline,
+                size: ButtonSize.sm,
+                onPressed: () => _useImage(image),
+                icon: ArcaneIcon.plus(size: IconSize.sm),
+                label: 'Use image',
+              ),
+            if (component.onUseAnimation != null && firstAnimationFrame)
+              Button(
+                variant: ButtonVariant.outline,
+                size: ButtonSize.sm,
+                onPressed: () => _useAnimation(animationFrames),
+                icon: ArcaneIcon.play(size: IconSize.sm),
+                label: 'Use ${animationFrames.length} frames',
+              ),
             Button(
               variant: ButtonVariant.ghost,
               size: ButtonSize.iconSm,

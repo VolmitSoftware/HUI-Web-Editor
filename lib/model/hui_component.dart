@@ -37,6 +37,28 @@ sealed class HuiComponentData {
 
 enum HuiHitboxAnchor { button, menu }
 
+enum HuiHoverEasing {
+  linear('linear', 'Linear'),
+  easeOutCubic('ease_out_cubic', 'Ease out cubic'),
+  easeInOutCubic('ease_in_out_cubic', 'Ease in/out cubic'),
+  backOut('back_out', 'Back out');
+
+  const HuiHoverEasing(this.jsonValue, this.label);
+
+  final String jsonValue;
+  final String label;
+
+  static HuiHoverEasing fromJson(String value) {
+    for (final HuiHoverEasing easing in values) {
+      if (easing.jsonValue == value) return easing;
+    }
+    return HuiHoverEasing.easeOutCubic;
+  }
+}
+
+const int huiRuntimeDefaultHoverDurationTicks = 4;
+const HuiHoverEasing huiRuntimeDefaultHoverEasing = HuiHoverEasing.easeOutCubic;
+
 class HuiHitbox {
   double? width;
   double? height;
@@ -96,12 +118,16 @@ class HuiButtonData extends HuiComponentData {
   List<HuiAction> actions;
   HuiIcon? icon;
   HuiHitbox? hitbox;
+  int hoverDurationTicks;
+  HuiHoverEasing hoverEasing;
 
   HuiButtonData([
     this.highlightModifier = 0.05,
     List<HuiAction>? actions,
     this.icon,
     this.hitbox,
+    this.hoverDurationTicks = huiRuntimeDefaultHoverDurationTicks,
+    this.hoverEasing = huiRuntimeDefaultHoverEasing,
   ]) : actions = actions ?? <HuiAction>[];
 
   @override
@@ -112,6 +138,10 @@ class HuiButtonData extends HuiComponentData {
     'type': 'button',
     'highlightModifier': highlightModifier,
     if (hitbox != null) 'hitbox': hitbox!.toJson(),
+    if (hoverDurationTicks != huiRuntimeDefaultHoverDurationTicks)
+      'hoverDurationTicks': hoverDurationTicks,
+    if (hoverEasing != huiRuntimeDefaultHoverEasing)
+      'hoverEasing': hoverEasing.jsonValue,
     'icon': icon?.toJson(),
     'actions': HuiAction.listToJson(actions),
   }, extras);
@@ -122,12 +152,16 @@ class HuiButtonData extends HuiComponentData {
     actions.map((HuiAction a) => a.copy()).toList(),
     icon?.copy(),
     hitbox?.copy(),
+    hoverDurationTicks,
+    hoverEasing,
   )..extras = huiDeepCopyMap(extras);
 
   static const Set<String> _known = <String>{
     'type',
     'highlightModifier',
     'hitbox',
+    'hoverDurationTicks',
+    'hoverEasing',
     'icon',
     'actions',
   };
@@ -138,6 +172,18 @@ class HuiButtonData extends HuiComponentData {
         HuiAction.listFromJson(map['actions'], '$path.actions'),
         HuiIcon.fromJsonOrNull(map['icon'], path: '$path.icon'),
         HuiHitbox.fromJsonOrNull(map['hitbox'], path: '$path.hitbox'),
+        huiReadInt(
+          map,
+          'hoverDurationTicks',
+          fallback: huiRuntimeDefaultHoverDurationTicks,
+        ),
+        HuiHoverEasing.fromJson(
+          huiReadString(
+            map,
+            'hoverEasing',
+            fallback: huiRuntimeDefaultHoverEasing.jsonValue,
+          ),
+        ),
       )..extras = huiCollectExtras(map, _known);
 }
 
@@ -177,6 +223,9 @@ class HuiToggleData extends HuiComponentData {
   List<HuiAction> falseActions;
   HuiIcon? trueIcon;
   HuiIcon? falseIcon;
+  HuiHitbox? hitbox;
+  int hoverDurationTicks;
+  HuiHoverEasing hoverEasing;
 
   HuiToggleData([
     this.highlightModifier = 0.05,
@@ -186,6 +235,9 @@ class HuiToggleData extends HuiComponentData {
     List<HuiAction>? falseActions,
     this.trueIcon,
     this.falseIcon,
+    this.hitbox,
+    this.hoverDurationTicks = huiRuntimeDefaultHoverDurationTicks,
+    this.hoverEasing = huiRuntimeDefaultHoverEasing,
   ]) : trueActions = trueActions ?? <HuiAction>[],
        falseActions = falseActions ?? <HuiAction>[];
 
@@ -198,6 +250,11 @@ class HuiToggleData extends HuiComponentData {
     'highlightModifier': highlightModifier,
     'condition': condition,
     'expectedValue': expectedValue,
+    if (hitbox != null) 'hitbox': hitbox!.toJson(),
+    if (hoverDurationTicks != huiRuntimeDefaultHoverDurationTicks)
+      'hoverDurationTicks': hoverDurationTicks,
+    if (hoverEasing != huiRuntimeDefaultHoverEasing)
+      'hoverEasing': hoverEasing.jsonValue,
     'trueIcon': trueIcon?.toJson(),
     'falseIcon': falseIcon?.toJson(),
     'trueActions': HuiAction.listToJson(trueActions),
@@ -213,6 +270,9 @@ class HuiToggleData extends HuiComponentData {
     falseActions.map((HuiAction a) => a.copy()).toList(),
     trueIcon?.copy(),
     falseIcon?.copy(),
+    hitbox?.copy(),
+    hoverDurationTicks,
+    hoverEasing,
   )..extras = huiDeepCopyMap(extras);
 
   static const Set<String> _known = <String>{
@@ -220,6 +280,9 @@ class HuiToggleData extends HuiComponentData {
     'highlightModifier',
     'condition',
     'expectedValue',
+    'hitbox',
+    'hoverDurationTicks',
+    'hoverEasing',
     'trueIcon',
     'falseIcon',
     'trueActions',
@@ -235,6 +298,19 @@ class HuiToggleData extends HuiComponentData {
         HuiAction.listFromJson(map['falseActions'], '$path.falseActions'),
         HuiIcon.fromJsonOrNull(map['trueIcon'], path: '$path.trueIcon'),
         HuiIcon.fromJsonOrNull(map['falseIcon'], path: '$path.falseIcon'),
+        HuiHitbox.fromJsonOrNull(map['hitbox'], path: '$path.hitbox'),
+        huiReadInt(
+          map,
+          'hoverDurationTicks',
+          fallback: huiRuntimeDefaultHoverDurationTicks,
+        ),
+        HuiHoverEasing.fromJson(
+          huiReadString(
+            map,
+            'hoverEasing',
+            fallback: huiRuntimeDefaultHoverEasing.jsonValue,
+          ),
+        ),
       )..extras = huiCollectExtras(map, _known);
 }
 

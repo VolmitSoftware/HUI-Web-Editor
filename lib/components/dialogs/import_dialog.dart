@@ -6,14 +6,10 @@
 /// Replace, the parse result is shown first, and the replacement is a single
 /// undo step.
 ///
-/// The pasted or picked JSON is auto-detected as either a Gloss menu or a
-/// container-preview document via [looksLikePreviewDoc] — the same detection
-/// [EditorStore.importJson] itself runs, so the dialog's preview and the
-/// actual replacement always agree on what they are looking at. A preview
-/// document also runs [parseCheckPreviewDoc]: a syntax error in one of its
-/// expression fields is shown, but — like every menu validation issue already
-/// shown here — it never blocks Replace. Only JSON that does not parse at all
-/// does.
+/// The pasted or picked JSON is auto-detected across every transferable Gloss
+/// document kind. Validation is shown before replacement but never blocks an
+/// import; only malformed JSON or a document that its detected codec cannot
+/// decode does.
 library;
 
 import 'dart:convert';
@@ -22,7 +18,16 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import '../../config/defaults.dart';
+import '../../doctype/document_type.dart';
+import '../../doctype/document_type_registry.dart';
+import '../../logic/animation_validation.dart';
+import '../../logic/bubble_validation.dart';
+import '../../logic/emoji_validation.dart';
+import '../../logic/hologram_validation.dart';
+import '../../logic/motd_validation.dart';
 import '../../logic/preview_doc_validation.dart';
+import '../../logic/scoreboard_validation.dart';
+import '../../logic/tablist_validation.dart';
 import '../../logic/validation.dart';
 import '../../model/model.dart';
 import '../../services/file_transfer.dart';
@@ -50,8 +55,8 @@ class _ImportDialogState extends State<ImportDialog> {
   String _text = '';
   String _sourceName = '';
   String? _parseError;
-  HuiMenu? _parsedMenu;
-  HuiPreviewDoc? _parsedPreview;
+  Object? _parsedDocument;
+  DocumentTypeAdapter? _parsedType;
   List<HuiIssue> _issues = const <HuiIssue>[];
   bool _picking = false;
 
@@ -73,16 +78,16 @@ class _ImportDialogState extends State<ImportDialog> {
     _text = '';
     _sourceName = '';
     _parseError = null;
-    _parsedMenu = null;
-    _parsedPreview = null;
+    _parsedDocument = null;
+    _parsedType = null;
     _issues = const <HuiIssue>[];
     _generation++;
   }
 
   void _parse(String raw) {
     _parseError = null;
-    _parsedMenu = null;
-    _parsedPreview = null;
+    _parsedDocument = null;
+    _parsedType = null;
     _issues = const <HuiIssue>[];
     if (raw.trim().isEmpty) return;
 
@@ -94,33 +99,55 @@ class _ImportDialogState extends State<ImportDialog> {
       return;
     }
 
-    if (looksLikePreviewDoc(decoded)) {
-      try {
-        final HuiPreviewDoc doc = HuiPreviewDoc.fromJson(decoded);
-        _parsedPreview = doc;
-        _issues = parseCheckPreviewDoc(doc);
-      } on HuiFormatException catch (e) {
-        _parseError = '${e.message} (at ${e.path})';
-      }
-      return;
-    }
-
     try {
-      final HuiMenu menu = HuiMenu.fromJson(decoded);
-      _parsedMenu = menu;
-      _issues = validateHuiMenu(
-        menu,
-        knownImagePaths: _store.images?.paths,
-        knownMaterials: _store.catalogs.loaded
-            ? _store.catalogs.materialKeys
-            : null,
-        knownSounds: _store.catalogs.loaded ? _store.catalogs.soundKeys : null,
-        customItems: _store.catalogs.customItems,
+      final DocumentTypeAdapter type = DocumentTypeRegistry.detectTransferable(
+        decoded,
       );
+      final Object document = type.decodeSnapshot(raw);
+      _parsedType = type;
+      _parsedDocument = document;
+      _issues = _validate(document);
     } on HuiFormatException catch (e) {
       _parseError = '${e.message} (at ${e.path})';
+    } catch (_) {
+      _parseError = 'That JSON is not a supported Gloss runtime document.';
     }
   }
+
+  List<HuiIssue> _validate(Object document) => switch (document) {
+    final HuiMenu menu => validateHuiMenu(
+      menu,
+      knownImagePaths: _store.images?.paths,
+      knownMaterials: _store.catalogs.loaded
+          ? _store.catalogs.materialKeys
+          : null,
+      knownSounds: _store.catalogs.loaded ? _store.catalogs.soundKeys : null,
+      customItems: _store.catalogs.customItems,
+      emoji: _store.workspaceEmoji,
+    ),
+    final HuiPreviewDoc preview => parseCheckPreviewDoc(preview),
+    final GlossHologramDoc hologram => validateHologramDoc(
+      hologram,
+      animations: _store.workspaceAnimations,
+    ),
+    final GlossAnimationDoc animation => validateAnimationDoc(animation),
+    final GlossScoreboardDoc scoreboard => validateScoreboardDoc(
+      scoreboard,
+      animations: _store.workspaceAnimations,
+      emoji: _store.workspaceEmoji,
+    ),
+    final GlossMotdDoc motd => validateMotdDoc(
+      motd,
+      animations: _store.workspaceAnimations,
+    ),
+    final GlossEmojiDoc emoji => validateEmojiDoc(emoji),
+    final GlossBubbleStyleDoc bubble => validateBubbleStyleDoc(bubble),
+    final GlossTablistDoc tablist => validateTablistDoc(
+      tablist,
+      animations: _store.workspaceAnimations,
+    ),
+    _ => const <HuiIssue>[],
+  };
 
   void _onText(String raw) {
     setState(() {
@@ -144,7 +171,7 @@ class _ImportDialogState extends State<ImportDialog> {
     });
   }
 
-  bool get _hasParsed => _parsedMenu != null || _parsedPreview != null;
+  bool get _hasParsed => _parsedDocument != null && _parsedType != null;
 
   void _replace() {
     if (!_hasParsed) return;
@@ -191,9 +218,10 @@ class _ImportDialogState extends State<ImportDialog> {
     HuiDialogSection(
       title: 'From a file',
       description:
-          'A menu or a container-preview document both work; the file shape '
-          'decides which. Dropping JSON anywhere creates a new document. This '
-          'dialog replaces the active document only after you confirm below.',
+          'Menus, previews, holograms, animations, scoreboards, MOTD, emoji, '
+          'bubble styles and tablists all work; the file shape decides which. '
+          'Dropping JSON anywhere creates a new document. This dialog replaces '
+          'the active document only after you confirm below.',
       children: <Widget>[
         dom.div(classes: 'hui-dialog-actions', <Widget>[
           Button(
@@ -248,17 +276,16 @@ class _ImportDialogState extends State<ImportDialog> {
         message: error,
       );
     }
-    final HuiPreviewDoc? previewDoc = _parsedPreview;
-    if (previewDoc != null) return _previewDocSummary(previewDoc);
-    final HuiMenu? menu = _parsedMenu;
-    if (menu != null) return _menuSummary(menu);
+    final Object? document = _parsedDocument;
+    if (document is HuiPreviewDoc) return _previewDocSummary(document);
+    if (document is HuiMenu) return _menuSummary(document);
+    if (document is GlossDoc) return _glossSummary(document);
     return ArcaneEmptyState(
       title: 'Nothing to import yet',
       description:
-          'Choose a file or paste JSON above. Both a menu and a '
-          'container-preview document are parsed as you type, and everything '
-          'the plugin would complain about is listed here before anything is '
-          'replaced.',
+          'Choose a file or paste JSON above. Every runtime document kind is '
+          'detected as you type, and validation issues are listed here before '
+          'anything is replaced.',
       icon: ArcaneIcon.fileCode(size: IconSize.lg),
     );
   }
@@ -317,6 +344,57 @@ class _ImportDialogState extends State<ImportDialog> {
       _issueList(),
     ]);
   }
+
+  Widget _glossSummary(GlossDoc doc) {
+    final int errors = _issues
+        .where((HuiIssue issue) => issue.severity == HuiSeverity.error)
+        .length;
+    final int warnings = _issues
+        .where((HuiIssue issue) => issue.severity == HuiSeverity.warning)
+        .length;
+    final String noun = _parsedType?.noun ?? 'runtime';
+    return dom.div(classes: 'hui-import-preview', <Widget>[
+      HuiChips(
+        labels: <String>[
+          '$noun document',
+          'id $_targetId',
+          'schema ${doc.schemaVersion}',
+          'revision ${doc.revision}',
+          ..._documentFacts(doc),
+          '$errors error${errors == 1 ? '' : 's'}',
+          '$warnings warning${warnings == 1 ? '' : 's'}',
+        ],
+      ),
+      _issueList(),
+    ]);
+  }
+
+  List<String> _documentFacts(GlossDoc doc) => switch (doc) {
+    final GlossHologramDoc hologram => <String>[
+      '${hologram.lines.length} line${hologram.lines.length == 1 ? '' : 's'}',
+    ],
+    final GlossAnimationDoc animation => <String>[
+      '${animation.frames.length} frame${animation.frames.length == 1 ? '' : 's'}',
+      animation.mode,
+    ],
+    final GlossScoreboardDoc scoreboard => <String>[
+      '${scoreboard.lines.length} line${scoreboard.lines.length == 1 ? '' : 's'}',
+      scoreboard.primary ? 'primary' : 'not primary',
+    ],
+    final GlossMotdDoc motd => <String>[
+      '${motd.entries.length} entr${motd.entries.length == 1 ? 'y' : 'ies'}',
+    ],
+    final GlossEmojiDoc emoji => <String>[
+      emoji.enabled ? 'enabled' : 'disabled',
+    ],
+    final GlossBubbleStyleDoc bubble => <String>[
+      '${bubble.wordWrapChars} character wrap',
+    ],
+    final GlossTablistDoc tablist => <String>[
+      '${tablist.nameFormats.length} name format${tablist.nameFormats.length == 1 ? '' : 's'}',
+    ],
+    _ => const <String>[],
+  };
 
   Widget _issueList() {
     if (_issues.isEmpty) {

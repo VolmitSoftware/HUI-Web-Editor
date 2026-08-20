@@ -295,16 +295,41 @@ GlossEmojiDoc buildBlankGlossEmoji() =>
 /// fallback id).
 const String kGlossBubbleDefaultJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
   "prefix": "&7",
   "offset": [0.0, 1.0, 0.0],
   "wordWrapChars": 32,
-  "lineStaggerTicks": 5,
   "maxAliveMs": 5000,
-  "flyAway": true,
   "followPlayer": true,
-  "hideOwn": true
+  "hideOwn": true,
+  "motion": {
+    "translation": {
+      "x": "0",
+      "y": "10 * pow(clamp((ageMs - lifetimeMs + 2000) / 2000, 0, 1), 16)",
+      "z": "0"
+    },
+    "scale": {
+      "x": "1",
+      "y": "1",
+      "z": "1"
+    },
+    "rotation": {
+      "x": "0",
+      "y": "0",
+      "z": "0"
+    },
+    "opacity": "1"
+  },
+  "shimmer": {
+    "spawn": true,
+    "flyAway": true,
+    "color": "#ffffff",
+    "width": 3,
+    "durationMs": 700,
+    "spawnDelayMs": 0,
+    "flyAwayLeadMs": 700
+  }
 }
 ''';
 
@@ -312,14 +337,39 @@ const String kGlossBubbleDefaultJson = r'''
 /// follow) style that auto-applies to VIPs in overworld-named worlds.
 const String kGlossBubbleShowcaseJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
-  "prefix": "{{ select(['&6', '&d', '&b'], floor(time.seconds * 3)) }}&l",
+  "prefix": "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&l",
   "offset": [0.0, 1.2, 0.0],
-  "wordWrapChars": 24,
-  "lineStaggerTicks": 8,
+  "wordWrapChars": 34,
   "maxAliveMs": 7000,
-  "flyAway": true,
+  "motion": {
+    "translation": {
+      "x": "4 * t",
+      "y": "5 * sin(pi * t) - 6 * t",
+      "z": "2 * sin(pi * 2 * t + seed * pi)"
+    },
+    "scale": {
+      "x": "1 - 0.35 * smoothstep(0.45, 1, t)",
+      "y": "1 - 0.35 * smoothstep(0.45, 1, t)",
+      "z": "1 - 0.35 * smoothstep(0.45, 1, t)"
+    },
+    "rotation": {
+      "x": "45 * t",
+      "y": "90 * t",
+      "z": "180 * t"
+    },
+    "opacity": "1 - smoothstep(0.75, 1, t)"
+  },
+  "shimmer": {
+    "spawn": true,
+    "flyAway": true,
+    "color": "#ff88ff",
+    "width": 5,
+    "durationMs": 900,
+    "spawnDelayMs": 100,
+    "flyAwayLeadMs": 1000
+  },
   "followPlayer": false,
   "hideOwn": false,
   "select": {

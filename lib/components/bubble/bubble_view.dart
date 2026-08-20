@@ -1,16 +1,10 @@
 /// The bubble surface: an animated chat-bubble stack above a player
-/// silhouette, replaying a canned conversation through the ported plugin
-/// math.
+/// silhouette, replaying a canned formatted conversation through the plugin
+/// wrapping, stacking and expression motion contract.
 ///
-/// Fidelity: wrapping is `BubbleLines.split` (colour-stripped, VolmLib
-/// soft-wrap at the style's effective `wordWrapChars`), spawn delay is
-/// `lineStaggerTicks * 50 ms` per line, lifetime is the effective
-/// `maxAliveMs`, and every bubble's height is `BubbleStackMath.offsetY` with
-/// the live list ordered like the plugin's `SenderState.live` — all via
-/// `logic/bubble_preview.dart` under an injectable clock. The canned
-/// conversation and its rhythm are editor fiction; the numbers are not. The
-/// prefix colour renders through the pipeline mirror exactly as the
-/// temporary hologram renders `prefix + line`.
+/// Each chat message is one multiline block. Legacy formatting survives the
+/// visible-character wrap, and motion expressions drive translation, scale,
+/// rotation and opacity from the same lifetime and stack inputs as runtime.
 ///
 /// Pause freezes the clock offset; resume rejoins where it left off. Owns a
 /// repaint timer only while playing and mounted.
@@ -22,6 +16,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import '../../logic/bubble_preview.dart';
+import '../../logic/bubble_shimmer.dart';
 import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
@@ -29,7 +24,7 @@ import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 
 /// Repaint period. The stack eases every poll in game; 50 ms (one tick)
-/// keeps the fly-away launch smooth without burning frames.
+/// keeps mathematical motion smooth without burning frames.
 const Duration _tickPeriod = Duration(milliseconds: 50);
 
 /// Pixels per block on the mock stage — presentation scale only.
@@ -145,22 +140,33 @@ class _BubbleViewState extends State<BubbleView> {
           child: dom.div(classes: 'hui-bubble-scene', <Widget>[
             for (final GlossBubblePreviewBubble bubble in bubbles)
               dom.div(
-                classes: 'hui-bubble-line',
+                classes: 'hui-bubble-block',
                 styles: dom.Styles(
                   raw: <String, String>{
                     'bottom':
-                        '${((bubble.offsetY + offset[1]) * _pixelsPerBlock).toStringAsFixed(1)}px',
+                        '${((bubble.stackY + offset[1] + bubble.motion.translationY) * _pixelsPerBlock).toStringAsFixed(1)}px',
                     'left':
-                        'calc(50% + ${(offset[0] * _pixelsPerBlock).toStringAsFixed(1)}px)',
-                    'opacity': bubble.remainingMs < 400
-                        ? (bubble.remainingMs / 400).toStringAsFixed(2)
-                        : '1',
+                        'calc(50% + ${((offset[0] + bubble.motion.translationX) * _pixelsPerBlock).toStringAsFixed(1)}px)',
+                    'opacity': bubble.motion.opacity.toStringAsFixed(3),
+                    'transform':
+                        'translateX(-50%) '
+                        'translateZ(${((offset[2] + bubble.motion.translationZ) * _pixelsPerBlock).toStringAsFixed(1)}px) '
+                        'rotateX(${bubble.motion.rotationX.toStringAsFixed(2)}deg) '
+                        'rotateY(${bubble.motion.rotationY.toStringAsFixed(2)}deg) '
+                        'rotateZ(${bubble.motion.rotationZ.toStringAsFixed(2)}deg) '
+                        'scale3d(${bubble.motion.scaleX.toStringAsFixed(3)}, '
+                        '${bubble.motion.scaleY.toStringAsFixed(3)}, '
+                        '${bubble.motion.scaleZ.toStringAsFixed(3)})',
                   },
                 ),
                 <Widget>[
                   GlossTextLine(
                     render: renderGlossLine(
-                      doc.effectivePrefix + bubble.text,
+                      glossBubbleApplyShimmer(
+                        doc.effectivePrefix + bubble.text,
+                        doc.shimmer,
+                        bubble.shimmerProgress,
+                      ),
                       animations: _store.workspaceAnimations,
                       emoji: _store.workspaceEmoji,
                       nowMs: nowMs,
@@ -199,10 +205,9 @@ class _BubbleViewState extends State<BubbleView> {
     final List<String> parts = <String>[
       'wrap ${doc.effectiveWordWrapChars} chars',
       'offset ${doc.offset.map((double value) => value.toStringAsFixed(1)).join(', ')}',
-      'stagger ${doc.effectiveLineStaggerTicks} ticks '
-          '(${doc.effectiveLineStaggerTicks * 50} ms)',
       'alive ${doc.effectiveMaxAliveMs} ms',
-      doc.flyAway ? 'fly-away on' : 'fly-away off',
+      'expression motion',
+      if (doc.shimmer.spawn || doc.shimmer.flyAway) 'left-to-right shimmer',
       doc.followPlayer ? 'follows the player' : 'anchored where sent',
       if (doc.hideOwn) 'hidden from the sender',
     ];

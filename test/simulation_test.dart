@@ -181,14 +181,15 @@ void main() {
       expect(sim.hoverTicksFor('a'), 3);
     });
 
-    test('reset on exit and start over at one on re-entry', () {
-      // Exit teleports the icon back to `location` with no easing
-      // (ClickableComponent.java:66-69), so the next entry is a fresh tick 1.
+    test('eases out on exit and reverses cleanly on re-entry', () {
       final PreviewSimulation sim = _sim(_menu(<HuiComponent>[_button('a')]));
 
       sim.tick(hoveredClickableIds: <String>{'a'}, playerFeet: PVec3.zero);
       sim.tick(hoveredClickableIds: <String>{'a'}, playerFeet: PVec3.zero);
       expect(sim.hoverTicksFor('a'), 2);
+
+      sim.tick(hoveredClickableIds: const <String>{}, playerFeet: PVec3.zero);
+      expect(sim.hoverTicksFor('a'), 1);
 
       sim.tick(hoveredClickableIds: const <String>{}, playerFeet: PVec3.zero);
       expect(sim.hoverTicksFor('a'), 0);

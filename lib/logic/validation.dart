@@ -7,6 +7,7 @@ import 'gloss_text.dart'
         GlossEmojiResolver,
         GlossLineRender,
         GlossNoEmoji,
+        glossMenuTextNeedsRefresh,
         glossLineMetricRefs,
         glossRenderMenuText,
         renderGlossLine;
@@ -294,7 +295,6 @@ final RegExp _idPattern = RegExp(r'^[A-Za-z0-9_.-]+$');
 final RegExp _registryKeyPattern = RegExp(r'^([a-z0-9_.-]+:)?[a-z0-9_./-]+$');
 final RegExp _worldKeyPattern = RegExp(r'^[a-z0-9._-]+:[a-z0-9/._-]+$');
 final RegExp _proxyServerPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$');
-final RegExp _placeholderPattern = RegExp(r'%[^%\s]+%');
 final RegExp _argbColorPattern = RegExp(r'^#[0-9A-Fa-f]{8}$');
 
 class _Validator {
@@ -482,6 +482,7 @@ class _Validator {
     switch (component.data) {
       case final HuiButtonData data:
         _validateHighlight(data.highlightModifier, '$path.data');
+        _validateHoverDuration(data.hoverDurationTicks, '$path.data');
         _validateHitbox(data.hitbox, '$path.data.hitbox');
         _validateIcon(data.icon, '$path.data.icon', clickable: true);
         _validateActions(data.actions, '$path.data.actions');
@@ -489,6 +490,8 @@ class _Validator {
         _validateIcon(data.icon, '$path.data.icon', clickable: false);
       case final HuiToggleData data:
         _validateHighlight(data.highlightModifier, '$path.data');
+        _validateHoverDuration(data.hoverDurationTicks, '$path.data');
+        _validateHitbox(data.hitbox, '$path.data.hitbox');
         if (data.condition.trim().isEmpty) {
           _add(
             HuiSeverity.error,
@@ -526,16 +529,22 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         '$path.highlightModifier',
-        // The clamp at HoloComponent.java:33 is on the third-party API record
-        // only. ButtonComponentData/ToggleComponentData are plain records with
-        // no compact constructor, so Gson writes a parsed value straight in and
-        // ClickableComponent.java:65 spends it as a block distance along the
-        // unit plane normal.
         'highlightModifier is outside 0..1 and a value read from a file is '
             'used verbatim - the API clamp never sees it. It is a distance in '
             'blocks along the plane normal, so large values push the icon '
             'through the player and negative ones push it away',
         fix: 'Use a value between 0 and 1 (0.05 is typical)',
+      );
+    }
+  }
+
+  void _validateHoverDuration(int value, String path) {
+    if (value < 0 || value > 40) {
+      _add(
+        HuiSeverity.error,
+        '$path.hoverDurationTicks',
+        'hoverDurationTicks must be between 0 and 40',
+        fix: 'Use 4 ticks for the runtime default, or 0 for an instant hover',
       );
     }
   }
@@ -625,7 +634,7 @@ class _Validator {
           _add(
             HuiSeverity.error,
             '$path.refreshTicks',
-            'Placeholder refresh must be between 0 and 1200 ticks',
+            'Dynamic text refresh must be between 0 and 1200 ticks',
             fix: 'Use 10 for twice-per-second updates, or 0 to disable them',
           );
         }
@@ -935,17 +944,17 @@ class _Validator {
       }
     }
 
-    if (_placeholderPattern.hasMatch(text)) {
+    if (glossMenuTextNeedsRefresh(text)) {
       final bool frozen = refreshTicks == 0;
       _add(
         HuiSeverity.info,
         path,
         frozen
-            ? 'Uses a PlaceholderAPI placeholder: it is expanded when the '
-                  'icon opens and then frozen because refreshTicks is 0'
-            : 'Uses a live PlaceholderAPI placeholder: it refreshes every '
-                  '${refreshTicks ?? 10} ticks and requires PlaceholderAPI on '
-                  'the server',
+            ? 'Uses dynamic text: it is rendered when the icon opens and '
+                  'then frozen because refreshTicks is 0'
+            : 'Uses live functions, expressions or PAPI: it refreshes every '
+                  '${refreshTicks ?? 10} ticks. Native Gloss values do not '
+                  'require PlaceholderAPI.',
         fix: null,
       );
     }

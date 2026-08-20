@@ -300,6 +300,17 @@ void main() {
   });
 
   group('function library', () {
+    test('pow and smoothstep match the shared runtime functions', () {
+      expect(evalNum('pow(2, 8)'), 256);
+      expect(evalNum('pow(9, 0.5)'), 3);
+      expectEvalError('pow(10, 10000)', 'pow result must be finite');
+      expect(evalNum('smoothstep(0, 1, -1)'), 0);
+      expect(evalNum('smoothstep(0, 1, 0.5)'), 0.5);
+      expect(evalNum('smoothstep(0, 1, 2)'), 1);
+      expect(evalNum('smoothstep(1, 0, 0.25)'), 0.84375);
+      expectEvalError('smoothstep(1, 1, 0.5)', 'smoothstep edges must differ');
+    });
+
     test('colour channels survive a negative or oversized input', () {
       expect(evalNum('alpha(0 - 1, 128)'), 0x80FFFFFF.toDouble());
       expect(evalNum('mix(0 - 1, #FFFFFFFF, 0.5)'), 0xFFFFFFFF.toDouble());

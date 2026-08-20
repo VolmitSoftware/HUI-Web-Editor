@@ -13,6 +13,13 @@ const String huiPluginFolder = 'plugins/Gloss/';
 const String huiMenuFolder = '${huiPluginFolder}menus/';
 const String huiImageFolder = '${huiPluginFolder}images/';
 const String huiPreviewFolder = '${huiPluginFolder}previews/';
+const String huiHologramFolder = '${huiPluginFolder}holograms/';
+const String huiAnimationFolder = '${huiPluginFolder}animations/';
+const String huiScoreboardFolder = '${huiPluginFolder}boards/';
+const String huiEmojiFolder = '${huiPluginFolder}emoji/';
+const String huiBubbleFolder = '${huiPluginFolder}bubbles/';
+const String huiMotdFile = '${huiPluginFolder}motd.json';
+const String huiTablistFile = '${huiPluginFolder}tablist.json';
 
 /// One external destination in the help dialog's link grid.
 class HuiLink {

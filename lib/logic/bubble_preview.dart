@@ -1,113 +1,160 @@
-/// Deterministic chat-bubble preview timeline for the bubble surface.
-///
-/// Editor presentation over plugin math: the SCHEDULE (a canned three-message
-/// chat replayed on a loop) is editor fiction, but everything positional runs
-/// through the ported plugin code — `BubbleLines.split` for wrapping,
-/// `lineStaggerTicks * 50 ms` per line for spawn delay
-/// (`ChatBubblesService.onChat` schedules line N at
-/// `lineStaggerTicks * N` ticks), `maxAliveMs` for lifetime, and
-/// `BubbleStackMath.offsetY` with the live list built exactly like
-/// `SenderState.live` (spawn order, expired records removed).
-///
-/// Everything takes `nowMs` explicitly: the caller owns the clock, tests
-/// inject one, and the same millisecond always shows the same stack.
 library;
 
 import '../model/gloss_bubble_style.dart';
 import 'bubble_lines.dart';
+import 'bubble_motion.dart';
+import 'bubble_shimmer.dart';
 import 'bubble_stack_math.dart';
+import 'preview_expr.dart';
 
 const List<String> glossBubblePreviewMessages = <String>[
-  'Magic_Psycho: Important server news: SwiftSwamp smells >.< and I have gathered extremely scientific evidence.',
-  'SwiftSwamp: I reject this allegation. That was clearly Cyberpwn testing a suspicious new particle effect nearby.',
-  'Cyberpwn: The profiler says the smell started exactly when SwiftSwamp joined, but correlation is not causation.',
-  'Puretie: I brought soap, flowers, and a written incident report. We can settle this responsibly at spawn.',
-  'Magic_Psycho: Great. Meeting in five minutes; bring screenshots, snacks, and the animated rainbow evidence.',
-  'SwiftSwamp: Fine, but when I prove it was the swamp biome, everyone owes me diamonds and a public apology.',
+  '§1Magic_Psycho: §fImportant server news: §dSwiftSwamp smells >.< §fand I have gathered extremely scientific evidence.',
+  '§bSwiftSwamp: §fI reject this allegation. That was clearly §5Cyberpwn §ftesting a suspicious new particle effect nearby.',
+  '§5Cyberpwn: §fThe profiler says the smell started exactly when §bSwiftSwamp §fjoined, but correlation is not causation.',
+  '§6Puretie: §fI brought soap, flowers, and a written incident report. We can settle this responsibly at spawn.',
+  '§1Magic_Psycho: §fGreat. Meeting in five minutes; bring screenshots, snacks, and the animated rainbow evidence.',
+  '§bSwiftSwamp: §fFine, but when I prove it was the swamp biome, everyone owes me diamonds and a public apology.',
 ];
 
-/// Gap between canned messages. Editor fiction: a believable chat rhythm.
 const int glossBubblePreviewMessageGapMs = 1800;
 
-/// One bubble to draw: its stripped, wrapped text and its lift above the
-/// anchor at the requested instant.
 final class GlossBubblePreviewBubble {
   const GlossBubblePreviewBubble({
     required this.text,
-    required this.offsetY,
+    required this.lineCount,
+    required this.stackY,
     required this.remainingMs,
+    required this.motion,
+    required this.shimmerProgress,
   });
 
   final String text;
-
-  /// `BubbleStackMath.offsetY` — blocks above the anchor (eye + style
-  /// offset).
-  final double offsetY;
-
+  final int lineCount;
+  final double stackY;
   final int remainingMs;
+  final GlossBubbleMotionFrame motion;
+  final double? shimmerProgress;
 }
 
-/// The timeline: spawn instants for every line of the looped conversation,
-/// derived once per style revision.
 final class GlossBubblePreviewTimeline {
   GlossBubblePreviewTimeline(GlossBubbleStyleDoc style, {double? spread})
     : _spread = spread ?? glossBubbleDefaultStackSpread,
       _maxAliveMs = style.effectiveMaxAliveMs,
-      _flyAway = style.flyAway {
-    final int staggerMs = style.effectiveLineStaggerTicks * 50;
+      _motion = _compileMotion(style.motion),
+      _shimmer = style.shimmer.copy() {
     int cursor = 0;
+    int sequence = 0;
     for (final String message in glossBubblePreviewMessages) {
-      final List<String> lines = glossBubbleSplit(
+      final String text = glossBubbleWrap(
         message,
         style.effectiveWordWrapChars,
       );
-      for (int index = 0; index < lines.length; index++) {
-        _spawns.add((at: cursor + index * staggerMs, text: lines[index]));
+      final int lineCount = glossBubbleWrappedLineCount(text);
+      if (lineCount > 0) {
+        _spawns.add((
+          at: cursor,
+          text: text,
+          lineCount: lineCount,
+          seed: _previewSeed(text, sequence),
+        ));
+        sequence++;
       }
       cursor += glossBubblePreviewMessageGapMs;
     }
-    // The loop restarts once the last line has fully expired, plus a beat of
-    // quiet so the stack visibly clears.
     int lastExpiry = 0;
-    for (final ({int at, String text}) spawn in _spawns) {
+    for (final _BubbleSpawn spawn in _spawns) {
       final int expiry = spawn.at + _maxAliveMs;
       if (expiry > lastExpiry) lastExpiry = expiry;
     }
     _periodMs = lastExpiry + 1000;
   }
 
-  final List<({int at, String text})> _spawns = <({int at, String text})>[];
+  final List<_BubbleSpawn> _spawns = <_BubbleSpawn>[];
   final double _spread;
   final int _maxAliveMs;
-  final bool _flyAway;
+  final GlossBubbleMotionProgram? _motion;
+  final GlossBubbleShimmer _shimmer;
   late final int _periodMs;
 
-  /// The loop length in milliseconds.
   int get periodMs => _periodMs;
 
-  /// The live stack at [nowMs], oldest first — the order
-  /// `SenderState.live` holds records in, which is what gives older bubbles
-  /// the higher stack offsets.
   List<GlossBubblePreviewBubble> bubblesAt(int nowMs) {
     final int cycle = _periodMs <= 0 ? 0 : nowMs % _periodMs;
-    final List<({int at, String text})> live = <({int at, String text})>[
-      for (final ({int at, String text}) spawn in _spawns)
+    final List<_BubbleSpawn> live = <_BubbleSpawn>[
+      for (final _BubbleSpawn spawn in _spawns)
         if (cycle >= spawn.at && cycle < spawn.at + _maxAliveMs) spawn,
+    ];
+    final List<int> lineCounts = <int>[
+      for (final _BubbleSpawn spawn in live) spawn.lineCount,
     ];
     final int liveCount = live.length;
     return <GlossBubblePreviewBubble>[
       for (int index = 0; index < liveCount; index++)
-        GlossBubblePreviewBubble(
-          text: live[index].text,
-          remainingMs: live[index].at + _maxAliveMs - cycle,
-          offsetY: glossBubbleOffsetY(
-            _spread,
-            index,
-            liveCount,
-            live[index].at + _maxAliveMs - cycle,
-            flyAwayEnabled: _flyAway,
-          ),
-        ),
+        _bubbleAt(live[index], index, lineCounts, cycle),
     ];
   }
+
+  GlossBubblePreviewBubble _bubbleAt(
+    _BubbleSpawn spawn,
+    int index,
+    List<int> lineCounts,
+    int cycle,
+  ) {
+    final int ageMs = cycle - spawn.at;
+    final int remainingMs = _maxAliveMs - ageMs;
+    final double stackY = glossBubbleStackY(_spread, index, lineCounts);
+    final double t = _maxAliveMs <= 0
+        ? 1.0
+        : (ageMs / _maxAliveMs).clamp(0.0, 1.0).toDouble();
+    GlossBubbleMotionFrame frame = const GlossBubbleMotionFrame.identity();
+    final GlossBubbleMotionProgram? program = _motion;
+    if (program != null) {
+      try {
+        frame = program.evaluate(
+          GlossBubbleMotionContext(
+            t: t,
+            ageMs: ageMs.toDouble(),
+            lifetimeMs: _maxAliveMs.toDouble(),
+            stackIndex: index.toDouble(),
+            stackCount: lineCounts.length.toDouble(),
+            lineCount: spawn.lineCount.toDouble(),
+            stackY: stackY,
+            seed: spawn.seed,
+          ),
+        );
+      } on PExprException {
+        frame = const GlossBubbleMotionFrame.identity();
+      }
+    }
+    return GlossBubblePreviewBubble(
+      text: spawn.text,
+      lineCount: spawn.lineCount,
+      stackY: stackY,
+      remainingMs: remainingMs,
+      motion: frame,
+      shimmerProgress: glossBubbleShimmerProgress(
+        _shimmer,
+        ageMs: ageMs,
+        lifetimeMs: _maxAliveMs,
+      ),
+    );
+  }
+
+  static GlossBubbleMotionProgram? _compileMotion(GlossBubbleMotion motion) {
+    try {
+      return GlossBubbleMotionProgram.compile(motion);
+    } on PExprException {
+      return null;
+    }
+  }
+}
+
+typedef _BubbleSpawn = ({int at, String text, int lineCount, double seed});
+
+double _previewSeed(String text, int sequence) {
+  int hash = 0x811C9DC5 ^ sequence;
+  for (final int unit in text.codeUnits) {
+    hash = ((hash ^ unit) * 0x01000193) & 0xFFFFFFFF;
+  }
+  return hash / 0xFFFFFFFF;
 }

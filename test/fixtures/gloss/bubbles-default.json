@@ -1,12 +1,37 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
   "prefix": "&7",
   "offset": [0.0, 1.0, 0.0],
   "wordWrapChars": 32,
-  "lineStaggerTicks": 5,
   "maxAliveMs": 5000,
-  "flyAway": true,
   "followPlayer": true,
-  "hideOwn": true
+  "hideOwn": true,
+  "motion": {
+    "translation": {
+      "x": "0",
+      "y": "10 * pow(clamp((ageMs - lifetimeMs + 2000) / 2000, 0, 1), 16)",
+      "z": "0"
+    },
+    "scale": {
+      "x": "1",
+      "y": "1",
+      "z": "1"
+    },
+    "rotation": {
+      "x": "0",
+      "y": "0",
+      "z": "0"
+    },
+    "opacity": "1"
+  },
+  "shimmer": {
+    "spawn": true,
+    "flyAway": true,
+    "color": "#ffffff",
+    "width": 3,
+    "durationMs": 700,
+    "spawnDelayMs": 0,
+    "flyAwayLeadMs": 700
+  }
 }

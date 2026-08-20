@@ -271,8 +271,10 @@ class IconEditor extends StatelessWidget {
           ),
         ),
         HuiField(
-          label: 'Placeholder refresh',
-          help: 'Ticks between live PlaceholderAPI updates; 0 freezes text.',
+          label: 'Dynamic text refresh',
+          help:
+              'Ticks between live function, expression and PAPI updates; '
+              '0 freezes text.',
           trailing: const HuiFieldHelp('icon.text.refreshTicks'),
           control: dom.div(<Widget>[
             HuiNumberField(
@@ -283,7 +285,7 @@ class IconEditor extends StatelessWidget {
               integer: true,
               suffix: 'ticks',
               onChanged: (double value) => _write(
-                'placeholder refresh',
+                'dynamic text refresh',
                 HuiTextIcon(text.text, text.style?.copy(), value.round())
                   ..extras = huiDeepCopyMap(text.extras),
               ),

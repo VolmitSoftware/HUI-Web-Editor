@@ -820,7 +820,7 @@ body.hui-resizing * { cursor: col-resize !important; }
    The `min()` caps on .hui-shell-body do the narrow-viewport work instead. */
 @media (max-width: 1240px) {
   .hui-bar-action.is-optional { display: none; }
-  .hui-bar-overflow { display: flex; }
+  .hui-bar-overflow.is-compact { display: flex; }
 }
 @media (max-width: 1100px) {
   .hui-view-label { display: none; }
@@ -920,7 +920,8 @@ body.hui-resizing * { cursor: col-resize !important; }
   .hui-bar-right > .hui-bar-cluster:not(.hui-mobile-panes):not(.hui-bar-overflow) {
     display: none;
   }
-  .hui-bar-overflow { display: flex; }
+  .hui-bar-overflow.is-compact { display: none; }
+  .hui-bar-overflow.is-mobile { display: flex; }
   .hui-bar-cluster + .hui-bar-cluster {
     margin-left: 2px;
     padding-left: 2px;

@@ -603,10 +603,7 @@ void main() {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(blocks: <String>['CHEST']),
         elements: <HuiPreviewElement>[
-          HuiPreviewElement(
-            'label',
-            text: "lang('holoui.preview.state.idle')",
-          ),
+          HuiPreviewElement('label', text: "lang('holoui.preview.state.idle')"),
         ],
       );
       final HuiIssue issue = validatePreviewDoc(
@@ -620,10 +617,7 @@ void main() {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(blocks: <String>['CHEST']),
         elements: <HuiPreviewElement>[
-          HuiPreviewElement(
-            'label',
-            text: "lang('gloss.preview.state.idle')",
-          ),
+          HuiPreviewElement('label', text: "lang('gloss.preview.state.idle')"),
         ],
       );
       expect(validatePreviewDoc(doc), isEmpty);
@@ -874,6 +868,33 @@ void main() {
         );
       },
     );
+
+    test('offers shared variables and context functions', () {
+      expect(
+        previewSuggestExprTokens(
+          'player.',
+          declaredVars: const <String>{},
+          scope: const <String>{},
+        ),
+        containsAll(<String>['player.name', 'player.ping']),
+      );
+      expect(
+        previewSuggestExprTokens(
+          'papiN',
+          declaredVars: const <String>{},
+          scope: const <String>{},
+        ),
+        contains('papiNumber('),
+      );
+      expect(
+        previewSuggestExprTokens(
+          'metr',
+          declaredVars: const <String>{},
+          scope: const <String>{},
+        ),
+        contains('metric('),
+      );
+    });
 
     test('offers vars.<declared> and nothing else under the vars. prefix', () {
       final List<String> suggestions = previewSuggestExprTokens(

@@ -123,6 +123,12 @@ class PreviewMatchEditor extends StatelessWidget {
             _mutate('match vars', (HuiPreviewDoc d) => d.match.vars = next),
       ),
       HuiInlineIssues(_issuesFor('match.vars')),
+      ExtrasEditor(
+        title: 'Match',
+        extras: _doc.match.extras,
+        onChanged: (String label, Map<String, dynamic> next) =>
+            _mutate(label, (HuiPreviewDoc d) => d.match.extras = next),
+      ),
       HuiInlineIssues(_issuesFor('match')),
     ],
   );
@@ -239,6 +245,21 @@ class PreviewMatchEditor extends StatelessWidget {
           ),
         ),
         HuiInlineIssues(_issuesFor('$path.entities')),
+        _variantSpecialField(index, variant, path),
+        HuiField(
+          label: 'Priority',
+          help: 'Overrides the document priority when this variant matches.',
+          control: HuiNumberField(
+            value: (variant.priority ?? 0).toDouble(),
+            integer: true,
+            min: -1000000,
+            max: 1000000,
+            onChanged: (double value) => _mutate(
+              'variant priority',
+              (HuiPreviewDoc d) => d.variants[index].priority = value.round(),
+            ),
+          ),
+        ),
         _PreviewVarsRows(
           title: 'vars',
           vars: variant.vars,
@@ -248,9 +269,42 @@ class PreviewMatchEditor extends StatelessWidget {
           ),
         ),
         HuiInlineIssues(_issuesFor('$path.vars')),
+        ExtrasEditor(
+          title: 'Variant',
+          extras: variant.extras,
+          onChanged: (String label, Map<String, dynamic> next) => _mutate(
+            label,
+            (HuiPreviewDoc d) => d.variants[index].extras = next,
+          ),
+        ),
       ],
     );
   }
+
+  Widget _variantSpecialField(
+    int index,
+    HuiPreviewVariant variant,
+    String path,
+  ) => HuiField(
+    label: 'Special',
+    help:
+        'Optionally limits this variant to an ender chest, locked target or '
+        'inventory-holder fallback.',
+    control: HuiSegmented(
+      value: variant.special ?? 'none',
+      segments: <HuiSegment>[
+        const HuiSegment(value: 'none', label: 'None'),
+        for (final String value in _specialValues)
+          HuiSegment(value: value, label: value),
+      ],
+      onChanged: (String value) => _mutate(
+        'variant special',
+        (HuiPreviewDoc d) =>
+            d.variants[index].special = value == 'none' ? null : value,
+      ),
+    ),
+    trailing: HuiInlineIssues(_issuesFor('$path.special')),
+  );
 
   Widget _cardSection() {
     final HuiPreviewCard? card = _doc.card;
@@ -320,6 +374,12 @@ class PreviewMatchEditor extends StatelessWidget {
           (HuiPreviewDoc d) => d.card?.minHalfWidth = value.round(),
         ),
       ),
+    ),
+    ExtrasEditor(
+      title: 'Card',
+      extras: card.extras,
+      onChanged: (String label, Map<String, dynamic> next) =>
+          _mutate(label, (HuiPreviewDoc d) => d.card?.extras = next),
     ),
   ];
 

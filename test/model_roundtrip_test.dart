@@ -708,6 +708,54 @@ void main() {
     });
   });
 
+  group('clickable hover animation', () {
+    test(
+      'button and toggle round-trip duration easing and stable hitboxes',
+      () {
+        final HuiMenu menu = decodeHuiMenu(
+          '{"offset":[0,0,0],"components":['
+          '{"id":"button","offset":[0,0,0],"data":{"type":"button",'
+          '"highlightModifier":0.1,"hoverDurationTicks":8,'
+          '"hoverEasing":"back_out","hitbox":{"width":1,"height":0.4},'
+          '"actions":[]}},'
+          '{"id":"toggle","offset":[0,0,0],"data":{"type":"toggle",'
+          '"highlightModifier":0.2,"hoverDurationTicks":0,'
+          '"hoverEasing":"linear","condition":"yes","expectedValue":"yes",'
+          '"hitbox":{"offset":[0,0,0.1]},"trueActions":[],"falseActions":[]}}'
+          ']}',
+        );
+        final HuiButtonData button =
+            menu.components.first.data as HuiButtonData;
+        final HuiToggleData toggle = menu.components.last.data as HuiToggleData;
+
+        expect(button.hoverDurationTicks, 8);
+        expect(button.hoverEasing, HuiHoverEasing.backOut);
+        expect(button.hitbox!.width, 1);
+        expect(toggle.hoverDurationTicks, 0);
+        expect(toggle.hoverEasing, HuiHoverEasing.linear);
+        expect(toggle.hitbox!.offset.z, 0.1);
+
+        final String encoded = encodeHuiMenu(menu);
+        expect(encoded, contains('"hoverDurationTicks": 8'));
+        expect(encoded, contains('"hoverEasing": "back_out"'));
+        expect(encodeHuiMenu(decodeHuiMenu(encoded)), encoded);
+      },
+    );
+
+    test('omitted animation fields resolve to runtime defaults', () {
+      final HuiButtonData button = HuiButtonData.fromMap(<String, dynamic>{
+        'type': 'button',
+        'highlightModifier': 0.05,
+        'actions': <Object?>[],
+      }, 'data');
+
+      expect(button.hoverDurationTicks, huiRuntimeDefaultHoverDurationTicks);
+      expect(button.hoverEasing, huiRuntimeDefaultHoverEasing);
+      expect(button.toJson().containsKey('hoverDurationTicks'), isFalse);
+      expect(button.toJson().containsKey('hoverEasing'), isFalse);
+    });
+  });
+
   group('action defaults on import', () {
     HuiCommandAction onlyCommand(HuiMenu menu) =>
         (menu.components.single.data as HuiButtonData).actions.single

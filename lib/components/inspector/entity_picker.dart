@@ -63,7 +63,9 @@ class EntityIconEditor extends StatelessWidget {
       label: 'Entity type',
       required: true,
       trailing: const HuiFieldHelp('icon.entity.entity'),
-      help: 'Spawnable living registry id. No server entity is created.',
+      help:
+          'Spawnable living registry id. No server entity or physical '
+          'collision is created.',
       control: dom.div(<Widget>[
         RegistryPicker(
           value: icon.entity,
@@ -122,8 +124,10 @@ class EntityIconEditor extends StatelessWidget {
       ],
     ),
     const HuiNote(
-      'The component anchor is the entity\'s feet. Width and height define '
-      'its editor silhouette and automatic click plane, not the client model.',
+      'The component anchor is the entity\'s feet. Gloss keeps body, pitch and '
+      'head yaw aligned with the menu and disables player pushing. Width and '
+      'height define the editor silhouette and a button or toggle\'s click '
+      'plane, not the client model; decorations have no click plane.',
     ),
   ]);
 }

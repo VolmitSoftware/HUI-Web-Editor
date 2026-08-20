@@ -602,6 +602,29 @@ void main() {
       },
     );
 
+    test('addComponentData preserves typed icon data and placement', () {
+      final EditorStore store = _store(_FakeStorage());
+      final HuiDecorationData source = HuiDecorationData(
+        HuiTextImageIcon('heads/magic-psycho.png'),
+      );
+      final String id = store.addComponentData(
+        source,
+        offset: Vec3(1.25, -0.75, 0),
+        id: 'image',
+      )!;
+
+      final HuiComponent added = store.menu.componentById(id)!;
+      final HuiDecorationData data = added.data as HuiDecorationData;
+      expect(id, 'image');
+      expect(store.selectedId, 'image');
+      expect(added.offset, Vec3(1.25, -0.75, 0));
+      expect((data.icon as HuiTextImageIcon).path, 'heads/magic-psycho.png');
+      expect(identical(data, source), isFalse);
+      expect(store.performUndo(), isTrue);
+      expect(store.menu.componentById(id), isNull);
+      store.dispose();
+    });
+
     test('duplicateComponent copies deeply and never reuses an id', () {
       final EditorStore store = _store(_FakeStorage());
       final String id = store.addComponent('button')!;

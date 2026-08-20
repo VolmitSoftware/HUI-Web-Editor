@@ -296,6 +296,42 @@ void main() {
       expectVec(visual.right, hitbox.right);
       expectVec(visual.up, hitbox.up);
     });
+
+    test(
+      'living entity visuals follow body yaw and pitch without fake roll',
+      () {
+        final PreviewQuad quad = _scene(
+          _menu(
+            components: <HuiComponent>[
+              HuiComponent(
+                'parrot',
+                Vec3(0, 1.5, 3),
+                HuiDecorationData(HuiEntityIcon('minecraft:parrot', 0.5, 0.9)),
+              ),
+            ],
+          ),
+          openYawDeg: 32,
+          pitchDeg: 18,
+          rollDeg: 70,
+        ).quads.single;
+        final PlaneAim expected = fixedMenuPlane(
+          center: quad.visualCenter,
+          facingYawDegrees: 32,
+          pitchDegrees: 18,
+        );
+        final PlaneAim visual = aimQuadVisual(
+          quad,
+          quad.visualCenter,
+          const PVec3(0, 1.5, -5),
+        );
+
+        expectVec(visual.normal, expected.normal);
+        expectVec(visual.right, expected.right);
+        expectVec(visual.up, expected.up);
+        expect(visual.up, isNot(quad.fixedPlane.up));
+        expect(quad.hasPlane, isFalse);
+      },
+    );
   });
 
   group('plane and visual geometry come from the 2D scene', () {
