@@ -27,26 +27,23 @@
 
 /* ---- hui token layer (patterned on anim-al's --animal-* layer) ---- */
 :root {
-  --hui-bar-height: 52px;
-  --hui-control-height: 36px;
-  --hui-radius: var(--radius, 8px);
-  --hui-space-1: 6px;
-  --hui-space-2: 10px;
-  --hui-space-3: 14px;
-  --hui-space-4: 18px;
-  --hui-space-5: 24px;
-  --hui-transition: 150ms ease;
-  --hui-rail-width: 280px;
-  --hui-inspector-width: 340px;
+  --hui-command-height: 40px;
+  --hui-context-height: 34px;
+  --hui-bar-height: calc(var(--hui-command-height) + var(--hui-context-height));
+  --hui-control-height: 32px;
+  --hui-radius: 0px;
+  --hui-radius-sm: 0px;
+  --hui-space-1: 4px;
+  --hui-space-2: 8px;
+  --hui-space-3: 12px;
+  --hui-space-4: 16px;
+  --hui-space-5: 20px;
+  --hui-transition: 120ms ease;
+  --hui-rail-width: 240px;
+  --hui-inspector-width: 320px;
   --hui-mc-font: "Minecraftia", "Geist Mono", monospace;
 }
 html.light, html.light #arcane-root, html.dark, html.dark #arcane-root {
-  --hui-bg: var(--background);
-  --hui-panel: var(--card);
-  --hui-panel-soft: color-mix(in srgb, var(--muted) 88%, var(--background));
-  --hui-surface-raised: color-mix(in srgb, var(--card) 84%, var(--accent));
-  --hui-border: var(--border);
-  --hui-border-soft: color-mix(in srgb, var(--border) 62%, transparent);
   --hui-text: var(--foreground);
   --hui-muted: var(--muted-foreground);
   --hui-accent: var(--primary);
@@ -58,11 +55,25 @@ html.light, html.light #arcane-root, html.dark, html.dark #arcane-root {
   --hui-success: var(--success, #2e7d55);
 }
 html.light, html.light #arcane-root {
-  --hui-shadow-xs: 0 1px 2px rgb(20 35 32 / .04);
-  --hui-shadow-sm: 0 8px 22px rgb(20 35 32 / .07);
-  --hui-shadow-md: 0 18px 48px rgb(20 35 32 / .11);
+  --hui-bg: #f7f7f8;
+  --hui-panel: #ffffff;
+  --hui-panel-soft: #eeeeef;
+  --hui-surface: #f4f4f5;
+  --hui-surface-raised: #ffffff;
+  --hui-border: #cfcfd3;
+  --hui-border-soft: #dedee2;
+  --hui-shadow-xs: 0 1px 2px rgb(20 20 24 / .04);
+  --hui-shadow-sm: 0 8px 22px rgb(20 20 24 / .08);
+  --hui-shadow-md: 0 18px 48px rgb(20 20 24 / .13);
 }
 html.dark, html.dark #arcane-root {
+  --hui-bg: #0a0a0b;
+  --hui-panel: #111113;
+  --hui-panel-soft: #17171a;
+  --hui-surface: #141416;
+  --hui-surface-raised: #1d1d21;
+  --hui-border: #303036;
+  --hui-border-soft: #242429;
   --hui-shadow-xs: 0 1px 2px rgb(0 0 0 / .22);
   --hui-shadow-sm: 0 10px 26px rgb(0 0 0 / .24);
   --hui-shadow-md: 0 24px 60px rgb(0 0 0 / .32);
@@ -80,7 +91,7 @@ button, input, textarea, select { font: inherit; }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--hui-border) 80%, transparent); border-radius: 8px; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--hui-border) 80%, transparent); border-radius: 0; }
 ::-webkit-scrollbar-thumb:hover { background: var(--hui-border); }
 
 /* Uppercase micro-label used across the editor */

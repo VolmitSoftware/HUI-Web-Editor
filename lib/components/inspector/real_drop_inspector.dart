@@ -61,7 +61,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     children: <Widget>[
       _integer(
         label: 'Moving update interval',
-        help: 'Ticks between updates while an item is moving. 1..20.',
+        help:
+            'Ticks between interpolated targets while an item is moving. 1..20.',
         path: r'$.limits.updateIntervalTicks',
         value: doc.limits.updateIntervalTicks,
         onChanged: (int value) => _mutate(
@@ -72,7 +73,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       ),
       _integer(
         label: 'Settled poll interval',
-        help: 'Ticks between checks after an item has landed. 2..200.',
+        help:
+            'Ticks between checks after landing; this does not slow touchdown. 2..200.',
         path: r'$.limits.settledPollIntervalTicks',
         value: doc.limits.settledPollIntervalTicks,
         onChanged: (int value) => _mutate(
@@ -132,7 +134,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     children: <Widget>[
       _decimal(
         label: 'Default items',
-        help: 'Scale for ordinary block-like items. 0.05..2.',
+        help: 'Scale for ordinary three-dimensional block models. 0.05..2.',
         path: r'$.scale.defaultScale',
         value: doc.scale.defaultScale,
         onChanged: (double value) => _mutate(
@@ -143,7 +145,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       ),
       _decimal(
         label: 'Flat items',
-        help: 'Scale for sprite-like items. 0.05..2.',
+        help:
+            'Scale for non-block items and vanilla sprite-modeled placeable items, including doors, rails, signs, panes, torches, and plants. 0.05..2.',
         path: r'$.scale.flatItems',
         value: doc.scale.flatItems,
         onChanged: (double value) => _mutate(
@@ -153,7 +156,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       ),
       _decimal(
         label: 'Thin blocks',
-        help: 'Scale for slabs, panes, and other thin blocks. 0.05..2.',
+        help:
+            'Scale for slabs, carpets, pressure plates, and snow layers. 0.05..2.',
         path: r'$.scale.thinBlocks',
         value: doc.scale.thinBlocks,
         onChanged: (double value) => _mutate(
@@ -287,7 +291,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       ),
       _integer(
         label: 'Landing transition',
-        help: 'Ticks used to settle into the landing pose. 0..20.',
+        help:
+            'Ticks used for the final carrier movement and landing pose. 0..20.',
         path: r'$.landing.transitionTicks',
         value: doc.landing.transitionTicks,
         onChanged: (int value) => _mutate(

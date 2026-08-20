@@ -35,6 +35,7 @@ import '../../state/editor_store.dart';
 import '../render/canvas_assets.dart';
 import '../render/canvas_brush.dart';
 import '../render/icon_renderers.dart';
+import '../shell/key_listener.dart' show huiMobilePaneOpen;
 import '../shell/shell_status.dart';
 import '../common/common.dart';
 import 'backdrop.dart';
@@ -290,8 +291,8 @@ class _CanvasViewportState extends State<CanvasViewport> {
       'tabindex': '0',
       'role': 'application',
       'aria-label':
-          'Gloss menu layout canvas. Scroll to zoom, drag to pan, '
-          'drag a component to move it, and right-click to add one.',
+          'Gloss menu layout canvas. Drag empty canvas to pan on touch, use '
+          'the zoom controls or scroll to zoom, and drag a component to move it.',
     },
     <Widget>[
       Component.element(
@@ -330,7 +331,9 @@ class _CanvasViewportState extends State<CanvasViewport> {
       // One line, never two: the separators are drawn by CSS between the
       // items, and the trailing note is dropped by CSS before anything is
       // allowed to wrap. See `.hui-canvas-hint` in web/styles/03-canvas.css.
-      const dom.div(classes: 'hui-canvas-hint', <Widget>[
+      const dom.div(classes: 'hui-canvas-hint hui-canvas-hint-desktop', <
+        Widget
+      >[
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
           // Left-drag on empty space is the marquee now; panning is Space-drag
           // or the middle button, which is why the pan verb moved up front.
@@ -350,6 +353,17 @@ class _CanvasViewportState extends State<CanvasViewport> {
             'The 3D preview applies each icon\'s billboard mode '
             'and keeps its click plane aligned.',
           ),
+        ]),
+      ]),
+      const dom.div(classes: 'hui-canvas-hint hui-canvas-hint-touch', <Widget>[
+        dom.span(classes: 'hui-canvas-hint-item', <Widget>[
+          Component.text('Drag empty canvas to pan'),
+        ]),
+        dom.span(classes: 'hui-canvas-hint-item', <Widget>[
+          Component.text('Use the zoom controls'),
+        ]),
+        dom.span(classes: 'hui-canvas-hint-item', <Widget>[
+          Component.text('Drag components to move'),
         ]),
       ]),
     ]);

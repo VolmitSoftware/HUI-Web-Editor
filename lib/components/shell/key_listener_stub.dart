@@ -8,3 +8,5 @@ void Function() installShellKeyListener(ShellKeyHandler handler) => () {};
 bool isApplePlatform() => false;
 
 bool huiArcaneOverlayOpen() => false;
+
+bool huiMobilePaneOpen() => false;

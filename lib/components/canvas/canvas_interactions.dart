@@ -132,20 +132,26 @@ extension _CanvasInteractions on _CanvasViewportState {
     if (pointer.button != _primaryButton && pointer.button != _middleButton) {
       return;
     }
+    if (!canBeginCanvasGesture(_activePointerId)) {
+      event.preventDefault();
+      return;
+    }
     _stage?.focus();
     _lastClientX = _eventDouble(pointer, 'clientX');
     _lastClientY = _eventDouble(pointer, 'clientY');
 
-    final bool forcePan = pointer.button == _middleButton || _spaceHeld;
     final WorldPoint world = _worldPoint(_lastClientX, _lastClientY);
-    final CanvasItem? selectedHitbox = forcePan
-        ? null
-        : _selectedDetachedHitboxTarget(world);
-    final CanvasItem? hit = forcePan
-        ? null
-        : selectedHitbox ?? _currentScene.hitTest(world.x, world.y);
+    final CanvasItem? selectedHitbox = _selectedDetachedHitboxTarget(world);
+    final CanvasItem? hit =
+        selectedHitbox ?? _currentScene.hitTest(world.x, world.y);
+    final bool pan = shouldPanCanvasGesture(
+      pointerType: pointer.pointerType,
+      button: pointer.button,
+      spaceHeld: _spaceHeld,
+      hasTarget: hit != null,
+    );
 
-    if (forcePan) {
+    if (pan) {
       _dragMode = _DragMode.pan;
       _dragComponentId = null;
     } else if (hit == null) {
@@ -167,9 +173,8 @@ extension _CanvasInteractions on _CanvasViewportState {
     event.preventDefault();
   }
 
-  /// Left-drag on empty space. Panning moved to Space-drag and the middle
-  /// button (both handled above), which is the one muscle-memory break in this
-  /// wave and why the hint line leads with it.
+  /// Mouse primary-drag on empty space. Touch primary-drag pans instead because
+  /// touch screens have neither a middle button nor a Space modifier.
   void _beginMarquee(web.PointerEvent pointer, WorldPoint world) {
     _dragMode = _DragMode.marquee;
     _dragComponentId = null;
@@ -563,6 +568,7 @@ extension _CanvasInteractions on _CanvasViewportState {
     final web.KeyboardEvent key = event as web.KeyboardEvent;
     if (key.ctrlKey || key.metaKey || key.altKey) return;
     if (_isTextEntryFocused()) return;
+    if (key.key == 'Escape' && huiMobilePaneOpen()) return;
 
     if (key.key == 'ContextMenu' || (key.shiftKey && key.key == 'F10')) {
       final web.DOMRect? rect = _canvas?.getBoundingClientRect();

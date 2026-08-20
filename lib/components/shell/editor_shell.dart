@@ -404,10 +404,12 @@ class _EditorShellState extends State<EditorShell> {
       paletteOpen: _paletteOpen,
       tourOpen: _tourOpen,
       shortcutsOpen: _shortcutsOpen,
+      mobilePaneOpen: _mobileRailOpen || _mobileInspectorOpen,
       onTogglePalette: _togglePalette,
       onToggleShortcuts: _toggleShortcuts,
       onSkipTour: () => _endTour(remember: false),
       onCloseOverlay: _escapeOverlay,
+      onCloseMobilePane: _closeMobilePanes,
       child: dom.div(
         id: 'hui-shell',
         classes: component.syncControls == null

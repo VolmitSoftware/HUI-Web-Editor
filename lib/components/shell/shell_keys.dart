@@ -55,6 +55,9 @@ HuiOverlayEscape huiOverlayEscapeTarget({required bool confirmDeleteOpen}) =>
     ? HuiOverlayEscape.confirmDelete
     : HuiOverlayEscape.appOverlay;
 
+bool huiClosesMobilePane(ShellKey key, {required bool mobilePaneOpen}) =>
+    mobilePaneOpen && key.key == 'Escape' && !key.mod && !key.alt;
+
 const String _apple = 'apple';
 
 /// Renders `mod+Shift+Z` as `['⌘', '⇧', 'Z']` or `['Ctrl', 'Shift', 'Z']`.

@@ -114,7 +114,7 @@ void main() {
   test('the ladder folds clusters in the documented order', () {
     // Widest first: the breakpoints must descend, or a narrower viewport would
     // show more of the bar than a wider one.
-    const List<int> rungs = <int>[1800, 1400, 1150, 1024, 900, 700, 430];
+    const List<int> rungs = <int>[1800, 1600, 1400, 1150, 1024, 900, 700, 430];
     int previous = 1 << 30;
     for (final int rung in rungs) {
       expect(
@@ -131,21 +131,45 @@ void main() {
     expect(shellCss, contains('.hui-kind-picker { display: flex; }'));
     expect(shellCss, contains('.hui-bar-views { display: none; }'));
     expect(shellCss, contains('.hui-bar-view-picker { display: flex; }'));
+    final String kindHandoff = _between(
+      shellCss,
+      '@media (max-width: 1600px)',
+      '@media (max-width: 1400px)',
+    );
+    expect(kindHandoff, contains('.hui-kind-tabs { display: none; }'));
+    expect(kindHandoff, contains('.hui-kind-picker { display: flex; }'));
   });
 
-  test('both side columns of the bar share one minimum, so it is centred', () {
-    // Equal minimums are the whole reason the centre column lands on the
-    // viewport centre; two different floors would put it back off-centre.
-    expect(
+  test(
+    'the command and context rows keep actions separate from navigation',
+    () {
+      expect(topBar, contains("classes: 'hui-bar-primary'"));
+      expect(topBar, contains("classes: 'hui-bar-context'"));
+      expect(
+        shellCss,
+        contains(
+          'grid-template-rows: var(--hui-command-height) '
+          'var(--hui-context-height);',
+        ),
+      );
+      expect(shellCss, isNot(contains('--hui-bar-side')));
+      expect(shellCss, isNot(contains('button:not(.selected)')));
+      expect(topBar, contains("visibleLabel: 'Import'"));
+      expect(topBar, contains("visibleLabel: 'Export'"));
+    },
+  );
+
+  test('phone context pickers yield space to the pane controls', () {
+    final String phoneRules = _between(
       shellCss,
-      contains(
-        'grid-template-columns:\n'
-        '    minmax(var(--hui-bar-side), 1fr)\n'
-        '    minmax(0, auto)\n'
-        '    minmax(var(--hui-bar-side), 1fr);',
-      ),
+      '@media (max-width: 700px)',
+      '@media (max-width: 430px)',
     );
-    expect(shellCss, contains('.hui-bar-center { justify-self: center;'));
+    expect(phoneRules, contains('max-width: calc(100% - 84px);'));
+    expect(phoneRules, contains('.hui-kind-picker .hui-bar-menu'));
+    expect(phoneRules, contains('.hui-bar-view-picker .hui-bar-menu'));
+    expect(phoneRules, contains('max-width: 100%;'));
+    expect(shellCss, contains('.hui-picker-label {\n  min-width: 0;'));
   });
 
   test('export footer closes without duplicating the body download action', () {

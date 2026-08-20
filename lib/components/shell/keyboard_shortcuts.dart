@@ -22,10 +22,12 @@ class KeyboardShortcuts extends StatefulWidget {
     this.paletteOpen = false,
     this.tourOpen = false,
     this.shortcutsOpen = false,
+    this.mobilePaneOpen = false,
     this.onTogglePalette,
     this.onToggleShortcuts,
     this.onSkipTour,
     this.onCloseOverlay,
+    this.onCloseMobilePane,
     super.key,
   });
 
@@ -39,6 +41,7 @@ class KeyboardShortcuts extends StatefulWidget {
   /// so [ShellKey.overlayOpen] never sees them — the shell has to say so.
   final bool tourOpen;
   final bool shortcutsOpen;
+  final bool mobilePaneOpen;
 
   final void Function()? onTogglePalette;
   final void Function()? onToggleShortcuts;
@@ -50,6 +53,7 @@ class KeyboardShortcuts extends StatefulWidget {
   /// controlled surface re-opens itself on the next rebuild. Escape has to be
   /// routed back through the owner's state to stick.
   final void Function()? onCloseOverlay;
+  final void Function()? onCloseMobilePane;
 
   @override
   State<KeyboardShortcuts> createState() => _KeyboardShortcutsState();
@@ -98,6 +102,10 @@ class _KeyboardShortcutsState extends State<KeyboardShortcuts> {
         return true;
       }
       return false;
+    }
+    if (huiClosesMobilePane(key, mobilePaneOpen: component.mobilePaneOpen)) {
+      component.onCloseMobilePane?.call();
+      return true;
     }
 
     final HuiShortcutScope scope = HuiShortcutScope(

@@ -83,6 +83,14 @@ bool huiArcaneOverlayOpen() {
   }
 }
 
+bool huiMobilePaneOpen() {
+  try {
+    return web.document.querySelector('.hui-pane.is-mobile-open') != null;
+  } catch (_) {
+    return false;
+  }
+}
+
 bool _isEditable(web.EventTarget? target) {
   if (target == null) return false;
   if (!target.isA<web.HTMLElement>()) return false;

@@ -51,12 +51,16 @@ class HuiTourStep {
 /// showing.
 const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
   HuiTourStep(
-    title: 'The tabs choose what you are working on',
+    title: 'Choose the document kind',
     body:
-        'Each tab scopes the library to one kind of document — menus, '
-        'scoreboards, holograms, tab lists — and points the New button at it. '
-        'All keeps the whole workspace in view.',
-    selectors: <String>['.hui-kind-tabs', '.hui-kind-picker', '.hui-bar-center'],
+        'The kind strip or picker scopes the library to one document type — '
+        'menus, scoreboards, holograms, tab lists — and points New document '
+        'at it. All keeps the whole workspace in view.',
+    selectors: <String>[
+      '.hui-kind-tabs',
+      '.hui-kind-picker',
+      '.hui-bar-center',
+    ],
     hint: 'Opening a document from search or the palette moves the tab to it.',
   ),
   HuiTourStep(
@@ -73,9 +77,9 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
   HuiTourStep(
     title: 'The artboard places them',
     body:
-        'Drag a component to move it, drag empty space to marquee-select, '
-        'and hold Shift to add one at a time. Space-drag or middle-drag pans; '
-        'scroll zooms.',
+        'Drag a component to move it. On touch, drag empty canvas to pan. '
+        'With a mouse, drag empty space to marquee-select, hold Shift to add, '
+        'and Space-drag or middle-drag to pan. Scroll zooms.',
     selectors: <String>['.hui-center', '.hui-canvas'],
     hint:
         'X is mirrored against the JSON on purpose — the runtime negates it, '

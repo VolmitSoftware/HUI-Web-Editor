@@ -73,7 +73,7 @@
 .hui-canvas-toolbar .arcane-button {
   height: var(--hui-tool-size) !important;
   min-height: var(--hui-tool-size);
-  border-radius: 6px;
+  border-radius: 0;
   white-space: nowrap;
   /* --hui-dur-1: a toolbar toggle is a state flip and has to feel instant. The
      token, not a literal, is what puts it under 06-motion.css's one switch. */
@@ -91,7 +91,7 @@
 .hui-canvas-toolbar .arcane-button[data-size="iconSm"] {
   width: var(--hui-tool-size) !important;
   padding: 0 !important;
-  border-radius: 6px !important;
+  border-radius: 0 !important;
 }
 
 .hui-canvas-toolbar [aria-pressed="true"] {
@@ -359,6 +359,13 @@
   white-space: nowrap;
 }
 
+.hui-canvas-hint-touch { display: none; }
+
+@media (pointer: coarse), (max-width: 700px) {
+  .hui-canvas-hint-desktop { display: none; }
+  .hui-canvas-hint-touch { display: flex; }
+}
+
 /* A clause is shown whole or not at all: only the trailing note may shrink,
    and by then the queries below have already dropped it. */
 .hui-canvas-hint-item {
@@ -416,6 +423,10 @@
    reach them, which is worse than a clipped tooltip. */
 @container hui-canvas (max-width: 760px) {
   .hui-canvas-toolbar { overflow-x: auto; }
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  .hui-canvas-toolbar { --hui-tool-size: 40px; }
 }
 
 /* No reduced-motion block in this file any more, and none should come back.

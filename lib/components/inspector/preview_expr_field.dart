@@ -349,7 +349,7 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
               'width': '100%',
               'padding': '4px 6px',
               'border': '0',
-              'border-radius': 'calc(var(--hui-radius) - 3px)',
+              'border-radius': '0',
               'background': 'transparent',
               'color': 'var(--hui-text)',
               'text-align': 'left',

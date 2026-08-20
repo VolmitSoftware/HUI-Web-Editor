@@ -274,7 +274,7 @@ class _BarMenuState extends State<BarMenu> {
           'width': '100%',
           'padding': '6px 8px',
           'border': '0',
-          'border-radius': 'calc(var(--hui-radius) - 3px)',
+          'border-radius': '0',
           'background': 'transparent',
           'color': destructive ? 'var(--hui-danger)' : 'var(--hui-text)',
           'font': 'inherit',

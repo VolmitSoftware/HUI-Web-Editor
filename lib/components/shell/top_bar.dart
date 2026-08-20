@@ -127,155 +127,145 @@ class _TopBarState extends State<TopBar> {
     builder: (BuildContext context, String signature) => _bar(),
   );
 
-  /// Identity and document on the left, the kind tabs in the middle, and the
-  /// action clusters on the right — each a labelled group with a hairline
-  /// between it and the next (drawn by `.hui-bar-cluster + .hui-bar-cluster`
-  /// in 02-shell.css) so the right-hand run reads as mode / history / file /
-  /// assets / app instead of as fifteen identical icons.
-  ///
-  /// The centre is the kind tabs rather than the view switcher because the two
-  /// answer different questions and only one of them is navigation: the tabs
-  /// say what you are working on, the switcher how you are looking at it. Both
-  /// in the middle came to about 700px of chrome, which is more than the bar
-  /// has to give at laptop widths.
-  ///
-  /// The bar is a three-column grid whose side columns are always the same
-  /// width, so the centre column is centred on the viewport rather than on
-  /// whatever the two unequal side runs left over. That only works while the
-  /// right-hand run fits its column, which is what the give-way ladder in
-  /// 02-shell.css buys: as the viewport narrows, whole clusters fold into the
-  /// overflow menu of the matching tier ([_overflowMenu]), and below 700px the
-  /// tab strip itself folds into [_kindPicker]. Every collapsible surface is
-  /// rendered here at every width and chosen by CSS — nothing in this file
-  /// measures the viewport.
+  /// Identity and document actions occupy the command row. Document kinds and
+  /// editor modes occupy the navigation row below it, matching the two-tier
+  /// chrome used by desktop IDEs. The breakpoint ladder still folds whole
+  /// action groups into [_overflowMenu], and CSS swaps the labelled navigation
+  /// strips for compact pickers without measuring the viewport in Dart.
   Widget _bar() {
     _scheduleKindTabReveal();
     return dom.header(
       classes: 'hui-bar',
       attributes: const <String, String>{'role': 'banner'},
       <Widget>[
-        dom.div(classes: 'hui-bar-group hui-bar-left', <Widget>[
-          _cluster('Application', 'app', <Widget>[_brand()]),
-          // The armed strip names the document it is about to delete, so it
-          // stands in for the switcher rather than sitting beside it: two
-          // copies of the same name never fit the left column, and the one
-          // that mattered — the confirm — was the one that lost the space.
-          _cluster('Document', 'doc', <Widget>[
-            if (_armedDelete) _deleteStrip() else _documentSwitcher(),
+        dom.div(classes: 'hui-bar-primary', <Widget>[
+          dom.div(classes: 'hui-bar-group hui-bar-left', <Widget>[
+            _cluster('Application', 'app', <Widget>[_brand()]),
+            _cluster('Document', 'doc', <Widget>[
+              if (_armedDelete) _deleteStrip() else _documentSwitcher(),
+            ]),
+          ]),
+          dom.div(classes: 'hui-bar-group hui-bar-right', <Widget>[
+            _cluster('History', 'history', <Widget>[
+              _action(
+                icon: ArcaneIcon.undo(size: IconSize.sm),
+                label: _store.undoLabel == null
+                    ? 'Undo'
+                    : 'Undo ${_store.undoLabel}',
+                shortcut: 'mod+Z',
+                disabled: !_store.canUndo,
+                onPressed: _intents.undo,
+              ),
+              _action(
+                icon: ArcaneIcon.redo(size: IconSize.sm),
+                label: _store.redoLabel == null
+                    ? 'Redo'
+                    : 'Redo ${_store.redoLabel}',
+                shortcut: 'mod+Shift+Z',
+                disabled: !_store.canRedo,
+                onPressed: _intents.redo,
+              ),
+            ]),
+            _cluster('File', 'file', <Widget>[
+              _action(
+                icon: ArcaneIcon.upload(size: IconSize.sm),
+                label: 'Import JSON',
+                visibleLabel: 'Import',
+                hint: 'Dropping a .json file anywhere works too.',
+                onPressed: () => _intents.importMenu(),
+                disabled: !_store.canTransferDocument,
+              ),
+              _action(
+                icon: ArcaneIcon.download(size: IconSize.sm),
+                label: 'Export $_documentNoun JSON',
+                visibleLabel: 'Export',
+                shortcut: 'mod+S',
+                variant: ButtonVariant.outline,
+                onPressed: _intents.exportMenu,
+                disabled: !_store.canTransferDocument,
+              ),
+              _action(
+                icon: ArcaneIcon.copy(size: IconSize.sm),
+                label: 'Copy $_documentNoun JSON',
+                onPressed: () => _intents.copyJson(),
+                disabled: !_store.canTransferDocument,
+              ),
+            ]),
+            _cluster('Assets', 'assets', <Widget>[
+              _action(
+                icon: ArcaneIcon.images(size: IconSize.sm),
+                label: 'Images',
+                visibleLabel: 'Images',
+                hint: 'Upload the textures your textImage icons point at.',
+                onPressed: _intents.openImages,
+              ),
+              _action(
+                icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
+                label: 'Templates',
+                optional: true,
+                onPressed: _intents.openTemplates,
+              ),
+            ]),
+            _cluster('Editor', 'editor', <Widget>[
+              _action(
+                icon: ArcaneIcon.command(size: IconSize.sm),
+                label: 'Command palette',
+                shortcut: 'mod+K',
+                optional: true,
+                onPressed: _intents.openPalette,
+              ),
+              _action(
+                icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
+                label: 'Help',
+                optional: true,
+                onPressed: _intents.openHelp,
+              ),
+              _action(
+                icon: ArcaneIcon.settings(size: IconSize.sm),
+                label: 'Settings',
+                optional: true,
+                onPressed: _intents.openSettings,
+              ),
+              _action(
+                icon: component.darkMode
+                    ? ArcaneIcon.sun(size: IconSize.sm)
+                    : ArcaneIcon.moon(size: IconSize.sm),
+                label: component.darkMode
+                    ? 'Switch to the light theme'
+                    : 'Switch to the dark theme',
+                onPressed: _intents.toggleTheme,
+              ),
+            ]),
+            for (int tier = 1; tier <= _overflowTiers; tier++)
+              _overflowMenu(tier),
           ]),
         ]),
-        dom.div(classes: 'hui-bar-group hui-bar-center', <Widget>[
-          _kindTabs(),
-          _kindPicker(),
-        ]),
-        dom.div(classes: 'hui-bar-group hui-bar-right', <Widget>[
-          if (_store.hasActiveDocument) ...<Widget>[
-            dom.div(
-              classes: 'hui-bar-cluster hui-bar-views',
-              attributes: const <String, String>{
-                'role': 'group',
-                'aria-label': 'Editor mode',
-              },
-              <Widget>[
-                ViewSwitcher(
-                  view: _store.view,
-                  surfaceLabel: _store.docType.surfaceLabel,
-                  unavailableReason: _store.unavailableViewReason,
-                  onChanged: _intents.setView,
-                ),
-              ],
-            ),
-            _viewPicker(),
-          ],
-          _cluster('History', 'history', <Widget>[
-            _action(
-              icon: ArcaneIcon.undo(size: IconSize.sm),
-              label: _store.undoLabel == null
-                  ? 'Undo'
-                  : 'Undo ${_store.undoLabel}',
-              shortcut: 'mod+Z',
-              disabled: !_store.canUndo,
-              onPressed: _intents.undo,
-            ),
-            _action(
-              icon: ArcaneIcon.redo(size: IconSize.sm),
-              label: _store.redoLabel == null
-                  ? 'Redo'
-                  : 'Redo ${_store.redoLabel}',
-              shortcut: 'mod+Shift+Z',
-              disabled: !_store.canRedo,
-              onPressed: _intents.redo,
-            ),
+        dom.div(classes: 'hui-bar-context', <Widget>[
+          dom.div(classes: 'hui-bar-group hui-bar-center', <Widget>[
+            _kindTabs(),
+            _kindPicker(),
           ]),
-          _cluster('File', 'file', <Widget>[
-            _action(
-              icon: ArcaneIcon.upload(size: IconSize.sm),
-              label: 'Import JSON',
-              hint: 'Dropping a .json file anywhere works too.',
-              onPressed: () => _intents.importMenu(),
-              disabled: !_store.canTransferDocument,
-            ),
-            _action(
-              icon: ArcaneIcon.download(size: IconSize.sm),
-              label: 'Export $_documentNoun JSON',
-              shortcut: 'mod+S',
-              variant: ButtonVariant.outline,
-              onPressed: _intents.exportMenu,
-              disabled: !_store.canTransferDocument,
-            ),
-            _action(
-              icon: ArcaneIcon.copy(size: IconSize.sm),
-              label: 'Copy $_documentNoun JSON',
-              onPressed: () => _intents.copyJson(),
-              disabled: !_store.canTransferDocument,
-            ),
+          dom.div(classes: 'hui-bar-group hui-bar-context-tools', <Widget>[
+            if (_store.hasActiveDocument) ...<Widget>[
+              dom.div(
+                classes: 'hui-bar-cluster hui-bar-views',
+                attributes: const <String, String>{
+                  'role': 'group',
+                  'aria-label': 'Editor mode',
+                },
+                <Widget>[
+                  ViewSwitcher(
+                    view: _store.view,
+                    surfaceLabel: _store.docType.surfaceLabel,
+                    unavailableReason: _store.unavailableViewReason,
+                    onChanged: _intents.setView,
+                  ),
+                ],
+              ),
+              _viewPicker(),
+            ],
+            _mobilePaneControls(),
           ]),
-          _cluster('Assets', 'assets', <Widget>[
-            _action(
-              icon: ArcaneIcon.images(size: IconSize.sm),
-              label: 'Images',
-              hint: 'Upload the textures your textImage icons point at.',
-              onPressed: _intents.openImages,
-            ),
-            _action(
-              icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
-              label: 'Templates',
-              optional: true,
-              onPressed: _intents.openTemplates,
-            ),
-          ]),
-          _cluster('Editor', 'editor', <Widget>[
-            _action(
-              icon: ArcaneIcon.command(size: IconSize.sm),
-              label: 'Command palette',
-              shortcut: 'mod+K',
-              optional: true,
-              onPressed: _intents.openPalette,
-            ),
-            _action(
-              icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
-              label: 'Help',
-              optional: true,
-              onPressed: _intents.openHelp,
-            ),
-            _action(
-              icon: ArcaneIcon.settings(size: IconSize.sm),
-              label: 'Settings',
-              optional: true,
-              onPressed: _intents.openSettings,
-            ),
-            _action(
-              icon: component.darkMode
-                  ? ArcaneIcon.sun(size: IconSize.sm)
-                  : ArcaneIcon.moon(size: IconSize.sm),
-              label: component.darkMode
-                  ? 'Switch to the light theme'
-                  : 'Switch to the dark theme',
-              onPressed: _intents.toggleTheme,
-            ),
-          ]),
-          _mobilePaneControls(),
-          for (int tier = 1; tier <= _overflowTiers; tier++) _overflowMenu(tier),
         ]),
       ],
     );
@@ -292,8 +282,8 @@ class _TopBarState extends State<TopBar> {
   /// Selecting one scopes the library rail to that kind and points its create
   /// action at it — "scoreboard mode shows all my scoreboards". Registry-driven
   /// like the templates dialog's tabs, so a new kind arrives here with its
-  /// adapter and nothing else. Only the active tab carries its label; ten
-  /// labelled tabs would own the whole bar.
+  /// adapter and nothing else. The complete labelled strip is used at wide
+  /// widths, then folds into the labelled kind picker.
   Widget _kindTabs() => dom.div(
     classes: 'hui-kind-tabs',
     attributes: const <String, String>{'aria-label': 'Document kinds'},
@@ -353,10 +343,9 @@ class _TopBarState extends State<TopBar> {
     if (type != null) _intents.setMode(type);
   }
 
-  /// The tab strip folded into one control, for the phone bar where eleven
-  /// tabs cannot be shown and a scroller three tabs wide is worse than a
-  /// menu. It carries its kind's name so the current mode stays visible, which
-  /// is the one thing the strip did that a bare icon would lose.
+  /// The tab strip folded into one control below wide-workbench widths. It
+  /// carries its kind's name so the current mode stays visible, which is the
+  /// one thing the strip did that a bare icon would lose.
   Widget _kindPicker() => dom.div(
     classes: 'hui-bar-cluster hui-kind-picker',
     attributes: const <String, String>{
@@ -430,6 +419,7 @@ class _TopBarState extends State<TopBar> {
         id: 'hui-view-picker-menu',
         align: BarMenuAlign.right,
         triggerIcon: ViewSwitcher.iconOf(_store.view),
+        triggerText: ViewSwitcher.labelOf(_store.view),
         triggerTrailing: ArcaneIcon.chevronDown(size: IconSize.sm),
         triggerLabel: 'Editor mode: ${ViewSwitcher.labelOf(_store.view)}',
         width: 200,
@@ -455,8 +445,8 @@ class _TopBarState extends State<TopBar> {
 
   /// Keeps the selected tab inside the strip's visible run after a mode change
   /// that did not come from clicking a tab — the palette, the rail's create
-  /// action and opening a document all move the mode, and the strip is only as
-  /// wide as the centred column can spare.
+  /// action and opening a document all move the mode, and the wide-screen strip
+  /// can still overflow when localized labels grow.
   void _scheduleKindTabReveal() {
     final String kind = _store.mode?.kind.name ?? _allKindsValue;
     if (_revealedKind == kind) return;
@@ -492,20 +482,18 @@ class _TopBarState extends State<TopBar> {
   /// its own tier has taken off the bar and nothing else, which is what keeps
   /// any width from offering two routes to the same command.
   ///
-  /// Tier 1 is `≤1740px`, tier 2 `≤1400px`, tier 3 `≤1150px`, tier 4
+  /// Tier 1 is `≤1800px`, tier 2 `≤1400px`, tier 3 `≤1150px`, tier 4
   /// `≤1024px` — the same four numbers the stylesheet folds the clusters at.
-  Widget _overflowMenu(int tier) => dom.div(
-    classes: 'hui-bar-cluster hui-bar-overflow is-tier$tier',
-    <Widget>[
-      BarMenu(
-        id: 'hui-bar-more-tier$tier',
-        align: BarMenuAlign.right,
-        triggerIcon: ArcaneIcon.ellipsis(size: IconSize.sm),
-        triggerLabel: 'More actions',
-        entries: () => _overflowEntries(tier),
-      ),
-    ],
-  );
+  Widget _overflowMenu(int tier) => dom
+      .div(classes: 'hui-bar-cluster hui-bar-overflow is-tier$tier', <Widget>[
+        BarMenu(
+          id: 'hui-bar-more-tier$tier',
+          align: BarMenuAlign.right,
+          triggerIcon: ArcaneIcon.ellipsis(size: IconSize.sm),
+          triggerLabel: 'More actions',
+          entries: () => _overflowEntries(tier),
+        ),
+      ]);
 
   /// Cumulative by construction: every tier carries what the tiers above it
   /// carry plus the cluster its own breakpoint folded. Read top to bottom this
@@ -597,6 +585,7 @@ class _TopBarState extends State<TopBar> {
       _mobilePaneAction(
         icon: ArcaneIcon.panelLeft(size: IconSize.sm),
         label: component.mobileRailOpen ? 'Close library' : 'Open library',
+        visibleLabel: 'Files',
         pressed: component.mobileRailOpen,
         onPressed: component.onToggleMobileRail,
       ),
@@ -605,6 +594,7 @@ class _TopBarState extends State<TopBar> {
         label: component.mobileInspectorOpen
             ? 'Close inspector'
             : 'Open inspector',
+        visibleLabel: 'Inspect',
         pressed: component.mobileInspectorOpen,
         onPressed: component.onToggleMobileInspector,
       ),
@@ -614,12 +604,16 @@ class _TopBarState extends State<TopBar> {
   Widget _mobilePaneAction({
     required Widget icon,
     required String label,
+    required String visibleLabel,
     required bool pressed,
     required VoidCallback onPressed,
   }) => Button(
     icon: icon,
+    child: dom.span(classes: 'hui-mobile-pane-label', <Widget>[
+      Text(visibleLabel),
+    ]),
     variant: pressed ? ButtonVariant.secondary : ButtonVariant.ghost,
-    size: ButtonSize.iconSm,
+    size: ButtonSize.sm,
     onPressed: onPressed,
     attributes: <String, String>{
       'aria-label': label,
@@ -744,6 +738,7 @@ class _TopBarState extends State<TopBar> {
     required void Function() onPressed,
     String? shortcut,
     String? hint,
+    String? visibleLabel,
     bool disabled = false,
     bool optional = false,
     ButtonVariant variant = ButtonVariant.ghost,
@@ -751,8 +746,9 @@ class _TopBarState extends State<TopBar> {
     final String? aria = _ariaShortcut(shortcut);
     final Widget button = Button(
       icon: icon,
+      label: visibleLabel,
       variant: variant,
-      size: ButtonSize.iconSm,
+      size: visibleLabel == null ? ButtonSize.iconSm : ButtonSize.sm,
       disabled: disabled,
       onPressed: onPressed,
       attributes: <String, String>{
@@ -763,6 +759,7 @@ class _TopBarState extends State<TopBar> {
     return dom.span(
       classes: classNames(<String?>[
         'hui-bar-action',
+        visibleLabel == null ? null : 'has-label',
         optional ? 'is-optional' : null,
       ]),
       <Widget>[

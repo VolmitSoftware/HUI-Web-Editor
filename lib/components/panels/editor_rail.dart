@@ -57,6 +57,8 @@ class _EditorRailState extends State<EditorRail> {
   bool _importingBundle = false;
   bool _resetArmed = false;
   bool _resetting = false;
+  bool _newDocumentMenuOpen = false;
+  HuiActionMenuPoint _newDocumentMenuPoint = const HuiActionMenuPoint(8, 8);
   bool _workspaceMenuOpen = false;
   HuiActionMenuPoint _workspaceMenuPoint = const HuiActionMenuPoint(8, 8);
 
@@ -185,6 +187,7 @@ class _EditorRailState extends State<EditorRail> {
         ]),
       if (library) _library() else component.contents,
       if (_menuItemId != null) _itemContextMenu(),
+      if (_newDocumentMenuOpen) _newDocumentMenu(),
       if (_workspaceMenuOpen) _workspaceMenu(),
     ]);
   }
@@ -279,18 +282,16 @@ class _EditorRailState extends State<EditorRail> {
             ? 'hui-library-create'
             : 'hui-library-create is-scoped',
         <Widget>[
-          _iconButton(
-            label: 'New folder',
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.sm,
             icon: ArcaneIcon.folderPlus(size: IconSize.sm),
+            label: 'Folder',
             onPressed: _createFolder,
+            attributes: const <String, String>{'aria-label': 'New folder'},
           ),
           if (mode == null)
-            for (final DocumentTypeAdapter type in DocumentTypeRegistry.tabs)
-              _iconButton(
-                label: type.createLabel,
-                icon: type.createIcon(),
-                onPressed: () => _createDocument(type),
-              )
+            _newDocumentMenuButton()
           else
             Button(
               variant: ButtonVariant.outline,
@@ -302,6 +303,58 @@ class _EditorRailState extends State<EditorRail> {
         ],
       ),
     ]);
+  }
+
+  Widget _newDocumentMenuButton() => Button(
+    key: ValueKey<bool>(_newDocumentMenuOpen),
+    id: _newDocumentMenuTriggerId,
+    variant: ButtonVariant.outline,
+    size: ButtonSize.sm,
+    icon: ArcaneIcon.filePlus(size: IconSize.sm),
+    label: 'New document',
+    trailing: ArcaneIcon.chevronDown(size: IconSize.sm),
+    onPressed: _openNewDocumentMenu,
+    attributes: <String, String>{
+      'aria-haspopup': 'menu',
+      'aria-expanded': _newDocumentMenuOpen ? 'true' : 'false',
+      'aria-controls': _newDocumentMenuId,
+      'data-arcane-interactive': 'true',
+    },
+  );
+
+  Widget _newDocumentMenu() => HuiActionMenu(
+    id: _newDocumentMenuId,
+    label: 'New document',
+    point: _newDocumentMenuPoint,
+    onClose: _closeNewDocumentMenu,
+    items: <HuiActionMenuItem>[
+      for (final DocumentTypeAdapter type in DocumentTypeRegistry.tabs)
+        HuiActionMenuItem(
+          label: type.createLabel,
+          icon: type.createIcon(),
+          onSelect: () => _createDocument(type),
+        ),
+    ],
+  );
+
+  void _openNewDocumentMenu() {
+    setState(() {
+      _newDocumentMenuOpen = true;
+      _newDocumentMenuPoint = huiActionMenuAnchor(_newDocumentMenuTriggerId);
+      _workspaceMenuOpen = false;
+      _menuItemId = null;
+      _menuTriggerId = null;
+    });
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu(_newDocumentMenuId);
+    });
+  }
+
+  void _closeNewDocumentMenu() {
+    setState(() => _newDocumentMenuOpen = false);
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu(_newDocumentMenuTriggerId);
+    });
   }
 
   /// Keyed on the state it reports: Arcane's Button renders its `attributes`
@@ -360,6 +413,7 @@ class _EditorRailState extends State<EditorRail> {
       _workspaceMenuPoint = huiActionMenuAnchor(_workspaceMenuTriggerId);
       _menuItemId = null;
       _menuTriggerId = null;
+      _newDocumentMenuOpen = false;
     });
     context.binding.addPostFrameCallback(() {
       if (mounted) focusHuiActionMenu(_workspaceMenuId);
@@ -733,6 +787,10 @@ class _EditorRailState extends State<EditorRail> {
 
   String get _workspaceMenuTriggerId => 'hui-library-workspace-actions';
 
+  String get _newDocumentMenuId => 'hui-library-new-document-menu';
+
+  String get _newDocumentMenuTriggerId => 'hui-library-new-document';
+
   Widget _rowMenuButton({
     required String itemId,
     required String label,
@@ -782,6 +840,7 @@ class _EditorRailState extends State<EditorRail> {
       _movingId = null;
       _armedDeleteId = null;
       _workspaceMenuOpen = false;
+      _newDocumentMenuOpen = false;
     });
     context.binding.addPostFrameCallback(() {
       if (mounted) focusHuiActionMenu(_itemMenuId);
@@ -912,18 +971,6 @@ class _EditorRailState extends State<EditorRail> {
     ];
   }
 
-  Widget _iconButton({
-    required String label,
-    required Widget icon,
-    required void Function() onPressed,
-  }) => Button(
-    variant: ButtonVariant.ghost,
-    size: ButtonSize.iconSm,
-    onPressed: onPressed,
-    attributes: <String, String>{'aria-label': label, 'title': label},
-    child: icon,
-  );
-
   Widget _documentIcon(WorkspaceDocKind kind) =>
       DocumentTypeRegistry.of(kind).railIcon();
 
@@ -934,6 +981,7 @@ class _EditorRailState extends State<EditorRail> {
           _tab = tab;
           _menuItemId = null;
           _menuTriggerId = null;
+          _newDocumentMenuOpen = false;
         });
       }
     }
@@ -946,6 +994,7 @@ class _EditorRailState extends State<EditorRail> {
     _armedDeleteId = null;
     _menuItemId = null;
     _menuTriggerId = null;
+    _newDocumentMenuOpen = false;
   });
 
   void _toggleFolder(String id) => setState(() {

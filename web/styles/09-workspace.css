@@ -56,25 +56,20 @@
    live in the header menu — as icon buttons in this row they read as three
    more document kinds, which is how they were being misread. */
 .hui-library-create {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
+  display: flex;
   gap: 4px;
   width: 100%;
 }
-/* Scoped: one named create button for the kind on screen, so the primary
-   action of "scoreboard mode" says the word scoreboard. */
-.hui-library-create.is-scoped {
-  grid-template-columns: 34px minmax(0, 1fr);
-}
 .hui-library-create .arcane-button {
-  width: 100%;
-  min-width: 34px;
-  min-height: 34px;
-  padding-inline: 5px !important;
+  width: auto;
+  min-width: 0;
+  min-height: 32px;
+  padding-inline: 8px !important;
 }
-.hui-library-create.is-scoped .arcane-button:last-child {
+.hui-library-create .arcane-button:first-child { flex: 0 0 auto; }
+.hui-library-create .arcane-button:last-child {
+  flex: 1 1 auto;
   justify-content: flex-start;
-  padding-inline: 10px !important;
 }
 
 .hui-library-hint {
@@ -108,7 +103,7 @@
   box-sizing: border-box;
   padding: 4px 6px 4px calc(6px + var(--hui-tree-depth, 0) * 14px);
   border: 1px solid transparent;
-  border-radius: calc(var(--hui-radius) - 2px);
+  border-radius: 0;
   background: transparent;
   color: var(--hui-text);
   font: inherit;
@@ -151,7 +146,7 @@
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 7px;
+  border-radius: 0;
   background: transparent;
   color: var(--hui-muted);
   cursor: pointer;
@@ -171,7 +166,7 @@
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: 0;
   background: transparent;
   color: var(--hui-muted);
   cursor: pointer;
@@ -335,7 +330,7 @@
   width: 100%;
   padding: 7px 9px;
   border: 0;
-  border-radius: calc(var(--hui-radius) - 3px);
+  border-radius: 0;
   background: transparent;
   color: var(--hui-text);
   font: inherit;
@@ -374,9 +369,11 @@
     left: 8px;
     width: auto;
     max-height: min(72vh, 520px);
-    border-radius: calc(var(--hui-radius) + 4px);
+    border-radius: 0;
   }
   .hui-action-menu-item { min-height: 46px; padding: 10px 12px; }
+  .hui-library-create .arcane-button { min-height: 42px; }
+  .hui-library-disclosure { width: 40px; height: 40px; flex-basis: 40px; }
   .hui-library-row-menu { width: 40px; height: 40px; flex-basis: 40px; opacity: 1; }
 }
 

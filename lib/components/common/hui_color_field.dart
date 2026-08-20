@@ -125,7 +125,7 @@ class HuiColorSwatch extends StatelessWidget {
       'flex': '0 0 auto',
       'padding': '0',
       'border': '1px solid var(--hui-border, var(--border))',
-      'border-radius': '5px',
+      'border-radius': '0',
       'background-color': parts?.css ?? 'transparent',
     };
     if (parts == null || parts.a != 255) {

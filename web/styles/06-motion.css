@@ -212,7 +212,7 @@
 .hui-skeleton {
   position: relative;
   overflow: hidden;
-  border-radius: calc(var(--hui-radius) - 3px);
+  border-radius: 0;
   background: color-mix(in srgb, var(--hui-border) 42%, transparent);
   /* Nothing inside a skeleton is readable, and screen readers get the
      `role="status"` wrapper the widget emits instead. */
@@ -238,7 +238,7 @@
 .hui-skeleton-line.is-short { width: 42%; }
 .hui-skeleton-line.is-medium { width: 68%; }
 
-.hui-skeleton-block { height: 128px; border-radius: calc(var(--hui-radius) - 2px); }
+.hui-skeleton-block { height: 128px; border-radius: 0; }
 
 .hui-skeleton-group {
   display: grid;

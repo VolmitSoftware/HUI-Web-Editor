@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:gloss_editor/logic/viewport_math.dart';
@@ -22,6 +23,79 @@ HuiViewport _viewport({
 }
 
 void main() {
+  group('canBeginCanvasGesture', () {
+    test('accepts only the first active pointer', () {
+      expect(canBeginCanvasGesture(null), isTrue);
+      expect(canBeginCanvasGesture(7), isFalse);
+    });
+
+    test('both canvas stages reject a second active pointer', () {
+      for (final String path in <String>[
+        'lib/components/canvas/canvas_interactions.dart',
+        'lib/components/preview_card/preview_card_interactions.dart',
+      ]) {
+        expect(
+          File(path).readAsStringSync(),
+          contains('if (!canBeginCanvasGesture(_activePointerId))'),
+          reason: path,
+        );
+      }
+    });
+  });
+
+  group('shouldPanCanvasGesture', () {
+    test('touch pans only when the gesture starts on empty canvas', () {
+      expect(
+        shouldPanCanvasGesture(
+          pointerType: 'touch',
+          button: 0,
+          spaceHeld: false,
+          hasTarget: false,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldPanCanvasGesture(
+          pointerType: 'touch',
+          button: 0,
+          spaceHeld: false,
+          hasTarget: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('mouse keeps marquee and explicit pan gestures', () {
+      expect(
+        shouldPanCanvasGesture(
+          pointerType: 'mouse',
+          button: 0,
+          spaceHeld: false,
+          hasTarget: false,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldPanCanvasGesture(
+          pointerType: 'mouse',
+          button: 1,
+          spaceHeld: false,
+          hasTarget: true,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldPanCanvasGesture(
+          pointerType: 'mouse',
+          button: 0,
+          spaceHeld: true,
+          hasTarget: true,
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('CanvasTransform', () {
     test('identity is zoom 1 with no pan', () {
       const CanvasTransform t = CanvasTransform.identity;

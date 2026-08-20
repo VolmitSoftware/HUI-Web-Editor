@@ -103,31 +103,42 @@ extension _PreviewCardInteractions on _PreviewCardViewportState {
     if (pointer.button != _primaryButton && pointer.button != _middleButton) {
       return;
     }
+    if (!canBeginCanvasGesture(_activePointerId)) {
+      event.preventDefault();
+      return;
+    }
     _stage?.focus();
     _setHint(null);
     _lastClientX = _eventDouble(pointer, 'clientX');
     _lastClientY = _eventDouble(pointer, 'clientY');
-    final bool forcePan = pointer.button == _middleButton || _spaceHeld;
+    final ({double x, double y}) local = _localPoint(
+      _lastClientX,
+      _lastClientY,
+    );
+    final ({double x, double y}) card = (
+      x: _view.toCardX(local.x),
+      y: _view.toCardY(local.y),
+    );
+    final PreviewCardScene scene = _currentScene;
+    final PreviewHandle? handle = _handleAt(scene, local.x, local.y);
+    final bool hasTarget =
+        handle != null ||
+        previewHitTestItem(scene, card.x, card.y, labelWidths: _labelWidths) !=
+            null;
+    final bool pan = shouldPanCanvasGesture(
+      pointerType: pointer.pointerType,
+      button: pointer.button,
+      spaceHeld: _spaceHeld,
+      hasTarget: hasTarget,
+    );
 
-    if (forcePan) {
+    if (pan) {
       _dragMode = _PreviewDragMode.pan;
       _dragElement = null;
+    } else if (handle != null) {
+      _beginResize(scene, handle);
     } else {
-      final ({double x, double y}) local = _localPoint(
-        _lastClientX,
-        _lastClientY,
-      );
-      final ({double x, double y}) card = (
-        x: _view.toCardX(local.x),
-        y: _view.toCardY(local.y),
-      );
-      final PreviewCardScene scene = _currentScene;
-      final PreviewHandle? handle = _handleAt(scene, local.x, local.y);
-      if (handle != null) {
-        _beginResize(scene, handle);
-      } else {
-        _beginSelectOrDrag(scene, card.x, card.y);
-      }
+      _beginSelectOrDrag(scene, card.x, card.y);
     }
 
     _statusDirty = true;
@@ -383,6 +394,7 @@ extension _PreviewCardInteractions on _PreviewCardViewportState {
     final web.KeyboardEvent key = event as web.KeyboardEvent;
     if (key.ctrlKey || key.metaKey || key.altKey) return;
     if (_isTextEntryFocused()) return;
+    if (key.key == 'Escape' && huiMobilePaneOpen()) return;
 
     bool handled = true;
     switch (key.key) {

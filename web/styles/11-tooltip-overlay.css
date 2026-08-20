@@ -26,7 +26,7 @@ html.gloss-tooltip-overlay-ready .neon-floating-container > [data-arcane-surface
   color: var(--foreground, #f7f4ec);
   background: var(--popover, #151515);
   border: 1px solid var(--border, #353535);
-  border-radius: 8px;
+  border-radius: 0;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .34);
   font-family: var(--font-sans, system-ui, sans-serif);
   font-size: 12px;

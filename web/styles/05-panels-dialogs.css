@@ -176,7 +176,7 @@
 }
 
 .hui-rail-main:focus-visible {
-  border-radius: calc(var(--hui-radius) - 2px);
+  border-radius: 0;
   outline: 2px solid var(--hui-ring);
   outline-offset: 2px;
 }
@@ -191,7 +191,7 @@
   flex: 0 0 22px;
   align-items: center;
   justify-content: center;
-  border-radius: calc(var(--hui-radius) - 3px);
+  border-radius: 0;
   background: var(--hui-panel-soft);
   color: var(--hui-muted);
   transition:
@@ -296,7 +296,7 @@
   width: 24px !important;
   height: 24px !important;
   padding: 0 !important;
-  border-radius: calc(var(--hui-radius) - 3px) !important;
+  border-radius: 0 !important;
 }
 
 /* No hover to reveal them with, and a coarse pointer needs a bigger target. */
@@ -332,6 +332,23 @@
   width: 32px !important;
   height: 32px !important;
   padding: 0 !important;
+}
+
+@media (pointer: coarse) and (max-width: 1024px), (max-width: 700px) {
+  .hui-rail-add .arcane-button {
+    min-width: 40px;
+    height: 40px !important;
+    min-height: 40px;
+  }
+
+  .hui-rail-tools .arcane-button,
+  .hui-rail-confirm .arcane-button,
+  .hui-rail-rename .arcane-button {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px;
+    min-height: 40px;
+  }
 }
 
 .hui-rail-empty { padding: var(--hui-space-3) var(--hui-space-1); }
@@ -606,7 +623,7 @@
   gap: 10px;
   padding: 7px 9px;
   border: 1px solid var(--hui-border);
-  border-radius: 6px;
+  border-radius: 0;
   background: color-mix(in srgb, var(--hui-panel) 92%, var(--hui-bg));
   font-size: .76rem;
 }
@@ -638,7 +655,7 @@
 [data-arcane-id^="hui-"] .arcane-dialog {
   max-height: min(92vh, 980px) !important;
   border: 1px solid var(--hui-border) !important;
-  border-radius: calc(var(--hui-radius) + 4px) !important;
+  border-radius: 0 !important;
   background-color: var(--hui-panel) !important;
   box-shadow: var(--hui-shadow-md) !important;
 }
@@ -923,7 +940,7 @@
   gap: 10px;
   padding: 7px 9px;
   border: 1px solid var(--hui-border);
-  border-radius: 6px;
+  border-radius: 0;
   background: color-mix(in srgb, var(--hui-panel) 92%, var(--hui-bg));
   color: var(--hui-text);
   font-size: .76rem;
@@ -1005,7 +1022,7 @@
   align-items: center;
   justify-content: center;
   height: 128px;
-  border-radius: calc(var(--hui-radius) - 2px);
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -1098,7 +1115,7 @@
   min-height: 118px;
   padding: 12px;
   border: 1px solid var(--hui-border);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--hui-panel);
   color: inherit;
   cursor: pointer;
@@ -1294,7 +1311,7 @@
   width: 30px;
   height: 30px;
   flex: 0 0 auto;
-  border-radius: calc(var(--hui-radius) - 2px);
+  border-radius: 0;
   background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
   transition: transform var(--hui-dur-2) var(--hui-ease-spring);
 }
@@ -1329,7 +1346,7 @@
     border-right: 0 !important;
     border-bottom: 0 !important;
     border-left: 0 !important;
-    border-radius: 14px 14px 0 0 !important;
+    border-radius: 0 !important;
   }
 
   [data-arcane-id^="hui-"] .arcane-dialog-footer {

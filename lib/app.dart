@@ -60,6 +60,9 @@ class _OfflineShadcnStylesheet extends ShadcnStylesheet {
         "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, "
         'Consolas, monospace',
   );
+
+  @override
+  RadiusConfig get radius => const RadiusConfig.sharp();
 }
 
 class App extends StatefulWidget {

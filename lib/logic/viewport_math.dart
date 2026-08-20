@@ -33,6 +33,15 @@ const double huiWheelLinePixels = 16.0;
 /// origin, in blocks. Keeps the menu from being panned into nowhere.
 const double huiPanLimitBlocks = 256.0;
 
+bool canBeginCanvasGesture(int? activePointerId) => activePointerId == null;
+
+bool shouldPanCanvasGesture({
+  required String pointerType,
+  required int button,
+  required bool spaceHeld,
+  required bool hasTarget,
+}) => button == 1 || spaceHeld || (pointerType == 'touch' && !hasTarget);
+
 /// Guard against divide-by-zero when the canvas has not been laid out yet.
 const double _minPixelsPerBlock = 1e-6;
 

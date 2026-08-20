@@ -28,12 +28,15 @@ import '../../logic/preview_card_edit.dart';
 import '../../logic/preview_card_scene.dart';
 import '../../logic/preview_sim.dart';
 import '../../logic/preview_sim_controls.dart';
+import '../../logic/viewport_math.dart'
+    show canBeginCanvasGesture, shouldPanCanvasGesture;
 import '../../model/preview_doc.dart';
 import '../../services/catalogs.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../render/canvas_brush.dart';
 import '../render/icon_renderers.dart';
+import '../shell/key_listener.dart' show huiMobilePaneOpen;
 import '../shell/shell_status.dart';
 import 'preview_card_painter.dart';
 import 'preview_card_toolbar.dart';
@@ -202,8 +205,8 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
       'tabindex': '0',
       'role': 'application',
       'aria-label':
-          'Container preview card. Scroll to zoom, space or '
-          'middle-drag to pan, drag an element to move it.',
+          'Container preview card. Drag empty canvas to pan on touch, use the '
+          'zoom controls or scroll to zoom, and drag an element to move it.',
     },
     <Widget>[
       Component.element(
@@ -250,7 +253,9 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
         ),
       ),
       _stageTree,
-      const dom.div(classes: 'hui-canvas-hint', <Widget>[
+      const dom.div(classes: 'hui-canvas-hint hui-canvas-hint-desktop', <
+        Widget
+      >[
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
           Component.text(
             'Space or middle-drag pans - scroll zooms - 0 resets '
@@ -268,6 +273,17 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
             'Positions are whole pixels from the card centre, y '
             'up. Expression-driven fields are edited in the inspector.',
           ),
+        ]),
+      ]),
+      const dom.div(classes: 'hui-canvas-hint hui-canvas-hint-touch', <Widget>[
+        dom.span(classes: 'hui-canvas-hint-item', <Widget>[
+          Component.text('Drag empty canvas to pan'),
+        ]),
+        dom.span(classes: 'hui-canvas-hint-item', <Widget>[
+          Component.text('Use the zoom controls'),
+        ]),
+        dom.span(classes: 'hui-canvas-hint-item', <Widget>[
+          Component.text('Drag elements to move'),
         ]),
       ]),
     ]);
