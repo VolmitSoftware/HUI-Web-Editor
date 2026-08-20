@@ -16,10 +16,10 @@
 ///   },
 ///   "shimmer": {
 ///     "spawn": true,
-///     "flyAway": true,
+///     "flyAway": false,
 ///     "color": "#ffffff",
 ///     "width": 3,
-///     "durationMs": 700,
+///     "durationMs": 4233,
 ///     "spawnDelayMs": 0,
 ///     "flyAwayLeadMs": 700
 ///   },
@@ -58,6 +58,19 @@ const int glossBubbleMaxShimmerWidth = 16;
 const int glossBubbleMinShimmerDurationMs = 100;
 const int glossBubbleMaxShimmerDurationMs = 10000;
 const int glossBubbleMaxShimmerOffsetMs = 60000;
+
+/// `BubbleShimmerPlan.CYCLE_GLYPHS` — legacy `SHINETICK`. The band head is a
+/// whole visible-glyph index and repeats every 127 of them, so `durationMs` is
+/// the wall time for one full 127-glyph cycle rather than one pass over the
+/// text.
+const int glossBubbleShimmerCycleGlyphs = 127;
+
+/// `BubbleShimmerPlan.LEGACY_CYCLE_MS` — 127 glyphs at the legacy 30 glyphs per
+/// second, and the `durationMs` a file that omits the key runs.
+const int glossBubbleShimmerDefaultDurationMs = 4233;
+
+/// `BubbleStyleDoc.Shimmer.DEFAULT_COLOR` — the solid legacy band color.
+const String glossBubbleShimmerDefaultColor = '#ffffff';
 
 const int glossBubbleCurrentSchemaVersion = 2;
 
@@ -136,6 +149,7 @@ const Set<String> _shimmerKnown = <String>{
   'spawn',
   'flyAway',
   'color',
+  'edgeColor',
   'width',
   'durationMs',
   'spawnDelayMs',
@@ -354,13 +368,24 @@ final class GlossBubbleMotion {
   );
 }
 
+/// `BubbleStyleDoc.Shimmer` — the Gloss shine band.
+///
+/// `spawn` anchors the free-running cycle at the bubble's birth, which is what
+/// the legacy filter did; `durationMs` is the wall time the band head needs for
+/// one full [glossBubbleShimmerCycleGlyphs] cycle, so the shipped
+/// [glossBubbleShimmerDefaultDurationMs] is the legacy 30 glyphs per second.
+/// `flyAway` adds a second cycle anchored to departure and defaults OFF — the
+/// free-running one already walks the band off the edge and back.
+///
+/// Every lit glyph uses `color`; the shipped three-glyph band is solid white,
+/// matching the original Gloss special-colour filter.
 final class GlossBubbleShimmer {
   GlossBubbleShimmer({
     this.spawn = true,
-    this.flyAway = true,
-    this.color = '#ffffff',
+    this.flyAway = false,
+    this.color = glossBubbleShimmerDefaultColor,
     this.width = 3,
-    this.durationMs = 700,
+    this.durationMs = glossBubbleShimmerDefaultDurationMs,
     this.spawnDelayMs = 0,
     this.flyAwayLeadMs = 700,
     Map<String, dynamic>? extras,
@@ -368,7 +393,10 @@ final class GlossBubbleShimmer {
 
   bool spawn;
   bool flyAway;
+
+  /// The color applied to every lit glyph in the band.
   String color;
+
   int width;
   int durationMs;
   int spawnDelayMs;
@@ -389,22 +417,27 @@ final class GlossBubbleShimmer {
   int get effectiveFlyAwayLeadMs =>
       flyAwayLeadMs.clamp(0, glossBubbleMaxShimmerOffsetMs);
 
-  bool get colorIsValid => RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(color.trim());
+  static final RegExp _rgb = RegExp(r'^#[0-9a-fA-F]{6}$');
 
-  String get effectiveColor =>
-      colorIsValid ? color.trim().toLowerCase() : '#ffffff';
+  bool get colorIsValid => _rgb.hasMatch(color.trim());
+
+  String get effectiveColor => colorIsValid
+      ? color.trim().toLowerCase()
+      : glossBubbleShimmerDefaultColor;
 
   static GlossBubbleShimmer fromJson(Object? raw) {
     if (raw == null) return GlossBubbleShimmer();
     final Map<String, dynamic> map = huiReadObject(raw, r'$.shimmer');
     return GlossBubbleShimmer(
       spawn: map.containsKey('spawn') ? huiReadBool(map, 'spawn') : true,
-      flyAway: map.containsKey('flyAway') ? huiReadBool(map, 'flyAway') : true,
-      color: map.containsKey('color') ? huiReadString(map, 'color') : '#ffffff',
+      flyAway: map.containsKey('flyAway') && huiReadBool(map, 'flyAway'),
+      color: map.containsKey('color')
+          ? huiReadString(map, 'color')
+          : glossBubbleShimmerDefaultColor,
       width: map.containsKey('width') ? huiReadInt(map, 'width') : 3,
       durationMs: map.containsKey('durationMs')
           ? huiReadInt(map, 'durationMs')
-          : 700,
+          : glossBubbleShimmerDefaultDurationMs,
       spawnDelayMs: map.containsKey('spawnDelayMs')
           ? huiReadInt(map, 'spawnDelayMs')
           : 0,

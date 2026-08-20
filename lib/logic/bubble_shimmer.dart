@@ -1,64 +1,111 @@
+/// Mirror of Gloss `BubbleShimmerPlan.java` — the Gloss shine band.
+///
+/// ## Timing — the legacy law, unchanged
+///
+/// The legacy `TextFilterColorSpecial` ran a 60 Hz integer clock from the
+/// moment a display component was built, advanced a band head one visible
+/// glyph every second clock unit, and lit a glyph when
+/// `Math.abs(((clock / 2) - at) % 127) < 2`. That is a free-running band of
+/// 127 glyph steps travelling at exactly 30 glyphs per second, one radius
+/// glyph either side of the head, wrapping forever rather than sweeping once.
+///
+/// So `durationMs` is the wall time the head needs for one full
+/// [glossBubbleShimmerCycleGlyphs] cycle, not the time for one pass over the
+/// text: the band crosses at a constant 30 glyphs per second at the shipped
+/// [glossBubbleShimmerDefaultDurationMs] whatever the line length, walks off
+/// the right edge, and comes back 127 glyph steps later. Nothing here is
+/// bounded to a pass and nothing freezes at the end.
+///
+/// TRAP: the lit test is Java's `%`, which keeps the DIVIDEND's sign, while
+/// Dart's `%` is Euclidean and never returns a negative for a positive
+/// divisor. The difference is the whole shape of the band — see
+/// [_javaRemainder]. With Java's remainder the band is three glyphs wide and
+/// centred on the head while the head is still crossing the text, and becomes
+/// a two-glyph trail at `head - 127` and `head - 128` on every later wrap.
+/// With Dart's it would be neither.
+///
+/// Every lit glyph uses one solid color and each wrapped row restarts its
+/// visible index at zero, matching the original Gloss filter while keeping the
+/// modern one-TextDisplay multiline block. The underlying color and
+/// decorations are restored after every lit glyph.
 library;
 
 import '../model/gloss_bubble_style.dart';
 
-double? glossBubbleShimmerProgress(
+/// One band step in milliseconds: the head is a whole glyph index, so a frame
+/// only changes this often (~33.3 ms at the shipped cycle). The preview has to
+/// repaint at least twice this fast or it aliases the band.
+double glossBubbleShimmerStepMs(GlossBubbleShimmer shimmer) =>
+    shimmer.effectiveDurationMs / glossBubbleShimmerCycleGlyphs;
+
+/// The band head, in visible glyphs, for a bubble of [lifetimeMs] at age
+/// [ageMs], or null when neither cycle is running. The departure cycle wins
+/// while both are (`BubbleShimmerPlan.head`).
+///
+/// Once a cycle has started it never stops: the head keeps climbing past the
+/// end of the text until the bubble expires.
+int? glossBubbleShimmerHead(
   GlossBubbleShimmer shimmer, {
   required int ageMs,
   required int lifetimeMs,
 }) {
+  final int cycleMs = shimmer.effectiveDurationMs;
   if (shimmer.flyAway) {
-    final int flyAwayStartMs = (lifetimeMs - shimmer.effectiveFlyAwayLeadMs)
-        .clamp(0, lifetimeMs);
-    final double? departure = _phaseProgress(
-      ageMs,
-      flyAwayStartMs,
-      shimmer.effectiveDurationMs,
-    );
-    if (departure != null) return departure;
+    final int departureStartMs = lifetimeMs - shimmer.effectiveFlyAwayLeadMs;
+    final int startMs = departureStartMs < 0 ? 0 : departureStartMs;
+    if (ageMs >= startMs) return _headAt(ageMs - startMs, cycleMs);
   }
-  if (!shimmer.spawn) return null;
-  return _phaseProgress(
-    ageMs,
-    shimmer.effectiveSpawnDelayMs,
-    shimmer.effectiveDurationMs,
-  );
+  if (shimmer.spawn && ageMs >= shimmer.effectiveSpawnDelayMs) {
+    return _headAt(ageMs - shimmer.effectiveSpawnDelayMs, cycleMs);
+  }
+  return null;
 }
 
+/// Lights the glyphs under the solid band at [head], restoring each glyph's
+/// own colour and accumulated formats straight after. Every wrapped row uses
+/// its own zero-based visible index, as the original separate components did.
 String glossBubbleApplyShimmer(
   String input,
   GlossBubbleShimmer shimmer,
-  double? progress,
+  int? head,
 ) {
-  if (progress == null || input.isEmpty) return input;
-  return input
-      .split('\n')
-      .map(
-        (String line) => _renderLine(
-          line,
-          shimmer.effectiveColor,
-          shimmer.effectiveWidth,
-          progress,
-        ),
-      )
-      .join('\n');
+  if (head == null || input.isEmpty) return input;
+  final String color = _rgbCode(shimmer.effectiveColor);
+  if (!input.contains('\n')) {
+    return _renderLine(input, color, shimmer.effectiveWidth, head);
+  }
+  final List<String> rendered = <String>[];
+  for (final String line in input.split('\n')) {
+    rendered.add(_renderLine(line, color, shimmer.effectiveWidth, head));
+  }
+  return rendered.join('\n');
 }
 
-double? _phaseProgress(int ageMs, int startMs, int durationMs) {
-  final int elapsedMs = ageMs - startMs;
-  if (elapsedMs < 0 || elapsedMs > durationMs) return null;
-  return (elapsedMs / durationMs).clamp(0.0, 1.0).toDouble();
+int _headAt(int elapsedMs, int cycleMs) =>
+    cycleMs == glossBubbleShimmerDefaultDurationMs
+    ? (elapsedMs * 3) ~/ 100
+    : (elapsedMs * glossBubbleShimmerCycleGlyphs) ~/ cycleMs;
+
+/// Java's `%`: the remainder takes the sign of the dividend.
+///
+/// Dart's `%` is Euclidean — `(-1) % 127` is 126 here and -1 in Java — so the
+/// band law cannot use it. `~/` truncates toward zero exactly like Java's
+/// integer division, which makes this the same operation Java's `%` is.
+int _javaRemainder(int value, int divisor) =>
+    value - (value ~/ divisor) * divisor;
+
+bool _lit(int head, int at, int width) {
+  final int distance = _javaRemainder(head - at, glossBubbleShimmerCycleGlyphs);
+  final int before = (width - 1) ~/ 2;
+  final int after = width - before - 1;
+  return distance >= -after && distance <= before;
 }
 
-String _renderLine(String line, String color, int width, double progress) {
-  final int visibleCount = _visibleCount(line);
-  if (visibleCount == 0) return line;
-  final double center = progress * (visibleCount - 1);
-  final int first = (center - ((width - 1) / 2)).round();
-  final int last = first + width - 1;
-  final StringBuffer rendered = StringBuffer();
+/// Builds lazily, exactly like the plugin: a line with nothing lit is returned
+/// untouched rather than rebuilt glyph by glyph.
+String _renderLine(String line, String color, int width, int head) {
+  StringBuffer? rendered;
   final _BubbleFormatState formatting = _BubbleFormatState();
-  final String shimmerCode = _rgbCode(color);
   int visibleIndex = 0;
   int cursor = 0;
   while (cursor < line.length) {
@@ -66,39 +113,25 @@ String _renderLine(String line, String color, int width, double progress) {
     if (formatLength > 0) {
       final String raw = line.substring(cursor, cursor + formatLength);
       formatting.apply(raw);
-      rendered.write(raw);
+      rendered?.write(raw);
       cursor += formatLength;
       continue;
     }
     final int codePoint = _codePointAt(line, cursor);
-    final String glyph = String.fromCharCode(codePoint);
-    if (visibleIndex >= first && visibleIndex <= last) {
-      rendered.write(shimmerCode);
-      rendered.write(glyph);
-      rendered.write(formatting.codes);
+    final int glyphLength = codePoint > 0xffff ? 2 : 1;
+    if (_lit(head, visibleIndex, width)) {
+      rendered ??= StringBuffer(line.substring(0, cursor));
+      rendered
+        ..write(color)
+        ..write(line.substring(cursor, cursor + glyphLength))
+        ..write(formatting.codes);
     } else {
-      rendered.write(glyph);
+      rendered?.write(line.substring(cursor, cursor + glyphLength));
     }
     visibleIndex++;
-    cursor += codePoint > 0xffff ? 2 : 1;
+    cursor += glyphLength;
   }
-  return rendered.toString();
-}
-
-int _visibleCount(String line) {
-  int count = 0;
-  int cursor = 0;
-  while (cursor < line.length) {
-    final int formatLength = _formatLength(line, cursor);
-    if (formatLength > 0) {
-      cursor += formatLength;
-      continue;
-    }
-    final int codePoint = _codePointAt(line, cursor);
-    count++;
-    cursor += codePoint > 0xffff ? 2 : 1;
-  }
-  return count;
+  return rendered == null ? line : rendered.toString();
 }
 
 int _codePointAt(String input, int index) {

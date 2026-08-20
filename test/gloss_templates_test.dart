@@ -270,10 +270,12 @@ void main() {
       expect(first.motion.translation.y, glossBubbleLegacyFlyAwayExpression);
       expect(first.motion.opacity, '1');
       expect(first.shimmer.spawn, isTrue);
-      expect(first.shimmer.flyAway, isTrue);
+      // The shipped shine free-runs from spawn, so the extra departure cycle
+      // is off and durationMs is one full 127-glyph cycle.
+      expect(first.shimmer.flyAway, isFalse);
       expect(first.shimmer.color, '#ffffff');
       expect(first.shimmer.width, 3);
-      expect(first.shimmer.durationMs, 700);
+      expect(first.shimmer.durationMs, glossBubbleShimmerDefaultDurationMs);
       expect(first.shimmer.flyAwayLeadMs, 700);
       final List<HuiIssue> issues = validateBubbleStyleDoc(first);
       // The shipped default HAS no select — it is the fallback by name.

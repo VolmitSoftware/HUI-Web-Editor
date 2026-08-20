@@ -10,14 +10,17 @@
 /// the player silhouette the frame draws; without it the surface keeps its
 /// editor stage and readout.
 ///
-/// Pause freezes the clock offset; resume rejoins where it left off. Owns a
-/// repaint timer only while playing and mounted.
+/// Pause freezes the clock offset; resume rejoins where it left off. Owns one
+/// repaint driver only while playing and mounted: an animation-frame loop when
+/// the style has a shine band, the 50 ms motion timer otherwise.
 library;
 
 import 'dart:async';
+import 'dart:js_interop';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
+import 'package:web/web.dart' as web;
 
 import '../../logic/bubble_preview.dart';
 import '../../logic/bubble_shimmer.dart';
@@ -28,8 +31,13 @@ import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 
-/// Repaint period. The stack eases every poll in game; 50 ms (one tick)
-/// keeps mathematical motion smooth without burning frames.
+/// Repaint period for motion alone. The stack eases every poll in game; 50 ms
+/// (one tick) keeps mathematical motion smooth without burning frames.
+///
+/// It is far too coarse for the shine band, whose head steps every
+/// `durationMs / 127` — about 33 ms at the shipped cycle, and less on any
+/// shorter one — so a style with a band drives repaints from
+/// `requestAnimationFrame` instead and this timer stays cancelled.
 const Duration _tickPeriod = Duration(milliseconds: 50);
 
 /// Pixels per block on the mock stage — presentation scale only.
@@ -50,6 +58,10 @@ class BubbleView extends StatefulWidget {
 
 class _BubbleViewState extends State<BubbleView> {
   Timer? _ticker;
+
+  /// True between asking for an animation frame and being called back, so a
+  /// rebuild from any other cause never stacks a second request.
+  bool _framePending = false;
   bool _playing = true;
 
   /// The preview clock: wall time minus this offset. Pausing captures the
@@ -107,8 +119,20 @@ class _BubbleViewState extends State<BubbleView> {
     });
   }
 
-  void _syncTicker() {
+  /// Picks the repaint driver for this frame and keeps exactly one running.
+  ///
+  /// A configured shine band steps its head faster than one Minecraft tick, so
+  /// it takes the animation-frame loop; everything else stays on the 50 ms
+  /// timer. Both stop dead when the surface is paused, the workspace toggle is
+  /// off, or the component is gone — neither leaves work scheduled.
+  void _syncTicker(GlossBubbleStyleDoc doc) {
     final bool wanted = _playing && _store.animationsPlaying;
+    if (wanted && (doc.shimmer.spawn || doc.shimmer.flyAway)) {
+      _ticker?.cancel();
+      _ticker = null;
+      _requestFrame();
+      return;
+    }
     if (wanted && _ticker == null) {
       _ticker = Timer.periodic(_tickPeriod, (Timer _) {
         if (mounted) setState(() {});
@@ -117,6 +141,20 @@ class _BubbleViewState extends State<BubbleView> {
       _ticker?.cancel();
       _ticker = null;
     }
+  }
+
+  /// One frame at a time: the callback repaints, the repaint runs
+  /// [_syncTicker] again, and that asks for the next one only while the
+  /// preview is still playing. Nothing re-arms after a pause or a dispose.
+  void _requestFrame() {
+    if (_framePending) return;
+    _framePending = true;
+    web.window.requestAnimationFrame(_onAnimationFrame.toJS);
+  }
+
+  void _onAnimationFrame(double _) {
+    _framePending = false;
+    if (mounted) setState(() {});
   }
 
   GlossBubblePreviewTimeline _timelineFor(GlossBubbleStyleDoc doc) {
@@ -141,7 +179,7 @@ class _BubbleViewState extends State<BubbleView> {
       }
       return const dom.div(classes: 'hui-bubble-stage is-empty', <Widget>[]);
     }
-    _syncTicker();
+    _syncTicker(doc);
     final GlossBubblePreviewTimeline timeline = _timelineFor(doc);
     final int nowMs = _nowMs();
     final List<GlossBubblePreviewBubble> bubbles = timeline.bubblesAt(nowMs);
@@ -175,7 +213,7 @@ class _BubbleViewState extends State<BubbleView> {
                 glossBubbleApplyShimmer(
                   doc.effectivePrefix + bubble.text,
                   doc.shimmer,
-                  bubble.shimmerProgress,
+                  bubble.shimmerHead,
                 ),
                 animations: _store.workspaceAnimations,
                 emoji: _store.workspaceEmoji,
@@ -240,10 +278,17 @@ class _BubbleViewState extends State<BubbleView> {
       'offset ${doc.offset.map((double value) => value.toStringAsFixed(1)).join(', ')}',
       'alive ${doc.effectiveMaxAliveMs} ms',
       'expression motion',
-      if (doc.shimmer.spawn || doc.shimmer.flyAway) 'left-to-right shimmer',
+      if (doc.shimmer.spawn || doc.shimmer.flyAway)
+        'shine band ${_glyphsPerSecond(doc.shimmer)} glyphs/s',
       doc.followPlayer ? 'follows the player' : 'anchored where sent',
       if (doc.hideOwn) 'hidden from the sender',
     ];
     return parts.join(' · ');
   }
+
+  /// The band's constant travel speed, which is what `durationMs` really sets:
+  /// 127 glyph steps per cycle, 30 a second at the shipped 4233 ms.
+  int _glyphsPerSecond(GlossBubbleShimmer shimmer) =>
+      (glossBubbleShimmerCycleGlyphs * 1000 / shimmer.effectiveDurationMs)
+          .round();
 }

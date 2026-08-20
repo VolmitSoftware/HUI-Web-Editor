@@ -62,6 +62,8 @@ class BarMenu extends StatefulWidget {
     required this.triggerIcon,
     required this.triggerLabel,
     required this.entries,
+    this.triggerText,
+    this.triggerTrailing,
     this.align = BarMenuAlign.left,
     this.width = 240,
     super.key,
@@ -70,6 +72,16 @@ class BarMenu extends StatefulWidget {
   /// Also the DOM id of the menu; the trigger takes `$id-trigger`.
   final String id;
   final Widget triggerIcon;
+
+  /// Visible text beside [triggerIcon]. Null keeps the trigger a square icon
+  /// button; a value turns it into a labelled one, which is what the narrow
+  /// bar's kind picker needs — a picker whose current value is invisible is a
+  /// worse control than the tab strip it replaces.
+  final String? triggerText;
+
+  /// Drawn after the label. A chevron here is the only thing that says the
+  /// control opens rather than acts.
+  final Widget? triggerTrailing;
 
   /// Accessible name of the trigger. Never contains a capital-M "Menu": the
   /// mobile-menu binder claims `[aria-label*="Menu"]`
@@ -127,8 +139,21 @@ class _BarMenuState extends State<BarMenu> {
         // always the previous value.
         key: ValueKey<bool>(_open),
         id: _triggerId,
-        size: ButtonSize.iconSm,
+        // A square icon slot cannot hold a label or a chevron beside the icon,
+        // so anything past the bare icon takes the regular small button box.
+        size: component.triggerText == null && component.triggerTrailing == null
+            ? ButtonSize.iconSm
+            : ButtonSize.sm,
         icon: component.triggerIcon,
+        // A `label` renders as a bare text node with nothing to hang a class
+        // on; the narrowest phone rung needs to drop this text and keep the
+        // icon, so it goes through `child` and carries its own hook.
+        child: component.triggerText == null
+            ? null
+            : dom.span(classes: 'hui-picker-label', <Widget>[
+                Text(component.triggerText!),
+              ]),
+        trailing: component.triggerTrailing,
         attributes: <String, String>{
           'aria-haspopup': 'menu',
           'aria-expanded': _open ? 'true' : 'false',

@@ -1049,6 +1049,37 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'lifetimeMs and receive ageMs as the block advances.',
     citation: 'BubbleStyleDoc.java:33',
   ),
+  'bubble.shimmer.color': HuiFieldDoc(
+    title: 'Band color',
+    body:
+        'Every lit glyph in the moving band uses this color. The shipped '
+        'original-Gloss preset is a solid white three-glyph wave. Each '
+        'glyph\'s own color and formats are restored straight after it.',
+    citation: 'BubbleShimmerPlan.java:128-134',
+  ),
+  'bubble.shimmer.durationMs': HuiFieldDoc(
+    title: 'Cycle duration',
+    body:
+        'Wall time for one full 127-glyph cycle of the shine band, NOT the '
+        'time for one pass over the text. The head advances 127 / duration '
+        'glyphs a second regardless of how long the line is, so the shipped '
+        '4233 is the original 30 glyphs a second; the band then walks off the '
+        'edge and returns 127 glyph steps later, for as long as the bubble '
+        'lives. TRAP: an older file that explicitly wrote the previous 700 '
+        'now runs about six times too fast — drop the key and take the '
+        'default.',
+    citation: 'BubbleShimmerPlan.java:24-28',
+  ),
+  'bubble.shimmer.flyAway': HuiFieldDoc(
+    title: 'Fly-away shimmer',
+    body:
+        'Adds an EXTRA cycle anchored flyAwayLeadMs before expiry, and it '
+        'wins over the spawn cycle while both are running. It defaults OFF '
+        'now: the spawn cycle free-runs to expiry rather than stopping after '
+        'one pass, so it already produces a departure pass by itself. Turn it '
+        'on only to force the band back to the left edge on departure.',
+    citation: 'BubbleShimmerPlan.java:77-88',
+  ),
   'bubble.followPlayer': HuiFieldDoc(
     title: 'Follow player',
     body:

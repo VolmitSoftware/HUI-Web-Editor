@@ -211,12 +211,36 @@ body.hui-resizing * { cursor: col-resize !important; }
 }
 
 /* ---- Top bar ------------------------------------------------------------ */
+/* Three columns, and the two outer ones are always the same width. That is the
+   whole mechanism behind a centred tab strip: `minmax(0, 1fr)` on both sides
+   makes grid split the leftover equally no matter how much content each side
+   actually holds, so the middle column sits on the viewport centre rather than
+   wherever two unequal runs happened to leave it. A flex row cannot do this —
+   `flex: 1 1 auto` sizes each side to its own content, which is what left the
+   strip 271px left of centre in a 1600px window.
+
+   The cost is that the right-hand run must FIT its column: a grid item wider
+   than its track overflows, and an end-justified one overflows leftwards, over
+   the strip. `--hui-bar-side` is the floor that stops it — the SAME minimum on
+   both side tracks, so raising it never breaks the symmetry, it just takes the
+   space out of the middle. Each rung of the ladder at the foot of this file
+   sets it to what that tier's right-hand run actually measures, which is what
+   turns "the run overlaps the strip" into "the strip scrolls", the one give-way
+   this bar is allowed. Keep the numbers a few pixels over the measurement: too
+   low and the run overlaps again, too high and the strip scrolls early.
+   Below 700px the bar drops back to flex, where symmetry is worth less than
+   the 200px it costs. */
 .hui-bar {
+  --hui-bar-side: 630px;
   position: relative;
   z-index: 20;
-  display: flex;
+  display: grid;
+  grid-template-columns:
+    minmax(var(--hui-bar-side), 1fr)
+    minmax(0, auto)
+    minmax(var(--hui-bar-side), 1fr);
   align-items: center;
-  gap: var(--hui-space-3);
+  gap: var(--hui-space-2);
   min-height: var(--hui-bar-height);
   padding: 0 var(--hui-space-3);
   border-bottom: 1px solid var(--hui-border-soft);
@@ -236,12 +260,24 @@ body.hui-resizing * { cursor: col-resize !important; }
 }
 
 .hui-bar-group { display: flex; align-items: center; gap: 0; min-width: 0; }
-.hui-bar-left { flex: 1 1 auto; }
-/* The mode tabs are the widest thing in the bar and the first that should give
-   way: they shrink and scroll rather than pushing the document name or the
-   action clusters off the ends. */
-.hui-bar-center { flex: 0 1 auto; min-width: 0; }
-.hui-bar-right { flex: 1 1 auto; justify-content: flex-end; }
+/* Each group is packed against its own edge inside an equal-width column, so
+   the identity reads from the left, the actions from the right, and the strip
+   from the middle. `justify-self` also stops a group from stretching, which is
+   what keeps the document name's ellipsis at the end of the name instead of at
+   the end of the column. */
+.hui-bar-left { justify-self: start; max-width: 100%; }
+/* `max-width: 100%` is load-bearing, not defensive: a justified grid item is
+   sized `fit-content`, and a flex container holding a scroll box resolves that
+   to its MAX-content — the strip kept its full 481px and drew itself under the
+   right-hand run at every width where the middle column was narrower than
+   that. A percentage resolves against the grid area, which is the one number
+   that is always the column. */
+.hui-bar-center { justify-self: center; min-width: 0; max-width: 100%; }
+.hui-bar-right {
+  justify-self: end;
+  justify-content: flex-end;
+  max-width: 100%;
+}
 
 /* One hairline per boundary, drawn by the cluster that follows it. Grouping the
    bar this way is what stops eleven identical icon buttons reading as one run. */
@@ -252,13 +288,19 @@ body.hui-resizing * { cursor: col-resize !important; }
   min-width: 0;
 }
 .hui-bar-cluster + .hui-bar-cluster {
-  margin-left: 7px;
-  padding-left: 7px;
+  margin-left: 5px;
+  padding-left: 5px;
   border-left: 1px solid var(--hui-border-soft);
 }
 
-/* Shown only once the bar is too narrow for the `is-optional` actions. */
-.hui-bar-overflow { display: none; }
+/* Every collapsible surface is mounted at every width and chosen here: the four
+   overflow menus, the kind picker that replaces the tab strip and the view
+   picker that replaces the segmented switcher all start hidden, and the
+   responsive ladder turns on exactly one of each. Nothing in Dart measures the
+   viewport. */
+.hui-bar-overflow,
+.hui-kind-picker,
+.hui-bar-view-picker,
 .hui-mobile-panes,
 .hui-pane-scrim { display: none; }
 
@@ -308,7 +350,7 @@ body.hui-resizing * { cursor: col-resize !important; }
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: var(--hui-space-2);
+  min-width: 0;
   padding: 4px 6px 4px 12px;
   border: 1px solid color-mix(in srgb, var(--hui-danger) 50%, var(--hui-border));
   border-radius: var(--hui-radius);
@@ -316,10 +358,35 @@ body.hui-resizing * { cursor: col-resize !important; }
   font-size: 0.8rem;
   white-space: nowrap;
 }
+/* The question gives way before the two buttons do: a confirm whose Delete has
+   been pushed off the column is worse than one whose file name is elided. */
+.hui-armed > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hui-armed > .arcane-button { flex: 0 0 auto; }
 
 .hui-view-switcher { display: flex; align-items: center; }
 .hui-view-switcher-item { display: inline-flex; align-items: center; gap: 6px; }
-.hui-view-label { font-size: 0.8rem; font-weight: 600; }
+
+/* The four view names are read out, hovered as a title and listed in the
+   picker, but never drawn: labelled segments cost 176px, and 176px is most of
+   the difference between a centred tab strip and one that scrolls at 1600px.
+   Hidden by clipping rather than `display: none` so the segment keeps its
+   accessible name — an icon-only <button> with a display:none label has none. */
+.hui-view-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
 
 /* A mode the open kind cannot serve keeps its place and reads as unavailable.
    It stays clickable: the click is what says why, and a `disabled` button in
@@ -333,7 +400,11 @@ body.hui-resizing * { cursor: col-resize !important; }
 /* Ten kinds plus All never fit as labelled tabs, and folding them into a
    dropdown would hide the one thing this strip exists to make obvious. Only
    the active tab is named; the rest are their document icon, with the plural
-   label carried as the title. */
+   label carried as the title.
+   The strip scrolls inside its centred column when that column is narrower
+   than eleven tabs. `_revealActiveKindTab` in top_bar.dart is what keeps the
+   selected one inside the visible run after a mode change that did not come
+   from clicking a tab. */
 .hui-kind-tabs {
   display: flex;
   align-items: center;
@@ -341,6 +412,7 @@ body.hui-resizing * { cursor: col-resize !important; }
   max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
   scrollbar-width: none;
 }
 .hui-kind-tabs::-webkit-scrollbar { display: none; }
@@ -356,7 +428,28 @@ body.hui-resizing * { cursor: col-resize !important; }
   font-weight: 600;
   white-space: nowrap;
 }
-.hui-kind-tabs button:not(.selected) .hui-kind-tab-label { display: none; }
+/* Clipped, not removed, for the same reason as `.hui-view-label`: an unselected
+   tab is an icon-only button and the name is all the accessible name it has. */
+.hui-kind-tabs button:not(.selected) .hui-kind-tab-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* The strip's stand-in below 700px, and the switcher's below 900px. The kind
+   picker is labelled because the one thing a picker must not lose is which
+   kind is current; the view picker is not, because its trigger IS the current
+   view's icon. */
+.hui-kind-picker .arcane-button { max-width: 38vw; }
+.hui-picker-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .hui-tip { display: grid; gap: 4px; }
 .hui-tip-head {
@@ -870,17 +963,65 @@ body.hui-resizing * { cursor: col-resize !important; }
 /* ---- Responsive --------------------------------------------------------- */
 /* No breakpoint may set --hui-rail-width or --hui-inspector-width: those are
    user-owned and written inline on <html>, which out-cascades any rule here.
-   The `min()` caps on .hui-shell-body do the narrow-viewport work instead. */
-@media (max-width: 1240px) {
+   The `min()` caps on .hui-shell-body do the narrow-viewport work instead.
+
+   THE GIVE-WAY ORDER. The bar's middle column is centred on the viewport, so
+   its width is `viewport − 2 × (whatever the right-hand run needs)`. Every rung
+   below exists to buy the middle back: the right-hand run sheds one cluster at
+   a time into the overflow menu of the matching tier, and the tab strip gets
+   the space. Read top to bottom, the order is:
+
+     1800  the four `is-optional` actions (Templates, palette, Settings, Help)
+     1400  the whole Assets and Editor clusters
+     1150  the File cluster
+     1024  the History cluster — last of the action clusters, because undo is
+           what a cramped bar is most likely to need — and the panes become
+           overlays, which adds the two pane toggles back onto the right-hand
+           run
+      900  the four-segment view switcher, into the view picker: on a tablet
+           the strip is the navigation, and 180px of segments is what it costs
+      700  the eleven-tab strip itself, into the kind picker; the bar leaves
+           the symmetric grid and packs as a flex row
+      430  the brand mark, and then the kind picker's own label
+
+   Between rungs the strip is what gives: `--hui-bar-side` holds the two side
+   columns open at the width that tier's actions actually need, and the middle
+   column takes what is left, scrolling when eleven tabs do not fit it.
+
+   Nothing here hides an action outright: each rung moves it into the overflow
+   menu that tier shows (`.hui-bar-overflow.is-tierN`, mounted by
+   `_overflowMenu` in top_bar.dart), so every command stays one press away at
+   every width. Tier N's menu carries exactly what rungs 1..N folded, which is
+   why there are four menus rather than one — a single menu would list actions
+   that are still on the bar. */
+@media (max-width: 1800px) {
+  .hui-bar { --hui-bar-side: 528px; }
   .hui-bar-action.is-optional { display: none; }
-  .hui-bar-overflow.is-compact { display: flex; }
+  .hui-bar-overflow.is-tier1 { display: flex; }
+}
+@media (max-width: 1400px) {
+  .hui-bar { --hui-bar-side: 430px; }
+  .hui-bar-assets,
+  .hui-bar-editor { display: none; }
+  .hui-bar-overflow.is-tier1 { display: none; }
+  .hui-bar-overflow.is-tier2 { display: flex; }
+  .hui-doc-id { max-width: 200px; }
+}
+@media (max-width: 1150px) {
+  .hui-bar { --hui-bar-side: 305px; }
+  .hui-bar-file { display: none; }
+  .hui-bar-overflow.is-tier2 { display: none; }
+  .hui-bar-overflow.is-tier3 { display: flex; }
 }
 @media (max-width: 1100px) {
-  .hui-view-label { display: none; }
   .hui-brand-word { display: none; }
   .hui-doc-id { max-width: 150px; }
 }
 @media (max-width: 1024px) {
+  .hui-bar { --hui-bar-side: 310px; }
+  .hui-bar-history { display: none; }
+  .hui-bar-overflow.is-tier3 { display: none; }
+  .hui-bar-overflow.is-tier4 { display: flex; }
   .hui-splitter { display: none; }
   .hui-shell-body {
     position: relative;
@@ -952,35 +1093,57 @@ body.hui-resizing * { cursor: col-resize !important; }
     border-top: 1px solid var(--hui-border-soft);
     border-left: 0;
   }
+  /* Still the symmetric grid — the strip is centred all the way down to the
+     phone rung. Only the padding and the gutter tighten. */
   .hui-bar {
-    flex-wrap: nowrap;
-    gap: 4px;
+    gap: 6px;
     width: 100%;
     min-width: 0;
     padding: 4px 8px;
   }
-  .hui-bar-left { flex: 1 1 0; overflow: hidden; }
-  .hui-bar-center { flex: 0 1 auto; }
-  .hui-bar-right { flex: 0 0 auto; }
   .hui-doc-id { max-width: 132px; }
+  .hui-bar-cluster + .hui-bar-cluster {
+    margin-left: 5px;
+    padding-left: 5px;
+  }
 }
 
-@media (max-width: 720px) {
+/* Four labelled-by-tooltip segments cost about 180px, and at tablet widths that
+   is most of what the strip has left. The switcher folds into a picker whose
+   trigger is the current view's own icon, so the two read as one control at two
+   sizes and the route to the code view survives at one press. */
+@media (max-width: 900px) {
+  .hui-bar { --hui-bar-side: 215px; }
+  .hui-bar-views { display: none; }
+  .hui-bar-view-picker { display: flex; }
+}
+
+/* ---- Phone -------------------------------------------------------------- */
+/* Below here the bar stops being a symmetric three-column grid. Equal side
+   columns cost roughly twice the widest run, and on a 375px screen that is the
+   whole viewport; a phone bar is a packed row, and the kind picker sitting a
+   few pixels off centre is not a defect worth 200px. */
+@media (max-width: 700px) {
+  .hui-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  /* The document name is the only elastic thing left: everything else is a
+     press target at its natural size, and the title takes what remains. */
+  .hui-bar-left { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  .hui-bar-center { flex: 0 0 auto; }
+  .hui-bar-right { flex: 0 0 auto; }
+
   .hui-brand { display: flex; }
-  .hui-doc-id { max-width: min(26vw, 96px); }
+  .hui-doc-id { max-width: none; }
   .hui-doc-ext { display: none; }
 
-  /* The mode switcher survives: it is the only route to the code view on a
-     phone, where the overflow menu carries the file actions instead. */
-  .hui-bar-right > .hui-bar-cluster:not(.hui-mobile-panes):not(.hui-bar-overflow):not(.hui-bar-views) {
-    display: none;
-  }
-  /* The tabs stay reachable on a phone rather than being hidden — they are
-     the only pointer route to a mode — but they give up the space first and
-     scroll inside whatever is left. */
-  .hui-bar-center { flex: 1 1 0; }
-  .hui-bar-overflow.is-compact { display: none; }
-  .hui-bar-overflow.is-mobile { display: flex; }
+  /* Eleven tabs in a 100px column is a worse control than a menu, so the strip
+     hands over to the picker here. Every kind stays one press away. */
+  .hui-kind-tabs { display: none; }
+  .hui-kind-picker { display: flex; }
+
   .hui-bar-cluster + .hui-bar-cluster {
     margin-left: 2px;
     padding-left: 2px;
@@ -1010,6 +1173,34 @@ body.hui-resizing * { cursor: col-resize !important; }
   .hui-status-item { overflow: hidden; text-overflow: ellipsis; }
 }
 
+/* Last thing on the bar with no job but identity, and then the picker's label:
+   on a 375px screen with 40px press targets, the document name, the picker,
+   the view picker, two pane toggles and the overflow already spend the row.
+   The kind stays readable as its own icon, and as the picker's accessible
+   name. */
+@media (max-width: 430px) {
+  .hui-brand { display: none; }
+  .hui-kind-picker .arcane-button { max-width: none; }
+  .hui-kind-picker .hui-picker-label { display: none; }
+
+  /* The rename pencil is a 40px press target buying an action the rail also
+     offers, and it was taking that 40px straight out of the document name —
+     at 360px the name was down to an ellipsis. The name wins here; renaming
+     stays available from the library row's own menu.
+     `MutableText` writes `display: inline-flex` inline on that button, and an
+     inline declaration cannot be outranked by a plain author rule; this is the
+     same situation the keycap override at the foot of this file documents, so
+     `!important` is the mechanism rather than a shortcut. */
+  .hui-doc-id .arcane-row > .arcane-button { display: none !important; }
+  .hui-doc-id .arcane-row { min-width: 0; }
+  .hui-doc-id .arcane-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 @media (pointer: coarse) and (max-width: 1024px) {
   .hui-bar .arcane-button,
   .hui-sync-actions .arcane-button,
@@ -1033,6 +1224,11 @@ body.hui-resizing * { cursor: col-resize !important; }
    reached is the @keyframes they name — redefining them as no-ops flattens the
    toast layer as completely as zeroing a duration would. */
 @media (prefers-reduced-motion: reduce) {
+  /* The one motion in this file that is not a duration: the strip's reveal
+     scroll. It still has to happen — the selected tab must end up visible —
+     so it jumps instead of gliding. */
+  .hui-kind-tabs { scroll-behavior: auto; }
+
   @keyframes arcane-toast-enter { from { opacity: 1; } }
   @keyframes arcane-toast-exit { to { opacity: 1; } }
   /* The countdown is decoration on top of a timer the user cannot influence;

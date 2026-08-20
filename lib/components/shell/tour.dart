@@ -56,7 +56,7 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
         'Each tab scopes the library to one kind of document — menus, '
         'scoreboards, holograms, tab lists — and points the New button at it. '
         'All keeps the whole workspace in view.',
-    selectors: <String>['.hui-kind-tabs', '.hui-bar-center'],
+    selectors: <String>['.hui-kind-tabs', '.hui-kind-picker', '.hui-bar-center'],
     hint: 'Opening a document from search or the palette moves the tab to it.',
   ),
   HuiTourStep(
@@ -95,7 +95,11 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
         'Visual is the document\'s own editing surface, Preview renders it '
         'the way the server does, Code is its JSON, and Split shows both. A '
         'mode a document cannot serve says why instead of disappearing.',
-    selectors: <String>['.hui-view-switcher', '.hui-bar-views'],
+    selectors: <String>[
+      '.hui-view-switcher',
+      '.hui-bar-view-picker',
+      '.hui-bar-views',
+    ],
     hint:
         'For a menu, Preview runs hover push, click dispatch and the distance '
         'close, logging every command and sound instead of firing it.',

@@ -316,12 +316,29 @@ class _BubbleInspectorState extends State<BubbleInspector> {
     sectionKey: 'bubble.shimmer',
     children: <Widget>[
       const HuiNote(
-        'The original Gloss shine: a bounded color band crosses every line '
-        'left-to-right at spawn and again near the end of the bubble.',
+        'Original Gloss shine: a solid white three-glyph wave moves left to '
+        'right at exactly 30 glyphs a second. Each wrapped row restarts at its '
+        'left edge. With the default five-second lifetime it returns after '
+        '4.234 seconds while the bubble is flying away.',
       ),
+      dom.div(classes: 'hui-bubble-motion-presets', <Widget>[
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          onPressed: () => _store.mutateBubbleStyle(
+            'original Gloss shimmer preset',
+            (GlossBubbleStyleDoc edited) =>
+                edited.shimmer = GlossBubbleShimmer(),
+          ),
+          child: const Text('Original Gloss'),
+        ),
+      ]),
       HuiSwitchRow(
         label: 'At spawn',
-        help: 'Run one shimmer after the configured spawn delay.',
+        help:
+            'Anchor the free-running cycle at the bubble\'s birth, after the '
+            'configured spawn delay. This is the shine itself, not a one-off '
+            'pass.',
         value: doc.shimmer.spawn,
         onChanged: (bool value) => _store.mutateBubbleStyle(
           'bubble spawn shimmer',
@@ -330,9 +347,12 @@ class _BubbleInspectorState extends State<BubbleInspector> {
       ),
       HuiSwitchRow(
         label: 'At fly-away',
+        trailing: const HuiFieldHelp('bubble.shimmer.flyAway'),
         help:
-            'Run the second shimmer flyAwayLeadMs before expiry, alongside '
-            'whatever motion expressions are active then.',
+            'Adds an EXTRA cycle anchored flyAwayLeadMs before expiry, '
+            'alongside whatever motion expressions are active then. Off by '
+            'default: the free-running cycle already produces a departure '
+            'pass on its own.',
         value: doc.shimmer.flyAway,
         onChanged: (bool value) => _store.mutateBubbleStyle(
           'bubble fly-away shimmer',
@@ -341,13 +361,23 @@ class _BubbleInspectorState extends State<BubbleInspector> {
       ),
       HuiField(
         label: 'Band color',
-        help: 'Exactly six RGB digits in #RRGGBB form.',
+        trailing: const HuiFieldHelp('bubble.shimmer.color'),
+        help:
+            'Every lit glyph in the wave. Exactly six RGB digits in #RRGGBB form.',
+        defaultValue: glossBubbleShimmerDefaultColor,
+        onReset: doc.shimmer.color == glossBubbleShimmerDefaultColor
+            ? null
+            : () => _editShimmer(
+                'color',
+                (GlossBubbleShimmer shimmer) =>
+                    shimmer.color = glossBubbleShimmerDefaultColor,
+              ),
         control: dom.div(<Widget>[
           HuiColorField(
             value: doc.shimmer.color,
             format: HuiColorFormat.rgb,
             label: 'shimmer band colour',
-            placeholder: '#ffffff',
+            placeholder: glossBubbleShimmerDefaultColor,
             onChanged: (String value) => _store.mutateBubbleStyle(
               'bubble shimmer color',
               (GlossBubbleStyleDoc edited) => edited.shimmer.color = value,
@@ -358,31 +388,51 @@ class _BubbleInspectorState extends State<BubbleInspector> {
       ),
       _clampedNumber(
         label: 'Band width',
-        help: 'Visible characters lit at once. 1..16.',
+        help:
+            'Visible characters lit at once. The original Gloss width is 3. 1..16.',
         value: doc.shimmer.width,
         effective: doc.shimmer.effectiveWidth,
         path: r'$.shimmer.width',
+        defaultValue: '3',
+        onReset: doc.shimmer.width == 3
+            ? null
+            : () => _editShimmer(
+                'band width',
+                (GlossBubbleShimmer shimmer) => shimmer.width = 3,
+              ),
         onChanged: (int value) => _editShimmer(
           'band width',
           (GlossBubbleShimmer shimmer) => shimmer.width = value,
         ),
       ),
       _clampedNumber(
-        label: 'Sweep duration',
-        help: 'Milliseconds for one complete left-to-right sweep. 100..10000.',
+        label: 'Cycle duration',
+        helpKey: 'bubble.shimmer.durationMs',
+        help:
+            'Milliseconds for one full 127-glyph cycle, not for one pass over '
+            'the text: the band travels 127 / duration glyphs a second '
+            'whatever the line length. 100..10000.',
         value: doc.shimmer.durationMs,
         effective: doc.shimmer.effectiveDurationMs,
         path: r'$.shimmer.durationMs',
         unit: HuiDurationUnit.milliseconds,
         step: 50,
+        defaultValue: '$glossBubbleShimmerDefaultDurationMs ms',
+        onReset: doc.shimmer.durationMs == glossBubbleShimmerDefaultDurationMs
+            ? null
+            : () => _editShimmer(
+                'cycle duration',
+                (GlossBubbleShimmer shimmer) =>
+                    shimmer.durationMs = glossBubbleShimmerDefaultDurationMs,
+              ),
         onChanged: (int value) => _editShimmer(
-          'sweep duration',
+          'cycle duration',
           (GlossBubbleShimmer shimmer) => shimmer.durationMs = value,
         ),
       ),
       _clampedNumber(
         label: 'Spawn delay',
-        help: 'Milliseconds after the bubble appears before the first sweep.',
+        help: 'Milliseconds after the bubble appears before the cycle starts.',
         value: doc.shimmer.spawnDelayMs,
         effective: doc.shimmer.effectiveSpawnDelayMs,
         path: r'$.shimmer.spawnDelayMs',
@@ -396,8 +446,9 @@ class _BubbleInspectorState extends State<BubbleInspector> {
       _clampedNumber(
         label: 'Fly-away lead',
         help:
-            'Milliseconds before expiry when the second sweep starts. Match '
-            'or exceed the sweep duration to show the complete pass.',
+            'Milliseconds before expiry when the extra cycle restarts from '
+            'the left edge. Match or exceed the cycle duration to show a '
+            'complete pass.',
         value: doc.shimmer.flyAwayLeadMs,
         effective: doc.shimmer.effectiveFlyAwayLeadMs,
         path: r'$.shimmer.flyAwayLeadMs',
@@ -431,12 +482,16 @@ class _BubbleInspectorState extends State<BubbleInspector> {
     required String path,
     required void Function(int value) onChanged,
     String? helpKey,
+    String? defaultValue,
+    void Function()? onReset,
     HuiDurationUnit? unit,
     double step = 1,
   }) => HuiField(
     label: label,
     trailing: helpKey == null ? null : HuiFieldHelp(helpKey),
     help: help,
+    defaultValue: defaultValue,
+    onReset: onReset,
     control: dom.div(<Widget>[
       if (unit == null)
         HuiNumberField(

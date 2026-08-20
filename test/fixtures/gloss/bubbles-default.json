@@ -27,10 +27,10 @@
   },
   "shimmer": {
     "spawn": true,
-    "flyAway": true,
+    "flyAway": false,
     "color": "#ffffff",
     "width": 3,
-    "durationMs": 700,
+    "durationMs": 4233,
     "spawnDelayMs": 0,
     "flyAwayLeadMs": 700
   }

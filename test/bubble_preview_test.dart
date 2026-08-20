@@ -44,7 +44,7 @@ void main() {
         expect(a[index].text, b[index].text);
         expect(a[index].stackY, b[index].stackY);
         expect(a[index].motion.translationY, b[index].motion.translationY);
-        expect(a[index].shimmerProgress, b[index].shimmerProgress);
+        expect(a[index].shimmerHead, b[index].shimmerHead);
       }
     }
   });
@@ -119,22 +119,31 @@ void main() {
     expect(bubble.motion.translationY, greaterThan(9));
   });
 
-  test('preview exposes both bounded shimmer passes on the bubble frame', () {
+  test('preview exposes the free-running band head on the bubble frame', () {
+    final GlossBubblePreviewTimeline timeline = GlossBubblePreviewTimeline(
+      _style(shimmer: GlossBubbleShimmer(durationMs: 1000, spawnDelayMs: 100)),
+    );
+    expect(timeline.bubblesAt(99).single.shimmerHead, isNull);
+    expect(timeline.bubblesAt(100).single.shimmerHead, 0);
+    expect(timeline.bubblesAt(600).single.shimmerHead, 63);
+    // Free running: the head keeps climbing to expiry instead of going null
+    // once a bounded pass would have finished.
+    expect(timeline.bubblesAt(2500).first.shimmerHead, 304);
+    expect(timeline.bubblesAt(4000).first.shimmerHead, 495);
+  });
+
+  test('the optional departure cycle restarts the head near expiry', () {
     final GlossBubblePreviewTimeline timeline = GlossBubblePreviewTimeline(
       _style(
         shimmer: GlossBubbleShimmer(
+          flyAway: true,
           durationMs: 1000,
-          spawnDelayMs: 100,
           flyAwayLeadMs: 1000,
         ),
       ),
     );
-    expect(timeline.bubblesAt(99).single.shimmerProgress, isNull);
-    expect(timeline.bubblesAt(100).single.shimmerProgress, 0);
-    expect(timeline.bubblesAt(600).single.shimmerProgress, 0.5);
-    expect(timeline.bubblesAt(2500).first.shimmerProgress, isNull);
-    expect(timeline.bubblesAt(4000).first.shimmerProgress, 0);
-    expect(timeline.bubblesAt(4500).first.shimmerProgress, 0.5);
+    expect(timeline.bubblesAt(3999).first.shimmerHead, 507);
+    expect(timeline.bubblesAt(4000).first.shimmerHead, 0);
   });
 
   test('the loop period clears the stage before restarting', () {

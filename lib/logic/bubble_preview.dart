@@ -8,12 +8,12 @@ import 'bubble_stack_math.dart';
 import 'preview_expr.dart';
 
 const List<String> glossBubblePreviewMessages = <String>[
-  '§1Magic_Psycho: §fImportant server news: §dSwiftSwamp smells >.< §fand I have gathered extremely scientific evidence.',
-  '§bSwiftSwamp: §fI reject this allegation. That was clearly §5Cyberpwn §ftesting a suspicious new particle effect nearby.',
-  '§5Cyberpwn: §fThe profiler says the smell started exactly when §bSwiftSwamp §fjoined, but correlation is not causation.',
-  '§6Puretie: §fI brought soap, flowers, and a written incident report. We can settle this responsibly at spawn.',
-  '§1Magic_Psycho: §fGreat. Meeting in five minutes; bring screenshots, snacks, and the animated rainbow evidence.',
-  '§bSwiftSwamp: §fFine, but when I prove it was the swamp biome, everyone owes me diamonds and a public apology.',
+  '§1Magic_Psycho: §7Important server news: §dSwiftSwamp smells >.< §7and I have gathered extremely scientific evidence.',
+  '§bSwiftSwamp: §7I reject this allegation. That was clearly §5Cyberpwn §7testing a suspicious new particle effect nearby.',
+  '§5Cyberpwn: §7The profiler says the smell started exactly when §bSwiftSwamp §7joined, but correlation is not causation.',
+  '§6Puretie: §7I brought soap, flowers, and a written incident report. We can settle this responsibly at spawn.',
+  '§1Magic_Psycho: §7Great. Meeting in five minutes; bring screenshots, snacks, and the animated rainbow evidence.',
+  '§bSwiftSwamp: §7Fine, but when I prove it was the swamp biome, everyone owes me diamonds and a public apology.',
 ];
 
 const int glossBubblePreviewMessageGapMs = 1800;
@@ -25,7 +25,7 @@ final class GlossBubblePreviewBubble {
     required this.stackY,
     required this.remainingMs,
     required this.motion,
-    required this.shimmerProgress,
+    required this.shimmerHead,
   });
 
   final String text;
@@ -33,7 +33,10 @@ final class GlossBubblePreviewBubble {
   final double stackY;
   final int remainingMs;
   final GlossBubbleMotionFrame motion;
-  final double? shimmerProgress;
+
+  /// The shine band head in visible glyphs, or null while no cycle runs. Free
+  /// running: once a cycle starts this keeps climbing past the end of the text.
+  final int? shimmerHead;
 }
 
 final class GlossBubblePreviewTimeline {
@@ -132,7 +135,7 @@ final class GlossBubblePreviewTimeline {
       stackY: stackY,
       remainingMs: remainingMs,
       motion: frame,
-      shimmerProgress: glossBubbleShimmerProgress(
+      shimmerHead: glossBubbleShimmerHead(
         _shimmer,
         ageMs: ageMs,
         lifetimeMs: _maxAliveMs,

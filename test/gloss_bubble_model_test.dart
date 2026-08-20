@@ -111,13 +111,25 @@ void main() {
       expect(doc.motion.rotation.z, '0');
       expect(doc.motion.opacity, '1');
       expect(doc.shimmer.spawn, isTrue);
-      expect(doc.shimmer.flyAway, isTrue);
-      expect(doc.shimmer.color, '#ffffff');
+      // `flyAway = flyAway != null && flyAway` in the Java record: the extra
+      // departure cycle is opt-in, because the spawn cycle free-runs to expiry.
+      expect(doc.shimmer.flyAway, isFalse);
+      expect(doc.shimmer.color, glossBubbleShimmerDefaultColor);
       expect(doc.shimmer.width, 3);
-      expect(doc.shimmer.durationMs, 700);
+      // One full 127-glyph cycle, not one pass over the text.
+      expect(doc.shimmer.durationMs, glossBubbleShimmerDefaultDurationMs);
       expect(doc.shimmer.spawnDelayMs, 0);
       expect(doc.shimmer.flyAwayLeadMs, 700);
       expect(doc.select, isNull);
+    });
+
+    test('drops the retired two-tone edge color when rewriting a style', () {
+      final GlossBubbleStyleDoc doc = decodeGlossBubbleStyleDoc(
+        '{"schemaVersion":2,"revision":1,"shimmer":{"edgeColor":"#aaaaaa"}}',
+      );
+      final Map<String, dynamic> shimmer =
+          doc.toJson()['shimmer'] as Map<String, dynamic>;
+      expect(shimmer, isNot(contains('edgeColor')));
     });
   });
 

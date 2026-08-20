@@ -91,6 +91,9 @@ void main() {
   test('shimmer warns when a configured pass cannot complete visibly', () {
     final GlossBubbleStyleDoc doc = _clean();
     doc.shimmer.spawnDelayMs = doc.effectiveMaxAliveMs;
+    // The departure cycle is opt-in now, so it has to be asked for before its
+    // lead can be diagnosed.
+    doc.shimmer.flyAway = true;
     doc.shimmer.flyAwayLeadMs = 0;
     final List<HuiIssue> issues = validateBubbleStyleDoc(doc);
     expect(

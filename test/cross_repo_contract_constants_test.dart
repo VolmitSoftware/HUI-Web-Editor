@@ -410,4 +410,53 @@ void main() {
       );
     });
   });
+
+  group('the shine band matches BubbleShimmerPlan', () {
+    String plan() => readGlossJava(
+      'src/main/java/art/arcane/gloss/bubble/BubbleShimmerPlan.java',
+    );
+
+    test('the cycle is CYCLE_GLYPHS glyphs long', () {
+      expect(
+        glossBubbleShimmerCycleGlyphs,
+        constantInt(plan(), 'CYCLE_GLYPHS'),
+        reason: _refresh(
+          'lib/model/gloss_bubble_style.dart',
+          'BubbleShimmerPlan.java',
+        ),
+      );
+    });
+
+    test('the default durationMs is LEGACY_CYCLE_MS', () {
+      // The shipped cycle IS the default: a file with no durationMs runs it,
+      // and it is the wall time for one full 127-glyph cycle, not one pass.
+      expect(
+        glossBubbleShimmerDefaultDurationMs,
+        constantInt(plan(), 'LEGACY_CYCLE_MS'),
+        reason: _refresh(
+          'lib/model/gloss_bubble_style.dart',
+          'BubbleShimmerPlan.java',
+        ),
+      );
+      expect(
+        GlossBubbleShimmer().durationMs,
+        glossBubbleShimmerDefaultDurationMs,
+      );
+    });
+
+    test('the solid band color is the shipped original Gloss white', () {
+      final String doc = readGlossJava(
+        'src/main/java/art/arcane/gloss/bubble/BubbleStyleDoc.java',
+      );
+      expect(
+        glossBubbleShimmerDefaultColor,
+        stringLiteral(doc, 'DEFAULT_COLOR'),
+        reason: _refresh(
+          'lib/model/gloss_bubble_style.dart',
+          'BubbleStyleDoc.java',
+        ),
+      );
+      expect(GlossBubbleShimmer().color, glossBubbleShimmerDefaultColor);
+    });
+  });
 }

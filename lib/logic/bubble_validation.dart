@@ -148,7 +148,6 @@ List<HuiIssue> _validateShimmer(GlossBubbleStyleDoc doc) {
       ),
     );
   }
-
   void clampWarning(
     String key,
     int written,

@@ -80,8 +80,8 @@ final class BubbleStyleDocumentType extends GlossDocumentTypeAdapter {
   String get templatesNote =>
       'A bubble style shapes chat bubbles: prefix colour, eye offset, word '
       'wrap, lifetime and mathematical translation, scale, rotation and '
-      'opacity over the block lifetime, plus bounded spawn and fly-away '
-      'shimmer sweeps. Out-of-range values are clamped by '
+      'opacity over the block lifetime, plus the free-running shine band and '
+      'its optional departure cycle. Out-of-range values are clamped by '
       'the server and shown honestly by the preview. Default is '
       'byte-identical to what the '
       'plugin ships. Every template opens as a new document, so your current '
@@ -98,14 +98,14 @@ final class BubbleStyleDocumentType extends GlossDocumentTypeAdapter {
           description:
               'The shipped default: grey prefix, one block above the '
               'eyes, 32-visible-character wrap, and the legacy fly-away '
-              'curve authored as an expression, with the original '
-              'left-to-right white shine at spawn and departure. Exactly what '
-              'plugins/Gloss/bubbles/default.json starts with — and the '
-              'file name "default" is the fallback id.',
+              'curve authored as an expression, with the original white shine '
+              'band crossing at 30 glyphs a second from spawn to expiry. '
+              'Exactly what plugins/Gloss/bubbles/default.json starts with — '
+              'and the file name "default" is the fallback id.',
           highlights: const <String>[
             'Shipped default',
             'Fallback style',
-            'Two shimmer passes',
+            'Original shine band',
           ],
           create: (EditorStore store) => store.newGlossDocument(
             this,
@@ -119,7 +119,7 @@ final class BubbleStyleDocumentType extends GlossDocumentTypeAdapter {
           description:
               'A formatted, animated, fading arc that auto-applies to '
               'the vip group in world* worlds at priority 10, with a '
-              'wide pink shimmer crossing the whole multiline block.',
+              'wide pink shimmer sweeping every wrapped row.',
           highlights: const <String>[
             'Select rule',
             'World glob',
