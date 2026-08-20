@@ -11,6 +11,7 @@ library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 
+import '../../doctype/doctype.dart';
 import '../../logic/multi_select.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
@@ -53,6 +54,7 @@ const String shellGroupAdd = 'Add component';
 const String shellGroupView = 'View';
 const String shellGroupCanvas = 'Canvas';
 const String shellGroupHelp = 'Help';
+const String shellGroupLibrary = 'Library';
 const String shellGroupDocuments = 'Documents';
 
 /// [onShowShortcuts] and [onReplayTour] are shell-owned overlays the intents
@@ -231,41 +233,46 @@ List<ShellAction> buildShellActions(
         enabled: store.isMenuDoc,
         run: () => intents.addComponent(type),
       ),
+    // The four modes are offered for every kind; a kind that cannot serve one
+    // has it listed disabled, and the switcher's tooltip carries the reason.
     ShellAction(
       id: 'view.visual',
       group: shellGroupView,
-      label: 'Visual editor',
+      label: 'Visual mode (${store.docType.surfaceLabel})',
       icon: ArcaneIcon.eye(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.visual'),
-      enabled: store.availableViews.contains(EditorView.visual),
+      keywords: const <String>['surface', 'editor', 'design'],
+      enabled: store.docType.supportsView(EditorView.visual),
       run: () => intents.setView(EditorView.visual),
     ),
     ShellAction(
       id: 'view.preview',
       group: shellGroupView,
-      label: 'Preview in 3D',
+      label: 'Preview mode',
       icon: ArcaneIcon.rotate3d(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.preview'),
-      keywords: const <String>['3d', 'player', 'simulate', 'stage'],
-      enabled: store.availableViews.contains(EditorView.preview),
+      keywords: const <String>['3d', 'player', 'simulate', 'stage', 'in game'],
+      enabled: store.docType.supportsView(EditorView.preview),
       run: () => intents.setView(EditorView.preview),
     ),
     ShellAction(
       id: 'view.code',
       group: shellGroupView,
-      label: 'Code editor',
+      label: 'Code mode',
       icon: ArcaneIcon.code(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.code'),
-      enabled: store.availableViews.contains(EditorView.code),
+      keywords: const <String>['json', 'text'],
+      enabled: store.docType.supportsView(EditorView.code),
       run: () => intents.setView(EditorView.code),
     ),
     ShellAction(
       id: 'view.split',
       group: shellGroupView,
-      label: 'Split view',
+      label: 'Split mode',
       icon: ArcaneIcon.layers(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.split'),
-      enabled: store.availableViews.contains(EditorView.split),
+      keywords: const <String>['side by side', 'json'],
+      enabled: store.docType.supportsView(EditorView.split),
       run: () => intents.setView(EditorView.split),
     ),
     ShellAction(
@@ -367,6 +374,34 @@ List<ShellAction> buildShellActions(
       run: intents.openSettings,
     ),
   ];
+
+  // Library scope. The tab strip is the pointer route; these are the same
+  // switches by name, which is what makes the mode reachable from the keyboard
+  // without spending a chord on each of ten kinds.
+  actions.add(
+    ShellAction(
+      id: 'library.mode.all',
+      group: shellGroupLibrary,
+      label: 'Show all documents',
+      icon: ArcaneIcon.layoutList(size: IconSize.sm),
+      keywords: const <String>['mode', 'filter', 'scope', 'library'],
+      enabled: store.mode != null,
+      run: () => intents.setMode(null),
+    ),
+  );
+  for (final DocumentTypeAdapter type in DocumentTypeRegistry.tabs) {
+    actions.add(
+      ShellAction(
+        id: 'library.mode.${type.kind.name}',
+        group: shellGroupLibrary,
+        label: 'Show only ${type.pluralLabel.toLowerCase()}',
+        icon: type.tabIcon(),
+        keywords: <String>['mode', 'filter', 'scope', type.noun],
+        enabled: !identical(store.mode, type),
+        run: () => intents.setMode(type),
+      ),
+    );
+  }
 
   final String? activeId = store.workspace.activeId;
   for (final WorkspaceDoc doc in store.workspace.recent) {

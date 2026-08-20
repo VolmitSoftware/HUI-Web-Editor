@@ -117,8 +117,11 @@ void main() {
 
     test('a bad terminated escape renders as ? (appendCodepoint)', () {
       expect(glossParseUnicodeText('U+ZZZZ;'), '?');
-      expect(glossParseUnicodeText('U+110000;'), '?',
-          reason: 'past the last code point');
+      expect(
+        glossParseUnicodeText('U+110000;'),
+        '?',
+        reason: 'past the last code point',
+      );
       // "U+" then ";" with an empty buffer keeps reading: the ";" and "y"
       // join the buffer, and the second ";" terminates ";y" — not hex, so ?.
       expect(glossParseUnicodeText('x U+;y;'), 'x ?');

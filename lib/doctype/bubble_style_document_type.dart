@@ -28,10 +28,16 @@ final class BubbleStyleDocumentType extends GlossDocumentTypeAdapter {
   String get createLabel => 'New bubble style';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[
-    EditorView.bubble,
-    EditorView.code,
-  ];
+  String get pluralLabel => 'Bubble styles';
+
+  @override
+  int get tabOrder => 90;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.bubble;
+
+  @override
+  String get surfaceLabel => 'Bubbles';
 
   @override
   String? get syncWireKind => 'bubble-style';

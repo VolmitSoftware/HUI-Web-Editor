@@ -11,6 +11,7 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
+import '../../logic/mc_text.dart' show mcColorCss;
 import '../../services/image_library.dart';
 
 /// Relative so the bundle works from Undertow at `/` and from the hosted site.
@@ -97,8 +98,7 @@ class CanvasAssets {
       for (int x = 0; x < pixels.width; x++) {
         final int argb = pixels.at(x, y);
         if (((argb >> 24) & 0xFF) < 255) continue;
-        context.fillStyle =
-            '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}'.toJS;
+        context.fillStyle = mcColorCss(argb).toJS;
         context.fillRect(x.toDouble(), y.toDouble(), 1, 1);
       }
     }

@@ -114,10 +114,10 @@ List<Widget> _tablistBody(DocumentInspectorScope scope) => <Widget>[
 List<Widget> _previewBody(DocumentInspectorScope scope) {
   final EditorStore store = scope.store;
   final List<Widget> body = <Widget>[
-    // The simulation panel is the previewCard view's own HUD-ish chrome
-    // (task E8): meaningless in the code view of the same document, where
-    // there is nothing to animate.
-    if (store.view == EditorView.previewCard)
+    // The simulation panel is the card surface's own HUD-ish chrome (task
+    // E8): meaningless in the code view of the same document, where there is
+    // nothing to animate. Every other mode has a card on screen.
+    if (store.view != EditorView.code)
       PreviewSimPanel(store: store, catalogs: scope.bootCatalogs),
   ];
   final int? index = store.previewSelectedIndex;

@@ -12,9 +12,17 @@ const int relayMaximumSafeInteger = 9007199254740991;
 /// beyond this are plugin policy, bounded here only by the snapshot size.
 const int relayMaximumDocuments = 512;
 
+/// Protocol v2 caps a document id at this many characters
+/// (`EditorSyncDocuments.MAX_DOCUMENT_ID_CHARS`).
+const int relayMaximumDocumentIdChars = 256;
+
 /// The open protocol-v2 kind slug grammar. The relay validates ONLY this
 /// pattern — kinds are never interpreted, so new kinds need no relay change.
 final RegExp relayKindSlug = RegExp(r'^[a-z][a-z0-9-]{0,31}$');
+
+/// The project revision grammar: a lowercase SHA-256 of the canonical project
+/// content, as `EditorSyncProject` and the editor both spell it.
+final RegExp relayRevisionPattern = RegExp(r'^sha256:[0-9a-f]{64}$');
 const int relaySnapshotReservationEnvelopeBytes = 256 * 1024;
 const int relayMinimumReservedSessionBytes =
     relaySnapshotReservationEnvelopeBytes + (2 * 1024);
@@ -402,7 +410,7 @@ String requireString(
 
 String requireRevision(Map<String, Object?> object, String field) {
   final String value = requireString(object, field);
-  if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(value)) {
+  if (!relayRevisionPattern.hasMatch(value)) {
     throw FormatException('$field must be a SHA-256 revision');
   }
   return value;

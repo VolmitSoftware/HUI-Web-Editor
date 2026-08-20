@@ -9,7 +9,15 @@
 ///
 /// Keys are the contract the inspector looks docs up by; see
 /// `test/field_docs_test.dart` for the list it must cover.
+///
+/// Behind this map sits `field_docs.g.dart`, generated from the plugin's own
+/// JSON schemas by `tool/extract_field_docs.dart`. That layer covers the long
+/// tail — every schema property with a `description`, plus its accepted values,
+/// range and default — so a field only needs an entry here when the schema is
+/// silent or when the schema's wording hides a trap.
 library;
+
+import 'field_docs.g.dart';
 
 class HuiFieldDoc {
   const HuiFieldDoc({required this.title, required this.body, this.citation});
@@ -26,7 +34,13 @@ class HuiFieldDoc {
 
 /// Doc for [key], or null when the field has none. Unknown keys are not an
 /// error: the help affordance simply does not render.
-HuiFieldDoc? huiFieldDoc(String key) => huiFieldDocs[key];
+///
+/// Hand-written first, schema-generated second. The order is the whole point:
+/// a hand-written body exists because the schema's own wording was wrong,
+/// missing, or silent about a trap, so regenerating the schema layer can never
+/// take a corrected explanation back off the screen.
+HuiFieldDoc? huiFieldDoc(String key) =>
+    huiFieldDocs[key] ?? huiGeneratedFieldDocs[key];
 
 const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   // --- menu root ------------------------------------------------------------
@@ -341,6 +355,347 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'square before UI and display-style scaling. Unknown ids and '
         'non-block materials fall back to the missing icon.',
     citation: 'BlockIconData.java:43-54',
+  ),
+
+  // --- icon display style ----------------------------------------------------
+  // The schema declares these eighteen fields with types, ranges and defaults
+  // and not one word of description, so every body here comes from the Java
+  // that applies them. Out-of-range values are never clamped: the record's
+  // constructor throws and the whole menu document is rejected
+  // (`IconDisplayStyle.java:103-115`).
+  'icon.style.billboard': HuiFieldDoc(
+    title: 'Billboard',
+    body:
+        'Fixed keeps the icon oriented by the menu, which is the only mode '
+        'that inherits menu yaw, pitch and roll. Any other mode hands '
+        'orientation to the client entirely and Gloss skips its own '
+        'server-side orientation pass for that icon; the click plane is then '
+        're-aimed at the viewer\'s eye every tick so clicks keep tracking '
+        'what is drawn.',
+    citation: 'IconBillboard.java:14-22',
+  ),
+  'icon.style.shadow': HuiFieldDoc(
+    title: 'Text shadow',
+    body:
+        'The drop shadow behind glyphs. Text displays only: item, custom-item '
+        'and block icons never send this field, so it is silently inert on '
+        'them. Image icons do honour it, because Gloss draws them as text. '
+        'Unrelated to shadow radius and strength, which are the ground '
+        'shadow.',
+    citation: 'IconDisplayStyle.java:77-86',
+  ),
+  'icon.style.seeThrough': HuiFieldDoc(
+    title: 'See through blocks',
+    body:
+        'Renders the text through terrain, so the icon stays visible from '
+        'behind a wall. Text and image icons only; inert on item and block '
+        'icons. Gloss never sets the vanilla default-background flag, so this '
+        'does not change the background plate.',
+    citation: 'DisplayEntity.java:464-469',
+  ),
+  'icon.style.textAlignment': HuiFieldDoc(
+    title: 'Alignment',
+    body:
+        'Gloss splits the icon text on newlines and spawns one display per '
+        'line, so this changes nothing between lines. It becomes visible only '
+        'when a single line wraps inside its own display, which line width '
+        'governs — and at the default line width of 2000 that essentially '
+        'never happens.',
+    citation: 'IconTextAlignment.java:14-20',
+  ),
+  'icon.style.backgroundArgb': HuiFieldDoc(
+    title: 'Background',
+    body:
+        'The plate drawn behind the text. Gloss defaults to fully '
+        'transparent, so unlike a vanilla nametag there is no dark backing '
+        'unless you ask for one, and the value is always authoritative rather '
+        'than a fallback. The parser demands exactly eight hex digits: a '
+        'six-digit #RRGGBB is rejected and takes the whole menu with it. Text '
+        'displays only.',
+    citation: 'IconArgbColor.java:17-23',
+  ),
+  'icon.style.textOpacity': HuiFieldDoc(
+    title: 'Opacity',
+    body:
+        '0 through 255, where 255 is fully opaque and travels on the wire as '
+        'vanilla\'s -1 encoding — the JSON number needs no adjustment. Text '
+        'displays only, so it does nothing on an item or block icon. Gloss\'s '
+        'own legacy hologram importer floors what it emits at 24 rather than '
+        'going to 0.',
+    citation: 'DisplayEntity.java:534',
+  ),
+  'icon.style.lineWidth': HuiFieldDoc(
+    title: 'Line width',
+    body:
+        'Wrap width in font pixels on a text display, measured before '
+        'scaling. Gloss defaults to 2000 rather than vanilla\'s 200, which in '
+        'practice disables wrapping — lowering it is the only way to make '
+        'wrapping or alignment do anything. On an image icon it wraps the '
+        'block-character raster and garbles the picture. Inert on item and '
+        'block icons.',
+    citation: 'DisplayEntity.java:528-532',
+  ),
+  'icon.style.blockLight': HuiFieldDoc(
+    title: 'Block light',
+    body:
+        'Half of a paired brightness override that pins the icon to a '
+        'constant light level whatever its surroundings. It is meaningless '
+        'alone: without sky light the record throws and the menu document is '
+        'rejected. Applies to every display kind Gloss styles, not only text. '
+        'Set both channels to 15 for a full-bright icon.',
+    citation: 'IconDisplayStyle.java:52-58',
+  ),
+  'icon.style.skyLight': HuiFieldDoc(
+    title: 'Sky light',
+    body:
+        'The other half of that pair, and rejected the same way when it '
+        'travels alone. Omitting both is the default and means no override, '
+        'so an icon inside a dark building is dark until both channels are '
+        'set.',
+    citation: 'IconDisplayStyle.java:88-93',
+  ),
+  'icon.style.viewRange': HuiFieldDoc(
+    title: 'Display view range',
+    body:
+        'A multiplier, not a distance: Gloss pins 1.0 to a 64-block base, so '
+        '0.25 is roughly 16 blocks and 2.0 roughly 128. It is a client cull '
+        'hint only — the server never despawns the icon on this value and '
+        'runs no range check of its own.',
+    citation: 'HologramMath.java:9-16',
+  ),
+  'icon.style.shadowRadius': HuiFieldDoc(
+    title: 'Shadow radius',
+    body:
+        'Radius in blocks of the round shadow the display casts on the ground '
+        'below it. Shadow strength defaults to 0, so a radius on its own '
+        'produces nothing visible: the two only work as a pair. Applies to '
+        'every styled display kind, and is not the text drop shadow.',
+    citation: 'DisplayEntity.java:458',
+  ),
+  'icon.style.shadowStrength': HuiFieldDoc(
+    title: 'Shadow strength',
+    body:
+        'Opacity of that ground shadow, 0 to 1. This is the field that '
+        'silently suppresses a shadow radius, because it defaults to 0 — and '
+        'strength without radius is equally invisible, since radius defaults '
+        'to 0 too.',
+    citation: 'IconDisplayStyle.java:23-42',
+  ),
+  'icon.style.cullingWidth': HuiFieldDoc(
+    title: 'Cull width',
+    body:
+        'The display\'s culling bounding box, passed through to the client '
+        'verbatim. It has no effect on clicking whatsoever: the click plane '
+        'comes from the icon geometry and the X and Y scale, or from an '
+        'explicit hitbox. Do not confuse it with an entity icon\'s width, '
+        'which genuinely is the click plane.',
+    citation: 'ClickableComponent.java:146-155',
+  ),
+  'icon.style.cullingHeight': HuiFieldDoc(
+    title: 'Cull height',
+    body:
+        'The vertical half of that box, with the same caveats: no influence '
+        'on the click plane, and easy to mistake for an entity icon\'s '
+        'height, which is a click dimension.',
+    citation: 'MenuIcon.java:227',
+  ),
+  'icon.style.glowColor': HuiFieldDoc(
+    title: 'Glow colour',
+    body:
+        'Setting a colour writes the glow override AND turns the vanilla '
+        'glowing flag on, so there is no separate toggle to remember; '
+        'clearing it drops both. It applies per display entity, so a '
+        'multi-line text icon outlines every line separately and an item icon '
+        'with a count above 1 also outlines the count label.',
+    citation: 'IconDisplayStyle.java:95-101',
+  ),
+  'icon.style.scaleX': HuiFieldDoc(
+    title: 'Scale X',
+    body:
+        'Multiplied by the server uiScale, and it widens the automatic click '
+        'plane with the visual. Block icons carry an extra 0.75 factor on top '
+        'of this. Declaring an explicit hitbox size replaces the computed '
+        'plane, at which point scale stops affecting clickability at all.',
+    citation: 'MenuIcon.java:229-233',
+  ),
+  'icon.style.scaleY': HuiFieldDoc(
+    title: 'Scale Y',
+    body:
+        'Height, the same uiScale multiplication and the same click-plane '
+        'link as X — plus one extra consequence: it scales the line height '
+        'used to lay multi-line text and image icons out, so changing it '
+        're-spaces the lines and shifts the icon\'s vertical anchor rather '
+        'than only stretching glyphs.',
+    citation: 'MenuIcon.java:174-184',
+  ),
+  'icon.style.scaleZ': HuiFieldDoc(
+    title: 'Scale Z',
+    body:
+        'Depth. It never affects the click plane, which is always a flat '
+        'quad built from X and Y, and it is invisible on text and image '
+        'icons for the same reason. It has a real effect only on block icons '
+        'and on item displays with depth.',
+    citation: 'BlockMenuIcon.java:43-49',
+  ),
+
+  // --- persistent world panels ----------------------------------------------
+  // A panel and a personal menu are different runtimes: the menu-level
+  // lockPosition, followPlayer, maxDistance, closeOnDeath and closeOnTeleport
+  // keys are read into a panel's session and then never consulted, because
+  // only the personal-menu path registers a session with the manager that
+  // reads them (`MenuSessionManager.java:118-148`).
+  'panel.rootMenuId': HuiFieldDoc(
+    title: 'Root menu',
+    body:
+        'The menu a player sees as soon as the panel is in view — it opens '
+        'with no click, and home or back navigation returns here. The root is '
+        'admitted without a permission check, so a panel can show content the '
+        'player could not open with a command, while deeper menus still need '
+        'gloss.open. An id nothing answers opens nothing and says nothing, '
+        'and the failure latches until the revision changes.',
+    citation: 'PanelViewSession.java:187-207',
+  ),
+  'panel.transform.position': HuiFieldDoc(
+    title: 'Position',
+    body:
+        'The panel anchor. The menu\'s own offset is applied on top of it, '
+        'and both range checks measure from it. When follow mode is set to a '
+        'player these three numbers stop being world coordinates and become '
+        'an offset in that player\'s local frame — switching mode in the '
+        'editor reinterprets them without converting, so the panel jumps.',
+    citation: 'PanelPlacement.java:29-50',
+  ),
+  'panel.transform.rotation': HuiFieldDoc(
+    title: 'Rotation',
+    body:
+        'Yaw turns the panel, pitch tilts it, roll banks it, all in degrees. '
+        'All three are silently rewritten on load into the half-open range '
+        '-180 to 180, so a published yaw of 270 comes back as -90 with no '
+        'warning. Displays render at yaw plus 180, so a panel authored at yaw '
+        'N faces a viewer looking along N.',
+    citation: 'PanelTransform.java:53-61',
+  ),
+  'panel.transform.scale': HuiFieldDoc(
+    title: 'Scale',
+    body:
+        'Multiplies every component inside the panel\'s menu, then the server '
+        'multiplies that by its own menus.uiScale — so the same panel is a '
+        'different size on a differently configured server. The menu offset '
+        'is deliberately not scaled, so raising this grows the content in '
+        'place. Outside 0.05 to 16 the document is rejected, not clamped.',
+    citation: 'PanelTransform.java:25-28',
+  ),
+  'panel.transform.world': HuiFieldDoc(
+    title: 'World binding',
+    body:
+        'The key and the UUID both have to resolve, and the loaded world\'s '
+        'key must equal the stored one exactly. If they disagree — a world '
+        'recreated under a new key, a hand-edited file — the panel simply '
+        'never renders, with nothing logged. A panel following a player '
+        'ignores both and uses the target\'s current world.',
+    citation: 'PanelPlacement.java:29-33',
+  ),
+  'panel.follow.mode': HuiFieldDoc(
+    title: 'Follow mode',
+    body:
+        'Fixed leaves the panel at its world coordinates. Following a player '
+        'samples that player once a tick and rebuilds the transform from the '
+        'stored offset. A followed panel is invisible to everyone while its '
+        'target has never been online this session, and once the target logs '
+        'out the pose is not cleared, so the panel freezes at their last '
+        'known position and stays there.',
+    citation: 'PanelRuntimeManager.java:232-282',
+  ),
+  'panel.follow.targetPlayerUuid': HuiFieldDoc(
+    title: 'Player UUID',
+    body:
+        'A stable account UUID, never a name, so the panel survives a rename. '
+        'It is strictly coupled to the mode: required when following a '
+        'player, and required to be absent otherwise — a target left behind '
+        'on a fixed panel is rejected outright rather than ignored. Nothing '
+        'checks the UUID against a real account, so a typo is a panel that '
+        'never appears.',
+    citation: 'PanelFollow.java:11-17',
+  ),
+  'panel.follow.rotation': HuiFieldDoc(
+    title: 'Rotation behavior',
+    body:
+        'Fixed translates with the player and keeps the stored orientation. '
+        'Yaw rotates the offset around the vertical axis and adds the '
+        'target\'s yaw, so the panel orbits as they turn. Full adds pitch as '
+        'well. Changing this re-reads the stored offset in a different frame, '
+        'so the panel jumps — the in-game command re-encodes the offset, the '
+        'editor does not.',
+    citation: 'PanelFollowTransform.java:26-37',
+  ),
+  'panel.visibility.mode': HuiFieldDoc(
+    title: 'Audience',
+    body:
+        'Public shows the panel to everyone in range, permission gates it, '
+        'and hidden shows it to nobody. Hidden does not disable the panel: it '
+        'stays loaded and indexed, and still counts toward the server-wide '
+        'maximum view range that sizes every viewer\'s candidate query, so it '
+        'keeps costing work each tick.',
+    citation: 'PanelVisibility.java:23-31',
+  ),
+  'panel.visibility.viewPermission': HuiFieldDoc(
+    title: 'View permission',
+    body:
+        'Checked every tick, so revoking it removes the panel from a player '
+        'already looking at it. The value is silently lowercased and trimmed '
+        'on load, so a node registered with capitals will not match. Legal '
+        'only while the audience is permission-gated.',
+    citation: 'PanelVisibility.java:67-76',
+  ),
+  'panel.visibility.interactPermission': HuiFieldDoc(
+    title: 'Interaction permission',
+    body:
+        'Empty lets every player who can see the panel click it. Set, it '
+        'gates clicking only — it is checked on the click path and never on '
+        'the render path, so a player without it still receives every entity '
+        'and sees hover and animation state. This is not a way to hide '
+        'content. Lowercased on load like the view permission.',
+    citation: 'PanelRuntimeManager.java:400-403',
+  ),
+  'panel.visibility.viewRange': HuiFieldDoc(
+    title: 'View range',
+    body:
+        'True 3D distance from the player\'s feet to the panel anchor, so '
+        'height counts as much as ground distance. The largest view range on '
+        'the server sets the radius of the candidate query run for every '
+        'player, including players nowhere near this panel. Above 256, or at '
+        'or below 0, the document is rejected rather than clamped.',
+    citation: 'PanelVisibility.java:32-37',
+  ),
+  'panel.visibility.interactionRange': HuiFieldDoc(
+    title: 'Interaction range',
+    body:
+        'Applied twice: once from the player\'s eye to the panel anchor, and '
+        'again as a cap on the ray distance to the component actually '
+        'clicked. Because the first test is anchor-based, a large panel can '
+        'draw components that sit outside the click radius and are visibly '
+        'present but unclickable. It may never exceed the view range or 32.',
+    citation: 'PanelRuntimeManager.java:584-586',
+  ),
+  'panel.identity': HuiFieldDoc(
+    title: 'Server-owned identity',
+    body:
+        'The id is the panel\'s name in commands and its path on disk, the '
+        'UUID is its identity across renames, and the revision is the '
+        'concurrency counter the server bumps by exactly one on every accepted '
+        'publish. Three layers refuse a change to any of them, so the editor '
+        'round-trips them untouched and re-reads the revision after a publish.',
+    citation: 'PanelRepository.java:407-420',
+  ),
+
+  // --- every document --------------------------------------------------------
+  'document.revision': HuiFieldDoc(
+    title: 'Revision',
+    body:
+        'A server-owned counter between 1 and 9007199254740991, bumped on '
+        'every accepted write. The editor round-trips it untouched; out of '
+        'range, the whole file is rejected.',
+    citation: 'DocumentEnvelope.java:18-25',
   ),
 
   // --- actions --------------------------------------------------------------

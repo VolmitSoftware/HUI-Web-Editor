@@ -262,7 +262,7 @@ class IconRenderers {
       final McSpan span = spans[i];
       final double advance = advances[i];
       brush.setMinecraftFont(fontSize, italic: span.italic);
-      brush.fill = rgbCss(span.color);
+      brush.fill = mcColorCss(span.color);
       final String text = span.obfuscated
           ? _scramble(span.text, item.index * 131 + lineIndex * 17 + i)
           : span.text;

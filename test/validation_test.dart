@@ -1236,9 +1236,7 @@ void main() {
 
     test('gloss menu close from the console warns like the old tree did', () {
       final HuiIssue issue = _matching(
-        validateHuiMenu(
-          _withCommand('/gloss menu close', source: 'server'),
-        ),
+        validateHuiMenu(_withCommand('/gloss menu close', source: 'server')),
         HuiSeverity.warning,
         'only works for a player',
       ).single;
@@ -1372,8 +1370,9 @@ void main() {
         'hard-fail', () {
       // A retired-root command yields WARNINGS only, never an error.
       expect(
-        validateHuiMenu(_withCommand('/holoui close', source: 'player'))
-            .where((HuiIssue issue) => issue.severity == HuiSeverity.error),
+        validateHuiMenu(
+          _withCommand('/holoui close', source: 'player'),
+        ).where((HuiIssue issue) => issue.severity == HuiSeverity.error),
         isEmpty,
       );
       // And the player-only recognition still fires for the old tree.
@@ -1407,10 +1406,7 @@ void main() {
         isFalse,
       );
       // Only the retired-root warning remains for the old spelling.
-      expect(
-        issues.single.message,
-        contains('retired /holoui root'),
-      );
+      expect(issues.single.message, contains('retired /holoui root'));
     });
 
     test('an unrecognised source keeps its fallback warning instead', () {

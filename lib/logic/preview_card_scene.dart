@@ -53,8 +53,7 @@
 library;
 
 import '../model/preview_doc.dart';
-import 'gloss_text.dart'
-    show GlossEmojiResolver, GlossNoEmoji, glossApplyEmoji;
+import 'gloss_text.dart' show GlossEmojiResolver, GlossNoEmoji, glossApplyEmoji;
 import 'mc_text.dart';
 import 'preview_expr.dart';
 import 'preview_sim.dart';

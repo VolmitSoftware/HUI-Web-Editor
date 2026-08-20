@@ -84,8 +84,7 @@ void main() {
     expect(issues.single.message, contains('RESETS'));
   });
 
-  test('dangling animation references warn in header, footer and formats',
-      () {
+  test('dangling animation references warn in header, footer and formats', () {
     final GlossTablistDoc doc = _clean()
       ..header = '|animation.rainbow|'
       ..footer = '|animation.rainbow|';

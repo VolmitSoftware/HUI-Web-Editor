@@ -43,6 +43,12 @@ final WorkspaceDocKind _panelDocKind = DocumentTypeRegistry.byWireKind(
 )!.kind;
 const int huiEditorSyncMaxProjectBytes = 32 * 1024 * 1024;
 const int huiEditorSyncMaxDocuments = 512;
+
+/// `EditorSyncDocuments.MAX_DOCUMENT_BYTES` — the per-document JSON ceiling.
+const int huiEditorSyncMaxDocumentBytes = 2 * 1024 * 1024;
+
+/// `EditorSyncDocuments.MAX_DOCUMENT_ID_CHARS`.
+const int huiEditorSyncMaxDocumentIdChars = 256;
 const int huiEditorSyncMaxResponseEnvelopeBytes = 256 * 1024;
 const int huiEditorSyncMaxRequestBytes =
     huiEditorSyncMaxProjectBytes + huiEditorSyncMaxResponseEnvelopeBytes;
@@ -303,7 +309,7 @@ final class EditorSyncProject {
         subjectId is! String ||
         subjectId.isEmpty ||
         baseRevision is! String ||
-        !_revisionPattern.hasMatch(baseRevision)) {
+        !editorSyncRevisionPattern.hasMatch(baseRevision)) {
       throw const FormatException('Invalid Gloss sync project identity.');
     }
     const Set<String> projectKeys = <String>{
@@ -567,11 +573,11 @@ final class EditorSyncProject {
         !editorSyncKindPattern.hasMatch(kind) ||
         id is! String ||
         id.isEmpty ||
-        id.length > 256 ||
+        id.length > huiEditorSyncMaxDocumentIdChars ||
         !seen.add('$kind\u0000$id') ||
         json is! String ||
         json.isEmpty ||
-        utf8.encode(json).length > 2 * 1024 * 1024 ||
+        utf8.encode(json).length > huiEditorSyncMaxDocumentBytes ||
         (revision != null &&
             (revision is! int ||
                 revision < 1 ||
@@ -760,13 +766,15 @@ final class EditorSyncBinding {
           (kind != _menuWireKind && kind != _panelWireKind) ||
           subjectId is! String ||
           baseRevision is! String ||
-          !_revisionPattern.hasMatch(baseRevision) ||
+          !editorSyncRevisionPattern.hasMatch(baseRevision) ||
           rawMap is! Map ||
           rawPaths is! List ||
           rawWarnings is! List ||
           (pendingContentRevision != null &&
               (pendingContentRevision is! String ||
-                  !_revisionPattern.hasMatch(pendingContentRevision))) ||
+                  !editorSyncRevisionPattern.hasMatch(
+                    pendingContentRevision,
+                  ))) ||
           (panelDocumentId != null && panelDocumentId is! String)) {
         return null;
       }
@@ -1744,7 +1752,7 @@ EditorSyncSession _decodeSession(
   final Object? expiresAt = raw['expiresAt'];
   final Object? rawStatus = raw['status'];
   if (baseRevision is! String ||
-      !_revisionPattern.hasMatch(baseRevision) ||
+      !editorSyncRevisionPattern.hasMatch(baseRevision) ||
       expiresAt is! String ||
       rawStatus is! String) {
     throw const EditorSyncFailure('The relay session is malformed.');
@@ -1886,7 +1894,7 @@ _DecodedPublication _decodePublication(Object? raw) {
       (raw['revision']! as int) < 1 ||
       (raw['revision']! as int) > huiEditorSyncMaxSafeInteger ||
       raw['baseRevision'] is! String ||
-      !_revisionPattern.hasMatch(raw['baseRevision']! as String) ||
+      !editorSyncRevisionPattern.hasMatch(raw['baseRevision']! as String) ||
       raw['publishedAt'] is! String ||
       DateTime.tryParse(raw['publishedAt']! as String) == null) {
     throw const EditorSyncFailure('The relay publication is malformed.');
@@ -1941,7 +1949,7 @@ _DecodedPublication _decodePublication(Object? raw) {
       status == EditorSyncStatus.applied || status == EditorSyncStatus.conflict;
   if (promotes
       ? rawServerRevision is! String ||
-            !_revisionPattern.hasMatch(rawServerRevision)
+            !editorSyncRevisionPattern.hasMatch(rawServerRevision)
       : rawServerRevision != null) {
     throw const EditorSyncFailure(
       'The relay publication acknowledgement is malformed.',
@@ -2277,7 +2285,9 @@ bool _validSyncImagePath(String path) {
   return true;
 }
 
-final RegExp _revisionPattern = RegExp(r'^sha256:[0-9a-f]{64}$');
+/// The project revision grammar shared with `EditorSyncProject` and the
+/// relay: a lowercase SHA-256 of the canonical project content.
+final RegExp editorSyncRevisionPattern = RegExp(r'^sha256:[0-9a-f]{64}$');
 
 /// The open protocol-v2 kind slug grammar. The relay validates ONLY this
 /// pattern and size limits; it never interprets kinds, so a new kind needs

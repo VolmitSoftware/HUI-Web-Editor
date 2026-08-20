@@ -31,6 +31,7 @@ import '../../logic/preview_sim_controls.dart';
 import '../../model/preview_doc.dart';
 import '../../services/catalogs.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_game_screen.dart';
 import '../render/canvas_brush.dart';
 import '../render/icon_renderers.dart';
 import '../shell/shell_status.dart';
@@ -55,6 +56,7 @@ class PreviewCardViewport extends StatefulWidget {
     required this.store,
     this.catalogs,
     this.status,
+    this.gameContext = false,
     super.key,
   });
 
@@ -69,6 +71,15 @@ class PreviewCardViewport extends StatefulWidget {
   /// Zoom and hint readouts for the shell status bar, pushed from the frame
   /// tick rather than the pointer handler.
   final ShellStatus? status;
+
+  /// Draw the card the way the player meets it — centred on the darkened GUI
+  /// screen of [GlossGameScreen], with none of the editing chrome — instead of
+  /// on the editor artboard. This is what the preview mode mounts, and it is
+  /// the only thing that makes that mode more than a second copy of the visual
+  /// one. The artboard itself is unchanged: same canvas, same camera, same
+  /// simulation, so pan, zoom and drag keep working inside the frame and the
+  /// inspector's simulation panel still drives it.
+  final bool gameContext;
 
   @override
   State<PreviewCardViewport> createState() => _PreviewCardViewportState();
@@ -213,6 +224,13 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   Widget build(BuildContext context) {
     _schedulePostFrame();
     final EditorStore store = component.store;
+    if (component.gameContext) {
+      return GlossGameScreen(
+        anchor: GlossGameAnchor.screen,
+        label: 'Container preview in game',
+        child: dom.div(classes: 'hui-preview-card-game', <Widget>[_stageTree]),
+      );
+    }
     return dom.div(classes: 'hui-canvas hui-preview-card', <Widget>[
       ListenableBuilder(
         listenable: store,
@@ -453,13 +471,23 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
       scene: scene,
       palette: CanvasPalette.resolve(HuiBackdropMode.none, _pageIsLight()),
       devicePixelRatio: math.max(1, web.window.devicePixelRatio),
-      options: PreviewCardFrameOptions(
-        showGrid: store.showGrid,
-        selectedElement: store.previewSelectedIndex,
-        hoveredItem: _hoveredItem,
-        handles: _handleSpots(scene),
-        labelWidths: _labelWidths,
-      ),
+      // In game context the frame is what the player sees: no artboard fill
+      // behind it, no grid, and none of the selection chrome. The pointer
+      // handling stays live — panning and zooming a preview is reasonable —
+      // but nothing an author-only affordance would draw is painted.
+      options: component.gameContext
+          ? PreviewCardFrameOptions(
+              showGrid: false,
+              fillBackground: false,
+              labelWidths: _labelWidths,
+            )
+          : PreviewCardFrameOptions(
+              showGrid: store.showGrid,
+              selectedElement: store.previewSelectedIndex,
+              hoveredItem: _hoveredItem,
+              handles: _handleSpots(scene),
+              labelWidths: _labelWidths,
+            ),
     );
     _syncIssues();
     _reconcileTimers();

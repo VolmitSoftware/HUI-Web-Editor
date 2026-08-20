@@ -56,9 +56,7 @@ final class GlossAnimationPlayer {
   /// Pauses (if needed) and shows frame [index].
   void scrubTo(int index, GlossAnimationDoc doc) {
     _playing = false;
-    _heldIndex = doc.frames.isEmpty
-        ? 0
-        : index.clamp(0, doc.frames.length - 1);
+    _heldIndex = doc.frames.isEmpty ? 0 : index.clamp(0, doc.frames.length - 1);
   }
 
   /// Steps the held frame by [delta], pausing first and wrapping at the

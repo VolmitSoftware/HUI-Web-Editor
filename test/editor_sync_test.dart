@@ -95,26 +95,31 @@ void main() {
   });
 
   group('sync project contract', () {
-    test('pins the canonicalization algorithm via the v1 reference fixture', () {
-      // The v1 fixture file is retained as an ALGORITHM reference only: key
-      // ordering, array order, ECMAScript number spelling, and baseRevision
-      // exclusion are frozen across protocol versions even though the v1
-      // project shape itself is retired.
-      final Object? fixture = jsonDecode(
-        File('test/fixtures/editor-sync-canonical-v1.json').readAsStringSync(),
-      );
-      final Map<String, dynamic> root = Map<String, dynamic>.from(
-        fixture! as Map,
-      );
-      final Map<String, dynamic> project = Map<String, dynamic>.from(
-        root['project']! as Map,
-      );
-      expect(editorSyncProjectRevision(project), project['baseRevision']);
-      expect(
-        editorSyncCanonicalProjectContent(project),
-        root['canonicalWithoutBaseRevision'],
-      );
-    });
+    test(
+      'pins the canonicalization algorithm via the v1 reference fixture',
+      () {
+        // The v1 fixture file is retained as an ALGORITHM reference only: key
+        // ordering, array order, ECMAScript number spelling, and baseRevision
+        // exclusion are frozen across protocol versions even though the v1
+        // project shape itself is retired.
+        final Object? fixture = jsonDecode(
+          File(
+            'test/fixtures/editor-sync-canonical-v1.json',
+          ).readAsStringSync(),
+        );
+        final Map<String, dynamic> root = Map<String, dynamic>.from(
+          fixture! as Map,
+        );
+        final Map<String, dynamic> project = Map<String, dynamic>.from(
+          root['project']! as Map,
+        );
+        expect(editorSyncProjectRevision(project), project['baseRevision']);
+        expect(
+          editorSyncCanonicalProjectContent(project),
+          root['canonicalWithoutBaseRevision'],
+        );
+      },
+    );
 
     test('rejects protocol-v1 projects with a clear cutover error', () {
       final Object? fixture = jsonDecode(
@@ -175,9 +180,7 @@ void main() {
       );
       for (final Object? document in documents) {
         expect(
-          editorSyncKindPattern.hasMatch(
-            (document! as Map)['kind']! as String,
-          ),
+          editorSyncKindPattern.hasMatch((document! as Map)['kind']! as String),
           isTrue,
         );
       }
@@ -256,7 +259,9 @@ void main() {
         () => _project(
           kind: 'menu',
           subjectId: 'fixture',
-          menus: <EditorSyncDocument>[EditorSyncDocument(kind: 'menu', id: 'fixture', json: json)],
+          menus: <EditorSyncDocument>[
+            EditorSyncDocument(kind: 'menu', id: 'fixture', json: json),
+          ],
         ),
         throwsFormatException,
       );
@@ -409,7 +414,11 @@ void main() {
           kind: 'menu',
           subjectId: 'fixture',
           menus: <EditorSyncDocument>[
-            EditorSyncDocument(kind: 'menu', id: 'fixture', json: encodeHuiMenu(menu)),
+            EditorSyncDocument(
+              kind: 'menu',
+              id: 'fixture',
+              json: encodeHuiMenu(menu),
+            ),
           ],
         );
         _setProjectImages(raw, <String, String>{path: _gifDataUri(1, 1)});
@@ -473,7 +482,11 @@ void main() {
         subjectId: 'board',
         menus: <EditorSyncDocument>[
           EditorSyncDocument(kind: 'menu', id: 'root', json: _menuJson()),
-          EditorSyncDocument(kind: 'menu', id: 'outside/menu', json: _menuJson()),
+          EditorSyncDocument(
+            kind: 'menu',
+            id: 'outside/menu',
+            json: _menuJson(),
+          ),
         ],
         board: _boardJson('board', 'root'),
         newMenuPrefix: 'root/',
@@ -504,8 +517,16 @@ void main() {
           kind: 'panel',
           subjectId: 'board',
           menus: <EditorSyncDocument>[
-            EditorSyncDocument(kind: 'menu', id: 'board/root', json: encodeHuiMenu(root)),
-            EditorSyncDocument(kind: 'menu', id: 'board/child', json: _menuJson()),
+            EditorSyncDocument(
+              kind: 'menu',
+              id: 'board/root',
+              json: encodeHuiMenu(root),
+            ),
+            EditorSyncDocument(
+              kind: 'menu',
+              id: 'board/child',
+              json: _menuJson(),
+            ),
           ],
           board: _boardJson('board', 'board/root'),
           newMenuPrefix: 'board/',
@@ -549,10 +570,10 @@ void main() {
           workspace: workspace,
           images: images,
         );
-        expect(collected.menus.map((EditorSyncDocument menu) => menu.id), <String>[
-          'board/child',
-          'board/root',
-        ]);
+        expect(
+          collected.menus.map((EditorSyncDocument menu) => menu.id),
+          <String>['board/child', 'board/root'],
+        );
         expect(
           collected.images.map((EditorSyncImage image) => image.path),
           <String>['icons/captured.png'],
@@ -644,7 +665,11 @@ void main() {
           kind: 'panel',
           subjectId: 'board',
           menus: <EditorSyncDocument>[
-            EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
+            EditorSyncDocument(
+              kind: 'menu',
+              id: 'board/root',
+              json: _menuJson(),
+            ),
           ],
           board: _boardJson('board', 'board/root'),
           newMenuPrefix: 'board/',
@@ -704,11 +729,10 @@ void main() {
           workspace: workspace,
           images: images,
         );
-        expect(collected.menus.map((EditorSyncDocument menu) => menu.id), <String>[
-          'board/child',
-          'board/command-child',
-          'board/root',
-        ]);
+        expect(
+          collected.menus.map((EditorSyncDocument menu) => menu.id),
+          <String>['board/child', 'board/command-child', 'board/root'],
+        );
         workspace.dispose();
         images.dispose();
       },
@@ -822,7 +846,11 @@ void main() {
           kind: 'panel',
           subjectId: 'welcome',
           menus: <EditorSyncDocument>[
-            EditorSyncDocument(kind: 'menu', id: 'welcome/root', json: _menuJson()),
+            EditorSyncDocument(
+              kind: 'menu',
+              id: 'welcome/root',
+              json: _menuJson(),
+            ),
           ],
           board: _boardJson('welcome', 'welcome/root'),
           newMenuPrefix: 'welcome/',
@@ -843,7 +871,11 @@ void main() {
           kind: 'panel',
           subjectId: 'welcome',
           menus: <EditorSyncDocument>[
-            EditorSyncDocument(kind: 'menu', id: 'welcome/root', json: encodeHuiMenu(changed)),
+            EditorSyncDocument(
+              kind: 'menu',
+              id: 'welcome/root',
+              json: encodeHuiMenu(changed),
+            ),
           ],
           board: nextBoard,
           newMenuPrefix: 'welcome/',
@@ -969,7 +1001,11 @@ void main() {
           kind: 'panel',
           subjectId: 'board',
           menus: <EditorSyncDocument>[
-            EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
+            EditorSyncDocument(
+              kind: 'menu',
+              id: 'board/root',
+              json: _menuJson(),
+            ),
           ],
           board: _boardJson('board', 'board/root'),
           newMenuPrefix: 'board/',
@@ -1033,7 +1069,11 @@ void main() {
         kind: 'panel',
         subjectId: 'board',
         menus: <EditorSyncDocument>[
-          EditorSyncDocument(kind: 'menu', id: 'board/root', json: encodeHuiMenu(changed)),
+          EditorSyncDocument(
+            kind: 'menu',
+            id: 'board/root',
+            json: encodeHuiMenu(changed),
+          ),
         ],
         board: _boardJson('board', 'board/root'),
         newMenuPrefix: 'board/',
@@ -1120,7 +1160,11 @@ void main() {
         kind: 'menu',
         subjectId: 'fixture',
         menus: <EditorSyncDocument>[
-          EditorSyncDocument(kind: 'menu', id: 'fixture', json: encodeHuiMenu(changed)),
+          EditorSyncDocument(
+            kind: 'menu',
+            id: 'fixture',
+            json: encodeHuiMenu(changed),
+          ),
         ],
       );
 
@@ -1147,7 +1191,11 @@ void main() {
         subjectId: 'board',
         menus: <EditorSyncDocument>[
           EditorSyncDocument(kind: 'menu', id: 'board/root', json: _menuJson()),
-          EditorSyncDocument(kind: 'menu', id: 'board/added', json: _menuJson()),
+          EditorSyncDocument(
+            kind: 'menu',
+            id: 'board/added',
+            json: _menuJson(),
+          ),
         ],
         board: _boardJson('board', 'board/root'),
         newMenuPrefix: 'board/',
@@ -1458,7 +1506,11 @@ void main() {
           kind: 'menu',
           subjectId: 'fixture',
           menus: <EditorSyncDocument>[
-            EditorSyncDocument(kind: 'menu', id: 'fixture', json: encodeHuiMenu(editedMenu)),
+            EditorSyncDocument(
+              kind: 'menu',
+              id: 'fixture',
+              json: encodeHuiMenu(editedMenu),
+            ),
           ],
         );
         final EditorSyncBinding binding = _capability(base.constraints)
@@ -1499,7 +1551,11 @@ void main() {
           kind: 'menu',
           subjectId: 'fixture',
           menus: <EditorSyncDocument>[
-            EditorSyncDocument(kind: 'menu', id: 'fixture', json: encodeHuiMenu(otherMenu)),
+            EditorSyncDocument(
+              kind: 'menu',
+              id: 'fixture',
+              json: encodeHuiMenu(otherMenu),
+            ),
           ],
         );
         final Map<String, dynamic> wrongSnapshot = Map<String, dynamic>.from(
@@ -1706,8 +1762,9 @@ Map<String, dynamic> _projectMap({
   Map<String, dynamic>? board,
   String? newMenuPrefix,
 }) {
-  final List<EditorSyncDocument> orderedMenus = List<EditorSyncDocument>.of(menus)
-    ..sort((EditorSyncDocument a, EditorSyncDocument b) => a.id.compareTo(b.id));
+  final List<EditorSyncDocument> orderedMenus = List<EditorSyncDocument>.of(
+    menus,
+  )..sort((EditorSyncDocument a, EditorSyncDocument b) => a.id.compareTo(b.id));
   final EditorSyncConstraints constraints = _constraints(
     subjectId,
     orderedMenus.map((EditorSyncDocument menu) => menu.id).toList(),

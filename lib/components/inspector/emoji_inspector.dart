@@ -42,25 +42,25 @@ class _EmojiInspectorState extends State<EmojiInspector> {
     ]);
   }
 
-  Widget _header(GlossEmojiDoc doc) =>
-      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
-        dom.div(classes: 'hui-inspector-header is-emoji', <Widget>[
-          const HuiEyebrow('Emoji'),
-          dom.div(classes: 'hui-inspector-title-row', <Widget>[
-            dom.h2(classes: 'hui-inspector-title', <Widget>[
-              Text(_store.menuId),
-            ]),
-            const HuiFieldHelp('emoji.id'),
-          ]),
+  Widget _header(GlossEmojiDoc doc) => dom.div(
+    classes: 'hui-inspector-headgroup',
+    <Widget>[
+      dom.div(classes: 'hui-inspector-header is-emoji', <Widget>[
+        const HuiEyebrow('Emoji'),
+        dom.div(classes: 'hui-inspector-title-row', <Widget>[
+          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
+          const HuiFieldHelp('emoji.id'),
         ]),
-        dom.p(classes: 'hui-inspector-lede', <Widget>[
-          Text(
-            'Chat token :${_store.menuId}: — the document id names it, so '
-            'renaming the document renames the token. Revision '
-            '${doc.revision} is server-owned and travels with the file.',
-          ),
-        ]),
-      ]);
+      ]),
+      dom.p(classes: 'hui-inspector-lede', <Widget>[
+        Text(
+          'Chat token :${_store.menuId}: — the document id names it, so '
+          'renaming the document renames the token.',
+        ),
+      ]),
+      HuiRevisionRow(revision: doc.revision),
+    ],
+  );
 
   Widget _value(GlossEmojiDoc doc) => InspectorSection(
     title: 'Glyph',

@@ -20,8 +20,10 @@ import '../../logic/preview_sim.dart' show previewCategoryVariableNames;
 import '../../logic/validation.dart';
 import '../../model/preview_doc.dart';
 import '../../state/editor_store.dart';
+import '../../config/defaults.dart';
 import '../common/common.dart';
 import 'extras_editor.dart';
+import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'preview_color_swatch.dart';
 import 'preview_expr_field.dart';
@@ -112,8 +114,13 @@ class PreviewElementEditor extends StatelessWidget {
           Text(_typeLabel(element.type)),
         ]),
       ]),
+      // What this element type is, in the same words the "add element" menu
+      // uses. The map existed and nothing read it, so the pane never said what
+      // a cell was once you had added one.
+      if (previewElementTypeDescriptions[element.type] case final String note)
+        dom.p(classes: 'hui-inspector-lede', <Widget>[Text(note)]),
       if (errors > 0 || warnings > 0)
-        dom.p(classes: 'hui-inspector-lede', <Widget>[
+        dom.p(classes: 'hui-inspector-lede is-issue', <Widget>[
           Text(
             errors > 0
                 ? '$errors problem${errors == 1 ? '' : 's'} on this '
@@ -134,12 +141,14 @@ class PreviewElementEditor extends StatelessWidget {
 
   Widget _placement() => InspectorSection(
     title: 'Placement',
+    sectionKey: 'preview.placement',
     children: <Widget>[
       _field(
         'X',
         element.x,
         (Object? v) => _mutate('x', (HuiPreviewElement e) => e.x = v),
         field: 'x',
+        docKey: 'preview.element.x',
         placeholder: '0',
       ),
       _field(
@@ -147,6 +156,7 @@ class PreviewElementEditor extends StatelessWidget {
         element.y,
         (Object? v) => _mutate('y', (HuiPreviewElement e) => e.y = v),
         field: 'y',
+        docKey: 'preview.element.y',
         placeholder: '0',
       ),
       _field(
@@ -154,6 +164,7 @@ class PreviewElementEditor extends StatelessWidget {
         element.z,
         (Object? v) => _mutate('z', (HuiPreviewElement e) => e.z = v),
         field: 'z',
+        docKey: 'preview.element.z',
         placeholder: _formatDefault(_defaultZ()),
         help:
             'Higher z draws in front. Left blank, this type defaults '
@@ -165,6 +176,7 @@ class PreviewElementEditor extends StatelessWidget {
         (Object? v) =>
             _mutate('visible', (HuiPreviewElement e) => e.visible = v),
         field: 'visible',
+        docKey: 'preview.element.visible',
         kind: PreviewExprKind.boolean,
         placeholder: 'true',
         help:
@@ -182,6 +194,7 @@ class PreviewElementEditor extends StatelessWidget {
     final HuiPreviewRepeat? repeat = element.repeat;
     return InspectorSection(
       title: 'Repeat',
+      sectionKey: 'preview.repeat',
       description:
           'Emits this element several times with an index bound to '
           'a loop variable, instead of drawing it once.',
@@ -202,6 +215,7 @@ class PreviewElementEditor extends StatelessWidget {
             raw: repeat.count,
             required: true,
             placeholder: '2',
+            trailing: const HuiFieldHelp('preview.repeat.count'),
             help:
                 'Evaluated once, with no variable scope of its own - it '
                 'cannot read the loop variable it defines. A constant above '
@@ -216,24 +230,36 @@ class PreviewElementEditor extends StatelessWidget {
           ),
           HuiField(
             label: 'Loop variable',
+            trailing: const HuiFieldHelp('preview.repeat.var'),
+            defaultValue: 'i',
+            onReset: (repeat.varName ?? 'i') == 'i'
+                ? null
+                : () => _mutate(
+                    'repeat var',
+                    (HuiPreviewElement e) => e.repeat?.varName = 'i',
+                  ),
             help:
                 'Defaults to "i". Must be a plain identifier and cannot '
                 'reuse a catalog or "vars" name.',
-            control: TextInput(
-              value: repeat.varName ?? 'i',
-              size: ComponentSize.sm,
-              fullWidth: true,
-              placeholder: 'i',
-              onInput: (String value) => _mutate(
-                'repeat var',
-                (HuiPreviewElement e) => e.repeat?.varName = value,
+            // The issues belong under the control, not in the header slot the
+            // help and the default chip now share.
+            control: dom.div(<Widget>[
+              TextInput(
+                value: repeat.varName ?? 'i',
+                size: ComponentSize.sm,
+                fullWidth: true,
+                placeholder: 'i',
+                onInput: (String value) => _mutate(
+                  'repeat var',
+                  (HuiPreviewElement e) => e.repeat?.varName = value,
+                ),
+                attributes: const <String, String>{
+                  'autocomplete': 'off',
+                  'spellcheck': 'false',
+                },
               ),
-              attributes: const <String, String>{
-                'autocomplete': 'off',
-                'spellcheck': 'false',
-              },
-            ),
-            trailing: HuiInlineIssues(_issuesFor('repeat.var')),
+              HuiInlineIssues(_issuesFor('repeat.var')),
+            ]),
           ),
         ],
       ],
@@ -272,6 +298,7 @@ class PreviewElementEditor extends StatelessWidget {
         element.width,
         (Object? v) => _mutate('width', (HuiPreviewElement e) => e.width = v),
         field: 'width',
+        docKey: 'preview.element.width',
         required: true,
         placeholder: '40',
       ),
@@ -280,6 +307,7 @@ class PreviewElementEditor extends StatelessWidget {
         element.height,
         (Object? v) => _mutate('height', (HuiPreviewElement e) => e.height = v),
         field: 'height',
+        docKey: 'preview.element.height',
         required: true,
         placeholder: '20',
       ),
@@ -288,9 +316,10 @@ class PreviewElementEditor extends StatelessWidget {
         element.color,
         (Object? v) => _mutate('color', (HuiPreviewElement e) => e.color = v),
         field: 'color',
+        docKey: 'preview.element.color',
         required: true,
         placeholder: '#FF15151B',
-        swatch: element.color,
+        colorLabel: 'panel colour',
       ),
     ],
   );
@@ -303,6 +332,7 @@ class PreviewElementEditor extends StatelessWidget {
         element.size,
         (Object? v) => _mutate('size', (HuiPreviewElement e) => e.size = v),
         field: 'size',
+        docKey: 'preview.element.size',
         required: true,
         placeholder: '8',
       ),
@@ -311,9 +341,10 @@ class PreviewElementEditor extends StatelessWidget {
         element.color,
         (Object? v) => _mutate('color', (HuiPreviewElement e) => e.color = v),
         field: 'color',
+        docKey: 'preview.element.color',
         required: true,
         placeholder: '#FF15151B',
-        swatch: element.color,
+        colorLabel: 'cell colour',
         help:
             'The one field that is re-evaluated live, every 4 ticks - '
             'this is where an animated cell reads its own colour.',
@@ -329,6 +360,7 @@ class PreviewElementEditor extends StatelessWidget {
         element.size,
         (Object? v) => _mutate('size', (HuiPreviewElement e) => e.size = v),
         field: 'size',
+        docKey: 'preview.element.size',
         required: true,
         placeholder: '18',
       ),
@@ -337,6 +369,7 @@ class PreviewElementEditor extends StatelessWidget {
         element.index,
         (Object? v) => _mutate('index', (HuiPreviewElement e) => e.index = v),
         field: 'index',
+        docKey: 'preview.element.index',
         required: true,
         placeholder: '0',
         help:
@@ -349,8 +382,9 @@ class PreviewElementEditor extends StatelessWidget {
         (Object? v) =>
             _mutate('wellColor', (HuiPreviewElement e) => e.wellColor = v),
         field: 'wellColor',
+        docKey: 'preview.element.wellColor',
         placeholder: '#FF15151B (default)',
-        swatch: element.wellColor,
+        colorLabel: 'well colour',
       ),
     ],
   );
@@ -364,6 +398,7 @@ class PreviewElementEditor extends StatelessWidget {
         (Object? v) =>
             _mutate('text', (HuiPreviewElement e) => e.text = v as String?),
         field: 'text',
+        docKey: 'preview.element.text',
         required: true,
         kind: PreviewExprKind.string,
         placeholder: "'Label text'",
@@ -377,8 +412,9 @@ class PreviewElementEditor extends StatelessWidget {
         (Object? v) =>
             _mutate('background', (HuiPreviewElement e) => e.background = v),
         field: 'background',
+        docKey: 'preview.element.background',
         placeholder: '0 (transparent)',
-        swatch: element.background,
+        colorLabel: 'label background',
       ),
     ],
   );
@@ -395,7 +431,8 @@ class PreviewElementEditor extends StatelessWidget {
     PreviewExprKind kind = PreviewExprKind.numeric,
     String? placeholder,
     String? help,
-    Object? swatch,
+    String? docKey,
+    String? colorLabel,
   }) => PreviewExprField(
     label: label,
     raw: raw,
@@ -403,7 +440,7 @@ class PreviewElementEditor extends StatelessWidget {
     kind: kind,
     placeholder: placeholder,
     help: help,
-    trailing: swatch == null ? null : previewColorSwatch(swatch),
+    trailing: _trailing(raw, onChanged, docKey, colorLabel),
     issues: _issuesFor(field),
     declaredVars: _declaredVars,
     scope: _scope,
@@ -411,8 +448,34 @@ class PreviewElementEditor extends StatelessWidget {
     onChanged: onChanged,
   );
 
+  /// The colour picker, the help button, or both. A colour field whose value
+  /// is a live expression gets the help alone: there is no one colour to open
+  /// a picker on, and picking would overwrite the expression.
+  Widget? _trailing(
+    Object? raw,
+    void Function(Object? value) onChanged,
+    String? docKey,
+    String? colorLabel,
+  ) {
+    final Widget? picker = colorLabel == null
+        ? null
+        : previewColorPicker(
+            raw,
+            label: colorLabel,
+            onPicked: (String hex) => onChanged(hex),
+          );
+    if (picker == null) return docKey == null ? null : HuiFieldHelp(docKey);
+    if (docKey == null) return picker;
+    return dom.div(classes: 'hui-field-tools', <Widget>[
+      picker,
+      HuiFieldHelp(docKey),
+    ]);
+  }
+
   Widget _extras() => InspectorSection(
     title: 'Extra keys',
+    sectionKey: 'preview.extras',
+    initiallyOpen: false,
     children: <Widget>[
       ExtrasEditor(
         title: 'Element',

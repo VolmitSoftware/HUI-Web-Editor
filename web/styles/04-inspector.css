@@ -223,6 +223,63 @@
   padding-bottom: 0;
 }
 
+/* A collapsible section's whole eyebrow is the hit target. No left-edge accent
+   and no framework button chrome: it has to read as a heading first and a
+   control second, or the pane turns into a wall of buttons. */
+.hui-inspector-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hui-inspector-section-toggle:hover .hui-eyebrow {
+  color: var(--hui-text);
+}
+
+.hui-inspector-section-toggle:focus-visible {
+  outline: 2px solid var(--hui-accent);
+  outline-offset: 2px;
+  border-radius: var(--hui-radius-sm);
+}
+
+.hui-inspector-section-caret {
+  display: inline-flex;
+  align-items: center;
+  color: var(--hui-muted);
+  flex: 0 0 auto;
+}
+
+/* What is behind a closed section, so a collapse never hides a count the
+   author needs to know about. */
+.hui-inspector-section-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--hui-border-soft);
+  color: var(--hui-muted);
+  font-size: 0.66rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A closed section is a header and nothing else; it keeps its hairline but
+   drops the body's share of the rhythm. */
+.hui-inspector-section.is-closed {
+  padding-bottom: var(--hui-space-1);
+}
+
 .hui-inspector-section-note {
   margin: -2px 0 0;
   color: var(--hui-muted);
@@ -239,7 +296,8 @@
 }
 
 .hui-count-chip,
-.hui-unit-chip {
+.hui-unit-chip,
+.hui-default-chip {
   display: inline-flex;
   align-items: center;
   min-height: 22px;
@@ -251,6 +309,65 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* The runtime default, stated where the value is edited. Quieter than a unit
+   chip: it is reference, not state, and must never out-shout the control. */
+.hui-default-chip {
+  border-style: dashed;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+}
+
+/* Every header-right cluster is a row: the default chip, its reset button and
+   the help trigger sit on one line without the caller composing a wrapper. */
+.hui-field-trailing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+/* The duration readout is reference, not a second value to read past. */
+.hui-duration-readout {
+  flex: 0 0 auto;
+  min-width: 54px;
+  justify-content: center;
+}
+
+/* ---------- colour swatch and picker ----------
+   `input[type=color]` paints its own inset preview with several pixels of
+   chrome padding, which at 18px leaves a swatch that is mostly border. These
+   strip it in every engine so the element IS the colour. */
+
+.hui-color-swatch.is-pickable {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.hui-color-swatch.is-pickable::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.hui-color-swatch.is-pickable::-webkit-color-swatch,
+.hui-color-swatch.is-pickable::-moz-color-swatch {
+  border: 0;
+  border-radius: 4px;
+}
+
+.hui-color-swatch.is-pickable:focus-visible {
+  outline: 2px solid var(--hui-accent);
+  outline-offset: 2px;
+}
+
+/* A list with no drag handles (the MOTD entry's one or two lines). */
+.hui-line-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hui-space-1);
+  min-width: 0;
 }
 
 /* ---------- notes, details, issues ---------- */
@@ -1213,6 +1330,12 @@
     calc(var(--hui-inspector-width, 320px) - 44px),
     calc(100vw - 40px)
   ) !important;
+  /* The schema-derived docs are longer than the hand-written ones — the
+     preview expression grammar runs to a full screen — so the card scrolls
+     rather than growing past the viewport with its tail unreachable. */
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-color: var(--hui-border-soft) !important;
   animation: hui-help-in var(--hui-dur-2, 140ms) var(--hui-ease-out, ease) backwards;
 }

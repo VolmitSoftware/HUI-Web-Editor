@@ -878,7 +878,12 @@ class _NavigateActionFields extends StatelessWidget {
         HuiField(
           label: 'Mode',
           required: true,
+          trailing: const HuiFieldHelp('action.navigation.mode'),
           help: 'Push keeps a Back entry; replace swaps without adding one.',
+          defaultValue: 'push',
+          onReset: action.mode == 'push'
+              ? null
+              : () => onChanged('navigation mode', _with(mode: 'push')),
           control: dom.div(<Widget>[
             ArcaneSelect(
               value: action.mode,
@@ -903,6 +908,7 @@ class _NavigateActionFields extends StatelessWidget {
           HuiField(
             label: 'Target menu',
             required: true,
+            trailing: const HuiFieldHelp('action.navigation.target'),
             help: 'Exact runtime menu id. Folder paths use forward slashes.',
             control: dom.div(<Widget>[
               RegistryPicker(
@@ -927,5 +933,8 @@ class _NavigateActionFields extends StatelessWidget {
           'Navigation is terminal: actions below it in this list do not run.',
           tone: HuiNoteTone.warning,
         ),
+        const HuiHelpCluster(<String>[
+          'action.navigation',
+        ], label: 'How the page stack works'),
       ]);
 }

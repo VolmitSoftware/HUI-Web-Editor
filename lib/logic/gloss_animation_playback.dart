@@ -89,10 +89,7 @@ int _scrambled(int tick, String id, int count) {
   // tick + ((long) id.hashCode() << 32): the shift keeps only the hash's low
   // 32 bits in the high word, and tick is non-negative and < 2^53.
   final int hash = _javaStringHash(id);
-  _U64 mixed = (
-    hi: ((tick ~/ _pow32) + hash) % _pow32,
-    lo: tick % _pow32,
-  );
+  _U64 mixed = (hi: ((tick ~/ _pow32) + hash) % _pow32, lo: tick % _pow32);
   mixed = _xor(mixed, _shr33(mixed));
   mixed = _mul(mixed, _mixC1);
   mixed = _xor(mixed, _shr33(mixed));
@@ -118,7 +115,8 @@ int _javaStringHash(String value) {
 _U64 _xor(_U64 a, _U64 b) => (hi: _xor32(a.hi, b.hi), lo: _xor32(a.lo, b.lo));
 
 int _xor32(int a, int b) =>
-    ((a ~/ 0x10000) ^ (b ~/ 0x10000)) * 0x10000 + ((a % 0x10000) ^ (b % 0x10000));
+    ((a ~/ 0x10000) ^ (b ~/ 0x10000)) * 0x10000 +
+    ((a % 0x10000) ^ (b % 0x10000));
 
 /// `>>> 33`: the high word, shifted one further, is all that survives.
 _U64 _shr33(_U64 value) => (hi: 0, lo: value.hi ~/ 2);
@@ -147,10 +145,7 @@ _U64 _mul(_U64 a, _U64 b) {
       carry = sum ~/ 0x10000;
     }
   }
-  return (
-    hi: out[3] * 0x10000 + out[2],
-    lo: out[1] * 0x10000 + out[0],
-  );
+  return (hi: out[3] * 0x10000 + out[2], lo: out[1] * 0x10000 + out[0]);
 }
 
 /// `Math.floorMod(signed64, count)` with `0 < count < 2^31`, in base-2^16

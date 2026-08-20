@@ -15,6 +15,7 @@ import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../../state/workspace_panel.dart';
 import '../common/common.dart';
+import 'field_help.dart';
 import 'inspector_widgets.dart';
 
 class PanelInspector extends StatelessWidget {
@@ -305,11 +306,13 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           );
     return InspectorSection(
       title: 'Content',
+      sectionKey: 'panel.content',
       children: <Widget>[
         HuiField(
           label: 'Root menu',
           required: true,
-          help: 'The menu shown when a player first interacts with this panel.',
+          trailing: const HuiFieldHelp('panel.rootMenuId'),
+          help: 'Opens on its own as soon as the panel is in view.',
           control: ArcaneSelect(
             value: draft.rootMenuId,
             size: ComponentSize.sm,
@@ -328,6 +331,9 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         HuiMore(
           summary: 'Server-owned identity',
           children: <Widget>[
+            const HuiHelpCluster(<String>[
+              'panel.identity',
+            ], label: 'What owns these'),
             HuiDetailRow('Panel id', draft.id),
             HuiDetailRow('Panel UUID', draft.uuid),
             HuiDetailRow('Revision', '${draft.revision}'),
@@ -339,14 +345,21 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
 
   Widget _placement(RuntimePanelDefinition draft) {
     final RuntimePanelTransform transform = draft.transform;
+    final bool following = draft.follow.mode == RuntimePanelFollowMode.player;
     return InspectorSection(
       title: 'Placement',
-      description:
-          'Coordinates are world-space blocks; rotation is in degrees.',
+      sectionKey: 'panel.placement',
+      description: following
+          // The same three numbers mean two different things, and the runtime
+          // never says which — see the position help.
+          ? 'Blocks in the followed player\'s local frame; rotation in '
+                'degrees.'
+          : 'Coordinates are world-space blocks; rotation is in degrees.',
       children: <Widget>[
         HuiField(
-          label: 'Position',
+          label: following ? 'Offset from the player' : 'Position',
           required: true,
+          trailing: const HuiFieldHelp('panel.transform.position'),
           control: HuiVec3Field(
             value: Vec3(transform.x, transform.y, transform.z),
             axisHints: const <String>[
@@ -368,7 +381,10 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         HuiField(
           label: 'Rotation',
           required: true,
-          help: 'Yaw turns left/right, pitch tilts up/down, and roll banks.',
+          trailing: const HuiFieldHelp('panel.transform.rotation'),
+          help:
+              'Yaw turns left/right, pitch tilts up/down, and roll banks. '
+              'The server wraps all three into -180..180.',
           control: HuiVec3Field(
             value: Vec3(transform.yaw, transform.pitch, transform.roll),
             labels: const <String>['Yaw', 'Pitch', 'Roll'],
@@ -393,7 +409,14 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         HuiField(
           label: 'Scale',
           required: true,
+          trailing: const HuiFieldHelp('panel.transform.scale'),
           help: '0.05 to 16. A value of 1 uses the menu at its authored size.',
+          defaultValue: '1',
+          onReset: transform.scale == 1
+              ? null
+              : () => _changeDraft(
+                  draft.copyWith(transform: transform.copyWith(scale: 1)),
+                ),
           control: HuiNumberField(
             value: transform.scale,
             min: 0.05,
@@ -408,6 +431,9 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         HuiMore(
           summary: 'World binding',
           children: <Widget>[
+            const HuiHelpCluster(<String>[
+              'panel.transform.world',
+            ], label: 'How it resolves'),
             HuiDetailRow('World', transform.worldKey),
             HuiDetailRow('World UUID', transform.worldUuid),
             const HuiNote(
@@ -427,11 +453,17 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         : null;
     return InspectorSection(
       title: 'Follow',
+      sectionKey: 'panel.follow',
       description:
           'Attach the panel to one player or leave it fixed in the world.',
       children: <Widget>[
         HuiField(
           label: 'Follow mode',
+          trailing: const HuiFieldHelp('panel.follow.mode'),
+          defaultValue: 'fixed in world',
+          onReset: follow.mode == RuntimePanelFollowMode.none
+              ? null
+              : () => _setFollowMode(draft, 'none'),
           control: ArcaneSelect(
             value: follow.mode.name,
             size: ComponentSize.sm,
@@ -448,6 +480,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
             label: 'Player UUID',
             required: true,
             error: targetProblem,
+            trailing: const HuiFieldHelp('panel.follow.targetPlayerUuid'),
             help:
                 'Names are not accepted because the panel stores a stable UUID.',
             control: TextInput(
@@ -473,6 +506,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           ),
           HuiField(
             label: 'Rotation behavior',
+            trailing: const HuiFieldHelp('panel.follow.rotation'),
             help: 'Yaw follows horizontal turning; Full also follows pitch.',
             control: ArcaneSelect(
               value: follow.rotation.name,
@@ -508,10 +542,12 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     );
     return InspectorSection(
       title: 'Audience and reach',
+      sectionKey: 'panel.visibility',
       description: 'Choose who can see the panel and how close they must be.',
       children: <Widget>[
         HuiField(
           label: 'Audience',
+          trailing: const HuiFieldHelp('panel.visibility.mode'),
           control: ArcaneSelect(
             value: visibility.mode.name,
             size: ComponentSize.sm,
@@ -532,7 +568,10 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
             label: 'View permission',
             required: true,
             error: viewPermissionProblem,
-            help: 'Only players with this permission can see the panel.',
+            trailing: const HuiFieldHelp('panel.visibility.viewPermission'),
+            help:
+                'Only players with this permission can see the panel. The '
+                'server lowercases it on load.',
             control: _permissionInput(
               visibility.viewPermission,
               (String? value) => _changeDraft(
@@ -552,7 +591,10 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           HuiField(
             label: 'Interaction permission',
             error: interactPermissionProblem,
-            help: 'Optional. Leave empty to let every visible player interact.',
+            trailing: const HuiFieldHelp('panel.visibility.interactPermission'),
+            help:
+                'Optional, and a click gate only: it never hides anything. '
+                'Empty lets every visible player interact.',
             control: _permissionInput(
               visibility.interactPermission,
               (String? value) => _changeDraft(
@@ -570,6 +612,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           ),
         HuiField(
           label: 'View range',
+          trailing: const HuiFieldHelp('panel.visibility.viewRange'),
           help: 'Players farther away stop receiving this panel.',
           control: HuiNumberField(
             value: visibility.viewRange,
@@ -583,6 +626,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         ),
         HuiField(
           label: 'Interaction range',
+          trailing: const HuiFieldHelp('panel.visibility.interactionRange'),
           help: 'Cannot exceed the view range or 32 blocks.',
           control: HuiNumberField(
             value: visibility.interactionRange,

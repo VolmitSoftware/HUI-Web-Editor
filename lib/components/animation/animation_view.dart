@@ -7,6 +7,11 @@
 /// the scrubber addresses frames directly, and resume rejoins the live
 /// timeline. Playback state lives in `logic/gloss_animation_player.dart`
 /// under an injectable clock; this file owns only the repaint timer and DOM.
+///
+/// With `gameContext` the current frame mounts alone into the shared
+/// game-screen frame — an animation has no HUD slot of its own, so it is
+/// shown in-world at the size a hologram would draw it, with the transport
+/// floated over the frame.
 library;
 
 import 'dart:async';
@@ -21,12 +26,21 @@ import '../../logic/gloss_animation_player.dart';
 import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_text_line.dart';
 
 class AnimationView extends StatefulWidget {
-  const AnimationView({required this.store, super.key});
+  const AnimationView({
+    required this.store,
+    this.gameContext = false,
+    super.key,
+  });
 
   final EditorStore store;
+
+  /// Mounts the current frame inside the shared Minecraft game-screen frame
+  /// instead of the editor player. False renders exactly the editor surface.
+  final bool gameContext;
 
   @override
   State<AnimationView> createState() => _AnimationViewState();
@@ -92,6 +106,12 @@ class _AnimationViewState extends State<AnimationView> {
     if (doc == null) {
       _ticker?.cancel();
       _ticker = null;
+      if (component.gameContext) {
+        return glossGameEmpty(
+          anchor: GlossGameAnchor.world,
+          label: 'Animation frame in game',
+        );
+      }
       return const dom.div(
         classes: 'hui-animation-player is-empty',
         <Widget>[],
@@ -102,16 +122,41 @@ class _AnimationViewState extends State<AnimationView> {
     final int index = _player.frameIndex(doc, id);
     final String frame = _player.frameText(doc, id);
 
-    return dom.div(classes: 'hui-animation-player', <Widget>[
-      dom.div(classes: 'hui-animation-frame-stage', <Widget>[
-        dom.div(classes: 'hui-animation-frame-large', <Widget>[
+    final Widget currentFrame = dom
+        .div(classes: 'hui-animation-frame-large', <Widget>[
           GlossTextLine(
             render: renderGlossAnimationFramePreview(
               frame,
               emoji: _store.workspaceEmoji,
             ),
           ),
-        ]),
+        ]);
+
+    if (component.gameContext) {
+      return GlossGameScreen(
+        anchor: GlossGameAnchor.world,
+        label: 'Animation frame in game',
+        controls: <Widget>[
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.iconSm,
+            onPressed: () => setState(() => _player.toggle(doc, id)),
+            attributes: <String, String>{
+              'aria-label': _player.playing ? 'Pause' : 'Play',
+              'title': _player.playing ? 'Pause' : 'Play',
+            },
+            child: _player.playing
+                ? ArcaneIcon.pause(size: IconSize.sm)
+                : ArcaneIcon.play(size: IconSize.sm),
+          ),
+        ],
+        child: currentFrame,
+      );
+    }
+
+    return dom.div(classes: 'hui-animation-player', <Widget>[
+      dom.div(classes: 'hui-animation-frame-stage', <Widget>[
+        currentFrame,
         dom.div(classes: 'hui-animation-frame-meta', <Widget>[
           Text(
             doc.frames.isEmpty

@@ -102,10 +102,7 @@ void main() {
     test('decode-encode is stable on the canonical shape', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
       final String encoded = encodeGlossHologramDoc(doc);
-      expect(
-        encodeGlossHologramDoc(decodeGlossHologramDoc(encoded)),
-        encoded,
-      );
+      expect(encodeGlossHologramDoc(decodeGlossHologramDoc(encoded)), encoded);
       expect(jsonDecode(encoded), jsonDecode(_baseline));
     });
 
@@ -135,8 +132,10 @@ void main() {
       final Map<String, dynamic> edited =
           jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>;
       expect((edited['anchor'] as Map<String, dynamic>)['pitch'], 45.0);
-      expect((edited['anchor'] as Map<String, dynamic>)['world'],
-          'world_the_end');
+      expect(
+        (edited['anchor'] as Map<String, dynamic>)['world'],
+        'world_the_end',
+      );
     });
 
     test('an invalid position shape is re-emitted verbatim', () {
@@ -154,10 +153,11 @@ void main() {
       doc.anchor.setPosition(1, 2.5, 3);
       final Map<String, dynamic> out =
           jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>;
-      expect(
-        (out['anchor'] as Map<String, dynamic>)['position'],
-        <num>[1, 2.5, 3],
-      );
+      expect((out['anchor'] as Map<String, dynamic>)['position'], <num>[
+        1,
+        2.5,
+        3,
+      ]);
     });
   });
 
@@ -178,9 +178,7 @@ void main() {
     test('needs the envelope plus an anchor', () {
       expect(looksLikeHologramDoc(jsonDecode(_baseline)), isTrue);
       expect(
-        looksLikeHologramDoc(<String, dynamic>{
-          'anchor': <String, dynamic>{},
-        }),
+        looksLikeHologramDoc(<String, dynamic>{'anchor': <String, dynamic>{}}),
         isFalse,
         reason: 'no schemaVersion means it is not a Gloss document',
       );

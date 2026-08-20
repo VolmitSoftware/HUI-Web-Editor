@@ -15,6 +15,7 @@ import '../../logic/gloss_text.dart'
     show GlossEmojiResolver, GlossNoEmoji, glossRenderMenuText;
 import '../../logic/mc_text.dart';
 import '../common/common.dart';
+import '../gloss/gloss_mc_span.dart';
 
 class McTextPreview extends StatelessWidget {
   const McTextPreview({
@@ -38,9 +39,6 @@ class McTextPreview extends StatelessWidget {
   /// Line count and longest-line character count, which drive the hitbox.
   final bool showMetrics;
   final String classes;
-
-  static String hex(int rgb) =>
-      '#${(rgb & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -78,30 +76,8 @@ class McTextPreview extends StatelessWidget {
 
   Widget _line(List<McSpan> spans) => dom.div(classes: 'hui-mc-line', <Widget>[
     if (spans.isEmpty)
-      const dom.span(classes: 'hui-mc-span is-blank', <Widget>[Text(' ')])
+      const dom.span(classes: 'hui-mc-span is-blank', <Widget>[Text(' ')])
     else
-      for (final McSpan span in spans) _span(span),
+      for (final McSpan span in spans) GlossMcSpan(span: span),
   ]);
-
-  Widget _span(McSpan span) {
-    final List<String> decorations = <String>[
-      if (span.underlined) 'underline',
-      if (span.strikethrough) 'line-through',
-    ];
-    return dom.span(
-      classes: classNames(<String?>[
-        'hui-mc-span',
-        span.obfuscated ? 'is-obfuscated' : null,
-      ]),
-      styles: dom.Styles(
-        raw: <String, String>{
-          'color': hex(span.color),
-          if (span.bold) 'font-weight': '700',
-          if (span.italic) 'font-style': 'italic',
-          if (decorations.isNotEmpty) 'text-decoration': decorations.join(' '),
-        },
-      ),
-      <Widget>[Text(span.text)],
-    );
-  }
 }

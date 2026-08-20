@@ -40,7 +40,7 @@ void main() {
       expect(store.docKind, WorkspaceDocKind.hologram);
       expect(store.isGlossDoc, isTrue);
       expect(store.hologramDoc, isNotNull);
-      expect(store.view, EditorView.hologram);
+      expect(store.view, EditorView.visual);
       expect(store.workspace.active!.kind, WorkspaceDocKind.hologram);
       expect(store.workspace.active!.runtimeId, 'new-hologram');
       // Canonical text, not shipped bytes — but the same document.
@@ -285,7 +285,7 @@ void main() {
       final EditorStore store = _store(_FakeStorage());
       store.newGlossDocument(DocumentTypes.animation);
       expect(store.docKind, WorkspaceDocKind.animation);
-      expect(store.view, EditorView.animation);
+      expect(store.view, EditorView.visual);
       expect(store.animationDoc!.frames, hasLength(1));
       store.mutateAnimation(
         'add frame',
@@ -334,7 +334,7 @@ void main() {
       final EditorStore store = _store(_FakeStorage());
       store.newGlossDocument(DocumentTypes.scoreboard);
       expect(store.docKind, WorkspaceDocKind.scoreboard);
-      expect(store.view, EditorView.scoreboard);
+      expect(store.view, EditorView.visual);
       expect(store.scoreboardDoc!.lines, hasLength(3));
       store.mutateScoreboard(
         'add line',

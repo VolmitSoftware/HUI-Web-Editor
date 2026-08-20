@@ -26,7 +26,21 @@ final class PanelDocumentType extends DocumentTypeAdapter {
   String get createLabel => 'New menu flow map';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[EditorView.panel];
+  String get pluralLabel => 'Flow maps';
+
+  @override
+  int get tabOrder => 30;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.panel;
+
+  @override
+  String get surfaceLabel => 'Flow map';
+
+  /// A flow map is a diagram of other documents, not a thing the server ever
+  /// renders, so its preview mode has nothing to show.
+  @override
+  bool get hasRuntimePreview => false;
 
   @override
   bool get hasRuntimeId => false;

@@ -6,6 +6,10 @@
 /// visible-character wrap, and motion expressions drive translation, scale,
 /// rotation and opacity from the same lifetime and stack inputs as runtime.
 ///
+/// With `gameContext` the stack mounts into the shared game-screen frame over
+/// the player silhouette the frame draws; without it the surface keeps its
+/// editor stage and readout.
+///
 /// Pause freezes the clock offset; resume rejoins where it left off. Owns a
 /// repaint timer only while playing and mounted.
 library;
@@ -20,6 +24,7 @@ import '../../logic/bubble_shimmer.dart';
 import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 
@@ -31,9 +36,13 @@ const Duration _tickPeriod = Duration(milliseconds: 50);
 const double _pixelsPerBlock = 46;
 
 class BubbleView extends StatefulWidget {
-  const BubbleView({required this.store, super.key});
+  const BubbleView({required this.store, this.gameContext = false, super.key});
 
   final EditorStore store;
+
+  /// Mounts the bubble stack inside the shared Minecraft game-screen frame
+  /// instead of the editor stage. False renders exactly the editor surface.
+  final bool gameContext;
 
   @override
   State<BubbleView> createState() => _BubbleViewState();
@@ -124,6 +133,12 @@ class _BubbleViewState extends State<BubbleView> {
     if (doc == null) {
       _ticker?.cancel();
       _ticker = null;
+      if (component.gameContext) {
+        return glossGameEmpty(
+          anchor: GlossGameAnchor.overPlayer,
+          label: 'Chat bubbles in game',
+        );
+      }
       return const dom.div(classes: 'hui-bubble-stage is-empty', <Widget>[]);
     }
     _syncTicker();
@@ -132,74 +147,92 @@ class _BubbleViewState extends State<BubbleView> {
     final List<GlossBubblePreviewBubble> bubbles = timeline.bubblesAt(nowMs);
     final List<double> offset = doc.offset;
 
+    final Widget scene = dom.div(classes: 'hui-bubble-scene', <Widget>[
+      for (final GlossBubblePreviewBubble bubble in bubbles)
+        dom.div(
+          classes: 'hui-bubble-block',
+          styles: dom.Styles(
+            raw: <String, String>{
+              'bottom':
+                  '${((bubble.stackY + offset[1] + bubble.motion.translationY) * _pixelsPerBlock).toStringAsFixed(1)}px',
+              'left':
+                  'calc(50% + ${((offset[0] + bubble.motion.translationX) * _pixelsPerBlock).toStringAsFixed(1)}px)',
+              'opacity': bubble.motion.opacity.toStringAsFixed(3),
+              'transform':
+                  'translateX(-50%) '
+                  'translateZ(${((offset[2] + bubble.motion.translationZ) * _pixelsPerBlock).toStringAsFixed(1)}px) '
+                  'rotateX(${bubble.motion.rotationX.toStringAsFixed(2)}deg) '
+                  'rotateY(${bubble.motion.rotationY.toStringAsFixed(2)}deg) '
+                  'rotateZ(${bubble.motion.rotationZ.toStringAsFixed(2)}deg) '
+                  'scale3d(${bubble.motion.scaleX.toStringAsFixed(3)}, '
+                  '${bubble.motion.scaleY.toStringAsFixed(3)}, '
+                  '${bubble.motion.scaleZ.toStringAsFixed(3)})',
+            },
+          ),
+          <Widget>[
+            GlossTextLine(
+              render: renderGlossLine(
+                glossBubbleApplyShimmer(
+                  doc.effectivePrefix + bubble.text,
+                  doc.shimmer,
+                  bubble.shimmerProgress,
+                ),
+                animations: _store.workspaceAnimations,
+                emoji: _store.workspaceEmoji,
+                nowMs: nowMs,
+              ),
+            ),
+          ],
+        ),
+      if (!component.gameContext)
+        const dom.div(classes: 'hui-bubble-player', <Widget>[
+          dom.div(classes: 'hui-bubble-player-head', <Widget>[]),
+          dom.div(classes: 'hui-bubble-player-body', <Widget>[]),
+          dom.div(classes: 'hui-bubble-player-arms', <Widget>[]),
+        ]),
+    ]);
+
+    if (component.gameContext) {
+      return GlossGameScreen(
+        anchor: GlossGameAnchor.overPlayer,
+        label: 'Chat bubbles in game',
+        controls: <Widget>[_playPause()],
+        child: scene,
+      );
+    }
+
     return dom.div(classes: 'hui-bubble-stage', <Widget>[
       dom.div(classes: 'hui-bubble-sky', <Widget>[
         GlossPreviewZoom(
           label: 'Chat bubble preview',
           alignment: GlossPreviewAlignment.bottom,
-          child: dom.div(classes: 'hui-bubble-scene', <Widget>[
-            for (final GlossBubblePreviewBubble bubble in bubbles)
-              dom.div(
-                classes: 'hui-bubble-block',
-                styles: dom.Styles(
-                  raw: <String, String>{
-                    'bottom':
-                        '${((bubble.stackY + offset[1] + bubble.motion.translationY) * _pixelsPerBlock).toStringAsFixed(1)}px',
-                    'left':
-                        'calc(50% + ${((offset[0] + bubble.motion.translationX) * _pixelsPerBlock).toStringAsFixed(1)}px)',
-                    'opacity': bubble.motion.opacity.toStringAsFixed(3),
-                    'transform':
-                        'translateX(-50%) '
-                        'translateZ(${((offset[2] + bubble.motion.translationZ) * _pixelsPerBlock).toStringAsFixed(1)}px) '
-                        'rotateX(${bubble.motion.rotationX.toStringAsFixed(2)}deg) '
-                        'rotateY(${bubble.motion.rotationY.toStringAsFixed(2)}deg) '
-                        'rotateZ(${bubble.motion.rotationZ.toStringAsFixed(2)}deg) '
-                        'scale3d(${bubble.motion.scaleX.toStringAsFixed(3)}, '
-                        '${bubble.motion.scaleY.toStringAsFixed(3)}, '
-                        '${bubble.motion.scaleZ.toStringAsFixed(3)})',
-                  },
-                ),
-                <Widget>[
-                  GlossTextLine(
-                    render: renderGlossLine(
-                      glossBubbleApplyShimmer(
-                        doc.effectivePrefix + bubble.text,
-                        doc.shimmer,
-                        bubble.shimmerProgress,
-                      ),
-                      animations: _store.workspaceAnimations,
-                      emoji: _store.workspaceEmoji,
-                      nowMs: nowMs,
-                    ),
-                  ),
-                ],
-              ),
-            const dom.div(classes: 'hui-bubble-player', <Widget>[
-              dom.div(classes: 'hui-bubble-player-head', <Widget>[]),
-              dom.div(classes: 'hui-bubble-player-body', <Widget>[]),
-              dom.div(classes: 'hui-bubble-player-arms', <Widget>[]),
-            ]),
-          ]),
+          child: scene,
         ),
       ]),
       dom.div(classes: 'hui-bubble-controls', <Widget>[
-        Button(
-          variant: ButtonVariant.outline,
-          size: ButtonSize.iconSm,
-          onPressed: _togglePlaying,
-          attributes: <String, String>{
-            'aria-label': _playing ? 'Pause' : 'Play',
-          },
-          child: _playing
-              ? ArcaneIcon.pause(size: IconSize.sm)
-              : ArcaneIcon.play(size: IconSize.sm),
-        ),
+        _playPause(),
         dom.span(classes: 'hui-bubble-readout-inline', <Widget>[
           Text(_readout(doc)),
         ]),
       ]),
     ]);
   }
+
+  /// Freezes the preview clock. Local, not the store toggle: this surface
+  /// replays a canned conversation on its own timeline, so pausing it must
+  /// hold that instant rather than only stopping animation frames.
+  Widget _playPause() => Button(
+    variant: ButtonVariant.outline,
+    size: ButtonSize.iconSm,
+    onPressed: _togglePlaying,
+    attributes: <String, String>{
+      'aria-label': _playing ? 'Pause' : 'Play',
+      'title': _playing ? 'Pause' : 'Play',
+    },
+    child: _playing
+        ? ArcaneIcon.pause(size: IconSize.sm)
+        : ArcaneIcon.play(size: IconSize.sm),
+  );
 
   String _readout(GlossBubbleStyleDoc doc) {
     final List<String> parts = <String>[

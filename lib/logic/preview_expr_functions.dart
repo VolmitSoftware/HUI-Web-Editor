@@ -97,13 +97,16 @@ Object? previewStdFunction(String name, List<Object?> args) {
       _requireCount(name, args, 3);
       final double lower = _numArg(name, args, 0);
       final double upper = _numArg(name, args, 1);
-      final double value = _numArg(name, args, 2);
+      // Edges are checked before argument 3 is read, exactly like
+      // `ExprFunctions.smoothstep`, so a call that is wrong in both ways
+      // reports the same failure in both engines.
       if (lower == upper) {
         throw const PExprException(
           'smoothstep edges must differ',
           previewNoPosition,
         );
       }
+      final double value = _numArg(name, args, 2);
       final double t = math.min(
         1.0,
         math.max(0.0, (value - lower) / (upper - lower)),

@@ -28,10 +28,16 @@ final class MotdDocumentType extends GlossDocumentTypeAdapter {
   String get createLabel => 'New MOTD';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[
-    EditorView.motd,
-    EditorView.code,
-  ];
+  String get pluralLabel => 'MOTDs';
+
+  @override
+  int get tabOrder => 70;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.motd;
+
+  @override
+  String get surfaceLabel => 'Server list';
 
   @override
   String? get syncWireKind => 'motd';

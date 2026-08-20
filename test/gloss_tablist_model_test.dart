@@ -34,10 +34,7 @@ void main() {
       expect(doc.header, '&d&lGloss');
       expect(doc.footer, '&7VolmitSoftware.com');
       expect(doc.groupListNames, isTrue);
-      expect(
-        doc.nameFormats.keys.toList(),
-        <String>['default', '_op', 'vip'],
-      );
+      expect(doc.nameFormats.keys.toList(), <String>['default', '_op', 'vip']);
     });
 
     test('rejects a wrong or missing schemaVersion', () {
@@ -74,8 +71,11 @@ void main() {
         'vip': 'a',
         'default': 'b',
       });
-      expect(doc.nameFormats.keys, contains(' VIP '),
-          reason: 'the file keeps what was written');
+      expect(
+        doc.nameFormats.keys,
+        contains(' VIP '),
+        reason: 'the file keeps what was written',
+      );
     });
 
     test('normalized duplicates: the later value wins', () {
@@ -164,17 +164,13 @@ void main() {
     });
   });
 
-  test('glossTablistSubstituteTokens replaces both tokens, nulls as empty',
-      () {
+  test('glossTablistSubstituteTokens replaces both tokens, nulls as empty', () {
     expect(
       glossTablistSubstituteTokens(r'&6[$group] $player', 'Alex', 'vip'),
       '&6[vip] Alex',
     );
     expect(glossTablistSubstituteTokens(r'$player', null, null), '');
-    expect(
-      glossTablistSubstituteTokens(r'$player $player', 'A', ''),
-      'A A',
-    );
+    expect(glossTablistSubstituteTokens(r'$player $player', 'A', ''), 'A A');
   });
 
   group('round-trip', () {
@@ -211,9 +207,7 @@ void main() {
         reason: 'frames marks an animation',
       );
       expect(
-        looksLikeTablistDoc(<String, Object?>{
-          'useHeaderFooter': true,
-        }),
+        looksLikeTablistDoc(<String, Object?>{'useHeaderFooter': true}),
         isFalse,
       );
       // The other Gloss kinds must not claim a tablist document either.

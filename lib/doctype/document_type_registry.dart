@@ -62,6 +62,25 @@ abstract final class DocumentTypeRegistry {
     DocumentTypes.tablist,
   ];
 
+  /// Every adapter in mode-tab order, which is [DocumentTypeAdapter.tabOrder]
+  /// rather than declaration order: the tab strip, the library's create row
+  /// and the scoped headings all read from this one sequence.
+  static List<DocumentTypeAdapter> get tabs {
+    final List<DocumentTypeAdapter> ordered = List<DocumentTypeAdapter>.of(all)
+      ..sort(
+        (DocumentTypeAdapter a, DocumentTypeAdapter b) =>
+            a.tabOrder.compareTo(b.tabOrder),
+      );
+    return ordered;
+  }
+
+  /// The adapter whose kind is stored under [name], or null. The name is the
+  /// enum's own slug, which is what preferences and tab values carry.
+  static DocumentTypeAdapter? byKindName(Object? name) {
+    final WorkspaceDocKind? kind = WorkspaceDocKind.fromName(name);
+    return kind == null ? null : of(kind);
+  }
+
   static DocumentTypeAdapter of(WorkspaceDocKind kind) {
     final DocumentTypeAdapter? adapter = _byKind[kind];
     if (adapter == null) {

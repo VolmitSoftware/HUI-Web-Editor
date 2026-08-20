@@ -98,7 +98,7 @@ void main() {
         scopeFolderId: folder.id,
       );
       expect(store.docKind, WorkspaceDocKind.panel);
-      expect(store.view, EditorView.panel);
+      expect(store.view, EditorView.visual);
       expect(workspace.active?.runtimeId, isNull);
       expect(store.exportJson, throwsStateError);
 

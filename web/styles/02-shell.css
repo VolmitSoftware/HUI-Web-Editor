@@ -33,6 +33,15 @@ html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
   z-index: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) var(--hui-status-height);
+  /* Load-bearing. The implicit column is `auto`, whose minimum is the widest
+     row's MIN-CONTENT — and the top bar's min-content is the sum of its three
+     groups, because the action icons do not shrink. Naming a selected kind tab
+     is enough to push that past the viewport, and the whole grid then widened
+     with it and carried the inspector off the right edge (measured: a 1670px
+     bar in a 1600px window, inspector at x=1350 + 320 wide). Capping the
+     column at the container is what lets the bar overflow INSIDE its own row,
+     which is what `.hui-bar-center`'s shrink-and-scroll was written for. */
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
   background: var(--hui-bg);
@@ -228,7 +237,10 @@ body.hui-resizing * { cursor: col-resize !important; }
 
 .hui-bar-group { display: flex; align-items: center; gap: 0; min-width: 0; }
 .hui-bar-left { flex: 1 1 auto; }
-.hui-bar-center { flex: 0 0 auto; }
+/* The mode tabs are the widest thing in the bar and the first that should give
+   way: they shrink and scroll rather than pushing the document name or the
+   action clusters off the ends. */
+.hui-bar-center { flex: 0 1 auto; min-width: 0; }
 .hui-bar-right { flex: 1 1 auto; justify-content: flex-end; }
 
 /* One hairline per boundary, drawn by the cluster that follows it. Grouping the
@@ -281,6 +293,10 @@ body.hui-resizing * { cursor: col-resize !important; }
   color: var(--hui-muted);
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
+  /* The suffix used to be ".json" and could not wrap; it now carries the kind
+     noun, and "· flow map" broke across two lines inside the bar. The id beside
+     it is the part that gives way, by ellipsis. */
+  white-space: nowrap;
 }
 
 /* Two-step destructive control: arm in the menu, confirm in the bar. It is
@@ -304,6 +320,43 @@ body.hui-resizing * { cursor: col-resize !important; }
 .hui-view-switcher { display: flex; align-items: center; }
 .hui-view-switcher-item { display: inline-flex; align-items: center; gap: 6px; }
 .hui-view-label { font-size: 0.8rem; font-weight: 600; }
+
+/* A mode the open kind cannot serve keeps its place and reads as unavailable.
+   It stays clickable: the click is what says why, and a `disabled` button in
+   this runtime swallows the pointer before any tooltip of its own can fire. */
+.hui-view-switcher-item.is-unavailable {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+/* ---- Mode tabs ---------------------------------------------------------- */
+/* Ten kinds plus All never fit as labelled tabs, and folding them into a
+   dropdown would hide the one thing this strip exists to make obvious. Only
+   the active tab is named; the rest are their document icon, with the plural
+   label carried as the title. */
+.hui-kind-tabs {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.hui-kind-tabs::-webkit-scrollbar { display: none; }
+.hui-kind-tabs [role="group"] { flex-wrap: nowrap; }
+.hui-kind-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.hui-kind-tab-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.hui-kind-tabs button:not(.selected) .hui-kind-tab-label { display: none; }
 
 .hui-tip { display: grid; gap: 4px; }
 .hui-tip-head {
@@ -907,7 +960,7 @@ body.hui-resizing * { cursor: col-resize !important; }
     padding: 4px 8px;
   }
   .hui-bar-left { flex: 1 1 0; overflow: hidden; }
-  .hui-bar-center,
+  .hui-bar-center { flex: 0 1 auto; }
   .hui-bar-right { flex: 0 0 auto; }
   .hui-doc-id { max-width: 132px; }
 }
@@ -917,9 +970,15 @@ body.hui-resizing * { cursor: col-resize !important; }
   .hui-doc-id { max-width: min(26vw, 96px); }
   .hui-doc-ext { display: none; }
 
-  .hui-bar-right > .hui-bar-cluster:not(.hui-mobile-panes):not(.hui-bar-overflow) {
+  /* The mode switcher survives: it is the only route to the code view on a
+     phone, where the overflow menu carries the file actions instead. */
+  .hui-bar-right > .hui-bar-cluster:not(.hui-mobile-panes):not(.hui-bar-overflow):not(.hui-bar-views) {
     display: none;
   }
+  /* The tabs stay reachable on a phone rather than being hidden — they are
+     the only pointer route to a mode — but they give up the space first and
+     scroll inside whatever is left. */
+  .hui-bar-center { flex: 1 1 0; }
   .hui-bar-overflow.is-compact { display: none; }
   .hui-bar-overflow.is-mobile { display: flex; }
   .hui-bar-cluster + .hui-bar-cluster {

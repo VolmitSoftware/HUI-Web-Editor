@@ -45,9 +45,20 @@ class HuiTourStep {
   final String? hint;
 }
 
-/// Five steps, in the order a menu is actually built: pick a component, place
-/// it, tune it, check it, then find everything else.
+/// The steps follow the order a menu is actually built — pick a component,
+/// place it, tune it, check it, then find everything else — behind the one
+/// piece of navigation that frames all of it: the kind the workspace is
+/// showing.
 const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
+  HuiTourStep(
+    title: 'The tabs choose what you are working on',
+    body:
+        'Each tab scopes the library to one kind of document — menus, '
+        'scoreboards, holograms, tab lists — and points the New button at it. '
+        'All keeps the whole workspace in view.',
+    selectors: <String>['.hui-kind-tabs', '.hui-bar-center'],
+    hint: 'Opening a document from search or the palette moves the tab to it.',
+  ),
   HuiTourStep(
     title: 'Components live in the rail',
     body:
@@ -79,15 +90,15 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
     selectors: <String>['.hui-inspector', '.hui-mobile-panes'],
   ),
   HuiTourStep(
-    title: 'Preview plays it back',
+    title: 'Four modes, whatever is open',
     body:
-        'The Preview tab runs the menu the way the plugin does — hover push, '
-        'click dispatch, toggle transitions, and the distance close — with '
-        'every command and sound written to a log instead of fired.',
-    selectors: <String>['.hui-view-switcher', '.hui-bar-center'],
+        'Visual is the document\'s own editing surface, Preview renders it '
+        'the way the server does, Code is its JSON, and Split shows both. A '
+        'mode a document cannot serve says why instead of disappearing.',
+    selectors: <String>['.hui-view-switcher', '.hui-bar-views'],
     hint:
-        'Fixed, vertical, horizontal and center billboards are reproduced '
-        'with their matching click planes.',
+        'For a menu, Preview runs hover push, click dispatch and the distance '
+        'close, logging every command and sound instead of firing it.',
   ),
   HuiTourStep(
     title: 'Export puts it on the server',

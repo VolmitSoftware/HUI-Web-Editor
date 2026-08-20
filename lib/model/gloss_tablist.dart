@@ -167,10 +167,8 @@ final class GlossTablistDoc extends GlossDoc {
       if (!absentKeys.contains('revision')) 'revision': revision,
       if (!absentKeys.contains('useHeaderFooter') || useHeaderFooter)
         'useHeaderFooter': useHeaderFooter,
-      if (!absentKeys.contains('header') || header.isNotEmpty)
-        'header': header,
-      if (!absentKeys.contains('footer') || footer.isNotEmpty)
-        'footer': footer,
+      if (!absentKeys.contains('header') || header.isNotEmpty) 'header': header,
+      if (!absentKeys.contains('footer') || footer.isNotEmpty) 'footer': footer,
       if (!absentKeys.contains('groupListNames') || groupListNames)
         'groupListNames': groupListNames,
       if (!absentKeys.contains('nameFormats') || nameFormats.isNotEmpty)

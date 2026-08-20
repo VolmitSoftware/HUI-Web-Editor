@@ -37,6 +37,10 @@ dependency_overrides:
 
 jaspr:
   mode: client
+  # The only mode jaspr_builder supports for a client build, and the one it
+  # already takes in this project — stated so every build stops warning that
+  # the unset option "null" is unsupported in client mode.
+  styles: standalone
 
 scripts:
   serve: jaspr serve

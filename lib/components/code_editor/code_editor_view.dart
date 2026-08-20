@@ -176,7 +176,9 @@ class _CodeEditorViewState extends State<CodeEditorView> {
 
   Widget _toolbar() => dom.div(classes: 'hui-code-toolbar', <Widget>[
     dom.div(classes: 'hui-code-toolbar-info', <Widget>[
-      const HuiEyebrow('menu json'),
+      // Every kind shares this view now, so the eyebrow names the open one
+      // rather than claiming a scoreboard's JSON is a menu's.
+      HuiEyebrow('${_store.docType.noun} json'),
       dom.span(classes: 'hui-code-stat', <Widget>[
         Text('$_lineCount lines · ${_text.length} chars'),
       ]),
@@ -242,13 +244,13 @@ class _CodeEditorViewState extends State<CodeEditorView> {
             'background': 'transparent',
           },
         ),
-        attributes: const <String, String>{
+        attributes: <String, String>{
           'wrap': 'off',
           'spellcheck': 'false',
           'autocapitalize': 'off',
           'autocomplete': 'off',
           'autocorrect': 'off',
-          'aria-label': 'Menu JSON',
+          'aria-label': '${_store.docType.noun} JSON',
         },
       ),
     ]),

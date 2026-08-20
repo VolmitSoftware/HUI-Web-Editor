@@ -11,6 +11,7 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../logic/gloss_text.dart';
 import '../../logic/mc_text.dart';
 import '../common/common.dart';
+import 'gloss_mc_span.dart';
 
 /// One line of Gloss text as inline spans. The container is a plain span so
 /// callers decide the block layout (stage rows, sidebar rows, list previews).
@@ -19,9 +20,6 @@ class GlossTextLine extends StatelessWidget {
 
   final GlossLineRender render;
   final String classes;
-
-  static String hex(int rgb) =>
-      '#${(rgb & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
   @override
   Widget build(BuildContext context) => dom.span(
@@ -32,7 +30,7 @@ class GlossTextLine extends StatelessWidget {
       else
         for (final GlossTextPiece piece in render.pieces)
           switch (piece) {
-            GlossTextRun(:final McSpan span) => _span(span),
+            GlossTextRun(:final McSpan span) => GlossMcSpan(span: span),
             GlossPlaceholderChip(:final String token) => dom.span(
               classes: 'hui-gloss-chip',
               attributes: <String, String>{
@@ -55,26 +53,4 @@ class GlossTextLine extends StatelessWidget {
           },
     ],
   );
-
-  Widget _span(McSpan span) {
-    final List<String> decorations = <String>[
-      if (span.underlined) 'underline',
-      if (span.strikethrough) 'line-through',
-    ];
-    return dom.span(
-      classes: classNames(<String?>[
-        'hui-mc-span',
-        span.obfuscated ? 'is-obfuscated' : null,
-      ]),
-      styles: dom.Styles(
-        raw: <String, String>{
-          'color': hex(span.color),
-          if (span.bold) 'font-weight': '700',
-          if (span.italic) 'font-style': 'italic',
-          if (decorations.isNotEmpty) 'text-decoration': decorations.join(' '),
-        },
-      ),
-      <Widget>[Text(span.text)],
-    );
-  }
 }

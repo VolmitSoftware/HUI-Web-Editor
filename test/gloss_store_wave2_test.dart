@@ -37,12 +37,9 @@ void main() {
       store.newGlossDocument(DocumentTypes.motd);
       expect(store.docKind, WorkspaceDocKind.motd);
       expect(store.motdDoc, isNotNull);
-      expect(store.view, EditorView.motd);
+      expect(store.view, EditorView.visual);
       expect(store.workspace.active!.runtimeId, 'motd');
-      expect(
-        jsonDecode(store.exportJson()),
-        jsonDecode(kGlossMotdDefaultJson),
-      );
+      expect(jsonDecode(store.exportJson()), jsonDecode(kGlossMotdDefaultJson));
     });
 
     test('mutateMotd is undoable and typed', () {
@@ -72,7 +69,7 @@ void main() {
       store.newGlossDocument(DocumentTypes.emoji);
       expect(store.docKind, WorkspaceDocKind.emoji);
       expect(store.emojiDoc, isNotNull);
-      expect(store.view, EditorView.emoji);
+      expect(store.view, EditorView.visual);
       expect(store.workspace.active!.runtimeId, 'new-emoji');
       expect(store.emojiDoc!.resolvedGlyph, '✨');
     });
@@ -103,7 +100,7 @@ void main() {
       store.newGlossDocument(DocumentTypes.bubbleStyle);
       expect(store.docKind, WorkspaceDocKind.bubbleStyle);
       expect(store.bubbleStyleDoc, isNotNull);
-      expect(store.view, EditorView.bubble);
+      expect(store.view, EditorView.visual);
       expect(
         jsonDecode(store.exportJson()),
         jsonDecode(kGlossBubbleDefaultJson),
@@ -136,7 +133,7 @@ void main() {
       store.newGlossDocument(DocumentTypes.tablist);
       expect(store.docKind, WorkspaceDocKind.tablist);
       expect(store.tablistDoc, isNotNull);
-      expect(store.view, EditorView.tablist);
+      expect(store.view, EditorView.visual);
       expect(store.workspace.active!.runtimeId, 'tablist');
       expect(
         jsonDecode(store.exportJson()),
@@ -173,12 +170,7 @@ void main() {
           sounds: const <String>[],
           loaded: false,
           emoji: const <GlossEmojiEntry>[
-            GlossEmojiEntry(
-              id: 'zeta',
-              trigger: '',
-              glyph: 'Z',
-              enabled: true,
-            ),
+            GlossEmojiEntry(id: 'zeta', trigger: '', glyph: 'Z', enabled: true),
             GlossEmojiEntry(
               id: 'alpha',
               trigger: '',
@@ -236,15 +228,9 @@ void main() {
     test('the resolver tracks edits — the memo dies with each change', () {
       final EditorStore store = _store(_FakeStorage());
       store.newGlossDocument(DocumentTypes.emoji, name: 'wave');
-      store.mutateEmoji(
-        'emoji value',
-        (GlossEmojiDoc doc) => doc.emoji = 'A',
-      );
+      store.mutateEmoji('emoji value', (GlossEmojiDoc doc) => doc.emoji = 'A');
       expect(store.workspaceEmoji.entries.single.glyph, 'A');
-      store.mutateEmoji(
-        'emoji value',
-        (GlossEmojiDoc doc) => doc.emoji = 'B',
-      );
+      store.mutateEmoji('emoji value', (GlossEmojiDoc doc) => doc.emoji = 'B');
       expect(store.workspaceEmoji.entries.single.glyph, 'B');
     });
   });

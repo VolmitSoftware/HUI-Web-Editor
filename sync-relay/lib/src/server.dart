@@ -600,7 +600,7 @@ final class GlossSyncRelay {
           !relayKindSlug.hasMatch(entryKind) ||
           id is! String ||
           id.isEmpty ||
-          id.length > 256 ||
+          id.length > relayMaximumDocumentIdChars ||
           json is! String ||
           json.isEmpty ||
           (revision != null &&

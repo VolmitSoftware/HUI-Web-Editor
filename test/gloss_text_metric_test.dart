@@ -47,10 +47,7 @@ void main() {
         glossLineMetricRefs('|metric.react.tps| / |metric.iris.chunks|'),
         <String>['react.tps', 'iris.chunks'],
       );
-      expect(
-        glossLineMetricRefs('|metric.a| |metric.a|'),
-        <String>['a'],
-      );
+      expect(glossLineMetricRefs('|metric.a| |metric.a|'), <String>['a']);
     });
 
     test('a line with no references reads none', () {
@@ -58,9 +55,12 @@ void main() {
       expect(glossLineMetricRefs('|animation.rainbow|'), isEmpty);
     });
 
-    test('an empty key is not a metric — the plugin registers no such name', () {
-      expect(glossLineMetricRefs('|metric.|'), isEmpty);
-    });
+    test(
+      'an empty key is not a metric — the plugin registers no such name',
+      () {
+        expect(glossLineMetricRefs('|metric.|'), isEmpty);
+      },
+    );
   });
 
   group('the function stage', () {

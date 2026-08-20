@@ -27,10 +27,16 @@ final class HologramDocumentType extends GlossDocumentTypeAdapter {
   String get createLabel => 'New hologram';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[
-    EditorView.hologram,
-    EditorView.code,
-  ];
+  String get pluralLabel => 'Holograms';
+
+  @override
+  int get tabOrder => 40;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.hologram;
+
+  @override
+  String get surfaceLabel => 'Stage';
 
   @override
   String? get syncWireKind => 'hologram';

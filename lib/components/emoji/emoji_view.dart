@@ -8,6 +8,11 @@
 /// document; catalog-only cells are informational (the plugin extracts them
 /// on first run, and creating a same-named document overrides them here).
 ///
+/// With `gameContext` only the chat line survives, mounted into the shared
+/// game-screen frame's chat region — that is the one place a player ever sees
+/// an emoji document's work. The searchable grid is editor chrome and drops
+/// out there.
+///
 /// Fidelity caveat, stated in the surface itself: glyphs render with the
 /// browser's font fallback stack, not the Minecraft client font, so metrics
 /// and coverage differ in game.
@@ -21,11 +26,16 @@ import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
+import '../gloss/gloss_game_screen.dart';
 
 class EmojiView extends StatefulWidget {
-  const EmojiView({required this.store, super.key});
+  const EmojiView({required this.store, this.gameContext = false, super.key});
 
   final EditorStore store;
+
+  /// Mounts the chat line inside the shared Minecraft game-screen frame
+  /// instead of the editor grid. False renders exactly the editor surface.
+  final bool gameContext;
 
   @override
   State<EmojiView> createState() => _EmojiViewState();
@@ -89,9 +99,22 @@ class _EmojiViewState extends State<EmojiView> {
   Widget build(BuildContext context) {
     final GlossEmojiDoc? doc = _store.emojiDoc;
     if (doc == null) {
+      if (component.gameContext) {
+        return glossGameEmpty(
+          anchor: GlossGameAnchor.chat,
+          label: 'Emoji in chat',
+        );
+      }
       return const dom.div(classes: 'hui-emoji-stage is-empty', <Widget>[]);
     }
     final String openId = _store.menuId;
+    if (component.gameContext) {
+      return GlossGameScreen(
+        anchor: GlossGameAnchor.chat,
+        label: 'Emoji in chat',
+        child: _chatPreview(doc, openId),
+      );
+    }
     final List<GlossEmojiEntry> entries = _filtered(
       _store.workspaceEmoji.entries,
     );

@@ -22,4 +22,45 @@ void main() {
     expect((restored as HuiCommandAction).command, 'warp shop');
     expect(restored.trigger, 'right_click');
   });
+
+  group('collapsible section memory', () {
+    setUp(InspectorSession.sectionOpen.clear);
+
+    test('an untouched section takes its own default', () {
+      expect(
+        InspectorSession.isSectionOpen('component.hitbox', fallback: true),
+        isTrue,
+      );
+      expect(
+        InspectorSession.isSectionOpen('component.extras', fallback: false),
+        isFalse,
+      );
+    });
+
+    test('a closed section stays closed, whatever its default was', () {
+      InspectorSession.setSectionOpen('component.hitbox', false);
+      expect(
+        InspectorSession.isSectionOpen('component.hitbox', fallback: true),
+        isFalse,
+      );
+    });
+
+    test('an opened advanced section stays open', () {
+      InspectorSession.setSectionOpen('component.extras', true);
+      expect(
+        InspectorSession.isSectionOpen('component.extras', fallback: false),
+        isTrue,
+      );
+    });
+
+    test('the memory is per key, not per pane', () {
+      // The whole point: closing Hitbox on one component leaves it closed on
+      // the next selection, and says nothing about any other section.
+      InspectorSession.setSectionOpen('component.hitbox', false);
+      expect(
+        InspectorSession.isSectionOpen('component.highlight', fallback: true),
+        isTrue,
+      );
+    });
+  });
 }

@@ -133,7 +133,10 @@ void main() {
         isFalse,
         reason: 'anchor marks a hologram',
       );
-      expect(looksLikeMotdDoc(<String, Object?>{'entries': <Object?>[]}), isFalse);
+      expect(
+        looksLikeMotdDoc(<String, Object?>{'entries': <Object?>[]}),
+        isFalse,
+      );
       // The other Gloss kinds must not claim an MOTD document either.
       expect(looksLikeScoreboardDoc(jsonDecode(_motd)), isFalse);
       expect(looksLikeAnimationDoc(jsonDecode(_motd)), isFalse);

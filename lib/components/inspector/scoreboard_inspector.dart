@@ -17,8 +17,8 @@ import '../gloss/gloss_text_line.dart';
 import 'animation_reference_picker.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'line_list_section.dart';
 import 'placeholder_picker.dart';
-import 'reorder_list.dart';
 
 class ScoreboardInspector extends StatefulWidget {
   const ScoreboardInspector({
@@ -69,12 +69,10 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
           const HuiFieldHelp('scoreboard.id'),
         ]),
       ]),
-      dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text(
-          'The right-hand sidebar. Revision ${doc.revision} is '
-          'server-owned and travels with the file.',
-        ),
+      const dom.p(classes: 'hui-inspector-lede', <Widget>[
+        Text('The right-hand sidebar. Only the first 15 lines reach a client.'),
       ]),
+      HuiRevisionRow(revision: doc.revision),
     ],
   );
 
@@ -119,103 +117,67 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
     ],
   );
 
-  Widget _lines(GlossScoreboardDoc doc) => InspectorSection(
+  Widget _lines(GlossScoreboardDoc doc) => HuiLineListSection(
     title: 'Lines',
-    children: <Widget>[
-      dom.div(classes: 'hui-hologram-lines-tools', <Widget>[
-        Button(
-          variant: ButtonVariant.outline,
-          size: ButtonSize.sm,
-          icon: ArcaneIcon.plus(size: IconSize.sm),
-          onPressed: () {
-            final int next = doc.lines.length;
-            _store.mutateScoreboard(
-              'add line',
-              (GlossScoreboardDoc edited) => edited.lines.add(''),
-            );
-            setState(() => _focusedLine = next);
-          },
-          child: const Text('Add line'),
-        ),
-        AnimationReferencePicker(store: _store, onPicked: _insert),
-        PlaceholderPicker(catalogs: component.catalogs, onPicked: _insert),
-      ]),
-      if (doc.lines.isEmpty)
-        const HuiNote('No lines yet. The sidebar shows only its title.')
-      else
-        HuiReorderList(
-          itemCount: doc.lines.length,
-          onReorder: (int from, int to) => _store.mutateScoreboard(
-            'reorder line',
-            (GlossScoreboardDoc edited) {
-              final String moved = edited.lines.removeAt(from);
-              edited.lines.insert(to, moved);
-            },
-          ),
-          itemBuilder: (int index) => _lineRow(doc, index),
-        ),
-      HuiInlineIssues(_issuesFor('lines[')),
+    docKey: 'scoreboard.lines',
+    addLabel: 'Add line',
+    itemCount: doc.lines.length,
+    issues: _issuesFor('lines['),
+    emptyBody:
+        'The sidebar shows its title and nothing else. Add a line to put '
+        'something under it.',
+    onAdd: () {
+      final int next = doc.lines.length;
+      _store.mutateScoreboard(
+        'add line',
+        (GlossScoreboardDoc edited) => edited.lines.add(''),
+      );
+      setState(() => _focusedLine = next);
+    },
+    tools: <Widget>[
+      AnimationReferencePicker(store: _store, onPicked: _insert),
+      PlaceholderPicker(catalogs: component.catalogs, onPicked: _insert),
     ],
+    onReorder: (int from, int to) =>
+        _store.mutateScoreboard('reorder line', (GlossScoreboardDoc edited) {
+          final String moved = edited.lines.removeAt(from);
+          edited.lines.insert(to, moved);
+        }),
+    itemBuilder: (int index) => _lineRow(doc, index),
   );
 
   Widget _lineRow(GlossScoreboardDoc doc, int index) {
     final String line = doc.lines[index];
-    final List<String> missing = glossLineMissingAnimationRefs(
-      line,
-      _store.workspaceAnimations,
-    );
     final bool beyondRender = index >= glossBoardMaxLines;
-    return dom.div(
-      classes:
-          'hui-hologram-line-row${beyondRender ? ' is-beyond-render' : ''}',
-      <Widget>[
-        TextInput(
-          value: line,
-          size: ComponentSize.sm,
-          fullWidth: true,
-          placeholder: '&fText, %papi%, |animation.id|, {{ expression }}',
-          onInput: (String value) => _editLine(index, value),
-          onFocus: () => _focusedLine = index,
-          attributes: const <String, String>{
-            'autocomplete': 'off',
-            'spellcheck': 'false',
-          },
+    return HuiLineRow(
+      value: line,
+      placeholder: '&fText, %papi%, |animation.id|, {{ expression }}',
+      removeLabel: 'Delete line ${index + 1}',
+      beyondRender: beyondRender,
+      onChanged: (String value) => _editLine(index, value),
+      onFocus: () => _focusedLine = index,
+      preview: GlossTextLine(
+        render: renderGlossScoreboardLine(
+          line,
+          animations: _store.workspaceAnimations,
+          emoji: _store.workspaceEmoji,
         ),
-        dom.div(classes: 'hui-hologram-line-preview', <Widget>[
-          GlossTextLine(
-            render: renderGlossScoreboardLine(
-              line,
-              animations: _store.workspaceAnimations,
-              emoji: _store.workspaceEmoji,
-            ),
-          ),
-          for (final String reference in missing)
-            dom.span(
-              classes: 'hui-gloss-chip is-missing',
-              attributes: <String, String>{
-                'title':
-                    'No animation document named '
-                    '"${reference.substring(glossAnimationFunctionPrefix.length)}" '
-                    'exists in this workspace; the text shows literally in '
-                    'game.',
-              },
-              <Widget>[Text('missing $reference')],
-            ),
-          if (beyondRender)
-            const dom.span(classes: 'hui-gloss-chip is-missing', <Widget>[
-              Text('past line 15 — not rendered'),
-            ]),
-        ]),
-        HuiIconButton(
-          label: 'Delete line',
-          icon: ArcaneIcon.trash2(size: IconSize.sm),
-          onPressed: () => _store.mutateScoreboard('delete line', (
-            GlossScoreboardDoc edited,
-          ) {
+      ),
+      chips: <Widget>[
+        ...huiMissingAnimationChips(
+          line,
+          _store.workspaceAnimations,
+          where: 'in game',
+        ),
+        if (beyondRender)
+          const dom.span(classes: 'hui-gloss-chip is-missing', <Widget>[
+            Text('past line 15 — not rendered'),
+          ]),
+      ],
+      onRemove: () =>
+          _store.mutateScoreboard('delete line', (GlossScoreboardDoc edited) {
             if (index < edited.lines.length) edited.lines.removeAt(index);
           }),
-        ),
-      ],
     );
   }
 

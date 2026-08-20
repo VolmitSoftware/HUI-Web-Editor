@@ -18,13 +18,12 @@
 
 /* ---- cell visibility ---- */
 
-/* Hidden by default in every view, shown only in its own. `.hui-center.is-code`
-   already hides it through the `:not(.is-code)` rule in 02-shell.css; this
-   covers the other three. */
+/* Hidden by default in every view. `.hui-center` now carries the VIEW
+   (`is-visual`/`is-preview`/`is-code`/`is-split`) and names the open kind's
+   surface in `data-surface`, so the rule that shows this cell — for
+   `[data-surface="previewCard"]` in the visual and split views — lives with the
+   other per-surface cell rules in 09-workspace.css. */
 .hui-split-cell.is-preview-card { display: none; }
-
-.hui-center.is-preview-card > .hui-split-cell.is-preview-card { display: block; }
-.hui-center.is-preview-card > .hui-split-cell:not(.is-preview-card) { display: none; }
 
 /* ---- surface ---- */
 

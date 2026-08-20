@@ -124,6 +124,12 @@ final class GlossScoreboardDoc extends GlossDoc {
   Map<String, dynamic> extras;
   Set<String> absentKeys;
 
+  /// `GlossBoardMeta.fromDoc` (GlossBoardMeta.java:40): an empty title falls
+  /// back to the board id, so a blank `title` shows the file name in game
+  /// rather than an empty sidebar header. The test is `String.isEmpty`, not a
+  /// trim — a title of one space stays one space.
+  String effectiveTitle(String boardId) => title.isEmpty ? boardId : title;
+
   /// `BoardDoc.normalizePermission`: trimmed, lowercased, empty maps to
   /// `default` (unrestricted).
   String get effectivePermission {

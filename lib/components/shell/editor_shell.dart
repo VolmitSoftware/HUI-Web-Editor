@@ -5,7 +5,9 @@
 /// there is never a scrollbar inside a scrollbar.
 ///
 /// Panels built by other modules arrive as slots, so this file depends on none
-/// of them:
+/// of them. The centre pane takes two maps keyed by [DocumentSurface] — the
+/// editing surfaces and their in-game renderings — plus the two surfaces the
+/// shell keeps mounted in every view:
 ///
 /// ```dart
 /// EditorScope(
@@ -14,7 +16,13 @@
 ///     rail: const ComponentsRail(),
 ///     canvas: const CanvasViewport(),
 ///     previewCard: const PreviewCardViewport(),
-///     preview: const PreviewView(),
+///     surfaces: <DocumentSurface, Widget>{
+///       DocumentSurface.scoreboard: const ScoreboardView(),
+///     },
+///     previews: <DocumentSurface, Widget>{
+///       DocumentSurface.canvas: const PreviewView(),
+///       DocumentSurface.scoreboard: const ScoreboardView(gameContext: true),
+///     },
 ///     inspector: const InspectorPane(),
 ///     codeEditor: const CodeEditorView(),
 ///     overlays: <Widget>[ExportDialog(...), HelpDialog(...)],
@@ -26,6 +34,7 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
+import '../../doctype/doctype.dart';
 import '../../services/file_transfer.dart';
 import '../../services/image_library.dart';
 import '../../state/editor_scope.dart';
@@ -52,15 +61,8 @@ class EditorShell extends StatefulWidget {
     required this.rail,
     required this.canvas,
     required this.previewCard,
-    required this.preview,
-    required this.panel,
-    required this.hologram,
-    required this.animation,
-    required this.scoreboard,
-    required this.motd,
-    required this.emoji,
-    required this.bubble,
-    required this.tablist,
+    required this.surfaces,
+    required this.previews,
     required this.inspector,
     required this.codeEditor,
     required this.overlays,
@@ -81,42 +83,25 @@ class EditorShell extends StatefulWidget {
   });
 
   final Widget rail;
+
+  /// The component canvas. Mounted in every view and hidden by CSS; see
+  /// [_CenterArea].
   final Widget canvas;
 
   /// The pixel-space container-preview surface. Mounted in every view and
   /// hidden by CSS, exactly like [canvas]; see [_CenterArea].
   final Widget previewCard;
 
-  /// Mounted only while the preview view is active; see [_CenterArea].
-  final Widget preview;
-  final Widget panel;
+  /// The editing surface for every kind whose surface is neither [canvas] nor
+  /// [previewCard]. Mounted only while its kind is open and the visual or
+  /// split mode is active: each of these owns a playback clock.
+  final Map<DocumentSurface, Widget> surfaces;
 
-  /// The hologram stage. Mounted only while the hologram view is active, for
-  /// the same reason as [preview]: it owns a playback clock.
-  final Widget hologram;
+  /// The in-game rendering behind the preview mode, per surface. The menu's is
+  /// the 3D stage; every other kind's is its own surface asked to draw in game
+  /// context. Absent for kinds with nothing to render.
+  final Map<DocumentSurface, Widget> previews;
 
-  /// The animation player, mounted only while its view is active — it owns a
-  /// playback clock too.
-  final Widget animation;
-
-  /// The scoreboard sidebar mock, mounted only while its view is active — it
-  /// owns a playback clock too.
-  final Widget scoreboard;
-
-  /// The MOTD server-list mock, mounted only while its view is active — it
-  /// owns a playback clock too.
-  final Widget motd;
-
-  /// The emoji glyph grid, mounted only while its view is active.
-  final Widget emoji;
-
-  /// The chat-bubble stack mock, mounted only while its view is active — it
-  /// owns a playback clock too.
-  final Widget bubble;
-
-  /// The tab-screen mock, mounted only while its view is active — it owns a
-  /// playback clock too.
-  final Widget tablist;
   final Widget inspector;
   final Widget codeEditor;
 
@@ -459,15 +444,8 @@ class _EditorShellState extends State<EditorShell> {
               store: store,
               canvas: component.canvas,
               previewCard: component.previewCard,
-              preview: component.preview,
-              panel: component.panel,
-              hologram: component.hologram,
-              animation: component.animation,
-              scoreboard: component.scoreboard,
-              motd: component.motd,
-              emoji: component.emoji,
-              bubble: component.bubble,
-              tablist: component.tablist,
+              surfaces: component.surfaces,
+              previews: component.previews,
               codeEditor: component.codeEditor,
             ),
             PaneSplitter(
@@ -604,95 +582,109 @@ class _CenterArea extends StatelessWidget {
     required this.store,
     required this.canvas,
     required this.previewCard,
-    required this.preview,
-    required this.panel,
-    required this.hologram,
-    required this.animation,
-    required this.scoreboard,
-    required this.motd,
-    required this.emoji,
-    required this.bubble,
-    required this.tablist,
+    required this.surfaces,
+    required this.previews,
     required this.codeEditor,
   });
 
   final EditorStore store;
   final Widget canvas;
   final Widget previewCard;
-  final Widget preview;
-  final Widget panel;
-  final Widget hologram;
-  final Widget animation;
-  final Widget scoreboard;
-  final Widget motd;
-  final Widget emoji;
-  final Widget bubble;
-  final Widget tablist;
+  final Map<DocumentSurface, Widget> surfaces;
+  final Map<DocumentSurface, Widget> previews;
   final Widget codeEditor;
 
   @override
   Widget build(BuildContext context) =>
-      StoreSelector<({bool active, EditorView view})>(
+      StoreSelector<({bool active, EditorView view, DocumentSurface surface})>(
         listenable: store,
-        selector: () => (active: store.hasActiveDocument, view: store.view),
+        selector: () => (
+          active: store.hasActiveDocument,
+          view: store.view,
+          surface: store.docType.surface,
+        ),
         builder:
-            (BuildContext context, ({bool active, EditorView view}) state) =>
-                state.active
-                ? _active(state.view)
-                : dom.section(
-                    classes: 'hui-pane hui-center is-empty-workspace',
-                    <Widget>[
-                      ArcaneEmptyState(
-                        title: 'Workspace is empty',
-                        description:
-                            'Create a document in the Library or start from a '
-                            'template.',
-                        icon: ArcaneIcon.filePlus(size: IconSize.lg),
-                      ),
-                    ],
+            (
+              BuildContext context,
+              ({bool active, EditorView view, DocumentSurface surface}) state,
+            ) => state.active
+            ? _active(state.view, state.surface)
+            : dom.section(
+                classes: 'hui-pane hui-center is-empty-workspace',
+                <Widget>[
+                  ArcaneEmptyState(
+                    title: 'Workspace is empty',
+                    description:
+                        'Create a document in the Library or start from a '
+                        'template.',
+                    icon: ArcaneIcon.filePlus(size: IconSize.lg),
                   ),
+                ],
+              ),
       );
 
-  Widget _active(EditorView view) => dom.section(
+  Widget _active(EditorView view, DocumentSurface surface) => dom.section(
     classes: switch (view) {
       EditorView.visual => 'hui-pane hui-center is-visual',
       EditorView.preview => 'hui-pane hui-center is-preview',
       EditorView.code => 'hui-pane hui-center is-code',
       EditorView.split => 'hui-pane hui-center is-split',
-      EditorView.previewCard => 'hui-pane hui-center is-preview-card',
-      EditorView.panel => 'hui-pane hui-center is-board',
-      EditorView.hologram => 'hui-pane hui-center is-hologram',
-      EditorView.animation => 'hui-pane hui-center is-animation',
-      EditorView.scoreboard => 'hui-pane hui-center is-scoreboard',
-      EditorView.motd => 'hui-pane hui-center is-motd',
-      EditorView.emoji => 'hui-pane hui-center is-emoji',
-      EditorView.bubble => 'hui-pane hui-center is-bubble',
-      EditorView.tablist => 'hui-pane hui-center is-tablist',
     },
+    // Which of the two always-mounted cells is on screen is decided here, in
+    // CSS, because neither may be unmounted to hide it.
+    attributes: <String, String>{'data-surface': surface.name},
     <Widget>[
-      dom.div(classes: 'hui-split-cell', <Widget>[canvas]),
+      dom.div(classes: 'hui-split-cell is-canvas', <Widget>[canvas]),
       dom.div(classes: 'hui-split-cell is-preview-card', <Widget>[previewCard]),
+      if (_mountsSurfaceCell(view, surface))
+        dom.div(
+          key: ValueKey<String>('surface-${surface.name}'),
+          classes: 'hui-split-cell ${_surfaceCellClass(surface)}',
+          <Widget>[surfaces[surface] ?? _missing(surface)],
+        ),
       if (view == EditorView.preview)
-        dom.div(classes: 'hui-split-cell is-preview', <Widget>[preview]),
-      if (view == EditorView.panel)
-        dom.div(classes: 'hui-split-cell is-board', <Widget>[panel]),
-      if (view == EditorView.hologram)
-        dom.div(classes: 'hui-split-cell is-hologram', <Widget>[hologram]),
-      if (view == EditorView.animation)
-        dom.div(classes: 'hui-split-cell is-animation', <Widget>[animation]),
-      if (view == EditorView.scoreboard)
-        dom.div(classes: 'hui-split-cell is-scoreboard', <Widget>[scoreboard]),
-      if (view == EditorView.motd)
-        dom.div(classes: 'hui-split-cell is-motd', <Widget>[motd]),
-      if (view == EditorView.emoji)
-        dom.div(classes: 'hui-split-cell is-emoji', <Widget>[emoji]),
-      if (view == EditorView.bubble)
-        dom.div(classes: 'hui-split-cell is-bubble', <Widget>[bubble]),
-      if (view == EditorView.tablist)
-        dom.div(classes: 'hui-split-cell is-tablist', <Widget>[tablist]),
+        dom.div(
+          key: ValueKey<String>('preview-${surface.name}'),
+          classes: 'hui-split-cell is-preview',
+          attributes: <String, String>{'data-surface': surface.name},
+          <Widget>[previews[surface] ?? _missing(surface)],
+        ),
       if (view == EditorView.code || view == EditorView.split)
-        dom.div(classes: 'hui-split-cell is-code', <Widget>[codeEditor]),
+        dom.div(
+          key: const ValueKey<String>('code'),
+          classes: 'hui-split-cell is-code',
+          <Widget>[codeEditor],
+        ),
     ],
+  );
+
+  /// The two always-mounted surfaces never get a second cell; every other
+  /// surface is mounted for exactly as long as it is on screen.
+  static bool _mountsSurfaceCell(EditorView view, DocumentSurface surface) =>
+      (view == EditorView.visual || view == EditorView.split) &&
+      surface != DocumentSurface.canvas &&
+      surface != DocumentSurface.previewCard;
+
+  /// The world panel kept its pre-Gloss cell name; the rest are their own.
+  static String _surfaceCellClass(DocumentSurface surface) => switch (surface) {
+    DocumentSurface.canvas => 'is-canvas',
+    DocumentSurface.previewCard => 'is-preview-card',
+    DocumentSurface.panel => 'is-board',
+    DocumentSurface.hologram => 'is-hologram',
+    DocumentSurface.animation => 'is-animation',
+    DocumentSurface.scoreboard => 'is-scoreboard',
+    DocumentSurface.motd => 'is-motd',
+    DocumentSurface.emoji => 'is-emoji',
+    DocumentSurface.bubble => 'is-bubble',
+    DocumentSurface.tablist => 'is-tablist',
+  };
+
+  /// A slot the owner did not supply. Reachable only from a wiring mistake, so
+  /// it names the missing surface instead of rendering an empty pane.
+  static Widget _missing(DocumentSurface surface) => ArcaneEmptyState(
+    title: 'That surface is not in this build',
+    description: 'No widget is wired for the ${surface.name} surface.',
+    icon: ArcaneIcon.triangleAlert(size: IconSize.lg),
   );
 }
 

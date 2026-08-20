@@ -19,19 +19,9 @@ List<HuiIssue> validateTablistDoc(
 }) {
   final List<HuiIssue> issues = <HuiIssue>[];
 
-  if (!glossRevisionInRange(doc.revision)) {
-    issues.add(
-      HuiIssue(
-        severity: HuiSeverity.error,
-        path: r'$.revision',
-        message:
-            'Revision ${doc.revision} is outside 1..9007199254740991, so '
-            'Gloss rejects the whole file.',
-        fix:
-            'The revision is server-owned; leave it at the value the server '
-            'wrote, or 1 for a new document.',
-      ),
-    );
+  final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
+  if (revisionIssue != null) {
+    issues.add(revisionIssue);
   }
 
   if (!doc.useHeaderFooter &&

@@ -27,10 +27,16 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
   String get createLabel => 'New animation';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[
-    EditorView.animation,
-    EditorView.code,
-  ];
+  String get pluralLabel => 'Animations';
+
+  @override
+  int get tabOrder => 50;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.animation;
+
+  @override
+  String get surfaceLabel => 'Player';
 
   @override
   String? get syncWireKind => 'animation';

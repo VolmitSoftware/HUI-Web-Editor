@@ -72,10 +72,7 @@ void main() {
     expect(DocumentTypeRegistry.byWireKind('menu'), DocumentTypes.menu);
     expect(DocumentTypeRegistry.byWireKind('panel'), DocumentTypes.panel);
     expect(DocumentTypeRegistry.byWireKind('board'), isNull);
-    expect(
-      DocumentTypeRegistry.byWireKind('hologram'),
-      DocumentTypes.hologram,
-    );
+    expect(DocumentTypeRegistry.byWireKind('hologram'), DocumentTypes.hologram);
     expect(
       DocumentTypeRegistry.byWireKind('animation'),
       DocumentTypes.animation,
@@ -96,48 +93,100 @@ void main() {
     expect(DocumentTypes.containerPreview.syncWireKind, isNull);
   });
 
-  test('adapter views agree with the store surfaces they gate', () {
-    expect(DocumentTypes.menu.availableViews, const <EditorView>[
-      EditorView.visual,
-      EditorView.preview,
-      EditorView.code,
-      EditorView.split,
-    ]);
-    expect(DocumentTypes.containerPreview.availableViews, const <EditorView>[
-      EditorView.previewCard,
-      EditorView.code,
-    ]);
+  test('every kind offers the four modes, or says why not', () {
+    for (final DocumentTypeAdapter adapter in DocumentTypeRegistry.all) {
+      expect(
+        adapter.supportsView(EditorView.visual),
+        isTrue,
+        reason: '${adapter.noun} must have an editing surface',
+      );
+      for (final EditorView view in EditorView.values) {
+        final String? reason = adapter.unavailableViewReason(view);
+        expect(
+          adapter.supportsView(view),
+          reason == null,
+          reason: 'supportsView and the reason must agree for $view',
+        );
+        if (reason != null) {
+          expect(reason, isNotEmpty);
+          expect(adapter.availableViews, isNot(contains(view)));
+        }
+      }
+    }
+  });
+
+  test('only the editor-only kind loses modes', () {
+    expect(DocumentTypes.menu.availableViews, EditorView.values);
+    expect(DocumentTypes.containerPreview.availableViews, EditorView.values);
+    expect(DocumentTypes.scoreboard.availableViews, EditorView.values);
     expect(DocumentTypes.panel.availableViews, const <EditorView>[
-      EditorView.panel,
+      EditorView.visual,
     ]);
-    expect(DocumentTypes.hologram.availableViews, const <EditorView>[
-      EditorView.hologram,
-      EditorView.code,
-    ]);
-    expect(DocumentTypes.animation.availableViews, const <EditorView>[
-      EditorView.animation,
-      EditorView.code,
-    ]);
-    expect(DocumentTypes.scoreboard.availableViews, const <EditorView>[
-      EditorView.scoreboard,
-      EditorView.code,
-    ]);
-    expect(DocumentTypes.motd.availableViews, const <EditorView>[
-      EditorView.motd,
-      EditorView.code,
-    ]);
-    expect(DocumentTypes.emoji.availableViews, const <EditorView>[
-      EditorView.emoji,
-      EditorView.code,
-    ]);
-    expect(DocumentTypes.bubbleStyle.availableViews, const <EditorView>[
-      EditorView.bubble,
-      EditorView.code,
-    ]);
-    expect(DocumentTypes.tablist.availableViews, const <EditorView>[
-      EditorView.tablist,
-      EditorView.code,
-    ]);
+    // A flow map is editor-only and nothing on the server draws it, so both
+    // the JSON modes and the preview say so rather than disappearing.
+    expect(
+      DocumentTypes.panel.unavailableViewReason(EditorView.code),
+      contains('editor-only'),
+    );
+    expect(
+      DocumentTypes.panel.unavailableViewReason(EditorView.split),
+      contains('editor-only'),
+    );
+    expect(
+      DocumentTypes.panel.unavailableViewReason(EditorView.preview),
+      contains('no in-game rendering'),
+    );
+  });
+
+  test('every kind carries its mode-tab and surface metadata', () {
+    final Set<DocumentSurface> surfaces = <DocumentSurface>{};
+    final Set<int> orders = <int>{};
+    for (final DocumentTypeAdapter adapter in DocumentTypeRegistry.all) {
+      expect(adapter.pluralLabel, isNotEmpty);
+      expect(adapter.surfaceLabel, isNotEmpty);
+      expect(
+        surfaces.add(adapter.surface),
+        isTrue,
+        reason: 'two kinds claim the ${adapter.surface} surface',
+      );
+      expect(
+        orders.add(adapter.tabOrder),
+        isTrue,
+        reason: 'two kinds claim tab order ${adapter.tabOrder}',
+      );
+    }
+    // Every surface the centre pane knows about is claimed by exactly one
+    // kind, so no slot in the shell can go unreachable.
+    expect(surfaces.length, DocumentSurface.values.length);
+  });
+
+  test('the mode tabs are in tabOrder', () {
+    final List<DocumentTypeAdapter> tabs = DocumentTypeRegistry.tabs;
+    expect(tabs.length, DocumentTypeRegistry.all.length);
+    for (int i = 1; i < tabs.length; i++) {
+      expect(tabs[i - 1].tabOrder, lessThan(tabs[i].tabOrder));
+    }
+    expect(tabs.first, DocumentTypes.menu);
+    expect(
+      DocumentTypeRegistry.byKindName(DocumentTypes.scoreboard.kind.name),
+      DocumentTypes.scoreboard,
+    );
+    expect(DocumentTypeRegistry.byKindName('not-a-kind'), isNull);
+  });
+
+  test('only kinds with in-document contents offer a contents tab', () {
+    expect(DocumentTypes.menu.contentsTabLabel, 'Components');
+    expect(DocumentTypes.containerPreview.contentsTabLabel, 'Elements');
+    expect(DocumentTypes.panel.contentsTabLabel, isNull);
+    for (final DocumentTypeAdapter adapter in DocumentTypeRegistry.all) {
+      if (adapter is GlossDocumentTypeAdapter) {
+        expect(
+          adapter.contentsTabLabel,
+          isNull,
+          reason: 'a ${adapter.noun} has no in-document contents list',
+        );
+      }
+    }
   });
 
   test('capabilities carry the per-kind rules the store used to switch on', () {

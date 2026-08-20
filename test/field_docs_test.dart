@@ -7,71 +7,169 @@
 library;
 
 import 'package:gloss_editor/config/field_docs.dart';
+import 'package:gloss_editor/config/field_docs.g.dart';
 import 'package:test/test.dart';
 
-/// Every key the inspector mounts help for.
-const List<String> _contractKeys = <String>[
-  'menu.id',
-  'menu.offset',
-  'menu.lockPosition',
-  'menu.followPlayer',
-  'menu.maxDistance',
-  'menu.closeOnDeath',
-  'menu.closeOnTeleport',
-  'component.id',
-  'component.offset',
-  'button.highlightModifier',
-  'button.hoverDurationTicks',
-  'button.hoverEasing',
-  'button.hitbox',
-  'toggle.condition',
-  'toggle.expectedValue',
-  'toggle.trueActions',
-  'toggle.falseActions',
-  'icon.item.item',
-  'icon.item.count',
-  'icon.item.customModelValue',
-  'icon.block.block',
-  'icon.customItem.provider',
-  'icon.customItem.item',
-  'icon.customItem.count',
-  'icon.textImage.path',
-  'icon.animated.source',
-  'icon.animated.speed',
-  'icon.text.text',
-  'icon.text.refreshTicks',
-  'icon.entity.entity',
-  'icon.entity.width',
-  'icon.entity.height',
+/// Every key the inspector mounts a hand-written popover for. The key list is
+/// the contract: a rename here is a silent loss of help in the UI.
+const List<String> _handWrittenKeys = <String>[
   'action.command.command',
   'action.command.source',
+  'action.connect.server',
+  'action.message.message',
+  'action.sound.pitch',
   'action.sound.sound',
   'action.sound.source',
   'action.sound.volume',
-  'action.sound.pitch',
-  'action.message.message',
   'action.teleport.world',
-  'action.connect.server',
-  'hologram.id',
-  'hologram.anchor.world',
-  'hologram.anchor.position',
-  'hologram.lines',
-  'hologram.revision',
-  'animation.id',
-  'animation.mode',
   'animation.frameIntervalMs',
   'animation.frames',
-  'scoreboard.id',
-  'scoreboard.title',
-  'scoreboard.lines',
-  'scoreboard.primary',
-  'scoreboard.hideNumbers',
-  'scoreboard.permission',
+  'animation.id',
+  'animation.mode',
+  'bubble.followPlayer',
+  'bubble.hideOwn',
+  'bubble.id',
+  'bubble.offset',
+  'bubble.prefix',
+  'bubble.select.priority',
+  'button.highlightModifier',
+  'button.hitbox',
+  'button.hoverDurationTicks',
+  'button.hoverEasing',
+  'component.id',
+  'component.offset',
+  'emoji.emoji',
+  'emoji.enabled',
+  'emoji.id',
+  'emoji.trigger',
+  'hologram.anchor.position',
+  'hologram.anchor.world',
+  'hologram.id',
+  'hologram.lines',
+  'hologram.revision',
+  'icon.animated.source',
+  'icon.animated.speed',
+  'icon.block.block',
+  'icon.customItem.count',
+  'icon.customItem.item',
+  'icon.customItem.provider',
+  'icon.entity.entity',
+  'icon.entity.height',
+  'icon.entity.width',
+  'icon.item.count',
+  'icon.item.customModelValue',
+  'icon.item.item',
+  'icon.style.backgroundArgb',
+  'icon.style.billboard',
+  'icon.style.blockLight',
+  'icon.style.cullingHeight',
+  'icon.style.cullingWidth',
+  'icon.style.glowColor',
+  'icon.style.lineWidth',
+  'icon.style.scaleX',
+  'icon.style.scaleY',
+  'icon.style.scaleZ',
+  'icon.style.seeThrough',
+  'icon.style.shadow',
+  'icon.style.shadowRadius',
+  'icon.style.shadowStrength',
+  'icon.style.skyLight',
+  'icon.style.textAlignment',
+  'icon.style.textOpacity',
+  'icon.style.viewRange',
+  'icon.text.refreshTicks',
+  'icon.text.text',
+  'icon.textImage.path',
+  'menu.closeOnDeath',
+  'menu.closeOnTeleport',
+  'menu.followPlayer',
+  'menu.id',
+  'menu.lockPosition',
+  'menu.maxDistance',
+  'menu.offset',
+  'motd.entries',
+  'motd.id',
+  'motd.lines',
+  'panel.follow.mode',
+  'panel.follow.rotation',
+  'panel.follow.targetPlayerUuid',
+  'panel.identity',
+  'panel.rootMenuId',
+  'panel.transform.position',
+  'panel.transform.rotation',
+  'panel.transform.scale',
+  'panel.transform.world',
+  'panel.visibility.interactionRange',
+  'panel.visibility.interactPermission',
+  'panel.visibility.mode',
+  'panel.visibility.viewPermission',
+  'panel.visibility.viewRange',
   'scoreboard.groups',
+  'scoreboard.hideNumbers',
+  'scoreboard.id',
+  'scoreboard.lines',
+  'scoreboard.permission',
+  'scoreboard.primary',
+  'scoreboard.title',
+  'tablist.footer',
+  'tablist.groupListNames',
+  'tablist.header',
+  'tablist.id',
+  'tablist.nameFormats',
+  'tablist.useHeaderFooter',
+  'toggle.condition',
+  'toggle.expectedValue',
+  'toggle.falseActions',
+  'toggle.trueActions',
+];
+
+/// Keys the inspector mounts that no hand-written entry covers, so the
+/// schema-derived layer is the only thing standing behind them. A key moving
+/// from this list to [_handWrittenKeys] is fine; a key falling out of both is
+/// a popover that silently stopped rendering.
+const List<String> _generatedOnlyKeys = <String>[
+  'action.navigation',
+  'action.navigation.mode',
+  'action.navigation.target',
+  'icon.style',
+  'preview.card',
+  'preview.card.accent',
+  'preview.card.framed',
+  'preview.card.minHalfWidth',
+  'preview.card.title',
+  'preview.element.background',
+  'preview.element.color',
+  'preview.element.height',
+  'preview.element.index',
+  'preview.element.size',
+  'preview.element.text',
+  'preview.element.visible',
+  'preview.element.wellColor',
+  'preview.element.width',
+  'preview.element.x',
+  'preview.element.y',
+  'preview.element.z',
+  'preview.match',
+  'preview.match.blocks',
+  'preview.match.entities',
+  'preview.match.priority',
+  'preview.match.special',
+  'preview.repeat.count',
+  'preview.repeat.var',
+  'preview.variant.blocks',
+  'preview.variant.entities',
+  'preview.variant.vars',
+  'preview.vars',
 ];
 
 /// `File.java:12` or `File.java:12-34`, nothing else.
 final RegExp _citationPattern = RegExp(r'^\w+\.java:\d+(-\d+)?$');
+
+/// `gloss.schema.json#/$defs/itemIcon/properties/item`: the generated layer
+/// cites the schema it was read out of, never a Java line it never saw.
+final RegExp _schemaCitationPattern = RegExp(
+  r'^[\w.-]+\.schema\.json#(/[\w$.\[\]-]+)+$',
+);
 
 /// Dotted lower-camel path, matching the JSON keys the docs describe.
 final RegExp _keyPattern = RegExp(
@@ -81,7 +179,7 @@ final RegExp _keyPattern = RegExp(
 void main() {
   group('huiFieldDocs', () {
     test('covers every key the inspector mounts help for', () {
-      for (final String key in _contractKeys) {
+      for (final String key in _handWrittenKeys) {
         expect(huiFieldDocs.containsKey(key), isTrue, reason: key);
       }
     });
@@ -122,6 +220,68 @@ void main() {
     });
   });
 
+  group('huiGeneratedFieldDocs', () {
+    test('covers the whole documented surface of both schemas', () {
+      // The two schemas carry a description on roughly ninety properties
+      // across two dozen `$defs`. A generator that silently stopped walking
+      // one of them would still produce a valid map, just a much smaller one.
+      expect(huiGeneratedFieldDocs.length, greaterThanOrEqualTo(100));
+      expect(
+        huiGeneratedFieldDocs.keys.where(
+          (String k) => k.startsWith('preview.'),
+        ),
+        hasLength(greaterThanOrEqualTo(30)),
+      );
+      expect(
+        huiGeneratedFieldDocs.keys.where((String k) => k.startsWith('icon.')),
+        hasLength(greaterThanOrEqualTo(20)),
+      );
+    });
+
+    test('backs every mounted key no hand-written entry covers', () {
+      for (final String key in _generatedOnlyKeys) {
+        expect(huiGeneratedFieldDocs.containsKey(key), isTrue, reason: key);
+        expect(huiFieldDocs.containsKey(key), isFalse, reason: key);
+      }
+    });
+
+    test('every key is a dotted field path', () {
+      for (final String key in huiGeneratedFieldDocs.keys) {
+        expect(_keyPattern.hasMatch(key), isTrue, reason: key);
+      }
+    });
+
+    test('every doc has a title, a body and a schema citation', () {
+      for (final MapEntry<String, HuiFieldDoc> entry
+          in huiGeneratedFieldDocs.entries) {
+        expect(entry.value.title.trim(), isNotEmpty, reason: entry.key);
+        expect(entry.value.body.trim(), isNotEmpty, reason: entry.key);
+        expect(
+          _schemaCitationPattern.hasMatch(entry.value.citation ?? ''),
+          isTrue,
+          reason: '${entry.key} -> ${entry.value.citation}',
+        );
+      }
+    });
+
+    test('carries the constraints the pane cannot show inline', () {
+      // `icon.style.*` has no descriptions in the schema at all, so a body
+      // built only from `description` would have dropped these entirely.
+      expect(
+        huiGeneratedFieldDocs['icon.style.textOpacity']!.body,
+        contains('0 through 255'),
+      );
+      expect(
+        huiGeneratedFieldDocs['icon.style.billboard']!.body,
+        contains('fixed, vertical, horizontal, center'),
+      );
+      expect(
+        huiGeneratedFieldDocs['icon.text.refreshTicks']!.body,
+        contains('Omitted, this is 10.'),
+      );
+    });
+  });
+
   group('huiFieldDoc', () {
     test('resolves a known key', () {
       expect(huiFieldDoc('menu.offset'), same(huiFieldDocs['menu.offset']));
@@ -129,6 +289,33 @@ void main() {
 
     test('returns null for a key with no doc', () {
       expect(huiFieldDoc('menu.notAThing'), isNull);
+    });
+
+    test('a hand-written doc wins over the generated one', () {
+      // Both maps carry `icon.item.count`; the hand-written body is the one
+      // that knows 0 becomes 1, which is the whole reason it exists.
+      expect(huiGeneratedFieldDocs.containsKey('icon.item.count'), isTrue);
+      expect(
+        huiFieldDoc('icon.item.count'),
+        same(huiFieldDocs['icon.item.count']),
+      );
+    });
+
+    test('falls back to the generated doc when nothing is hand-written', () {
+      expect(huiFieldDocs.containsKey('preview.element.wellColor'), isFalse);
+      expect(
+        huiFieldDoc('preview.element.wellColor'),
+        same(huiGeneratedFieldDocs['preview.element.wellColor']),
+      );
+    });
+
+    test('resolves every key the inspector mounts', () {
+      for (final String key in <String>[
+        ..._handWrittenKeys,
+        ..._generatedOnlyKeys,
+      ]) {
+        expect(huiFieldDoc(key), isNotNull, reason: key);
+      }
     });
   });
 
@@ -197,6 +384,68 @@ void main() {
     test('an omitted sound volume is 1 and an explicit 0 is silence', () {
       expect(body('action.sound.volume'), contains('is 1'));
       expect(body('action.sound.volume'), contains('0 is silence'));
+    });
+
+    test('the text-only display style fields say they are text-only', () {
+      for (final String key in <String>[
+        'icon.style.shadow',
+        'icon.style.seeThrough',
+        'icon.style.backgroundArgb',
+        'icon.style.textOpacity',
+        'icon.style.lineWidth',
+      ]) {
+        expect(body(key).toLowerCase(), contains('text'), reason: key);
+      }
+      expect(body('icon.style.shadow'), contains('inert'));
+      expect(body('icon.style.lineWidth'), contains('2000'));
+    });
+
+    test('brightness is a pair and one channel alone is rejected', () {
+      expect(body('icon.style.blockLight'), contains('alone'));
+      expect(body('icon.style.skyLight'), contains('alone'));
+    });
+
+    test('a ground shadow needs both radius and strength', () {
+      expect(body('icon.style.shadowRadius'), contains('strength'));
+      expect(body('icon.style.shadowStrength'), contains('radius'));
+    });
+
+    test('culling is not a click dimension and scale Z is not either', () {
+      expect(body('icon.style.cullingWidth'), contains('no effect on click'));
+      expect(body('icon.style.scaleZ'), contains('never affects the click'));
+    });
+
+    test('display view range is a multiplier, not blocks', () {
+      expect(body('icon.style.viewRange'), contains('multiplier'));
+      expect(body('icon.style.viewRange'), contains('64'));
+    });
+
+    test('a glow colour is also the glow switch', () {
+      expect(body('icon.style.glowColor'), contains('no separate toggle'));
+    });
+
+    test('panel position changes meaning under a follow mode', () {
+      expect(body('panel.transform.position'), contains('follow mode'));
+      expect(body('panel.transform.position'), contains('jumps'));
+    });
+
+    test('panel rotation is silently wrapped by the server', () {
+      expect(body('panel.transform.rotation'), contains('-180 to 180'));
+    });
+
+    test('a hidden panel still costs work every tick', () {
+      expect(body('panel.visibility.mode'), contains('does not disable'));
+    });
+
+    test('the interact permission hides nothing', () {
+      expect(
+        body('panel.visibility.interactPermission'),
+        contains('never on the render path'),
+      );
+    });
+
+    test('one wide panel widens the query for every player', () {
+      expect(body('panel.visibility.viewRange'), contains('every player'));
     });
   });
 }

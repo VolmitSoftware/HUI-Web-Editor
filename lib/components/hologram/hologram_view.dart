@@ -6,6 +6,10 @@
 /// DOM-free and tested on the VM; this file only writes the numbers into
 /// styles.
 ///
+/// With `gameContext` the whole stage mounts into the shared game-screen
+/// frame, which puts the client's HUD around the in-world view; the orbit
+/// camera and its controls keep working inside it.
+///
 /// The stage owns a playback clock while any line references an animation
 /// document and the store's animations toggle is on. It is only mounted while
 /// the hologram view is active (see `editor_shell.dart`), so a hidden stage
@@ -28,6 +32,7 @@ import '../../model/model.dart';
 import '../../preview/preview_types.dart';
 import '../../preview/projection.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_text_line.dart';
 
 /// Animation playback repaint period. Fine enough for the 1 ms floor to look
@@ -35,9 +40,17 @@ import '../gloss/gloss_text_line.dart';
 const Duration _tickPeriod = Duration(milliseconds: 100);
 
 class HologramView extends StatefulWidget {
-  const HologramView({required this.store, super.key});
+  const HologramView({
+    required this.store,
+    this.gameContext = false,
+    super.key,
+  });
 
   final EditorStore store;
+
+  /// Mounts the stage inside the shared Minecraft game-screen frame instead
+  /// of filling the editor pane. False renders exactly the editor surface.
+  final bool gameContext;
 
   @override
   State<HologramView> createState() => _HologramViewState();
@@ -211,6 +224,12 @@ class _HologramViewState extends State<HologramView> {
     final GlossHologramDoc? doc = _store.hologramDoc;
     if (doc == null) {
       _syncTicker(false);
+      if (component.gameContext) {
+        return glossGameEmpty(
+          anchor: GlossGameAnchor.world,
+          label: 'Hologram in game',
+        );
+      }
       return const dom.div(classes: 'hui-hologram-stage is-empty', <Widget>[]);
     }
     final GlossAnimationResolver animations = _store.workspaceAnimations;
@@ -241,7 +260,7 @@ class _HologramViewState extends State<HologramView> {
     final int zoomPercent = (defaultDistance / _camera.distance * 100).round();
 
     final List<double> position = doc.anchor.position;
-    return dom.div(
+    final Widget stage = dom.div(
       id: _stageId,
       classes: 'hui-hologram-stage',
       attributes: const <String, String>{
@@ -288,16 +307,24 @@ class _HologramViewState extends State<HologramView> {
             ),
           ],
         ),
-        dom.div(classes: 'hui-hologram-readout', <Widget>[
-          Text(
-            '${doc.anchor.world.isEmpty ? '(no world)' : doc.anchor.world} '
-            '${position[0].toStringAsFixed(2)}, '
-            '${position[1].toStringAsFixed(2)}, '
-            '${position[2].toStringAsFixed(2)} · '
-            'TextDisplay · billboard center · drag to orbit, wheel or controls to zoom',
-          ),
-        ]),
+        if (!component.gameContext)
+          dom.div(classes: 'hui-hologram-readout', <Widget>[
+            Text(
+              '${doc.anchor.world.isEmpty ? '(no world)' : doc.anchor.world} '
+              '${position[0].toStringAsFixed(2)}, '
+              '${position[1].toStringAsFixed(2)}, '
+              '${position[2].toStringAsFixed(2)} · '
+              'TextDisplay · billboard center · drag to orbit, wheel or controls to zoom',
+            ),
+          ]),
       ],
+    );
+
+    if (!component.gameContext) return stage;
+    return GlossGameScreen(
+      anchor: GlossGameAnchor.world,
+      label: 'Hologram in game',
+      child: stage,
     );
   }
 

@@ -14,7 +14,7 @@ import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
-import 'reorder_list.dart';
+import 'line_list_section.dart';
 
 class AnimationInspector extends StatelessWidget {
   const AnimationInspector({required this.store, super.key});
@@ -38,25 +38,22 @@ class AnimationInspector extends StatelessWidget {
     ]);
   }
 
-  Widget _header(GlossAnimationDoc doc) =>
-      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
-        dom.div(classes: 'hui-inspector-header is-animation', <Widget>[
-          const HuiEyebrow('Animation'),
-          dom.div(classes: 'hui-inspector-title-row', <Widget>[
-            dom.h2(classes: 'hui-inspector-title', <Widget>[
-              Text(store.menuId),
-            ]),
-            const HuiFieldHelp('animation.id'),
-          ]),
+  Widget _header(GlossAnimationDoc doc) => dom.div(
+    classes: 'hui-inspector-headgroup',
+    <Widget>[
+      dom.div(classes: 'hui-inspector-header is-animation', <Widget>[
+        const HuiEyebrow('Animation'),
+        dom.div(classes: 'hui-inspector-title-row', <Widget>[
+          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(store.menuId)]),
+          const HuiFieldHelp('animation.id'),
         ]),
-        dom.p(classes: 'hui-inspector-lede', <Widget>[
-          Text(
-            'Other documents play this through |animation.${store.menuId}|. '
-            'Revision ${doc.revision} is server-owned and travels with the '
-            'file.',
-          ),
-        ]),
-      ]);
+      ]),
+      dom.p(classes: 'hui-inspector-lede', <Widget>[
+        Text('Other documents play this through |animation.${store.menuId}|.'),
+      ]),
+      HuiRevisionRow(revision: doc.revision),
+    ],
+  );
 
   Widget _playback(GlossAnimationDoc doc) => InspectorSection(
     title: 'Playback',
@@ -95,12 +92,11 @@ class AnimationInspector extends StatelessWidget {
             'Milliseconds per frame. Gloss silently clamps this into '
             '1..60000.',
         control: dom.div(<Widget>[
-          HuiNumberField(
+          HuiDurationField(
             value: doc.frameIntervalMs.toDouble(),
-            integer: true,
+            unit: HuiDurationUnit.milliseconds,
             step: 50,
-            decimals: 0,
-            suffix: 'ms',
+            perLabel: 'per frame',
             onChanged: (double value) => store.mutateAnimation(
               'animation interval',
               (GlossAnimationDoc edited) =>
@@ -113,75 +109,46 @@ class AnimationInspector extends StatelessWidget {
     ],
   );
 
-  Widget _frames(GlossAnimationDoc doc) => InspectorSection(
+  Widget _frames(GlossAnimationDoc doc) => HuiLineListSection(
     title: 'Frames',
-    children: <Widget>[
-      dom.div(classes: 'hui-hologram-lines-tools', <Widget>[
-        Button(
-          variant: ButtonVariant.outline,
-          size: ButtonSize.sm,
-          icon: ArcaneIcon.plus(size: IconSize.sm),
-          onPressed: () => store.mutateAnimation(
-            'add frame',
-            (GlossAnimationDoc edited) => edited.frames.add(''),
-          ),
-          child: const Text('Add frame'),
-        ),
-      ]),
-      if (doc.frames.isEmpty)
-        const HuiNote(
-          'No frames. Gloss rejects an animation without at least one.',
-        )
-      else
-        HuiReorderList(
-          itemCount: doc.frames.length,
-          onReorder: (int from, int to) => store.mutateAnimation(
-            'reorder frame',
-            (GlossAnimationDoc edited) {
-              final String moved = edited.frames.removeAt(from);
-              edited.frames.insert(to, moved);
-            },
-          ),
-          itemBuilder: (int index) => _frameRow(doc, index),
-        ),
-      HuiInlineIssues(_issuesFor(r'$.frames')),
-    ],
+    docKey: 'animation.frames',
+    addLabel: 'Add frame',
+    itemCount: doc.frames.length,
+    issues: _issuesFor(r'$.frames'),
+    emptyTone: HuiNoteTone.danger,
+    emptyBody:
+        'Gloss rejects an animation with no frames, so nothing that '
+        'references this document renders either. One frame is legal and '
+        'simply holds.',
+    onAdd: () => store.mutateAnimation(
+      'add frame',
+      (GlossAnimationDoc edited) => edited.frames.add(''),
+    ),
+    onReorder: (int from, int to) =>
+        store.mutateAnimation('reorder frame', (GlossAnimationDoc edited) {
+          final String moved = edited.frames.removeAt(from);
+          edited.frames.insert(to, moved);
+        }),
+    itemBuilder: (int index) => _frameRow(doc, index),
   );
 
   Widget _frameRow(GlossAnimationDoc doc, int index) {
     final String frame = doc.frames[index];
-    return dom.div(classes: 'hui-hologram-line-row', <Widget>[
-      TextInput(
-        value: frame,
-        size: ComponentSize.sm,
-        fullWidth: true,
-        placeholder: '&cFrame text',
-        onInput: (String value) => store.mutateAnimation(
-          'edit frame',
-          (GlossAnimationDoc edited) {
+    return HuiLineRow(
+      value: frame,
+      placeholder: '&cFrame text',
+      removeLabel: 'Delete frame ${index + 1}',
+      preview: GlossTextLine(
+        render: renderGlossLine(frame, emoji: store.workspaceEmoji),
+      ),
+      onChanged: (String value) =>
+          store.mutateAnimation('edit frame', (GlossAnimationDoc edited) {
             if (index < edited.frames.length) edited.frames[index] = value;
-          },
-        ),
-        attributes: const <String, String>{
-          'autocomplete': 'off',
-          'spellcheck': 'false',
-        },
-      ),
-      dom.div(classes: 'hui-hologram-line-preview', <Widget>[
-        GlossTextLine(
-          render: renderGlossLine(frame, emoji: store.workspaceEmoji),
-        ),
-      ]),
-      HuiIconButton(
-        label: 'Delete frame',
-        icon: ArcaneIcon.trash2(size: IconSize.sm),
-        onPressed: () => store.mutateAnimation(
-          'delete frame',
-          (GlossAnimationDoc edited) {
+          }),
+      onRemove: () =>
+          store.mutateAnimation('delete frame', (GlossAnimationDoc edited) {
             if (index < edited.frames.length) edited.frames.removeAt(index);
-          },
-        ),
-      ),
-    ]);
+          }),
+    );
   }
 }

@@ -8,6 +8,7 @@ library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 
+import '../../doctype/doctype.dart';
 import '../../logic/canvas_scene.dart';
 import '../../logic/multi_select.dart';
 import '../../model/model.dart';
@@ -367,7 +368,24 @@ class ShellIntents {
 
   // --- view -----------------------------------------------------------------
 
-  void setView(EditorView view) => store.view = view;
+  /// Enters [view], or says why the open kind cannot. Every route into the
+  /// centre pane — switcher, palette, keyboard — comes through here, so the
+  /// refusal is worded once.
+  void setView(EditorView view) {
+    final String? reason = store.unavailableViewReason(view);
+    if (reason != null) {
+      ArcaneSonner.info(reason);
+      return;
+    }
+    store.view = view;
+  }
+
+  /// Scopes the library to one document kind, or to the whole workspace when
+  /// [mode] is null.
+  void setMode(DocumentTypeAdapter? mode) {
+    if (identical(store.mode, mode)) return;
+    store.mode = mode;
+  }
 
   void toggleGrid() => store.showGrid = !store.showGrid;
 

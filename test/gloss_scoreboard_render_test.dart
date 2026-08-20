@@ -1,6 +1,7 @@
 library;
 
 import 'package:gloss_editor/logic/gloss_text.dart';
+import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -105,5 +106,42 @@ void main() {
     expect(clipped.encodedLength, 31);
     expect(clipped.visibleLength, 29);
     expect(clipped.deliveredVisibleLength, 28);
+  });
+
+  group('empty title falls back to the board id', () {
+    test('a blank title renders the id, like GlossBoardMeta.fromDoc', () {
+      final GlossScoreboardDoc doc = GlossScoreboardDoc();
+
+      expect(doc.effectiveTitle('welcome'), 'welcome');
+      expect(
+        renderGlossScoreboardTitle(doc.effectiveTitle('welcome')).plainText,
+        'welcome',
+      );
+    });
+
+    test('an authored title is never replaced', () {
+      final GlossScoreboardDoc doc = GlossScoreboardDoc(title: '&d&lGloss');
+
+      expect(doc.effectiveTitle('welcome'), '&d&lGloss');
+      expect(
+        renderGlossScoreboardTitle(doc.effectiveTitle('welcome')).plainText,
+        'Gloss',
+      );
+    });
+
+    test('the fallback tests isEmpty, not a trim', () {
+      final GlossScoreboardDoc doc = GlossScoreboardDoc(title: ' ');
+
+      expect(doc.effectiveTitle('welcome'), ' ');
+    });
+
+    test('the fallback id still takes the 32-unit title cut', () {
+      final GlossScoreboardDoc doc = GlossScoreboardDoc();
+
+      expect(
+        renderGlossScoreboardTitle(doc.effectiveTitle('x' * 40)).plainText,
+        'x' * 32,
+      );
+    });
   });
 }

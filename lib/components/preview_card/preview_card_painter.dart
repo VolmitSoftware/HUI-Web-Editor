@@ -39,6 +39,7 @@ const int previewGridMinZoom = 3;
 class PreviewCardFrameOptions {
   const PreviewCardFrameOptions({
     required this.showGrid,
+    this.fillBackground = true,
     this.selectedElement,
     this.hoveredItem,
     this.handles = const <PreviewHandleSpot>[],
@@ -46,6 +47,11 @@ class PreviewCardFrameOptions {
   });
 
   final bool showGrid;
+
+  /// False for the in-game preview, whose backdrop is the game screen behind
+  /// the canvas. The artboard fill is an editor surface; painting it there
+  /// would cover the frame the card is supposed to be sitting on.
+  final bool fillBackground;
 
   /// Index into `doc.elements`. EVERY item that element emitted is ringed, so a
   /// `repeat` shows the whole run it stands for rather than one instance.
@@ -79,8 +85,10 @@ class PreviewCardPainter {
   }) {
     ctx.setTransform(devicePixelRatio.toJS, 0, 0, devicePixelRatio, 0, 0);
     ctx.clearRect(0, 0, view.widthPx, view.heightPx);
-    _fill(ctx, palette.background);
-    ctx.fillRect(0, 0, view.widthPx, view.heightPx);
+    if (options.fillBackground) {
+      _fill(ctx, palette.background);
+      ctx.fillRect(0, 0, view.widthPx, view.heightPx);
+    }
     if (options.showGrid) _paintGrid(ctx, view, palette);
 
     final List<double> labelWidths = List<double>.filled(
@@ -309,7 +317,7 @@ class PreviewCardPainter {
     for (int i = 0; i < label.text.length; i++) {
       final McSpan span = label.text[i];
       _setMinecraftFont(ctx, fontSize, span.italic);
-      _fill(ctx, rgbCss(span.color));
+      _fill(ctx, mcColorCss(span.color));
       if (span.bold) {
         _fillBoldRun(
           ctx,

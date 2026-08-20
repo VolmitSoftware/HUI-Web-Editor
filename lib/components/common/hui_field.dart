@@ -15,6 +15,8 @@ class HuiField extends StatelessWidget {
     this.error,
     this.required = false,
     this.trailing,
+    this.defaultValue,
+    this.onReset,
     this.classes = '',
     this.inline = false,
     super.key,
@@ -34,8 +36,19 @@ class HuiField extends StatelessWidget {
 
   final bool required;
 
-  /// Header-right slot, aligned with the label (a reset button, a unit chip).
+  /// Header-right slot, aligned with the label (a unit chip, a help button).
   final Widget? trailing;
+
+  /// The value the runtime uses when the key is omitted, already formatted for
+  /// reading (`1.7`, `ease_out_cubic`, `#00000000`). Rendered as a chip in the
+  /// header, because a default the pane never states is a default the author
+  /// has to go and find in the docs.
+  final String? defaultValue;
+
+  /// Puts the field back to [defaultValue]. Null with a [defaultValue] set
+  /// renders the button disabled rather than removing it: a control that
+  /// appears only once the value has moved shifts the row under the pointer.
+  final void Function()? onReset;
   final String classes;
 
   /// Renders the label and control side by side instead of stacked.
@@ -98,8 +111,11 @@ class HuiField extends StatelessWidget {
                 ),
             ],
           ),
-          if (trailing != null)
-            dom.div(classes: 'hui-field-trailing', <Widget>[trailing!]),
+          if (trailing != null || defaultValue != null)
+            dom.div(classes: 'hui-field-trailing', <Widget>[
+              if (defaultValue != null) ..._defaultTools(),
+              ?trailing,
+            ]),
         ],
       ),
       dom.div(
@@ -137,4 +153,29 @@ class HuiField extends StatelessWidget {
       ),
     ],
   );
+
+  /// The default chip and the button that returns to it. The chip is the
+  /// point; the button is the shortcut.
+  List<Widget> _defaultTools() => <Widget>[
+    dom.span(
+      classes: 'hui-default-chip',
+      attributes: <String, String>{
+        'title': 'Gloss uses $defaultValue when this key is omitted',
+      },
+      <Widget>[Text('default $defaultValue')],
+    ),
+    ArcaneTooltip(
+      text: 'Reset $label to $defaultValue',
+      child: Button(
+        variant: ButtonVariant.ghost,
+        size: ButtonSize.iconSm,
+        disabled: onReset == null,
+        onPressed: onReset,
+        attributes: <String, String>{
+          'aria-label': 'Reset $label to $defaultValue',
+        },
+        child: ArcaneIcon.rotateCcw(size: IconSize.sm),
+      ),
+    ),
+  ];
 }

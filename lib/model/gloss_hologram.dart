@@ -43,7 +43,8 @@ GlossHologramDoc decodeGlossHologramDoc(String json) {
   return GlossHologramDoc.fromJson(raw);
 }
 
-String encodeGlossHologramDoc(GlossHologramDoc doc) => huiWriteJson(doc.toJson());
+String encodeGlossHologramDoc(GlossHologramDoc doc) =>
+    huiWriteJson(doc.toJson());
 
 GlossHologramDoc cloneGlossHologramDoc(GlossHologramDoc doc) =>
     GlossHologramDoc.fromJson(huiDeepCopy(doc.toJson()));
@@ -114,9 +115,7 @@ final class GlossHologramAnchor {
 
   static GlossHologramAnchor fromJson(Object? raw) {
     if (raw is! Map) {
-      return GlossHologramAnchor(
-        absentKeys: <String>{'world', 'position'},
-      );
+      return GlossHologramAnchor(absentKeys: <String>{'world', 'position'});
     }
     final Map<String, dynamic> map = huiReadObject(raw, r'$.anchor');
     return GlossHologramAnchor(
@@ -183,17 +182,16 @@ final class GlossHologramDoc extends GlossDoc {
     glossReadSchemaVersion(map, 'hologram');
     final Object? anchorRaw = map['anchor'];
     return GlossHologramDoc(
-        schemaVersion: glossCurrentSchemaVersion,
-        revision: glossReadRevision(map),
-        anchor: GlossHologramAnchor.fromJson(anchorRaw),
-        lines: glossReadStringList(map['lines']),
-        extras: huiCollectExtras(map, _docKnown),
-        absentKeys: <String>{
-          if (map['revision'] == null) 'revision',
-          if (map['lines'] == null) 'lines',
-        },
-      )
-      ..anchorPresent = anchorRaw is Map;
+      schemaVersion: glossCurrentSchemaVersion,
+      revision: glossReadRevision(map),
+      anchor: GlossHologramAnchor.fromJson(anchorRaw),
+      lines: glossReadStringList(map['lines']),
+      extras: huiCollectExtras(map, _docKnown),
+      absentKeys: <String>{
+        if (map['revision'] == null) 'revision',
+        if (map['lines'] == null) 'lines',
+      },
+    )..anchorPresent = anchorRaw is Map;
   }
 
   @override

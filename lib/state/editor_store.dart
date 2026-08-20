@@ -33,25 +33,16 @@ import 'workspace.dart';
 import 'workspace_panel.dart';
 import 'workspace_bundle.dart';
 
-/// Which surface the centre pane shows. [previewCard] is the pixel-space
-/// container-preview editor and is only ever reachable while a
-/// container-preview document is open; the other four are the menu editor's and
-/// are only reachable while a menu is. See [EditorStore.availableViews].
-enum EditorView {
-  visual,
-  preview,
-  code,
-  split,
-  previewCard,
-  panel,
-  hologram,
-  animation,
-  scoreboard,
-  motd,
-  emoji,
-  bubble,
-  tablist,
-}
+/// The four editor modes, offered for every document kind.
+///
+/// [visual] is whichever editing surface the kind draws into (the component
+/// canvas for a menu, the sidebar mock for a scoreboard, and so on — see
+/// [DocumentTypeAdapter.surface]); [preview] is the same content rendered the
+/// way the server renders it; [code] is the generic JSON editor; [split] pairs
+/// visual and code. A kind that genuinely cannot serve one of them says why
+/// through [DocumentTypeAdapter.unavailableViewReason] instead of dropping it
+/// from the switcher.
+enum EditorView { visual, preview, code, split }
 
 /// Canvas background treatment. Lives in the store because the settings dialog
 /// persists it and the status bar reflects it.
@@ -81,7 +72,11 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _keepWorkspaceEmpty = this.workspace.read(emptyWorkspaceKey) == 'true';
     if (autoLoad) {
       _loadPreferences();
+      // The restored document must not overwrite the restored scope: the mode
+      // follows documents the USER opens, and reopening the tab is not that.
+      _restoringSession = true;
       _adoptActiveDocument();
+      _restoringSession = false;
     } else {
       _refreshIssues();
     }
@@ -154,6 +149,17 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _selection,
   );
   EditorView _view = EditorView.visual;
+
+  /// The mode each kind was last left in. One remembered view per kind, not
+  /// one for the whole editor: the code view a scoreboard was left in has
+  /// nothing to say about the menu opened after it, and a single global
+  /// preference made every document switch feel like it moved the furniture.
+  final Map<WorkspaceDocKind, EditorView> _viewByKind =
+      <WorkspaceDocKind, EditorView>{};
+
+  /// The library scope: the kind whose documents the rail lists, or null while
+  /// the whole workspace is listed.
+  DocumentTypeAdapter? _mode;
   double _previewUiScale = 1;
   bool _showHitboxes = false;
   bool _showAnchors = true;
@@ -197,6 +203,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   String? _coalesceLabel;
   DateTime? _coalesceAt;
   bool _disposed = false;
+
+  /// True only while the constructor adopts the document the tab was left on.
+  bool _restoringSession = false;
   bool _keepWorkspaceEmpty = false;
   String? _lastError;
   String? _codeError;
@@ -214,7 +223,11 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   @override
   HuiMenu get menu => _menu;
 
-  List<HuiComponent> get components => _menu.components;
+  /// The active menu's components, and empty for every other kind — a
+  /// hologram has no components, and answering with a menu's would be a list
+  /// of things the open document does not contain.
+  List<HuiComponent> get components =>
+      isMenuDoc ? _menu.components : const <HuiComponent>[];
 
   /// The adapter owning the active document kind's behavior.
   DocumentTypeAdapter get docType => _docType;
@@ -522,8 +535,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _notify();
   }
 
-  void selectAll() =>
-      selectMany(_menu.components.map((HuiComponent c) => c.id));
+  void selectAll() => selectMany(components.map((HuiComponent c) => c.id));
 
   /// Order matters as much as membership: the primary is positional.
   bool _sameSelection(Set<String> next) {
@@ -540,28 +552,92 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
 
   EditorView get view => _view;
 
-  /// Rejects a view the active document kind has no surface for, landing on
-  /// that kind's default instead. A keyboard shortcut, the command palette and
-  /// the switcher all route through here, so none of them can strand a preview
-  /// document on the component canvas.
+  /// Rejects a view the active document kind cannot serve, landing on that
+  /// kind's default instead. A keyboard shortcut, the command palette and the
+  /// switcher all route through here, so none of them can strand a flow map on
+  /// the code editor. The accepted view becomes this kind's remembered one.
   set view(EditorView value) {
-    final EditorView next = availableViews.contains(value)
+    final EditorView next = _docType.supportsView(value)
         ? value
-        : availableViews.first;
-    if (_view == next) return;
+        : _docType.availableViews.first;
+    _viewByKind[_docType.kind] = next;
+    if (_view == next) {
+      _preferencesDirty = true;
+      _scheduleSave();
+      return;
+    }
     _view = next;
     _savePreference();
   }
 
-  /// The views the active document kind actually has a surface for, in the
-  /// order the switcher lists them. First entry is that kind's default.
+  /// The views the active document kind can enter, in switcher order. First
+  /// entry is that kind's default.
   List<EditorView> get availableViews => _docType.availableViews;
 
-  /// Called after every document adoption: the stored view belongs to whichever
-  /// document was open when it was saved, and the new one may not have it.
+  /// Why the active kind cannot enter [view], or null when it can.
+  String? unavailableViewReason(EditorView view) =>
+      _docType.unavailableViewReason(view);
+
+  /// The library scope. Null lists the whole workspace; an adapter lists only
+  /// that kind's documents and defaults the rail's create action to it.
+  DocumentTypeAdapter? get mode => _mode;
+
+  set mode(DocumentTypeAdapter? value) {
+    if (identical(_mode, value)) return;
+    _mode = value;
+    _savePreference();
+  }
+
+  /// Whether [doc] belongs to the current scope. Null mode admits everything.
+  bool inMode(WorkspaceDoc doc) {
+    final DocumentTypeAdapter? mode = _mode;
+    return mode == null || doc.kind == mode.kind;
+  }
+
+  /// The documents in [folderId] the current scope lists, in workspace order.
+  List<WorkspaceDoc> documentsInMode(String? folderId) => <WorkspaceDoc>[
+    for (final WorkspaceDoc doc in workspace.documentsInFolder(folderId))
+      if (inMode(doc)) doc,
+  ];
+
+  /// Whether the folder holds, at any depth, a document the current scope
+  /// lists. A scoped library hides the folders that hold none: an empty tree
+  /// of folders is not what "show me my scoreboards" means.
+  bool folderInMode(String folderId) =>
+      _mode == null || _folderInMode(folderId, <String>{});
+
+  /// [seen] keeps a corrupt parent cycle from recursing forever.
+  bool _folderInMode(String folderId, Set<String> seen) {
+    if (!seen.add(folderId)) return false;
+    if (documentsInMode(folderId).isNotEmpty) return true;
+    for (final WorkspaceFolder child in workspace.childFolders(folderId)) {
+      if (_folderInMode(child.id, seen)) return true;
+    }
+    return false;
+  }
+
+  /// Called after every document adoption: the mode follows the document that
+  /// was opened, so a hologram reached from search or the palette leaves the
+  /// library scoped to holograms rather than showing a list it is not in.
+  void _followMode() {
+    if (_restoringSession || _mode == null || identical(_mode, _docType)) {
+      return;
+    }
+    _mode = _docType;
+    _preferencesDirty = true;
+    _scheduleSave();
+  }
+
+  /// Called after every document adoption: the new kind gets the view it was
+  /// last left in, coerced to one it can actually serve.
   void _coerceView() {
-    if (availableViews.contains(_view)) return;
-    _view = availableViews.first;
+    final EditorView remembered = _viewByKind[_docType.kind] ?? _view;
+    final EditorView next = _docType.supportsView(remembered)
+        ? remembered
+        : _docType.availableViews.first;
+    _viewByKind[_docType.kind] = next;
+    if (_view == next) return;
+    _view = next;
     // No `_savePreference`: every caller notifies once it has finished
     // adopting, and a second notification mid-adoption would rebuild the shell
     // against a half-swapped document.
@@ -2629,7 +2705,11 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _docType = type;
     _preservedMenuSource = adopted.preservedSource;
     final Object? model = adopted.model;
-    if (model is HuiMenu) _menu = model;
+    // The menu slot is cleared, not left behind, when another kind takes over.
+    // Holding the previous menu made every consumer of [menu] a trap: the
+    // library rail offered a Contents tab for a hologram and listed the last
+    // menu's components in it. Measured before this fix.
+    _menu = model is HuiMenu ? model : HuiMenu();
     _setPreviewDoc(model is HuiPreviewDoc ? model : null);
     _setGlossDoc(model is GlossDoc ? model : null);
     _animationCache = null;
@@ -2638,6 +2718,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _selection.clear();
     _previewSelection = null;
     _coerceView();
+    _followMode();
     _codeError = null;
     _togglePreviewState.clear();
     _clearCoalesce();
@@ -2667,6 +2748,8 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     }
     if (decoded is! Map) return;
     _view = _viewFromName(decoded['view']);
+    _loadViewsByKind(decoded['views']);
+    _mode = DocumentTypeRegistry.byKindName(decoded['mode']);
     _previewUiScale = _readDouble(decoded['previewUiScale'], 1, 0.25, 4);
     _gridSize = _readDouble(decoded['gridSize'], 0.05, 0.01, 1);
     _showHitboxes = _readBool(decoded['showHitboxes'], false);
@@ -2694,10 +2777,31 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     );
   }
 
+  /// Reads the per-kind view memory. A blob written before this key existed
+  /// carries only `view`, which [_loadPreferences] has already taken as the
+  /// current one; the map simply starts empty and fills as kinds are opened.
+  void _loadViewsByKind(Object? raw) {
+    if (raw is! Map) return;
+    for (final MapEntry<Object?, Object?> entry in raw.entries) {
+      final DocumentTypeAdapter? type = DocumentTypeRegistry.byKindName(
+        entry.key,
+      );
+      if (type == null) continue;
+      final EditorView view = _viewFromName(entry.value);
+      if (type.supportsView(view)) _viewByKind[type.kind] = view;
+    }
+  }
+
   bool _writePreferences() => workspace.write(
     preferencesKey,
     jsonEncode(<String, dynamic>{
       'view': _view.name,
+      'views': <String, String>{
+        for (final MapEntry<WorkspaceDocKind, EditorView> entry
+            in _viewByKind.entries)
+          entry.key.name: entry.value.name,
+      },
+      'mode': _mode?.kind.name,
       'previewUiScale': _previewUiScale,
       'gridSize': _gridSize,
       'showHitboxes': _showHitboxes,
@@ -2720,6 +2824,8 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
 
   void resetLocalPreferences() {
     _view = EditorView.visual;
+    _viewByKind.clear();
+    _mode = null;
     _previewUiScale = 1;
     _showHitboxes = false;
     _showAnchors = true;
@@ -2746,10 +2852,13 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _notify();
   }
 
+  /// Reads a stored view name.
+  ///
+  /// Every per-kind surface name this editor persisted before the four-mode
+  /// remodel — `board`, `panel`, `previewCard`, `hologram` and the rest — was
+  /// that kind's editing surface, which is now [EditorView.visual]. Only
+  /// `preview`, `code` and `split` survive as themselves.
   static EditorView _viewFromName(Object? raw) {
-    // The panel view was persisted as `board` before the Gloss rename; the
-    // old preference must keep selecting the same surface.
-    if (raw == 'board') return EditorView.panel;
     for (final EditorView value in EditorView.values) {
       if (value.name == raw) return value;
     }

@@ -55,8 +55,10 @@ void main() {
     test('ascend walks forward one frame per interval', () {
       final GlossAnimationDoc doc = _doc();
       expect(
-        <int>[for (int t = 0; t < 6; t++)
-          glossAnimationFrameIndexAt(doc, 'a', t * 100)],
+        <int>[
+          for (int t = 0; t < 6; t++)
+            glossAnimationFrameIndexAt(doc, 'a', t * 100),
+        ],
         <int>[0, 1, 2, 3, 0, 1],
       );
     });
@@ -64,8 +66,10 @@ void main() {
     test('descend walks backward from the last frame', () {
       final GlossAnimationDoc doc = _doc(mode: 'descend');
       expect(
-        <int>[for (int t = 0; t < 5; t++)
-          glossAnimationFrameIndexAt(doc, 'a', t * 100)],
+        <int>[
+          for (int t = 0; t < 5; t++)
+            glossAnimationFrameIndexAt(doc, 'a', t * 100),
+        ],
         <int>[3, 2, 1, 0, 3],
       );
     });
@@ -73,8 +77,10 @@ void main() {
     test('ascend_descend ping-pongs without repeating the turn frame', () {
       final GlossAnimationDoc doc = _doc(mode: 'ascend_descend');
       expect(
-        <int>[for (int t = 0; t < 9; t++)
-          glossAnimationFrameIndexAt(doc, 'a', t * 100)],
+        <int>[
+          for (int t = 0; t < 9; t++)
+            glossAnimationFrameIndexAt(doc, 'a', t * 100),
+        ],
         <int>[0, 1, 2, 3, 3, 2, 1, 0, 0],
       );
     });

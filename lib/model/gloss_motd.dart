@@ -118,8 +118,9 @@ final class GlossMotdDoc extends GlossDoc {
       schemaVersion: glossCurrentSchemaVersion,
       revision: glossReadRevision(map),
       entries: <GlossMotdEntry>[
-        for (final (int index, Object? entry)
-            in huiReadList(map['entries']).indexed)
+        for (final (int index, Object? entry) in huiReadList(
+          map['entries'],
+        ).indexed)
           GlossMotdEntry.fromJson(entry, 'entries[$index]'),
       ],
       extras: huiCollectExtras(map, _docKnown),

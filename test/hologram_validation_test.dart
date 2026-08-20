@@ -80,8 +80,7 @@ void main() {
         _errors(validateHologramDoc(notNumbers)),
         contains(r'$.anchor.position'),
       );
-      final GlossHologramDoc notAList = _valid()
-        ..anchor.positionRaw = 'origin';
+      final GlossHologramDoc notAList = _valid()..anchor.positionRaw = 'origin';
       expect(
         _errors(validateHologramDoc(notAList)),
         contains(r'$.anchor.position'),
@@ -109,8 +108,9 @@ void main() {
       final List<HuiIssue> issues = validateHologramDoc(doc);
       expect(_warnings(issues), contains('lines[1]'));
       expect(
-        issues.any((HuiIssue issue) =>
-            issue.message.contains('animation.missing')),
+        issues.any(
+          (HuiIssue issue) => issue.message.contains('animation.missing'),
+        ),
         isTrue,
       );
     });

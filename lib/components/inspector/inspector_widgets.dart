@@ -12,15 +12,23 @@ import '../../config/field_docs.dart';
 import '../../logic/validation.dart';
 import '../common/common.dart';
 import 'field_help.dart';
+import 'inspector_session.dart';
 
 /// One inspector section: uppercase eyebrow, optional trailing control, body.
 /// Sections are separated by hairlines, never by nested cards.
-class InspectorSection extends StatelessWidget {
+///
+/// A section with a [sectionKey] is collapsible, and its open state outlives
+/// selection changes and document switches in [InspectorSession.sectionOpen].
+/// Closing one is a statement about how this author works, not about the
+/// component that happened to be selected when they closed it.
+class InspectorSection extends StatefulWidget {
   const InspectorSection({
     required this.title,
     required this.children,
     this.trailing,
     this.description,
+    this.sectionKey,
+    this.initiallyOpen = true,
     this.classes = '',
     this.gap = 10,
     super.key,
@@ -32,48 +40,116 @@ class InspectorSection extends StatelessWidget {
 
   /// Muted sentence under the eyebrow explaining what the section controls.
   final String? description;
+
+  /// Memory key, e.g. `menu.behavior`. Null leaves the section always open and
+  /// its head inert, which is what every section that is the whole point of
+  /// the pane should stay.
+  final String? sectionKey;
+
+  /// The state a section takes the first time this session sees it. Everything
+  /// stays open except the genuinely advanced blocks.
+  final bool initiallyOpen;
   final String classes;
   final num gap;
 
   @override
-  Widget build(BuildContext context) => dom.section(
-    classes: classNames(<String?>['hui-inspector-section', classes]),
-    <Widget>[
-      dom.div(
-        classes: 'hui-inspector-section-head',
-        styles: const dom.Styles(
-          raw: <String, String>{
-            'display': 'flex',
-            'align-items': 'center',
-            'justify-content': 'space-between',
-            'gap': '8px',
-            'min-width': '0',
-          },
+  State<InspectorSection> createState() => _InspectorSectionState();
+}
+
+class _InspectorSectionState extends State<InspectorSection> {
+  bool get _collapsible => component.sectionKey != null;
+
+  bool get _open =>
+      !_collapsible ||
+      InspectorSession.isSectionOpen(
+        component.sectionKey!,
+        fallback: component.initiallyOpen,
+      );
+
+  void _toggle() {
+    final String? key = component.sectionKey;
+    if (key == null) return;
+    setState(() => InspectorSession.setSectionOpen(key, !_open));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool open = _open;
+    return dom.section(
+      classes: classNames(<String?>[
+        'hui-inspector-section',
+        _collapsible ? 'is-collapsible' : null,
+        _collapsible && !open ? 'is-closed' : null,
+        component.classes,
+      ]),
+      <Widget>[
+        dom.div(
+          classes: 'hui-inspector-section-head',
+          styles: const dom.Styles(
+            raw: <String, String>{
+              'display': 'flex',
+              'align-items': 'center',
+              'justify-content': 'space-between',
+              'gap': '8px',
+              'min-width': '0',
+            },
+          ),
+          <Widget>[
+            if (_collapsible)
+              _toggleButton(open)
+            else
+              HuiEyebrow(component.title),
+            if (component.trailing != null)
+              dom.div(classes: 'hui-inspector-section-trailing', <Widget>[
+                component.trailing!,
+              ]),
+          ],
         ),
-        <Widget>[
-          HuiEyebrow(title),
-          if (trailing != null)
-            dom.div(classes: 'hui-inspector-section-trailing', <Widget>[
-              trailing!,
+        if (open) ...<Widget>[
+          if (component.description != null)
+            dom.p(classes: 'hui-inspector-section-note', <Widget>[
+              Text(component.description!),
             ]),
+          dom.div(
+            classes: 'hui-inspector-section-body',
+            styles: dom.Styles(
+              raw: <String, String>{
+                'display': 'flex',
+                'flex-direction': 'column',
+                'gap': '${component.gap}px',
+                'min-width': '0',
+              },
+            ),
+            component.children,
+          ),
         ],
-      ),
-      if (description != null)
-        dom.p(classes: 'hui-inspector-section-note', <Widget>[
-          Text(description!),
+      ],
+    );
+  }
+
+  /// A native button, not an Arcane one: the whole eyebrow is the target, and
+  /// the framework button would wrap it in its own padding and focus box.
+  Widget _toggleButton(bool open) => dom.button(
+    classes: 'hui-inspector-section-toggle',
+    attributes: <String, String>{
+      'type': 'button',
+      'aria-expanded': open ? 'true' : 'false',
+      'aria-label': open
+          ? 'Collapse ${component.title}'
+          : 'Expand ${component.title}',
+    },
+    events: dom.events<Null>(onClick: _toggle),
+    <Widget>[
+      dom.span(classes: 'hui-inspector-section-caret', <Widget>[
+        open
+            ? ArcaneIcon.chevronDown(size: IconSize.sm)
+            : ArcaneIcon.chevronRight(size: IconSize.sm),
+      ]),
+      HuiEyebrow(component.title),
+      if (!open)
+        dom.span(classes: 'hui-inspector-section-count', <Widget>[
+          Text('${component.children.length}'),
         ]),
-      dom.div(
-        classes: 'hui-inspector-section-body',
-        styles: dom.Styles(
-          raw: <String, String>{
-            'display': 'flex',
-            'flex-direction': 'column',
-            'gap': '${gap}px',
-            'min-width': '0',
-          },
-        ),
-        children,
-      ),
     ],
   );
 }
@@ -218,6 +294,46 @@ class HuiDetailRow extends StatelessWidget {
         ),
         <Widget>[Text(value)],
       ),
+    ],
+  );
+}
+
+/// The server-owned revision, as a value with its help rather than as a clause
+/// in the header sentence.
+///
+/// Every Gloss document carries one, and every kind's header used to end with
+/// the same "Revision N is server-owned and travels with the file" prose —
+/// which read as filler and left the written help for the field with nowhere
+/// to mount.
+class HuiRevisionRow extends StatelessWidget {
+  const HuiRevisionRow({
+    required this.revision,
+    this.docKey = 'document.revision',
+    super.key,
+  });
+
+  final int revision;
+  final String docKey;
+
+  @override
+  Widget build(BuildContext context) => dom.div(
+    classes: 'hui-revision-row',
+    styles: const dom.Styles(
+      raw: <String, String>{
+        'display': 'flex',
+        'align-items': 'center',
+        'gap': '4px',
+        'min-width': '0',
+      },
+    ),
+    <Widget>[
+      dom.div(
+        styles: const dom.Styles(
+          raw: <String, String>{'flex': '1 1 auto', 'min-width': '0'},
+        ),
+        <Widget>[HuiDetailRow('Revision', '$revision')],
+      ),
+      HuiFieldHelp(docKey),
     ],
   );
 }

@@ -9,6 +9,10 @@
 /// The ping bars and player count are
 /// cosmetic — the client fills those, never the plugin.
 ///
+/// With `gameContext` the server row mounts into the shared game-screen frame
+/// as the multiplayer GUI screen it already looks like — no HUD behind it,
+/// because a GUI screen replaces the world view.
+///
 /// Owns a playback clock while the shown entry plays an animation and the
 /// store's animations toggle is on. Mounted only while the MOTD view is
 /// active.
@@ -23,6 +27,7 @@ import 'package:jaspr/jaspr.dart' show EventCallback;
 import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 
@@ -30,9 +35,13 @@ import '../gloss/gloss_text_line.dart';
 const Duration _tickPeriod = Duration(milliseconds: 100);
 
 class MotdView extends StatefulWidget {
-  const MotdView({required this.store, super.key});
+  const MotdView({required this.store, this.gameContext = false, super.key});
 
   final EditorStore store;
+
+  /// Mounts the server row inside the shared Minecraft game-screen frame
+  /// instead of the editor stage. False renders exactly the editor surface.
+  final bool gameContext;
 
   @override
   State<MotdView> createState() => _MotdViewState();
@@ -90,6 +99,12 @@ class _MotdViewState extends State<MotdView> {
     final GlossMotdDoc? doc = _store.motdDoc;
     if (doc == null) {
       _syncTicker(false);
+      if (component.gameContext) {
+        return glossGameEmpty(
+          anchor: GlossGameAnchor.screen,
+          label: 'Server list entry in game',
+        );
+      }
       return const dom.div(classes: 'hui-motd-stage is-empty', <Widget>[]);
     }
     final GlossAnimationResolver animations = _store.workspaceAnimations;
@@ -112,51 +127,61 @@ class _MotdViewState extends State<MotdView> {
     _syncTicker(animated);
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
 
+    final Widget row = dom.div(classes: 'hui-motd-row', <Widget>[
+      const dom.div(classes: 'hui-motd-icon', <Widget>[
+        dom.span(classes: 'hui-motd-icon-glyph', <Widget>[Text('▚')]),
+      ]),
+      dom.div(classes: 'hui-motd-row-body', <Widget>[
+        dom.div(classes: 'hui-motd-row-head', <Widget>[
+          const dom.span(classes: 'hui-motd-server-name', <Widget>[
+            Text('My Server'),
+          ]),
+          dom.span(classes: 'hui-motd-row-status', <Widget>[
+            const dom.span(classes: 'hui-motd-players', <Widget>[
+              Text('17/100'),
+            ]),
+            dom.span(classes: 'hui-motd-ping', <Widget>[
+              for (int bar = 0; bar < 5; bar++)
+                dom.span(
+                  classes: 'hui-motd-ping-bar${bar < 4 ? ' is-filled' : ''}',
+                  const <Widget>[],
+                ),
+            ]),
+          ]),
+        ]),
+        if (entry == null)
+          const dom.div(classes: 'hui-motd-line is-blank', <Widget>[
+            Text('No entries — Gloss would reject this file.'),
+          ])
+        else
+          for (final String line in lines)
+            dom.div(classes: 'hui-motd-line', <Widget>[
+              GlossTextLine(
+                render: renderGlossLine(
+                  line,
+                  animations: animations,
+                  emoji: _store.workspaceEmoji,
+                  nowMs: nowMs,
+                ),
+              ),
+            ]),
+      ]),
+    ]);
+
+    if (component.gameContext) {
+      return GlossGameScreen(
+        anchor: GlossGameAnchor.screen,
+        label: 'Server list entry in game',
+        controls: <Widget>[_playPause()],
+        child: dom.div(classes: 'hui-motd-screen', <Widget>[row]),
+      );
+    }
+
     return dom.div(classes: 'hui-motd-stage', <Widget>[
       GlossPreviewZoom(
         label: 'MOTD preview',
         child: dom.div(classes: 'hui-motd-screen', <Widget>[
-          dom.div(classes: 'hui-motd-row', <Widget>[
-            const dom.div(classes: 'hui-motd-icon', <Widget>[
-              dom.span(classes: 'hui-motd-icon-glyph', <Widget>[Text('▚')]),
-            ]),
-            dom.div(classes: 'hui-motd-row-body', <Widget>[
-              dom.div(classes: 'hui-motd-row-head', <Widget>[
-                const dom.span(classes: 'hui-motd-server-name', <Widget>[
-                  Text('My Server'),
-                ]),
-                dom.span(classes: 'hui-motd-row-status', <Widget>[
-                  const dom.span(classes: 'hui-motd-players', <Widget>[
-                    Text('17/100'),
-                  ]),
-                  dom.span(classes: 'hui-motd-ping', <Widget>[
-                    for (int bar = 0; bar < 5; bar++)
-                      dom.span(
-                        classes:
-                            'hui-motd-ping-bar${bar < 4 ? ' is-filled' : ''}',
-                        const <Widget>[],
-                      ),
-                  ]),
-                ]),
-              ]),
-              if (entry == null)
-                const dom.div(classes: 'hui-motd-line is-blank', <Widget>[
-                  Text('No entries — Gloss would reject this file.'),
-                ])
-              else
-                for (final String line in lines)
-                  dom.div(classes: 'hui-motd-line', <Widget>[
-                    GlossTextLine(
-                      render: renderGlossLine(
-                        line,
-                        animations: animations,
-                        emoji: _store.workspaceEmoji,
-                        nowMs: nowMs,
-                      ),
-                    ),
-                  ]),
-            ]),
-          ]),
+          row,
           dom.div(classes: 'hui-motd-controls', <Widget>[
             const dom.span(classes: 'hui-motd-entry-label', <Widget>[
               Text('Preview entry'),
@@ -176,6 +201,7 @@ class _MotdViewState extends State<MotdView> {
                   <Widget>[Text('${index + 1}')],
                 ),
             ]),
+            _playPause(),
           ]),
         ]),
       ),
@@ -184,6 +210,26 @@ class _MotdViewState extends State<MotdView> {
       ]),
     ]);
   }
+
+  /// The animation transport, the same shape the hologram stage uses. It
+  /// drives the store's workspace-wide toggle, so pausing here pauses every
+  /// surface that references an animation.
+  Widget _playPause() => Button(
+    variant: ButtonVariant.outline,
+    size: ButtonSize.iconSm,
+    onPressed: () => _store.animationsPlaying = !_store.animationsPlaying,
+    attributes: <String, String>{
+      'aria-label': _store.animationsPlaying
+          ? 'Pause animations'
+          : 'Play animations',
+      'title': _store.animationsPlaying
+          ? 'Pause animations'
+          : 'Play animations',
+    },
+    child: _store.animationsPlaying
+        ? ArcaneIcon.pause(size: IconSize.sm)
+        : ArcaneIcon.play(size: IconSize.sm),
+  );
 
   String _readout(
     GlossMotdDoc doc,

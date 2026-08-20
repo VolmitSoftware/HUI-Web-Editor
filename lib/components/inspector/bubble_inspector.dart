@@ -60,13 +60,10 @@ class _BubbleInspectorState extends State<BubbleInspector> {
           const HuiFieldHelp('bubble.id'),
         ]),
       ]),
-      dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text(
-          'How chat bubbles look and move for players this style selects. '
-          'Revision ${doc.revision} is server-owned and travels with the '
-          'file.',
-        ),
+      const dom.p(classes: 'hui-inspector-lede', <Widget>[
+        Text('How chat bubbles look and move for players this style selects.'),
       ]),
+      HuiRevisionRow(revision: doc.revision),
     ],
   );
 
@@ -130,6 +127,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
 
   Widget _timing(GlossBubbleStyleDoc doc) => InspectorSection(
     title: 'Wrap and timing',
+    sectionKey: 'bubble.timing',
     children: <Widget>[
       _clampedNumber(
         label: 'Word wrap',
@@ -152,6 +150,8 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         value: doc.maxAliveMs,
         effective: doc.effectiveMaxAliveMs,
         path: r'$.maxAliveMs',
+        unit: HuiDurationUnit.milliseconds,
+        step: 500,
         onChanged: (int value) => _store.mutateBubbleStyle('bubble lifetime', (
           GlossBubbleStyleDoc edited,
         ) {
@@ -164,6 +164,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
 
   Widget _motion(GlossBubbleStyleDoc doc) => InspectorSection(
     title: 'Motion',
+    sectionKey: 'bubble.motion',
     children: <Widget>[
       const HuiNote(
         'Every field is a live expression. Use t (0..1), remaining, ageMs, '
@@ -312,6 +313,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
 
   Widget _shimmer(GlossBubbleStyleDoc doc) => InspectorSection(
     title: 'Shimmer',
+    sectionKey: 'bubble.shimmer',
     children: <Widget>[
       const HuiNote(
         'The original Gloss shine: a bounded color band crosses every line '
@@ -341,75 +343,57 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         label: 'Band color',
         help: 'Exactly six RGB digits in #RRGGBB form.',
         control: dom.div(<Widget>[
-          dom.div(
-            styles: const dom.Styles(
-              raw: <String, String>{
-                'display': 'flex',
-                'align-items': 'center',
-                'gap': '8px',
-              },
+          HuiColorField(
+            value: doc.shimmer.color,
+            format: HuiColorFormat.rgb,
+            label: 'shimmer band colour',
+            placeholder: '#ffffff',
+            onChanged: (String value) => _store.mutateBubbleStyle(
+              'bubble shimmer color',
+              (GlossBubbleStyleDoc edited) => edited.shimmer.color = value,
             ),
-            <Widget>[
-              dom.span(
-                styles: dom.Styles(
-                  raw: <String, String>{
-                    'width': '20px',
-                    'height': '20px',
-                    'border-radius': '6px',
-                    'border': '1px solid var(--hui-border)',
-                    'background': doc.shimmer.effectiveColor,
-                    'flex': '0 0 auto',
-                  },
-                ),
-                const <Widget>[],
-              ),
-              TextInput(
-                value: doc.shimmer.color,
-                size: ComponentSize.sm,
-                fullWidth: true,
-                placeholder: '#ffffff',
-                onInput: (String value) => _store.mutateBubbleStyle(
-                  'bubble shimmer color',
-                  (GlossBubbleStyleDoc edited) => edited.shimmer.color = value,
-                ),
-                attributes: const <String, String>{
-                  'autocomplete': 'off',
-                  'spellcheck': 'false',
-                },
-              ),
-            ],
           ),
           HuiInlineIssues(_issuesFor(r'$.shimmer.color')),
         ]),
       ),
-      _shimmerNumber(
+      _clampedNumber(
         label: 'Band width',
         help: 'Visible characters lit at once. 1..16.',
         value: doc.shimmer.width,
         effective: doc.shimmer.effectiveWidth,
         path: r'$.shimmer.width',
-        onChanged: (GlossBubbleShimmer shimmer, int value) =>
-            shimmer.width = value,
+        onChanged: (int value) => _editShimmer(
+          'band width',
+          (GlossBubbleShimmer shimmer) => shimmer.width = value,
+        ),
       ),
-      _shimmerNumber(
+      _clampedNumber(
         label: 'Sweep duration',
         help: 'Milliseconds for one complete left-to-right sweep. 100..10000.',
         value: doc.shimmer.durationMs,
         effective: doc.shimmer.effectiveDurationMs,
         path: r'$.shimmer.durationMs',
-        onChanged: (GlossBubbleShimmer shimmer, int value) =>
-            shimmer.durationMs = value,
+        unit: HuiDurationUnit.milliseconds,
+        step: 50,
+        onChanged: (int value) => _editShimmer(
+          'sweep duration',
+          (GlossBubbleShimmer shimmer) => shimmer.durationMs = value,
+        ),
       ),
-      _shimmerNumber(
+      _clampedNumber(
         label: 'Spawn delay',
         help: 'Milliseconds after the bubble appears before the first sweep.',
         value: doc.shimmer.spawnDelayMs,
         effective: doc.shimmer.effectiveSpawnDelayMs,
         path: r'$.shimmer.spawnDelayMs',
-        onChanged: (GlossBubbleShimmer shimmer, int value) =>
-            shimmer.spawnDelayMs = value,
+        unit: HuiDurationUnit.milliseconds,
+        step: 50,
+        onChanged: (int value) => _editShimmer(
+          'spawn delay',
+          (GlossBubbleShimmer shimmer) => shimmer.spawnDelayMs = value,
+        ),
       ),
-      _shimmerNumber(
+      _clampedNumber(
         label: 'Fly-away lead',
         help:
             'Milliseconds before expiry when the second sweep starts. Match '
@@ -417,59 +401,58 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         value: doc.shimmer.flyAwayLeadMs,
         effective: doc.shimmer.effectiveFlyAwayLeadMs,
         path: r'$.shimmer.flyAwayLeadMs',
-        onChanged: (GlossBubbleShimmer shimmer, int value) =>
-            shimmer.flyAwayLeadMs = value,
+        unit: HuiDurationUnit.milliseconds,
+        step: 50,
+        onChanged: (int value) => _editShimmer(
+          'fly-away lead',
+          (GlossBubbleShimmer shimmer) => shimmer.flyAwayLeadMs = value,
+        ),
       ),
     ],
   );
 
-  Widget _shimmerNumber({
-    required String label,
-    required String help,
-    required int value,
-    required int effective,
-    required String path,
-    required void Function(GlossBubbleShimmer shimmer, int value) onChanged,
-  }) => HuiField(
-    label: label,
-    help: help,
-    control: dom.div(<Widget>[
-      HuiNumberField(
-        value: value.toDouble(),
-        step: 1,
-        decimals: 0,
-        integer: true,
-        onChanged: (double parsed) => _store.mutateBubbleStyle(
-          'bubble shimmer $label',
-          (GlossBubbleStyleDoc edited) =>
-              onChanged(edited.shimmer, parsed.round()),
-        ),
-      ),
-      if (value != effective) HuiNote('The server silently runs $effective.'),
-      HuiInlineIssues(_issuesFor(path)),
-    ]),
-  );
+  void _editShimmer(String label, void Function(GlossBubbleShimmer s) edit) =>
+      _store.mutateBubbleStyle(
+        'bubble shimmer $label',
+        (GlossBubbleStyleDoc edited) => edit(edited.shimmer),
+      );
 
+  /// Every silently-clamped integer in this document, in one shape: the value,
+  /// what the server will actually run, and the field help when there is one.
+  /// Time-valued ones read back in seconds.
+  ///
+  /// The shimmer group used to have its own near-identical copy of this, which
+  /// differed only in never mounting field help and never showing a unit.
   Widget _clampedNumber({
     required String label,
-    required String helpKey,
     required String help,
     required int value,
     required int effective,
     required String path,
     required void Function(int value) onChanged,
+    String? helpKey,
+    HuiDurationUnit? unit,
+    double step = 1,
   }) => HuiField(
     label: label,
-    trailing: HuiFieldHelp(helpKey),
+    trailing: helpKey == null ? null : HuiFieldHelp(helpKey),
     help: help,
     control: dom.div(<Widget>[
-      HuiNumberField(
-        value: value.toDouble(),
-        step: 1,
-        decimals: 0,
-        integer: true,
-        onChanged: (double parsed) => onChanged(parsed.round()),
-      ),
+      if (unit == null)
+        HuiNumberField(
+          value: value.toDouble(),
+          step: step,
+          decimals: 0,
+          integer: true,
+          onChanged: (double parsed) => onChanged(parsed.round()),
+        )
+      else
+        HuiDurationField(
+          value: value.toDouble(),
+          unit: unit,
+          step: step,
+          onChanged: (double parsed) => onChanged(parsed.round()),
+        ),
       if (value != effective) HuiNote('The server silently runs $effective.'),
       HuiInlineIssues(_issuesFor(path)),
     ]),
@@ -512,6 +495,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
     final GlossBubbleSelect? select = doc.select;
     return InspectorSection(
       title: 'Selection',
+      sectionKey: 'bubble.selection',
       children: <Widget>[
         if (select == null) ...<Widget>[
           const HuiNote(

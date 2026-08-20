@@ -131,8 +131,11 @@ void main() {
     test('glossLineMaxVisibleLength counts the glyph, not the token', () {
       final _Emoji emoji = _Emoji(<GlossEmojiEntry>[_heart]);
       expect(
-        glossLineMaxVisibleLength('&f:heart:', const GlossNoAnimations(),
-            emoji: emoji),
+        glossLineMaxVisibleLength(
+          '&f:heart:',
+          const GlossNoAnimations(),
+          emoji: emoji,
+        ),
         1,
       );
       expect(

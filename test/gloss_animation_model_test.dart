@@ -49,8 +49,11 @@ void main() {
         '"frameIntervalMs": 100, "frames": ["x"]}',
       );
       expect(upper.mode, 'RANDOM');
-      expect(upper.normalizedMode, 'random',
-          reason: 'requireMode lowercases before checking');
+      expect(
+        upper.normalizedMode,
+        'random',
+        reason: 'requireMode lowercases before checking',
+      );
       final GlossAnimationDoc unknown = decodeGlossAnimationDoc(
         '{"schemaVersion": 1, "revision": 1, "mode": "wobble", '
         '"frameIntervalMs": 100, "frames": ["x"]}',

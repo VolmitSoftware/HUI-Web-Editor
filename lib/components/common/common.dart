@@ -2,6 +2,8 @@
 library;
 
 export 'class_names.dart';
+export 'hui_color_field.dart';
+export 'hui_duration_field.dart';
 export 'hui_field.dart';
 export 'hui_action_menu.dart';
 export 'hui_number_field.dart';

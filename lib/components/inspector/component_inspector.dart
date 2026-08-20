@@ -100,11 +100,14 @@ class ComponentInspector extends StatelessWidget {
 
   List<Widget> _typeSections() {
     final HuiComponentData data = target.data;
+    // Icon first. It is the most-edited section of the pane by a wide margin,
+    // and it used to open two scrolls down behind Highlight and Hitbox — two
+    // sections most components never touch.
     if (data is HuiButtonData) {
       return <Widget>[
+        _iconEditor(IconSlot.icon),
         _highlight(data),
         _hitbox(data),
-        _iconEditor(IconSlot.icon),
         ActionsEditor(
           store: store,
           catalogs: catalogs,
@@ -137,10 +140,10 @@ class ComponentInspector extends StatelessWidget {
     }
     final HuiToggleData toggle = data as HuiToggleData;
     return <Widget>[
-      _highlight(toggle),
-      _hitbox(toggle),
       _condition(toggle),
       _toggleIcons(),
+      _highlight(toggle),
+      _hitbox(toggle),
       ActionsEditor(
         store: store,
         catalogs: catalogs,
@@ -184,6 +187,7 @@ class ComponentInspector extends StatelessWidget {
     };
     return InspectorSection(
       title: 'Highlight',
+      sectionKey: 'component.highlight',
       children: <Widget>[
         HuiField(
           label: 'Highlight modifier',
@@ -212,14 +216,19 @@ class ComponentInspector extends StatelessWidget {
           label: 'Duration',
           trailing: const HuiFieldHelp('button.hoverDurationTicks'),
           help: 'Ticks to enter or leave the hovered pose. 0 is instant.',
+          defaultValue: '$huiRuntimeDefaultHoverDurationTicks ticks',
+          onReset: duration == huiRuntimeDefaultHoverDurationTicks
+              ? null
+              : () => _editHover(
+                  'hover duration',
+                  duration: huiRuntimeDefaultHoverDurationTicks,
+                ),
           control: dom.div(<Widget>[
-            HuiNumberField(
+            HuiDurationField(
               value: duration.toDouble(),
+              unit: HuiDurationUnit.ticks,
               min: 0,
               max: 40,
-              step: 1,
-              decimals: 0,
-              suffix: 'ticks',
               onChanged: (double next) =>
                   _editHover('hover duration', duration: next.round()),
             ),
@@ -230,6 +239,13 @@ class ComponentInspector extends StatelessWidget {
           label: 'Easing',
           trailing: const HuiFieldHelp('button.hoverEasing'),
           help: 'Curve used for both hover entry and exit.',
+          defaultValue: huiRuntimeDefaultHoverEasing.label,
+          onReset: easing == huiRuntimeDefaultHoverEasing
+              ? null
+              : () => _editHover(
+                  'hover easing',
+                  easing: huiRuntimeDefaultHoverEasing,
+                ),
           control: ArcaneSelect(
             value: easing.jsonValue,
             fullWidth: true,
@@ -278,6 +294,7 @@ class ComponentInspector extends StatelessWidget {
     };
     return InspectorSection(
       title: 'Hitbox',
+      sectionKey: 'component.hitbox',
       description:
           'The click plane stays fixed while the icon animates on hover.',
       children: <Widget>[
@@ -348,9 +365,18 @@ class ComponentInspector extends StatelessWidget {
           HuiField(
             label: 'Width',
             required: true,
+            // The value "custom size" is switched on with — the plane a new
+            // custom hitbox is born at, so it is the one worth getting back to.
+            defaultValue: '$huiDefaultHitboxWidth',
+            onReset: hitbox!.width == huiDefaultHitboxWidth
+                ? null
+                : () => _editHitbox(
+                    'hitbox width',
+                    (HuiHitbox edited) => edited.width = huiDefaultHitboxWidth,
+                  ),
             control: dom.div(<Widget>[
               HuiNumberField(
-                value: hitbox!.width!,
+                value: hitbox.width!,
                 min: 0.01,
                 step: 0.05,
                 suffix: 'blocks',
@@ -365,6 +391,14 @@ class ComponentInspector extends StatelessWidget {
           HuiField(
             label: 'Height',
             required: true,
+            defaultValue: '$huiDefaultHitboxHeight',
+            onReset: hitbox.height == huiDefaultHitboxHeight
+                ? null
+                : () => _editHitbox(
+                    'hitbox height',
+                    (HuiHitbox edited) =>
+                        edited.height = huiDefaultHitboxHeight,
+                  ),
             control: dom.div(<Widget>[
               HuiNumberField(
                 value: hitbox.height!,
@@ -592,6 +626,10 @@ class ComponentInspector extends StatelessWidget {
   /// somewhere else in the exported JSON.
   Widget _extras() => InspectorSection(
     title: 'Extra keys',
+    // Closed until asked for: unknown keys are a round-trip guarantee, not
+    // something an author edits on the way past.
+    sectionKey: 'component.extras',
+    initiallyOpen: false,
     children: <Widget>[
       ExtrasEditor(
         title: 'Component',

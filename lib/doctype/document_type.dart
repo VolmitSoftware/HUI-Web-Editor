@@ -134,6 +134,25 @@ final class DocumentTemplate {
   final void Function(EditorStore store) create;
 }
 
+/// Which editing surface a kind's [EditorView.visual] mode mounts.
+///
+/// The centre pane keeps one widget slot per surface; the adapter says which
+/// slot its kind draws into, so the shell never switches on the kind itself.
+/// [canvas] and [previewCard] are the two surfaces the shell keeps mounted in
+/// every view — both carry viewport state that a remount would destroy.
+enum DocumentSurface {
+  canvas,
+  previewCard,
+  panel,
+  hologram,
+  animation,
+  scoreboard,
+  motd,
+  emoji,
+  bubble,
+  tablist,
+}
+
 /// One heading-plus-grid section of a kind's template tab.
 final class DocumentTemplateSection {
   const DocumentTemplateSection({
@@ -157,12 +176,60 @@ abstract class DocumentTypeAdapter {
   /// Lowercase noun for user-facing messages ('menu', 'preview', 'flow map').
   String get noun;
 
+  /// Plural, title-case name of the kind, for the top bar's mode tabs and the
+  /// library's scoped headings ('Scoreboards').
+  String get pluralLabel;
+
+  /// Position in the mode tab strip and the library-rail create row. Spaced by
+  /// tens so a new kind can land between two without renumbering the rest.
+  int get tabOrder;
+
   /// Library-rail create-button label.
   String get createLabel;
 
-  /// The views this kind has a surface for, in switcher order. The first
+  /// What this kind's [EditorView.visual] mode draws into.
+  DocumentSurface get surface;
+
+  /// Name of that surface, for the view switcher's tooltip ('Sidebar',
+  /// 'Stage'). The switcher's own labels stay canonical: the four modes read
+  /// the same for every kind, and this says what Visual means for this one.
+  String get surfaceLabel;
+
+  /// Whether the kind has an in-game rendering behind [EditorView.preview].
+  /// False only for editor-only kinds, which have nothing to render.
+  bool get hasRuntimePreview => true;
+
+  /// The rail's contents-tab label for kinds that carry in-document contents
+  /// ('Components', 'Elements'), or null for kinds that carry none — those
+  /// show the library alone, so a stale list from the previous document can
+  /// never be offered.
+  String? get contentsTabLabel => null;
+
+  /// Why [view] cannot be entered for this kind, or null when it can.
+  ///
+  /// Every kind offers the same four modes; a mode a kind genuinely cannot
+  /// serve is shown with this sentence rather than hidden, so the switcher's
+  /// shape never changes under the user.
+  String? unavailableViewReason(EditorView view) => switch (view) {
+    EditorView.visual => null,
+    EditorView.preview =>
+      hasRuntimePreview
+          ? null
+          : 'A $noun has no in-game rendering, so there is nothing to preview.',
+    EditorView.code || EditorView.split =>
+      transferable
+          ? null
+          : 'A $noun is editor-only, so it has no runtime JSON to edit.',
+  };
+
+  bool supportsView(EditorView view) => unavailableViewReason(view) == null;
+
+  /// The views this kind can actually enter, in switcher order. The first
   /// entry is the kind's default view.
-  List<EditorView> get availableViews;
+  List<EditorView> get availableViews => <EditorView>[
+    for (final EditorView view in EditorView.values)
+      if (supportsView(view)) view,
+  ];
 
   /// Whether documents of this kind carry a canonical runtime id.
   bool get hasRuntimeId;
@@ -191,6 +258,10 @@ abstract class DocumentTypeAdapter {
   /// Library-rail create-button icon. Distinct from [railIcon] where the
   /// established chrome differs.
   Widget createIcon() => railIcon();
+
+  /// Mode-tab icon. The document icon by default: the tab and the rows it
+  /// scopes the library to must read as the same thing.
+  Widget tabIcon() => railIcon();
 
   /// Creates a fresh document of this kind in [folderId] and adopts it.
   /// A null folder places the document at the workspace root.

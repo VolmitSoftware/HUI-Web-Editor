@@ -1,50 +1,42 @@
-/// Small color preview for a field whose value folds to a constant unsigned
-/// ARGB number: every `color`/`wellColor`/`background`/`accent` field, and a
-/// `vars` entry written as a `#RRGGBB`-style literal.
+/// The colour picker for a preview field whose value folds to a constant
+/// unsigned ARGB number: every `color`/`wellColor`/`background`/`accent` field,
+/// and a `vars` entry written as a `#RRGGBB`-style literal.
 ///
-/// Returns null (draw nothing) for anything that is not currently a constant
-/// color — a live expression like `mod(...) == 0 ? vars.a : vars.b` has no one
-/// swatch to show, and that is fine: the field's own text is the source of
-/// truth, this is only ever a bonus.
+/// It returns null (draw nothing) for anything that is not currently a
+/// constant colour — a live expression like `mod(...) == 0 ? vars.a : vars.b`
+/// has no one swatch to show and nothing a picker could safely overwrite
+/// without destroying the expression. The field's own text stays the source of
+/// truth; this is only ever a bonus.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
-import 'package:jaspr/dom.dart' as dom;
 
 import '../../logic/preview_doc_validation.dart';
+import '../common/hui_color_field.dart';
 
-Widget? previewColorSwatch(Object? raw) {
+/// `#AARRGGBB` for a value that folds to a constant colour, else null.
+String? _constantColorHex(Object? raw) {
   final double? folded = previewFoldConstantNumber(raw);
   if (folded == null || !folded.isFinite) return null;
   final int bits = folded.toInt() & 0xFFFFFFFF;
-  final int a = (bits >> 24) & 0xFF;
-  final int r = (bits >> 16) & 0xFF;
-  final int g = (bits >> 8) & 0xFF;
-  final int b = bits & 0xFF;
-  return dom.span(
-    styles: dom.Styles(
-      raw: <String, String>{
-        'display': 'inline-block',
-        'width': '18px',
-        'height': '18px',
-        'flex': '0 0 auto',
-        'border-radius': '4px',
-        'border': '1px solid var(--hui-border)',
-        'background': 'rgba($r, $g, $b, ${(a / 255).toStringAsFixed(3)})',
-        // A checkerboard shows through low alpha instead of reading as a flat
-        // colour that happens to look washed out.
-        'background-image': a == 255
-            ? 'none'
-            : 'linear-gradient(45deg, var(--hui-border-soft) 25%, transparent '
-                  '25%), linear-gradient(-45deg, var(--hui-border-soft) 25%, '
-                  'transparent 25%), linear-gradient(45deg, transparent 75%, '
-                  'var(--hui-border-soft) 75%), linear-gradient(-45deg, '
-                  'transparent 75%, var(--hui-border-soft) 75%)',
-        'background-size': '6px 6px',
-        'background-position': '0 0, 0 3px, 3px -3px, -3px 0px',
-      },
-    ),
-    attributes: const <String, String>{'aria-hidden': 'true'},
-    const <Widget>[],
+  return '#${bits.toRadixString(16).padLeft(8, '0').toUpperCase()}';
+}
+
+/// The swatch, opened as a native colour picker. [onPicked] receives a
+/// complete `#AARRGGBB` literal with the field's existing alpha preserved, so
+/// choosing a colour never quietly makes a transparent well opaque.
+Widget? previewColorPicker(
+  Object? raw, {
+  required void Function(String hex) onPicked,
+  String label = 'colour',
+}) {
+  final String? hex = _constantColorHex(raw);
+  if (hex == null) return null;
+  return HuiColorSwatch(
+    value: hex,
+    size: 18,
+    label: 'Pick a $label',
+    onPicked: (String picked) =>
+        onPicked(huiApplyPickedColor(picked, hex, HuiColorFormat.argb)),
   );
 }

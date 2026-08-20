@@ -17,6 +17,7 @@
 /// blank one.
 library;
 
+import '../logic/validation.dart' show HuiIssue, HuiSeverity;
 import 'json_codec.dart';
 
 /// `DocumentEnvelope.INITIAL_REVISION`.
@@ -75,6 +76,27 @@ int glossReadRevision(Map<String, dynamic> raw) =>
 /// True when [revision] would pass `DocumentEnvelope.requireRevision`.
 bool glossRevisionInRange(int revision) =>
     revision >= glossInitialRevision && revision <= glossMaxSafeRevision;
+
+/// The envelope-level revision issue every Gloss content kind reports, or null
+/// when [revision] is in range.
+///
+/// The rule is one rule for all kinds — `DocumentEnvelope.requireRevision`
+/// rejects the whole file before any kind-specific parsing — so the message
+/// lives here instead of being retyped in each `*_validation.dart`.
+HuiIssue? glossRevisionIssue(int revision) {
+  if (glossRevisionInRange(revision)) return null;
+  return HuiIssue(
+    severity: HuiSeverity.error,
+    path: r'$.revision',
+    message:
+        'Revision $revision is outside '
+        '$glossInitialRevision..$glossMaxSafeRevision, so Gloss rejects the '
+        'whole file.',
+    fix:
+        'The revision is server-owned; leave it at the value the server '
+        'wrote, or $glossInitialRevision for a new document.',
+  );
+}
 
 /// String-list reading shared by `lines`, `frames` and `groups`.
 ///

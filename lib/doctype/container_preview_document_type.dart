@@ -29,10 +29,19 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
   String get createLabel => 'New preview document';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[
-    EditorView.previewCard,
-    EditorView.code,
-  ];
+  String get pluralLabel => 'Previews';
+
+  @override
+  int get tabOrder => 20;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.previewCard;
+
+  @override
+  String get surfaceLabel => 'Card';
+
+  @override
+  String? get contentsTabLabel => 'Elements';
 
   @override
   bool get hasRuntimeId => true;

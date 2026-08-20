@@ -43,10 +43,7 @@ GlossTablistChoice glossTablistChooseListName(
       groupName: primaryGroup ?? '',
     );
   }
-  return (
-    template: glossTablistFallbackFormat,
-    groupName: primaryGroup ?? '',
-  );
+  return (template: glossTablistFallbackFormat, groupName: primaryGroup ?? '');
 }
 
 /// `TablistService.substituteTokens`.

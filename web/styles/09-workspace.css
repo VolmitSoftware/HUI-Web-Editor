@@ -48,11 +48,23 @@
   gap: 4px;
 }
 .hui-library-heading { gap: 6px; min-width: 0; }
+/* Count first, then the scope and workspace controls hard against the right
+   edge, so the heading reads as a label rather than a row of buttons. */
+.hui-library-heading .hui-rail-count { margin-right: auto; }
+
+/* Creation only. Import, export and erase are workspace-level operations and
+   live in the header menu — as icon buttons in this row they read as three
+   more document kinds, which is how they were being misread. */
 .hui-library-create {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
   gap: 4px;
   width: 100%;
+}
+/* Scoped: one named create button for the kind on screen, so the primary
+   action of "scoreboard mode" says the word scoreboard. */
+.hui-library-create.is-scoped {
+  grid-template-columns: 34px minmax(0, 1fr);
 }
 .hui-library-create .arcane-button {
   width: 100%;
@@ -60,7 +72,10 @@
   min-height: 34px;
   padding-inline: 5px !important;
 }
-.hui-library-reset .arcane-button { color: var(--hui-danger) !important; }
+.hui-library-create.is-scoped .arcane-button:last-child {
+  justify-content: flex-start;
+  padding-inline: 10px !important;
+}
 
 .hui-library-hint {
   overflow: hidden;
@@ -241,6 +256,15 @@
   text-align: center;
 }
 
+/* Scoped and empty is a statement about one kind, not about the workspace, so
+   the way out of it is that kind's create button rather than a sentence. */
+.hui-library-empty.is-scoped {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
 .hui-library-bundle {
   display: flex;
   flex-direction: column;
@@ -296,11 +320,18 @@
   pointer-events: auto;
 }
 
+/* Icon in the first column, label over hint in the second. As one flex row the
+   hint never shrank (`flex: 0 0 auto`) and took its whole max-content width out
+   of the label's share, which folded "Import workspace bundle" onto three lines
+   beside a single-line "Replaces this workspace". Every hint in the app is a
+   sentence fragment, not a shortcut glyph, so the second line is where it
+   belongs. The icon spans both rows; with no hint the second row collapses. */
 .hui-action-menu-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   min-height: 38px;
   align-items: center;
-  gap: 9px;
+  column-gap: 9px;
   width: 100%;
   padding: 7px 9px;
   border: 0;
@@ -319,9 +350,20 @@
 }
 .hui-action-menu-item:disabled { opacity: .42; cursor: default; }
 .hui-action-menu-item.is-destructive { color: var(--hui-danger); }
-.hui-action-menu-icon { display: inline-flex; flex: 0 0 auto; }
-.hui-action-menu-label { flex: 1 1 auto; min-width: 0; }
-.hui-action-menu-hint { flex: 0 0 auto; color: var(--hui-muted); font-size: .65rem; }
+.hui-action-menu-icon {
+  display: inline-flex;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+.hui-action-menu-label { grid-column: 2; min-width: 0; }
+.hui-action-menu-hint {
+  grid-column: 2;
+  min-width: 0;
+  color: var(--hui-muted);
+  font-size: .65rem;
+  line-height: 1.35;
+}
 .hui-action-menu-separator { height: 1px; margin: 4px 3px; background: var(--hui-border-soft); }
 
 @media (pointer: coarse), (max-width: 720px) {
@@ -348,8 +390,36 @@
 .hui-handoff-details dd { min-width: 0; margin: 0; }
 .hui-handoff-details code { overflow-wrap: anywhere; }
 
-.hui-center.is-board > .hui-split-cell:not(.is-board) { display: none; }
-.hui-center.is-board > .hui-split-cell.is-board { display: block; border-left: 0; }
+/* ---- centre-cell visibility --------------------------------------------- */
+/* The four modes are the same for every kind, so the centre pane no longer has
+   a class per surface: `.hui-center` carries `is-visual`/`is-preview`/
+   `is-code`/`is-split` and `data-surface` names the open kind's surface. The
+   shell mounts exactly one surface cell — except the canvas and the card,
+   which stay mounted in every mode because their viewport state cannot
+   survive a remount, and are therefore hidden here instead.
+
+   This block lives in 09 rather than 02 on purpose: 07-preview.css and
+   08-preview-card.css both hide cells at class specificity, and later files
+   win at equal weight. 02-shell.css still owns the `is-code` arm, and
+   07-preview.css still owns the `is-preview` arm — every cell the preview
+   mode mounts carries `.is-preview`, so both keep working unchanged. */
+.hui-center > .hui-split-cell.is-canvas,
+.hui-center > .hui-split-cell.is-preview-card { display: none; }
+
+.hui-center[data-surface="canvas"]:not(.is-code):not(.is-preview)
+  > .hui-split-cell.is-canvas,
+.hui-center[data-surface="previewCard"]:not(.is-code):not(.is-preview)
+  > .hui-split-cell.is-preview-card { display: block; }
+
+/* Every conditionally mounted surface cell fills its column. */
+.hui-center > .hui-split-cell.is-board,
+.hui-center > .hui-split-cell.is-hologram,
+.hui-center > .hui-split-cell.is-animation,
+.hui-center > .hui-split-cell.is-scoreboard,
+.hui-center > .hui-split-cell.is-motd,
+.hui-center > .hui-split-cell.is-emoji,
+.hui-center > .hui-split-cell.is-bubble,
+.hui-center > .hui-split-cell.is-tablist { display: block; border-left: 0; }
 
 .hui-board {
   display: flex;

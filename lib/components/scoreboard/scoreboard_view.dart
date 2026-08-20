@@ -2,11 +2,16 @@
 /// way the client draws it.
 ///
 /// The title renders through Gloss's text pipeline, then VolmLib safely caps
-/// it at 32 UTF-16 units including colour codes. At most 15 lines reach the
-/// client; VolmLib maps every rendered line into
-/// its 16-character team prefix plus 16-character suffix, including carried
-/// colour codes. The dimmed score column stands in for the vanilla sidebar's
-/// row scores.
+/// it at 32 UTF-16 units including colour codes. An empty title is not blank
+/// in game — `GlossBoardMeta.fromDoc` falls back to the board id — so the
+/// preview shows the id too. At most 15 lines reach the client; VolmLib maps
+/// every rendered line into its 16-character team prefix plus 16-character
+/// suffix, including carried colour codes. The dimmed score column stands in
+/// for the vanilla sidebar's row scores.
+///
+/// With `gameContext` the sidebar mounts into the shared game-screen frame at
+/// the right edge, where the client actually draws it; without it the surface
+/// keeps its editor stage, readout and the board-selection simulator.
 ///
 /// Owns a playback clock while any rendered line (or the title) plays an
 /// animation and the store's animations toggle is on. Mounted only while the
@@ -21,16 +26,26 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
+import 'scoreboard_selection_simulator.dart';
 
 /// Animation repaint period, matching the hologram stage.
 const Duration _tickPeriod = Duration(milliseconds: 100);
 
 class ScoreboardView extends StatefulWidget {
-  const ScoreboardView({required this.store, super.key});
+  const ScoreboardView({
+    required this.store,
+    this.gameContext = false,
+    super.key,
+  });
 
   final EditorStore store;
+
+  /// Mounts the sidebar inside the shared Minecraft game-screen frame instead
+  /// of the editor stage. False renders exactly the editor surface.
+  final bool gameContext;
 
   @override
   State<ScoreboardView> createState() => _ScoreboardViewState();
@@ -81,7 +96,10 @@ class _ScoreboardViewState extends State<ScoreboardView> {
   }
 
   bool _isAnimated(GlossScoreboardDoc doc, GlossAnimationResolver animations) {
-    if (renderGlossLine(doc.title, animations: animations).isAnimated) {
+    if (renderGlossLine(
+      doc.effectiveTitle(_store.menuId),
+      animations: animations,
+    ).isAnimated) {
       return true;
     }
     final int rendered = doc.lines.length > glossBoardMaxLines
@@ -103,6 +121,12 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     final GlossScoreboardDoc? doc = _store.scoreboardDoc;
     if (doc == null) {
       _syncTicker(false);
+      if (component.gameContext) {
+        return glossGameEmpty(
+          anchor: GlossGameAnchor.sidebar,
+          label: 'Scoreboard in game',
+        );
+      }
       return const dom.div(
         classes: 'hui-scoreboard-stage is-empty',
         <Widget>[],
@@ -117,9 +141,50 @@ class _ScoreboardViewState extends State<ScoreboardView> {
         ? glossBoardMaxLines
         : doc.lines.length;
     final int clipped = doc.lines.length - rendered;
+    final String title = doc.effectiveTitle(_store.menuId);
+    final bool titleFellBack = doc.title.isEmpty;
     final bool titleTruncated =
-        glossTranslatedLength(doc.title, animations, emoji: emoji) >
+        glossTranslatedLength(title, animations, emoji: emoji) >
         glossBoardMaxTitleLength;
+
+    final Widget sidebar = dom.div(classes: 'hui-scoreboard-sidebar', <Widget>[
+      dom.div(classes: 'hui-scoreboard-title', <Widget>[
+        GlossTextLine(
+          render: renderGlossScoreboardTitle(
+            title,
+            animations: animations,
+            emoji: emoji,
+            nowMs: nowMs,
+          ),
+        ),
+      ]),
+      for (int index = 0; index < rendered; index++)
+        dom.div(classes: 'hui-scoreboard-row', <Widget>[
+          dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
+            GlossTextLine(
+              render: renderGlossScoreboardLine(
+                doc.lines[index],
+                animations: animations,
+                emoji: emoji,
+                nowMs: nowMs,
+              ),
+            ),
+          ]),
+          if (!doc.hideNumbers)
+            dom.span(classes: 'hui-scoreboard-score', <Widget>[
+              Text('${glossBoardScoreForRow(index)}'),
+            ]),
+        ]),
+    ]);
+
+    if (component.gameContext) {
+      return GlossGameScreen(
+        anchor: GlossGameAnchor.sidebar,
+        label: 'Scoreboard in game',
+        controls: <Widget>[_playPause()],
+        child: sidebar,
+      );
+    }
 
     return dom.div(classes: 'hui-scoreboard-stage', <Widget>[
       dom.div(
@@ -130,64 +195,73 @@ class _ScoreboardViewState extends State<ScoreboardView> {
             alignment: _sceneBackdrop
                 ? GlossPreviewAlignment.end
                 : GlossPreviewAlignment.center,
-            child: dom.div(classes: 'hui-scoreboard-sidebar', <Widget>[
-              dom.div(classes: 'hui-scoreboard-title', <Widget>[
-                GlossTextLine(
-                  render: renderGlossScoreboardTitle(
-                    doc.title,
-                    animations: animations,
-                    emoji: emoji,
-                    nowMs: nowMs,
-                  ),
-                ),
-              ]),
-              for (int index = 0; index < rendered; index++)
-                dom.div(classes: 'hui-scoreboard-row', <Widget>[
-                  dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
-                    GlossTextLine(
-                      render: renderGlossScoreboardLine(
-                        doc.lines[index],
-                        animations: animations,
-                        emoji: emoji,
-                        nowMs: nowMs,
-                      ),
-                    ),
-                  ]),
-                  if (!doc.hideNumbers)
-                    dom.span(classes: 'hui-scoreboard-score', <Widget>[
-                      Text('${glossBoardScoreForRow(index)}'),
-                    ]),
-                ]),
-            ]),
+            child: sidebar,
           ),
-          dom.div(classes: 'hui-scoreboard-view-controls', <Widget>[
-            Button(
-              variant: ButtonVariant.outline,
-              size: ButtonSize.small,
-              onPressed: () => setState(() => _sceneBackdrop = !_sceneBackdrop),
-              icon: ArcaneIcon.image(size: IconSize.sm),
-              label: _sceneBackdrop ? 'Centered stage' : 'Right-side scene',
-            ),
-          ]),
+          dom.div(
+            classes: 'hui-scoreboard-view-controls',
+            attributes: const <String, String>{
+              'role': 'group',
+              'aria-label': 'Scoreboard preview controls',
+            },
+            <Widget>[
+              _playPause(),
+              Button(
+                variant: ButtonVariant.outline,
+                size: ButtonSize.small,
+                onPressed: () =>
+                    setState(() => _sceneBackdrop = !_sceneBackdrop),
+                icon: ArcaneIcon.image(size: IconSize.sm),
+                label: _sceneBackdrop ? 'Centered stage' : 'Right-side scene',
+              ),
+            ],
+          ),
         ],
       ),
       dom.div(classes: 'hui-scoreboard-readout', <Widget>[
-        Text(_readout(doc, clipped, titleTruncated)),
+        Text(_readout(doc, clipped, titleTruncated, titleFellBack)),
       ]),
+      ScoreboardSelectionSimulator(store: _store),
     ]);
   }
 
-  String _readout(GlossScoreboardDoc doc, int clipped, bool titleTruncated) {
+  /// The animation transport, the same shape the hologram stage uses. It
+  /// drives the store's workspace-wide toggle, so pausing here pauses every
+  /// surface that references an animation.
+  Widget _playPause() => Button(
+    variant: ButtonVariant.outline,
+    size: ButtonSize.iconSm,
+    onPressed: () => _store.animationsPlaying = !_store.animationsPlaying,
+    attributes: <String, String>{
+      'aria-label': _store.animationsPlaying
+          ? 'Pause animations'
+          : 'Play animations',
+      'title': _store.animationsPlaying
+          ? 'Pause animations'
+          : 'Play animations',
+    },
+    child: _store.animationsPlaying
+        ? ArcaneIcon.pause(size: IconSize.sm)
+        : ArcaneIcon.play(size: IconSize.sm),
+  );
+
+  String _readout(
+    GlossScoreboardDoc doc,
+    int clipped,
+    bool titleTruncated,
+    bool titleFellBack,
+  ) {
     final List<String> parts = <String>[
       doc.primary ? 'primary' : 'not primary',
       doc.hideNumbers
-          ? 'score numbers hidden on supported runtimes'
+          ? 'score numbers hidden — 1.20.3 and newer only; older servers '
+                'still draw the red column'
           : 'score numbers visible',
       doc.permissionGated
           ? 'needs $glossBoardPermissionNodePrefix${doc.effectivePermission}'
           : 'everyone',
       if (doc.effectiveGroups.isNotEmpty)
         'groups: ${doc.effectiveGroups.join(', ')}',
+      if (titleFellBack) 'blank title falls back to the board id',
       if (clipped > 0)
         '$clipped line${clipped == 1 ? '' : 's'} past the 15-line render cap',
       if (titleTruncated) 'title exceeds the 32-unit in-game cap',

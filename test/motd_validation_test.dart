@@ -27,9 +27,8 @@ final class _OneAnimation implements GlossAnimationResolver {
   List<String> get ids => <String>[id];
 
   @override
-  GlossAnimationDoc? byId(String wanted) => wanted == id
-      ? GlossAnimationDoc(frames: <String>['&cGloss'])
-      : null;
+  GlossAnimationDoc? byId(String wanted) =>
+      wanted == id ? GlossAnimationDoc(frames: <String>['&cGloss']) : null;
 }
 
 void main() {
@@ -92,10 +91,7 @@ void main() {
     final List<HuiIssue> dangling = validateMotdDoc(doc);
     expect(dangling.single.severity, HuiSeverity.warning);
     expect(dangling.single.message, contains('animation.rainbow'));
-    expect(
-      validateMotdDoc(doc, animations: _OneAnimation('rainbow')),
-      isEmpty,
-    );
+    expect(validateMotdDoc(doc, animations: _OneAnimation('rainbow')), isEmpty);
   });
 
   test('a placeholder is an info — a ping has no viewer', () {

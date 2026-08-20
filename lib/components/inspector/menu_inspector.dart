@@ -8,6 +8,7 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
+import '../../config/defaults.dart';
 import '../../logic/validation.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
@@ -69,6 +70,22 @@ class MenuInspector extends StatelessWidget {
         required: true,
         trailing: const HuiFieldHelp('menu.offset'),
         help: 'Blocks from the player\'s feet at the moment it opens.',
+        // Eye level, arm's length forward — what a new document and every
+        // template open at.
+        defaultValue: '0, $huiDefaultMenuHeight, $huiDefaultMenuDistance',
+        onReset:
+            _menu.offset.x == 0 &&
+                _menu.offset.y == huiDefaultMenuHeight &&
+                _menu.offset.z == huiDefaultMenuDistance
+            ? null
+            : () => store.mutate(
+                'menu offset',
+                (HuiMenu menu) => menu.offset = Vec3(
+                  0,
+                  huiDefaultMenuHeight,
+                  huiDefaultMenuDistance,
+                ),
+              ),
         control: dom.div(<Widget>[
           HuiVec3Field(
             value: _menu.offset,
@@ -166,6 +183,7 @@ class MenuInspector extends StatelessWidget {
 
   Widget _lifetime() => InspectorSection(
     title: 'Auto close',
+    sectionKey: 'menu.autoClose',
     description:
         'A player can only have one menu open at a time; opening '
         'another replaces this one.',
@@ -197,6 +215,7 @@ class MenuInspector extends StatelessWidget {
   /// are one line each, the three traps sit behind a closed disclosure.
   Widget _install() => InspectorSection(
     title: 'Install on the server',
+    sectionKey: 'menu.install',
     children: <Widget>[
       HuiDetailRow('Menu file', 'plugins/Gloss/menus/${store.menuId}.json'),
       const HuiDetailRow('Images', 'plugins/Gloss/images/'),
@@ -237,6 +256,8 @@ class MenuInspector extends StatelessWidget {
   /// it here is the only way to learn it does nothing.
   Widget _extras() => InspectorSection(
     title: 'Extra keys',
+    sectionKey: 'menu.extras',
+    initiallyOpen: false,
     children: <Widget>[
       ExtrasEditor(
         title: 'Menu',

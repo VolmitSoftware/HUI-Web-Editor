@@ -207,7 +207,9 @@ final class IndexedDbWorkspaceRepository
         _backupsStore.toJS,
         'readwrite',
       );
-      transaction.objectStore(_backupsStore).put(_encodeRecord(record), key.toJS);
+      transaction
+          .objectStore(_backupsStore)
+          .put(_encodeRecord(record), key.toJS);
       transaction.oncomplete = ((web.Event event) {
         if (!completer.isCompleted) completer.complete();
       }).toJS;

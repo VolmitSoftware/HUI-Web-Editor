@@ -1,10 +1,9 @@
 /* Gloss document surfaces: hologram stage, animation player, scoreboard mock,
    and the shared pipeline-text chrome. */
 
-/* --- centre-pane switching, mirroring .is-board ------------------------- */
-
-.hui-center.is-hologram > .hui-split-cell:not(.is-hologram) { display: none; }
-.hui-center.is-hologram > .hui-split-cell.is-hologram { display: block; border-left: 0; }
+/* Centre-cell visibility is not per kind any more: the shell mounts exactly
+   one surface cell and 09-workspace.css shows it. Nothing in this file styles
+   a cell — every rule below is inside one. */
 
 /* --- shared pipeline text ------------------------------------------------ */
 
@@ -149,12 +148,6 @@
 
 /* --- hologram inspector -------------------------------------------------- */
 
-.hui-hologram-position-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
 .hui-hologram-lines-tools {
   display: flex;
   flex-wrap: wrap;
@@ -182,9 +175,6 @@
 }
 
 /* --- animation player ----------------------------------------------------- */
-
-.hui-center.is-animation > .hui-split-cell:not(.is-animation) { display: none; }
-.hui-center.is-animation > .hui-split-cell.is-animation { display: block; border-left: 0; }
 
 .hui-animation-player {
   display: flex;
@@ -266,9 +256,6 @@
 }
 
 /* --- scoreboard sidebar mock ---------------------------------------------- */
-
-.hui-center.is-scoreboard > .hui-split-cell:not(.is-scoreboard) { display: none; }
-.hui-center.is-scoreboard > .hui-split-cell.is-scoreboard { display: block; border-left: 0; }
 
 .hui-scoreboard-stage {
   position: relative;
@@ -376,9 +363,6 @@
 }
 
 /* --- MOTD server-list mock ------------------------------------------------ */
-
-.hui-center.is-motd > .hui-split-cell:not(.is-motd) { display: none; }
-.hui-center.is-motd > .hui-split-cell.is-motd { display: block; border-left: 0; }
 
 .hui-motd-stage {
   position: relative;
@@ -571,9 +555,6 @@
 
 /* --- emoji glyph grid ------------------------------------------------------ */
 
-.hui-center.is-emoji > .hui-split-cell:not(.is-emoji) { display: none; }
-.hui-center.is-emoji > .hui-split-cell.is-emoji { display: block; border-left: 0; }
-
 .hui-emoji-stage {
   display: flex;
   flex-direction: column;
@@ -708,9 +689,6 @@
 
 /* --- chat-bubble stack mock ------------------------------------------------ */
 
-.hui-center.is-bubble > .hui-split-cell:not(.is-bubble) { display: none; }
-.hui-center.is-bubble > .hui-split-cell.is-bubble { display: block; border-left: 0; }
-
 .hui-bubble-stage {
   position: relative;
   display: flex;
@@ -828,9 +806,6 @@
 }
 
 /* --- tab-screen mock ------------------------------------------------------- */
-
-.hui-center.is-tablist > .hui-split-cell:not(.is-tablist) { display: none; }
-.hui-center.is-tablist > .hui-split-cell.is-tablist { display: block; border-left: 0; }
 
 .hui-tablist-stage {
   position: relative;

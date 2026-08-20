@@ -15,9 +15,10 @@
 /// without the document-revision bump the viewport memoizes its own
 /// category/vars resolution against.
 ///
-/// Mounted only for [EditorView.previewCard] (see `inspector_pane.dart`) —
-/// the "preview HUD-ish chrome" the brief asks for belongs to the surface
-/// that is actually animating, not to the code view of the same document.
+/// Mounted for every view except [EditorView.code] (see
+/// `doctype/document_inspector.dart`) — the "preview HUD-ish chrome" the brief
+/// asks for belongs to the surface that is actually animating, and the code
+/// view of the same document has nothing on screen to animate.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';

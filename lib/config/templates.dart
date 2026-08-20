@@ -10,6 +10,7 @@
 library;
 
 import '../model/model.dart';
+import 'defaults.dart';
 
 /// A named starter document.
 class HuiTemplate {
@@ -169,9 +170,11 @@ const String kBlankHologramJson = r'''
 HuiMenu buildBlankHologramTemplate() => decodeHuiMenu(kBlankHologramJson);
 
 /// Root defaults shared by every template: eye height, arm's length forward,
-/// follows the player, closes on death and teleport.
+/// follows the player, closes on death and teleport. The two numbers come from
+/// `defaults.dart` so a template and a brand new document open in the same
+/// place — they used to be spelled out here and drifted silently.
 HuiMenu _menu(List<HuiComponent> components) => HuiMenu(
-  offset: Vec3(0, 1.7, 2.5),
+  offset: Vec3(0, huiDefaultMenuHeight, huiDefaultMenuDistance),
   lockPosition: false,
   followPlayer: true,
   closeOnDeath: true,

@@ -312,9 +312,3 @@ class CanvasBrush {
   /// Half-pixel offset keeps 1 px strokes from straddling two device pixels.
   double _crisp(double value) => value.roundToDouble() + 0.5;
 }
-
-/// `0xAARRGGBB` to a CSS colour, ignoring alpha (Minecraft text is opaque).
-String rgbCss(int argb) {
-  final String hex = (argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0');
-  return '#$hex';
-}

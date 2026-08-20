@@ -12,6 +12,10 @@
 /// name shows vanilla. The ping bars and the filler players are cosmetic —
 /// the client fills the grid, never the plugin.
 ///
+/// With `gameContext` the tab screen mounts into the shared game-screen frame
+/// as the top-centre overlay the tab key raises; without it the surface keeps
+/// its editor stage and readout.
+///
 /// Owns a playback clock while any rendered text plays an animation and the
 /// store's animations toggle is on. Mounted only while the tablist view is
 /// active.
@@ -26,6 +30,7 @@ import '../../logic/gloss_text.dart';
 import '../../logic/tablist_selection.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 
@@ -60,9 +65,13 @@ const List<_MockPlayer> _players = <_MockPlayer>[
 ];
 
 class TablistView extends StatefulWidget {
-  const TablistView({required this.store, super.key});
+  const TablistView({required this.store, this.gameContext = false, super.key});
 
   final EditorStore store;
+
+  /// Mounts the tab screen inside the shared Minecraft game-screen frame
+  /// instead of the editor stage. False renders exactly the editor surface.
+  final bool gameContext;
 
   @override
   State<TablistView> createState() => _TablistViewState();
@@ -150,6 +159,12 @@ class _TablistViewState extends State<TablistView> {
     final GlossTablistDoc? doc = _store.tablistDoc;
     if (doc == null) {
       _syncTicker(false);
+      if (component.gameContext) {
+        return glossGameEmpty(
+          anchor: GlossGameAnchor.tabOverlay,
+          label: 'Tab list in game',
+        );
+      }
       return const dom.div(classes: 'hui-tablist-stage is-empty', <Widget>[]);
     }
     final GlossAnimationResolver animations = _store.workspaceAnimations;
@@ -171,47 +186,86 @@ class _TablistViewState extends State<TablistView> {
         ]),
     ];
 
+    final Widget screen = dom.div(classes: 'hui-tablist-screen', <Widget>[
+      if (doc.useHeaderFooter)
+        dom.div(classes: 'hui-tablist-header', pipelineLines(doc.header)),
+      dom.div(classes: 'hui-tablist-grid', <Widget>[
+        for (final _MockPlayer player in _players)
+          dom.div(classes: 'hui-tablist-row', <Widget>[
+            const dom.span(classes: 'hui-tablist-row-face', <Widget>[]),
+            dom.span(classes: 'hui-tablist-row-name', <Widget>[
+              GlossTextLine(
+                render: renderGlossLine(
+                  _listNameRaw(doc, player),
+                  animations: animations,
+                  emoji: emoji,
+                  nowMs: nowMs,
+                ),
+              ),
+            ]),
+            dom.span(classes: 'hui-tablist-row-ping', <Widget>[
+              for (int bar = 0; bar < 5; bar++)
+                dom.span(
+                  classes:
+                      'hui-tablist-ping-bar'
+                      '${bar < player.pingBars ? ' is-filled' : ''}',
+                  const <Widget>[],
+                ),
+            ]),
+          ]),
+      ]),
+      if (doc.useHeaderFooter)
+        dom.div(classes: 'hui-tablist-footer', pipelineLines(doc.footer)),
+    ]);
+
+    if (component.gameContext) {
+      return GlossGameScreen(
+        anchor: GlossGameAnchor.tabOverlay,
+        label: 'Tab list in game',
+        controls: <Widget>[_playPause()],
+        child: screen,
+      );
+    }
+
     return dom.div(classes: 'hui-tablist-stage', <Widget>[
       dom.div(classes: 'hui-tablist-sky', <Widget>[
         GlossPreviewZoom(
           label: 'Tab list preview',
           alignment: GlossPreviewAlignment.top,
-          child: dom.div(classes: 'hui-tablist-screen', <Widget>[
-            if (doc.useHeaderFooter)
-              dom.div(classes: 'hui-tablist-header', pipelineLines(doc.header)),
-            dom.div(classes: 'hui-tablist-grid', <Widget>[
-              for (final _MockPlayer player in _players)
-                dom.div(classes: 'hui-tablist-row', <Widget>[
-                  const dom.span(classes: 'hui-tablist-row-face', <Widget>[]),
-                  dom.span(classes: 'hui-tablist-row-name', <Widget>[
-                    GlossTextLine(
-                      render: renderGlossLine(
-                        _listNameRaw(doc, player),
-                        animations: animations,
-                        emoji: emoji,
-                        nowMs: nowMs,
-                      ),
-                    ),
-                  ]),
-                  dom.span(classes: 'hui-tablist-row-ping', <Widget>[
-                    for (int bar = 0; bar < 5; bar++)
-                      dom.span(
-                        classes:
-                            'hui-tablist-ping-bar'
-                            '${bar < player.pingBars ? ' is-filled' : ''}',
-                        const <Widget>[],
-                      ),
-                  ]),
-                ]),
-            ]),
-            if (doc.useHeaderFooter)
-              dom.div(classes: 'hui-tablist-footer', pipelineLines(doc.footer)),
-          ]),
+          child: screen,
+        ),
+        dom.div(
+          classes: 'hui-tablist-view-controls',
+          attributes: const <String, String>{
+            'role': 'group',
+            'aria-label': 'Tab list preview controls',
+          },
+          <Widget>[_playPause()],
         ),
       ]),
       dom.div(classes: 'hui-tablist-readout', <Widget>[Text(_readout(doc))]),
     ]);
   }
+
+  /// The animation transport, the same shape the hologram stage uses. It
+  /// drives the store's workspace-wide toggle, so pausing here pauses every
+  /// surface that references an animation.
+  Widget _playPause() => Button(
+    variant: ButtonVariant.outline,
+    size: ButtonSize.iconSm,
+    onPressed: () => _store.animationsPlaying = !_store.animationsPlaying,
+    attributes: <String, String>{
+      'aria-label': _store.animationsPlaying
+          ? 'Pause animations'
+          : 'Play animations',
+      'title': _store.animationsPlaying
+          ? 'Pause animations'
+          : 'Play animations',
+    },
+    child: _store.animationsPlaying
+        ? ArcaneIcon.pause(size: IconSize.sm)
+        : ArcaneIcon.play(size: IconSize.sm),
+  );
 
   String _readout(GlossTablistDoc doc) {
     final List<String> parts = <String>[

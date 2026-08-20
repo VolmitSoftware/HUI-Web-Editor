@@ -1,35 +1,41 @@
-/// The centre-pane view segmented control.
+/// The centre-pane mode segmented control.
 ///
-/// The items are whichever views the active document kind actually has a
-/// surface for ([EditorStore.availableViews]), not the whole enum: a menu has
-/// no card surface and a container-preview document has neither a component
-/// canvas nor a 3D preview, so offering either would be offering a dead end.
+/// Four modes, the same four for every document kind: the kind's editing
+/// surface, its in-game rendering, the JSON, and the two side by side. A kind
+/// that cannot serve one of them keeps its place in the strip and says why on
+/// hover — a switcher whose shape changed with the open document taught the
+/// user that modes come and go, which is exactly the confusion this replaced.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import '../../state/editor_store.dart';
+import '../common/class_names.dart';
 
 class ViewSwitcher extends StatelessWidget {
   const ViewSwitcher({
     required this.view,
-    required this.views,
+    required this.surfaceLabel,
+    required this.unavailableReason,
     required this.onChanged,
     super.key,
   });
 
   final EditorView view;
 
-  /// In switcher order; the store decides which kind gets which.
-  final List<EditorView> views;
+  /// What the visual mode is called for the open kind ('Canvas', 'Sidebar').
+  final String surfaceLabel;
+
+  /// Why the open kind cannot enter a mode, or null when it can.
+  final String? Function(EditorView view) unavailableReason;
 
   final void Function(EditorView view) onChanged;
 
   @override
   Widget build(BuildContext context) => dom.div(
     classes: 'hui-view-switcher',
-    attributes: const <String, String>{'aria-label': 'Editor view'},
+    attributes: const <String, String>{'aria-label': 'Editor mode'},
     <Widget>[
       ArcaneToggleGroup(
         id: 'hui-view-switcher',
@@ -38,47 +44,41 @@ class ViewSwitcher extends StatelessWidget {
         size: ToggleGroupSize.sm,
         onChanged: _onChanged,
         items: <ToggleGroupItem>[
-          for (final EditorView value in views)
-            _item(value, _labelOf(value), _iconOf(value)),
+          for (final EditorView value in EditorView.values) _item(value),
         ],
       ),
     ],
   );
 
-  static String _labelOf(EditorView value) => switch (value) {
+  static String labelOf(EditorView value) => switch (value) {
     EditorView.visual => 'Visual',
     EditorView.preview => 'Preview',
     EditorView.code => 'Code',
     EditorView.split => 'Split',
-    EditorView.previewCard => 'Card',
-    EditorView.panel => 'Flow map',
-    EditorView.hologram => 'Stage',
-    EditorView.animation => 'Player',
-    EditorView.scoreboard => 'Sidebar',
-    EditorView.motd => 'Server list',
-    EditorView.emoji => 'Glyphs',
-    EditorView.bubble => 'Bubbles',
-    EditorView.tablist => 'Tab',
   };
 
-  static Widget _iconOf(EditorView value) => switch (value) {
+  static Widget iconOf(EditorView value) => switch (value) {
     EditorView.visual => ArcaneIcon.eye(size: IconSize.sm),
     EditorView.preview => ArcaneIcon.rotate3d(size: IconSize.sm),
     EditorView.code => ArcaneIcon.code(size: IconSize.sm),
     EditorView.split => ArcaneIcon.columns2(size: IconSize.sm),
-    EditorView.previewCard => ArcaneIcon.layoutGrid(size: IconSize.sm),
-    EditorView.panel => ArcaneIcon.workflow(size: IconSize.sm),
-    EditorView.hologram => ArcaneIcon.rotate3d(size: IconSize.sm),
-    EditorView.animation => ArcaneIcon.play(size: IconSize.sm),
-    EditorView.scoreboard => ArcaneIcon.panelRight(size: IconSize.sm),
-    EditorView.motd => ArcaneIcon.server(size: IconSize.sm),
-    EditorView.emoji => ArcaneIcon.smile(size: IconSize.sm),
-    EditorView.bubble => ArcaneIcon.messageCircle(size: IconSize.sm),
-    EditorView.tablist => ArcaneIcon.users(size: IconSize.sm),
   };
 
+  String _titleOf(EditorView value, String? reason) {
+    if (reason != null) return reason;
+    return switch (value) {
+      EditorView.visual => 'Visual — the $surfaceLabel surface',
+      EditorView.preview => 'Preview — rendered the way the server renders it',
+      EditorView.code => 'Code — the document JSON',
+      EditorView.split => 'Split — $surfaceLabel and JSON side by side',
+    };
+  }
+
+  /// A mode the kind cannot serve stays clickable on purpose: the click is
+  /// what surfaces the reason as a message, and a disabled button in this
+  /// runtime swallows the pointer before its own tooltip can fire.
   void _onChanged(String? value) {
-    for (final EditorView candidate in views) {
+    for (final EditorView candidate in EditorView.values) {
       if (candidate.name == value) {
         onChanged(candidate);
         return;
@@ -86,12 +86,24 @@ class ViewSwitcher extends StatelessWidget {
     }
   }
 
-  ToggleGroupItem _item(EditorView value, String label, Widget icon) =>
-      ToggleGroupItem(
-        value: value.name,
-        child: dom.span(classes: 'hui-view-switcher-item', <Widget>[
-          icon,
-          dom.span(classes: 'hui-view-label', <Widget>[Text(label)]),
+  ToggleGroupItem _item(EditorView value) {
+    final String? reason = unavailableReason(value);
+    return ToggleGroupItem(
+      value: value.name,
+      child: dom.span(
+        classes: classNames(<String?>[
+          'hui-view-switcher-item',
+          reason == null ? null : 'is-unavailable',
         ]),
-      );
+        attributes: <String, String>{
+          'title': _titleOf(value, reason),
+          if (reason != null) 'aria-disabled': 'true',
+        },
+        <Widget>[
+          iconOf(value),
+          dom.span(classes: 'hui-view-label', <Widget>[Text(labelOf(value))]),
+        ],
+      ),
+    );
+  }
 }

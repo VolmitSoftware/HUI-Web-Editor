@@ -11,6 +11,7 @@ import 'package:arcane_jaspr/component/input/mutable_text_types.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show Listenable;
 
+import '../../doctype/doctype.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../common/class_names.dart';
@@ -75,9 +76,13 @@ class _TopBarState extends State<TopBar> {
       ..write('|')
       ..write(_store.view.name)
       ..write('|')
-      // The switcher's item set is a function of the document kind, so the bar
-      // has to rebuild when the kind changes even if nothing else did.
+      // The switcher's disabled entries and the visual mode's label are both
+      // functions of the document kind, so the bar has to rebuild when the
+      // kind changes even if nothing else did.
       ..write(_store.docKind.name)
+      ..write('|')
+      // The mode tabs are the other half of the bar's identity.
+      ..write(_store.mode?.kind.name)
       ..write('|')
       ..write(_store.canUndo)
       ..write(_store.canRedo)
@@ -116,10 +121,17 @@ class _TopBarState extends State<TopBar> {
     builder: (BuildContext context, String signature) => _bar(),
   );
 
-  /// Four clusters, each a labelled group with a hairline between it and the
-  /// next (drawn by `.hui-bar-cluster + .hui-bar-cluster` in 02-shell.css) so
-  /// the right-hand run reads as history / file / assets / app instead of as
-  /// eleven identical icons.
+  /// Identity and document on the left, the mode tabs in the middle, and the
+  /// action clusters on the right — each a labelled group with a hairline
+  /// between it and the next (drawn by `.hui-bar-cluster + .hui-bar-cluster`
+  /// in 02-shell.css) so the right-hand run reads as mode / history / file /
+  /// assets / app instead of as fifteen identical icons.
+  ///
+  /// The centre is the kind tabs rather than the view switcher because the two
+  /// answer different questions and only one of them is navigation: the tabs
+  /// say what you are working on, the switcher how you are looking at it. Both
+  /// in the middle came to about 700px of chrome, which is more than the bar
+  /// has to give at laptop widths.
   Widget _bar() => dom.header(
     classes: 'hui-bar',
     attributes: const <String, String>{'role': 'banner'},
@@ -131,15 +143,24 @@ class _TopBarState extends State<TopBar> {
           if (_armedDelete) _deleteStrip(),
         ]),
       ]),
-      dom.div(classes: 'hui-bar-group hui-bar-center', <Widget>[
-        if (_store.hasActiveDocument)
-          ViewSwitcher(
-            view: _store.view,
-            views: _store.availableViews,
-            onChanged: _intents.setView,
-          ),
-      ]),
+      dom.div(classes: 'hui-bar-group hui-bar-center', <Widget>[_kindTabs()]),
       dom.div(classes: 'hui-bar-group hui-bar-right', <Widget>[
+        if (_store.hasActiveDocument)
+          dom.div(
+            classes: 'hui-bar-cluster hui-bar-views',
+            attributes: const <String, String>{
+              'role': 'group',
+              'aria-label': 'Editor mode',
+            },
+            <Widget>[
+              ViewSwitcher(
+                view: _store.view,
+                surfaceLabel: _store.docType.surfaceLabel,
+                unavailableReason: _store.unavailableViewReason,
+                onChanged: _intents.setView,
+              ),
+            ],
+          ),
         _cluster('History', <Widget>[
           _action(
             icon: ArcaneIcon.undo(size: IconSize.sm),
@@ -238,6 +259,72 @@ class _TopBarState extends State<TopBar> {
     attributes: <String, String>{'role': 'group', 'aria-label': label},
     children,
   );
+
+  /// The mode tabs: one per document kind, plus the unscoped All.
+  ///
+  /// Selecting one scopes the library rail to that kind and points its create
+  /// action at it — "scoreboard mode shows all my scoreboards". Registry-driven
+  /// like the templates dialog's tabs, so a new kind arrives here with its
+  /// adapter and nothing else. Only the active tab carries its label; ten
+  /// labelled tabs would own the whole bar.
+  Widget _kindTabs() => dom.div(
+    classes: 'hui-kind-tabs',
+    attributes: const <String, String>{'aria-label': 'Document kinds'},
+    <Widget>[
+      ArcaneToggleGroup(
+        id: 'hui-kind-tabs',
+        value: _store.mode?.kind.name ?? _allKindsValue,
+        variant: ToggleGroupVariant.outline,
+        size: ToggleGroupSize.sm,
+        onChanged: _onKindTab,
+        items: <ToggleGroupItem>[
+          _kindTab(
+            value: _allKindsValue,
+            label: 'All',
+            title: 'Every document in the workspace',
+            icon: ArcaneIcon.layoutList(size: IconSize.sm),
+          ),
+          for (final DocumentTypeAdapter type in DocumentTypeRegistry.tabs)
+            _kindTab(
+              value: type.kind.name,
+              label: type.pluralLabel,
+              title: '${type.pluralLabel} only',
+              icon: type.tabIcon(),
+            ),
+        ],
+      ),
+    ],
+  );
+
+  ToggleGroupItem _kindTab({
+    required String value,
+    required String label,
+    required String title,
+    required Widget icon,
+  }) => ToggleGroupItem(
+    value: value,
+    child: dom.span(
+      classes: 'hui-kind-tab',
+      attributes: <String, String>{'title': title},
+      <Widget>[
+        icon,
+        dom.span(classes: 'hui-kind-tab-label', <Widget>[Text(label)]),
+      ],
+    ),
+  );
+
+  /// A null value is the toggle group reporting that the active tab was
+  /// clicked again; a mode strip has no "nothing selected" state, so it stays
+  /// where it is.
+  void _onKindTab(String? value) {
+    if (value == null) return;
+    if (value == _allKindsValue) {
+      _intents.setMode(null);
+      return;
+    }
+    final DocumentTypeAdapter? type = DocumentTypeRegistry.byKindName(value);
+    if (type != null) _intents.setMode(type);
+  }
 
   /// Only the actions hidden by `.is-optional` at tablet widths. File and
   /// other visible actions are deliberately absent, so opening this menu does
@@ -556,3 +643,7 @@ class _TopBarState extends State<TopBar> {
   String _ariaToken(String token) =>
       token.length == 1 ? token.toUpperCase() : token;
 }
+
+/// Tab value of the unscoped mode. Not a kind name, and it cannot collide with
+/// one: every kind slug is a lowercase enum name.
+const String _allKindsValue = '__all__';

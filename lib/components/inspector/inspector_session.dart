@@ -19,6 +19,22 @@ class InspectorSession {
   final Map<String, Map<String, HuiAction>> _actions =
       <String, Map<String, HuiAction>>{};
 
+  /// Which collapsible sections the user has opened or closed, by section key.
+  ///
+  /// Static rather than an instance field: a section is mounted several layers
+  /// below the pane, and none of the ten document bodies thread the session
+  /// down to it. There is exactly one inspector pane, so one map is one pane's
+  /// memory — and like everything else here it is session-only, never
+  /// persisted and never exported.
+  static final Map<String, bool> sectionOpen = <String, bool>{};
+
+  /// The open state for [key], falling back to the section's own default the
+  /// first time it is seen.
+  static bool isSectionOpen(String key, {required bool fallback}) =>
+      sectionOpen[key] ?? fallback;
+
+  static void setSectionOpen(String key, bool open) => sectionOpen[key] = open;
+
   static String iconSlot(String componentId, String slot) =>
       '$componentId:$slot';
 

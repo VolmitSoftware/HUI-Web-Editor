@@ -27,6 +27,12 @@ const double huiDefaultHitboxHeight = 0.5;
 /// strobing; anything below 1 is rejected by validation.
 const int huiDefaultAnimationSpeed = 2;
 
+/// What the runtime uses for a text icon that omits `refreshTicks`: ten ticks,
+/// or twice a second (`TextMenuIcon.java:69-81`). Not an editor preference —
+/// this is the value the server picks, so the inspector shows it as the
+/// default rather than writing it into new icons.
+const int huiRuntimeDefaultTextRefreshTicks = 10;
+
 /// Neutral, always-present material for a new item icon.
 const String huiDefaultItemMaterial = 'stone';
 const String huiDefaultBlockMaterial = 'minecraft:stone';

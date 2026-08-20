@@ -28,10 +28,16 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
   String get createLabel => 'New scoreboard';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[
-    EditorView.scoreboard,
-    EditorView.code,
-  ];
+  String get pluralLabel => 'Scoreboards';
+
+  @override
+  int get tabOrder => 60;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.scoreboard;
+
+  @override
+  String get surfaceLabel => 'Sidebar';
 
   @override
   String? get syncWireKind => 'scoreboard';

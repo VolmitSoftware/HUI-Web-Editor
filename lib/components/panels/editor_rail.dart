@@ -57,6 +57,8 @@ class _EditorRailState extends State<EditorRail> {
   bool _importingBundle = false;
   bool _resetArmed = false;
   bool _resetting = false;
+  bool _workspaceMenuOpen = false;
+  HuiActionMenuPoint _workspaceMenuPoint = const HuiActionMenuPoint(8, 8);
 
   EditorStore get _store => component.store;
 
@@ -140,65 +142,66 @@ class _EditorRailState extends State<EditorRail> {
     }
   }
 
+  /// The scope the top bar's mode tabs put the library in, or null for the
+  /// whole workspace.
+  DocumentTypeAdapter? get _mode => _store.mode;
+
+  /// The rail's contents tab, or null for a kind that carries no in-document
+  /// contents. Gating on the adapter is what stops a hologram from being
+  /// offered a Components tab listing the last menu's components.
+  String? get _contentsLabel => _store.docType.contentsTabLabel;
+
   @override
   Widget build(BuildContext context) {
-    final bool library = _store.isPanelDoc || _tab == _EditorRailTab.library;
+    final String? contents = _contentsLabel;
+    final bool library = contents == null || _tab == _EditorRailTab.library;
     return dom.div(classes: 'hui-editor-rail', <Widget>[
-      dom.div(classes: 'hui-editor-rail-tabs', <Widget>[
-        ArcaneToggleGroup(
-          value: library
-              ? _EditorRailTab.library.name
-              : _EditorRailTab.contents.name,
-          variant: ToggleGroupVariant.outline,
-          size: ToggleGroupSize.sm,
-          onChanged: _store.isPanelDoc ? null : _setTab,
-          items: <ToggleGroupItem>[
-            ToggleGroupItem(
-              value: _EditorRailTab.library.name,
-              child: dom.span(<Widget>[
-                ArcaneIcon.folders(size: IconSize.sm),
-                const Text('Library'),
-              ]),
-            ),
-            if (!_store.isPanelDoc)
+      if (contents != null)
+        dom.div(classes: 'hui-editor-rail-tabs', <Widget>[
+          ArcaneToggleGroup(
+            value: library
+                ? _EditorRailTab.library.name
+                : _EditorRailTab.contents.name,
+            variant: ToggleGroupVariant.outline,
+            size: ToggleGroupSize.sm,
+            onChanged: _setTab,
+            items: <ToggleGroupItem>[
+              ToggleGroupItem(
+                value: _EditorRailTab.library.name,
+                child: dom.span(<Widget>[
+                  ArcaneIcon.folders(size: IconSize.sm),
+                  const Text('Library'),
+                ]),
+              ),
               ToggleGroupItem(
                 value: _EditorRailTab.contents.name,
                 child: dom.span(<Widget>[
                   ArcaneIcon.layers(size: IconSize.sm),
-                  Text(_store.isPreviewDoc ? 'Elements' : 'Components'),
+                  Text(contents),
                 ]),
               ),
-          ],
-        ),
-      ]),
+            ],
+          ),
+        ]),
       if (library) _library() else component.contents,
       if (_menuItemId != null) _itemContextMenu(),
+      if (_workspaceMenuOpen) _workspaceMenu(),
     ]);
   }
 
   Widget _library() {
-    final List<WorkspaceFolder> roots = _workspace.childFolders(null).toList();
-    roots.sort(_compareFolders);
-    final List<WorkspaceDoc> rootDocuments =
-        _workspace.documentsInFolder(null).toList()..sort(_compareDocuments);
+    final List<WorkspaceFolder> roots = _rootFolders();
+    final List<WorkspaceDoc> rootDocuments = _documentsIn(null);
+    final bool empty = roots.isEmpty && rootDocuments.isEmpty;
     return dom.div(classes: 'hui-library hui-rail-pane', <Widget>[
       dom.div(classes: 'hui-library-inner', <Widget>[
         _header(),
-        dom.p(classes: 'hui-library-hint', <Widget>[
-          Text(
-            _syncScopeHint ??
-                (_store.isPanelDoc
-                    ? 'Flow maps stay in this browser.'
-                    : 'Folders organize files; runtime ids remain canonical.'),
-          ),
-        ]),
+        dom.p(classes: 'hui-library-hint', <Widget>[Text(_hint())]),
         if (_pendingBundle != null || _bundleError != null)
           _bundleImportPrompt(),
         if (_resetArmed) _resetPrompt(),
-        if (roots.isEmpty && rootDocuments.isEmpty)
-          const dom.div(classes: 'hui-library-empty', <Widget>[
-            Text('Create a folder or document to begin.'),
-          ])
+        if (empty)
+          _emptyLibrary()
         else
           dom.div(
             classes: 'hui-library-tree',
@@ -212,52 +215,190 @@ class _EditorRailState extends State<EditorRail> {
     ]);
   }
 
-  Widget _header() => dom.div(classes: 'hui-library-header', <Widget>[
-    dom.div(classes: 'hui-library-heading', <Widget>[
-      const HuiEyebrow('Workspace'),
-      dom.span(classes: 'hui-rail-count', <Widget>[
-        Text('${_workspace.docs.length}'),
+  String _hint() {
+    final String? sync = _syncScopeHint;
+    if (sync != null) return sync;
+    final DocumentTypeAdapter? mode = _mode;
+    if (mode != null) {
+      return 'Showing ${mode.pluralLabel.toLowerCase()} only; the tabs above '
+          'the editor change the scope.';
+    }
+    return 'Folders organize files; runtime ids remain canonical.';
+  }
+
+  /// Nothing to list. In a scoped mode that is a statement about this kind,
+  /// not about the workspace, so the way out is a create button for the kind
+  /// the user is looking at.
+  Widget _emptyLibrary() {
+    final DocumentTypeAdapter? mode = _mode;
+    if (mode == null) {
+      return const dom.div(classes: 'hui-library-empty', <Widget>[
+        Text('Create a folder or document to begin.'),
+      ]);
+    }
+    return dom.div(classes: 'hui-library-empty is-scoped', <Widget>[
+      dom.span(<Widget>[
+        Text('No ${mode.pluralLabel.toLowerCase()} in this workspace yet.'),
       ]),
-    ]),
-    dom.div(classes: 'hui-library-create', <Widget>[
-      _iconButton(
-        label: 'New folder',
-        icon: ArcaneIcon.folderPlus(size: IconSize.sm),
-        onPressed: _createFolder,
+      Button(
+        variant: ButtonVariant.outline,
+        size: ButtonSize.sm,
+        icon: mode.createIcon(),
+        label: mode.createLabel,
+        onPressed: () => _createDocument(mode),
       ),
-      for (final DocumentTypeAdapter type in DocumentTypeRegistry.all)
-        _iconButton(
-          label: type.createLabel,
-          icon: type.createIcon(),
-          onPressed: () => _createDocument(type),
-        ),
-      _iconButton(
+    ]);
+  }
+
+  /// Creation only. Import, export and erase are workspace-level operations
+  /// and live in the header's menu: as icon buttons in this row they read as
+  /// three more document kinds, which is exactly how they were being used.
+  Widget _header() {
+    final DocumentTypeAdapter? mode = _mode;
+    return dom.div(classes: 'hui-library-header', <Widget>[
+      dom.div(classes: 'hui-library-heading', <Widget>[
+        HuiEyebrow(mode?.pluralLabel ?? 'Workspace'),
+        dom.span(classes: 'hui-rail-count', <Widget>[
+          Text('${_scopedCount()}'),
+        ]),
+        if (mode != null)
+          Button(
+            variant: ButtonVariant.ghost,
+            size: ButtonSize.iconSm,
+            onPressed: () => _store.mode = null,
+            attributes: const <String, String>{
+              'aria-label': 'Show all documents',
+              'title': 'Show all documents',
+            },
+            child: ArcaneIcon.listFilter(size: IconSize.sm),
+          ),
+        _workspaceMenuButton(),
+      ]),
+      dom.div(
+        classes: mode == null
+            ? 'hui-library-create'
+            : 'hui-library-create is-scoped',
+        <Widget>[
+          _iconButton(
+            label: 'New folder',
+            icon: ArcaneIcon.folderPlus(size: IconSize.sm),
+            onPressed: _createFolder,
+          ),
+          if (mode == null)
+            for (final DocumentTypeAdapter type in DocumentTypeRegistry.tabs)
+              _iconButton(
+                label: type.createLabel,
+                icon: type.createIcon(),
+                onPressed: () => _createDocument(type),
+              )
+          else
+            Button(
+              variant: ButtonVariant.outline,
+              size: ButtonSize.sm,
+              icon: mode.createIcon(),
+              label: mode.createLabel,
+              onPressed: () => _createDocument(mode),
+            ),
+        ],
+      ),
+    ]);
+  }
+
+  /// Keyed on the state it reports: Arcane's Button renders its `attributes`
+  /// one build behind, so an unkeyed `aria-expanded` is always stale.
+  Widget _workspaceMenuButton() => Button(
+    key: ValueKey<bool>(_workspaceMenuOpen),
+    id: _workspaceMenuTriggerId,
+    variant: ButtonVariant.ghost,
+    size: ButtonSize.iconSm,
+    onPressed: _openWorkspaceMenu,
+    attributes: <String, String>{
+      'aria-label': 'Workspace actions',
+      'title': 'Import, export or erase this workspace',
+      'aria-haspopup': 'menu',
+      'aria-expanded': _workspaceMenuOpen ? 'true' : 'false',
+      'aria-controls': _workspaceMenuId,
+      // The legacy accordion binder claims every `button[aria-expanded]` in a
+      // one-shot scan and writes `display` onto the next sibling; this is its
+      // documented opt-out.
+      'data-arcane-interactive': 'true',
+    },
+    child: ArcaneIcon.ellipsisVertical(size: IconSize.sm),
+  );
+
+  Widget _workspaceMenu() => HuiActionMenu(
+    id: _workspaceMenuId,
+    label: 'Workspace actions',
+    point: _workspaceMenuPoint,
+    onClose: _closeWorkspaceMenu,
+    items: <HuiActionMenuItem>[
+      HuiActionMenuItem(
         label: 'Import workspace bundle',
+        hint: 'Replaces this workspace',
         icon: ArcaneIcon.upload(size: IconSize.sm),
-        onPressed: _pickWorkspaceBundle,
+        onSelect: _pickWorkspaceBundle,
       ),
-      _iconButton(
+      HuiActionMenuItem(
         label: 'Export workspace bundle',
+        hint: 'Every document and image',
         icon: ArcaneIcon.download(size: IconSize.sm),
-        onPressed: _exportWorkspaceBundle,
+        onSelect: _exportWorkspaceBundle,
       ),
-      _iconButton(
+      HuiActionMenuItem(
         label: 'Erase all local data',
         icon: ArcaneIcon.trash2(size: IconSize.sm),
-        onPressed: () => setState(() => _resetArmed = true),
         destructive: true,
+        separatorBefore: true,
+        onSelect: () => setState(() => _resetArmed = true),
       ),
-    ]),
-  ]);
+    ],
+  );
+
+  void _openWorkspaceMenu() {
+    setState(() {
+      _workspaceMenuOpen = true;
+      _workspaceMenuPoint = huiActionMenuAnchor(_workspaceMenuTriggerId);
+      _menuItemId = null;
+      _menuTriggerId = null;
+    });
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu(_workspaceMenuId);
+    });
+  }
+
+  void _closeWorkspaceMenu() {
+    setState(() => _workspaceMenuOpen = false);
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu(_workspaceMenuTriggerId);
+    });
+  }
+
+  /// Documents in [folderId] that the active scope lists, in rail order. The
+  /// scope itself lives on the store, so the rail and the tab strip can never
+  /// disagree about what "scoreboard mode" contains.
+  List<WorkspaceDoc> _documentsIn(String? folderId) =>
+      _store.documentsInMode(folderId)..sort(_compareDocuments);
+
+  List<WorkspaceFolder> _childFolders(String? parentId) {
+    final List<WorkspaceFolder> folders = _workspace
+        .childFolders(parentId)
+        .where((WorkspaceFolder folder) => _store.folderInMode(folder.id))
+        .toList();
+    folders.sort(_compareFolders);
+    return folders;
+  }
+
+  List<WorkspaceFolder> _rootFolders() => _childFolders(null);
+
+  int _scopedCount() => _mode == null
+      ? _workspace.docs.length
+      : _workspace.docs.where(_store.inMode).length;
 
   Widget _folder(WorkspaceFolder folder, int depth) {
     final bool expanded = _expanded.contains(folder.id);
     final bool selected = _selectedId == folder.id;
-    final List<WorkspaceFolder> children =
-        _workspace.childFolders(folder.id).toList()..sort(_compareFolders);
-    final List<WorkspaceDoc> documents =
-        _workspace.documentsInFolder(folder.id).toList()
-          ..sort(_compareDocuments);
+    final List<WorkspaceFolder> children = _childFolders(folder.id);
+    final List<WorkspaceDoc> documents = _documentsIn(folder.id);
     final bool hasChildren = children.isNotEmpty || documents.isNotEmpty;
     return dom.div(
       key: ValueKey<String>('workspace-folder-${folder.id}'),
@@ -588,6 +729,10 @@ class _EditorRailState extends State<EditorRail> {
 
   String get _itemMenuId => 'hui-library-item-menu';
 
+  String get _workspaceMenuId => 'hui-library-workspace-menu';
+
+  String get _workspaceMenuTriggerId => 'hui-library-workspace-actions';
+
   Widget _rowMenuButton({
     required String itemId,
     required String label,
@@ -612,6 +757,10 @@ class _EditorRailState extends State<EditorRail> {
     <Widget>[ArcaneIcon.ellipsisVertical(size: IconSize.sm)],
   );
 
+  /// What a create action makes when the user has not named a kind: the
+  /// scoped kind in a mode, a menu otherwise.
+  DocumentTypeAdapter get _createTarget => _mode ?? DocumentTypes.menu;
+
   void _openItemMenu(
     String itemId, {
     Object? event,
@@ -632,6 +781,7 @@ class _EditorRailState extends State<EditorRail> {
       _editingId = null;
       _movingId = null;
       _armedDeleteId = null;
+      _workspaceMenuOpen = false;
     });
     context.binding.addPostFrameCallback(() {
       if (mounted) focusHuiActionMenu(_itemMenuId);
@@ -677,9 +827,11 @@ class _EditorRailState extends State<EditorRail> {
           onSelect: _createFolder,
         ),
         HuiActionMenuItem(
-          label: 'New menu here',
-          icon: ArcaneIcon.filePlus(size: IconSize.sm),
-          onSelect: () => _createDocument(DocumentTypes.menu),
+          // Follows the scope: in scoreboard mode this folder's create action
+          // makes a scoreboard, not the menu the unscoped library defaults to.
+          label: '${_createTarget.createLabel} here',
+          icon: _createTarget.createIcon(),
+          onSelect: () => _createDocument(_createTarget),
         ),
         HuiActionMenuItem(
           label: 'Rename',
@@ -764,19 +916,13 @@ class _EditorRailState extends State<EditorRail> {
     required String label,
     required Widget icon,
     required void Function() onPressed,
-    bool destructive = false,
-  }) {
-    final Widget button = Button(
-      variant: ButtonVariant.ghost,
-      size: ButtonSize.iconSm,
-      onPressed: onPressed,
-      attributes: <String, String>{'aria-label': label, 'title': label},
-      child: icon,
-    );
-    return destructive
-        ? dom.span(classes: 'hui-library-reset', <Widget>[button])
-        : button;
-  }
+  }) => Button(
+    variant: ButtonVariant.ghost,
+    size: ButtonSize.iconSm,
+    onPressed: onPressed,
+    attributes: <String, String>{'aria-label': label, 'title': label},
+    child: icon,
+  );
 
   Widget _documentIcon(WorkspaceDocKind kind) =>
       DocumentTypeRegistry.of(kind).railIcon();

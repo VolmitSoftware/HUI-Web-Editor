@@ -20,6 +20,7 @@ import '../gloss/gloss_text_line.dart';
 import 'animation_reference_picker.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'line_list_section.dart';
 
 class MotdInspector extends StatefulWidget {
   const MotdInspector({required this.store, super.key});
@@ -53,60 +54,50 @@ class _MotdInspectorState extends State<MotdInspector> {
     ]);
   }
 
-  Widget _header(GlossMotdDoc doc) =>
-      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
-        dom.div(classes: 'hui-inspector-header is-motd', <Widget>[
-          const HuiEyebrow('MOTD'),
-          dom.div(classes: 'hui-inspector-title-row', <Widget>[
-            dom.h2(classes: 'hui-inspector-title', <Widget>[
-              Text(_store.menuId),
-            ]),
-            const HuiFieldHelp('motd.id'),
-          ]),
+  Widget _header(GlossMotdDoc doc) => dom.div(
+    classes: 'hui-inspector-headgroup',
+    <Widget>[
+      dom.div(classes: 'hui-inspector-header is-motd', <Widget>[
+        const HuiEyebrow('MOTD'),
+        dom.div(classes: 'hui-inspector-title-row', <Widget>[
+          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
+          const HuiFieldHelp('motd.id'),
         ]),
-        dom.p(classes: 'hui-inspector-lede', <Widget>[
-          Text(
-            'The server-list text. Every ping picks one entry at random. '
-            'Revision ${doc.revision} is server-owned and travels with the '
-            'file.',
-          ),
-        ]),
-      ]);
-
-  Widget _entries(GlossMotdDoc doc) => InspectorSection(
-    title: 'Entries',
-    children: <Widget>[
-      dom.div(classes: 'hui-hologram-lines-tools', <Widget>[
-        Button(
-          variant: ButtonVariant.outline,
-          size: ButtonSize.sm,
-          icon: ArcaneIcon.plus(size: IconSize.sm),
-          onPressed: () {
-            final int next = doc.entries.length;
-            _store.mutateMotd(
-              'add entry',
-              (GlossMotdDoc edited) =>
-                  edited.entries.add(GlossMotdEntry(lines: <String>[''])),
-            );
-            setState(() {
-              _focusedEntry = next;
-              _focusedLine = 0;
-            });
-          },
-          child: const Text('Add entry'),
-        ),
-        AnimationReferencePicker(store: _store, onPicked: _insert),
       ]),
-      if (doc.entries.isEmpty)
-        const HuiNote(
-          'No entries. Gloss rejects a MOTD file without at least one — add '
-          'an entry to make the document loadable.',
-        )
-      else
-        for (int index = 0; index < doc.entries.length; index++)
-          _entryCard(doc, index),
-      HuiInlineIssues(_issuesFor(r'$.entries')),
+      const dom.p(classes: 'hui-inspector-lede', <Widget>[
+        Text('The server-list text. Every ping picks one entry at random.'),
+      ]),
+      HuiRevisionRow(revision: doc.revision),
     ],
+  );
+
+  Widget _entries(GlossMotdDoc doc) => HuiLineListSection(
+    title: 'Entries',
+    docKey: 'motd.entries',
+    addLabel: 'Add entry',
+    itemCount: doc.entries.length,
+    issues: _issuesFor(r'$.entries'),
+    emptyTone: HuiNoteTone.danger,
+    emptyBody:
+        'Gloss rejects a MOTD file with no entries, so the server list '
+        'falls back to the vanilla line. Add one to make the document '
+        'loadable.',
+    onAdd: () {
+      final int next = doc.entries.length;
+      _store.mutateMotd(
+        'add entry',
+        (GlossMotdDoc edited) =>
+            edited.entries.add(GlossMotdEntry(lines: <String>[''])),
+      );
+      setState(() {
+        _focusedEntry = next;
+        _focusedLine = 0;
+      });
+    },
+    tools: <Widget>[AnimationReferencePicker(store: _store, onPicked: _insert)],
+    // Entries are picked at random, so their order carries no meaning and a
+    // drag handle would imply one.
+    itemBuilder: (int index) => _entryCard(doc, index),
   );
 
   Widget _entryCard(GlossMotdDoc doc, int index) {
@@ -117,32 +108,27 @@ class _MotdInspectorState extends State<MotdInspector> {
           Text('Entry ${index + 1}'),
         ]),
         dom.span(classes: 'hui-motd-entry-actions', <Widget>[
+          const HuiFieldHelp('motd.lines'),
           HuiIconButton(
             label: 'Duplicate entry',
             icon: ArcaneIcon.copy(size: IconSize.sm),
-            onPressed: () => _store.mutateMotd(
-              'duplicate entry',
-              (GlossMotdDoc edited) {
-                if (index < edited.entries.length) {
-                  edited.entries.insert(
-                    index + 1,
-                    edited.entries[index].copy(),
-                  );
-                }
-              },
-            ),
+            onPressed: () => _store.mutateMotd('duplicate entry', (
+              GlossMotdDoc edited,
+            ) {
+              if (index < edited.entries.length) {
+                edited.entries.insert(index + 1, edited.entries[index].copy());
+              }
+            }),
           ),
           HuiIconButton(
             label: 'Delete entry',
             icon: ArcaneIcon.trash2(size: IconSize.sm),
-            onPressed: () => _store.mutateMotd(
-              'delete entry',
-              (GlossMotdDoc edited) {
-                if (index < edited.entries.length) {
-                  edited.entries.removeAt(index);
-                }
-              },
-            ),
+            onPressed: () =>
+                _store.mutateMotd('delete entry', (GlossMotdDoc edited) {
+                  if (index < edited.entries.length) {
+                    edited.entries.removeAt(index);
+                  }
+                }),
           ),
         ]),
       ]),
@@ -153,14 +139,11 @@ class _MotdInspectorState extends State<MotdInspector> {
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
           icon: ArcaneIcon.plus(size: IconSize.sm),
-          onPressed: () => _store.mutateMotd(
-            'add line',
-            (GlossMotdDoc edited) {
-              if (index < edited.entries.length) {
-                edited.entries[index].lines.add('');
-              }
-            },
-          ),
+          onPressed: () => _store.mutateMotd('add line', (GlossMotdDoc edited) {
+            if (index < edited.entries.length) {
+              edited.entries[index].lines.add('');
+            }
+          }),
           child: const Text('Add second line'),
         ),
       HuiInlineIssues(_issuesFor('entries[$index]')),
@@ -169,70 +152,41 @@ class _MotdInspectorState extends State<MotdInspector> {
 
   Widget _lineRow(GlossMotdEntry entry, int entryIndex, int lineIndex) {
     final String line = entry.lines[lineIndex];
-    final List<String> missing = glossLineMissingAnimationRefs(
-      line,
-      _store.workspaceAnimations,
-    );
     final bool beyondRender = lineIndex >= glossMotdMaxLinesPerEntry;
-    return dom.div(
-      classes:
-          'hui-hologram-line-row${beyondRender ? ' is-beyond-render' : ''}',
-      <Widget>[
-        TextInput(
-          value: line,
-          size: ComponentSize.sm,
-          fullWidth: true,
-          placeholder: '&dA glossy server',
-          onInput: (String value) => _editLine(entryIndex, lineIndex, value),
-          onFocus: () {
-            _focusedEntry = entryIndex;
-            _focusedLine = lineIndex;
-          },
-          attributes: const <String, String>{
-            'autocomplete': 'off',
-            'spellcheck': 'false',
-          },
+    return HuiLineRow(
+      value: line,
+      placeholder: '&dA glossy server',
+      removeLabel: 'Delete line ${lineIndex + 1} of entry ${entryIndex + 1}',
+      beyondRender: beyondRender,
+      onChanged: (String value) => _editLine(entryIndex, lineIndex, value),
+      onFocus: () {
+        _focusedEntry = entryIndex;
+        _focusedLine = lineIndex;
+      },
+      preview: GlossTextLine(
+        render: renderGlossLine(
+          line,
+          animations: _store.workspaceAnimations,
+          emoji: _store.workspaceEmoji,
         ),
-        dom.div(classes: 'hui-hologram-line-preview', <Widget>[
-          GlossTextLine(
-            render: renderGlossLine(
-              line,
-              animations: _store.workspaceAnimations,
-              emoji: _store.workspaceEmoji,
-            ),
-          ),
-          for (final String reference in missing)
-            dom.span(
-              classes: 'hui-gloss-chip is-missing',
-              attributes: <String, String>{
-                'title':
-                    'No animation document named '
-                    '"${reference.substring(glossAnimationFunctionPrefix.length)}" '
-                    'exists in this workspace; the text shows literally in '
-                    'the server list.',
-              },
-              <Widget>[Text('missing $reference')],
-            ),
-          if (beyondRender)
-            const dom.span(
-              classes: 'hui-gloss-chip is-missing',
-              <Widget>[Text('past line 2 — Gloss rejects this entry')],
-            ),
-        ]),
-        HuiIconButton(
-          label: 'Delete line',
-          icon: ArcaneIcon.trash2(size: IconSize.sm),
-          onPressed: () => _store.mutateMotd(
-            'delete line',
-            (GlossMotdDoc edited) {
-              if (entryIndex < edited.entries.length &&
-                  lineIndex < edited.entries[entryIndex].lines.length) {
-                edited.entries[entryIndex].lines.removeAt(lineIndex);
-              }
-            },
-          ),
+      ),
+      chips: <Widget>[
+        ...huiMissingAnimationChips(
+          line,
+          _store.workspaceAnimations,
+          where: 'in the server list',
         ),
+        if (beyondRender)
+          const dom.span(classes: 'hui-gloss-chip is-missing', <Widget>[
+            Text('past line 2 — Gloss rejects this entry'),
+          ]),
       ],
+      onRemove: () => _store.mutateMotd('delete line', (GlossMotdDoc edited) {
+        if (entryIndex < edited.entries.length &&
+            lineIndex < edited.entries[entryIndex].lines.length) {
+          edited.entries[entryIndex].lines.removeAt(lineIndex);
+        }
+      }),
     );
   }
 

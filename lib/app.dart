@@ -808,19 +808,54 @@ class _AppState extends State<App> {
           catalogs: _catalogs,
           status: _status,
         ),
-        preview: PreviewView(
-          store: _store,
-          images: _images,
-          catalogs: _catalogs,
-        ),
-        panel: PanelView(store: _store),
-        hologram: HologramView(store: _store),
-        animation: AnimationView(store: _store),
-        scoreboard: ScoreboardView(store: _store),
-        motd: MotdView(store: _store),
-        emoji: EmojiView(store: _store),
-        bubble: BubbleView(store: _store),
-        tablist: TablistView(store: _store),
+        surfaces: <DocumentSurface, Widget>{
+          DocumentSurface.panel: PanelView(store: _store),
+          DocumentSurface.hologram: HologramView(store: _store),
+          DocumentSurface.animation: AnimationView(store: _store),
+          DocumentSurface.scoreboard: ScoreboardView(store: _store),
+          DocumentSurface.motd: MotdView(store: _store),
+          DocumentSurface.emoji: EmojiView(store: _store),
+          DocumentSurface.bubble: BubbleView(store: _store),
+          DocumentSurface.tablist: TablistView(store: _store),
+        },
+        // The preview mode's in-game renderings. The menu's is the 3D stage;
+        // every other kind renders through its own surface asked for game
+        // context, which is what mounts it in the shared game-screen frame —
+        // the card included, centred on the GUI screen with its editing chrome
+        // dropped. The flow map has no entry at all: it is a diagram of
+        // documents, not a thing the server draws, and its adapter reports no
+        // runtime preview.
+        previews: <DocumentSurface, Widget>{
+          DocumentSurface.canvas: PreviewView(
+            store: _store,
+            images: _images,
+            catalogs: _catalogs,
+          ),
+          DocumentSurface.previewCard: PreviewCardViewport(
+            store: _store,
+            catalogs: _catalogs,
+            gameContext: true,
+          ),
+          DocumentSurface.hologram: HologramView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.animation: AnimationView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.scoreboard: ScoreboardView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.motd: MotdView(store: _store, gameContext: true),
+          DocumentSurface.emoji: EmojiView(store: _store, gameContext: true),
+          DocumentSurface.bubble: BubbleView(store: _store, gameContext: true),
+          DocumentSurface.tablist: TablistView(
+            store: _store,
+            gameContext: true,
+          ),
+        },
         inspector: InspectorPane(
           store: _store,
           images: _images,

@@ -38,6 +38,23 @@ const Map<String, int> mcNamedColors = <String, int>{
   'white': 0xFFFFFF,
 };
 
+/// The 16 legacy colour codes (`&0`-`&f`) to their RGB.
+///
+/// Derived from the same tag table the parser uses, so the legacy codes and
+/// the named colours can never drift apart: every entry is
+/// `mcNamedColors[_legacyCodeTags[code]]`. The decoration codes (`k`-`o`) and
+/// `r` name no colour and drop out.
+final Map<String, int> mcLegacyColors =
+    Map<String, int>.unmodifiable(<String, int>{
+      for (final MapEntry<String, String> entry in _legacyCodeTags.entries)
+        if (mcNamedColors[entry.value] case final int rgb) entry.key: rgb,
+    });
+
+/// A packed colour as a CSS hex string. Alpha is ignored: Minecraft text is
+/// opaque, so `0xAARRGGBB` and `0xRRGGBB` both render the same six digits.
+String mcColorCss(int rgb) =>
+    '#${(rgb & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+
 /// Resolves a MiniMessage colour name, honouring the `grey` spellings.
 int? mcNamedColor(String name) {
   final String key = name.toLowerCase();

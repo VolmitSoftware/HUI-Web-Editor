@@ -18,8 +18,8 @@ import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'line_list_section.dart';
 import 'placeholder_picker.dart';
-import 'reorder_list.dart';
 
 class HologramInspector extends StatefulWidget {
   const HologramInspector({
@@ -68,12 +68,13 @@ class _HologramInspectorState extends State<HologramInspector> {
           const HuiFieldHelp('hologram.id'),
         ]),
       ]),
-      dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text(
-          'One TextDisplay at a world anchor. Revision ${doc.revision} is '
-          'server-owned and travels with the file.',
-        ),
+      const dom.p(classes: 'hui-inspector-lede', <Widget>[
+        Text('Every line joins into one TextDisplay at a world anchor.'),
       ]),
+      // The revision used to be a clause in that sentence, where it read as
+      // prose about the document rather than as the value it is — and the
+      // written help for it had nowhere to mount.
+      HuiRevisionRow(revision: doc.revision, docKey: 'hologram.revision'),
     ],
   );
 
@@ -111,23 +112,23 @@ class _HologramInspectorState extends State<HologramInspector> {
           trailing: const HuiFieldHelp('hologram.anchor.position'),
           help: 'Block coordinates of the TextDisplay entity.',
           control: dom.div(<Widget>[
-            dom.div(classes: 'hui-hologram-position-row', <Widget>[
-              for (int axis = 0; axis < 3; axis++)
-                HuiNumberField(
-                  value: position[axis],
-                  step: 0.5,
-                  decimals: 2,
-                  prefixLabel: const <String>['X', 'Y', 'Z'][axis],
-                  onChanged: (double value) => _store.mutateHologram(
-                    'hologram position',
-                    (GlossHologramDoc edited) {
-                      final List<double> next = edited.anchor.position;
-                      next[axis] = value;
-                      edited.anchor.setPosition(next[0], next[1], next[2]);
-                    },
-                  ),
-                ),
-            ]),
+            HuiVec3Field(
+              value: Vec3(position[0], position[1], position[2]),
+              step: 0.5,
+              decimals: 2,
+              // World coordinates, not a menu-space offset: the shared hints
+              // would say "right of the player", which is wrong here.
+              axisHints: const <String>[
+                'x: world east',
+                'y: world height; the stack grows upward from here',
+                'z: world south',
+              ],
+              onChanged: (Vec3 value) => _store.mutateHologram(
+                'hologram position',
+                (GlossHologramDoc edited) =>
+                    edited.anchor.setPosition(value.x, value.y, value.z),
+              ),
+            ),
             HuiInlineIssues(_issuesFor(r'$.anchor.position')),
           ]),
         ),
@@ -135,81 +136,57 @@ class _HologramInspectorState extends State<HologramInspector> {
     );
   }
 
-  Widget _lines(GlossHologramDoc doc) => InspectorSection(
+  Widget _lines(GlossHologramDoc doc) => HuiLineListSection(
     title: 'Lines',
-    children: <Widget>[
-      dom.div(classes: 'hui-hologram-lines-tools', <Widget>[
-        Button(
-          variant: ButtonVariant.outline,
-          size: ButtonSize.sm,
-          icon: ArcaneIcon.plus(size: IconSize.sm),
-          onPressed: () {
-            final int next = doc.lines.length;
-            _store.mutateHologram(
-              'add line',
-              (GlossHologramDoc edited) => edited.lines.add(''),
-            );
-            setState(() => _focusedLine = next);
-          },
-          child: const Text('Add line'),
-        ),
-        PlaceholderPicker(
-          catalogs: component.catalogs,
-          onPicked: _insertPlaceholder,
-        ),
-      ]),
-      if (doc.lines.isEmpty)
-        const HuiNote(
-          'No lines yet. Gloss accepts the file but renders nothing.',
-        )
-      else
-        HuiReorderList(
-          itemCount: doc.lines.length,
-          onReorder: (int from, int to) =>
-              _store.mutateHologram('reorder line', (GlossHologramDoc edited) {
-                final String moved = edited.lines.removeAt(from);
-                edited.lines.insert(to, moved);
-              }),
-          itemBuilder: (int index) => _lineRow(doc, index),
-        ),
-      HuiInlineIssues(_issuesFor('lines[')),
+    docKey: 'hologram.lines',
+    addLabel: 'Add line',
+    itemCount: doc.lines.length,
+    issues: _issuesFor('lines['),
+    emptyBody:
+        'Gloss loads the file and draws nothing at the anchor. Add a line '
+        'to give the hologram something to say.',
+    onAdd: () {
+      final int next = doc.lines.length;
+      _store.mutateHologram(
+        'add line',
+        (GlossHologramDoc edited) => edited.lines.add(''),
+      );
+      setState(() => _focusedLine = next);
+    },
+    tools: <Widget>[
+      PlaceholderPicker(
+        catalogs: component.catalogs,
+        onPicked: _insertPlaceholder,
+      ),
     ],
+    onReorder: (int from, int to) =>
+        _store.mutateHologram('reorder line', (GlossHologramDoc edited) {
+          final String moved = edited.lines.removeAt(from);
+          edited.lines.insert(to, moved);
+        }),
+    itemBuilder: (int index) => _lineRow(doc, index),
   );
 
   Widget _lineRow(GlossHologramDoc doc, int index) {
     final String line = doc.lines[index];
-    return dom.div(classes: 'hui-hologram-line-row', <Widget>[
-      TextInput(
-        value: line,
-        size: ComponentSize.sm,
-        fullWidth: true,
-        placeholder: '&fText, %papi%, |animation.id|, {{ expression }}',
-        onInput: (String value) => _editLine(index, value),
-        onFocus: () => _focusedLine = index,
-        attributes: <String, String>{
-          'autocomplete': 'off',
-          'spellcheck': 'false',
-          'data-line-index': '$index',
-        },
-      ),
-      dom.div(classes: 'hui-hologram-line-preview', <Widget>[
-        GlossTextLine(
-          render: renderGlossLine(
-            line,
-            animations: _store.workspaceAnimations,
-            emoji: _store.workspaceEmoji,
-          ),
+    return HuiLineRow(
+      value: line,
+      placeholder: '&fText, %papi%, |animation.id|, {{ expression }}',
+      removeLabel: 'Delete line ${index + 1}',
+      onChanged: (String value) => _editLine(index, value),
+      onFocus: () => _focusedLine = index,
+      preview: GlossTextLine(
+        render: renderGlossLine(
+          line,
+          animations: _store.workspaceAnimations,
+          emoji: _store.workspaceEmoji,
         ),
-      ]),
-      HuiIconButton(
-        label: 'Delete line',
-        icon: ArcaneIcon.trash2(size: IconSize.sm),
-        onPressed: () =>
-            _store.mutateHologram('delete line', (GlossHologramDoc edited) {
-              if (index < edited.lines.length) edited.lines.removeAt(index);
-            }),
       ),
-    ]);
+      onRemove: () =>
+          _store.mutateHologram('delete line', (GlossHologramDoc edited) {
+            if (index < edited.lines.length) edited.lines.removeAt(index);
+          }),
+    );
   }
 
   void _editLine(int index, String value) =>

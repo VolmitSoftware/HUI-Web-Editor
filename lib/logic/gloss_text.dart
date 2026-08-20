@@ -42,7 +42,7 @@ library;
 
 import '../model/gloss_animation.dart';
 import 'gloss_animation_playback.dart';
-import 'mc_text.dart' show McSpan, mcDefaultTextColor;
+import 'mc_text.dart' show McSpan, mcDefaultTextColor, mcLegacyColors;
 import 'preview_expr.dart';
 import 'preview_expr_functions.dart';
 
@@ -528,7 +528,7 @@ String _lastLegacyColors(String input) {
     if (code == 'r') {
       return '§r${_reverseLegacyCodes(formats.toString())}';
     }
-    if (_legacyColors.containsKey(code)) {
+    if (mcLegacyColors.containsKey(code)) {
       final String? hex = _bungeeHexEndingAt(input, index + 1);
       final String color = hex ?? '§$code';
       return color + _reverseLegacyCodes(formats.toString());
@@ -585,7 +585,7 @@ String _translateRuntimeColors(String input) {
     final String char = bracketHex[index];
     if (char == '&' && index + 1 < bracketHex.length) {
       final String code = bracketHex[index + 1].toLowerCase();
-      if (_legacyColors.containsKey(code) ||
+      if (mcLegacyColors.containsKey(code) ||
           _legacyDecorations.contains(code) ||
           code == 'r' ||
           code == 'x') {
@@ -1060,25 +1060,6 @@ final RegExp _placeholderPattern = RegExp('%([^%]+)%');
 /// wrote.
 final RegExp _metricPattern = RegExp(r'\|metric\.([^|]+)\|');
 
-const Map<String, int> _legacyColors = <String, int>{
-  '0': 0x000000,
-  '1': 0x0000AA,
-  '2': 0x00AA00,
-  '3': 0x00AAAA,
-  '4': 0xAA0000,
-  '5': 0xAA00AA,
-  '6': 0xFFAA00,
-  '7': 0xAAAAAA,
-  '8': 0x555555,
-  '9': 0x5555FF,
-  'a': 0x55FF55,
-  'b': 0x55FFFF,
-  'c': 0xFF5555,
-  'd': 0xFF55FF,
-  'e': 0xFFFF55,
-  'f': 0xFFFFFF,
-};
-
 const Set<String> _legacyDecorations = <String>{'k', 'l', 'm', 'n', 'o'};
 
 class _ColorState {
@@ -1162,7 +1143,7 @@ List<GlossTextPiece> _renderColors(String input, List<String> placeholders) {
     // client directly; both land in the same state machine here.
     if ((char == '&' || char == '§') && i + 1 < input.length) {
       final String code = input[i + 1].toLowerCase();
-      final int? rgb = _legacyColors[code];
+      final int? rgb = mcLegacyColors[code];
       if (rgb != null) {
         flushRun();
         state.setColor(rgb);

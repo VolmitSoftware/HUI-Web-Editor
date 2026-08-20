@@ -6,6 +6,7 @@
 library;
 
 import 'package:gloss_editor/config/defaults.dart';
+import 'package:gloss_editor/doctype/doctype.dart';
 import 'package:gloss_editor/logic/preview_sim_controls.dart'
     show PreviewSimController;
 import 'package:gloss_editor/logic/validation.dart' show HuiIssue, HuiSeverity;
@@ -449,31 +450,36 @@ void main() {
     });
   });
 
-  group('views available per document kind', () {
-    test(
-      'a menu keeps the original four and never offers the card surface',
-      () {
-        final EditorStore store = _store(_FakeStorage());
-        expect(store.availableViews, <EditorView>[
-          EditorView.visual,
-          EditorView.preview,
-          EditorView.code,
-          EditorView.split,
-        ]);
-        store.view = EditorView.previewCard;
-        expect(store.view, EditorView.visual);
-      },
-    );
-
-    test('a preview document lands on the card surface', () {
+  group('the four modes are offered for every kind', () {
+    test('a menu can enter all four', () {
       final EditorStore store = _store(_FakeStorage());
-      store.view = EditorView.preview;
-      store.importJson('furnace.json', _previewJson);
       expect(store.availableViews, <EditorView>[
-        EditorView.previewCard,
+        EditorView.visual,
+        EditorView.preview,
         EditorView.code,
+        EditorView.split,
       ]);
-      expect(store.view, EditorView.previewCard);
+      for (final EditorView view in EditorView.values) {
+        expect(store.unavailableViewReason(view), isNull);
+      }
+    });
+
+    test('a container preview can enter all four', () {
+      final EditorStore store = _store(_FakeStorage());
+      store.importJson('furnace.json', _previewJson);
+      expect(store.availableViews, EditorView.values);
+    });
+
+    test('a flow map keeps code and split, disabled with a reason', () {
+      final EditorStore store = _store(_FakeStorage());
+      store.newPanelDocument(name: 'Flow');
+      expect(store.availableViews, <EditorView>[EditorView.visual]);
+      expect(store.unavailableViewReason(EditorView.visual), isNull);
+      expect(store.unavailableViewReason(EditorView.code), isNotNull);
+      expect(store.unavailableViewReason(EditorView.split), isNotNull);
+      expect(store.unavailableViewReason(EditorView.preview), isNotNull);
+      store.view = EditorView.code;
+      expect(store.view, EditorView.visual);
     });
 
     test('the code view survives the switch in both directions', () {
@@ -485,12 +491,168 @@ void main() {
       expect(store.view, EditorView.code);
     });
 
-    test('going back to a menu leaves the card surface behind', () {
+    test('each kind keeps the mode it was left in', () {
+      final EditorStore store = _store(_FakeStorage());
+      store.view = EditorView.split;
+      store.importJson('furnace.json', _previewJson);
+      store.view = EditorView.code;
+      expect(store.view, EditorView.code);
+      store.importJson('shop.json', encodeHuiMenu(createDefaultMenu()));
+      expect(store.view, EditorView.split, reason: 'the menu was left split');
+      store.importJson('furnace2.json', _previewJson);
+      expect(store.view, EditorView.code, reason: 'the card was left in code');
+    });
+
+    test('per-kind modes survive a reload', () {
+      final _FakeStorage storage = _FakeStorage();
+      final EditorStore first = _store(storage);
+      first.view = EditorView.split;
+      first.importJson('furnace.json', _previewJson);
+      first.view = EditorView.code;
+      first.flushAutosave();
+      first.dispose();
+
+      final EditorStore second = _store(storage);
+      expect(second.view, EditorView.code, reason: 'the card reopens in code');
+      second.importJson('shop.json', encodeHuiMenu(createDefaultMenu()));
+      expect(second.view, EditorView.split);
+      second.dispose();
+    });
+  });
+
+  group('library mode', () {
+    test('starts unscoped and admits every document', () {
+      final EditorStore store = _store(_FakeStorage());
+      expect(store.mode, isNull);
+      expect(store.inMode(store.workspace.active!), isTrue);
+    });
+
+    test('scopes membership to one kind', () {
+      final EditorStore store = _store(_FakeStorage());
+      final WorkspaceDoc menu = store.workspace.active!;
+      store.newGlossDocument(DocumentTypes.scoreboard);
+      final WorkspaceDoc board = store.workspace.active!;
+
+      store.mode = DocumentTypes.scoreboard;
+      expect(store.inMode(board), isTrue);
+      expect(store.inMode(menu), isFalse);
+
+      store.mode = null;
+      expect(store.inMode(menu), isTrue);
+    });
+
+    test('follows a document opened from outside the scope', () {
+      final EditorStore store = _store(_FakeStorage());
+      final WorkspaceDoc menu = store.workspace.active!;
+      store.newGlossDocument(DocumentTypes.scoreboard);
+      store.mode = DocumentTypes.scoreboard;
+
+      expect(store.openDocument(menu.id), isTrue);
+      expect(store.mode, DocumentTypes.menu);
+      expect(store.inMode(menu), isTrue);
+    });
+
+    test('stays unscoped when the whole workspace is listed', () {
+      final EditorStore store = _store(_FakeStorage());
+      store.newGlossDocument(DocumentTypes.scoreboard);
+      expect(store.mode, isNull);
+    });
+
+    test('persists across a reload', () {
+      final _FakeStorage storage = _FakeStorage();
+      final EditorStore first = _store(storage);
+      first.mode = DocumentTypes.hologram;
+      first.flushAutosave();
+      first.dispose();
+
+      final EditorStore second = _store(storage);
+      expect(second.mode, DocumentTypes.hologram);
+      second.dispose();
+    });
+
+    test('reopening the tab keeps the scope the document is not in', () {
+      final _FakeStorage storage = _FakeStorage();
+      final EditorStore first = _store(storage);
+      first.mode = DocumentTypes.hologram;
+      first.flushAutosave();
+      first.dispose();
+
+      // The restored document is the boot menu, and restoring it must not be
+      // mistaken for the user opening a menu.
+      final EditorStore second = _store(storage);
+      expect(second.docType, DocumentTypes.menu);
+      expect(second.mode, DocumentTypes.hologram);
+      second.dispose();
+    });
+  });
+
+  group('library scope filtering', () {
+    test('lists only the scoped kind at the workspace root', () {
+      final EditorStore store = _store(_FakeStorage());
+      store.newGlossDocument(DocumentTypes.scoreboard);
+      expect(store.documentsInMode(null), hasLength(2));
+
+      store.mode = DocumentTypes.scoreboard;
+      final List<WorkspaceDoc> scoped = store.documentsInMode(null);
+      expect(scoped, hasLength(1));
+      expect(scoped.single.kind, DocumentTypes.scoreboard.kind);
+    });
+
+    test('hides a folder holding nothing of the scoped kind', () {
+      final EditorStore store = _store(_FakeStorage());
+      final WorkspaceFolder menus = store.workspace.createFolder(
+        title: 'Menus',
+      );
+      final WorkspaceFolder boards = store.workspace.createFolder(
+        title: 'Boards',
+      );
+      store.newDocument(name: 'shop', folderId: menus.id);
+      store.newGlossDocument(DocumentTypes.scoreboard, folderId: boards.id);
+
+      expect(store.folderInMode(menus.id), isTrue);
+      expect(store.folderInMode(boards.id), isTrue);
+
+      store.mode = DocumentTypes.scoreboard;
+      expect(store.folderInMode(boards.id), isTrue);
+      expect(store.folderInMode(menus.id), isFalse);
+    });
+
+    test('keeps a parent whose child folder holds the scoped kind', () {
+      final EditorStore store = _store(_FakeStorage());
+      final WorkspaceFolder outer = store.workspace.createFolder(
+        title: 'Outer',
+      );
+      final WorkspaceFolder inner = store.workspace.createFolder(
+        title: 'Inner',
+        parentId: outer.id,
+      );
+      store.newGlossDocument(DocumentTypes.hologram, folderId: inner.id);
+
+      store.mode = DocumentTypes.hologram;
+      expect(store.documentsInMode(outer.id), isEmpty);
+      expect(store.folderInMode(outer.id), isTrue);
+      expect(store.folderInMode(inner.id), isTrue);
+    });
+  });
+
+  group('a kind that is not a menu never surfaces menu contents', () {
+    test('components are empty and the contents tab is gone', () {
+      final EditorStore store = _store(_FakeStorage());
+      store.addComponent('button');
+      expect(store.components, isNotEmpty);
+      expect(store.docType.contentsTabLabel, 'Components');
+
+      store.newGlossDocument(DocumentTypes.hologram);
+      expect(store.components, isEmpty);
+      expect(store.menu.components, isEmpty);
+      expect(store.docType.contentsTabLabel, isNull);
+    });
+
+    test('a container preview lists elements instead', () {
       final EditorStore store = _store(_FakeStorage());
       store.importJson('furnace.json', _previewJson);
-      expect(store.view, EditorView.previewCard);
-      store.importJson('shop.json', encodeHuiMenu(createDefaultMenu()));
-      expect(store.view, EditorView.visual);
+      expect(store.docType.contentsTabLabel, 'Elements');
+      expect(store.components, isEmpty);
     });
   });
 

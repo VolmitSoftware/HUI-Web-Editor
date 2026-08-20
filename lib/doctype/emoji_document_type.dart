@@ -28,10 +28,16 @@ final class EmojiDocumentType extends GlossDocumentTypeAdapter {
   String get createLabel => 'New emoji';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[
-    EditorView.emoji,
-    EditorView.code,
-  ];
+  String get pluralLabel => 'Emoji';
+
+  @override
+  int get tabOrder => 80;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.emoji;
+
+  @override
+  String get surfaceLabel => 'Glyphs';
 
   @override
   String? get syncWireKind => 'emoji';

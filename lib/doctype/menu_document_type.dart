@@ -29,12 +29,19 @@ final class MenuDocumentType extends DocumentTypeAdapter {
   String get createLabel => 'New menu';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[
-    EditorView.visual,
-    EditorView.preview,
-    EditorView.code,
-    EditorView.split,
-  ];
+  String get pluralLabel => 'Menus';
+
+  @override
+  int get tabOrder => 10;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.canvas;
+
+  @override
+  String get surfaceLabel => 'Canvas';
+
+  @override
+  String? get contentsTabLabel => 'Components';
 
   @override
   bool get hasRuntimeId => true;

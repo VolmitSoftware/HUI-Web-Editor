@@ -71,13 +71,13 @@ class _TablistInspectorState extends State<TablistInspector> {
           const HuiFieldHelp('tablist.id'),
         ]),
       ]),
-      dom.p(classes: 'hui-inspector-lede', <Widget>[
+      const dom.p(classes: 'hui-inspector-lede', <Widget>[
         Text(
           'The tab screen: header and footer over the player grid, and '
-          'per-group list names. Revision ${doc.revision} is server-owned '
-          'and travels with the file.',
+          'per-group list names.',
         ),
       ]),
+      HuiRevisionRow(revision: doc.revision),
     ],
   );
 
@@ -178,6 +178,8 @@ class _TablistInspectorState extends State<TablistInspector> {
     final List<String> keys = doc.nameFormats.keys.toList();
     return InspectorSection(
       title: 'List names',
+      sectionKey: 'tablist.names',
+      trailing: const HuiFieldHelp('tablist.nameFormats'),
       children: <Widget>[
         HuiSwitchRow(
           label: 'Group list names',

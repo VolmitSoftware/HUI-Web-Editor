@@ -25,16 +25,18 @@ void main() {
 
   test('every shipped mode validates', () {
     for (final String mode in glossAnimationModes) {
-      expect(validateAnimationDoc(_valid()..mode = mode), isEmpty,
-          reason: mode);
+      expect(
+        validateAnimationDoc(_valid()..mode = mode),
+        isEmpty,
+        reason: mode,
+      );
     }
   });
 
   group('errors', () {
     test('revision out of range', () {
       expect(
-        _paths(validateAnimationDoc(_valid()..revision = 0),
-            HuiSeverity.error),
+        _paths(validateAnimationDoc(_valid()..revision = 0), HuiSeverity.error),
         contains(r'$.revision'),
       );
     });

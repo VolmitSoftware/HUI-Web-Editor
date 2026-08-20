@@ -20,17 +20,15 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../config/defaults.dart';
 import '../../doctype/document_type.dart';
 import '../../doctype/document_type_registry.dart';
-import '../../logic/animation_validation.dart';
-import '../../logic/bubble_validation.dart';
-import '../../logic/emoji_validation.dart';
-import '../../logic/hologram_validation.dart';
-import '../../logic/motd_validation.dart';
-import '../../logic/preview_doc_validation.dart';
-import '../../logic/scoreboard_validation.dart';
-import '../../logic/tablist_validation.dart';
+import '../../logic/canvas_scene.dart'
+    show CanvasScene, ImageCharCache, McTextCache, buildCanvasScene;
+import '../../logic/gloss_text.dart'
+    show GlossAnimationResolver, GlossEmojiResolver;
 import '../../logic/validation.dart';
 import '../../model/model.dart';
+import '../../services/catalogs.dart' show HuiCatalogs;
 import '../../services/file_transfer.dart';
+import '../../services/image_library.dart' show ImageLibrary;
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'dialog_parts.dart';
@@ -63,6 +61,11 @@ class _ImportDialogState extends State<ImportDialog> {
   /// Bumped whenever the text is replaced from code; the textarea remounts so
   /// the browser shows the new value instead of the user's dirty one.
   int _generation = 0;
+
+  /// Shared by every parse in this dialog: text and image measurement is
+  /// re-run on each keystroke, and a menu import measures the whole document.
+  final McTextCache _textCache = McTextCache();
+  final ImageCharCache _charCache = ImageCharCache();
 
   EditorStore get _store => component.store;
 
@@ -106,7 +109,7 @@ class _ImportDialogState extends State<ImportDialog> {
       final Object document = type.decodeSnapshot(raw);
       _parsedType = type;
       _parsedDocument = document;
-      _issues = _validate(document);
+      _issues = _validate(type, document);
     } on HuiFormatException catch (e) {
       _parseError = '${e.message} (at ${e.path})';
     } catch (_) {
@@ -114,40 +117,19 @@ class _ImportDialogState extends State<ImportDialog> {
     }
   }
 
-  List<HuiIssue> _validate(Object document) => switch (document) {
-    final HuiMenu menu => validateHuiMenu(
-      menu,
-      knownImagePaths: _store.images?.paths,
-      knownMaterials: _store.catalogs.loaded
-          ? _store.catalogs.materialKeys
-          : null,
-      knownSounds: _store.catalogs.loaded ? _store.catalogs.soundKeys : null,
-      customItems: _store.catalogs.customItems,
-      emoji: _store.workspaceEmoji,
-    ),
-    final HuiPreviewDoc preview => parseCheckPreviewDoc(preview),
-    final GlossHologramDoc hologram => validateHologramDoc(
-      hologram,
-      animations: _store.workspaceAnimations,
-    ),
-    final GlossAnimationDoc animation => validateAnimationDoc(animation),
-    final GlossScoreboardDoc scoreboard => validateScoreboardDoc(
-      scoreboard,
-      animations: _store.workspaceAnimations,
-      emoji: _store.workspaceEmoji,
-    ),
-    final GlossMotdDoc motd => validateMotdDoc(
-      motd,
-      animations: _store.workspaceAnimations,
-    ),
-    final GlossEmojiDoc emoji => validateEmojiDoc(emoji),
-    final GlossBubbleStyleDoc bubble => validateBubbleStyleDoc(bubble),
-    final GlossTablistDoc tablist => validateTablistDoc(
-      tablist,
-      animations: _store.workspaceAnimations,
-    ),
-    _ => const <HuiIssue>[],
-  };
+  /// Validates through the detected kind's adapter, so the import preview
+  /// reports exactly what the document reports once it is open — one dispatch
+  /// instead of a second per-kind switch that can drift from
+  /// [DocumentTypeAdapter.validate].
+  List<HuiIssue> _validate(DocumentTypeAdapter type, Object document) =>
+      type.validate(
+        _ImportedDocumentState(
+          store: _store,
+          document: document,
+          textCache: _textCache,
+          charCache: _charCache,
+        ),
+      );
 
   void _onText(String raw) {
     setState(() {
@@ -424,4 +406,72 @@ class _ImportDialogState extends State<ImportDialog> {
         ]),
     ]);
   }
+}
+
+/// The parsed-but-not-yet-adopted document, presented as the document state
+/// its [DocumentTypeAdapter] expects.
+///
+/// The store still owns the catalogs, image library and workspace animation /
+/// emoji resolvers — validation of an imported document resolves references
+/// against the workspace it is about to join — but the document slots carry
+/// the candidate, never the open document.
+final class _ImportedDocumentState implements DocumentStateView {
+  _ImportedDocumentState({
+    required this.store,
+    required this.document,
+    required this.textCache,
+    required this.charCache,
+  });
+
+  final EditorStore store;
+  final Object document;
+  final McTextCache textCache;
+  final ImageCharCache charCache;
+
+  CanvasScene? _scene;
+
+  /// Only the menu adapter reads this, and only for a [HuiMenu] document; the
+  /// store's menu is an unreachable fallback that keeps the getter total.
+  @override
+  HuiMenu get menu => document is HuiMenu ? document as HuiMenu : store.menu;
+
+  @override
+  HuiPreviewDoc? get previewDoc =>
+      document is HuiPreviewDoc ? document as HuiPreviewDoc : null;
+
+  @override
+  GlossDoc? get glossDoc => document is GlossDoc ? document as GlossDoc : null;
+
+  @override
+  GlossAnimationResolver get workspaceAnimations => store.workspaceAnimations;
+
+  @override
+  GlossEmojiResolver get workspaceEmoji => store.workspaceEmoji;
+
+  /// The candidate was decoded here, not read back from storage, so there is
+  /// no byte-exact source to preserve.
+  @override
+  String? get preservedMenuSource => null;
+
+  @override
+  HuiCatalogs get catalogs => store.catalogs;
+
+  @override
+  ImageLibrary? get images => store.images;
+
+  /// Overlap reporting needs the candidate's own scene, not the open
+  /// document's. Cached because the adapter may ask more than once.
+  @override
+  CanvasScene resolveValidationScene() => _scene ??= buildCanvasScene(
+    menu: menu,
+    uiScale: 1,
+    trueRender: false,
+    togglePreview: store.togglePreviewFor,
+    textCache: textCache,
+    images: store.images,
+    catalogs: store.catalogs,
+    charCache: charCache,
+    animations: store.workspaceAnimations,
+    emoji: store.workspaceEmoji,
+  );
 }

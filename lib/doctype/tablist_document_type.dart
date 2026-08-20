@@ -27,10 +27,16 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
   String get createLabel => 'New tablist';
 
   @override
-  List<EditorView> get availableViews => const <EditorView>[
-    EditorView.tablist,
-    EditorView.code,
-  ];
+  String get pluralLabel => 'Tab lists';
+
+  @override
+  int get tabOrder => 100;
+
+  @override
+  DocumentSurface get surface => DocumentSurface.tablist;
+
+  @override
+  String get surfaceLabel => 'Tab screen';
 
   @override
   String? get syncWireKind => 'tablist';

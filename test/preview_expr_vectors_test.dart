@@ -5,17 +5,20 @@ import 'package:gloss_editor/logic/preview_expr.dart';
 import 'package:gloss_editor/logic/preview_expr_functions.dart';
 import 'package:test/test.dart';
 
-/// The cross-repo contract: `HoloUi/src/test/resources/expr_test_vectors.json`
+/// The cross-repo contract: `Gloss/src/test/resources/expr_test_vectors.json`
 /// copied verbatim. The Java suite (`ExprVectorsTest`) replays the same file, so
 /// a vector that passes here and there pins both engines to one answer.
+/// `cross_repo_fixture_pins_test.dart` asserts the copy still matches Gloss.
 const String vectorsPath = 'test/fixtures/expr_test_vectors.json';
 
 /// Matches `ExprVectorsTest.DELTA`.
 const double delta = 1e-9;
 
-/// Matches `ExprVectorsTest.MINIMUM_VECTOR_COUNT`: a truncated or unresolved
-/// fixture must fail loudly rather than pass with nothing to check.
-const int minimumVectorCount = 40;
+/// A truncated or unresolved fixture must fail loudly rather than pass with
+/// nothing to check. `ExprVectorsTest.MINIMUM_VECTOR_COUNT` is 40; this floor
+/// is the shipped table's full size, so silently losing vectors in a refresh
+/// fails here instead of quietly shrinking the contract.
+const int minimumVectorCount = 106;
 
 /// Scope over a literal variable map, falling back to the standard library —
 /// the Dart twin of the Java harness's `MapScope`.
