@@ -1,10 +1,17 @@
 /// The hologram stage: the CSS preview treatment of what Gloss spawns.
 ///
-/// One camera-facing line stack (`Billboard.CENTER`,
-/// `HologramService.configureDisplay`) at the anchor over a block-grid ground
-/// plane. All geometry comes from `logic/gloss_hologram_scene.dart`, which is
+/// One line stack at the anchor over a block-grid ground plane, posed by the
+/// document's `billboard` mode: `CENTER` draws square to the camera exactly
+/// as it always has, and the other three modes get a 2D matrix off
+/// `hologramPlaneTransform` — so a `FIXED` hologram foreshortens as you orbit
+/// past it and reads mirrored from behind, which is what the client draws.
+/// All geometry comes from `logic/gloss_hologram_scene.dart`, which is
 /// DOM-free and tested on the VM; this file only writes the numbers into
 /// styles.
+///
+/// The readout names the mode and what one camera cannot show about it: the
+/// three tracking modes are solved against this camera, while in game every
+/// viewer gets their own solution.
 ///
 /// With `gameContext` the whole stage mounts into the shared game-screen
 /// frame, which puts the client's HUD around the in-world view; the orbit
@@ -256,6 +263,15 @@ class _HologramViewState extends State<HologramView> {
       emoji: _store.workspaceEmoji,
       nowMs: nowMs,
     );
+    final HologramPlaneTransform plane = placement == null
+        ? HologramPlaneTransform.identity
+        : hologramPlaneTransform(
+            basis: basis,
+            doc: doc,
+            placement: placement,
+            viewportWidth: _viewportWidth,
+            viewportHeight: _viewportHeight,
+          );
     final double defaultDistance = hologramDefaultCamera(doc).distance;
     final int zoomPercent = (defaultDistance / _camera.distance * 100).round();
 
@@ -277,7 +293,7 @@ class _HologramViewState extends State<HologramView> {
       },
       <Widget>[
         for (final HologramGridSegment segment in grid) _gridLine(segment),
-        if (placement != null) _billboard(placement, lines),
+        if (placement != null) _billboard(placement, plane, lines),
         if (placement != null) _anchorMarker(placement),
         dom.div(
           classes: 'hui-hologram-controls',
@@ -314,7 +330,12 @@ class _HologramViewState extends State<HologramView> {
               '${position[0].toStringAsFixed(2)}, '
               '${position[1].toStringAsFixed(2)}, '
               '${position[2].toStringAsFixed(2)} · '
-              'TextDisplay · billboard center · drag to orbit, wheel or controls to zoom',
+              'TextDisplay · ${hologramBillboardNote(doc.billboard)}'
+              '${plane.isEdgeOn ? ' · edge-on from here, so it draws as '
+                    'nothing — in game too' : plane.isMirrored
+                    ? ' · reading it from behind now'
+                    : ''} · '
+              'drag to orbit, wheel or controls to zoom',
             ),
           ]),
       ],
@@ -354,8 +375,14 @@ class _HologramViewState extends State<HologramView> {
   /// The line stack, bottom-centred on the projected anchor and growing
   /// upward, exactly like the joined `TextDisplay` string. Font metrics are
   /// the scene constants: a 0.25-block line advance with an 8-px glyph.
+  ///
+  /// [plane] rotates the stack about that bottom-centre point, which is why
+  /// the transform origin moves there: the anchor is the pivot the entity
+  /// turns around too. `CENTER` passes the identity and the box is laid out
+  /// untouched.
   Widget _billboard(
     HologramBillboardPlacement placement,
+    HologramPlaneTransform plane,
     List<GlossLineRender> lines,
   ) {
     final double linePx = glossHologramLineHeightBlocks * placement.pxPerBlock;
@@ -368,6 +395,11 @@ class _HologramViewState extends State<HologramView> {
           'top': '${placement.y.toStringAsFixed(2)}px',
           'font-size': '${fontPx.toStringAsFixed(2)}px',
           'line-height': '${linePx.toStringAsFixed(2)}px',
+          'transform-origin': '50% 100%',
+          'transform':
+              'translate(-50%, -100%) matrix(${plane.a.toStringAsFixed(5)}, '
+              '${plane.b.toStringAsFixed(5)}, ${plane.c.toStringAsFixed(5)}, '
+              '${plane.d.toStringAsFixed(5)}, 0, 0)',
         },
       ),
       <Widget>[

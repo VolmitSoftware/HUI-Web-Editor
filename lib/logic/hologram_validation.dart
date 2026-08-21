@@ -2,7 +2,7 @@
 ///
 /// Severity contract, matching the rest of the editor: an `error` is
 /// something the plugin's parser or constructor would reject — the file will
-/// not load in game (`HologramDoc.java:29-33`, `DocumentEnvelope.java`); a
+/// not load in game (`HologramDoc.java:35-44`, `DocumentEnvelope.java`); a
 /// `warning` loads but almost certainly is not what the author meant.
 library;
 
@@ -60,6 +60,40 @@ List<HuiIssue> validateHologramDoc(
     }
   }
 
+  if (!glossHologramBillboards.contains(doc.billboard)) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: r'$.billboard',
+        message:
+            '"${doc.billboard}" is not a billboard mode; Gloss rejects the '
+            'whole file unless it is one of '
+            '${glossHologramBillboards.join(', ')}.',
+        fix: 'Pick CENTER, VERTICAL, HORIZONTAL or FIXED.',
+      ),
+    );
+  }
+
+  issues.addAll(<HuiIssue?>[
+    _angleIssue(r'$.yaw', 'yaw', doc.yaw, glossHologramMaxYawDegrees),
+    _angleIssue(r'$.pitch', 'pitch', doc.pitch, glossHologramMaxPitchDegrees),
+  ].whereType<HuiIssue>());
+
+  if (doc.billboard == 'CENTER' && (doc.yaw != 0 || doc.pitch != 0)) {
+    issues.add(
+      const HuiIssue(
+        severity: HuiSeverity.warning,
+        path: r'$.billboard',
+        message:
+            'CENTER turns on both axes, so this yaw and pitch never reach '
+            'the screen: every viewer sees the hologram square-on anyway.',
+        fix:
+            'Switch to FIXED to use both angles, VERTICAL to keep the pitch, '
+            'or HORIZONTAL to keep the yaw.',
+      ),
+    );
+  }
+
   if (doc.lines.isEmpty) {
     issues.add(
       const HuiIssue(
@@ -103,4 +137,18 @@ List<HuiIssue> validateHologramDoc(
   );
 
   return issues;
+}
+
+/// An angle the plugin's constructor would throw on: `HologramDoc.requireAngle`
+/// demands a finite value within the axis limit (`HologramDoc.java:84-92`).
+HuiIssue? _angleIssue(String path, String axis, double value, double limit) {
+  if (value.isFinite && value.abs() <= limit) return null;
+  return HuiIssue(
+    severity: HuiSeverity.error,
+    path: path,
+    message:
+        'A $axis of $value is out of range; Gloss rejects the whole file '
+        'unless it is between -$limit and $limit degrees.',
+    fix: 'Use a $axis between -${limit.toInt()} and ${limit.toInt()}.',
+  );
 }

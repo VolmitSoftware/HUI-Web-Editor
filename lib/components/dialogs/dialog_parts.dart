@@ -171,6 +171,7 @@ Set<String> huiUsedImagePaths(HuiMenu menu) {
       case HuiBlockIcon():
       case HuiCustomItemIcon():
       case HuiEntityIcon():
+      case HuiPlayerHeadIcon():
         return;
     }
   }
@@ -218,6 +219,7 @@ bool huiRepointImagePaths(HuiMenu menu, String from, String to) {
       case HuiBlockIcon():
       case HuiCustomItemIcon():
       case HuiEntityIcon():
+      case HuiPlayerHeadIcon():
         return;
     }
   }

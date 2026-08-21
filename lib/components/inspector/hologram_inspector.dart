@@ -1,9 +1,10 @@
 /// Inspector body for a Gloss hologram document.
 ///
-/// Anchor world and position, then the reorderable line list — each row an
-/// input plus a live Gloss-pipeline preview — with a placeholder picker that
-/// inserts into the selected line. The revision is server-owned and shown,
-/// not edited.
+/// Anchor world and position, then presentation — see-through plus the
+/// billboard mode and the yaw/pitch that only some modes read — then the
+/// reorderable line list: each row an input plus a live Gloss-pipeline
+/// preview, with a placeholder picker that inserts into the selected line.
+/// The revision is server-owned and shown, not edited.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
@@ -74,7 +75,116 @@ class _HologramInspectorState extends State<HologramInspector> {
           },
         ),
       ),
+      HuiField(
+        label: 'Billboard',
+        trailing: const HuiFieldHelp('hologram.billboard'),
+        help: 'Which axes the entity may turn on to face a viewer.',
+        defaultValue: 'CENTER',
+        onReset: doc.billboard == glossHologramDefaultBillboard
+            ? null
+            : () => _setBillboard(glossHologramDefaultBillboard),
+        control: dom.div(<Widget>[
+          ArcaneSelect(
+            value: doc.billboard,
+            size: ComponentSize.sm,
+            fullWidth: true,
+            options: const <ArcaneSelectOption>[
+              ArcaneSelectOption(
+                label: 'Center — faces the viewer on both axes',
+                value: 'CENTER',
+              ),
+              ArcaneSelectOption(
+                label: 'Vertical — yaws to the viewer, keeps its pitch',
+                value: 'VERTICAL',
+              ),
+              ArcaneSelectOption(
+                label: 'Horizontal — pitches to the viewer, keeps its yaw',
+                value: 'HORIZONTAL',
+              ),
+              ArcaneSelectOption(
+                label: 'Fixed — never turns',
+                value: 'FIXED',
+              ),
+            ],
+            onChange: _setBillboard,
+          ),
+          HuiInlineIssues(_issuesFor(r'$.billboard')),
+        ]),
+      ),
+      _angle(
+        label: 'Yaw',
+        docKey: 'hologram.yaw',
+        path: r'$.yaw',
+        value: doc.yaw,
+        limit: glossHologramMaxYawDegrees,
+        used: doc.billboard == 'FIXED' || doc.billboard == 'HORIZONTAL',
+        help: '0 faces south, 90 faces west, 180 north, -90 east.',
+        onChanged: (double value) => _store.mutateHologram(
+          'hologram yaw',
+          (GlossHologramDoc edited) {
+            edited.yaw = value;
+            edited.absentKeys.remove('yaw');
+          },
+        ),
+      ),
+      _angle(
+        label: 'Pitch',
+        docKey: 'hologram.pitch',
+        path: r'$.pitch',
+        value: doc.pitch,
+        limit: glossHologramMaxPitchDegrees,
+        used: doc.billboard == 'FIXED' || doc.billboard == 'VERTICAL',
+        help: 'Positive tips the face downward, negative tips it up.',
+        onChanged: (double value) => _store.mutateHologram(
+          'hologram pitch',
+          (GlossHologramDoc edited) {
+            edited.pitch = value;
+            edited.absentKeys.remove('pitch');
+          },
+        ),
+      ),
     ],
+  );
+
+  void _setBillboard(String value) => _store.mutateHologram(
+    'hologram billboard',
+    (GlossHologramDoc edited) {
+      edited.billboard = value;
+      edited.absentKeys.remove('billboard');
+    },
+  );
+
+  /// One orientation angle. The row stays put and says so when the current
+  /// billboard mode turns that axis itself, because a control that vanishes
+  /// with the mode hides the value the author is about to need again.
+  Widget _angle({
+    required String label,
+    required String docKey,
+    required String path,
+    required double value,
+    required double limit,
+    required bool used,
+    required String help,
+    required void Function(double value) onChanged,
+  }) => HuiField(
+    label: label,
+    trailing: HuiFieldHelp(docKey),
+    help: used
+        ? '$help Degrees, -${limit.toInt()} to ${limit.toInt()}.'
+        : 'The current billboard mode turns this axis itself, so this value '
+              'never reaches the screen.',
+    defaultValue: '0',
+    onReset: value == 0 ? null : () => onChanged(0),
+    control: dom.div(<Widget>[
+      HuiNumberField(
+        value: value,
+        step: 15,
+        decimals: 2,
+        suffix: '°',
+        onChanged: onChanged,
+      ),
+      HuiInlineIssues(_issuesFor(path)),
+    ]),
   );
 
   Widget _header(GlossHologramDoc doc) => dom.div(

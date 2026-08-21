@@ -1785,3 +1785,78 @@
     transform: none;
   }
 }
+
+/* Real-drops expression fields.
+
+   The input is monospace so the caret line the parser error draws under it
+   points at the character it means; a proportional face would put the caret
+   somewhere near it and nowhere useful. */
+.hui-drop-expr input {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+}
+
+/* One block of related expression rows inside a section: the three axes of a
+   vector, or the whole vars list. Indented under its own heading so the three
+   vectors read as three things rather than nine loose fields. */
+.hui-drop-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--hui-border-subtle, var(--hui-border));
+}
+
+.hui-drop-subhead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--hui-text-muted, var(--muted-foreground));
+}
+
+.hui-drop-empty {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--hui-text-muted, var(--muted-foreground));
+}
+
+.hui-drop-rowactions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* One vars row: the name and the row controls share the first line, and the
+   expression takes the whole of the second.
+
+   Side by side would leave the expression about fifty pixels wide once the drag
+   handle, the name field and three icon buttons have taken their share, and the
+   expression is the part somebody is actually reading. */
+.hui-drop-var-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 6px;
+  align-items: center;
+}
+
+.hui-drop-var-row > *:first-child {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.hui-drop-var-row > .hui-drop-rowactions {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.hui-drop-var-row > .hui-drop-expr {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+}

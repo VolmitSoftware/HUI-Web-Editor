@@ -2,6 +2,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:gloss_editor/config/gloss_templates.dart';
@@ -11,9 +12,8 @@ import 'package:gloss_editor/logic/real_drop_stage.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
-ShowcaseDrop _drop(String material) => showcaseDrops.firstWhere(
-  (ShowcaseDrop drop) => drop.material == material,
-);
+ShowcaseDrop _drop(String material) =>
+    showcaseDrops.firstWhere((ShowcaseDrop drop) => drop.material == material);
 
 void main() {
   test('every sample stack names a material the sprite catalog ships', () {
@@ -51,6 +51,111 @@ void main() {
     expect(kinds, hasLength(DropModelKind.values.length));
   });
 
+  test('the unattended rotation is one sample stack per model family', () {
+    expect(dropStageRotation, hasLength(DropModelKind.values.length));
+    final List<DropModelKind> kinds = <DropModelKind>[
+      for (int cycle = 0; cycle < dropStageRotation.length; cycle++)
+        realDropModelKind(
+          dropStageRotationDrop(cycle).registryName,
+          block: dropStageRotationDrop(cycle).block,
+        ),
+    ];
+    expect(
+      kinds.toSet(),
+      DropModelKind.values.toSet(),
+      reason: 'a viewer who waits out three cycles must see every shape',
+    );
+    for (final String material in dropStageRotation) {
+      expect(
+        showcaseDrops.map((ShowcaseDrop drop) => drop.material),
+        contains(material),
+        reason: 'the rotation names rows of the sample table, not new stacks',
+      );
+    }
+  });
+
+  test('one completed drop advances the rotation, and it wraps', () {
+    expect(dropStageRotationDrop(0).material, dropStageRotation[0]);
+    expect(dropStageRotationDrop(1).material, dropStageRotation[1]);
+    expect(dropStageRotationDrop(2).material, dropStageRotation[2]);
+    expect(dropStageRotationDrop(3).material, dropStageRotation[0]);
+    expect(dropStageRotationDrop(97).material, dropStageRotation[97 % 3]);
+  });
+
+  test('every stack shares one cycle, which is what the rotation counts', () {
+    final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+    for (final ShowcaseDrop drop in showcaseDrops) {
+      expect(
+        DropStageTimeline(doc, drop).cycleMs,
+        dropStageCycleMs,
+        reason: drop.material,
+      );
+    }
+    doc.limits.updateIntervalTicks = 7;
+    doc.landing.transitionTicks = 11;
+    expect(
+      DropStageTimeline(doc, showcaseDrops.first).cycleMs,
+      dropStageCycleMs,
+      reason: 'the ballistics are the stage\'s, so no field moves the cycle',
+    );
+  });
+
+  test('the stack is thrown forward and settles nearer the camera', () {
+    final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+    final DropStageTimeline stage = DropStageTimeline(
+      doc,
+      _drop('cobblestone'),
+    );
+
+    expect(stage.frameAt(0).carrierZ, 0, reason: 'it leaves the hand');
+    expect(
+      stage.frameAt(stage.cycleMs - 200).carrierZ,
+      closeTo(dropStageThrowBlocks, 1e-9),
+      reason: 'and settles the whole throw away',
+    );
+
+    // Forward all the way, never backward, never past the throw.
+    double previous = -1;
+    for (int ms = 0; ms < stage.cycleMs; ms += 23) {
+      final double forward = stage.frameAt(ms).carrierZ;
+      expect(forward, greaterThanOrEqualTo(previous), reason: 'at $ms ms');
+      expect(forward, lessThanOrEqualTo(dropStageThrowBlocks + 1e-9));
+      previous = forward;
+    }
+  });
+
+  test(
+    'most of the throw is spent in the air, and the rest is the bounces',
+    () {
+      final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+      final DropStageTimeline stage = DropStageTimeline(doc, _drop('oak_slab'));
+
+      // `changeOnBounce` is on by default, so the revision counts ground
+      // contacts — the first frame that reads 1 is the first frame after the
+      // stack has landed once.
+      int landedMs = 0;
+      for (int ms = 0; ms < stage.cycleMs; ms += 5) {
+        final DropStageFrame frame = stage.frameAt(ms);
+        if (frame.bounceRevision >= 1 && !frame.settled) {
+          landedMs = ms;
+          break;
+        }
+      }
+      expect(landedMs, greaterThan(0), reason: 'the stack has to land');
+      final double atLanding = stage.frameAt(landedMs).carrierZ;
+      expect(
+        atLanding,
+        greaterThan(dropStageThrowBlocks * 0.6),
+        reason: 'the arc, not the bounces, is where the stack covers ground',
+      );
+      expect(
+        atLanding,
+        lessThan(dropStageThrowBlocks * 0.95),
+        reason: 'but the bounces still carry it a little further',
+      );
+    },
+  );
+
   test('a stack falls, tumbles, then settles into the landing pose', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
     final DropStageTimeline stage = DropStageTimeline(doc, _drop('cherry_log'));
@@ -68,9 +173,17 @@ void main() {
     expect(settled.interpolationTicks, doc.landing.transitionTicks);
 
     // Mid-flight the pose keeps changing; settled it does not.
-    final String early = stage.frameAt(300).visuals.first.rotation
+    final String early = stage
+        .frameAt(300)
+        .visuals
+        .first
+        .rotation
         .cssMatrix3d();
-    final String later = stage.frameAt(600).visuals.first.rotation
+    final String later = stage
+        .frameAt(600)
+        .visuals
+        .first
+        .rotation
         .cssMatrix3d();
     expect(early, isNot(later));
     expect(
@@ -93,6 +206,11 @@ void main() {
         first.frameAt(ms).carrierY,
         first.frameAt(ms + first.cycleMs).carrierY,
         reason: 'the cycle wraps at $ms ms',
+      );
+      expect(
+        first.frameAt(ms).carrierZ,
+        first.frameAt(ms + first.cycleMs).carrierZ,
+        reason: 'the throw wraps at $ms ms',
       );
     }
   });
@@ -179,6 +297,8 @@ void main() {
         expect(frame.carrierY.isFinite, isTrue, reason: '${drop.material} $ms');
         expect(frame.carrierY, greaterThanOrEqualTo(0));
         expect(frame.visuals, isNotEmpty);
+        expect(frame.carrierZ.isFinite, isTrue, reason: '${drop.material} $ms');
+        expect(frame.carrierZ, greaterThanOrEqualTo(0));
         for (final DropStageVisual visual in frame.visuals) {
           expect(visual.scale, greaterThan(0));
           expect(visual.y.isFinite, isTrue);
@@ -190,5 +310,381 @@ void main() {
         }
       }
     }
+  });
+
+  group('the script layer rides on top of the presentation', () {
+    /// A document with the script switched on and one field set. Everything
+    /// else in the block stays neutral, which is what makes the assertions
+    /// below about that one field.
+    GlossRealDropSettingsDoc scripted(
+      void Function(GlossRealDropScript s) set,
+    ) {
+      final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+      final GlossRealDropScript script = doc.script!..enabled = true;
+      set(script);
+      return doc;
+    }
+
+    /// The moment mid-flight every assertion here reads, chosen once so a
+    /// scripted frame and its unscripted twin are the same instant.
+    const int midFlight = 400;
+
+    test('off, the stage is exactly what it was before the block existed', () {
+      final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+      final DropStageTimeline stage = DropStageTimeline(
+        doc,
+        _drop('cobblestone'),
+      );
+      expect(stage.scriptActive, isFalse);
+      final DropStageFrame frame = stage.frameAt(midFlight);
+      expect(frame.scriptActive, isFalse);
+      expect(frame.scriptFailures, isEmpty);
+      for (final DropStageVisual visual in frame.visuals) {
+        expect(visual.scaleX, 1);
+        expect(visual.scaleY, 1);
+        expect(visual.scaleZ, 1);
+        expect(visual.glowArgb, 0);
+        expect(visual.visible, isTrue);
+      }
+    });
+
+    test('offset adds to the model offset rather than replacing it', () {
+      final DropStageTimeline plain = DropStageTimeline(
+        buildDefaultGlossRealDrops(),
+        _drop('cobblestone'),
+      );
+      final DropStageTimeline lifted = DropStageTimeline(
+        scripted((GlossRealDropScript s) => s.offset.y = '0.5'),
+        _drop('cobblestone'),
+      );
+      final List<DropStageVisual> before = plain.frameAt(midFlight).visuals;
+      final List<DropStageVisual> after = lifted.frameAt(midFlight).visuals;
+      expect(after, hasLength(before.length));
+      for (int index = 0; index < before.length; index++) {
+        expect(after[index].y, closeTo(before[index].y + 0.5, 1e-9));
+        expect(after[index].x, closeTo(before[index].x, 1e-9));
+      }
+    });
+
+    test('index reaches the script, so a stack can fan out', () {
+      final DropStageTimeline stage = DropStageTimeline(
+        scripted((GlossRealDropScript s) => s.offset.x = 'index * 0.25'),
+        _drop('cobblestone'),
+      );
+      final List<DropStageVisual> visuals = stage.frameAt(midFlight).visuals;
+      expect(visuals.length, greaterThan(1));
+      final DropStageTimeline plain = DropStageTimeline(
+        buildDefaultGlossRealDrops(),
+        _drop('cobblestone'),
+      );
+      final List<DropStageVisual> before = plain.frameAt(midFlight).visuals;
+      for (int index = 0; index < visuals.length; index++) {
+        expect(
+          visuals[index].x,
+          closeTo(before[index].x + index * 0.25, 1e-9),
+          reason: 'display $index',
+        );
+      }
+    });
+
+    test('scale multiplies the family, per axis, and leaves it readable', () {
+      final DropStageTimeline stage = DropStageTimeline(
+        scripted((GlossRealDropScript s) {
+          s.scale.x = '2';
+          s.scale.y = '0.5';
+        }),
+        _drop('cobblestone'),
+      );
+      final DropStageVisual visual = stage.frameAt(midFlight).visuals.first;
+      expect(visual.scale, stage.modelScale, reason: 'the family is untouched');
+      expect(visual.scaleX, 2);
+      expect(visual.scaleY, 0.5);
+      expect(visual.scaleZ, 1);
+    });
+
+    test('rotation composes onto the pose instead of replacing it', () {
+      final DropStageTimeline plain = DropStageTimeline(
+        buildDefaultGlossRealDrops(),
+        _drop('cobblestone'),
+      );
+      final DropStageTimeline turned = DropStageTimeline(
+        scripted((GlossRealDropScript s) => s.rotation.y = '90'),
+        _drop('cobblestone'),
+      );
+      expect(
+        turned.frameAt(midFlight).visuals.first.rotation.cssMatrix3d(),
+        isNot(plain.frameAt(midFlight).visuals.first.rotation.cssMatrix3d()),
+      );
+      // Still tumbling underneath: two moments differ from each other, which
+      // they would not if the script had overwritten the pose with a constant.
+      expect(
+        turned.frameAt(300).visuals.first.rotation.cssMatrix3d(),
+        isNot(turned.frameAt(600).visuals.first.rotation.cssMatrix3d()),
+      );
+    });
+
+    test('a scripted tilt is corrected for, not left sinking into the floor', () {
+      final DropStageTimeline flat = DropStageTimeline(
+        buildDefaultGlossRealDrops(),
+        _drop('cobblestone'),
+      );
+      final DropStageTimeline tilted = DropStageTimeline(
+        scripted((GlossRealDropScript s) => s.rotation.z = '45'),
+        _drop('cobblestone'),
+      );
+      final int settledMs = flat.cycleMs - 200;
+      expect(flat.frameAt(settledMs).settled, isTrue);
+      expect(
+        tilted.frameAt(settledMs).visuals.first.y,
+        greaterThan(flat.frameAt(settledMs).visuals.first.y),
+        reason:
+            'a cube stood on its corner is taller, so the clearance recomputed '
+            'from the final pose has to lift it further',
+      );
+    });
+
+    test('glow and visible reach the display', () {
+      final DropStageTimeline glowing = DropStageTimeline(
+        scripted((GlossRealDropScript s) => s.glow = '#FFAA55'),
+        _drop('cobblestone'),
+      );
+      expect(glowing.frameAt(midFlight).visuals.first.glowArgb, 0xFFFFAA55);
+
+      final DropStageTimeline hidden = DropStageTimeline(
+        scripted((GlossRealDropScript s) => s.visible = 'index > 0'),
+        _drop('cobblestone'),
+      );
+      final List<DropStageVisual> visuals = hidden.frameAt(midFlight).visuals;
+      expect(visuals.first.visible, isFalse);
+      expect(visuals.last.visible, isTrue);
+    });
+
+    test('a material test picks out the stack it names', () {
+      final GlossRealDropSettingsDoc doc = scripted(
+        (GlossRealDropScript s) =>
+            s.glow = "materialMatches('*_PICKAXE') ? #FFCC66 : 0",
+      );
+      expect(
+        DropStageTimeline(
+          doc,
+          _drop('diamond_pickaxe'),
+        ).frameAt(midFlight).visuals.first.glowArgb,
+        0xFFFFCC66,
+      );
+      expect(
+        DropStageTimeline(
+          doc,
+          _drop('cobblestone'),
+        ).frameAt(midFlight).visuals.first.glowArgb,
+        0,
+      );
+    });
+
+    test('a script the server would refuse never reaches the stage', () {
+      final DropStageTimeline stage = DropStageTimeline(
+        scripted((GlossRealDropScript s) => s.offset.y = 'sin(t'),
+        _drop('cobblestone'),
+      );
+      expect(stage.scriptActive, isFalse);
+      final DropStageFrame frame = stage.frameAt(midFlight);
+      expect(frame.scriptFailures, isEmpty);
+      expect(frame.visuals.first.scaleX, 1);
+    });
+  });
+
+  group('the stage says which variables it cannot observe', () {
+    test('inWater follows the water toggle and nothing else', () {
+      final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+      doc.script!
+        ..enabled = true
+        ..glow = 'inWater ? #3A8CBE : 0';
+
+      final DropStageTimeline dry = DropStageTimeline(
+        doc,
+        _drop('cobblestone'),
+      );
+      for (int ms = 0; ms < dry.cycleMs; ms += 97) {
+        expect(dry.frameAt(ms).submerged, isFalse, reason: '$ms ms');
+        expect(dry.frameAt(ms).visuals.first.glowArgb, 0, reason: '$ms ms');
+      }
+
+      final DropStageTimeline wet = DropStageTimeline(
+        doc,
+        _drop('cobblestone'),
+        environment: const DropStageEnvironment(water: true),
+      );
+      final bool everWet = <int>[
+        for (int ms = 0; ms < wet.cycleMs; ms += 47) ms,
+      ].any((int ms) => wet.frameAt(ms).visuals.first.glowArgb != 0);
+      expect(
+        everWet,
+        isTrue,
+        reason: 'the stack falls through the surface, so inWater goes true',
+      );
+    });
+
+    test('lava is never simulated and the light levels are full', () {
+      expect(DropStageEnvironment.inLava, isFalse);
+      expect(DropStageEnvironment.blockLight, 15);
+      expect(DropStageEnvironment.skyLight, 15);
+      expect(
+        DropStageEnvironment.simulatedVariables,
+        <String>['inWater', 'inLava', 'blockLight', 'skyLight'],
+        reason: 'the readout names exactly these four as simulated',
+      );
+    });
+
+    test('random is fixed for a stack, so nothing built on it flickers', () {
+      final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+      final DropStageTimeline first = DropStageTimeline(doc, _drop('feather'));
+      final DropStageTimeline second = DropStageTimeline(doc, _drop('feather'));
+      expect(first.random, second.random);
+      expect(first.random, greaterThanOrEqualTo(0));
+      expect(first.random, lessThan(1));
+      expect(
+        first.random,
+        isNot(DropStageTimeline(doc, _drop('cobblestone')).random),
+        reason: 'two stacks do not bob in lockstep',
+      );
+    });
+  });
+
+  group('the physics block reaches the stage arc', () {
+    GlossRealDropSettingsDoc physical(
+      void Function(GlossRealDropPhysics p) set,
+    ) {
+      final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+      final GlossRealDropPhysics physics = doc.physics!..enabled = true;
+      set(physics);
+      return doc;
+    }
+
+    /// The tick the stack first touches the floor.
+    double landingTick(DropStageTimeline stage) {
+      for (int ms = 0; ms < stage.cycleMs; ms += 10) {
+        if (stage.frameAt(ms).grounded) return ms / 50;
+      }
+      return double.infinity;
+    }
+
+    test('off, the cycle is the one the rotation counts', () {
+      expect(
+        DropStageTimeline(
+          buildDefaultGlossRealDrops(),
+          _drop('cobblestone'),
+        ).cycleMs,
+        dropStageCycleMs,
+      );
+      expect(
+        dropStageCycleMsFor(buildDefaultGlossRealDrops()),
+        dropStageCycleMs,
+      );
+    });
+
+    test('heavier gravity lands the stack sooner, lighter later', () {
+      final double normal = landingTick(
+        DropStageTimeline(buildDefaultGlossRealDrops(), _drop('cobblestone')),
+      );
+      final double heavy = landingTick(
+        DropStageTimeline(
+          physical((GlossRealDropPhysics p) => p.gravityMultiplier = 3),
+          _drop('cobblestone'),
+        ),
+      );
+      final double light = landingTick(
+        DropStageTimeline(
+          physical((GlossRealDropPhysics p) => p.gravityMultiplier = 0.25),
+          _drop('cobblestone'),
+        ),
+      );
+      expect(heavy, lessThan(normal));
+      expect(light, greaterThan(normal));
+    });
+
+    test('gravity 0 hangs the stack where it is, and never settles it', () {
+      final DropStageTimeline stage = DropStageTimeline(
+        physical((GlossRealDropPhysics p) => p.gravityMultiplier = 0),
+        _drop('cobblestone'),
+      );
+      for (int ms = 0; ms < stage.cycleMs; ms += 211) {
+        final DropStageFrame frame = stage.frameAt(ms);
+        expect(frame.settled, isFalse, reason: '$ms ms');
+        expect(frame.grounded, isFalse, reason: '$ms ms');
+        expect(frame.carrierY, greaterThan(2), reason: '$ms ms');
+      }
+    });
+
+    test('bounce replaces the stage own restitution, so 0 really sticks', () {
+      final DropStageTimeline bouncy = DropStageTimeline(
+        physical((GlossRealDropPhysics p) => p.bounce = 0.8),
+        _drop('cobblestone'),
+      );
+      final DropStageTimeline dead = DropStageTimeline(
+        physical((GlossRealDropPhysics p) => p.bounce = 0),
+        _drop('cobblestone'),
+      );
+      int peak(DropStageTimeline stage) {
+        int count = 0;
+        for (int ms = 0; ms < stage.cycleMs; ms += 10) {
+          count = math.max(count, stage.frameAt(ms).bounces);
+        }
+        return count;
+      }
+
+      expect(peak(bouncy), greaterThan(0));
+      expect(
+        peak(dead),
+        0,
+        reason: 'vanilla items do not bounce, and neither does bounce 0',
+      );
+    });
+
+    test('buoyancy in water floats the stack instead of resting it', () {
+      final GlossRealDropSettingsDoc doc = physical((GlossRealDropPhysics p) {
+        p.waterBuoyancy = 0.35;
+        p.waterDrag = 0.12;
+      });
+      final DropStageTimeline stage = DropStageTimeline(
+        doc,
+        _drop('cobblestone'),
+        environment: const DropStageEnvironment(water: true),
+      );
+      double lowest = double.infinity;
+      bool everSettled = false;
+      for (int ms = stage.cycleMs ~/ 2; ms < stage.cycleMs; ms += 23) {
+        final DropStageFrame frame = stage.frameAt(ms);
+        lowest = math.min(lowest, frame.carrierY);
+        everSettled |= frame.settled;
+      }
+      expect(everSettled, isFalse, reason: 'a buoyant item is never at rest');
+      expect(
+        lowest,
+        greaterThan(0),
+        reason: 'and buoyancy keeps it off the floor',
+      );
+    });
+
+    test('water drag at full stops the stack dead the moment it is under', () {
+      final GlossRealDropSettingsDoc doc = physical(
+        (GlossRealDropPhysics p) => p.waterDrag = 1,
+      );
+      final DropStageTimeline dragged = DropStageTimeline(
+        doc,
+        _drop('cobblestone'),
+        environment: const DropStageEnvironment(water: true),
+      );
+      final DropStageTimeline free = DropStageTimeline(
+        doc,
+        _drop('cobblestone'),
+      );
+      expect(landingTick(free).isFinite, isTrue);
+      expect(
+        landingTick(dragged),
+        double.infinity,
+        reason:
+            'the stack stops the moment it is submerged, so it never reaches '
+            'the floor at all',
+      );
+    });
   });
 }

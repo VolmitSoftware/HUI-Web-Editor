@@ -15,6 +15,7 @@ import '../../config/links.dart';
 import '../../model/model.dart';
 import '../../services/file_transfer.dart';
 import '../../services/image_library.dart';
+import '../../services/player_skin_source.dart';
 import '../../services/storage_service.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
@@ -47,7 +48,10 @@ class ImageManagerDialog extends StatefulWidget {
 class _ImageManagerDialogState extends State<ImageManagerDialog> {
   final Map<String, String> _drafts = <String, String>{};
   final Map<String, String> _errors = <String, String>{};
+  final PlayerSkinSource _skins = PlayerSkinSource();
+  String _username = '';
   bool _busy = false;
+  bool _fetching = false;
 
   EditorStore get _store => component.store;
 
@@ -60,6 +64,12 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
       _drafts.clear();
       _errors.clear();
     }
+  }
+
+  @override
+  void dispose() {
+    _skins.close();
+    super.dispose();
   }
 
   Future<void> _upload() async {
@@ -89,6 +99,38 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     );
     if (!mounted) return;
     setState(() => _busy = false);
+    _reportOutcome(outcome);
+  }
+
+  /// Fetches a skin by name and stores the head it composes to.
+  ///
+  /// Every failure path ends here with a message and an untouched workspace:
+  /// the fetch either returns bytes or a sentence saying which host said what,
+  /// and the library only writes once the skin has actually composed.
+  Future<void> _fetchHeadByName() async {
+    final String username = _username.trim();
+    if (_fetching) return;
+    setState(() => _fetching = true);
+    final PlayerSkinFetch fetched = await _skins.fetch(username);
+    if (!mounted) return;
+    if (!fetched.isSuccess) {
+      setState(() => _fetching = false);
+      toast.error(fetched.message!);
+      return;
+    }
+    final ImageAddOutcome outcome = _library.addPlayerHeadFromSkin(
+      username: fetched.username,
+      skinPngDataUri: fetched.pngDataUri!,
+    );
+    if (!mounted) return;
+    setState(() {
+      _fetching = false;
+      if (outcome.isSuccess) _username = '';
+    });
+    if (outcome.isSuccess) {
+      toast.success('Added ${outcome.added.single.path} from ${fetched.host}');
+      return;
+    }
     _reportOutcome(outcome);
   }
 
@@ -270,12 +312,47 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
             label: 'Download images.zip',
           ),
         ]),
+        dom.div(classes: 'hui-dialog-actions', <Widget>[
+          HuiField(
+            label: 'Head by username',
+            help: 'Fetches that player\'s skin from minotar.net',
+            control: TextInput(
+              value: _username,
+              size: ComponentSize.sm,
+              placeholder: 'Notch',
+              disabled: _fetching,
+              onInput: (String value) => setState(() => _username = value),
+              onSubmit: (String _) => _fetchHeadByName(),
+              attributes: const <String, String>{
+                'aria-label': 'Minecraft username',
+                'autocomplete': 'off',
+                'spellcheck': 'false',
+                'maxlength': '16',
+              },
+            ),
+          ),
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.small,
+            loading: _fetching,
+            disabled: _busy,
+            onPressed: _fetchHeadByName,
+            icon: ArcaneIcon.download(size: IconSize.sm),
+            label: 'Fetch head',
+          ),
+        ]),
         const dom.p(classes: 'hui-dialog-note', <Widget>[
           Text(
             'Uploads are automatically resized to fit 64x64. Skin head import '
-            'extracts the 8x8 face and hat layer from a Minecraft skin PNG. '
-            'You can also drop images anywhere in the editor. Unzip images.zip '
-            'into plugins/Gloss/images/ and the paths resolve unchanged.',
+            'extracts the 8x8 face and hat layer from a Minecraft skin PNG, '
+            'either from a file you pick or from a username fetched from '
+            'minotar.net (mc-heads.net if that is down) — the username is all '
+            'that is sent. A name those hosts do not know comes back as one '
+            'of the vanilla default skins rather than as an error, so a head '
+            'that is plainly not that player means the name was probably '
+            'wrong. You can also drop images anywhere in '
+            'the editor. Unzip images.zip into plugins/Gloss/images/ and the '
+            'paths resolve unchanged.',
           ),
         ]),
       ]);

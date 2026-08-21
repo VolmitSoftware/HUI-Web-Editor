@@ -50,7 +50,7 @@ abstract base class GlossDoc {
 /// Reads the envelope's `schemaVersion`, throwing for the generations this
 /// editor cannot faithfully edit. Mirrors
 /// `DocumentEnvelope.requireSchemaVersion` — a missing key is Gson's `0` and
-/// rejects the same way (`HologramDoc.java:29-31`).
+/// rejects the same way (`HologramDoc.java:35-37`).
 int glossReadSchemaVersion(
   Map<String, dynamic> raw,
   String kind, {

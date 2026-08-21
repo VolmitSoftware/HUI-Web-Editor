@@ -28,6 +28,17 @@ void main() {
       expect(icon.height, 0.9);
     });
 
+    test('a new player head is the viewer\'s own, with no refresh key', () {
+      final HuiPlayerHeadIcon icon =
+          createDefaultIcon('playerHead') as HuiPlayerHeadIcon;
+      expect(icon.player, huiDefaultPlayerHeadSource);
+      // Gloss answers this token itself, so a fresh icon is meaningful with
+      // nothing else installed.
+      expect(icon.player, '%player_name%');
+      // Omitted, not written: 20 is the runtime's own value.
+      expect(icon.refreshTicks, isNull);
+    });
+
     test('a new block icon is a valid stone block display', () {
       final HuiBlockIcon icon = createDefaultIcon('block') as HuiBlockIcon;
       expect(icon.block, huiDefaultBlockMaterial);

@@ -7,7 +7,10 @@ import '../../logic/validation.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
+import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'real_drop_expr_field.dart';
+import 'reorder_list.dart';
 
 class RealDropInspector extends StatefulWidget {
   const RealDropInspector({required this.store, super.key});
@@ -39,6 +42,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       _landing(doc),
       _labels(doc),
       _filters(doc),
+      _physics(doc),
+      _script(doc),
     ]);
   }
 
@@ -474,6 +479,371 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     ],
   );
 
+  // --- physics --------------------------------------------------------------
+
+  /// The block that moves the real `Item` entity.
+  ///
+  /// Both optional blocks are absent from a document until somebody touches
+  /// them, so every control here reads through the null and every edit
+  /// materialises the block. A file written before the feature existed stays
+  /// byte-identical until it is actually changed.
+  Widget _physics(GlossRealDropSettingsDoc doc) {
+    final GlossRealDropPhysics? physics = doc.physics;
+    final bool enabled = physics?.enabled ?? false;
+    return InspectorSection(
+      title: 'Item physics',
+      sectionKey: 'realDrops.physics',
+      description:
+          'Real changes to how the dropped item moves. These write to the '
+          'entity, so its position, its collision and its pickup radius all '
+          'follow.',
+      trailing: const HuiFieldHelp('realDrops.physics'),
+      children: <Widget>[
+        HuiSwitchRow(
+          label: 'Move the item entity',
+          value: enabled,
+          trailing: const HuiFieldHelp('realDrops.physics.enabled'),
+          onChanged: (bool value) => _mutatePhysics(
+            'drop physics',
+            (GlossRealDropPhysics edited) => edited.enabled = value,
+          ),
+        ),
+        _physicsNumber(
+          label: 'Gravity multiplier',
+          docKey: 'realDrops.physics.gravityMultiplier',
+          path: r'$.physics.gravityMultiplier',
+          value: physics?.gravityMultiplier ?? 1,
+          fallback: '1',
+          onChanged: (double value) => _mutatePhysics(
+            'drop gravity',
+            (GlossRealDropPhysics edited) => edited.gravityMultiplier = value,
+          ),
+        ),
+        _physicsNumber(
+          label: 'Bounce',
+          docKey: 'realDrops.physics.bounce',
+          path: r'$.physics.bounce',
+          value: physics?.bounce ?? 0,
+          fallback: '0',
+          onChanged: (double value) => _mutatePhysics(
+            'drop bounce',
+            (GlossRealDropPhysics edited) => edited.bounce = value,
+          ),
+        ),
+        _physicsNumber(
+          label: 'Water buoyancy',
+          docKey: 'realDrops.physics.waterBuoyancy',
+          path: r'$.physics.waterBuoyancy',
+          value: physics?.waterBuoyancy ?? 0,
+          fallback: '0',
+          onChanged: (double value) => _mutatePhysics(
+            'drop buoyancy',
+            (GlossRealDropPhysics edited) => edited.waterBuoyancy = value,
+          ),
+        ),
+        _physicsNumber(
+          label: 'Water drag',
+          docKey: 'realDrops.physics.waterDrag',
+          path: r'$.physics.waterDrag',
+          value: physics?.waterDrag ?? 0,
+          fallback: '0',
+          onChanged: (double value) => _mutatePhysics(
+            'drop water drag',
+            (GlossRealDropPhysics edited) => edited.waterDrag = value,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _physicsNumber({
+    required String label,
+    required String docKey,
+    required String path,
+    required double value,
+    required String fallback,
+    required void Function(double value) onChanged,
+  }) => HuiField(
+    label: label,
+    defaultValue: fallback,
+    onReset: value == double.parse(fallback)
+        ? null
+        : () => onChanged(double.parse(fallback)),
+    trailing: HuiFieldHelp(docKey),
+    control: dom.div(<Widget>[
+      HuiNumberField(
+        value: value,
+        step: 0.05,
+        decimals: 2,
+        onChanged: onChanged,
+      ),
+      HuiInlineIssues(_issuesFor(path)),
+    ]),
+  );
+
+  // --- script ---------------------------------------------------------------
+
+  /// The block that moves the picture and nothing else.
+  ///
+  /// Every expression here is compiled and type-checked by the server whether
+  /// or not the switch is on, so the validation panel reports a broken one
+  /// either way — which is why the switch does not gate any of these controls.
+  Widget _script(GlossRealDropSettingsDoc doc) {
+    final GlossRealDropScript? script = doc.script;
+    return InspectorSection(
+      title: 'Script',
+      sectionKey: 'realDrops.script',
+      description:
+          'Expressions evaluated once per display, per update. They move the '
+          'displays only: the item, its collision and its pickup radius stay '
+          'where Minecraft put them.',
+      trailing: const HuiFieldHelp('realDrops.script'),
+      children: <Widget>[
+        HuiSwitchRow(
+          label: 'Run the script',
+          value: script?.enabled ?? false,
+          trailing: const HuiFieldHelp('realDrops.script.enabled'),
+          onChanged: (bool value) => _mutateScript(
+            'drop script',
+            (GlossRealDropScript edited) => edited.enabled = value,
+          ),
+        ),
+        _vars(script),
+        _axis(
+          title: 'Offset',
+          docKey: 'realDrops.script.offset',
+          field: 'offset',
+          axis: script?.offset,
+          neutral: '0',
+        ),
+        _axis(
+          title: 'Rotation',
+          docKey: 'realDrops.script.rotation',
+          field: 'rotation',
+          axis: script?.rotation,
+          neutral: '0',
+        ),
+        _axis(
+          title: 'Scale',
+          docKey: 'realDrops.script.scale',
+          field: 'scale',
+          axis: script?.scale,
+          neutral: '1',
+        ),
+        RealDropExprField(
+          label: 'Glow',
+          docKey: 'realDrops.script.glow',
+          value: script?.glow ?? '',
+          placeholder: "materialIs('torch') ? #FFAA55 : 0",
+          issues: _exact(r'$.script.glow'),
+          onChanged: (String value) => _mutateScript(
+            'drop script glow',
+            (GlossRealDropScript edited) => edited.glow = value,
+          ),
+        ),
+        RealDropExprField(
+          label: 'Visible',
+          docKey: 'realDrops.script.visible',
+          value: script?.visible ?? 'true',
+          neutral: 'true',
+          issues: _exact(r'$.script.visible'),
+          onChanged: (String value) => _mutateScript(
+            'drop script visible',
+            (GlossRealDropScript edited) =>
+                edited.visible = value.isEmpty ? 'true' : value,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// One axis object: three expressions on one row each, sharing the shared
+  /// `axis` doc entry so the three vectors never drift apart in the help.
+  Widget _axis({
+    required String title,
+    required String docKey,
+    required String field,
+    required GlossRealDropScriptAxis? axis,
+    required String neutral,
+  }) => dom.div(classes: 'hui-drop-subgroup', <Widget>[
+    dom.div(classes: 'hui-drop-subhead', <Widget>[
+      Text(title),
+      HuiFieldHelp(docKey),
+    ]),
+    for (final String name in const <String>['x', 'y', 'z'])
+      RealDropExprField(
+        label: name.toUpperCase(),
+        docKey: 'realDrops.axis.$name',
+        neutral: neutral,
+        value: switch (name) {
+          'x' => axis?.x ?? neutral,
+          'y' => axis?.y ?? neutral,
+          _ => axis?.z ?? neutral,
+        },
+        issues: _exact('\$.script.$field.$name'),
+        onChanged: (String value) => _mutateScript('drop script $field $name', (
+          GlossRealDropScript edited,
+        ) {
+          final GlossRealDropScriptAxis target = switch (field) {
+            'offset' => edited.offset,
+            'rotation' => edited.rotation,
+            _ => edited.scale,
+          };
+          final String next = value.isEmpty ? neutral : value;
+          switch (name) {
+            case 'x':
+              target.x = next;
+            case 'y':
+              target.y = next;
+            default:
+              target.z = next;
+          }
+        }),
+      ),
+  ]);
+
+  /// The `vars` list: add, remove and reorder, and never a sort.
+  ///
+  /// Declaration order decides what each entry can read — an expression sees
+  /// every var declared before it and none declared after — so the order in
+  /// this list is the order in the file, and moving a row is a real edit to the
+  /// document rather than a view preference.
+  Widget _vars(GlossRealDropScript? script) {
+    final List<GlossRealDropScriptVar> vars =
+        script?.vars ?? const <GlossRealDropScriptVar>[];
+    return dom.div(classes: 'hui-drop-subgroup', <Widget>[
+      const dom.div(classes: 'hui-drop-subhead', <Widget>[
+        Text('Variables'),
+        HuiFieldHelp('realDrops.script.vars'),
+      ]),
+      HuiInlineIssues(_issuesFor(r'$.script.vars')),
+      if (vars.isEmpty)
+        const dom.p(classes: 'hui-drop-empty', <Widget>[
+          Text(
+            'No variables. Name a condition once here and every expression '
+            'after it can read it.',
+          ),
+        ])
+      else
+        HuiReorderList(
+          itemCount: vars.length,
+          handleLabel: 'Drag to reorder — order decides what each one can read',
+          onReorder: (int from, int to) => _mutateScript(
+            'reorder drop script variables',
+            (GlossRealDropScript edited) =>
+                edited.vars.insert(to, edited.vars.removeAt(from)),
+          ),
+          itemBuilder: (int index) => _varRow(vars, index),
+        ),
+      Button(
+        variant: ButtonVariant.outline,
+        size: ButtonSize.sm,
+        onPressed: vars.length >= GlossRealDropScript.maxVars
+            ? null
+            : () => _mutateScript(
+                'add drop script variable',
+                (GlossRealDropScript edited) => edited.vars.add(
+                  GlossRealDropScriptVar(
+                    name: _freshVarName(edited.vars),
+                    expression: '0',
+                  ),
+                ),
+              ),
+        child: const Text('Add variable'),
+      ),
+    ]);
+  }
+
+  Widget _varRow(List<GlossRealDropScriptVar> vars, int index) {
+    final GlossRealDropScriptVar variable = vars[index];
+    return dom.div(classes: 'hui-drop-var-row', <Widget>[
+      TextInput(
+        value: variable.name,
+        size: ComponentSize.sm,
+        fullWidth: true,
+        placeholder: 'name',
+        attributes: const <String, String>{
+          'autocomplete': 'off',
+          'spellcheck': 'false',
+          'aria-label': 'Variable name',
+        },
+        onInput: (String value) => _mutateScript(
+          'rename drop script variable',
+          (GlossRealDropScript edited) =>
+              edited.vars[index].name = value.trim(),
+        ),
+      ),
+      RealDropExprField(
+        label: 'Expression',
+        bare: true,
+        value: variable.expression,
+        placeholder: 'expression',
+        issues: _exact('\$.script.vars.\${variable.name}'),
+        onChanged: (String value) => _mutateScript(
+          'edit drop script variable',
+          (GlossRealDropScript edited) => edited.vars[index].expression = value,
+        ),
+      ),
+      dom.div(classes: 'hui-drop-rowactions', <Widget>[
+        _rowButton(
+          label: 'Move up',
+          icon: ArcaneIcon.chevronUp(size: IconSize.sm),
+          onPressed: index == 0 ? null : () => _moveVar(index, index - 1),
+        ),
+        _rowButton(
+          label: 'Move down',
+          icon: ArcaneIcon.chevronDown(size: IconSize.sm),
+          onPressed: index >= vars.length - 1
+              ? null
+              : () => _moveVar(index, index + 1),
+        ),
+        _rowButton(
+          label: 'Remove variable',
+          icon: ArcaneIcon.trash2(size: IconSize.sm),
+          onPressed: () => _mutateScript(
+            'remove drop script variable',
+            (GlossRealDropScript edited) => edited.vars.removeAt(index),
+          ),
+        ),
+      ]),
+    ]);
+  }
+
+  Widget _rowButton({
+    required String label,
+    required Widget icon,
+    required void Function()? onPressed,
+  }) => Button(
+    variant: ButtonVariant.ghost,
+    size: ButtonSize.iconSm,
+    onPressed: onPressed,
+    attributes: <String, String>{'aria-label': label, 'title': label},
+    child: icon,
+  );
+
+  void _moveVar(int from, int to) => _mutateScript(
+    'reorder drop script variables',
+    (GlossRealDropScript edited) =>
+        edited.vars.insert(to, edited.vars.removeAt(from)),
+  );
+
+  /// A name nothing in the list already uses, so adding a row twice in a row
+  /// does not produce two entries the server refuses as declared twice.
+  static String _freshVarName(List<GlossRealDropScriptVar> vars) {
+    final Set<String> taken = <String>{
+      for (final GlossRealDropScriptVar entry in vars) entry.name,
+    };
+    for (int index = 1; ; index++) {
+      final String name = 'value$index';
+      if (!taken.contains(name)) return name;
+    }
+  }
+
+  /// Issues on exactly this path. The prefix match [_issuesFor] does is wrong
+  /// for an expression field: `$.script.scale` would swallow all three axes.
+  List<HuiIssue> _exact(String path) =>
+      _store.issues.where((HuiIssue issue) => issue.path == path).toList();
+
   Widget _integer({
     required String label,
     required String help,
@@ -542,4 +912,26 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     String label,
     void Function(GlossRealDropSettingsDoc doc) change,
   ) => _store.mutateRealDropSettings(label, change);
+
+  /// Edits the physics block, creating it if the document never had one. This
+  /// is the only place the block comes into existence, which is what keeps an
+  /// untouched document byte-identical through the editor.
+  void _mutatePhysics(
+    String label,
+    void Function(GlossRealDropPhysics physics) change,
+  ) => _mutate(
+    label,
+    (GlossRealDropSettingsDoc doc) =>
+        change(doc.physics ??= GlossRealDropPhysics()),
+  );
+
+  /// The same, for the script block.
+  void _mutateScript(
+    String label,
+    void Function(GlossRealDropScript script) change,
+  ) => _mutate(
+    label,
+    (GlossRealDropSettingsDoc doc) =>
+        change(doc.script ??= GlossRealDropScript()),
+  );
 }

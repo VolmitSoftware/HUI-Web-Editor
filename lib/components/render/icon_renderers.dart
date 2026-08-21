@@ -150,6 +150,9 @@ class IconRenderers {
       case CanvasIconKind.item:
       case CanvasIconKind.block:
       case CanvasIconKind.customItem:
+      // A head is an ItemMenuIcon in the plugin too
+      // (PlayerHeadMenuIcon.java:32), so it draws where an item icon draws.
+      case CanvasIconKind.playerHead:
         _paintItem(item);
       case CanvasIconKind.entity:
         _paintEntity(item);

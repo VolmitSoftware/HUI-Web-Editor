@@ -279,6 +279,86 @@ void main() {
     });
   });
 
+  group('player head icons', () {
+    final HuiCatalogs catalogs = HuiCatalogs.build(
+      materials: const <MaterialEntry>[
+        MaterialEntry('player_head', 'data:image/png;base64,aGVhZA=='),
+        MaterialEntry('diamond', 'data:image/png;base64,ZGlhbW9uZA=='),
+      ],
+      sounds: const <String>[],
+      loaded: true,
+    );
+
+    CanvasItem build(HuiIcon icon, {HuiCatalogs? withCatalogs}) =>
+        buildCanvasScene(
+          menu: HuiMenu(
+            offset: Vec3(0, 1.7, 2.5),
+            components: <HuiComponent>[
+              HuiComponent('a', Vec3(0, 0, 0), HuiDecorationData(icon)),
+            ],
+          ),
+          uiScale: 1,
+          trueRender: true,
+          togglePreview: (String _) => true,
+          textCache: McTextCache(),
+          catalogs: withCatalogs,
+        ).items.single;
+
+    test('measures exactly like the item icon it extends', () {
+      // PlayerHeadMenuIcon extends ItemMenuIcon, and player_head is a block
+      // material, so the reference is a single block-like item stack.
+      final CanvasItem head = build(
+        HuiPlayerHeadIcon('Notch'),
+        withCatalogs: catalogs,
+      );
+      final CanvasItem vanilla = build(
+        HuiItemIcon('player_head', 1, 0),
+        withCatalogs: catalogs,
+      );
+      expect(head.kind, CanvasIconKind.playerHead);
+      expect(head.shape, vanilla.shape);
+      expect(head.hitbox, vanilla.hitbox);
+      expect(head.visual, vanilla.visual);
+      expect(head.shape.isBlockItem, isTrue);
+      expect(head.itemCount, 1);
+    });
+
+    test('draws the generic head sprite from the catalog', () {
+      final CanvasItem item = build(
+        HuiPlayerHeadIcon('Notch'),
+        withCatalogs: catalogs,
+      );
+      expect(item.itemTexture, 'data:image/png;base64,aGVhZA==');
+      // The label under a sprite-less head is the authored name.
+      expect(item.itemKey, 'Notch');
+      expect(item.itemProvider, isEmpty);
+    });
+
+    test('every name draws the same sprite, placeholders included', () {
+      final CanvasItem token = build(
+        HuiPlayerHeadIcon('%player_name%'),
+        withCatalogs: catalogs,
+      );
+      expect(token.kind, CanvasIconKind.playerHead);
+      expect(token.itemTexture, 'data:image/png;base64,aGVhZA==');
+      expect(token.itemKey, '%player_name%');
+    });
+
+    test('renders without a catalog at all', () {
+      final CanvasItem item = build(HuiPlayerHeadIcon('Notch'));
+      expect(item.kind, CanvasIconKind.playerHead);
+      expect(item.itemTexture, isNull);
+      expect(item.itemKey, 'Notch');
+    });
+
+    test('a blank name falls back to the missing-icon placeholder', () {
+      expect(
+        build(HuiPlayerHeadIcon('  '), withCatalogs: catalogs).kind,
+        CanvasIconKind.missing,
+      );
+    });
+  });
+
   group('entity icons', () {
     final HuiCatalogs catalogs = HuiCatalogs.build(
       materials: const <MaterialEntry>[],

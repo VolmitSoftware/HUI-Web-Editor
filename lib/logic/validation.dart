@@ -297,6 +297,20 @@ final RegExp _worldKeyPattern = RegExp(r'^[a-z0-9._-]+:[a-z0-9/._-]+$');
 final RegExp _proxyServerPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$');
 final RegExp _argbColorPattern = RegExp(r'^#[0-9A-Fa-f]{8}$');
 
+/// Everything Mojang could have issued as a username: 1 to 16 characters of
+/// `[A-Za-z0-9_]` and nothing else (`PlayerHeadService.java:88-100`). Anything
+/// that fails this is answered UNKNOWN without a request.
+final RegExp _minecraftNamePattern = RegExp(r'^[A-Za-z0-9_]{1,16}$');
+
+/// The three tokens Gloss resolves to the viewer itself, already normalized
+/// the way `PlayerHeadMenuIcon.isViewerToken` does it — lowercased with spaces
+/// stripped (`PlayerHeadMenuIcon.java:90-95`).
+const Set<String> _playerHeadViewerTokens = <String>{
+  '%player_name%',
+  '%player%',
+  '{{player.name}}',
+};
+
 class _Validator {
   _Validator({
     this.knownImagePaths,
@@ -661,6 +675,8 @@ class _Validator {
         _validateCustomItem(custom, path);
       case final HuiEntityIcon entity:
         _validateEntity(entity, path);
+      case final HuiPlayerHeadIcon head:
+        _validatePlayerHead(head, path);
     }
   }
 
@@ -855,6 +871,88 @@ class _Validator {
     }
     _validateEntityDimension(icon.width, '$path.width', 'width');
     _validateEntityDimension(icon.height, '$path.height', 'height');
+  }
+
+  /// A head resolves in three steps, and each one has its own failure mode:
+  /// Gloss answers the viewer tokens itself, the text pipeline answers
+  /// everything else with a `%` or `{{` in it, and whatever comes out has to
+  /// look like a username before `PlayerHeadService` will spend a request on
+  /// it (`PlayerHeadService.java:88-100`). Only the first step is knowable
+  /// here, so the middle one is an info and the last one is an error solely
+  /// when no placeholder could have changed the string on the way.
+  void _validatePlayerHead(HuiPlayerHeadIcon icon, String path) {
+    final String source = icon.player;
+    final String trimmed = source.trim();
+    bool viewerDependent = false;
+    if (trimmed.isEmpty) {
+      _add(
+        HuiSeverity.error,
+        '$path.player',
+        'Player head has no player name; the plugin throws a menu icon '
+            'exception and draws the magenta/black missing-icon placeholder '
+            'instead of a head',
+        fix: 'Enter a username, or %player_name% for the viewer\'s own head',
+      );
+    } else {
+      if (source != trimmed) {
+        _add(
+          HuiSeverity.warning,
+          '$path.player',
+          'The name starts or ends with whitespace; the plugin trims it '
+              'before every lookup, so the padding is only stored, never used',
+          fix: 'Remove the surrounding whitespace',
+        );
+      }
+      final bool viewerToken = _playerHeadViewerTokens.contains(
+        trimmed.toLowerCase().replaceAll(' ', ''),
+      );
+      final bool placeholder = trimmed.contains('%') || trimmed.contains('{{');
+      viewerDependent = viewerToken || placeholder;
+      if (viewerToken) {
+        // Nothing to say: Gloss answers these three itself, with or without
+        // PlaceholderAPI installed.
+      } else if (placeholder) {
+        _add(
+          HuiSeverity.info,
+          '$path.player',
+          'This name is resolved by the text pipeline, so it needs whatever '
+              'provides the placeholder; PlaceholderAPI is optional and an '
+              'unresolved token draws the fallback head',
+          fix:
+              'Use %player_name%, %player% or {{player.name}} for the '
+              'viewer\'s own head, which Gloss answers without any plugin',
+        );
+      } else if (!_minecraftNamePattern.hasMatch(trimmed)) {
+        _add(
+          HuiSeverity.error,
+          '$path.player',
+          '"$trimmed" can never resolve: a lookup needs 1 to 16 characters of '
+              'A-Z, a-z, 0-9 or underscore, so this icon always draws the '
+              'fallback head',
+          fix: 'Use a Minecraft username, or a placeholder that expands to one',
+        );
+      }
+    }
+
+    final int? refreshTicks = icon.refreshTicks;
+    if (refreshTicks != null && (refreshTicks < 0 || refreshTicks > 1200)) {
+      _add(
+        HuiSeverity.error,
+        '$path.refreshTicks',
+        'Head refresh must be between 0 and 1200 ticks; the plugin throws on '
+            'anything else and the whole menu document is rejected',
+        fix: 'Use 20 for once a second, or 0 to never re-read the name',
+      );
+    } else if (refreshTicks == 0 && viewerDependent) {
+      _add(
+        HuiSeverity.warning,
+        '$path.refreshTicks',
+        'This name changes per viewer but 0 never re-reads it; the first '
+            'render is always a pending lookup, so the head stays the blank '
+            'unowned one until something respawns the component',
+        fix: 'Use 20, or leave the key off to get the runtime default',
+      );
+    }
   }
 
   void _validateBlock(HuiBlockIcon icon, String path) {

@@ -7,8 +7,18 @@ import 'json_codec.dart';
 
 const int glossRealDropsCurrentSchemaVersion = 1;
 
+/// Whether [json] is a real-drops settings document.
+///
+/// Two shapes count. The first is the shipped one: every presentation block
+/// present, which is what the plugin writes and what the editor exports. The
+/// second is a document that carries `physics` or `script` — the two blocks no
+/// other Gloss kind has a key for — because the plugin accepts a file made of
+/// nothing but `schemaVersion`, `revision` and one of those blocks, and every
+/// worked example in `DROP_SCRIPT_FORMAT.md` is written that way. Refusing them
+/// would mean the editor rejects documents the server loads.
 bool looksLikeRealDropSettingsDoc(Object? json) {
   if (json is! Map || json['schemaVersion'] is! num) return false;
+  if (json.containsKey('physics') || json.containsKey('script')) return true;
   return json.containsKey('limits') &&
       json.containsKey('scale') &&
       json.containsKey('motion') &&
@@ -39,6 +49,8 @@ const Set<String> _docKnown = <String>{
   'landing',
   'labels',
   'filters',
+  'physics',
+  'script',
 };
 
 final class GlossRealDropLimits {
@@ -378,6 +390,8 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
     GlossRealDropLanding? landing,
     GlossRealDropLabels? labels,
     GlossRealDropFilters? filters,
+    this.physics,
+    this.script,
     Map<String, dynamic>? extras,
   }) : limits = limits ?? GlossRealDropLimits(),
        scale = scale ?? GlossRealDropScale(),
@@ -393,6 +407,16 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
   GlossRealDropLanding landing;
   GlossRealDropLabels labels;
   GlossRealDropFilters filters;
+
+  /// Null while the document has no `physics` key at all, which is how a file
+  /// written before the block existed round-trips byte for byte. The inspector
+  /// creates the block the first time somebody touches one of its controls.
+  GlossRealDropPhysics? physics;
+
+  /// Null while the document has no `script` key at all, on the same terms as
+  /// [physics].
+  GlossRealDropScript? script;
+
   Map<String, dynamic> extras;
 
   static GlossRealDropSettingsDoc fromJson(Object? raw) {
@@ -407,6 +431,14 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
       landing: GlossRealDropLanding.fromJson(map['landing']),
       labels: GlossRealDropLabels.fromJson(map['labels']),
       filters: GlossRealDropFilters.fromJson(map['filters']),
+      // Absent stays absent: the two optional blocks are only materialised
+      // when the file actually carries them.
+      physics: map['physics'] == null
+          ? null
+          : GlossRealDropPhysics.fromJson(map['physics']),
+      script: map['script'] == null
+          ? null
+          : GlossRealDropScript.fromJson(map['script']),
       extras: huiCollectExtras(map, _docKnown),
     );
   }
@@ -421,8 +453,291 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
     'landing': landing.toJson(),
     'labels': labels.toJson(),
     'filters': filters.toJson(),
+    if (physics != null) 'physics': physics!.toJson(),
+    if (script != null) 'script': script!.toJson(),
   }, extras);
 
   GlossRealDropSettingsDoc copy() =>
       GlossRealDropSettingsDoc.fromJson(toJson());
+}
+
+/// `RealDropSettingsDoc.Physics`: real changes to how the dropped `Item` entity
+/// moves, as opposed to how it is drawn.
+///
+/// Gloss writes these to the entity's velocity and gravity flag through Bukkit
+/// (`RealDropService.applyPhysics`), so the item's real position, its collision
+/// and its pickup radius all follow. Absent from a document, the whole block is
+/// absent from this model too — see [GlossRealDropSettingsDoc.physics].
+///
+/// Every number here is clamped by the server after the document loads
+/// (`RealDropSettingsDoc.Physics` compact constructor). The editor stores what
+/// the author typed and warns about the range instead of clamping it, so the
+/// file the editor writes is the file the author meant.
+final class GlossRealDropPhysics {
+  GlossRealDropPhysics({
+    this.enabled = false,
+    this.gravityMultiplier = 1,
+    this.bounce = 0,
+    this.waterBuoyancy = 0,
+    this.waterDrag = 0,
+    Map<String, dynamic>? extras,
+  }) : extras = extras ?? <String, dynamic>{};
+
+  /// While false Gloss never touches the item's velocity or gravity flag.
+  bool enabled;
+
+  /// Scales how hard the item falls. Clamped to 0..4; exactly 0 clears the
+  /// entity's gravity flag and the item hangs where it is.
+  double gravityMultiplier;
+
+  /// Restitution on landing, clamped to 0..0.9. Vanilla items do not bounce at
+  /// all, so 0 is genuinely no bounce rather than "vanilla bounce".
+  double bounce;
+
+  /// Upward velocity added per update while submerged. Clamped to 0..1.
+  double waterBuoyancy;
+
+  /// Fraction of the velocity removed per update while submerged. Clamped to
+  /// 0..1; at 1 the item stops dead on entering water.
+  double waterDrag;
+
+  Map<String, dynamic> extras;
+
+  static GlossRealDropPhysics fromJson(Object? raw) {
+    if (raw == null) return GlossRealDropPhysics();
+    final Map<String, dynamic> map = huiReadObject(raw, r'$.physics');
+    return GlossRealDropPhysics(
+      enabled: huiReadBool(map, 'enabled'),
+      gravityMultiplier: huiReadDouble(map, 'gravityMultiplier', fallback: 1),
+      bounce: huiReadDouble(map, 'bounce'),
+      waterBuoyancy: huiReadDouble(map, 'waterBuoyancy'),
+      waterDrag: huiReadDouble(map, 'waterDrag'),
+      extras: huiCollectExtras(map, const <String>{
+        'enabled',
+        'gravityMultiplier',
+        'bounce',
+        'waterBuoyancy',
+        'waterDrag',
+      }),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'enabled': enabled,
+    'gravityMultiplier': gravityMultiplier,
+    'bounce': bounce,
+    'waterBuoyancy': waterBuoyancy,
+    'waterDrag': waterDrag,
+  }, extras);
+
+  GlossRealDropPhysics copy() => GlossRealDropPhysics.fromJson(toJson());
+}
+
+/// One `script` axis object: three expression sources, one per world axis.
+///
+/// The server reads a missing or blank axis as the block's neutral value —
+/// `"0"` for `offset` and `rotation`, `"1"` for `scale`
+/// (`RealDropSettingsDoc.Axis.withDefaults`). This model resolves that on read,
+/// so an author who wrote only `{"y": "bob"}` gets the same three fields the
+/// server compiled and the same presentation back out.
+final class GlossRealDropScriptAxis {
+  GlossRealDropScriptAxis({
+    required this.neutral,
+    String? x,
+    String? y,
+    String? z,
+    Map<String, dynamic>? extras,
+  }) : x = _axisOr(x, neutral),
+       y = _axisOr(y, neutral),
+       z = _axisOr(z, neutral),
+       extras = extras ?? <String, dynamic>{};
+
+  /// `"0"` for offset and rotation, `"1"` for scale. What a blank axis means.
+  final String neutral;
+
+  /// East, up and south in world space, as expression sources.
+  String x;
+  String y;
+  String z;
+  Map<String, dynamic> extras;
+
+  static String _axisOr(String? value, String neutral) =>
+      value == null || value.trim().isEmpty ? neutral : value.trim();
+
+  static GlossRealDropScriptAxis fromJson(
+    Object? raw,
+    String path,
+    String neutral,
+  ) {
+    if (raw == null) return GlossRealDropScriptAxis(neutral: neutral);
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return GlossRealDropScriptAxis(
+      neutral: neutral,
+      x: map['x'] as String?,
+      y: map['y'] as String?,
+      z: map['z'] as String?,
+      extras: huiCollectExtras(map, const <String>{'x', 'y', 'z'}),
+    );
+  }
+
+  Map<String, dynamic> toJson() =>
+      huiMergeExtras(<String, dynamic>{'x': x, 'y': y, 'z': z}, extras);
+
+  /// True when nothing on this axis moves anything — the three neutral
+  /// sources the compiler folds away.
+  bool get isNeutral => x == neutral && y == neutral && z == neutral;
+
+  GlossRealDropScriptAxis copy() =>
+      GlossRealDropScriptAxis.fromJson(toJson(), r'$.script', neutral);
+}
+
+/// One `script.vars` entry: an author-defined intermediate.
+///
+/// A list entry rather than a map one because declaration order is
+/// semantically significant — a var may read every var declared before it and
+/// none declared after — and a `List` is the only shape that survives an
+/// editor's add, remove and reorder without a sort ever creeping in. The JSON
+/// is still an object; [GlossRealDropScript.toJson] writes it in list order,
+/// which is the order the server's `LinkedHashMap` reads back.
+final class GlossRealDropScriptVar {
+  GlossRealDropScriptVar({required this.name, required this.expression});
+
+  /// A plain identifier that does not shadow a built-in variable.
+  String name;
+
+  /// The expression source. Must evaluate to a number.
+  String expression;
+
+  GlossRealDropScriptVar copy() =>
+      GlossRealDropScriptVar(name: name, expression: expression);
+}
+
+/// `RealDropSettingsDoc.Script`: the scripted presentation layer.
+///
+/// These move the `ItemDisplay` entities that stand in for the item and
+/// nothing else. The item entity, its collision and its pickup radius stay
+/// where Minecraft put them — `visible: false` drives a display's view range to
+/// zero rather than removing the drop. Use [GlossRealDropPhysics] when the item
+/// itself has to move.
+///
+/// Every expression here is compiled and type-checked when the document loads
+/// whether or not [enabled] is set, so a broken expression is reported
+/// immediately rather than when the switch is flipped.
+final class GlossRealDropScript {
+  GlossRealDropScript({
+    this.enabled = false,
+    List<GlossRealDropScriptVar>? vars,
+    GlossRealDropScriptAxis? offset,
+    GlossRealDropScriptAxis? rotation,
+    GlossRealDropScriptAxis? scale,
+    this.glow = '',
+    String? visible,
+    Map<String, dynamic>? extras,
+  }) : vars = vars ?? <GlossRealDropScriptVar>[],
+       offset = offset ?? GlossRealDropScriptAxis(neutral: '0'),
+       rotation = rotation ?? GlossRealDropScriptAxis(neutral: '0'),
+       scale = scale ?? GlossRealDropScriptAxis(neutral: '1'),
+       visible = visible == null || visible.trim().isEmpty
+           ? 'true'
+           : visible.trim(),
+       extras = extras ?? <String, dynamic>{};
+
+  /// Master switch for evaluation, not for compilation.
+  bool enabled;
+
+  /// Declaration order is the evaluation order. Never sorted.
+  List<GlossRealDropScriptVar> vars;
+
+  /// Extra display displacement in blocks, added to the offset the document
+  /// already computed. Clamped by the server to -16..16 per axis.
+  GlossRealDropScriptAxis offset;
+
+  /// Extra rotation in degrees, composed onto the existing pose in X then Y
+  /// then Z order. Clamped by the server to -3600..3600 per axis.
+  GlossRealDropScriptAxis rotation;
+
+  /// Per-axis multiplier on the resolved scale family. Clamped to 0..16.
+  GlossRealDropScriptAxis scale;
+
+  /// Glow colour. An empty source turns the feature off entirely, which is why
+  /// this is the one expression the server leaves uncompiled when it is blank.
+  String glow;
+
+  /// Boolean gate. Must produce `true`/`false`, never a number.
+  String visible;
+
+  Map<String, dynamic> extras;
+
+  /// The upper bound the server refuses a document over.
+  static const int maxVars = 32;
+
+  /// The character cap on one expression source.
+  static const int maxSourceLength = 512;
+
+  static GlossRealDropScript fromJson(Object? raw) {
+    if (raw == null) return GlossRealDropScript();
+    final Map<String, dynamic> map = huiReadObject(raw, r'$.script');
+    return GlossRealDropScript(
+      enabled: huiReadBool(map, 'enabled'),
+      vars: _readVars(map['vars']),
+      offset: GlossRealDropScriptAxis.fromJson(
+        map['offset'],
+        r'$.script.offset',
+        '0',
+      ),
+      rotation: GlossRealDropScriptAxis.fromJson(
+        map['rotation'],
+        r'$.script.rotation',
+        '0',
+      ),
+      scale: GlossRealDropScriptAxis.fromJson(
+        map['scale'],
+        r'$.script.scale',
+        '1',
+      ),
+      glow: huiReadString(map, 'glow').trim(),
+      visible: map['visible'] as String?,
+      extras: huiCollectExtras(map, const <String>{
+        'enabled',
+        'vars',
+        'offset',
+        'rotation',
+        'scale',
+        'glow',
+        'visible',
+      }),
+    );
+  }
+
+  /// Reads the JSON object in the order its keys appear. `jsonDecode` hands
+  /// back an insertion-ordered map, so file order survives the decode; nothing
+  /// here re-sorts it.
+  static List<GlossRealDropScriptVar> _readVars(Object? raw) {
+    if (raw == null) return <GlossRealDropScriptVar>[];
+    final Map<String, dynamic> map = huiReadObject(raw, r'$.script.vars');
+    return <GlossRealDropScriptVar>[
+      for (final MapEntry<String, dynamic> entry in map.entries)
+        GlossRealDropScriptVar(
+          name: entry.key.trim(),
+          expression: entry.value is String
+              ? (entry.value as String).trim()
+              : '${entry.value ?? ''}'.trim(),
+        ),
+    ];
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'enabled': enabled,
+    'vars': <String, dynamic>{
+      for (final GlossRealDropScriptVar entry in vars)
+        entry.name: entry.expression,
+    },
+    'offset': offset.toJson(),
+    'rotation': rotation.toJson(),
+    'scale': scale.toJson(),
+    'glow': glow,
+    'visible': visible,
+  }, extras);
+
+  GlossRealDropScript copy() => GlossRealDropScript.fromJson(toJson());
 }

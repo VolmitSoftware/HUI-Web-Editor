@@ -3,8 +3,8 @@
 /// What the stage draws is what Gloss spawns: ONE unscaled `TextDisplay` at
 /// the anchor with `Billboard.CENTER`, no shadow, not see-through and the
 /// default background (`HologramService.configureDisplay`,
-/// `HologramService.java:213-222`), holding every line joined with `\n`
-/// (`PersistentHologram.refreshViewerText`, `PersistentHologram.java:414-420`).
+/// `HologramService.java:235-245`), holding every line joined with `\n`
+/// (`PersistentHologram.composeViewerText`, `PersistentHologram.java:594-609`).
 /// Gloss has no per-line spacing constants of its own — the stack metrics are
 /// vanilla's `TextDisplay` glyph geometry, stated here once:
 ///
@@ -17,8 +17,21 @@
 ///
 /// A camera-facing billboard needs no 3D transform of its own: the anchor
 /// projects to a screen point and the stack scales by `perspective/distance`,
-/// which is exactly what `projectToScreen` returns.
+/// which is exactly what `projectToScreen` returns. The other three
+/// `Display.Billboard` modes do need one, and [hologramPlaneTransform] builds
+/// it as a 2D affine matrix that is the identity for `CENTER`.
+///
+/// Handedness, once, because the cross products below look inverted next to a
+/// textbook: points here are raw world coordinates, and `CameraBasis` derives
+/// `right` as `up x forward`, which in world coordinates is the viewer's
+/// LEFT. The stage's screen X therefore runs opposite the world's — invisible
+/// while the grid is symmetric and the text always faces the camera. The
+/// plane basis is built in that same frame, so the relationship the modes are
+/// about (which side of the plane the camera is on, and whether the text
+/// reads forwards or mirrored) comes out exact.
 library;
+
+import 'dart:math' as math;
 
 import '../model/gloss_hologram.dart';
 import '../preview/preview_types.dart';
@@ -173,6 +186,213 @@ List<HologramGridSegment> hologramGroundSegments({
   }
   return segments;
 }
+
+/// Offset used to read the plane's screen basis off [projectToScreen], in
+/// blocks. Small enough that the finite difference stays a good reading of
+/// the perspective quad, large enough to stay clear of float noise.
+const double _planeProbeBlocks = 0.5;
+
+/// Unit normal of a `TextDisplay`'s readable face for a Minecraft yaw/pitch
+/// pair, in world coordinates: yaw 0 faces +Z (south) and is read from the
+/// south, yaw 90 faces -X (west), and positive pitch tips the face downward.
+///
+/// This is Minecraft's own direction vector, NOT [huiLookDirection] — that
+/// one negates X for the menu authoring frame, which does not apply to a
+/// world-anchored hologram.
+PVec3 glossDisplayNormal({
+  required double yawDegrees,
+  double pitchDegrees = 0,
+}) {
+  final double yaw = yawDegrees * math.pi / 180;
+  final double pitch = pitchDegrees * math.pi / 180;
+  final double cosPitch = math.cos(pitch);
+  return PVec3(
+    -cosPitch * math.sin(yaw),
+    -math.sin(pitch),
+    cosPitch * math.cos(yaw),
+  );
+}
+
+/// The pose one billboard mode resolves to against one camera.
+///
+/// [yawDegrees] and [pitchDegrees] are the angles the face actually ends up
+/// at; [tracksYaw] and [tracksPitch] say which of the two the client solves
+/// per viewer instead of reading from the document, and are what the stage
+/// admits it can only show for the camera it has.
+final class HologramFacing {
+  const HologramFacing({
+    required this.yawDegrees,
+    required this.pitchDegrees,
+    required this.tracksYaw,
+    required this.tracksPitch,
+  });
+
+  final double yawDegrees;
+  final double pitchDegrees;
+  final bool tracksYaw;
+  final bool tracksPitch;
+
+  PVec3 get normal =>
+      glossDisplayNormal(yawDegrees: yawDegrees, pitchDegrees: pitchDegrees);
+}
+
+/// Resolves [doc]'s billboard mode against [basis]: `CENTER` turns on both
+/// axes, `VERTICAL` yaws only and keeps `pitch`, `HORIZONTAL` pitches only
+/// and keeps `yaw`, `FIXED` turns on neither and is the only mode where both
+/// document angles reach the screen.
+///
+/// An unknown mode string (which the plugin rejects outright — validation
+/// already flags it) is treated as `CENTER` so the stage keeps drawing.
+HologramFacing hologramFacing({
+  required CameraBasis basis,
+  required GlossHologramDoc doc,
+}) {
+  final List<double> position = doc.anchor.position;
+  final PVec3 toCamera =
+      (basis.position - PVec3(position[0], position[1], position[2]))
+          .normalized;
+  final double cameraYaw = toCamera.lengthSquared == 0
+      ? doc.yaw
+      : math.atan2(-toCamera.x, toCamera.z) * 180 / math.pi;
+  final double cameraPitch = toCamera.lengthSquared == 0
+      ? doc.pitch
+      : -math.asin(toCamera.y.clamp(-1.0, 1.0)) * 180 / math.pi;
+  final bool tracksYaw = doc.billboard != 'FIXED' && doc.billboard != 'HORIZONTAL';
+  final bool tracksPitch = doc.billboard != 'FIXED' && doc.billboard != 'VERTICAL';
+  return HologramFacing(
+    yawDegrees: tracksYaw ? cameraYaw : doc.yaw,
+    pitchDegrees: tracksPitch ? cameraPitch : doc.pitch,
+    tracksYaw: tracksYaw,
+    tracksPitch: tracksPitch,
+  );
+}
+
+/// The drawn text plane as a css 2D matrix, normalised so that a face-on
+/// plane is the identity.
+///
+/// The element is already sized in screen pixels per world block at the
+/// anchor's depth, so this only has to say where the plane's own right and up
+/// axes point on screen relative to that. `CENTER` therefore lands on
+/// [identity] and the stage draws exactly what it drew before `billboard`
+/// existed.
+final class HologramPlaneTransform {
+  const HologramPlaneTransform({
+    required this.a,
+    required this.b,
+    required this.c,
+    required this.d,
+  });
+
+  /// `matrix(1, 0, 0, 1, 0, 0)`: the plane squarely facing the camera.
+  static const HologramPlaneTransform identity = HologramPlaneTransform(
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 1,
+  );
+
+  /// Screen delta per unit of the plane's own right axis.
+  final double a;
+  final double b;
+
+  /// Screen delta per unit of the plane's own down axis (css y grows down).
+  final double c;
+  final double d;
+
+  double get determinant => a * d - b * c;
+
+  /// True when the camera is behind the face: the glyphs render mirrored,
+  /// which is what a FIXED hologram really looks like from behind.
+  bool get isMirrored => determinant < 0;
+
+  /// How much of the face the camera actually sees, 1 square-on and 0 exactly
+  /// edge-on.
+  double get faceCoverage => determinant.abs().clamp(0.0, 1.0);
+
+  /// Under a fiftieth of the face left: the stack collapses to a sliver and
+  /// then to nothing. Not a limitation of the stage — an edge-on
+  /// `TextDisplay` is invisible in game too — but the surface has to say so,
+  /// because a blank stage otherwise reads as a broken document.
+  bool get isEdgeOn => faceCoverage < 0.02;
+}
+
+/// Where the text plane lands on screen for [doc]'s billboard mode.
+///
+/// Read off [projectToScreen] as a finite difference over
+/// [_planeProbeBlocks], so it is a first-order (affine) reading of a quad the
+/// client draws with full perspective: correct in orientation, mirroring and
+/// scale at the anchor, without per-pixel foreshortening across the face. A
+/// probe that falls at or behind the camera gives [HologramPlaneTransform.identity]
+/// rather than a garbage matrix.
+HologramPlaneTransform hologramPlaneTransform({
+  required CameraBasis basis,
+  required GlossHologramDoc doc,
+  required HologramBillboardPlacement placement,
+  required double viewportWidth,
+  required double viewportHeight,
+  double perspectivePx = huiPreviewPerspectivePx,
+}) {
+  final List<double> position = doc.anchor.position;
+  final PVec3 anchor = PVec3(position[0], position[1], position[2]);
+  final HologramFacing facing = hologramFacing(basis: basis, doc: doc);
+  final PVec3 normal = facing.normal;
+  PVec3 right = normal.cross(PVec3.up);
+  if (right.lengthSquared <= 1e-12) {
+    // Straight up or straight down: the yaw alone still names a right axis,
+    // and it is the one the roll-free basis converges to either side of the
+    // pole.
+    final double yaw = facing.yawDegrees * math.pi / 180;
+    right = PVec3(-math.cos(yaw), 0, -math.sin(yaw));
+  }
+  right = right.normalized;
+  final PVec3 up = right.cross(normal).normalized;
+
+  ProjectedPoint? project(PVec3 point) => projectToScreen(
+    basis: basis,
+    point: point,
+    viewportWidth: viewportWidth,
+    viewportHeight: viewportHeight,
+    perspectivePx: perspectivePx,
+  );
+
+  final ProjectedPoint? origin = project(anchor);
+  final ProjectedPoint? alongRight = project(anchor + right * _planeProbeBlocks);
+  final ProjectedPoint? alongUp = project(anchor + up * _planeProbeBlocks);
+  if (origin == null || alongRight == null || alongUp == null) {
+    return HologramPlaneTransform.identity;
+  }
+
+  final double unit = _planeProbeBlocks * placement.pxPerBlock;
+  if (unit.abs() < 1e-9) return HologramPlaneTransform.identity;
+  return HologramPlaneTransform(
+    a: (alongRight.x - origin.x) / unit,
+    b: (alongRight.y - origin.y) / unit,
+    c: -(alongUp.x - origin.x) / unit,
+    d: -(alongUp.y - origin.y) / unit,
+  );
+}
+
+/// One clause for the stage readout: what the mode does, and what a single
+/// camera cannot show about it.
+///
+/// The three tracking modes are solved here against the preview camera only.
+/// In game the client re-solves them per viewer every frame, so two players
+/// standing apart never see the same pose — a fixed frame can show one of
+/// those poses, never the fact that they differ.
+String hologramBillboardNote(String billboard) => switch (billboard) {
+  'FIXED' =>
+    'billboard fixed · never turns; orbit behind it to read it mirrored',
+  'VERTICAL' =>
+    'billboard vertical · yaws to each viewer, keeps its pitch; solved here '
+        'for this camera only',
+  'HORIZONTAL' =>
+    'billboard horizontal · pitches to each viewer, keeps its yaw; solved '
+        'here for this camera only',
+  'CENTER' =>
+    'billboard center · faces every viewer on both axes, so this camera '
+        'stands in for all of them',
+  _ => 'billboard $billboard is not a mode Gloss accepts; drawn as center',
+};
 
 /// Every line rendered through the Gloss text pipeline at [nowMs], in
 /// document order — index 0 is the TOP of the stack, exactly like the joined

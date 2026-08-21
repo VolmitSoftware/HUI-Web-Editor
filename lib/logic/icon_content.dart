@@ -60,6 +60,10 @@ String spriteCacheKey(
     case CanvasIconKind.item:
     case CanvasIconKind.block:
     case CanvasIconKind.customItem:
+    // A head draws the one generic sprite for every name, so the authored
+    // player in `itemKey` is what keeps two heads from sharing a bitmap once
+    // the label under an unresolved sprite differs.
+    case CanvasIconKind.playerHead:
       key
         ..write('|')
         ..write(item.itemProvider)

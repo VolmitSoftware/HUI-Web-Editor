@@ -27,6 +27,7 @@ import 'image_picker_grid.dart';
 import 'inspector_session.dart';
 import 'inspector_widgets.dart';
 import 'item_picker.dart';
+import 'player_head_picker.dart';
 import 'reorder_list.dart';
 import 'text_icon_editor.dart';
 
@@ -97,6 +98,10 @@ const Map<String, List<String>> huiIconTypeDocKeys = <String, List<String>>{
     'icon.entity.entity',
     'icon.entity.width',
     'icon.entity.height',
+  ],
+  'playerHead': <String>[
+    'icon.playerHead.player',
+    'icon.playerHead.refreshTicks',
   ],
 };
 
@@ -244,6 +249,12 @@ class IconEditor extends StatelessWidget {
           icon: ArcaneIcon.user(size: IconSize.sm),
           hint: huiIconTypeDescriptions['entity'],
         ),
+        HuiSegment(
+          value: 'playerHead',
+          label: 'Head',
+          icon: ArcaneIcon.circleUser(size: IconSize.sm),
+          hint: huiIconTypeDescriptions['playerHead'],
+        ),
       ],
     ),
     HuiHelpCluster(
@@ -353,6 +364,12 @@ class IconEditor extends StatelessWidget {
         issues: _slotIssues,
         onChanged: (String label, HuiEntityIcon next) => _write(label, next),
       ),
+      final HuiPlayerHeadIcon head => PlayerHeadIconEditor(
+        icon: head,
+        issues: _slotIssues,
+        onChanged: (String label, HuiPlayerHeadIcon next) =>
+            _write(label, next),
+      ),
     },
     if (icon is! HuiEntityIcon)
       _DisplayStyleEditor(
@@ -396,6 +413,7 @@ class IconEditor extends StatelessWidget {
     'block' => 'Block',
     'customItem' => 'Custom item',
     'entity' => 'Entity',
+    'playerHead' => 'Player head',
     _ => type,
   };
 }

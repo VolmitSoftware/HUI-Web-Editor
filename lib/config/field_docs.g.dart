@@ -1,7 +1,7 @@
 // GENERATED FILE - DO NOT HAND-EDIT.
 //
 // Regenerate with `dart run tool/extract_field_docs.dart`.
-// Source: gloss.schema.json, gloss-preview.schema.json in the Gloss plugin repo.
+// Source: gloss.schema.json, gloss-preview.schema.json, gloss-real-drops.schema.json in the Gloss plugin repo.
 
 /// Schema-derived field help: the fallback layer behind the
 /// hand-written entries in `field_docs.dart`.
@@ -320,6 +320,26 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     body: 'Defines the type of item displayed.',
     citation: 'gloss.schema.json#/\$defs/itemIcon/properties/item',
   ),
+  'icon.playerHead.player': HuiFieldDoc(
+    title: 'Player',
+    body:
+        'Defines whose head to draw: a literal Minecraft username, or a '
+        'placeholder resolved per viewer. %player_name%, %player% and {{ '
+        'player.name }} always mean the viewer and need no '
+        'PlaceholderAPI; any other placeholder resolves through the text '
+        'pipeline and needs whatever provides it.',
+    citation: 'gloss.schema.json#/\$defs/playerHeadIcon/properties/player',
+  ),
+  'icon.playerHead.refreshTicks': HuiFieldDoc(
+    title: 'Refresh ticks',
+    body:
+        'Ticks between re-reading the name and the profile cache. Omitted '
+        'defaults to 20. Zero never re-reads, which leaves a head whose '
+        'lookup was still in flight as the unowned head. Accepted range: '
+        '0 through 1200. Omitted, this is 20.',
+    citation:
+        'gloss.schema.json#/\$defs/playerHeadIcon/properties/refreshTicks',
+  ),
   'icon.style': HuiFieldDoc(
     title: 'Style',
     body:
@@ -449,7 +469,7 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Type',
     body:
         'Defines the type of icon. Accepted values: text, textImage, '
-        'animatedTextImage, item, block, customItem, entity.',
+        'animatedTextImage, item, block, customItem, entity, playerHead.',
     citation: 'gloss.schema.json#/\$defs/icon/properties/type',
   ),
   'menu.closeOnDeath': HuiFieldDoc(
@@ -809,6 +829,590 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         '"#FFB02E26" without losing the alpha byte to a signed int. A '
         'leading \'#\' that is not a valid colour literal fails to compile.',
     citation: 'gloss-preview.schema.json#/\$defs/vars',
+  ),
+  'realDrops.axis': HuiFieldDoc(
+    title: 'Axis',
+    body:
+        'Three expressions, one per axis. Any axis you leave out or leave '
+        'blank falls back to the block\'s neutral value (0 for offset and '
+        'rotation, 1 for scale).',
+    citation: 'gloss-real-drops.schema.json#/\$defs/axis',
+  ),
+  'realDrops.axis.x': HuiFieldDoc(
+    title: 'X',
+    body: 'Expression for the X axis. X is east in world space.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/axis/properties/x',
+  ),
+  'realDrops.axis.y': HuiFieldDoc(
+    title: 'Y',
+    body: 'Expression for the Y axis. Y is up.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/axis/properties/y',
+  ),
+  'realDrops.axis.z': HuiFieldDoc(
+    title: 'Z',
+    body: 'Expression for the Z axis. Z is south in world space.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/axis/properties/z',
+  ),
+  'realDrops.expression': HuiFieldDoc(
+    title: 'Expression',
+    body:
+        'A string in the Gloss expression language, compiled once when '
+        'the document loads and evaluated once per display per update. A '
+        'parse error names the field and the character position and '
+        'refuses the document; a failure at runtime logs once and falls '
+        'back to the neutral value for that field rather than breaking '
+        'the drop. Grammar: numbers, single- or double-quoted strings '
+        '(escapes \\\\ \\\' \\" \\n), colour literals (#RGB, #RRGGBB, '
+        '#AARRGGBB), true/false, variables, array literals ([a, b, c], '
+        'used by palette and select), calls, unary ! and -, then * / %, + '
+        '-, < <= > >=, == !=, &&, ||, and a ? b : c. && and || '
+        'short-circuit, so "onGround && height < 1" is safe. Strings '
+        'concatenate with +. % is Java\'s truncating remainder (-1 % 3 is '
+        '-1) while mod() floors (mod(-1, 3) is 2); both throw on a zero '
+        'divisor. VARIABLES: t (seconds since this stack spawned), age '
+        '(ticks the item entity has lived), index (which display in the '
+        'stack, from 0), count (how many displays this stack has), amount '
+        '(items in the stack), onGround, settled (the item has come to '
+        'rest and is being polled slowly), inWater, inLava, bounces '
+        '(landings counted so far), velocityX, velocityY, velocityZ '
+        '(blocks per tick), speed (magnitude of that velocity), height '
+        '(blocks between the item and the first solid block below it, '
+        'probed up to 32 blocks, 0 when it is resting), blockLight and '
+        'skyLight (0-15 at the item\'s block), random (a value in [0,1) '
+        'fixed for the lifetime of this item, so it never flickers), '
+        'material (the item\'s material name, upper case, e.g. '
+        '"REDSTONE_TORCH"), isBlock, isFlat and isThin (which of the '
+        'three scale families this item resolved to), pi. FUNCTIONS: the '
+        'standard library - clamp, lerp, min, max, floor, ceil, round, '
+        'abs, mod, pow, smoothstep, sin, cos, rgb, argb, alpha, mix, '
+        'palette, select, number, bar, hex, str, fixed, plain, readable - '
+        'plus two drop-specific tests: materialIs(name) is an exact '
+        'case-insensitive material match that also accepts a "minecraft:" '
+        'prefix, and materialMatches(glob) matches the material name '
+        'against a glob where * is any run of characters and ? is one '
+        'character, so materialMatches(\'*_TORCH\') covers REDSTONE_TORCH, '
+        'SOUL_TORCH and WALL_TORCH.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/expression',
+  ),
+  'realDrops.filters': HuiFieldDoc(
+    title: 'Filters',
+    body:
+        'Which drops get a presentation at all. A filtered-out item keeps '
+        'its ordinary vanilla appearance.',
+    citation: 'gloss-real-drops.schema.json#/properties/filters',
+  ),
+  'realDrops.filters.disabledWorlds': HuiFieldDoc(
+    title: 'Disabled worlds',
+    body:
+        'World names, matched case-insensitively, where drops keep their '
+        'vanilla appearance. Empty means every world is presented.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/filters/properties/disabledWorlds',
+  ),
+  'realDrops.filters.materialBlacklist': HuiFieldDoc(
+    title: 'Material blacklist',
+    body:
+        'Material names, upper case, that are never presented. Defaults '
+        'to BEDROCK and BARRIER. Setting this key to an empty array '
+        'really does clear it; omitting the key restores the two '
+        'defaults.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/filters/properties/materialBlacklist',
+  ),
+  'realDrops.filters.onlyPlayerDrops': HuiFieldDoc(
+    title: 'Only player drops',
+    body:
+        'When true, only items a player threw or dropped are presented; '
+        'mob loot, block breaks and dispensers keep their vanilla look. '
+        'Default false.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/filters/properties/onlyPlayerDrops',
+  ),
+  'realDrops.labels': HuiFieldDoc(
+    title: 'Labels',
+    body: 'The floating TextDisplay name drawn above a dropped stack.',
+    citation: 'gloss-real-drops.schema.json#/properties/labels',
+  ),
+  'realDrops.labels.background': HuiFieldDoc(
+    title: 'Background',
+    body:
+        'Whether the label draws its coloured background plate. When '
+        'false the plate is fully transparent and the four background '
+        'channels are ignored. Default true.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/background',
+  ),
+  'realDrops.labels.backgroundAlpha': HuiFieldDoc(
+    title: 'Background alpha',
+    body:
+        'Opacity of the label background plate, 0-255. Default 80. '
+        'Accepted range: 0 through 255.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/backgroundAlpha',
+  ),
+  'realDrops.labels.backgroundBlue': HuiFieldDoc(
+    title: 'Background blue',
+    body:
+        'Blue channel of the label background plate, 0-255. Default 0. '
+        'Accepted range: 0 through 255.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/backgroundBlue',
+  ),
+  'realDrops.labels.backgroundGreen': HuiFieldDoc(
+    title: 'Background green',
+    body:
+        'Green channel of the label background plate, 0-255. Default 0. '
+        'Accepted range: 0 through 255.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/backgroundGreen',
+  ),
+  'realDrops.labels.backgroundRed': HuiFieldDoc(
+    title: 'Background red',
+    body:
+        'Red channel of the label background plate, 0-255. Default 0. '
+        'Accepted range: 0 through 255.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/backgroundRed',
+  ),
+  'realDrops.labels.billboard': HuiFieldDoc(
+    title: 'Billboard',
+    body:
+        'How the label turns to face the viewer. CENTER always faces the '
+        'camera, HORIZONTAL and VERTICAL pivot on one axis only, FIXED '
+        'never turns. Default CENTER. Accepted values: CENTER, FIXED, '
+        'HORIZONTAL, VERTICAL.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/billboard',
+  ),
+  'realDrops.labels.enabled': HuiFieldDoc(
+    title: 'Enabled',
+    body:
+        'Whether the floating name is drawn. When off, the item\'s own '
+        'custom name visibility is restored. Default true.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/enabled',
+  ),
+  'realDrops.labels.scale': HuiFieldDoc(
+    title: 'Scale',
+    body:
+        'Text size of the label. Clamped to 0.1-4, default 0.85. Accepted '
+        'range: 0.1 through 4.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/scale',
+  ),
+  'realDrops.labels.seeThrough': HuiFieldDoc(
+    title: 'See through',
+    body: 'Whether the label is visible through blocks. Default true.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/seeThrough',
+  ),
+  'realDrops.labels.shadow': HuiFieldDoc(
+    title: 'Shadow',
+    body:
+        'Whether the label text is drawn with a drop shadow. Default '
+        'true.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/shadow',
+  ),
+  'realDrops.labels.viewRange': HuiFieldDoc(
+    title: 'View range',
+    body:
+        'Distance in blocks at which the label stops rendering. Clamped '
+        'to 4-128, default 32. Accepted range: 4 through 128.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/viewRange',
+  ),
+  'realDrops.labels.yOffset': HuiFieldDoc(
+    title: 'Y offset',
+    body:
+        'Height of the label above the item, in blocks. Clamped to 0-4, '
+        'default 0.55. Accepted range: 0 through 4.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/yOffset',
+  ),
+  'realDrops.landing': HuiFieldDoc(
+    title: 'Landing',
+    body:
+        'The resting pose an item settles into once it touches the '
+        'ground.',
+    citation: 'gloss-real-drops.schema.json#/properties/landing',
+  ),
+  'realDrops.landing.mode': HuiFieldDoc(
+    title: 'Mode',
+    body:
+        'The resting pose. NATURAL rolls block items onto whichever face '
+        'is nearest the ground and gives everything else a small random '
+        'tilt; FLAT lays every item face-up; UPRIGHT stands every item on '
+        'end. Default NATURAL. Accepted values: NATURAL, FLAT, UPRIGHT.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/landing/properties/mode',
+  ),
+  'realDrops.landing.randomYaw': HuiFieldDoc(
+    title: 'Random yaw',
+    body:
+        'Whether each item gets its own resting yaw, so a pile of the '
+        'same drop does not look cloned. Default true.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/landing/properties/randomYaw',
+  ),
+  'realDrops.landing.tiltDegrees': HuiFieldDoc(
+    title: 'Tilt degrees',
+    body:
+        'Maximum random lean, in degrees, applied to a resting item in '
+        'NATURAL mode. 0 makes every landing perfectly square. Clamped to '
+        '0-45, default 10. Accepted range: 0 through 45.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/landing/properties/tiltDegrees',
+  ),
+  'realDrops.landing.transitionTicks': HuiFieldDoc(
+    title: 'Transition ticks',
+    body:
+        'Interpolation length, in ticks, for the move from the tumbling '
+        'pose to the resting pose. 0 snaps. Clamped to 0-20, default 4. '
+        'Accepted range: 0 through 20.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/landing/properties/transitionTicks',
+  ),
+  'realDrops.limits': HuiFieldDoc(
+    title: 'Limits',
+    body:
+        'Update cadence and per-chunk budget. These are the knobs that '
+        'decide how much work the presentation costs; raising the visual '
+        'counts multiplies the number of display entities on screen.',
+    citation: 'gloss-real-drops.schema.json#/properties/limits',
+  ),
+  'realDrops.limits.maxVisualsPerChunk': HuiFieldDoc(
+    title: 'Max visuals per chunk',
+    body:
+        'Total display entities Gloss will spawn for drops in a single '
+        'chunk, labels included. Once the budget is exhausted further '
+        'drops in that chunk keep their vanilla look until room frees up. '
+        'Clamped to 8-1024, default 128. Accepted range: 8 through 1024.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/limits/properties/maxVisualsPerChunk',
+  ),
+  'realDrops.limits.maxVisualsPerStack': HuiFieldDoc(
+    title: 'Max visuals per stack',
+    body:
+        'Upper bound on the number of ItemDisplay models drawn for one '
+        'dropped stack. Larger stacks earn more models up to this cap: 1 '
+        'model below 2 items, 2 up to 16, 3 up to 32, 4 up to 48, then '
+        'the cap. Clamped to 1-5, default 3. Accepted range: 1 through 5.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/limits/properties/maxVisualsPerStack',
+  ),
+  'realDrops.limits.settledPollIntervalTicks': HuiFieldDoc(
+    title: 'Settled poll interval ticks',
+    body:
+        'Ticks between updates once an item has come to rest. A settled '
+        'item is not re-posed, so this can be much slower than the moving '
+        'interval. Clamped to 2-200, default 20. The physics block forces '
+        'the faster moving interval while an item is in water, since a '
+        'buoyant item is never really at rest. Accepted range: 2 through '
+        '200.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/limits/properties/settledPollIntervalTicks',
+  ),
+  'realDrops.limits.spread': HuiFieldDoc(
+    title: 'Spread',
+    body:
+        'How far the extra models of a multi-model stack sit from the '
+        'first one, as a fraction of the authored offsets. 0 stacks them '
+        'all in one place. Clamped to 0-1, default 0.18. Accepted range: '
+        '0 through 1.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/limits/properties/spread',
+  ),
+  'realDrops.limits.updateIntervalTicks': HuiFieldDoc(
+    title: 'Update interval ticks',
+    body:
+        'Ticks between presentation updates while an item is moving. '
+        'Lower is smoother and more expensive. Clamped to 1-20, default '
+        '2. Accepted range: 1 through 20.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/limits/properties/updateIntervalTicks',
+  ),
+  'realDrops.limits.viewRange': HuiFieldDoc(
+    title: 'View range',
+    body:
+        'Distance in blocks at which the item models stop rendering for a '
+        'client. Clamped to 4-128, default 32. A script whose visible '
+        'expression is false hides a display by driving its view range to '
+        'zero. Accepted range: 4 through 128.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/limits/properties/viewRange',
+  ),
+  'realDrops.motion': HuiFieldDoc(
+    title: 'Motion',
+    body:
+        'Mid-air tumble. Applies while the item is falling; once it lands '
+        'the landing block takes over.',
+    citation: 'gloss-real-drops.schema.json#/properties/motion',
+  ),
+  'realDrops.motion.changeOnBounce': HuiFieldDoc(
+    title: 'Change on bounce',
+    body:
+        'Whether an item re-rolls its tumble rates each time it bounces. '
+        'Default true. The bounces script variable counts those bounces '
+        'whether or not this is on.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/motion/properties/changeOnBounce',
+  ),
+  'realDrops.motion.degreesPerSecondX': HuiFieldDoc(
+    title: 'Degrees per second X',
+    body:
+        'Base pitch tumble rate in degrees per second, before variance '
+        'and the speed multiplier. Clamped to -1440 to 1440, default 160. '
+        'Accepted range: -1440 through 1440.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/motion/properties/degreesPerSecondX',
+  ),
+  'realDrops.motion.degreesPerSecondY': HuiFieldDoc(
+    title: 'Degrees per second Y',
+    body:
+        'Base yaw tumble rate in degrees per second. Clamped to -1440 to '
+        '1440, default 120. Accepted range: -1440 through 1440.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/motion/properties/degreesPerSecondY',
+  ),
+  'realDrops.motion.degreesPerSecondZ': HuiFieldDoc(
+    title: 'Degrees per second Z',
+    body:
+        'Base roll tumble rate in degrees per second. Clamped to -1440 to '
+        '1440, default 100. Accepted range: -1440 through 1440.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/motion/properties/degreesPerSecondZ',
+  ),
+  'realDrops.motion.speedMultiplier': HuiFieldDoc(
+    title: 'Speed multiplier',
+    body:
+        'Multiplies all three tumble rates at once. Clamped to 0.1-4, '
+        'default 1.35. Accepted range: 0.1 through 4.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/motion/properties/speedMultiplier',
+  ),
+  'realDrops.motion.tumble': HuiFieldDoc(
+    title: 'Tumble',
+    body:
+        'Whether an airborne item spins. Turn this off for items that '
+        'should fall flat and still. Default true.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/motion/properties/tumble',
+  ),
+  'realDrops.motion.variance': HuiFieldDoc(
+    title: 'Variance',
+    body:
+        'How much the per-item tumble rate is allowed to wander from the '
+        'configured base, as a fraction. 0 makes every item spin '
+        'identically; the direction of each axis is still chosen per '
+        'item. Clamped to 0-1, default 0.2. Accepted range: 0 through 1.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/motion/properties/variance',
+  ),
+  'realDrops.physics': HuiFieldDoc(
+    title: 'Physics',
+    body:
+        'Real changes to how the dropped Item entity moves, not just how '
+        'it looks. Disabled by default. These knobs write to the entity\'s '
+        'velocity and gravity flag, so they move the item\'s real position '
+        'and its pickup hitbox with it. They only apply while the item '
+        'has a Gloss presentation: a filtered-out or ineligible drop '
+        'falls exactly as vanilla does.',
+    citation: 'gloss-real-drops.schema.json#/properties/physics',
+  ),
+  'realDrops.physics.bounce': HuiFieldDoc(
+    title: 'Bounce',
+    body:
+        'Restitution applied when an item lands. Vanilla items do not '
+        'bounce at all; Gloss detects the landing and rewrites the '
+        'vertical velocity to the given fraction of the approach speed, '
+        'so the item really leaves the ground again. Each bounce '
+        'increments the bounces script variable and, when '
+        'motion.changeOnBounce is on, re-rolls the tumble. Very small '
+        'landings below a fixed threshold are ignored so a resting item '
+        'does not jitter. Clamped to 0-0.9, default 0 (off). Accepted '
+        'range: 0 through 0.9.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/physics/properties/bounce',
+  ),
+  'realDrops.physics.enabled': HuiFieldDoc(
+    title: 'Enabled',
+    body:
+        'Master switch for the physics layer. Default false, and while it '
+        'is false Gloss never touches the item entity\'s velocity or '
+        'gravity flag, so drops fall exactly as vanilla does.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/physics/properties/enabled',
+  ),
+  'realDrops.physics.gravityMultiplier': HuiFieldDoc(
+    title: 'Gravity multiplier',
+    body:
+        'Scales how hard a dropped item falls. This is a real change to '
+        'the entity: at 1 nothing is touched, above 1 Gloss adds extra '
+        'downward velocity each update, below 1 it adds upward velocity '
+        'to cancel part of the fall, and exactly 0 clears the entity\'s '
+        'gravity flag so the item hangs where it is. Because the '
+        'correction is applied per update rather than per tick, the '
+        'effective acceleration is approximate at slow update intervals. '
+        'Clamped to 0-4, default 1. Accepted range: 0 through 4.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/physics/properties/gravityMultiplier',
+  ),
+  'realDrops.physics.waterBuoyancy': HuiFieldDoc(
+    title: 'Water buoyancy',
+    body:
+        'Upward velocity added each update while the item is in water, on '
+        'top of whatever vanilla already does. This is real movement: a '
+        'buoyant item rises and can be picked up higher in the column. '
+        'Clamped to 0-1, default 0 (off). Accepted range: 0 through 1.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/physics/properties/waterBuoyancy',
+  ),
+  'realDrops.physics.waterDrag': HuiFieldDoc(
+    title: 'Water drag',
+    body:
+        'Fraction of the item\'s velocity removed each update while it is '
+        'in water, applied to all three axes. 0 leaves vanilla water '
+        'motion alone, 1 stops the item dead the moment it is submerged. '
+        'Clamped to 0-1, default 0 (off). Accepted range: 0 through 1.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/physics/properties/waterDrag',
+  ),
+  'realDrops.revision': HuiFieldDoc(
+    title: 'Revision',
+    body:
+        'Server-owned monotonic revision counter. Starts at 1 and '
+        'increases every time the server rewrites the document; editors '
+        'must send back the revision they read so a concurrent change is '
+        'detected instead of silently overwritten. Accepted range: 1 '
+        'through 9007199254740991.',
+    citation: 'gloss-real-drops.schema.json#/properties/revision',
+  ),
+  'realDrops.scale': HuiFieldDoc(
+    title: 'Scale',
+    body:
+        'Base display size per model shape. Every dropped item falls into '
+        'one of three shape families and takes the matching scale, which '
+        'the script layer\'s scale block then multiplies.',
+    citation: 'gloss-real-drops.schema.json#/properties/scale',
+  ),
+  'realDrops.scale.defaultScale': HuiFieldDoc(
+    title: 'Default scale',
+    body:
+        'Display size for full block items such as STONE. Clamped to '
+        '0.05-2, default 0.4. Accepted range: 0.05 through 2.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/scale/properties/defaultScale',
+  ),
+  'realDrops.scale.flatItems': HuiFieldDoc(
+    title: 'Flat items',
+    body:
+        'Display size for items rendered as a flat sprite: every '
+        'non-block item, plus block items whose model is a flat plane '
+        'such as TORCH, RAIL, signs and doors. Clamped to 0.05-2, default '
+        '0.65. Accepted range: 0.05 through 2.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/scale/properties/flatItems',
+  ),
+  'realDrops.scale.thinBlocks': HuiFieldDoc(
+    title: 'Thin blocks',
+    body:
+        'Display size for slabs, carpets, pressure plates and snow. '
+        'Clamped to 0.05-2, default 0.45. Accepted range: 0.05 through 2.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/scale/properties/thinBlocks',
+  ),
+  'realDrops.schemaVersion': HuiFieldDoc(
+    title: 'Schema version',
+    body:
+        'Document format version. Must be exactly 1; any other value is '
+        'rejected outright rather than migrated.',
+    citation: 'gloss-real-drops.schema.json#/properties/schemaVersion',
+  ),
+  'realDrops.script': HuiFieldDoc(
+    title: 'Script',
+    body:
+        'The scripted presentation layer: expression strings, compiled '
+        'once when the document loads and evaluated per display every '
+        'update. Disabled by default, and additive - it composes on top '
+        'of everything the scale, motion and landing blocks already '
+        'computed rather than replacing it. Script results move the '
+        'DISPLAY only; the item entity, its collision and its pickup '
+        'radius stay where Minecraft put them. Use the physics block when '
+        'the item itself must move.',
+    citation: 'gloss-real-drops.schema.json#/properties/script',
+  ),
+  'realDrops.script.enabled': HuiFieldDoc(
+    title: 'Enabled',
+    body:
+        'Master switch for the script layer. Default false. While it is '
+        'false every expression here is still parsed and validated when '
+        'the document loads, so a broken expression is reported '
+        'immediately, but nothing is evaluated at runtime and the '
+        'presentation is bit-for-bit what it was before the script block '
+        'existed.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/script/properties/enabled',
+  ),
+  'realDrops.script.glow': HuiFieldDoc(
+    title: 'Glow',
+    body:
+        'Colour of the display\'s glowing outline. An empty string turns '
+        'the whole feature off and is the default. Otherwise it is an '
+        'expression producing either a colour number (a #RRGGBB or '
+        '#AARRGGBB literal, or rgb()/argb()/mix()/palette()) or a #RRGGBB '
+        'string; a result of exactly 0 means no glow, which is how a '
+        'conditional glow is written - for example "materialIs(\'torch\') ? '
+        '#FFAA55 : 0". Only the red, green and blue channels reach the '
+        'client; the outline itself is drawn by the client, so it is '
+        'visible through blocks.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/script/properties/glow',
+  ),
+  'realDrops.script.offset': HuiFieldDoc(
+    title: 'Offset',
+    body:
+        'Extra displacement of the display, in blocks, added to the '
+        'offset the document already computed for this model. Positive Y '
+        'lifts the model. This moves the picture only: the item entity '
+        'and its pickup radius do not follow, so a large offset visually '
+        'detaches the model from the thing a player walks over. Each axis '
+        'is clamped to -16..16 blocks. Defaults to 0 on every axis.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/script/properties/offset',
+  ),
+  'realDrops.script.rotation': HuiFieldDoc(
+    title: 'Rotation',
+    body:
+        'Extra rotation in degrees, composed onto the pose the tumble and '
+        'landing blocks produced rather than replacing it, and applied in '
+        'X then Y then Z order. The resting height correction is '
+        'recomputed from the final pose, so a scripted rotation of a '
+        'block item will not sink it into the floor. Each axis is clamped '
+        'to -3600..3600 degrees. Defaults to 0 on every axis.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/script/properties/rotation',
+  ),
+  'realDrops.script.scale': HuiFieldDoc(
+    title: 'Scale',
+    body:
+        'Multiplier applied to whichever scale family this item resolved '
+        'to, per axis, so 1 leaves the configured size alone and 2 '
+        'doubles it. Non-uniform values squash and stretch the model. '
+        'Each axis is clamped to 0..16; 0 collapses the model to nothing, '
+        'which is a blunter way of hiding it than the visible expression. '
+        'Defaults to 1 on every axis.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/script/properties/scale',
+  ),
+  'realDrops.script.vars': HuiFieldDoc(
+    title: 'Vars',
+    body:
+        'Author-defined intermediate values, written as a name to '
+        'expression map. They are evaluated first, in the order they '
+        'appear in the file, and each one is visible to every expression '
+        'declared after it as well as to offset, rotation, scale, glow '
+        'and visible. This is what makes non-trivial logic writable: give '
+        'the condition a name once, then reuse it. Each value must '
+        'evaluate to a number, so encode a flag as 1 and 0 and test it '
+        'with a comparison. A name must be a plain identifier, must not '
+        'repeat, and must not shadow a built-in variable. At most 32 '
+        'entries.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/script/properties/vars',
+  ),
+  'realDrops.script.visible': HuiFieldDoc(
+    title: 'Visible',
+    body:
+        'Boolean expression gating whether this display is drawn at all. '
+        'Must evaluate to true or false, not a number. A false result '
+        'drives the display\'s view range to zero, which stops clients '
+        'rendering it; the item entity is untouched and remains '
+        'pickupable. Defaults to "true".',
+    citation: 'gloss-real-drops.schema.json#/\$defs/script/properties/visible',
   ),
   'toggle.condition': HuiFieldDoc(
     title: 'Condition',

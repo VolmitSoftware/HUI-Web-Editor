@@ -174,7 +174,89 @@ void main() {
     });
   });
 
+  group('orientation', () {
+    test('defaults to the pre-billboard pose when the keys are absent', () {
+      final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
+      expect(doc.billboard, 'CENTER');
+      expect(doc.yaw, 0);
+      expect(doc.pitch, 0);
+    });
+
+    test('a document without the keys re-encodes byte for byte', () {
+      final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
+      final String encoded = encodeGlossHologramDoc(doc);
+      expect(encoded.contains('billboard'), isFalse);
+      expect(encoded.contains('yaw'), isFalse);
+      expect(encoded.contains('pitch'), isFalse);
+      expect(encodeGlossHologramDoc(decodeGlossHologramDoc(encoded)), encoded);
+    });
+
+    test('reads and re-emits an authored pose, uppercasing the mode', () {
+      final GlossHologramDoc doc = decodeGlossHologramDoc(
+        _baseline.replaceFirst(
+          '"lines": [',
+          '"billboard": " fixed ",\n  "yaw": -135.5,\n  "pitch": 12.25,\n  "lines": [',
+        ),
+      );
+      expect(doc.billboard, 'FIXED');
+      expect(doc.yaw, -135.5);
+      expect(doc.pitch, 12.25);
+      final Map<String, dynamic> out =
+          jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>;
+      expect(out['billboard'], 'FIXED');
+      expect(out['yaw'], -135.5);
+      expect(out['pitch'], 12.25);
+    });
+
+    test('an explicit default is kept, never tidied away', () {
+      final GlossHologramDoc doc = decodeGlossHologramDoc(
+        _baseline.replaceFirst(
+          '"lines": [',
+          '"billboard": "CENTER",\n  "yaw": 0,\n  "pitch": 0,\n  "lines": [',
+        ),
+      );
+      final Map<String, dynamic> out =
+          jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>;
+      expect(out.containsKey('billboard'), isTrue);
+      expect(out.containsKey('yaw'), isTrue);
+      expect(out.containsKey('pitch'), isTrue);
+    });
+
+    test('a non-default value written into an absent key still emits', () {
+      final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
+      doc.billboard = 'VERTICAL';
+      doc.pitch = -20;
+      final Map<String, dynamic> out =
+          jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>;
+      expect(out['billboard'], 'VERTICAL');
+      expect(out['pitch'], -20);
+      expect(out.containsKey('yaw'), isFalse, reason: 'still absent and 0');
+    });
+
+    test('an out-of-range angle survives the round-trip for validation', () {
+      final GlossHologramDoc doc = decodeGlossHologramDoc(
+        _baseline.replaceFirst('"lines": [', '"pitch": 240,\n  "lines": ['),
+      );
+      expect(doc.pitch, 240);
+      expect(
+        (jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>)['pitch'],
+        240,
+      );
+    });
+  });
+
   group('copy', () {
+    test('carries the orientation', () {
+      final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
+      doc.billboard = 'HORIZONTAL';
+      doc.yaw = 45;
+      doc.pitch = -10;
+      final GlossHologramDoc copied = doc.copy();
+      expect(copied.billboard, 'HORIZONTAL');
+      expect(copied.yaw, 45);
+      expect(copied.pitch, -10);
+    });
+
     test('is deep: neither lines nor anchor nor extras are shared', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
       final GlossHologramDoc copied = doc.copy();

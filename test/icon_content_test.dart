@@ -232,6 +232,37 @@ void main() {
       expect(keys.length, 4);
     });
 
+    test('separates two heads by the name each one draws', () {
+      // Every head draws one generic sprite, so the authored name is the only
+      // thing that can tell two of them apart.
+      final CanvasScene scene = _scene(<HuiComponent>[
+        HuiComponent(
+          'notch',
+          Vec3(0, 0, 0),
+          HuiDecorationData(HuiPlayerHeadIcon('Notch')),
+        ),
+        HuiComponent(
+          'viewer',
+          Vec3(1, 0, 0),
+          HuiDecorationData(HuiPlayerHeadIcon('%player_name%')),
+        ),
+        HuiComponent(
+          'same',
+          Vec3(2, 0, 0),
+          HuiDecorationData(HuiPlayerHeadIcon('Notch')),
+        ),
+        HuiComponent(
+          'item',
+          Vec3(3, 0, 0),
+          HuiDecorationData(HuiItemIcon('Notch', 1, 0)),
+        ),
+      ]);
+      expect(_key(scene, 'notch'), _key(scene, 'same'));
+      expect(_key(scene, 'notch'), isNot(_key(scene, 'viewer')));
+      // The kind leads the key, so a head never shares an item's bitmap.
+      expect(_key(scene, 'notch'), isNot(_key(scene, 'item')));
+    });
+
     test('a missing icon keys the same everywhere', () {
       final CanvasScene scene = _scene(<HuiComponent>[
         HuiComponent('a', Vec3(0, 0, 0), HuiDecorationData(HuiTextImageIcon())),

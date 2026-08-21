@@ -380,8 +380,9 @@ const List<String> _nonFeatureList = <String>[
   'Text placeholders refresh every 10 ticks by default. Set refreshTicks to 0 '
       'when a text icon should stay frozen after its initial render.',
   'No placeholders in commands. The command string is dispatched verbatim.',
-  'Only three component types (button, decoration, toggle), seven icon types '
-      '(text, textImage, animatedTextImage, item, block, customItem, entity) and six action '
+  'Only three component types (button, decoration, toggle), eight icon types '
+      '(text, textImage, animatedTextImage, item, block, customItem, entity, '
+      'playerHead) and six action '
       'types (command, sound, message, teleport, connect, navigate). '
       'itemStack is API-only and cannot be parsed from JSON; fontImage is not '
       'a current icon type.',

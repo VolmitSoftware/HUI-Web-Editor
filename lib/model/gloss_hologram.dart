@@ -6,9 +6,17 @@
 ///   "revision": 1,
 ///   "anchor": {"world": "world", "position": [0.0, 0.0, 0.0]},
 ///   "lines": ["&dNew hologram"],
-///   "seeThrough": true
+///   "seeThrough": true,
+///   "billboard": "CENTER",
+///   "yaw": 0.0,
+///   "pitch": 0.0
 /// }
 /// ```
+///
+/// `billboard`, `yaw` and `pitch` are optional and default to `CENTER`, 0 and
+/// 0, which is exactly what the plugin did before they existed
+/// (`HologramDoc.java:41-43`), so a file written without them keeps rendering
+/// the way it does now and this model re-emits it unchanged.
 ///
 /// The Java side parses through `BukkitJson.GSON` (lenient, serializeNulls,
 /// `Vector` as a strict `[x, y, z]` array, `SingleCollectionTypeFactory`); the
@@ -56,7 +64,30 @@ const Set<String> _docKnown = <String>{
   'anchor',
   'lines',
   'seeThrough',
+  'billboard',
+  'yaw',
+  'pitch',
 };
+
+/// The four `Display.Billboard` names `HologramDoc` accepts, in the uppercase
+/// spelling its constructor normalises to; anything else makes the plugin
+/// reject the whole file (`HologramDoc.java:16,63-70`).
+const List<String> glossHologramBillboards = <String>[
+  'CENTER',
+  'FIXED',
+  'HORIZONTAL',
+  'VERTICAL',
+];
+
+/// What a document without a `billboard` key gets, and what every hologram
+/// rendered before the key existed used.
+const String glossHologramDefaultBillboard = 'CENTER';
+
+/// `HologramDoc.MAX_YAW_DEGREES` (`HologramDoc.java:18`).
+const double glossHologramMaxYawDegrees = 180;
+
+/// `HologramDoc.MAX_PITCH_DEGREES` (`HologramDoc.java:19`).
+const double glossHologramMaxPitchDegrees = 90;
 
 const Set<String> _anchorKnown = <String>{'world', 'position'};
 
@@ -157,6 +188,9 @@ final class GlossHologramDoc extends GlossDoc {
     GlossHologramAnchor? anchor,
     List<String>? lines,
     this.seeThrough = true,
+    this.billboard = glossHologramDefaultBillboard,
+    this.yaw = 0,
+    this.pitch = 0,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
   }) : anchor = anchor ?? GlossHologramAnchor(),
@@ -167,15 +201,31 @@ final class GlossHologramDoc extends GlossDoc {
   GlossHologramAnchor anchor;
 
   /// Hologram text, one entry per line. The plugin joins them with `\n` into
-  /// a single `TextDisplay` (`PersistentHologram.java:414-420`) after running
+  /// a single `TextDisplay` (`PersistentHologram.java:594-609`) after running
   /// each through the text pipeline. May legally be empty
   /// (`HologramDoc.copyLines` accepts null as an empty list).
   List<String> lines;
   bool seeThrough;
 
+  /// Which axes the entity is allowed to turn on to face a viewer, uppercased
+  /// on read the way `HologramDoc.requireBillboard` uppercases it. Only
+  /// `FIXED` leaves BOTH axes alone, and only then do [yaw] and [pitch]
+  /// decide the whole pose; `VERTICAL` keeps [pitch], `HORIZONTAL` keeps
+  /// [yaw], and `CENTER` keeps neither.
+  String billboard;
+
+  /// Entity yaw in degrees, -180 to 180, in Minecraft's convention: 0 faces
+  /// south (+Z) and increasing yaw turns clockwise seen from above. Ignored
+  /// on the axes the [billboard] mode turns.
+  double yaw;
+
+  /// Entity pitch in degrees, -90 to 90, positive tipping the face downward.
+  /// Ignored on the axes the [billboard] mode turns.
+  double pitch;
+
   /// True when the document carried an `anchor` object at all — Gson leaves
   /// the record field null without one, which `HologramDoc`'s constructor
-  /// rejects (`HologramDoc.java:32`).
+  /// rejects (`HologramDoc.java:38`).
   bool anchorPresent = true;
 
   Map<String, dynamic> extras;
@@ -191,11 +241,21 @@ final class GlossHologramDoc extends GlossDoc {
       anchor: GlossHologramAnchor.fromJson(anchorRaw),
       lines: glossReadStringList(map['lines']),
       seeThrough: map['seeThrough'] is bool ? map['seeThrough'] as bool : true,
+      billboard: huiReadString(
+        map,
+        'billboard',
+        fallback: glossHologramDefaultBillboard,
+      ).trim().toUpperCase(),
+      yaw: huiReadDouble(map, 'yaw'),
+      pitch: huiReadDouble(map, 'pitch'),
       extras: huiCollectExtras(map, _docKnown),
       absentKeys: <String>{
         if (map['revision'] == null) 'revision',
         if (map['lines'] == null) 'lines',
         if (map['seeThrough'] == null) 'seeThrough',
+        if (map['billboard'] == null) 'billboard',
+        if (map['yaw'] == null) 'yaw',
+        if (map['pitch'] == null) 'pitch',
       },
     )..anchorPresent = anchorRaw is Map;
   }
@@ -210,6 +270,11 @@ final class GlossHologramDoc extends GlossDoc {
         'lines': List<String>.of(lines),
       if (!absentKeys.contains('seeThrough') || !seeThrough)
         'seeThrough': seeThrough,
+      if (!absentKeys.contains('billboard') ||
+          billboard != glossHologramDefaultBillboard)
+        'billboard': billboard,
+      if (!absentKeys.contains('yaw') || yaw != 0) 'yaw': yaw,
+      if (!absentKeys.contains('pitch') || pitch != 0) 'pitch': pitch,
     };
     return huiMergeExtras(out, extras);
   }
@@ -221,6 +286,9 @@ final class GlossHologramDoc extends GlossDoc {
       anchor: anchor.copy(),
       lines: List<String>.of(lines),
       seeThrough: seeThrough,
+      billboard: billboard,
+      yaw: yaw,
+      pitch: pitch,
       extras: huiDeepCopyMap(extras),
       absentKeys: Set<String>.of(absentKeys),
     );

@@ -997,6 +997,22 @@
   background: linear-gradient(#0b1220 0%, #24384a 60%, #35506a 100%);
 }
 
+/* The editor stage takes the keyboard, so it is focusable, and the ring is an
+   inset shadow because an outline would be clipped away by the scene's own
+   `overflow: hidden`. Scoped to `[tabindex]`: the same scene inside the game
+   frame has no camera and must not offer one. */
+.hui-real-drops-scene[tabindex] {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.hui-real-drops-scene[tabindex]:active { cursor: grabbing; }
+
+.hui-real-drops-scene[tabindex]:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hui-ring) 70%, transparent);
+}
+
 /* `overflow: hidden` forces a flat transform style, so the clipping element
    above cannot also be the 3D context — this one is. */
 .hui-real-drops-world {
@@ -1005,6 +1021,24 @@
   perspective: 650px;
   perspective-origin: 50% 12%;
   transform-style: preserve-3d;
+}
+
+/* Nor can the 3D context carry the camera: `perspective` fixes the eye in
+   front of the page, so a transform on the same element moves the projected
+   picture rather than the viewer. This element is the camera, and
+   `real_drops_view.dart` writes the inverse of wherever the viewer has walked
+   to onto it — see `drop_stage_camera.dart` for why an orbit is a rotation of
+   the scene and nothing else.
+
+   The origin is the point the orbit turns around: the ground line, half a
+   block out toward the camera, which is about where a stack ends up after the
+   stage's forward throw (`dropStageThrowBlocks`). Turning around the point the
+   stack was thrown *from* would swing the settled stack across the frame. */
+.hui-real-drops-camera {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: 50% 60% 98px;
 }
 
 /* The ground the stack lands on: one plane laid flat through the ground line,
@@ -1027,6 +1061,31 @@
     repeating-linear-gradient(0deg, rgba(0, 0, 0, .3) 0 2px, transparent 2px 108px),
     repeating-linear-gradient(90deg, rgba(0, 0, 0, .3) 0 2px, transparent 2px 108px),
     linear-gradient(#5c7040 0 30%, #3a4926 62%, #222c16);
+}
+
+/* The stage's water surface. A stage prop, not a document setting: the water
+   button floods the box so inWater, waterBuoyancy and waterDrag have something
+   to act on, because a browser has no world to read isInWater() off. Same
+   plane geometry as the floor, translucent so the stack reads through it. */
+.hui-real-drops-water {
+  position: absolute;
+  left: 50%;
+  top: calc(60% + 2px);
+  width: 2600px;
+  height: 2600px;
+  margin-left: -1300px;
+  margin-top: -1300px;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .06) 0 2px, transparent 2px 54px),
+    linear-gradient(rgba(58, 140, 190, .42) 0 40%, rgba(28, 92, 140, .5));
+}
+
+/* The frame stands in for the client's own view, and a player does not get to
+   flood the world either. */
+.hui-gloss-game.is-world .hui-real-drops-water {
+  display: none;
 }
 
 /* The plugin parents every display to one carrier entity; so does the stage,
@@ -1092,8 +1151,9 @@
 .hui-real-drops-controls {
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   padding: 8px 12px;
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--background) 92%, transparent);
@@ -1102,6 +1162,15 @@
 .hui-real-drops-readout-inline {
   color: var(--muted-foreground);
   font-size: 12px;
+}
+
+/* The camera has no affordance of its own — the stage looks the same whether
+   or not it can be flown — so the row says out loud that it can. */
+.hui-real-drops-hint {
+  flex: 1 0 auto;
+  text-align: right;
+  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
+  font-size: 11px;
 }
 
 .hui-tablist-format-row {

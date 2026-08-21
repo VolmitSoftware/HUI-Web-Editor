@@ -33,6 +33,20 @@ const int huiDefaultAnimationSpeed = 2;
 /// default rather than writing it into new icons.
 const int huiRuntimeDefaultTextRefreshTicks = 10;
 
+/// What the runtime uses for a player head that omits `refreshTicks`: twenty
+/// ticks, or once a second (`PlayerHeadIconData.java:16`). Like the text
+/// refresh above, this is the server's value and not an editor preference, so
+/// the inspector shows it as the default instead of writing it into new icons.
+const int huiRuntimeDefaultPlayerHeadRefreshTicks = 20;
+
+/// Whose head a new `playerHead` icon draws. The three viewer tokens are
+/// answered by Gloss itself rather than by PlaceholderAPI
+/// (`PlayerHeadMenuIcon.java:34-41`), so a fresh icon shows the person looking
+/// at the menu their own head on a bare server with nothing else installed —
+/// a literal username would need a Mojang lookup nobody has configured yet,
+/// and an empty name is the one value the plugin refuses outright.
+const String huiDefaultPlayerHeadSource = '%player_name%';
+
 /// Neutral, always-present material for a new item icon.
 const String huiDefaultItemMaterial = 'stone';
 const String huiDefaultBlockMaterial = 'minecraft:stone';
@@ -59,6 +73,8 @@ const Map<String, String> huiIconTypeDescriptions = <String, String>{
   'block': 'A packet-only block display using its default block state.',
   'customItem': 'An item from a custom-item plugin, resolved by the server.',
   'entity': 'A packet-only living entity with an authored click footprint.',
+  'playerHead':
+      'An account\'s head on an item display, resolved by the server.',
 };
 
 /// Authoring hints for one custom-item provider.
@@ -167,6 +183,10 @@ HuiIcon createDefaultIcon(String iconType, {String text = '&fNew text'}) {
       return HuiCustomItemIcon(huiAutoItemProvider, '', 1);
     case 'entity':
       return HuiEntityIcon(huiDefaultEntityType, 0.5, 0.9);
+    case 'playerHead':
+      // refreshTicks is left off: 20 is what the runtime uses for an omitted
+      // key, so writing it would only add a line that says nothing.
+      return HuiPlayerHeadIcon(huiDefaultPlayerHeadSource);
     case 'text':
     default:
       return HuiTextIcon(text);

@@ -669,6 +669,147 @@ void main() {
     });
   });
 
+  group('playerHead icon', () {
+    String iconJson(String icon) =>
+        '{"offset":[0,0,0],"components":[{"id":"a","offset":[0,0,0],'
+        '"data":{"type":"decoration","icon":$icon}}]}';
+
+    HuiPlayerHeadIcon iconOf(HuiMenu menu) =>
+        (menu.components.single.data as HuiDecorationData).icon!
+            as HuiPlayerHeadIcon;
+
+    test('is an authorable icon type', () {
+      expect(huiIconTypes, contains('playerHead'));
+    });
+
+    test('reads player and refreshTicks', () {
+      final HuiPlayerHeadIcon icon = iconOf(
+        decodeHuiMenu(
+          iconJson('{"type":"playerHead","player":"Notch","refreshTicks":40}'),
+        ),
+      );
+      expect(icon.player, 'Notch');
+      expect(icon.refreshTicks, 40);
+      expect(icon.type, 'playerHead');
+    });
+
+    test('keeps the authored name verbatim, case and all', () {
+      // The plugin trims at lookup time but stores what it was given, and the
+      // editor warns about padding rather than silently rewriting it.
+      final HuiMenu menu = decodeHuiMenu(
+        iconJson('{"type":"playerHead","player":"  NoTcH  "}'),
+      );
+      expect(iconOf(menu).player, '  NoTcH  ');
+      expect(encodeHuiMenu(menu), contains('"player": "  NoTcH  "'));
+    });
+
+    test('an omitted refreshTicks stays omitted, not defaulted to 20', () {
+      final HuiMenu menu = decodeHuiMenu(
+        iconJson('{"type":"playerHead","player":"%player_name%"}'),
+      );
+      expect(iconOf(menu).refreshTicks, isNull);
+      expect(encodeHuiMenu(menu), isNot(contains('refreshTicks')));
+    });
+
+    test('an explicit zero survives, because 0 is not the default', () {
+      final HuiMenu menu = decodeHuiMenu(
+        iconJson('{"type":"playerHead","player":"Notch","refreshTicks":0}'),
+      );
+      expect(iconOf(menu).refreshTicks, 0);
+      expect(encodeHuiMenu(menu), contains('"refreshTicks": 0'));
+    });
+
+    test('a missing player defaults to the empty string', () {
+      expect(
+        iconOf(decodeHuiMenu(iconJson('{"type":"playerHead"}'))).player,
+        '',
+      );
+    });
+
+    test('takes a display style, unlike an entity icon', () {
+      final HuiPlayerHeadIcon icon = iconOf(
+        decodeHuiMenu(
+          iconJson(
+            '{"type":"playerHead","player":"Notch",'
+            '"style":{"billboard":"center","scaleX":2}}',
+          ),
+        ),
+      );
+      expect(icon.style, isNotNull);
+      expect(icon.style!.billboard, 'center');
+      expect(icon.style!.scaleX, 2);
+    });
+
+    test('exports the keys in the contract order', () {
+      final String out = encodeHuiMenu(
+        decodeHuiMenu(
+          iconJson('{"type":"playerHead","refreshTicks":20,"player":"Notch"}'),
+        ),
+      );
+      expect(
+        out,
+        contains(
+          '"icon": {\n'
+          '          "type": "playerHead",\n'
+          '          "player": "Notch",\n'
+          '          "refreshTicks": 20\n'
+          '        }',
+        ),
+      );
+    });
+
+    test('unknown keys survive a round trip', () {
+      final HuiMenu menu = decodeHuiMenu(
+        iconJson(
+          '{"type":"playerHead","player":"Notch",'
+          '"lore":["a","b"],"note":{"x":1}}',
+        ),
+      );
+      expect(iconOf(menu).extras.keys, <String>['lore', 'note']);
+      final String out = encodeHuiMenu(menu);
+      expect(out, contains('"lore"'));
+      expect(out, contains('"note"'));
+    });
+
+    test('re-decoding an export is a fixed point', () {
+      final String first = encodeHuiMenu(
+        decodeHuiMenu(
+          iconJson(
+            '{"type":"playerHead","player":"%player_name%","refreshTicks":5,'
+            '"style":{"billboard":"vertical"},"extra":true}',
+          ),
+        ),
+      );
+      expect(encodeHuiMenu(decodeHuiMenu(first)), first);
+    });
+
+    test('fromJson of its own toJson is a fixed point', () {
+      final HuiPlayerHeadIcon icon = HuiPlayerHeadIcon(
+        'Notch',
+        HuiIconStyle(billboard: 'center'),
+        40,
+      )..extras = <String, dynamic>{'note': 1};
+      expect(HuiIcon.fromJson(icon.toJson()).toJson(), icon.toJson());
+    });
+
+    test('copy() shares nothing with the original', () {
+      final HuiPlayerHeadIcon icon =
+          HuiPlayerHeadIcon('Notch', HuiIconStyle(), 40)
+            ..extras = <String, dynamic>{
+              'nested': <String, dynamic>{'a': 1},
+            };
+      final HuiPlayerHeadIcon copy = icon.copy();
+      copy.player = 'Herobrine';
+      copy.refreshTicks = 5;
+      copy.style!.billboard = 'center';
+      (copy.extras['nested'] as Map<String, dynamic>)['a'] = 2;
+      expect(icon.player, 'Notch');
+      expect(icon.refreshTicks, 40);
+      expect(icon.style!.billboard, 'fixed');
+      expect((icon.extras['nested'] as Map<String, dynamic>)['a'], 1);
+    });
+  });
+
   group('legacy keys', () {
     test('an animated icon authored with path migrates onto source', () {
       final HuiMenu menu = decodeHuiMenu(

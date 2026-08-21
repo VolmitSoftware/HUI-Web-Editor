@@ -127,6 +127,60 @@ void main() {
     });
   });
 
+  group('orientation', () {
+    test('the pre-billboard default is clean', () {
+      expect(validateHologramDoc(_valid()), isEmpty);
+    });
+
+    test('every mode Gloss accepts is clean', () {
+      for (final String mode in glossHologramBillboards) {
+        final GlossHologramDoc doc = _valid()..billboard = mode;
+        expect(validateHologramDoc(doc), isEmpty, reason: mode);
+      }
+    });
+
+    test('an unknown mode is an error, because the file will not load', () {
+      final GlossHologramDoc doc = _valid()..billboard = 'SPIN';
+      final List<HuiIssue> issues = validateHologramDoc(doc);
+      expect(_errors(issues), contains(r'$.billboard'));
+      expect(issues.first.message, contains('SPIN'));
+    });
+
+    test('angles outside the axis limits are errors', () {
+      expect(
+        _errors(validateHologramDoc(_valid()..yaw = 181)),
+        contains(r'$.yaw'),
+      );
+      expect(
+        _errors(validateHologramDoc(_valid()..pitch = -90.5)),
+        contains(r'$.pitch'),
+      );
+      expect(_errors(validateHologramDoc(_valid()..yaw = 180)), isEmpty);
+      expect(_errors(validateHologramDoc(_valid()..pitch = -90)), isEmpty);
+    });
+
+    test('angles CENTER can never use are a warning, not an error', () {
+      final List<HuiIssue> issues = validateHologramDoc(
+        _valid()
+          ..billboard = 'CENTER'
+          ..yaw = 90,
+      );
+      expect(_errors(issues), isEmpty);
+      expect(_warnings(issues), contains(r'$.billboard'));
+    });
+
+    test('the same angles under FIXED are clean', () {
+      expect(
+        validateHologramDoc(
+          _valid()
+            ..billboard = 'FIXED'
+            ..yaw = 90,
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('infos — worth knowing, not worth fixing', () {
     test('metric references are one note listing the keys', () {
       final GlossHologramDoc doc = _valid()

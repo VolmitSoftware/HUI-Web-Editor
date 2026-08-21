@@ -519,8 +519,16 @@
 }
 
 /* Inside the frame the backdrop's own ground is far lower than the editor
-   stage's, so the stack lands where the photo's ground is. */
+   stage's, so the stack lands where the photo's ground is.
+
+   The stage throws a stack toward the camera, and perspective carries a
+   nearing object down the frame as well as making it bigger — over a real
+   ground plane that reads correctly, but the backdrop here is a photograph
+   with one fixed ground line. So the anchor sits higher than the photo's
+   ground and the throw crosses it: the stack leaves a little above the line
+   and settles a little below it, instead of starting on the line and sliding
+   off the bottom edge of the screen. */
 .hui-gloss-game.is-world .hui-real-drops-carrier,
 .hui-gloss-game.is-world .hui-real-drops-shadow {
-  bottom: 22%;
+  bottom: 32%;
 }

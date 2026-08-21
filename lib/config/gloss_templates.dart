@@ -108,6 +108,34 @@ const String kGlossRealDropsDefaultJson = r'''
       "BARRIER"
     ],
     "onlyPlayerDrops": false
+  },
+  "physics": {
+    "enabled": false,
+    "gravityMultiplier": 1.0,
+    "bounce": 0.0,
+    "waterBuoyancy": 0.0,
+    "waterDrag": 0.0
+  },
+  "script": {
+    "enabled": false,
+    "vars": {},
+    "offset": {
+      "x": "0",
+      "y": "0",
+      "z": "0"
+    },
+    "rotation": {
+      "x": "0",
+      "y": "0",
+      "z": "0"
+    },
+    "scale": {
+      "x": "1",
+      "y": "1",
+      "z": "1"
+    },
+    "glow": "",
+    "visible": "true"
   }
 }
 ''';

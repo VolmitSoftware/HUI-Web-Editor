@@ -36,7 +36,21 @@ const Duration huiAnimationTick = Duration(milliseconds: 50);
 /// Extra grab room around a hitbox so hairline icons stay clickable.
 const double huiPickToleranceBlocks = 0.03;
 
-enum CanvasIconKind { text, image, item, block, customItem, entity, missing }
+enum CanvasIconKind {
+  text,
+  image,
+  item,
+  block,
+  customItem,
+  playerHead,
+  entity,
+  missing,
+}
+
+/// The material a resolved or pending head sits on
+/// (`PlayerHeadItems.java:61`). The sprite catalog keys materials by path with
+/// no namespace, so this is the path rather than `minecraft:player_head`.
+const String huiPlayerHeadMaterial = 'player_head';
 
 /// Everything the painter needs about one component, already measured.
 class CanvasItem {
@@ -615,6 +629,25 @@ CanvasItem _resolveItem({
         shape = IconShape.item(
           count: itemCount,
           isBlockItem: material != null && huiIsBlockLikeMaterial(material),
+        );
+        hitShape = shape;
+      }
+    case HuiPlayerHeadIcon():
+      // `PlayerHeadMenuIcon extends ItemMenuIcon` (PlayerHeadMenuIcon.java:32),
+      // so a head is measured as an item icon and nothing else: same anchor,
+      // same block-item drop, same collision plane. The stack is always one
+      // head, whichever of the three states it is in
+      // (PlayerHeadMenuIcon.java:158-164).
+      //
+      // The authored string goes in `itemKey` so the placeholder label names
+      // the player; the sprite is the generic head because resolving a skin
+      // needs the server.
+      itemKey = icon.player.trim();
+      if (itemKey.isNotEmpty) {
+        kind = CanvasIconKind.playerHead;
+        itemTexture = catalogs?.textureFor(huiPlayerHeadMaterial);
+        shape = IconShape.item(
+          isBlockItem: huiIsBlockLikeMaterial(huiPlayerHeadMaterial),
         );
         hitShape = shape;
       }

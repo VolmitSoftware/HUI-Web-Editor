@@ -684,6 +684,221 @@
   .hui-code-issue { grid-template-columns: 1fr; gap: 2px; }
 }
 
+/* --- buffer state -------------------------------------------------------- */
+
+/* Says whether the document has the text. Dirty is the loud one: it is the
+   state the user has to act on, and the only one they can lose work from. */
+.hui-code-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+.hui-code-state.is-dirty { color: var(--hui-warning); }
+.hui-code-state.is-clean { color: var(--hui-muted); }
+
+/* Passive: the buffer is mid-keystroke and does not parse yet. Never an alert
+   — the loud strip is reserved for a save the user asked for and did not get. */
+.hui-code-syntax-hint {
+  margin-right: 6px;
+  color: var(--hui-muted);
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 34ch;
+}
+
+/* The toolbar flattens every button to a ghost, which is right for Format and
+   Revert and wrong for the one control that commits. Save gets its weight back
+   only while there is something to save. */
+.hui-code-save.is-dirty .arcane-button {
+  background: var(--hui-accent) !important;
+  color: var(--hui-bg) !important;
+}
+
+.hui-code-save.is-dirty .arcane-button:hover:not(:disabled),
+.hui-code-save.is-dirty .arcane-button:focus-visible {
+  background: color-mix(in srgb, var(--hui-accent) 84%, var(--hui-text)) !important;
+}
+
+/* The toolbar carries four things on one row now — the eyebrow, the counts,
+   the buffer state and three controls — so below a phone width it wraps the
+   controls onto their own line instead of pushing Save off the edge. The
+   counts and the passive hint are the first to go: both restate something the
+   editor is already showing. */
+@media (max-width: 640px) {
+  .hui-code-toolbar { flex-wrap: wrap; row-gap: 2px; }
+  .hui-code-toolbar-info { flex: 1 1 100%; flex-wrap: wrap; row-gap: 2px; }
+  .hui-code-toolbar-tools { flex: 1 1 100%; justify-content: flex-end; }
+  .hui-code-syntax-hint { max-width: 22ch; }
+}
+
+@media (max-width: 460px) {
+  .hui-code-stat,
+  .hui-code-syntax-hint { display: none; }
+}
+
+.hui-code-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hui-border-soft);
+  background: var(--hui-panel-soft);
+  color: var(--hui-muted);
+  font-size: .76rem;
+}
+
+.hui-code-notice.is-warning {
+  border-bottom-color: color-mix(in srgb, var(--hui-warning) 45%, transparent);
+  background: color-mix(in srgb, var(--hui-warning) 12%, var(--hui-panel));
+  color: var(--hui-warning);
+}
+
+.hui-code-notice-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--hui-text);
+  line-height: 1.4;
+}
+
+.hui-code-notice-tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+
+.hui-code-notice .arcane-button {
+  height: 26px !important;
+  min-height: 26px;
+  border: 1px solid var(--hui-border) !important;
+  border-radius: 0 !important;
+  background: var(--hui-panel) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 860px) {
+  .hui-code-notice { flex-wrap: wrap; }
+}
+
+/* Ten zeroes in the editor's own font, out of flow and unpainted. Its box is
+   one line tall and ten cells wide, which is what the caret arithmetic needs
+   and the only honest way to get it: the font stack resolves in the browser. */
+.hui-code-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-block;
+  font: inherit;
+  line-height: inherit;
+  white-space: pre;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* --- completion ---------------------------------------------------------- */
+
+/* Fixed, so the scroll container the caret lives in cannot clip it. Positioned
+   from Dart against the measured caret cell; the clamp keeps it on screen. */
+.hui-code-complete {
+  position: fixed;
+  z-index: 2147482000;
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  max-width: calc(100vw - 16px);
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--hui-border);
+  border-radius: 0;
+  background: var(--hui-panel);
+  box-shadow: 0 10px 30px rgb(0 0 0 / .32);
+}
+
+.hui-code-complete-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 9px;
+  border-bottom: 1px solid var(--hui-border-soft);
+  cursor: pointer;
+}
+
+.hui-code-complete-row:last-child { border-bottom: 0; }
+
+.hui-code-complete-row.is-active {
+  background: color-mix(in srgb, var(--hui-accent) 18%, var(--hui-panel));
+}
+
+.hui-code-complete-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hui-code-complete-label {
+  color: var(--hui-text);
+  font-family: var(--font-mono);
+  font-size: .76rem;
+}
+
+.hui-code-complete-row.is-default .hui-code-complete-label {
+  color: var(--hui-accent);
+}
+
+.hui-code-complete-detail {
+  flex: 0 0 auto;
+  color: var(--hui-muted);
+  font-size: .68rem;
+  text-transform: lowercase;
+}
+
+.hui-code-complete-desc {
+  color: var(--hui-muted);
+  font-size: .7rem;
+  line-height: 1.35;
+}
+
+/* --- hover card ---------------------------------------------------------- */
+
+/* Reuses the shared tooltip surface from 11-tooltip-overlay.css; this rule adds
+   only what a free-floating copy of it needs — its own stacking context, and
+   the guarantee it never eats a pointer event meant for the textarea. */
+.hui-code-hovercard {
+  z-index: 2147482100;
+  pointer-events: none;
+}
+
+.hui-code-hovercard-title {
+  font-size: .76rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.hui-code-hovercard-path,
+.hui-code-hovercard-citation {
+  color: var(--muted-foreground, var(--hui-muted));
+  font-family: var(--font-mono);
+  font-size: .66rem;
+  overflow-wrap: anywhere;
+}
+
+.hui-code-hovercard-body { font-size: .72rem; line-height: 1.45; }
+
+.hui-code-hovercard-detail {
+  color: var(--muted-foreground, var(--hui-muted));
+  font-size: .68rem;
+  line-height: 1.4;
+}
+
 /* ==========================================================================
    4. Dialog surfaces
    ========================================================================== */

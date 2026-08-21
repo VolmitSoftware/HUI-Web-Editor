@@ -2,6 +2,7 @@ library;
 
 import '../model/gloss_doc.dart';
 import '../model/gloss_real_drops.dart';
+import 'real_drop_script.dart';
 import 'validation.dart';
 
 List<HuiIssue> validateRealDropSettingsDoc(GlossRealDropSettingsDoc doc) {
@@ -109,7 +110,51 @@ List<HuiIssue> validateRealDropSettingsDoc(GlossRealDropSettingsDoc doc) {
     0,
     255,
   );
+  _physics(issues, doc.physics);
+  _script(issues, doc.script);
   return issues;
+}
+
+/// The physics block's four clamps. Warnings, like every other clamp in this
+/// file: the server silently pins an out-of-range number at load rather than
+/// refusing the document, so the file is still valid and the author is only
+/// told the value will not survive.
+void _physics(List<HuiIssue> issues, GlossRealDropPhysics? physics) {
+  if (physics == null) return;
+  _range(
+    issues,
+    r'$.physics.gravityMultiplier',
+    physics.gravityMultiplier,
+    0,
+    4,
+  );
+  _range(issues, r'$.physics.bounce', physics.bounce, 0, 0.9);
+  _range(issues, r'$.physics.waterBuoyancy', physics.waterBuoyancy, 0, 1);
+  _range(issues, r'$.physics.waterDrag', physics.waterDrag, 0, 1);
+}
+
+/// Every expression in the script block, compiled and type-checked the way the
+/// server does at load.
+///
+/// These are errors, not warnings, and they are raised whether or not
+/// `script.enabled` is set: a problem in any expression refuses the whole
+/// document, so a broken expression behind a switch that is off still means the
+/// file will not load. The message is the server's own, so the console line an
+/// operator would see and the line the inspector shows are the same sentence.
+void _script(List<HuiIssue> issues, GlossRealDropScript? script) {
+  if (script == null) return;
+  for (final RealDropScriptIssue issue in RealDropScriptPlan.compile(
+    script,
+  ).issues) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: issue.path,
+        message: issue.message,
+        fix: 'Gloss refuses the whole document until this expression parses.',
+      ),
+    );
+  }
 }
 
 void _range(

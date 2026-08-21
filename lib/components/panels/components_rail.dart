@@ -871,6 +871,8 @@ class _ComponentsRailState extends State<ComponentsRail> {
           '${custom.count > 1 ? ' x${custom.count}' : ''}',
     final HuiEntityIcon entity =>
       'entity ${entity.entity.isEmpty ? '(unset)' : entity.entity}',
+    final HuiPlayerHeadIcon head =>
+      'head ${head.player.trim().isEmpty ? '(unset)' : head.player.trim()}',
   };
 
   /// First line only, colour codes and MiniMessage tags removed, ellipsized.

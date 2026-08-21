@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:gloss_editor/config/defaults.dart' show createDefaultIcon;
 import 'package:gloss_editor/logic/canvas_scene.dart' show CanvasOverlap;
 import 'package:gloss_editor/logic/gloss_text.dart'
     show GlossEmojiEntry, GlossEmojiResolver;
@@ -432,6 +433,192 @@ void main() {
           _withIcon(HuiCustomItemIcon('itemsadder', 'myitems:sapphire', 1)),
           customItems: HuiCustomItemCatalog.empty(),
         ),
+        isEmpty,
+      );
+    });
+  });
+
+  group('player head icons', () {
+    test('a literal username raises nothing', () {
+      expect(validateHuiMenu(_withIcon(HuiPlayerHeadIcon('Notch'))), isEmpty);
+      expect(
+        validateHuiMenu(_withIcon(HuiPlayerHeadIcon('a' * 16))),
+        isEmpty,
+        reason: '16 characters is the ceiling, not one past it',
+      );
+      expect(validateHuiMenu(_withIcon(HuiPlayerHeadIcon('a_9'))), isEmpty);
+    });
+
+    test('each of the three viewer tokens raises nothing', () {
+      for (final String token in <String>[
+        '%player_name%',
+        '%player%',
+        '{{player.name}}',
+        // Normalized the way the plugin normalizes: lowercased, spaces out.
+        '{{ player.name }}',
+        '%PLAYER_NAME%',
+      ]) {
+        expect(
+          validateHuiMenu(_withIcon(HuiPlayerHeadIcon(token))),
+          isEmpty,
+          reason: token,
+        );
+      }
+    });
+
+    test('a blank name is an error, not a fallback head', () {
+      for (final String blank in <String>['', '   ']) {
+        final List<HuiIssue> issues = validateHuiMenu(
+          _withIcon(HuiPlayerHeadIcon(blank)),
+        );
+        expect(
+          _has(issues, HuiSeverity.error, 'has no player name'),
+          isTrue,
+          reason: blank,
+        );
+        expect(
+          _matching(
+            issues,
+            HuiSeverity.error,
+            'has no player name',
+          ).single.path,
+          'components[0].data.icon.player',
+        );
+      }
+    });
+
+    test('warns on padding, which the plugin trims off anyway', () {
+      final List<HuiIssue> issues = validateHuiMenu(
+        _withIcon(HuiPlayerHeadIcon(' Notch ')),
+      );
+      expect(_has(issues, HuiSeverity.warning, 'whitespace'), isTrue);
+      // Only the padding: the trimmed name is a perfectly good username.
+      expect(
+        issues.where((HuiIssue i) => i.severity == HuiSeverity.error),
+        isEmpty,
+      );
+    });
+
+    test('a name no lookup could ever accept is an error', () {
+      for (final String name in <String>[
+        'a' * 17,
+        'Not ch',
+        'notch@example.com',
+        'e1b4f2a0-0000-0000-0000-000000000000',
+        'Ünicode',
+      ]) {
+        expect(
+          _has(
+            validateHuiMenu(_withIcon(HuiPlayerHeadIcon(name))),
+            HuiSeverity.error,
+            'can never resolve',
+          ),
+          isTrue,
+          reason: name,
+        );
+      }
+    });
+
+    test('a non-viewer placeholder is info, never an error', () {
+      for (final String name in <String>[
+        '%luckperms_prefix%',
+        '{{ target.name }}',
+      ]) {
+        final List<HuiIssue> issues = validateHuiMenu(
+          _withIcon(HuiPlayerHeadIcon(name)),
+        );
+        expect(
+          _has(issues, HuiSeverity.info, 'resolved by the text pipeline'),
+          isTrue,
+          reason: name,
+        );
+        expect(
+          issues.where((HuiIssue i) => i.severity == HuiSeverity.error),
+          isEmpty,
+          reason: name,
+        );
+      }
+    });
+
+    test('a refresh outside 0-1200 is an error, because the record throws', () {
+      for (final int ticks in <int>[-1, 1201]) {
+        final List<HuiIssue> issues = validateHuiMenu(
+          _withIcon(HuiPlayerHeadIcon('Notch', null, ticks)),
+        );
+        expect(
+          _has(issues, HuiSeverity.error, 'Head refresh must be between'),
+          isTrue,
+          reason: '$ticks',
+        );
+        expect(
+          _matching(
+            issues,
+            HuiSeverity.error,
+            'Head refresh must be between',
+          ).single.path,
+          'components[0].data.icon.refreshTicks',
+        );
+      }
+      for (final int ticks in <int>[0, 20, 1200]) {
+        expect(
+          validateHuiMenu(_withIcon(HuiPlayerHeadIcon('Notch', null, ticks))),
+          isEmpty,
+          reason: '$ticks',
+        );
+      }
+    });
+
+    test('zero on a viewer-dependent name warns about the pending head', () {
+      for (final String name in <String>['%player_name%', '%some_papi%']) {
+        expect(
+          _has(
+            validateHuiMenu(_withIcon(HuiPlayerHeadIcon(name, null, 0))),
+            HuiSeverity.warning,
+            'never re-reads it',
+          ),
+          isTrue,
+          reason: name,
+        );
+      }
+    });
+
+    test('zero on a literal name does not warn', () {
+      expect(
+        _has(
+          validateHuiMenu(_withIcon(HuiPlayerHeadIcon('Notch', null, 0))),
+          HuiSeverity.warning,
+          'never re-reads it',
+        ),
+        isFalse,
+      );
+    });
+
+    test('a head takes a display style, unlike an entity icon', () {
+      expect(
+        validateHuiMenu(
+          _withIcon(
+            HuiPlayerHeadIcon('Notch', HuiIconStyle(billboard: 'center')),
+          ),
+        ),
+        isEmpty,
+      );
+      expect(
+        _has(
+          validateHuiMenu(
+            _withIcon(
+              HuiPlayerHeadIcon('Notch', HuiIconStyle(billboard: 'sideways')),
+            ),
+          ),
+          HuiSeverity.error,
+          'Unknown billboard mode',
+        ),
+        isTrue,
+      );
+    });
+
+    test('the shipped default validates clean', () {
+      expect(
+        validateHuiMenu(_withIcon(createDefaultIcon('playerHead'))),
         isEmpty,
       );
     });

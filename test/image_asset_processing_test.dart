@@ -121,6 +121,74 @@ void main() {
       );
     });
 
+    test('a legacy 64x32 skin with an opaque hat strip drops the hat', () {
+      // Notch's own skin, and every account from before the format grew an alpha
+      // channel: the hat strip is opaque rather than transparent, so compositing
+      // it would paint a solid black head over the face. The client discards the
+      // overlay in exactly this case and so does the compositor.
+      final img.Image legacy = img.Image(width: 64, height: 32, numChannels: 4);
+      legacy.clear(img.ColorRgba8(0, 0, 0, 255));
+      for (int y = 8; y < 16; y++) {
+        for (int x = 8; x < 16; x++) {
+          legacy.setPixelRgba(x, y, 238, 180, 159, 255);
+        }
+      }
+
+      final NormalizedImageData? head = minecraftHeadFromSkinPng(
+        _dataUri(legacy),
+      );
+
+      expect(head, isNotNull);
+      final img.Pixel face = img
+          .decodePng(decodeDataUriBytes(head!.dataUri)!)!
+          .getPixel(2, 2);
+      expect(
+        <int>[face.r.toInt(), face.g.toInt(), face.b.toInt()],
+        <int>[238, 180, 159],
+      );
+    });
+
+    test('a legacy skin whose hat strip really is transparent keeps it', () {
+      final img.Image legacy = img.Image(width: 64, height: 32, numChannels: 4);
+      legacy.clear(img.ColorRgba8(0, 0, 0, 0));
+      for (int y = 8; y < 16; y++) {
+        for (int x = 8; x < 16; x++) {
+          legacy.setPixelRgba(x, y, 238, 180, 159, 255);
+        }
+      }
+      legacy.setPixelRgba(40, 8, 10, 80, 240, 255);
+
+      final NormalizedImageData? head = minecraftHeadFromSkinPng(
+        _dataUri(legacy),
+      );
+
+      final img.Pixel overlay = img
+          .decodePng(decodeDataUriBytes(head!.dataUri)!)!
+          .getPixel(0, 0);
+      expect(
+        <int>[overlay.r.toInt(), overlay.g.toInt(), overlay.b.toInt()],
+        <int>[10, 80, 240],
+      );
+    });
+
+    test('a 64x64 skin never loses its hat to the legacy rule', () {
+      final img.Image modern = img.Image(width: 64, height: 64, numChannels: 4);
+      modern.clear(img.ColorRgba8(0, 0, 0, 255));
+      modern.setPixelRgba(40, 8, 10, 80, 240, 255);
+
+      final NormalizedImageData? head = minecraftHeadFromSkinPng(
+        _dataUri(modern),
+      );
+
+      final img.Pixel overlay = img
+          .decodePng(decodeDataUriBytes(head!.dataUri)!)!
+          .getPixel(0, 0);
+      expect(
+        <int>[overlay.r.toInt(), overlay.g.toInt(), overlay.b.toInt()],
+        <int>[10, 80, 240],
+      );
+    });
+
     test('accepts high-resolution skins and rejects unrelated images', () {
       final img.Image highResolution = img.Image(
         width: 128,

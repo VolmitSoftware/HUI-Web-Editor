@@ -167,13 +167,34 @@ NormalizedImageData? minecraftHeadFromSkinPng(String dataUri) {
       interpolation: img.Interpolation.nearest,
     );
   }
-  img.compositeImage(face, hat);
+  if (_skinHasUsableHatLayer(skin, scale)) {
+    img.compositeImage(face, hat);
+  }
   final Uint8List png = img.encodePng(face);
   return NormalizedImageData(
     dataUri: '$huiNormalizedPngDataUriPrefix${base64Encode(png)}',
     width: 8,
     height: 8,
   );
+}
+
+/// The client's own legacy-skin transparency rule, so an old 64x32 skin does not
+/// composite to a solid black head.
+///
+/// A 64x32 skin predates alpha in the format: accounts from that era encode "no
+/// hat" as an opaque strip rather than a transparent one, and skin CDNs hand
+/// those bytes back unchanged. Minecraft's own downloader checks the whole hat
+/// strip (x 32..64, y 0..16) and, when every pixel in it is opaque, discards the
+/// overlay entirely instead of drawing it. A 64x64 skin always has a real alpha
+/// channel, so the rule never applies to one.
+bool _skinHasUsableHatLayer(img.Image skin, int scale) {
+  if (skin.height != 32 * scale) return true;
+  for (int y = 0; y < 16 * scale; y++) {
+    for (int x = 32 * scale; x < 64 * scale; x++) {
+      if (skin.getPixel(x, y).a < 128) return true;
+    }
+  }
+  return false;
 }
 
 class StoredImage {
@@ -931,6 +952,83 @@ class ImageLibrary extends ChangeNotifier {
       warnings: const <String>[
         'Extracted each face and translucent hat layer as an 8x8 pixel image.',
       ],
+      quotaExceeded: false,
+    );
+  }
+
+  /// Stores the head composed from an already-fetched skin PNG.
+  ///
+  /// The skin bytes come from [PlayerSkinSource]; the head comes from the same
+  /// [minecraftHeadFromSkinPng] the file importer uses, so a head fetched by
+  /// name and a head imported from a downloaded skin are byte-identical. The
+  /// result is an ordinary image asset at `heads/<name>-head.png` with no
+  /// memory of where it came from.
+  ///
+  /// Nothing is written unless the skin composes and the browser accepts the
+  /// write, so a rejected fetch leaves the workspace exactly as it was.
+  ImageAddOutcome addPlayerHeadFromSkin({
+    required String username,
+    required String skinPngDataUri,
+    bool replaceExisting = true,
+  }) {
+    final NormalizedImageData? head = minecraftHeadFromSkinPng(skinPngDataUri);
+    if (head == null) {
+      return ImageAddOutcome(
+        added: const <StoredImage>[],
+        errors: <String>[
+          'The skin returned for "$username" is not a valid 64x32, 64x64, or '
+              'high-resolution Minecraft skin.',
+        ],
+        warnings: const <String>[],
+        quotaExceeded: false,
+      );
+    }
+
+    // Lowercased: Mojang treats usernames case-insensitively and so does the
+    // plugin's cache key (PlayerHeadService.java:110), so "Notch" and "notch"
+    // must land on one asset rather than two heads of the same person.
+    String path = _playerHeadPath(username.toLowerCase());
+    final String problem = validateImagePath(path) ?? '';
+    if (problem.isNotEmpty) {
+      return ImageAddOutcome(
+        added: const <StoredImage>[],
+        errors: <String>['"$username" does not make a usable image path.'],
+        warnings: const <String>[],
+        quotaExceeded: false,
+      );
+    }
+    if (!replaceExisting && _paths.contains(path)) {
+      path = _uniquePath(path, const <StoredImage>[]);
+    }
+
+    final StoredImage stored = StoredImage(
+      path: path,
+      dataUri: head.dataUri,
+      width: head.width,
+      height: head.height,
+    );
+    final bool committed = _commit(() {
+      final int index = _images.indexWhere(
+        (StoredImage current) => current.path == path,
+      );
+      if (index >= 0) {
+        _images[index] = stored;
+      } else {
+        _images.add(stored);
+      }
+    });
+    if (!committed) {
+      return ImageAddOutcome(
+        added: const <StoredImage>[],
+        errors: <String>[_quotaMessage],
+        warnings: const <String>[],
+        quotaExceeded: true,
+      );
+    }
+    return ImageAddOutcome(
+      added: <StoredImage>[stored],
+      errors: const <String>[],
+      warnings: const <String>[],
       quotaExceeded: false,
     );
   }

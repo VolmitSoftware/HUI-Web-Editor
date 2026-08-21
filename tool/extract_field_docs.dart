@@ -1,7 +1,8 @@
 /// Regenerates `lib/config/field_docs.g.dart` from the plugin's JSON schemas.
 ///
-/// Gloss ships `schema/gloss.schema.json` and `schema/gloss-preview.schema.json`
-/// with a `description` on most properties — text nothing in the editor read
+/// Gloss ships `schema/gloss.schema.json`, `schema/gloss-preview.schema.json`
+/// and `schema/gloss-real-drops.schema.json` with a `description` on most
+/// properties — text nothing in the editor read
 /// until this tool existed. The generated map is the FALLBACK layer of the
 /// inspector's help: a hand-written entry in `field_docs.dart` always wins, so
 /// this file can be regenerated without reviewing 90 popovers for regressions.
@@ -56,6 +57,7 @@ const Map<String, Map<String, String>> namespaces =
         'customItemIcon': 'icon.customItem',
         'blockIcon': 'icon.block',
         'entityIcon': 'icon.entity',
+        'playerHeadIcon': 'icon.playerHead',
       },
       'gloss-preview.schema.json': <String, String>{
         '': 'preview',
@@ -64,6 +66,21 @@ const Map<String, Map<String, String>> namespaces =
         'card': 'preview.card',
         'element': 'preview.element',
         'repeat': 'preview.repeat',
+      },
+      'gloss-real-drops.schema.json': <String, String>{
+        '': 'realDrops',
+        'limits': 'realDrops.limits',
+        'scale': 'realDrops.scale',
+        'motion': 'realDrops.motion',
+        'landing': 'realDrops.landing',
+        'labels': 'realDrops.labels',
+        'filters': 'realDrops.filters',
+        'physics': 'realDrops.physics',
+        'script': 'realDrops.script',
+        // One `$defs` shared by `script.offset`, `script.rotation` and
+        // `script.scale`, so its three axes get one set of docs rather than
+        // three copies that could drift apart.
+        'axis': 'realDrops.axis',
       },
     };
 
@@ -80,6 +97,13 @@ const Map<String, Map<String, String>> sharedDefs =
         'expression': 'preview.expression',
         'names': 'preview.names',
         'vars': 'preview.vars',
+      },
+      'gloss-real-drops.schema.json': <String, String>{
+        // The whole grammar, variable table and function list in one body:
+        // what an author reaching for the expression editor needs, and the
+        // only place either schema writes it down.
+        'expression': 'realDrops.expression',
+        'axis': 'realDrops.axis',
       },
     };
 

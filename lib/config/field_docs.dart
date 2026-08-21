@@ -356,6 +356,34 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'non-block materials fall back to the missing icon.',
     citation: 'BlockIconData.java:43-54',
   ),
+  'icon.playerHead.player': HuiFieldDoc(
+    title: 'Player',
+    body:
+        'A Minecraft username, or a placeholder resolved once per viewer. '
+        '%player_name%, %player% and {{ player.name }} are answered by Gloss '
+        'itself - compared lowercased with spaces stripped - so each viewer '
+        'sees their own head without PlaceholderAPI installed. Anything else '
+        'goes through the text pipeline, and whatever comes out has to be 1 '
+        'to 16 characters of A-Z, a-z, 0-9 or underscore before a lookup is '
+        'spent on it: an unexpanded token still carrying its % or {{ }} '
+        'never qualifies and draws the fallback head. A blank name is the one '
+        'value that cannot degrade - it throws and the component becomes the '
+        'missing-icon checkerboard.',
+    citation: 'PlayerHeadMenuIcon.java:78-95',
+  ),
+  'icon.playerHead.refreshTicks': HuiFieldDoc(
+    title: 'Head refresh',
+    body:
+        'Ticks between re-reading the name and the profile cache. The omitted '
+        'default is 20, or once a second; the accepted range is 0 through '
+        '1200 and anything outside it throws, rejecting the whole document. '
+        'The first render of any name is the blank unowned head because the '
+        'lookup never blocks the server, so 0 - which never re-reads - leaves '
+        'that first pending head on screen until something respawns the '
+        'component. A literal name that has resolved stops refreshing on its '
+        'own; only a viewer-dependent name keeps costing a re-read.',
+    citation: 'PlayerHeadIconData.java:21-38',
+  ),
 
   // --- icon display style ----------------------------------------------------
   // The schema declares these eighteen fields with types, ranges and defaults
@@ -791,7 +819,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'is never written into the JSON itself, and |animation.<id>| style '
         'references elsewhere use exactly this path form. Renaming here '
         'renames the exported file.',
-    citation: 'HologramDoc.java:12',
+    citation: 'HologramDoc.java:14',
   ),
   'hologram.anchor.world': HuiFieldDoc(
     title: 'Anchor world',
@@ -799,7 +827,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'The world the TextDisplay entity stands in. A blank world makes '
         'Gloss reject the whole file, and a world that is not loaded when '
         'the plugin scans leaves the hologram despawned until it is.',
-    citation: 'HologramDoc.java:16-19',
+    citation: 'HologramDoc.java:22-25',
   ),
   'hologram.anchor.position': HuiFieldDoc(
     title: 'Anchor position',
@@ -816,7 +844,43 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'Keeps this hologram readable through solid blocks. It is enabled '
         'by default; turn it off when nearby terrain should hide the '
         'TextDisplay normally.',
-    citation: 'HologramDoc.java:34-35',
+    citation: 'HologramDoc.java:40',
+  ),
+  'hologram.billboard': HuiFieldDoc(
+    title: 'Billboard',
+    body:
+        'Decides whether the client turns the display toward whoever is '
+        'looking. CENTER and VERTICAL and HORIZONTAL are re-solved per '
+        'viewer every frame, so nobody ever sees them edge-on or backwards. '
+        'FIXED is the one that behaves like a real sign: it keeps the yaw '
+        'and pitch below, so it thins out as you walk around it and reads '
+        'mirrored and back-to-front from behind, which is exactly what you '
+        'want for something meant to be approached from one side and exactly '
+        'what surprises people who set it on a hologram in the open. Omitted '
+        'means CENTER, which is what every hologram did before this key '
+        'existed.',
+    citation: 'HologramService.java:235-245',
+  ),
+  'hologram.yaw': HuiFieldDoc(
+    title: 'Yaw',
+    body:
+        'The compass direction the readable face points, in Minecraft\'s own '
+        'degrees: 0 is south, 90 west, 180 north, -90 east — the same number '
+        'F3 shows for a player standing where the hologram should be read '
+        'from. Only FIXED and HORIZONTAL keep it; the other two modes yaw '
+        'toward each viewer and overwrite it. Outside -180..180 the whole '
+        'file is rejected, not clamped.',
+    citation: 'HologramDoc.java:84-92',
+  ),
+  'hologram.pitch': HuiFieldDoc(
+    title: 'Pitch',
+    body:
+        'Tips the readable face out of vertical: positive angles aim it at '
+        'the floor, negative at the ceiling, so a hologram over a doorway can '
+        'lean down toward the people under it. Only FIXED and VERTICAL keep '
+        'it; CENTER and HORIZONTAL pitch toward each viewer instead. Outside '
+        '-90..90 the whole file is rejected, not clamped.',
+    citation: 'HologramDoc.java:84-92',
   ),
   'hologram.lines': HuiFieldDoc(
     title: 'Lines',
@@ -826,7 +890,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'animation.<id>, then {{ authored expressions }}, %placeholders%, '
         'emoji, and colours. Expressions can use time, PAPI, metrics, math, '
         'RGB mixing, selection and progress bars. An empty list is legal.',
-    citation: 'PersistentHologram.java:408-436',
+    citation: 'PersistentHologram.java:594-609',
   ),
   'hologram.revision': HuiFieldDoc(
     title: 'Revision',

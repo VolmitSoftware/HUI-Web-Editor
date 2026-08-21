@@ -381,10 +381,20 @@ final class ShowcaseDrop {
 /// Chosen to cover every branch that changes what a drop looks like: all three
 /// model families, the authored Y offsets (slab, carpet, bed, snow, trident,
 /// shield), and every visual-count band from a single model to five.
+///
+/// Three rows are also the stage's unattended rotation — `dropStageRotation`
+/// names them, one per model family — so removing or renaming `cobblestone`,
+/// `diamond_pickaxe` or `oak_slab` changes what an untouched stage shows.
 const List<ShowcaseDrop> showcaseDrops = <ShowcaseDrop>[
   ShowcaseDrop(
     material: 'cherry_log',
     displayName: 'Ghostwood Timber',
+    amount: 32,
+    block: true,
+  ),
+  ShowcaseDrop(
+    material: 'cobblestone',
+    displayName: 'Packard Mill Cobble',
     amount: 32,
     block: true,
   ),
@@ -425,6 +435,13 @@ const List<ShowcaseDrop> showcaseDrops = <ShowcaseDrop>[
     displayName: 'Owl Feather',
     amount: 8,
     block: false,
+  ),
+  ShowcaseDrop(
+    material: 'diamond_pickaxe',
+    displayName: 'Blue Rose Pickaxe',
+    amount: 1,
+    block: false,
+    maxStackSize: 1,
   ),
   ShowcaseDrop(
     material: 'lantern',

@@ -1,6 +1,6 @@
 import 'json_codec.dart';
 
-/// The seven JSON-authorable icon types. `itemStack` exists in the plugin enum
+/// The eight JSON-authorable icon types. `itemStack` exists in the plugin enum
 /// but maps to a null class, so it is API-only and unparseable.
 const List<String> huiIconTypes = <String>[
   'text',
@@ -10,6 +10,7 @@ const List<String> huiIconTypes = <String>[
   'block',
   'customItem',
   'entity',
+  'playerHead',
 ];
 
 /// Provider ids the plugin ships adapters for, in declaration order. Runtime
@@ -312,6 +313,8 @@ sealed class HuiIcon {
         return HuiCustomItemIcon.fromMap(map);
       case 'entity':
         return HuiEntityIcon.fromMap(map);
+      case 'playerHead':
+        return HuiPlayerHeadIcon.fromMap(map);
       default:
         huiUnknownType(type, path);
     }
@@ -628,4 +631,65 @@ class HuiEntityIcon extends HuiIcon {
     huiReadDouble(map, 'width', fallback: 1),
     huiReadDouble(map, 'height', fallback: 1),
   )..extras = huiCollectExtras(map, _known);
+}
+
+/// A Minecraft account's head, drawn on the item display an `item` icon uses.
+///
+/// The plugin's `PlayerHeadMenuIcon extends ItemMenuIcon`
+/// (`PlayerHeadMenuIcon.java:32`), so the anchor, block offset, click plane and
+/// billboard are an item icon's; the only thing the type adds is which stack
+/// sits on the display and when it is swapped. There is no `count`: every
+/// stack the runtime builds is one head (`PlayerHeadMenuIcon.java:158-164`).
+///
+/// [player] is written back verbatim. `%player_name%`, `%player%` and
+/// `{{player.name}}` are answered by Gloss itself and mean the viewer
+/// (`PlayerHeadMenuIcon.java:41`); anything else goes through the text
+/// pipeline, so only the server can say what it resolves to.
+class HuiPlayerHeadIcon extends HuiIcon {
+  /// A literal username, or a placeholder resolved per viewer.
+  String player;
+
+  /// Ticks between re-reading the name and the profile cache. Null means the
+  /// runtime's own 20 (`PlayerHeadIconData.java:16`), so it is not written.
+  int? refreshTicks;
+
+  HuiPlayerHeadIcon([
+    this.player = '',
+    HuiIconStyle? style,
+    this.refreshTicks,
+  ]) {
+    this.style = style;
+  }
+
+  @override
+  String get type => 'playerHead';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': 'playerHead',
+    'player': player,
+    if (refreshTicks != null) 'refreshTicks': refreshTicks,
+    if (style != null) 'style': style!.toJson(),
+  }, extras);
+
+  @override
+  HuiPlayerHeadIcon copy() =>
+      HuiPlayerHeadIcon(player, style?.copy(), refreshTicks)
+        ..extras = huiDeepCopyMap(extras);
+
+  static const Set<String> _known = <String>{
+    'type',
+    'player',
+    'refreshTicks',
+    'style',
+  };
+
+  static HuiPlayerHeadIcon fromMap(Map<String, dynamic> map) =>
+      HuiPlayerHeadIcon(
+        huiReadString(map, 'player'),
+        HuiIconStyle.fromJsonOrNull(map['style']),
+        map.containsKey('refreshTicks') && map['refreshTicks'] != null
+            ? huiReadInt(map, 'refreshTicks')
+            : null,
+      )..extras = huiCollectExtras(map, _known);
 }
