@@ -1896,24 +1896,35 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     final Set<String> taken = <String>{
       for (final WorkspaceDoc document in workspace.docs)
         if (document.kind == kind && document.runtimeId != null)
-          document.runtimeId!,
+          document.runtimeId!.toLowerCase(),
     };
     final String canonical = sanitizeMenuId(requestedId);
-    if (!taken.contains(canonical)) return canonical;
+    if (!taken.contains(canonical.toLowerCase())) return canonical;
     final List<String> segments = canonical.split('/');
     final String prefix = segments.length == 1
         ? ''
         : '${segments.take(segments.length - 1).join('/')}/';
-    final String leaf = segments.last;
-    for (int index = 2; index < 100000; index++) {
-      final String suffix = '-$index';
+    final String canonicalLeaf = segments.last;
+    final RegExpMatch? match = RegExp(
+      r'^(.*)-(\d+)$',
+    ).firstMatch(canonicalLeaf);
+    final String leaf = match?.group(1) ?? canonicalLeaf;
+    final int start = match == null
+        ? 2
+        : (int.tryParse(match.group(2)!) ?? 1) + 1;
+    for (int index = start; index < start + 100000; index++) {
+      final String number = index.toString().padLeft(2, '0');
+      final String suffix = '-$number';
       final int available = math.min(
         huiMaxMenuIdSegmentLength - suffix.length,
         huiMaxMenuIdLength - prefix.length - suffix.length,
       );
       final String base = leaf.substring(0, math.min(leaf.length, available));
       final String candidate = '$prefix$base$suffix';
-      if (!taken.contains(candidate)) return candidate;
+      if (!taken.contains(candidate.toLowerCase()) &&
+          !taken.contains('$prefix$base-$index'.toLowerCase())) {
+        return candidate;
+      }
     }
     return sanitizeMenuId('$prefix${DateTime.now().microsecondsSinceEpoch}');
   }
@@ -2167,7 +2178,10 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     flushAutosave();
     final HuiMenu next = from ?? createDefaultMenu();
     final String title = name ?? huiDefaultMenuId;
-    final String id = sanitizeMenuId(runtimeId ?? title);
+    final String id = _availableRuntimeId(
+      DocumentTypes.menu.kind,
+      runtimeId ?? title,
+    );
     workspace.create(
       title: title,
       runtimeId: id,
@@ -2203,7 +2217,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       return false;
     }
     flushAutosave();
-    final String id = sanitizeMenuId(runtimeId);
+    final String id = _availableRuntimeId(DocumentTypes.menu.kind, runtimeId);
     workspace.create(
       title: name,
       runtimeId: id,
@@ -2254,7 +2268,10 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     flushAutosave();
     final HuiPreviewDoc next = from ?? HuiPreviewDoc();
     final String title = name ?? huiDefaultMenuId;
-    final String id = sanitizeMenuId(title);
+    final String id = _availableRuntimeId(
+      DocumentTypes.containerPreview.kind,
+      title,
+    );
     workspace.create(
       title: title,
       runtimeId: id,
@@ -2350,10 +2367,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     flushAutosave();
     final String? runtimeId = source.runtimeId == null
         ? null
-        : _availableRuntimeId(
-            source.kind,
-            sanitizeMenuId('${source.runtimeId}-copy'),
-          );
+        : _availableRuntimeId(source.kind, source.runtimeId!);
     final WorkspaceDoc copy = workspace.create(
       title: '${source.title} copy',
       runtimeId: runtimeId,
@@ -2446,19 +2460,11 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     emoji: workspaceEmoji,
   ).byId(id);
 
-  /// `button-2` duplicates as `button-3` and `slot-1` as `slot-2`: an existing
+  /// `button-02` duplicates as `button-03` and `slot-01` as `slot-02`: an existing
   /// numeric suffix is incremented, never dropped, because the number is just
   /// as often the author's own naming scheme as it is editor bookkeeping.
   String _duplicateId(String id, Set<String> taken) {
-    final RegExpMatch? match = RegExp(r'^(.*)-(\d+)$').firstMatch(id);
-    if (match == null) return uniqueComponentId(id, taken);
-    final String root = sanitizeComponentId(match.group(1)!);
-    final int start = int.tryParse(match.group(2)!) ?? 1;
-    for (int i = start + 1; i < start + 100000; i++) {
-      final String candidate = '$root-$i';
-      if (!taken.contains(candidate)) return candidate;
-    }
-    return uniqueComponentId(root, taken);
+    return uniqueComponentId(id, taken);
   }
 
   /// The active document, encoded in whichever shape [docKind] says it is.

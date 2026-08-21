@@ -8,6 +8,7 @@ import 'package:gloss_editor/doctype/doctype.dart';
 import 'package:gloss_editor/logic/animation_validation.dart';
 import 'package:gloss_editor/logic/bubble_validation.dart';
 import 'package:gloss_editor/logic/gloss_text.dart';
+import 'package:gloss_editor/logic/preview_card_edit.dart';
 import 'package:gloss_editor/logic/preview_card_scene.dart';
 import 'package:gloss_editor/logic/preview_sim.dart';
 import 'package:gloss_editor/logic/preview_variant_resolver.dart';
@@ -38,6 +39,18 @@ EditorStore _store() {
     autosaveDelay: Duration.zero,
   );
 }
+
+String _previewSceneSignature(PreviewCardScene scene) => scene.items
+    .map(
+      (CardItem item) => switch (item) {
+        CardCell() => 'cell:${item.color}',
+        CardLabel() =>
+          'label:${item.text.map((StyledTextRun run) => run.text).join()}',
+        CardPanel() => 'panel:${item.color}',
+        CardSlot() => 'slot:${item.index}:${item.item?.material}',
+      },
+    )
+    .join('|');
 
 void main() {
   test('every runtime document kind randomizes in place without errors', () {
@@ -83,7 +96,7 @@ void main() {
     expect(different, isNot(first));
   });
 
-  test('container showcase is a procedural furnace expression lab', () {
+  test('container showcase spans every target with distinct live layouts', () {
     final String first = encodeHuiPreviewDoc(
       buildRandomPreviewShowcase(math.Random(9)),
     );
@@ -96,49 +109,51 @@ void main() {
     expect(repeated, first);
     expect(different, isNot(first));
 
-    for (int seed = 0; seed < 64; seed++) {
+    final Set<String> categories = <String>{};
+    final Set<String> documents = <String>{};
+    final Set<String> animatedCategories = <String>{};
+    final Set<String> elementTypes = <String>{};
+    for (int seed = 0; seed < 256; seed++) {
       final HuiPreviewDoc doc = buildRandomPreviewShowcase(math.Random(seed));
-      expect(doc.match.blocks, <String>['FURNACE', 'BLAST_FURNACE', 'SMOKER']);
+      final String category = previewAutoSimCategory(doc);
+      categories.add(category);
+      documents.add(encodeHuiPreviewDoc(doc));
+      elementTypes.addAll(
+        doc.elements.map((HuiPreviewElement element) => element.type),
+      );
       expect(
         doc.elements.map((HuiPreviewElement element) => element.type).toSet(),
-        containsAll(previewElementTypes),
+        containsAll(<String>['panel', 'cell', 'label']),
+        reason: 'seed $seed, category $category',
       );
       final String code = encodeHuiPreviewDoc(doc);
-      expect(code, contains('cookTime'));
-      expect(code, contains('cookTimeTotal'));
-      expect(code, contains('burnTime'));
-      expect(code, contains('fuelSeconds'));
-      expect(code, contains('bankedXp'));
-      expect(code, contains('surge.active'));
-      expect(code, contains('inventory.occupied'));
       expect(code, contains('repeat'));
-      expect(code, contains('palette'));
-      expect(code, contains('mix'));
-      expect(code, contains('sin'));
-      expect(code, contains('bar'));
-      expect(code, contains('lang'));
-      expect(code, contains('lang(vars.activeItemKey'));
-      expect(code, contains('occupied'));
-      expect(code, contains('item'));
-      expect(code, contains('count'));
+      expect(code, anyOf(contains('time'), contains('cookTime')));
 
-      for (final String? material in <String?>[
-        null,
-        'BLAST_FURNACE',
-        'SMOKER',
-      ]) {
-        final PreviewSim sim = PreviewSim('furnace');
-        sim.vars = PreviewSim.parseVars(previewVarsForMaterial(doc, material));
-        final List<String> errors = <String>[];
-        final PreviewCardScene scene = buildCardScene(
-          doc,
-          sim,
-          onError: errors.add,
-        );
-        expect(errors, isEmpty, reason: 'seed $seed, material $material');
-        expect(scene.items, isNotEmpty);
+      final PreviewSim sim = PreviewSim(category);
+      sim.vars = PreviewSim.parseVars(previewVarsForMaterial(doc, null));
+      final List<String> errors = <String>[];
+      final PreviewCardScene before = buildCardScene(
+        doc,
+        sim,
+        onError: errors.add,
+      );
+      sim.tick(20);
+      final PreviewCardScene after = buildCardScene(
+        doc,
+        sim,
+        onError: errors.add,
+      );
+      expect(errors, isEmpty, reason: 'seed $seed, category $category');
+      expect(before.items, isNotEmpty);
+      if (_previewSceneSignature(before) != _previewSceneSignature(after)) {
+        animatedCategories.add(category);
       }
     }
+    expect(categories, previewSimCategories.toSet());
+    expect(animatedCategories, previewSimCategories.toSet());
+    expect(elementTypes, previewElementTypes.toSet());
+    expect(documents.length, greaterThan(225));
   });
 
   test('menu showcase stays validation-clean across random seeds', () {
@@ -547,6 +562,168 @@ void main() {
     expect(tumbles, <bool>{true, false});
     expect(labelled, <bool>{true, false});
     expect(billboards.length, greaterThan(2));
+  });
+
+  test('real-drop archetypes generate distinct complete behavior graphs', () {
+    final Set<int> profileCounts = <int>{};
+    final Set<int> materialMapCounts = <int>{};
+    final Set<String> scriptShapes = <String>{};
+    final Set<GlossRealDropAnimationTrigger> triggers =
+        <GlossRealDropAnimationTrigger>{};
+    final Set<GlossRealDropAnimationTarget> targets =
+        <GlossRealDropAnimationTarget>{};
+
+    for (
+      int index = 0;
+      index < RealDropShowcaseArchetype.values.length;
+      index++
+    ) {
+      final RealDropShowcaseArchetype archetype =
+          RealDropShowcaseArchetype.values[index];
+      final GlossRealDropSettingsDoc doc = buildRandomRealDropShowcase(
+        buildDefaultGlossRealDrops(),
+        math.Random(700 + index),
+        archetype: archetype,
+      );
+      final GlossRealDropPhysics physics = doc.physics!;
+      final GlossRealDropScript script = doc.script!;
+      final GlossRealDropAnimation animation = doc.animation!;
+
+      expect(validateRealDropSettingsDoc(doc), isEmpty, reason: archetype.name);
+      expect(physics.enabled, isTrue, reason: archetype.name);
+      expect(script.enabled, isTrue, reason: archetype.name);
+      expect(script.vars, isNotEmpty, reason: archetype.name);
+      expect(animation.enabled, isTrue, reason: archetype.name);
+      expect(animation.materialProperties, isNotEmpty, reason: archetype.name);
+      expect(animation.profiles, isNotEmpty, reason: archetype.name);
+
+      profileCounts.add(animation.profiles.length);
+      materialMapCounts.add(animation.materialProperties.length);
+      scriptShapes.add(
+        script.vars.map((GlossRealDropScriptVar value) => value.name).join(','),
+      );
+      for (final GlossRealDropAnimationProfile profile in animation.profiles) {
+        expect(profile.materials, isNotEmpty, reason: profile.id);
+        expect(profile.clips, isNotEmpty, reason: profile.id);
+        expect(profile.clips.length, lessThanOrEqualTo(5), reason: profile.id);
+        for (final GlossRealDropAnimationClip clip in profile.clips) {
+          triggers.add(clip.trigger);
+          expect(clip.durationTicks, greaterThan(0), reason: profile.id);
+          expect(clip.tracks, isNotEmpty, reason: profile.id);
+          expect(clip.tracks.length, lessThanOrEqualTo(6), reason: profile.id);
+          for (final GlossRealDropAnimationTrack track in clip.tracks) {
+            targets.add(track.target);
+            expect(track.keyframes, isNotEmpty, reason: track.target.wire);
+            expect(
+              track.keyframes.length,
+              lessThanOrEqualTo(5),
+              reason: track.target.wire,
+            );
+          }
+        }
+      }
+
+      for (final bool water in <bool>[false, true]) {
+        final DropStageTimeline stage = DropStageTimeline(
+          doc,
+          showcaseDrops[index],
+          environment: DropStageEnvironment(water: water),
+        );
+        for (final int milliseconds in <int>[0, 500, 1500]) {
+          final DropStageFrame frame = stage.frameAt(milliseconds);
+          expect(frame.carrierY.isFinite, isTrue, reason: archetype.name);
+          expect(frame.carrierZ.isFinite, isTrue, reason: archetype.name);
+          expect(frame.scriptFailures, isEmpty, reason: archetype.name);
+        }
+      }
+    }
+
+    expect(profileCounts, containsAll(<int>[1, 2, 3]));
+    expect(materialMapCounts, <int>{1, 2});
+    expect(scriptShapes, hasLength(RealDropShowcaseArchetype.values.length));
+    expect(
+      triggers,
+      containsAll(<GlossRealDropAnimationTrigger>[
+        GlossRealDropAnimationTrigger.spawn,
+        GlossRealDropAnimationTrigger.impact,
+        GlossRealDropAnimationTrigger.bounce,
+        GlossRealDropAnimationTrigger.rolling,
+        GlossRealDropAnimationTrigger.enterFluid,
+        GlossRealDropAnimationTrigger.submerged,
+        GlossRealDropAnimationTrigger.settle,
+      ]),
+    );
+    expect(
+      targets,
+      containsAll(<GlossRealDropAnimationTarget>[
+        GlossRealDropAnimationTarget.offsetY,
+        GlossRealDropAnimationTarget.rotationX,
+        GlossRealDropAnimationTarget.rotationY,
+        GlossRealDropAnimationTarget.scaleX,
+        GlossRealDropAnimationTarget.scaleY,
+        GlossRealDropAnimationTarget.scaleZ,
+        GlossRealDropAnimationTarget.glow,
+        GlossRealDropAnimationTarget.physics,
+        GlossRealDropAnimationTarget.lightLevel,
+      ]),
+    );
+  });
+
+  test('real-drop randomization replaces stale authored behavior', () {
+    final GlossRealDropSettingsDoc stale = buildDefaultGlossRealDrops()
+      ..physics = GlossRealDropPhysics(
+        enabled: false,
+        gravityMultiplier: 0.01,
+        extras: <String, dynamic>{'stalePhysics': true},
+      )
+      ..script = GlossRealDropScript(
+        enabled: false,
+        vars: <GlossRealDropScriptVar>[
+          GlossRealDropScriptVar(name: 'staleVar', expression: '1'),
+        ],
+        extras: <String, dynamic>{'staleScript': true},
+      )
+      ..animation = GlossRealDropAnimation(
+        enabled: false,
+        materialProperties:
+            <String, Map<String, GlossRealDropMaterialProperties>>{
+              'staleMap': <String, GlossRealDropMaterialProperties>{
+                '*': GlossRealDropMaterialProperties(glow: 1),
+              },
+            },
+        profiles: <GlossRealDropAnimationProfile>[
+          GlossRealDropAnimationProfile(id: 'staleProfile'),
+        ],
+        extras: <String, dynamic>{'staleAnimation': true},
+      );
+
+    final GlossRealDropSettingsDoc generated = buildRandomRealDropShowcase(
+      stale,
+      math.Random(91),
+      archetype: RealDropShowcaseArchetype.groundRoll,
+    );
+
+    expect(validateRealDropSettingsDoc(generated), isEmpty);
+    expect(generated.physics!.enabled, isTrue);
+    expect(generated.physics!.gravityMultiplier, isNot(0.01));
+    expect(generated.physics!.extras, isEmpty);
+    expect(
+      generated.script!.vars.map((GlossRealDropScriptVar value) => value.name),
+      isNot(contains('staleVar')),
+    );
+    expect(generated.script!.extras, isEmpty);
+    expect(
+      generated.animation!.materialProperties,
+      isNot(contains('staleMap')),
+    );
+    expect(
+      generated.animation!.profiles.map(
+        (GlossRealDropAnimationProfile value) => value.id,
+      ),
+      isNot(contains('staleProfile')),
+    );
+    expect(generated.animation!.extras, isEmpty);
+    expect(stale.animation!.profiles.single.id, 'staleProfile');
   });
 
   test('generated copy comes from the themed pools and keeps the credits', () {

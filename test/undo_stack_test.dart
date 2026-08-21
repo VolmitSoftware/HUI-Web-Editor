@@ -338,12 +338,23 @@ void main() {
       }
     });
 
-    test('unique ids read like button, button-2, button-3', () {
+    test('unique ids read like button, button-02, button-03', () {
       expect(uniqueComponentId('button', const <String>{}), 'button');
-      expect(uniqueComponentId('button', const <String>{'button'}), 'button-2');
       expect(
-        uniqueComponentId('button', const <String>{'button', 'button-2'}),
-        'button-3',
+        uniqueComponentId('button', const <String>{'button'}),
+        'button-02',
+      );
+      expect(
+        uniqueComponentId('button', const <String>{'button', 'button-02'}),
+        'button-03',
+      );
+      expect(
+        uniqueComponentId('button-02', const <String>{'button-02'}),
+        'button-03',
+      );
+      expect(
+        uniqueComponentId('BUTTON', const <String>{'button'}),
+        'BUTTON-02',
       );
     });
 
@@ -595,7 +606,7 @@ void main() {
         final EditorStore store = _store(_FakeStorage());
         expect(store.addComponent('button'), 'button');
         expect(store.selectedId, 'button');
-        expect(store.addComponent('button'), 'button-2');
+        expect(store.addComponent('button'), 'button-02');
         expect(store.addComponent('toggle'), 'toggle');
         expect(store.menu.components.length, 4);
         store.dispose();
@@ -642,7 +653,7 @@ void main() {
       final EditorStore store = _store(_FakeStorage());
       final String id = store.addComponent('button', id: 'slot-1')!;
       expect(id, 'slot-1');
-      expect(store.duplicateComponent(id), 'slot-2');
+      expect(store.duplicateComponent(id), 'slot-02');
       store.dispose();
     });
 

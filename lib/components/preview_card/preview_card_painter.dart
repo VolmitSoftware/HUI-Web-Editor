@@ -1,10 +1,8 @@
 /// Paints one container-preview frame at an integer pixel scale.
 ///
-/// Stateless apart from the font calibration, so a frame is a pure function of
-/// ([PreviewCardScene], [PreviewCardView], [PreviewCardFrameOptions]). Nothing
-/// in here reads the store, which is what lets a drag repaint without a Jaspr
-/// rebuild — the same contract [CanvasPainter](../canvas/canvas_painter.dart)
-/// holds for the component canvas.
+/// A frame is a pure function of ([PreviewCardScene], [PreviewCardView],
+/// [PreviewCardFrameOptions]). Bitmap decoding lives in the shared canvas asset
+/// cache, so a drag repaints without a Jaspr rebuild or allocating images.
 ///
 /// The one value that flows back out is the measured width of each label: the
 /// format carries no label extent (`CardLabel.size` is always null), so the
@@ -22,6 +20,7 @@ import '../../logic/preview_card_scene.dart';
 import '../../logic/preview_sim.dart';
 import '../../logic/mc_text.dart';
 import '../render/canvas_brush.dart';
+import '../render/canvas_assets.dart';
 import '../render/icon_renderers.dart';
 
 /// Screen radius of a resize grip, and the same number the interaction layer
@@ -69,9 +68,10 @@ class PreviewCardFrameOptions {
 }
 
 class PreviewCardPainter {
-  PreviewCardPainter({required this.metrics});
+  PreviewCardPainter({required this.metrics, required this.assets});
 
   final McFontMetrics metrics;
+  final CanvasAssets assets;
 
   /// Draws one frame and returns the measured label widths in CARD pixels,
   /// aligned with `scene.items` (0 for anything that is not a label).
@@ -82,6 +82,7 @@ class PreviewCardPainter {
     required PreviewCardFrameOptions options,
     required CanvasPalette palette,
     required double devicePixelRatio,
+    String? Function(String material)? textureFor,
   }) {
     ctx.setTransform(devicePixelRatio.toJS, 0, 0, devicePixelRatio, 0, 0);
     ctx.clearRect(0, 0, view.widthPx, view.heightPx);
@@ -120,7 +121,7 @@ class PreviewCardPainter {
             item.color,
           );
         case CardSlot():
-          _paintSlot(ctx, view, item, palette);
+          _paintSlot(ctx, view, item, palette, textureFor);
         case CardLabel():
           labelWidths[index] = _paintLabel(ctx, view, item, palette);
       }
@@ -214,6 +215,7 @@ class PreviewCardPainter {
     PreviewCardView view,
     CardSlot slot,
     CanvasPalette palette,
+    String? Function(String material)? textureFor,
   ) {
     _paintRect(ctx, view, slot.x, slot.y, slot.size, slot.size, slot.wellColor);
     final double size = (slot.size * view.zoom).toDouble();
@@ -231,9 +233,23 @@ class PreviewCardPainter {
       return;
     }
     ctx.save();
-    _fill(ctx, palette.labelBackground);
-    ctx.fillRect(left + 2, top + 2, size - 4, size - 4);
-    if (size >= 22) {
+    final String? texture = textureFor?.call(item.material.toLowerCase());
+    final web.HTMLImageElement? sprite = texture == null
+        ? null
+        : assets.image(texture);
+    if (sprite != null && sprite.naturalWidth > 0 && sprite.naturalHeight > 0) {
+      ctx.imageSmoothingEnabled = false;
+      final double inset = math.max(2, size * 0.08);
+      ctx.drawImage(
+        sprite,
+        left + inset,
+        top + inset,
+        size - inset * 2,
+        size - inset * 2,
+      );
+    } else if (size >= 22) {
+      _fill(ctx, palette.labelBackground);
+      ctx.fillRect(left + 2, top + 2, size - 4, size - 4);
       ctx.font =
           '600 ${math.min(11, size / 3.4).toStringAsFixed(1)}px '
           '"Geist", ui-sans-serif, system-ui, sans-serif';
@@ -241,12 +257,17 @@ class PreviewCardPainter {
       ctx.textBaseline = 'middle';
       _fill(ctx, palette.label);
       ctx.fillText(_slotGlyph(item.material), left + size / 2, top + size / 2);
-      if (item.count > 1) {
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'alphabetic';
-        _fill(ctx, palette.labelMuted);
-        ctx.fillText('${item.count}', left + size - 3, top + size - 3);
-      }
+    }
+    if (item.count > 1 && size >= 22) {
+      ctx.font =
+          '700 ${math.min(11, size / 3.5).toStringAsFixed(1)}px '
+          '"Geist", ui-sans-serif, system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'alphabetic';
+      ctx.shadowColor = 'rgba(0, 0, 0, .92)';
+      ctx.shadowBlur = 2;
+      _fill(ctx, '#ffffff');
+      ctx.fillText('${item.count}', left + size - 2, top + size - 2);
     }
     ctx.restore();
   }

@@ -6,6 +6,8 @@
 /// with red issues the user did not cause.
 library;
 
+import 'dart:math' as math;
+
 import '../model/model.dart';
 
 /// Fallback file base name. The plugin names the menu after the file, so this
@@ -286,16 +288,30 @@ HuiPreviewElement createDefaultPreviewElement(String type) {
   }
 }
 
-/// `button`, then `button-2`, `button-3`... Readable ids matter: they are what
+/// `button`, then `button-02`, `button-03`... Readable ids matter: they are what
 /// the Java API addresses and what the rail shows.
 String uniqueComponentId(String base, Set<String> taken) {
-  final String root = sanitizeComponentId(base);
-  if (!taken.contains(root)) return root;
-  for (int i = 2; i < 100000; i++) {
-    final String candidate = '$root-$i';
-    if (!taken.contains(candidate)) return candidate;
+  final String canonical = sanitizeComponentId(base);
+  final Set<String> occupied = taken
+      .map((String value) => value.toLowerCase())
+      .toSet();
+  if (!occupied.contains(canonical.toLowerCase())) return canonical;
+  final RegExpMatch? match = RegExp(r'^(.*)-(\d+)$').firstMatch(canonical);
+  final String root = sanitizeComponentId(match?.group(1) ?? canonical);
+  final int start = match == null
+      ? 2
+      : (int.tryParse(match.group(2)!) ?? 1) + 1;
+  for (int index = start; index < start + 100000; index++) {
+    final String number = index.toString().padLeft(2, '0');
+    final String suffix = '-$number';
+    final int rootLength = math.min(root.length, 64 - suffix.length);
+    final String candidate = '${root.substring(0, rootLength)}$suffix';
+    if (!occupied.contains(candidate.toLowerCase()) &&
+        !occupied.contains('$root-$index'.toLowerCase())) {
+      return candidate;
+    }
   }
-  return '$root-${DateTime.now().millisecondsSinceEpoch}';
+  return sanitizeComponentId('$root-${DateTime.now().millisecondsSinceEpoch}');
 }
 
 /// Component ids are addressed by the Java API, which sanitizes to

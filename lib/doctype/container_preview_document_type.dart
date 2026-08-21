@@ -168,7 +168,7 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
         ],
         create: (EditorStore store) => store.createDocumentFromPreview(
           'all-elements',
-          buildRandomPreviewShowcase(math.Random(20260819)),
+          buildRandomPreviewFurnaceLab(math.Random(20260819)),
         ),
       ),
     for (final HuiPreviewTemplate template in huiPreviewTemplates)

@@ -351,8 +351,8 @@ const List<ShowcaseMood> showcaseMoods = <ShowcaseMood>[
 ///
 /// [block] is `Material.isBlock()`, which no browser catalog carries and
 /// `RealDropModel.modelKind` needs, so each entry states it. [displayName] is
-/// the item meta name the plugin prefers over the registry name when
-/// `drops.useItemDisplayNames` is on, which is the default.
+/// the sample item-meta name the plugin can prefer over the registry name when
+/// the opt-in `drops.useItemDisplayNames` setting is on.
 final class ShowcaseDrop {
   const ShowcaseDrop({
     required this.material,
@@ -365,7 +365,7 @@ final class ShowcaseDrop {
   /// Lower-case registry key, as the sprite catalog spells it.
   final String material;
 
-  /// What the label reads.
+  /// The sample custom item-meta name.
   final String displayName;
 
   final int amount;

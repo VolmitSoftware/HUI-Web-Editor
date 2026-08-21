@@ -148,12 +148,14 @@ class _RealDropsViewState extends State<RealDropsView> {
   /// buoyancy setting that only does something underwater would otherwise be
   /// untestable. Off by default, and the readout says so either way.
   bool _water = false;
+  bool _itemDisplayNames = false;
 
   /// Timeline memo, rebuilt when the document, the stack or the water changes.
   DropStageTimeline? _timeline;
   int _timelineRevision = -1;
   ShowcaseDrop? _timelineDrop;
   bool _timelineWater = false;
+  bool _timelineItemDisplayNames = false;
 
   DropStageCamera _camera = DropStageCamera.home;
   bool _dragging = false;
@@ -270,15 +272,20 @@ class _RealDropsViewState extends State<RealDropsView> {
     if (_timeline == null ||
         _timelineRevision != _store.glossRevision ||
         !identical(_timelineDrop, drop) ||
-        _timelineWater != _water) {
+        _timelineWater != _water ||
+        _timelineItemDisplayNames != _itemDisplayNames) {
       _timeline = DropStageTimeline(
         doc,
         drop,
-        environment: DropStageEnvironment(water: _water),
+        environment: DropStageEnvironment(
+          water: _water,
+          useItemDisplayNames: _itemDisplayNames,
+        ),
       );
       _timelineRevision = _store.glossRevision;
       _timelineDrop = drop;
       _timelineWater = _water;
+      _timelineItemDisplayNames = _itemDisplayNames;
     }
     return _timeline!;
   }
@@ -457,6 +464,7 @@ class _RealDropsViewState extends State<RealDropsView> {
         _playPause(),
         _sampleButton(drop),
         _waterButton(),
+        _itemDisplayNameButton(),
         _resetButton(),
         _timelineControl(timeline, frame, nowMs),
         dom.span(classes: 'hui-real-drops-readout-inline', <Widget>[
@@ -513,6 +521,25 @@ class _RealDropsViewState extends State<RealDropsView> {
                 'waterBuoyancy and waterDrag have something to act on',
     },
     child: ArcaneIcon.droplet(size: IconSize.sm),
+  );
+
+  Widget _itemDisplayNameButton() => Button(
+    variant: _itemDisplayNames
+        ? ButtonVariant.secondary
+        : ButtonVariant.outline,
+    size: ButtonSize.iconSm,
+    onPressed: () => setState(() => _itemDisplayNames = !_itemDisplayNames),
+    attributes: <String, String>{
+      'aria-label': _itemDisplayNames
+          ? 'Use material names in labels'
+          : 'Use renamed item names in labels',
+      'title': _itemDisplayNames
+          ? 'Preview [drops] useItemDisplayNames = true; click for the '
+                'default material-name labels'
+          : 'Preview renamed item labels; [drops] useItemDisplayNames is '
+                'false by default',
+    },
+    child: ArcaneIcon.typeIcon(size: IconSize.sm),
   );
 
   Widget _resetButton() => Button(
@@ -649,7 +676,7 @@ class _RealDropsViewState extends State<RealDropsView> {
                 styles: dom.Styles(
                   raw: <String, String>{
                     'width': '${(edgePx * 1.35).toStringAsFixed(1)}px',
-                    'height': '${(edgePx * 0.5).toStringAsFixed(1)}px',
+                    'height': '${(edgePx * 1.35).toStringAsFixed(1)}px',
                     'opacity': (0.45 / (1 + frame.carrierY * 1.4))
                         .toStringAsFixed(3),
                     // The centring is the stylesheet's, restated because an
@@ -657,7 +684,8 @@ class _RealDropsViewState extends State<RealDropsView> {
                     // stack's forward travel, so the shadow stays under it.
                     'transform':
                         'translate(-50%, 50%) '
-                        'translate3d(0, 0, ${forwardPx.toStringAsFixed(2)}px)',
+                        'translate3d(0, 0, ${forwardPx.toStringAsFixed(2)}px) '
+                        'rotateX(90deg)',
                     'transition':
                         'opacity ${easeMs}ms linear, '
                         'transform ${easeMs}ms linear',
@@ -995,7 +1023,7 @@ class _RealDropsViewState extends State<RealDropsView> {
         .where((DropStageVisual visual) => !visual.visible)
         .length;
     return <String>[
-      '${drop.amount}x ${drop.displayName}',
+      '${drop.amount}x ${timeline.displayType}',
       '$kind model at ${frame.modelScale.toStringAsFixed(2)}',
       '${timeline.visualCount} of ${doc.limits.maxVisualsPerStack} displays',
       '${frame.phase.label} for '

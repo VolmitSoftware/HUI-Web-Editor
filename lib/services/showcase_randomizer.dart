@@ -184,10 +184,34 @@ HuiMenu buildRandomMenuShowcase(EditorStore store, math.Random random) {
 }
 
 HuiPreviewDoc buildRandomPreviewShowcase(math.Random random) {
+  final int archetype = random.nextInt(9);
   final _PreviewFurnaceTheme theme = showcasePick(
     random,
     _previewFurnaceThemes,
   );
+  return switch (archetype) {
+    0 => _buildRandomStoragePreview(random, theme),
+    1 => _buildRandomPreviewFurnaceLab(random, theme),
+    2 => _buildRandomBrewingPreview(random, theme),
+    3 => _buildRandomBeehivePreview(random, theme),
+    4 => _buildRandomCauldronPreview(random, theme),
+    5 => _buildRandomJukeboxPreview(random, theme),
+    6 => _buildRandomEnderPreview(random, theme),
+    7 => _buildRandomMobilePreview(random, theme),
+    _ => _buildRandomVitalsPreview(random, theme),
+  };
+}
+
+HuiPreviewDoc buildRandomPreviewFurnaceLab(math.Random random) =>
+    _buildRandomPreviewFurnaceLab(
+      random,
+      showcasePick(random, _previewFurnaceThemes),
+    );
+
+HuiPreviewDoc _buildRandomPreviewFurnaceLab(
+  math.Random random,
+  _PreviewFurnaceTheme selected,
+) {
   final int segments = 7 + random.nextInt(6);
   final int segmentGap = 6 + random.nextInt(3);
   final int segmentSize = 4 + random.nextInt(3);
@@ -204,24 +228,24 @@ HuiPreviewDoc buildRandomPreviewShowcase(math.Random random) {
         'pulseRate': pulseRate,
         'panelWidth': 156 + random.nextInt(29),
         'panelHeight': 104 + random.nextInt(21),
-        'panelColor': theme.panelColor,
-        'wellColor': theme.wellColor,
-        'fill': theme.fill,
-        'pulse': theme.pulse,
-        'chase': theme.chase,
-        'idle': theme.idle,
-        'flame0': theme.flame0,
-        'flame1': theme.flame1,
-        'flame2': theme.flame2,
+        'panelColor': selected.panelColor,
+        'wellColor': selected.wellColor,
+        'fill': selected.fill,
+        'pulse': selected.pulse,
+        'chase': selected.chase,
+        'idle': selected.idle,
+        'flame0': selected.flame0,
+        'flame1': selected.flame1,
+        'flame2': selected.flame2,
         'smoke0': '#FF5E5E66',
         'smoke1': '#FF8A8A92',
         'smoke2': '#FFB8B8C0',
         'activeItemKey': 'gloss.preview.state.smelting_item',
         'activeKey': 'gloss.preview.state.smelting',
-        'stateColor': theme.stateColor,
-        'surgeColor': theme.surgeColor,
+        'stateColor': selected.stateColor,
+        'surgeColor': selected.surgeColor,
         'titleKey': 'gloss.preview.theme.title.furnace',
-        'accent': theme.accent,
+        'accent': selected.accent,
       },
     ),
     variants: <HuiPreviewVariant>[
@@ -399,6 +423,624 @@ HuiPreviewDoc buildRandomPreviewShowcase(math.Random random) {
     ],
   );
 }
+
+HuiPreviewDoc _buildRandomStoragePreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int columns = 5 + random.nextInt(3);
+  final int rows = 2 + random.nextInt(2);
+  final int slots = columns * rows;
+  final int pulseRate = 3 + random.nextInt(7);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['CHEST', 'TRAPPED_CHEST', 'BARREL'],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': showcasePick(random, <String>[
+          'Ghostwood Storehouse',
+          'Packard Mill Inventory',
+          'Bookhouse Supply Cache',
+        ]),
+        'columns': columns,
+        'rows': rows,
+        'slots': slots,
+        'pulseRate': pulseRate,
+        'panelWidth': columns * 22 + 34,
+        'panelHeight': rows * 22 + 58,
+      },
+    ),
+    variants: <HuiPreviewVariant>[
+      HuiPreviewVariant(
+        blocks: <String>['TRAPPED_CHEST'],
+        vars: <String, dynamic>{
+          'title': 'Red Room Lockbox',
+          'accent': '#FF5577',
+          'fill': '#FFFF3355',
+          'pulse': '#FFFFB3C4',
+        },
+      ),
+      HuiPreviewVariant(
+        blocks: <String>['BARREL'],
+        vars: <String, dynamic>{
+          'title': 'Roadhouse Barrel',
+          'accent': '#F2D451',
+        },
+      ),
+    ],
+    card: _previewCard(82 + columns * 4),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.columns', varName: 'scan'),
+        x: 'round((scan - (vars.columns - 1) / 2) * 22)',
+        y: 'round(vars.rows * 11 + 11)',
+        size: 5,
+        color:
+            'scan == mod(floor(time / vars.pulseRate), vars.columns) '
+            '? vars.pulse : mix(vars.idle, vars.fill, '
+            '(sin(time / vars.pulseRate + scan) + 1) / 5)',
+      ),
+      HuiPreviewElement(
+        'slot',
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'i'),
+        x: 'round((mod(i, vars.columns) - (vars.columns - 1) / 2) * 22)',
+        y: 'round(((vars.rows - 1) / 2 - floor(i / vars.columns)) * 22)',
+        size: 18,
+        index: 'i',
+        wellColor: 'vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: '-round(vars.rows * 11 + 14)',
+        text:
+            "'&7Loaded &f' + str(inventory.occupied) + '&8/' + "
+            "str(inventory.size) + ' &8• &7Capacity &f' + "
+            'round(inventory.occupied * 100 / max(inventory.size, 1)) + "%"',
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomBrewingPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int segments = 7 + random.nextInt(5);
+  final int bubbles = 4 + random.nextInt(4);
+  final int pulseRate = 2 + random.nextInt(6);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['BREWING_STAND'],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': showcasePick(random, <String>[
+          'Jacoby Formula',
+          'Blue Rose Distillery',
+          'Black Lodge Elixir',
+        ]),
+        'segments': segments,
+        'bubbles': bubbles,
+        'pulseRate': pulseRate,
+        'panelWidth': 176,
+        'panelHeight': 124,
+      },
+    ),
+    card: _previewCard(94),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement('slot', x: 0, y: 24, size: 20, index: 3),
+      HuiPreviewElement('slot', x: -54, y: 24, size: 20, index: 4),
+      HuiPreviewElement(
+        'slot',
+        repeat: HuiPreviewRepeat(count: 3, varName: 'bottle'),
+        x: '(bottle - 1) * 28',
+        y: -14,
+        size: 20,
+        index: 'bottle',
+      ),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.segments', varName: 'i'),
+        x: 56,
+        y: '28 - i * 7',
+        size: 5,
+        color:
+            'i < floor(clamp(1 - brewTime / max(brewTotal, 1), 0, 1) '
+            '* vars.segments) ? mix(vars.fill, vars.pulse, '
+            '(sin(time / vars.pulseRate + i) + 1) / 2) : vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.bubbles', varName: 'bubble'),
+        x: '-24 + bubble * 8',
+        y: '10 + mod(bubble, 3) * 7',
+        size: '4 + mod(bubble, 3)',
+        color:
+            'brewTime > 0 ? palette([vars.fill, vars.pulse, vars.chase], '
+            'floor(time / vars.pulseRate) + bubble) : vars.idle',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -40,
+        text:
+            "brewTime > 0 ? vars.stateColor + '&lBREWING &f' + "
+            'round(clamp(1 - brewTime / max(brewTotal, 1), 0, 1) * 100) '
+            "+ '%' : '&7Waiting for a complete recipe'",
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -54,
+        text:
+            "'&7Fuel &e' + str(fuelLevel) + '&8/' + str(maxFuel) + "
+            "' &8• &7Bottles &d' + str((occupied(0) ? 1 : 0) + "
+            '(occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0))',
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomBeehivePreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int columns = 3 + random.nextInt(3);
+  final int rows = 2 + random.nextInt(2);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['BEEHIVE', 'BEE_NEST'],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': showcasePick(random, <String>[
+          'Ghostwood Apiary',
+          'Pearl Lakes Honey',
+          'Glastonbury Hive',
+        ]),
+        'columns': columns,
+        'rows': rows,
+        'cells': columns * rows,
+        'panelWidth': columns * 24 + 52,
+        'panelHeight': rows * 22 + 62,
+      },
+    ),
+    variants: <HuiPreviewVariant>[
+      HuiPreviewVariant(
+        blocks: <String>['BEE_NEST'],
+        vars: <String, dynamic>{'title': 'Ghostwood Wild Hive'},
+      ),
+    ],
+    card: _previewCard(82),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.cells', varName: 'cell'),
+        x: 'round((mod(cell, vars.columns) - (vars.columns - 1) / 2) * 23)',
+        y: 'round(((vars.rows - 1) / 2 - floor(cell / vars.columns)) * 21)',
+        size: '14 + mod(cell, 2) * 2',
+        color:
+            'cell < round(honey / max(maxHoney, 1) * vars.cells) '
+            '? mix(vars.fill, vars.pulse, (sin(time / 9 + cell) + 1) / 2) '
+            ': vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 3, varName: 'bee'),
+        x: '-24 + bee * 24',
+        y: 'round(vars.rows * 11 + 9)',
+        size: 'bee < bees ? 7 : 4',
+        color:
+            'bee < bees ? palette([vars.chase, vars.fill, vars.pulse], '
+            'floor(time / 6) + bee) : vars.idle',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: '-round(vars.rows * 11 + 17)',
+        text:
+            "vars.stateColor + str(bees) + '&7/' + str(maxBees) + "
+            "' bees &8• ' + vars.stateColor + str(honey) + '&7/' + "
+            "str(maxHoney) + ' honey'",
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomCauldronPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int rings = 4 + random.nextInt(4);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>[
+        'CAULDRON',
+        'WATER_CAULDRON',
+        'LAVA_CAULDRON',
+        'POWDER_SNOW_CAULDRON',
+      ],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': 'Sycamore Cauldron',
+        'rings': rings,
+        'fluidColor': theme.fill,
+        'fluidPulse': theme.pulse,
+        'panelWidth': 154,
+        'panelHeight': 112,
+      },
+    ),
+    variants: <HuiPreviewVariant>[
+      HuiPreviewVariant(
+        blocks: <String>['WATER_CAULDRON'],
+        vars: <String, dynamic>{
+          'title': 'Pearl Lakes Water',
+          'fluidColor': '#FF3F9DFF',
+          'fluidPulse': '#FFB8EDFF',
+          'accent': '#5E82FF',
+        },
+      ),
+      HuiPreviewVariant(
+        blocks: <String>['LAVA_CAULDRON'],
+        vars: <String, dynamic>{
+          'title': 'Fire Walk Crucible',
+          'fluidColor': '#FFFF6A1A',
+          'fluidPulse': '#FFFFE05A',
+          'accent': '#FF8A35',
+        },
+      ),
+      HuiPreviewVariant(
+        blocks: <String>['POWDER_SNOW_CAULDRON'],
+        vars: <String, dynamic>{
+          'title': 'Twin Peaks Snow',
+          'fluidColor': '#FFCDEBFF',
+          'fluidPulse': '#FFFFFFFF',
+          'accent': '#CFE6FF',
+        },
+      ),
+    ],
+    card: _previewCard(84),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.rings', varName: 'ring'),
+        x: 'round((ring - (vars.rings - 1) / 2) * 18)',
+        y: 6,
+        size: '12 + mod(ring, 2) * 4',
+        color:
+            'ring < ceil(level / max(maxLevel, 1) * vars.rings) '
+            '? mix(vars.fluidColor, vars.fluidPulse, '
+            '(sin(time / 8 + ring * 1.7) + 1) / 2) : vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.rings', varName: 'ripple'),
+        x: 'round((ripple - (vars.rings - 1) / 2) * 18)',
+        y: -14,
+        size: 4,
+        color:
+            'ripple == mod(floor(time / 5), vars.rings) '
+            '? vars.fluidPulse : vars.idle',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -35,
+        text:
+            "level > 0 ? vars.stateColor + readable(fluid) + ' &f' + "
+            "str(level) + '&7/' + str(maxLevel) : '&8Empty vessel'",
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomJukeboxPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int bars = 7 + random.nextInt(6);
+  final int pulseRate = 2 + random.nextInt(5);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['JUKEBOX'],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': showcasePick(random, <String>[
+          'Roadhouse Now Playing',
+          'Double R Hi-Fi',
+          'Black Lodge Broadcast',
+        ]),
+        'bars': bars,
+        'pulseRate': pulseRate,
+        'panelWidth': 172,
+        'panelHeight': 116,
+      },
+    ),
+    card: _previewCard(92),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement('slot', x: -62, y: 4, size: 24, index: 0),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.bars', varName: 'bar'),
+        x: '-38 + bar * 8',
+        y: 8,
+        size: '4 + mod(bar + floor(time / vars.pulseRate), 4) * 2',
+        color:
+            'playing ? palette([vars.fill, vars.pulse, vars.chase], '
+            'floor(time / vars.pulseRate) + bar) : vars.idle',
+      ),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.bars', varName: 'beat'),
+        x: '-38 + beat * 8',
+        y: -8,
+        size: 4,
+        color:
+            'playing && beat == mod(floor(time / vars.pulseRate), vars.bars) '
+            '? vars.pulse : vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -32,
+        text:
+            "record != '' ? (playing ? vars.stateColor + '&lPLAYING &f' + "
+            "readable(record) : '&7Loaded &f' + readable(record)) "
+            ": '&8No disc loaded'",
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -46,
+        text:
+            "playing ? select(['&d♪', '&5♫', '&f◆', '&d♫'], "
+            "floor(time / vars.pulseRate)) + ' &7Live from the Roadhouse' "
+            ": '&8Player standing by'",
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomEnderPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int columns = 6 + random.nextInt(3);
+  final int rows = 2 + random.nextInt(2);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['ENDER_CHEST'],
+      special: 'enderChest',
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': showcasePick(random, <String>[
+          'Owl Cave Vault',
+          'Between Two Worlds',
+          'Black Lodge Storage',
+        ]),
+        'columns': columns,
+        'rows': rows,
+        'slots': columns * rows,
+        'panelWidth': columns * 21 + 38,
+        'panelHeight': rows * 21 + 62,
+        'portal0': '#FF512A7A',
+        'portal1': '#FFB152DA',
+        'portal2': '#FF6FEAEA',
+      },
+    ),
+    card: _previewCard(94),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 12, varName: 'star'),
+        x: 'round((mod(star, 6) - 2.5) * 25)',
+        y: 'round((floor(star / 6) * 2 - 1) * (vars.rows * 11 + 8))',
+        size: '3 + mod(star, 3)',
+        color:
+            'palette([vars.portal0, vars.portal1, vars.portal2], '
+            'floor(time / 5) + star)',
+      ),
+      HuiPreviewElement(
+        'slot',
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'i'),
+        x: 'round((mod(i, vars.columns) - (vars.columns - 1) / 2) * 21)',
+        y: 'round(((vars.rows - 1) / 2 - floor(i / vars.columns)) * 21)',
+        size: 18,
+        index: 'i',
+        wellColor: 'vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: '-round(vars.rows * 11 + 19)',
+        text:
+            "vars.stateColor + str(inventory.occupied) + '&7/' + "
+            "str(inventory.size) + ' echoes stored between worlds'",
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomMobilePreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int slots = 5 + random.nextInt(4);
+  final int trail = 8 + random.nextInt(5);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      entities: <String>[
+        'CHEST_MINECART',
+        'HOPPER_MINECART',
+        '*_CHEST_BOAT',
+        '*_CHEST_RAFT',
+      ],
+      special: 'anyInventoryHolder',
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': showcasePick(random, <String>[
+          'Packard Mill Freight',
+          'Ghostwood Night Train',
+          'Pearl Lakes Cargo',
+        ]),
+        'slots': slots,
+        'trail': trail,
+        'panelWidth': slots * 22 + 44,
+        'panelHeight': 106,
+      },
+    ),
+    variants: <HuiPreviewVariant>[
+      HuiPreviewVariant(
+        entities: <String>['HOPPER_MINECART'],
+        vars: <String, dynamic>{'title': 'Packard Transfer Line'},
+      ),
+    ],
+    card: _previewCard(94),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.trail', varName: 'rail'),
+        x: 'round((rail - (vars.trail - 1) / 2) * 12)',
+        y: 26,
+        size: 5,
+        color:
+            'rail == mod(floor(time / 4), vars.trail) ? vars.pulse '
+            ': (rail < mod(floor(time / 4), vars.trail) '
+            '? vars.fill : vars.idle)',
+      ),
+      HuiPreviewElement(
+        'slot',
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'i'),
+        x: 'round((i - (vars.slots - 1) / 2) * 22)',
+        y: 0,
+        size: 18,
+        index: 'i',
+        wellColor: 'vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -28,
+        text:
+            "vars.stateColor + '&lIN TRANSIT &8• &7Cargo &f' + "
+            "str(inventory.occupied) + '&8/' + str(inventory.size)",
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -42,
+        text:
+            "select(['&8Departed', '&7Crossing Ghostwood', '&fApproaching', "
+            "vars.stateColor + 'Arrived'], floor(time / 20))",
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomVitalsPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int bars = 9 + random.nextInt(7);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      special: 'locked',
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': showcasePick(random, <String>[
+          'Blue Rose Telemetry',
+          'Sheriff Station Signal',
+          'Great Northern Status',
+        ]),
+        'bars': bars,
+        'panelWidth': 172,
+        'panelHeight': 118,
+      },
+    ),
+    card: _previewCard(92),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.bars', varName: 'bar'),
+        x: 'round((bar - (vars.bars - 1) / 2) * 9)',
+        y: 18,
+        size: '4 + mod(bar + floor(time / 4), 4)',
+        color:
+            'palette([vars.fill, vars.pulse, vars.chase, vars.idle], '
+            'floor(time / 4) + bar)',
+      ),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 3, varName: 'signal'),
+        x: '-24 + signal * 24',
+        y: -4,
+        size: '8 + signal * 2',
+        color:
+            'mix(vars.fill, vars.pulse, '
+            '(sin(time / (5 + signal * 2)) + 1) / 2)',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -28,
+        text:
+            "vars.stateColor + '&lLIVE &8• &7TPS &a' + fixed(server.tps, 1) "
+            "+ ' &8• &7Ping &f' + str(player.ping) + 'ms'",
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -43,
+        text:
+            "'&7Online &f' + str(server.online) + '&8/' + "
+            "str(server.maxPlayers) + ' &8• &7Agent &f' + player.name",
+      ),
+    ],
+  );
+}
+
+Map<String, dynamic> _previewThemeVars(_PreviewFurnaceTheme theme) =>
+    <String, dynamic>{
+      'panelColor': theme.panelColor,
+      'wellColor': theme.wellColor,
+      'fill': theme.fill,
+      'pulse': theme.pulse,
+      'chase': theme.chase,
+      'idle': theme.idle,
+      'stateColor': theme.stateColor,
+      'accent': theme.accent,
+    };
+
+HuiPreviewCard _previewCard(int minHalfWidth) => HuiPreviewCard(
+  title: "'&f&l' + vars.title",
+  accent: 'vars.accent',
+  minHalfWidth: minHalfWidth,
+);
+
+HuiPreviewElement _previewPanel() => HuiPreviewElement(
+  'panel',
+  x: 0,
+  y: -4,
+  width: 'vars.panelWidth',
+  height: 'vars.panelHeight',
+  color: 'vars.panelColor',
+);
 
 GlossHologramDoc buildRandomHologramShowcase(
   GlossHologramDoc current,
@@ -612,10 +1254,7 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
   );
 }
 
-GlossBubbleShimmer _randomBubbleShimmer(
-  math.Random random,
-  ShowcaseMood mood,
-) {
+GlossBubbleShimmer _randomBubbleShimmer(math.Random random, ShowcaseMood mood) {
   final int durationMs = 450 + random.nextInt(1051);
   return GlossBubbleShimmer(
     spawn: true,
@@ -750,8 +1389,17 @@ GlossTablistDoc buildRandomTablistShowcase(
 /// A coherent character for the drop settings, so one press gives a look
 /// rather than five sliders of noise. Every band stays inside the ranges
 /// `real_drop_validation.dart` reports on.
+enum RealDropShowcaseArchetype {
+  ricochet,
+  groundRoll,
+  buoyant,
+  hoverRelease,
+  materialReactive,
+}
+
 final class _DropProfile {
   const _DropProfile({
+    required this.archetype,
     required this.tumble,
     required this.speed,
     required this.rate,
@@ -762,6 +1410,7 @@ final class _DropProfile {
     required this.spread,
   });
 
+  final RealDropShowcaseArchetype archetype;
   final bool tumble;
 
   /// `motion.speedMultiplier` band.
@@ -788,6 +1437,7 @@ const List<_DropProfile> _dropProfiles = <_DropProfile>[
   // Slow, upright, oversized labels: loot you are meant to read from across
   // the room.
   _DropProfile(
+    archetype: RealDropShowcaseArchetype.hoverRelease,
     tumble: true,
     speed: (0.3, 0.8),
     rate: (30, 90),
@@ -799,6 +1449,7 @@ const List<_DropProfile> _dropProfiles = <_DropProfile>[
   ),
   // Fast and chaotic, the way a mined stack scatters.
   _DropProfile(
+    archetype: RealDropShowcaseArchetype.ricochet,
     tumble: true,
     speed: (1.6, 3.2),
     rate: (200, 520),
@@ -810,6 +1461,7 @@ const List<_DropProfile> _dropProfiles = <_DropProfile>[
   ),
   // Everything lies flat and close: a tidy counter of items.
   _DropProfile(
+    archetype: RealDropShowcaseArchetype.materialReactive,
     tumble: false,
     speed: (0.5, 1.2),
     rate: (0, 40),
@@ -821,6 +1473,7 @@ const List<_DropProfile> _dropProfiles = <_DropProfile>[
   ),
   // No labels, small models, quiet ground clutter.
   _DropProfile(
+    archetype: RealDropShowcaseArchetype.buoyant,
     tumble: true,
     speed: (0.6, 1.4),
     rate: (60, 200),
@@ -832,6 +1485,7 @@ const List<_DropProfile> _dropProfiles = <_DropProfile>[
   ),
   // The shipped feel, widened: fast tumble, natural landing, readable labels.
   _DropProfile(
+    archetype: RealDropShowcaseArchetype.groundRoll,
     tumble: true,
     speed: (1.0, 1.9),
     rate: (90, 260),
@@ -845,10 +1499,15 @@ const List<_DropProfile> _dropProfiles = <_DropProfile>[
 
 GlossRealDropSettingsDoc buildRandomRealDropShowcase(
   GlossRealDropSettingsDoc current,
-  math.Random random,
-) {
+  math.Random random, {
+  RealDropShowcaseArchetype? archetype,
+}) {
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
-  final _DropProfile profile = showcasePick(random, _dropProfiles);
+  final _DropProfile profile = archetype == null
+      ? showcasePick(random, _dropProfiles)
+      : _dropProfiles.firstWhere(
+          (_DropProfile candidate) => candidate.archetype == archetype,
+        );
   final GlossRealDropSettingsDoc doc = current.copy();
 
   doc.limits
@@ -862,14 +1521,12 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
   final double base = _band(random, profile.scale, 2);
   doc.scale
     ..defaultScale = base
-    ..flatItems = _round2((base * (1.3 + random.nextDouble() * 0.6)).clamp(
-      0.05,
-      2,
-    ))
-    ..thinBlocks = _round2((base * (0.8 + random.nextDouble() * 0.5)).clamp(
-      0.05,
-      2,
-    ));
+    ..flatItems = _round2(
+      (base * (1.3 + random.nextDouble() * 0.6)).clamp(0.05, 2),
+    )
+    ..thinBlocks = _round2(
+      (base * (0.8 + random.nextDouble() * 0.5)).clamp(0.05, 2),
+    );
 
   doc.motion
     ..tumble = profile.tumble
@@ -920,7 +1577,897 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
       <String>['BEDROCK'],
     ]);
 
+  _applyDropArchetype(doc, profile.archetype, random);
+  doc.physics = _buildDropPhysics(profile.archetype, random);
+  doc.script = _buildDropScript(profile.archetype, mood, random);
+  doc.animation = _buildDropAnimation(profile.archetype, mood, random);
+
   return doc;
+}
+
+void _applyDropArchetype(
+  GlossRealDropSettingsDoc doc,
+  RealDropShowcaseArchetype archetype,
+  math.Random random,
+) {
+  switch (archetype) {
+    case RealDropShowcaseArchetype.ricochet:
+      doc.motion
+        ..velocityInfluence = _band(random, (1.1, 2.4), 2)
+        ..submergedSpinMultiplier = _band(random, (0.2, 0.5), 2)
+        ..groundRollMultiplier = _band(random, (1.2, 2.4), 2);
+      doc.landing
+        ..faceAttraction = _band(random, (0.35, 0.6), 2)
+        ..movingFaceAttraction = _band(random, (0.05, 0.2), 2)
+        ..alignmentDegrees = _band(random, (0.25, 0.8), 2)
+        ..settleDelayTicks = 3 + random.nextInt(6);
+    case RealDropShowcaseArchetype.groundRoll:
+      doc.motion
+        ..velocityInfluence = _band(random, (0.7, 1.6), 2)
+        ..submergedSpinMultiplier = _band(random, (0.2, 0.45), 2)
+        ..groundRollMultiplier = _band(random, (1.4, 3.2), 2);
+      doc.landing
+        ..faceAttraction = _band(random, (0.45, 0.75), 2)
+        ..movingFaceAttraction = _band(random, (0.04, 0.18), 2)
+        ..alignmentDegrees = _band(random, (0.2, 0.65), 2)
+        ..settleDelayTicks = 4 + random.nextInt(7);
+    case RealDropShowcaseArchetype.buoyant:
+      doc.motion
+        ..velocityInfluence = _band(random, (0.3, 0.9), 2)
+        ..submergedSpinMultiplier = _band(random, (0.08, 0.3), 2)
+        ..groundRollMultiplier = _band(random, (0.6, 1.3), 2);
+      doc.landing
+        ..faceAttraction = _band(random, (0.45, 0.7), 2)
+        ..movingFaceAttraction = _band(random, (0.08, 0.22), 2)
+        ..alignmentDegrees = _band(random, (0.35, 1.0), 2)
+        ..settleDelayTicks = 3 + random.nextInt(6);
+    case RealDropShowcaseArchetype.hoverRelease:
+      doc.motion
+        ..velocityInfluence = _band(random, (0.5, 1.2), 2)
+        ..submergedSpinMultiplier = _band(random, (0.15, 0.4), 2)
+        ..groundRollMultiplier = _band(random, (0.7, 1.5), 2);
+      doc.landing
+        ..faceAttraction = _band(random, (0.55, 0.82), 2)
+        ..movingFaceAttraction = _band(random, (0.08, 0.24), 2)
+        ..alignmentDegrees = _band(random, (0.2, 0.7), 2)
+        ..settleDelayTicks = 3 + random.nextInt(5);
+    case RealDropShowcaseArchetype.materialReactive:
+      doc.motion
+        ..velocityInfluence = _band(random, (0.2, 0.8), 2)
+        ..submergedSpinMultiplier = _band(random, (0.1, 0.35), 2)
+        ..groundRollMultiplier = _band(random, (0.4, 1.0), 2);
+      doc.landing
+        ..faceAttraction = _band(random, (0.6, 0.88), 2)
+        ..movingFaceAttraction = _band(random, (0.12, 0.3), 2)
+        ..alignmentDegrees = _band(random, (0.15, 0.55), 2)
+        ..settleDelayTicks = 2 + random.nextInt(5);
+  }
+}
+
+GlossRealDropPhysics _buildDropPhysics(
+  RealDropShowcaseArchetype archetype,
+  math.Random random,
+) => switch (archetype) {
+  RealDropShowcaseArchetype.ricochet => GlossRealDropPhysics(
+    enabled: true,
+    gravityMultiplier: _band(random, (0.8, 1.35), 2),
+    bounce: _band(random, (0.5, 0.82), 2),
+    waterBuoyancy: _band(random, (0, 0.12), 2),
+    waterDrag: _band(random, (0.05, 0.25), 2),
+  ),
+  RealDropShowcaseArchetype.groundRoll => GlossRealDropPhysics(
+    enabled: true,
+    gravityMultiplier: _band(random, (0.9, 1.45), 2),
+    bounce: _band(random, (0.04, 0.18), 2),
+    waterBuoyancy: _band(random, (0, 0.1), 2),
+    waterDrag: _band(random, (0.1, 0.35), 2),
+  ),
+  RealDropShowcaseArchetype.buoyant => GlossRealDropPhysics(
+    enabled: true,
+    gravityMultiplier: _band(random, (0.55, 0.95), 2),
+    bounce: _band(random, (0.08, 0.25), 2),
+    waterBuoyancy: _band(random, (0.18, 0.48), 2),
+    waterDrag: _band(random, (0.35, 0.78), 2),
+  ),
+  RealDropShowcaseArchetype.hoverRelease => GlossRealDropPhysics(
+    enabled: true,
+    gravityMultiplier: _band(random, (0.8, 1.15), 2),
+    bounce: _band(random, (0.12, 0.34), 2),
+    waterBuoyancy: _band(random, (0.05, 0.2), 2),
+    waterDrag: _band(random, (0.18, 0.45), 2),
+  ),
+  RealDropShowcaseArchetype.materialReactive => GlossRealDropPhysics(
+    enabled: true,
+    gravityMultiplier: _band(random, (0.85, 1.25), 2),
+    bounce: _band(random, (0.08, 0.3), 2),
+    waterBuoyancy: _band(random, (0, 0.15), 2),
+    waterDrag: _band(random, (0.1, 0.4), 2),
+  ),
+};
+
+GlossRealDropScript _buildDropScript(
+  RealDropShowcaseArchetype archetype,
+  ShowcaseMood mood,
+  math.Random random,
+) {
+  final double rate = _band(random, (1.6, 4.8), 2);
+  final double amplitude = _band(random, (0.04, 0.18), 2);
+  final String glow = mood.primary;
+  switch (archetype) {
+    case RealDropShowcaseArchetype.ricochet:
+      return GlossRealDropScript(
+        enabled: true,
+        vars: <GlossRealDropScriptVar>[
+          GlossRealDropScriptVar(
+            name: 'energy',
+            expression: 'min(1, impactSpeed * ${_band(random, (1.4, 2.8), 2)})',
+          ),
+          GlossRealDropScriptVar(
+            name: 'wobble',
+            expression: 'sin(t * $rate + index * 0.8)',
+          ),
+        ],
+        offset: GlossRealDropScriptAxis(
+          neutral: '0',
+          y: 'onGround ? energy * (wobble + 1) * $amplitude : 0',
+        ),
+        rotation: GlossRealDropScriptAxis(
+          neutral: '0',
+          z: 'wobble * ${_band(random, (8, 24), 1)}',
+        ),
+        scale: GlossRealDropScriptAxis(
+          neutral: '1',
+          x: '1 + energy * $amplitude',
+          y: '1 - energy * $amplitude',
+          z: '1 + energy * $amplitude',
+        ),
+        glow: "materialMatches('*_PICKAXE') ? $glow : 0",
+      );
+    case RealDropShowcaseArchetype.groundRoll:
+      return GlossRealDropScript(
+        enabled: true,
+        vars: <GlossRealDropScriptVar>[
+          GlossRealDropScriptVar(
+            name: 'spacing',
+            expression: 'index - (count - 1) / 2',
+          ),
+          GlossRealDropScriptVar(
+            name: 'rollPulse',
+            expression: 'sin(stateTime * $rate + index)',
+          ),
+        ],
+        offset: GlossRealDropScriptAxis(
+          neutral: '0',
+          x: 'settled ? spacing * $amplitude : 0',
+          y: 'onGround ? (rollPulse + 1) * ${_round2(amplitude / 3)} : 0',
+        ),
+        rotation: GlossRealDropScriptAxis(
+          neutral: '0',
+          y: 'settled ? spacing * ${_band(random, (4, 14), 1)} : 0',
+        ),
+        scale: GlossRealDropScriptAxis(neutral: '1'),
+      );
+    case RealDropShowcaseArchetype.buoyant:
+      return GlossRealDropScript(
+        enabled: true,
+        vars: <GlossRealDropScriptVar>[
+          GlossRealDropScriptVar(
+            name: 'drift',
+            expression: 't * $rate + index * 1.7',
+          ),
+          GlossRealDropScriptVar(name: 'bob', expression: 'sin(drift)'),
+        ],
+        offset: GlossRealDropScriptAxis(
+          neutral: '0',
+          x: 'inWater ? cos(drift) * $amplitude : 0',
+          y: 'inWater ? bob * ${_round2(amplitude * 1.5)} : 0',
+          z: 'inWater ? sin(drift * 0.7) * $amplitude : 0',
+        ),
+        rotation: GlossRealDropScriptAxis(
+          neutral: '0',
+          y: 'inWater ? bob * ${_band(random, (10, 28), 1)} : 0',
+        ),
+        scale: GlossRealDropScriptAxis(
+          neutral: '1',
+          x: 'inWater ? 1 + bob * ${_round2(amplitude / 2)} : 1',
+          z: 'inWater ? 1 - bob * ${_round2(amplitude / 2)} : 1',
+        ),
+        glow: "materialMatches('*_LANTERN') ? $glow : 0",
+      );
+    case RealDropShowcaseArchetype.hoverRelease:
+      return GlossRealDropScript(
+        enabled: true,
+        vars: <GlossRealDropScriptVar>[
+          GlossRealDropScriptVar(
+            name: 'orbit',
+            expression: 't * $rate + index * 2.1',
+          ),
+          GlossRealDropScriptVar(
+            name: 'lift',
+            expression: '(sin(orbit) + 1) * $amplitude',
+          ),
+        ],
+        offset: GlossRealDropScriptAxis(
+          neutral: '0',
+          x: 'cos(orbit) * $amplitude',
+          y: 'lift',
+          z: 'sin(orbit) * $amplitude',
+        ),
+        rotation: GlossRealDropScriptAxis(
+          neutral: '0',
+          y: 't * ${_band(random, (45, 120), 0)}',
+        ),
+        scale: GlossRealDropScriptAxis(
+          neutral: '1',
+          x: '1 + sin(orbit) * ${_round2(amplitude / 2)}',
+          z: '1 - sin(orbit) * ${_round2(amplitude / 2)}',
+        ),
+        glow: "materialMatches('DIAMOND*') ? $glow : 0",
+      );
+    case RealDropShowcaseArchetype.materialReactive:
+      return GlossRealDropScript(
+        enabled: true,
+        vars: <GlossRealDropScriptVar>[
+          GlossRealDropScriptVar(
+            name: 'rarity',
+            expression:
+                "materialMatches('DIAMOND*') ? 1 : "
+                "(materialMatches('*_LANTERN') ? 0.7 : 0.25)",
+          ),
+          GlossRealDropScriptVar(
+            name: 'pulse',
+            expression: '(sin(t * $rate + index) + 1) / 2',
+          ),
+        ],
+        offset: GlossRealDropScriptAxis(
+          neutral: '0',
+          y: 'settled ? pulse * rarity * $amplitude : 0',
+        ),
+        rotation: GlossRealDropScriptAxis(
+          neutral: '0',
+          y: 'settled ? pulse * rarity * ${_band(random, (8, 22), 1)} : 0',
+        ),
+        scale: GlossRealDropScriptAxis(
+          neutral: '1',
+          x: '1 + pulse * rarity * ${_round2(amplitude / 2)}',
+          y: '1 + pulse * rarity * ${_round2(amplitude / 2)}',
+          z: '1 + pulse * rarity * ${_round2(amplitude / 2)}',
+        ),
+        glow: 'rarity > 0.6 ? $glow : 0',
+        visible: "materialIs('BARRIER') == false",
+      );
+  }
+}
+
+GlossRealDropAnimation _buildDropAnimation(
+  RealDropShowcaseArchetype archetype,
+  ShowcaseMood mood,
+  math.Random random,
+) {
+  const String radianceMap = 'radiance';
+  const String treasureMap = 'treasure';
+  final Map<String, Map<String, GlossRealDropMaterialProperties>> maps =
+      <String, Map<String, GlossRealDropMaterialProperties>>{
+        radianceMap: <String, GlossRealDropMaterialProperties>{
+          'SEA_LANTERN': GlossRealDropMaterialProperties(
+            glow: _argb('#CFE6FF'),
+            lightLevel: 15,
+          ),
+          '*_LANTERN': GlossRealDropMaterialProperties(
+            glow: _argb(mood.secondary),
+            lightLevel: 14,
+          ),
+          '*_CANDLE': GlossRealDropMaterialProperties(
+            glow: _argb(mood.primary),
+            lightLevel: 11,
+          ),
+          '*': GlossRealDropMaterialProperties(),
+        },
+      };
+  if (archetype == RealDropShowcaseArchetype.materialReactive ||
+      archetype == RealDropShowcaseArchetype.hoverRelease) {
+    maps[treasureMap] = <String, GlossRealDropMaterialProperties>{
+      'DIAMOND*': GlossRealDropMaterialProperties(
+        glow: _argb(mood.secondary),
+        lightLevel: 9,
+      ),
+      '*_PICKAXE': GlossRealDropMaterialProperties(
+        glow: _argb(mood.primary),
+        lightLevel: 6,
+      ),
+      'TRIDENT': GlossRealDropMaterialProperties(
+        glow: _argb('#55FFFF'),
+        lightLevel: 8,
+      ),
+      '*': GlossRealDropMaterialProperties(),
+    };
+  }
+
+  final List<GlossRealDropAnimationClip> base = _dropAnimationClips(
+    archetype,
+    random,
+  );
+  final List<GlossRealDropAnimationProfile> profiles =
+      <GlossRealDropAnimationProfile>[];
+  switch (archetype) {
+    case RealDropShowcaseArchetype.ricochet:
+      profiles.add(
+        GlossRealDropAnimationProfile(
+          id: 'ricochet',
+          materials: <String>['*'],
+          clips: <GlossRealDropAnimationClip>[
+            ...base,
+            _materialPulseClip(
+              GlossRealDropAnimationTrigger.bounce,
+              radianceMap,
+              random,
+            ),
+          ],
+        ),
+      );
+    case RealDropShowcaseArchetype.groundRoll:
+      profiles
+        ..add(
+          GlossRealDropAnimationProfile(
+            id: 'rolling-blocks',
+            priority: 20,
+            materials: <String>['*_LOG', '*_SLAB', 'COBBLESTONE', 'STONE'],
+            clips: <GlossRealDropAnimationClip>[
+              ...base,
+              _materialPulseClip(
+                GlossRealDropAnimationTrigger.settle,
+                radianceMap,
+                random,
+              ),
+            ],
+          ),
+        )
+        ..add(
+          GlossRealDropAnimationProfile(
+            id: 'rolling-fallback',
+            materials: <String>['*'],
+            clips: base,
+          ),
+        );
+    case RealDropShowcaseArchetype.buoyant:
+      profiles
+        ..add(
+          GlossRealDropAnimationProfile(
+            id: 'buoyant-lights',
+            priority: 30,
+            materials: <String>['*_LANTERN', '*_CANDLE', 'SEA_LANTERN'],
+            clips: <GlossRealDropAnimationClip>[
+              ...base,
+              _materialPulseClip(
+                GlossRealDropAnimationTrigger.enterFluid,
+                radianceMap,
+                random,
+              ),
+            ],
+          ),
+        )
+        ..add(
+          GlossRealDropAnimationProfile(
+            id: 'buoyant-fallback',
+            materials: <String>['*'],
+            clips: base,
+          ),
+        );
+    case RealDropShowcaseArchetype.hoverRelease:
+      profiles
+        ..add(
+          GlossRealDropAnimationProfile(
+            id: 'hover-treasure',
+            priority: 25,
+            materials: <String>['DIAMOND*', '*_PICKAXE', 'TRIDENT'],
+            clips: <GlossRealDropAnimationClip>[
+              ...base,
+              _materialPulseClip(
+                GlossRealDropAnimationTrigger.spawn,
+                treasureMap,
+                random,
+              ),
+            ],
+          ),
+        )
+        ..add(
+          GlossRealDropAnimationProfile(
+            id: 'hover-fallback',
+            materials: <String>['*'],
+            clips: base,
+          ),
+        );
+    case RealDropShowcaseArchetype.materialReactive:
+      profiles
+        ..add(
+          GlossRealDropAnimationProfile(
+            id: 'reactive-lights',
+            priority: 40,
+            materials: <String>['*_LANTERN', '*_CANDLE', 'SEA_LANTERN'],
+            clips: <GlossRealDropAnimationClip>[
+              ...base,
+              _materialPulseClip(
+                GlossRealDropAnimationTrigger.impact,
+                radianceMap,
+                random,
+              ),
+            ],
+          ),
+        )
+        ..add(
+          GlossRealDropAnimationProfile(
+            id: 'reactive-treasure',
+            priority: 30,
+            materials: <String>['DIAMOND*', '*_PICKAXE', 'TRIDENT'],
+            clips: <GlossRealDropAnimationClip>[
+              ...base,
+              _materialPulseClip(
+                GlossRealDropAnimationTrigger.settle,
+                treasureMap,
+                random,
+              ),
+            ],
+          ),
+        )
+        ..add(
+          GlossRealDropAnimationProfile(
+            id: 'reactive-fallback',
+            materials: <String>['*'],
+            clips: base,
+          ),
+        );
+  }
+  return GlossRealDropAnimation(
+    enabled: true,
+    materialProperties: maps,
+    profiles: profiles,
+  );
+}
+
+List<GlossRealDropAnimationClip> _dropAnimationClips(
+  RealDropShowcaseArchetype archetype,
+  math.Random random,
+) => switch (archetype) {
+  RealDropShowcaseArchetype.ricochet => <GlossRealDropAnimationClip>[
+    _spawnRevealClip(random),
+    _impactClip(random),
+    _bounceClip(random),
+    _airborneClip(random),
+  ],
+  RealDropShowcaseArchetype.groundRoll => <GlossRealDropAnimationClip>[
+    _spawnRevealClip(random),
+    _rollingClip(random),
+    _startRollClip(random),
+    _settleClip(random),
+  ],
+  RealDropShowcaseArchetype.buoyant => <GlossRealDropAnimationClip>[
+    _spawnRevealClip(random),
+    _enterFluidClip(random),
+    _submergedClip(random),
+    _exitFluidClip(random),
+  ],
+  RealDropShowcaseArchetype.hoverRelease => <GlossRealDropAnimationClip>[
+    _hoverReleaseClip(random),
+    _settleClip(random),
+  ],
+  RealDropShowcaseArchetype.materialReactive => <GlossRealDropAnimationClip>[
+    _spawnRevealClip(random),
+    _impactClip(random),
+    _settleClip(random),
+  ],
+};
+
+GlossRealDropAnimationClip _spawnRevealClip(math.Random random) {
+  final double duration = (14 + random.nextInt(9)).toDouble();
+  final double peak = _round2(duration * 0.55);
+  final double start = _band(random, (0.25, 0.65), 2);
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.spawn,
+    durationTicks: duration,
+    tracks: <GlossRealDropAnimationTrack>[
+      for (final GlossRealDropAnimationTarget target
+          in const <GlossRealDropAnimationTarget>[
+            GlossRealDropAnimationTarget.scaleX,
+            GlossRealDropAnimationTarget.scaleY,
+            GlossRealDropAnimationTarget.scaleZ,
+          ])
+        _track(
+          target,
+          GlossRealDropAnimationBlend.multiply,
+          <GlossRealDropAnimationKeyframe>[
+            _key(0, start),
+            _key(peak, 1.12, easing: GlossRealDropAnimationEasing.backOut),
+            _key(duration, 1, easing: GlossRealDropAnimationEasing.easeOut),
+          ],
+        ),
+      _track(
+        GlossRealDropAnimationTarget.offsetY,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, _band(random, (0.3, 0.75), 2)),
+          _key(duration, 0, easing: GlossRealDropAnimationEasing.easeOut),
+        ],
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _hoverReleaseClip(math.Random random) {
+  final double holdStart = (7 + random.nextInt(4)).toDouble();
+  final double release = holdStart + 24 + random.nextInt(10);
+  final double duration = release + 10;
+  final double small = _band(random, (0.12, 0.3), 2);
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.spawn,
+    durationTicks: duration,
+    tracks: <GlossRealDropAnimationTrack>[
+      for (final GlossRealDropAnimationTarget target
+          in const <GlossRealDropAnimationTarget>[
+            GlossRealDropAnimationTarget.scaleX,
+            GlossRealDropAnimationTarget.scaleY,
+            GlossRealDropAnimationTarget.scaleZ,
+          ])
+        _track(
+          target,
+          GlossRealDropAnimationBlend.multiply,
+          <GlossRealDropAnimationKeyframe>[
+            _key(0, _band(random, (2.4, 4.2), 2)),
+            _key(holdStart, small, easing: GlossRealDropAnimationEasing.easeIn),
+            _key(release, small, easing: GlossRealDropAnimationEasing.hold),
+            _key(duration, 1, easing: GlossRealDropAnimationEasing.backOut),
+          ],
+        ),
+      _track(
+        GlossRealDropAnimationTarget.offsetY,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, 0),
+          _key(holdStart, _band(random, (1.0, 1.8), 2)),
+          _key(
+            release,
+            _band(random, (1.0, 1.8), 2),
+            easing: GlossRealDropAnimationEasing.hold,
+          ),
+          _key(duration, 0, easing: GlossRealDropAnimationEasing.easeInOut),
+        ],
+      ),
+      _track(
+        GlossRealDropAnimationTarget.physics,
+        GlossRealDropAnimationBlend.replace,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, 1, easing: GlossRealDropAnimationEasing.hold),
+          _key(holdStart, 0, easing: GlossRealDropAnimationEasing.hold),
+          _key(release, 0, easing: GlossRealDropAnimationEasing.hold),
+          _key(release + 1, 1),
+          _key(duration, 1),
+        ],
+      ),
+      _track(
+        GlossRealDropAnimationTarget.rotationX,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, 0),
+          _key(release, 1080, easing: GlossRealDropAnimationEasing.easeInOut),
+          _key(duration, 1440, easing: GlossRealDropAnimationEasing.easeOut),
+        ],
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _impactClip(math.Random random) {
+  final double duration = (10 + random.nextInt(7)).toDouble();
+  final double peak = _round2(duration * 0.35);
+  final double squash = _band(random, (0.55, 0.78), 2);
+  final double widen = _band(random, (1.12, 1.32), 2);
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.impact,
+    durationTicks: duration,
+    tracks: <GlossRealDropAnimationTrack>[
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleX,
+        peak,
+        duration,
+        widen,
+      ),
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleY,
+        peak,
+        duration,
+        squash,
+      ),
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleZ,
+        peak,
+        duration,
+        widen,
+      ),
+      _track(
+        GlossRealDropAnimationTarget.offsetY,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, 0),
+          _key(peak, _band(random, (0.08, 0.2), 2)),
+          _key(duration, 0, easing: GlossRealDropAnimationEasing.easeOut),
+        ],
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _bounceClip(math.Random random) {
+  final double duration = (12 + random.nextInt(8)).toDouble();
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.bounce,
+    durationTicks: duration,
+    tracks: <GlossRealDropAnimationTrack>[
+      _track(
+        GlossRealDropAnimationTarget.rotationZ,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, 0),
+          _key(
+            duration,
+            random.nextBool() ? 360 : -360,
+            easing: GlossRealDropAnimationEasing.easeOut,
+          ),
+        ],
+      ),
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleY,
+        _round2(duration * 0.3),
+        duration,
+        _band(random, (1.15, 1.35), 2),
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _airborneClip(math.Random random) {
+  final double duration = (24 + random.nextInt(17)).toDouble();
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.airborne,
+    durationTicks: duration,
+    loop: true,
+    tracks: <GlossRealDropAnimationTrack>[
+      _track(
+        GlossRealDropAnimationTarget.rotationY,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, 0),
+          _key(duration, random.nextBool() ? 360 : -360),
+        ],
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _rollingClip(math.Random random) {
+  final double duration = (18 + random.nextInt(13)).toDouble();
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.rolling,
+    durationTicks: duration,
+    loop: true,
+    tracks: <GlossRealDropAnimationTrack>[
+      _track(
+        GlossRealDropAnimationTarget.rotationX,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[_key(0, 0), _key(duration, 360)],
+      ),
+      _track(
+        GlossRealDropAnimationTarget.offsetY,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, 0),
+          _key(duration / 2, _band(random, (0.04, 0.12), 2)),
+          _key(duration, 0),
+        ],
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _startRollClip(math.Random random) {
+  final double duration = (8 + random.nextInt(7)).toDouble();
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.startRoll,
+    durationTicks: duration,
+    tracks: <GlossRealDropAnimationTrack>[
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleZ,
+        duration / 2,
+        duration,
+        _band(random, (1.12, 1.28), 2),
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _settleClip(math.Random random) {
+  final double duration = (12 + random.nextInt(9)).toDouble();
+  final double peak = _round2(duration * 0.4);
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.settle,
+    durationTicks: duration,
+    tracks: <GlossRealDropAnimationTrack>[
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleX,
+        peak,
+        duration,
+        _band(random, (1.08, 1.22), 2),
+      ),
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleY,
+        peak,
+        duration,
+        _band(random, (0.82, 0.94), 2),
+      ),
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleZ,
+        peak,
+        duration,
+        _band(random, (1.08, 1.22), 2),
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _enterFluidClip(math.Random random) {
+  final double duration = (14 + random.nextInt(9)).toDouble();
+  final double peak = _round2(duration * 0.4);
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.enterFluid,
+    durationTicks: duration,
+    tracks: <GlossRealDropAnimationTrack>[
+      _track(
+        GlossRealDropAnimationTarget.offsetY,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, 0),
+          _key(peak, _band(random, (0.18, 0.38), 2)),
+          _key(duration, 0, easing: GlossRealDropAnimationEasing.easeOut),
+        ],
+      ),
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleX,
+        peak,
+        duration,
+        _band(random, (1.16, 1.35), 2),
+      ),
+      _pulseScaleTrack(
+        GlossRealDropAnimationTarget.scaleZ,
+        peak,
+        duration,
+        _band(random, (1.16, 1.35), 2),
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _submergedClip(math.Random random) {
+  final double duration = (28 + random.nextInt(17)).toDouble();
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.submerged,
+    durationTicks: duration,
+    loop: true,
+    tracks: <GlossRealDropAnimationTrack>[
+      _track(
+        GlossRealDropAnimationTarget.offsetY,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, 0),
+          _key(duration / 2, _band(random, (0.1, 0.24), 2)),
+          _key(duration, 0),
+        ],
+      ),
+      _track(
+        GlossRealDropAnimationTarget.rotationY,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[_key(0, 0), _key(duration, 360)],
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _exitFluidClip(math.Random random) {
+  final double duration = (10 + random.nextInt(7)).toDouble();
+  return GlossRealDropAnimationClip(
+    trigger: GlossRealDropAnimationTrigger.exitFluid,
+    durationTicks: duration,
+    tracks: <GlossRealDropAnimationTrack>[
+      _track(
+        GlossRealDropAnimationTarget.offsetY,
+        GlossRealDropAnimationBlend.add,
+        <GlossRealDropAnimationKeyframe>[
+          _key(0, _band(random, (0.16, 0.32), 2)),
+          _key(duration, 0, easing: GlossRealDropAnimationEasing.easeOut),
+        ],
+      ),
+    ],
+  );
+}
+
+GlossRealDropAnimationClip _materialPulseClip(
+  GlossRealDropAnimationTrigger trigger,
+  String materialMap,
+  math.Random random,
+) {
+  final double duration = (12 + random.nextInt(9)).toDouble();
+  final double peak = _round2(duration * 0.3);
+  final double hold = _round2(duration * 0.62);
+  return GlossRealDropAnimationClip(
+    trigger: trigger,
+    durationTicks: duration,
+    tracks: <GlossRealDropAnimationTrack>[
+      for (final GlossRealDropAnimationTarget target
+          in const <GlossRealDropAnimationTarget>[
+            GlossRealDropAnimationTarget.glow,
+            GlossRealDropAnimationTarget.lightLevel,
+          ])
+        _track(
+          target,
+          GlossRealDropAnimationBlend.replace,
+          <GlossRealDropAnimationKeyframe>[
+            _key(0, 0),
+            _key(
+              peak,
+              0,
+              materialMap: materialMap,
+              easing: GlossRealDropAnimationEasing.easeOut,
+            ),
+            _key(
+              hold,
+              0,
+              materialMap: materialMap,
+              easing: GlossRealDropAnimationEasing.hold,
+            ),
+            _key(duration, 0, easing: GlossRealDropAnimationEasing.easeOut),
+          ],
+        ),
+    ],
+  );
+}
+
+GlossRealDropAnimationTrack _pulseScaleTrack(
+  GlossRealDropAnimationTarget target,
+  double peak,
+  double duration,
+  double value,
+) => _track(
+  target,
+  GlossRealDropAnimationBlend.multiply,
+  <GlossRealDropAnimationKeyframe>[
+    _key(0, 1),
+    _key(peak, value, easing: GlossRealDropAnimationEasing.backOut),
+    _key(duration, 1, easing: GlossRealDropAnimationEasing.easeOut),
+  ],
+);
+
+GlossRealDropAnimationTrack _track(
+  GlossRealDropAnimationTarget target,
+  GlossRealDropAnimationBlend blend,
+  List<GlossRealDropAnimationKeyframe> keyframes,
+) => GlossRealDropAnimationTrack(
+  target: target,
+  blend: blend,
+  keyframes: keyframes,
+);
+
+GlossRealDropAnimationKeyframe _key(
+  double tick,
+  double value, {
+  String materialMap = '',
+  GlossRealDropAnimationEasing easing = GlossRealDropAnimationEasing.linear,
+}) => GlossRealDropAnimationKeyframe(
+  tick: tick,
+  value: value,
+  materialMap: materialMap,
+  easing: easing,
+);
+
+double _argb(String color) {
+  final String digits = color.startsWith('#') ? color.substring(1) : color;
+  return (0xFF000000 | int.parse(digits, radix: 16)).toDouble();
 }
 
 /// The mood's primary colour as a label background tint, occasionally plain
@@ -928,11 +2475,7 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
 List<int> _moodTint(ShowcaseMood mood, math.Random random) {
   if (random.nextInt(3) == 0) return <int>[0, 0, 0];
   final int packed = int.parse(mood.primary.substring(1), radix: 16);
-  return <int>[
-    (packed >> 16) & 0xFF,
-    (packed >> 8) & 0xFF,
-    packed & 0xFF,
-  ];
+  return <int>[(packed >> 16) & 0xFF, (packed >> 8) & 0xFF, packed & 0xFF];
 }
 
 /// A value inside `(low, high)`, rounded to [decimals] places.
@@ -968,7 +2511,7 @@ HuiButtonData _randomButtonData(
       ),
       HuiMessageAction(
         '<gradient:${mood.primary}:${mood.secondary}>'
-        '${showcasePick(random, showcaseHeadlines)}</gradient>',
+            '${showcasePick(random, showcaseHeadlines)}</gradient>',
         'shift_left_click',
       ),
       HuiTeleportAction(

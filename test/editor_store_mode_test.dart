@@ -57,7 +57,7 @@ void main() {
         final WorkspaceDoc? copy = store.duplicateDocument(source.id);
         expect(copy, isNotNull);
         expect(copy!.id, isNot(source.id));
-        expect(copy.runtimeId, isNot(source.runtimeId));
+        expect(copy.runtimeId, '${source.runtimeId}-02');
         expect(copy.json, sourceJson);
         expect(copy.folderId, isNull);
         expect(store.workspace.activeId, copy.id);
@@ -149,7 +149,19 @@ void main() {
       expect(store.importJsonAsNewDocument('shop.json', source), isTrue);
       expect(store.importJsonAsNewDocument('shop.json', source), isTrue);
 
-      expect(store.workspace.active!.runtimeId, 'shop-2');
+      expect(store.workspace.active!.runtimeId, 'shop-02');
+      expect(store.workspace.runtimeIdConflicts, isEmpty);
+    });
+
+    test('deduplication is case-insensitive and continues padded suffixes', () {
+      final EditorStore store = _store(_FakeStorage());
+      final String source = encodeHuiMenu(createDefaultMenu());
+
+      expect(store.importJsonAsNewDocument('Shop.json', source), isTrue);
+      expect(store.importJsonAsNewDocument('shop.json', source), isTrue);
+      expect(store.importJsonAsNewDocument('shop-02.json', source), isTrue);
+
+      expect(store.workspace.active!.runtimeId, 'shop-03');
       expect(store.workspace.runtimeIdConflicts, isEmpty);
     });
 
@@ -269,6 +281,18 @@ void main() {
       store.createDocumentFromPreview('greeting', template);
       expect(store.previewDoc?.elements.length, 1);
       expect(store.menuId, 'greeting');
+    });
+
+    test('repeated menu and preview creation increments their runtime ids', () {
+      final EditorStore store = _store(_FakeStorage());
+      expect(store.newDocument(name: 'new-id'), isTrue);
+      expect(store.newDocument(name: 'new-id'), isTrue);
+      expect(store.workspace.active?.runtimeId, 'new-id-02');
+
+      store.newPreviewDocument(name: 'new-id');
+      store.newPreviewDocument(name: 'new-id');
+      expect(store.workspace.active?.runtimeId, 'new-id-02');
+      expect(store.workspace.runtimeIdConflicts, isEmpty);
     });
   });
 

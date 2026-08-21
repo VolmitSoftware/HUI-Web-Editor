@@ -297,18 +297,28 @@ void main() {
     );
   });
 
-  test('single-item labels omit the redundant count', () {
+  test('single-item labels use the material name by default', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
     final ShowcaseDrop drop = _drop('cobblestone');
-    expect(DropStageTimeline(doc, drop).label, '&7${drop.displayName}');
+    expect(DropStageTimeline(doc, drop).label, '&7cobblestone');
   });
 
   test('multi-item labels retain the shipped count format', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
     final ShowcaseDrop drop = _drop('cookie');
+    expect(DropStageTimeline(doc, drop).label, '&7${drop.amount}x cookie');
+  });
+
+  test('renamed item labels require explicit preview opt-in', () {
+    final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+    final ShowcaseDrop drop = _drop('diamond_pickaxe');
     expect(
-      DropStageTimeline(doc, drop).label,
-      '&7${drop.amount}x ${drop.displayName}',
+      DropStageTimeline(
+        doc,
+        drop,
+        environment: const DropStageEnvironment(useItemDisplayNames: true),
+      ).label,
+      '&7${drop.displayName}',
     );
   });
 

@@ -34,6 +34,7 @@ import '../../model/preview_doc.dart';
 import '../../services/catalogs.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
+import '../render/canvas_assets.dart';
 import '../render/canvas_brush.dart';
 import '../render/icon_renderers.dart';
 import '../shell/key_listener.dart' show huiMobilePaneOpen;
@@ -99,9 +100,8 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   String get _zoomLabelId => '$_uid-zoom';
 
   final McFontMetrics _metrics = McFontMetrics();
-  late final PreviewCardPainter _painter = PreviewCardPainter(
-    metrics: _metrics,
-  );
+  late final CanvasAssets _assets;
+  late final PreviewCardPainter _painter;
 
   PreviewCardView _view = const PreviewCardView();
   PreviewCardScene _scene = PreviewCardScene.empty;
@@ -163,6 +163,8 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   @override
   void initState() {
     super.initState();
+    _assets = CanvasAssets(onReady: _markDirty);
+    _painter = PreviewCardPainter(metrics: _metrics, assets: _assets);
     component.store.addListener(_onStoreChanged);
     _schedulePostFrame();
   }
@@ -191,6 +193,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     _detachListeners();
     _resizeObserver?.disconnect();
     _resizeObserver = null;
+    _assets.dispose();
     super.dispose();
   }
 
@@ -480,6 +483,10 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     final web.CanvasRenderingContext2D ctx =
         raw as web.CanvasRenderingContext2D;
     final EditorStore store = component.store;
+    final HuiCatalogs catalogs = huiFreshestCatalogs(
+      store.catalogs,
+      component.catalogs,
+    );
     final PreviewCardScene scene = _buildScene();
     _labelWidths = _painter.paint(
       ctx: ctx,
@@ -487,6 +494,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
       scene: scene,
       palette: CanvasPalette.resolve(HuiBackdropMode.none, _pageIsLight()),
       devicePixelRatio: math.max(1, web.window.devicePixelRatio),
+      textureFor: catalogs.textureFor,
       // In game context the frame is what the player sees: no artboard fill
       // behind it, no grid, and none of the selection chrome. The pointer
       // handling stays live — panning and zooming a preview is reasonable —

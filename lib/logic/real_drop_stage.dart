@@ -195,10 +195,15 @@ ShowcaseDrop dropStageRotationDrop(int cycle) {
 /// `height` and the velocities are *not* in this list: the stage genuinely
 /// knows them, because it owns the arc that produces them.
 final class DropStageEnvironment {
-  const DropStageEnvironment({this.water = false});
+  const DropStageEnvironment({
+    this.water = false,
+    this.useItemDisplayNames = false,
+  });
 
   /// Whether the stage is flooded to [dropStageWaterLevel].
   final bool water;
+
+  final bool useItemDisplayNames;
 
   /// Block light level fed to the script. Full, and simulated.
   static const int blockLight = 15;
@@ -438,11 +443,13 @@ final class DropStageTimeline {
   /// that matters, that nothing built on it flickers between frames.
   double get random => (_unit(drop.registryName.hashCode) + 1) / 2;
 
-  /// The label the plugin's default `drops.name-format` writes for this stack,
-  /// with `drops.useItemDisplayNames` on, which is the shipped default.
-  String get label => drop.amount == 1
-      ? '&7${drop.displayName}'
-      : '&7${drop.amount}x ${drop.displayName}';
+  String get displayType => environment.useItemDisplayNames
+      ? drop.displayName
+      : drop.registryName.toLowerCase().replaceAll('_', ' ');
+
+  /// The label the plugin's default `drops.name-format` writes for this stack.
+  String get label =>
+      drop.amount == 1 ? '&7$displayType' : '&7${drop.amount}x $displayType';
 
   DropStageFrame frameAt(int ms) {
     final double tick = (ms % cycleMs) / 50.0;
