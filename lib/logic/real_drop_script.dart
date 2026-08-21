@@ -51,6 +51,9 @@ const Set<String> realDropScriptVariables = <String>{
   'amount',
   'onGround',
   'settled',
+  'phase',
+  'stateTime',
+  'impactSpeed',
   'inWater',
   'inLava',
   'bounces',
@@ -182,6 +185,9 @@ final class RealDropScriptContext {
     required this.amount,
     required this.onGround,
     required this.settled,
+    this.phase = 'AIRBORNE',
+    this.stateTime = 0,
+    this.impactSpeed = 0,
     required this.inWater,
     required this.inLava,
     required this.bounces,
@@ -203,6 +209,9 @@ final class RealDropScriptContext {
   final int amount;
   final bool onGround;
   final bool settled;
+  final String phase;
+  final double stateTime;
+  final double impactSpeed;
   final bool inWater;
   final bool inLava;
   final int bounces;
@@ -917,6 +926,9 @@ final class _Scope implements PExprScope {
       'amount' => context.amount.toDouble(),
       'onGround' => context.onGround,
       'settled' => context.settled,
+      'phase' => context.phase,
+      'stateTime' => context.stateTime,
+      'impactSpeed' => context.impactSpeed,
       'inWater' => context.inWater,
       'inLava' => context.inLava,
       'bounces' => context.bounces.toDouble(),

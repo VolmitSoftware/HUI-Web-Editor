@@ -857,41 +857,18 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Expression',
     body:
         'A string in the Gloss expression language, compiled once when '
-        'the document loads and evaluated once per display per update. A '
-        'parse error names the field and the character position and '
-        'refuses the document; a failure at runtime logs once and falls '
-        'back to the neutral value for that field rather than breaking '
-        'the drop. Grammar: numbers, single- or double-quoted strings '
-        '(escapes \\\\ \\\' \\" \\n), colour literals (#RGB, #RRGGBB, '
-        '#AARRGGBB), true/false, variables, array literals ([a, b, c], '
-        'used by palette and select), calls, unary ! and -, then * / %, + '
-        '-, < <= > >=, == !=, &&, ||, and a ? b : c. && and || '
-        'short-circuit, so "onGround && height < 1" is safe. Strings '
-        'concatenate with +. % is Java\'s truncating remainder (-1 % 3 is '
-        '-1) while mod() floors (mod(-1, 3) is 2); both throw on a zero '
-        'divisor. VARIABLES: t (seconds since this stack spawned), age '
-        '(ticks the item entity has lived), index (which display in the '
-        'stack, from 0), count (how many displays this stack has), amount '
-        '(items in the stack), onGround, settled (the item has come to '
-        'rest and is being polled slowly), inWater, inLava, bounces '
-        '(landings counted so far), velocityX, velocityY, velocityZ '
-        '(blocks per tick), speed (magnitude of that velocity), height '
-        '(blocks between the item and the first solid block below it, '
-        'probed up to 32 blocks, 0 when it is resting), blockLight and '
-        'skyLight (0-15 at the item\'s block), random (a value in [0,1) '
-        'fixed for the lifetime of this item, so it never flickers), '
-        'material (the item\'s material name, upper case, e.g. '
-        '"REDSTONE_TORCH"), isBlock, isFlat and isThin (which of the '
-        'three scale families this item resolved to), pi. FUNCTIONS: the '
-        'standard library - clamp, lerp, min, max, floor, ceil, round, '
-        'abs, mod, pow, smoothstep, sin, cos, rgb, argb, alpha, mix, '
-        'palette, select, number, bar, hex, str, fixed, plain, readable - '
-        'plus two drop-specific tests: materialIs(name) is an exact '
-        'case-insensitive material match that also accepts a "minecraft:" '
-        'prefix, and materialMatches(glob) matches the material name '
-        'against a glob where * is any run of characters and ? is one '
-        'character, so materialMatches(\'*_TORCH\') covers REDSTONE_TORCH, '
-        'SOUL_TORCH and WALL_TORCH.',
+        'the document loads. Expressions without index are evaluated once '
+        'per stack, and static settled plans are reused until an input '
+        'changes. A parse error names the field and character position '
+        'and refuses the document; a runtime failure logs once and falls '
+        'back to the neutral field value. Variables include t, age, '
+        'index, count, amount, onGround, settled, phase, stateTime, '
+        'impactSpeed, inWater, inLava, bounces, velocityX, velocityY, '
+        'velocityZ, speed, shape-aware height, blockLight, skyLight, '
+        'random, material, isBlock, isFlat, isThin and pi. Drop-specific '
+        'functions are materialIs(name) and materialMatches(glob); the '
+        'expression grammar and complete standard-library reference are '
+        'documented in DROP_SCRIPT_FORMAT.md.',
     citation: 'gloss-real-drops.schema.json#/\$defs/expression',
   ),
   'realDrops.filters': HuiFieldDoc(
@@ -1033,6 +1010,24 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'ground.',
     citation: 'gloss-real-drops.schema.json#/properties/landing',
   ),
+  'realDrops.landing.alignmentDegrees': HuiFieldDoc(
+    title: 'Alignment degrees',
+    body:
+        'Subvisual tolerance for the final exact face alignment. Clamped '
+        'to 0.05-10 degrees, default 0.5. Accepted range: 0.05 through '
+        '10.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/landing/properties/alignmentDegrees',
+  ),
+  'realDrops.landing.faceAttraction': HuiFieldDoc(
+    title: 'Face attraction',
+    body:
+        'Fraction of remaining face-alignment angle removed per sample '
+        'when nearly still. Clamped to 0-1, default 0.55. Accepted range: '
+        '0 through 1.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/landing/properties/faceAttraction',
+  ),
   'realDrops.landing.mode': HuiFieldDoc(
     title: 'Mode',
     body:
@@ -1042,6 +1037,14 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'end. Default NATURAL. Accepted values: NATURAL, FLAT, UPRIGHT.',
     citation: 'gloss-real-drops.schema.json#/\$defs/landing/properties/mode',
   ),
+  'realDrops.landing.movingFaceAttraction': HuiFieldDoc(
+    title: 'Moving face attraction',
+    body:
+        'Face attraction retained while rolling or sliding. Clamped to '
+        '0-1, default 0.15. Accepted range: 0 through 1.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/landing/properties/movingFaceAttraction',
+  ),
   'realDrops.landing.randomYaw': HuiFieldDoc(
     title: 'Random yaw',
     body:
@@ -1049,6 +1052,15 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'same drop does not look cloned. Default true.',
     citation:
         'gloss-real-drops.schema.json#/\$defs/landing/properties/randomYaw',
+  ),
+  'realDrops.landing.settleDelayTicks': HuiFieldDoc(
+    title: 'Settle delay ticks',
+    body:
+        'Ticks an aligned, motionless item remains stable before sparse '
+        'settled polling. Clamped to 0-100, default 4. Accepted range: 0 '
+        'through 100.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/landing/properties/settleDelayTicks',
   ),
   'realDrops.landing.tiltDegrees': HuiFieldDoc(
     title: 'Tilt degrees',
@@ -1062,9 +1074,8 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   'realDrops.landing.transitionTicks': HuiFieldDoc(
     title: 'Transition ticks',
     body:
-        'Interpolation length, in ticks, for the move from the tumbling '
-        'pose to the resting pose. 0 snaps. Clamped to 0-20, default 4. '
-        'Accepted range: 0 through 20.',
+        'Client interpolation length for continuous pose samples. Clamped '
+        'to 0-20, default 4. Accepted range: 0 through 20.',
     citation:
         'gloss-real-drops.schema.json#/\$defs/landing/properties/transitionTicks',
   ),
@@ -1177,6 +1188,15 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     citation:
         'gloss-real-drops.schema.json#/\$defs/motion/properties/degreesPerSecondZ',
   ),
+  'realDrops.motion.groundRollMultiplier': HuiFieldDoc(
+    title: 'Ground roll multiplier',
+    body:
+        'Scales rotation generated from actual supported travel. 0 '
+        'slides; 1 rolls at the natural model radius. Clamped to 0-4, '
+        'default 1. Accepted range: 0 through 4.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/motion/properties/groundRollMultiplier',
+  ),
   'realDrops.motion.speedMultiplier': HuiFieldDoc(
     title: 'Speed multiplier',
     body:
@@ -1184,6 +1204,14 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'default 1.35. Accepted range: 0.1 through 4.',
     citation:
         'gloss-real-drops.schema.json#/\$defs/motion/properties/speedMultiplier',
+  ),
+  'realDrops.motion.submergedSpinMultiplier': HuiFieldDoc(
+    title: 'Submerged spin multiplier',
+    body:
+        'Multiplier applied to angular motion while submerged. Clamped to '
+        '0-1, default 0.35. Accepted range: 0 through 1.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/motion/properties/submergedSpinMultiplier',
   ),
   'realDrops.motion.tumble': HuiFieldDoc(
     title: 'Tumble',
@@ -1200,6 +1228,14 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'identically; the direction of each axis is still chosen per '
         'item. Clamped to 0-1, default 0.2. Accepted range: 0 through 1.',
     citation: 'gloss-real-drops.schema.json#/\$defs/motion/properties/variance',
+  ),
+  'realDrops.motion.velocityInfluence': HuiFieldDoc(
+    title: 'Velocity influence',
+    body:
+        'How strongly real linear speed increases airborne angular speed. '
+        'Clamped to 0-4, default 0.35. Accepted range: 0 through 4.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/motion/properties/velocityInfluence',
   ),
   'realDrops.physics': HuiFieldDoc(
     title: 'Physics',
@@ -1321,14 +1357,15 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   'realDrops.script': HuiFieldDoc(
     title: 'Script',
     body:
-        'The scripted presentation layer: expression strings, compiled '
-        'once when the document loads and evaluated per display every '
-        'update. Disabled by default, and additive - it composes on top '
-        'of everything the scale, motion and landing blocks already '
-        'computed rather than replacing it. Script results move the '
-        'DISPLAY only; the item entity, its collision and its pickup '
-        'radius stay where Minecraft put them. Use the physics block when '
-        'the item itself must move.',
+        'The scripted presentation layer: expression strings compiled '
+        'once when the document loads. Expressions without index are '
+        'shared by the stack, and static settled plans are not '
+        'reevaluated until their inputs change. Disabled by default, and '
+        'additive - it composes on top of everything the scale, motion '
+        'and landing blocks already computed rather than replacing it. '
+        'Script results move the DISPLAY only; the item entity, its '
+        'collision and its pickup radius stay where Minecraft put them. '
+        'Use the physics block when the item itself must move.',
     citation: 'gloss-real-drops.schema.json#/properties/script',
   ),
   'realDrops.script.enabled': HuiFieldDoc(

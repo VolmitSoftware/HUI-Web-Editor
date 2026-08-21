@@ -593,7 +593,8 @@ final GlossJsonObject glossTablistJsonSchema = GlossJsonObject(
       key: 'nameFormats',
       type: GlossJsonType.object,
       title: 'Name formats',
-      summary: 'Group key to list-name format. $glossTablistFallbackFormat is '
+      summary:
+          'Group key to list-name format. $glossTablistFallbackFormat is '
           'the player name.',
       docKey: 'tablist.nameFormats',
       node: _tablistNameFormatsNode,
@@ -727,6 +728,27 @@ const GlossJsonObject _realDropMotionNode = GlossJsonObject(
       summary: 'Re-rolls the tumble rates every time a stack bounces.',
       defaultLiteral: 'true',
     ),
+    GlossJsonField(
+      key: 'velocityInfluence',
+      type: GlossJsonType.number,
+      title: 'Throw momentum',
+      summary: 'How strongly real speed increases tumble. Clamped to 0..4.',
+      defaultLiteral: '0.35',
+    ),
+    GlossJsonField(
+      key: 'submergedSpinMultiplier',
+      type: GlossJsonType.number,
+      title: 'Submerged spin',
+      summary: 'Angular-speed multiplier in fluid. Clamped to 0..1.',
+      defaultLiteral: '0.35',
+    ),
+    GlossJsonField(
+      key: 'groundRollMultiplier',
+      type: GlossJsonType.number,
+      title: 'Ground roll',
+      summary: 'Rotation produced by supported travel. Clamped to 0..4.',
+      defaultLiteral: '1',
+    ),
   ],
 );
 
@@ -736,7 +758,8 @@ const GlossJsonObject _realDropLandingNode = GlossJsonObject(
       key: 'mode',
       type: GlossJsonType.string,
       title: 'Landing mode',
-      summary: 'The pose a settled stack takes. Unknown values fall to NATURAL.',
+      summary:
+          'The pose a settled stack takes. Unknown values fall to NATURAL.',
       values: <GlossJsonValue>[
         GlossJsonValue('"NATURAL"', summary: 'Tilted, as an item would fall.'),
         GlossJsonValue('"FLAT"', summary: 'Lying flat on the ground.'),
@@ -763,6 +786,34 @@ const GlossJsonObject _realDropLandingNode = GlossJsonObject(
       type: GlossJsonType.integer,
       title: 'Transition ticks',
       summary: 'Client interpolation window into the settled pose. 0..20.',
+      defaultLiteral: '4',
+    ),
+    GlossJsonField(
+      key: 'faceAttraction',
+      type: GlossJsonType.number,
+      title: 'Resting face pull',
+      summary: 'Near-rest face attraction per sample. Clamped to 0..1.',
+      defaultLiteral: '0.55',
+    ),
+    GlossJsonField(
+      key: 'movingFaceAttraction',
+      type: GlossJsonType.number,
+      title: 'Moving face pull',
+      summary: 'Face attraction retained while moving. Clamped to 0..1.',
+      defaultLiteral: '0.15',
+    ),
+    GlossJsonField(
+      key: 'alignmentDegrees',
+      type: GlossJsonType.number,
+      title: 'Alignment tolerance',
+      summary: 'Subvisual final face snap. Clamped to 0.05..10 degrees.',
+      defaultLiteral: '0.5',
+    ),
+    GlossJsonField(
+      key: 'settleDelayTicks',
+      type: GlossJsonType.integer,
+      title: 'Stable delay',
+      summary: 'Stable ticks before sparse polling. Clamped to 0..100.',
       defaultLiteral: '4',
     ),
   ],
@@ -889,6 +940,127 @@ const GlossJsonObject _realDropFiltersNode = GlossJsonObject(
   ],
 );
 
+const GlossJsonObject _realDropPhysicsNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Enabled',
+      summary: 'Allows Gloss to modify the authoritative item entity.',
+      defaultLiteral: 'false',
+    ),
+    GlossJsonField(
+      key: 'gravityMultiplier',
+      type: GlossJsonType.number,
+      title: 'Gravity multiplier',
+      summary: 'Real gravity scale. Zero holds vertical motion. 0..4.',
+      defaultLiteral: '1',
+    ),
+    GlossJsonField(
+      key: 'bounce',
+      type: GlossJsonType.number,
+      title: 'Bounce',
+      summary: 'Landing restitution. Clamped to 0..0.9.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'waterBuoyancy',
+      type: GlossJsonType.number,
+      title: 'Water buoyancy',
+      summary: 'Additional upward velocity in water. Clamped to 0..1.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'waterDrag',
+      type: GlossJsonType.number,
+      title: 'Water drag',
+      summary: 'Velocity removed per tick in water. Clamped to 0..1.',
+      defaultLiteral: '0',
+    ),
+  ],
+);
+
+const GlossJsonObject _realDropScriptAxisNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'x',
+      type: GlossJsonType.string,
+      title: 'X expression',
+      summary: 'Expression for the x axis.',
+    ),
+    GlossJsonField(
+      key: 'y',
+      type: GlossJsonType.string,
+      title: 'Y expression',
+      summary: 'Expression for the y axis.',
+    ),
+    GlossJsonField(
+      key: 'z',
+      type: GlossJsonType.string,
+      title: 'Z expression',
+      summary: 'Expression for the z axis.',
+    ),
+  ],
+);
+
+const GlossJsonObject _realDropScriptVarsNode = GlossJsonObject(
+  fields: <GlossJsonField>[],
+);
+
+const GlossJsonObject _realDropScriptNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Enabled',
+      summary: 'Runs advanced display modifiers.',
+      defaultLiteral: 'false',
+    ),
+    GlossJsonField(
+      key: 'vars',
+      type: GlossJsonType.object,
+      title: 'Variables',
+      summary: 'Ordered named numeric expressions.',
+      node: _realDropScriptVarsNode,
+    ),
+    GlossJsonField(
+      key: 'offset',
+      type: GlossJsonType.object,
+      title: 'Offset',
+      summary: 'Additive per-axis display displacement.',
+      node: _realDropScriptAxisNode,
+    ),
+    GlossJsonField(
+      key: 'rotation',
+      type: GlossJsonType.object,
+      title: 'Rotation',
+      summary: 'Additive per-axis display rotation.',
+      node: _realDropScriptAxisNode,
+    ),
+    GlossJsonField(
+      key: 'scale',
+      type: GlossJsonType.object,
+      title: 'Scale',
+      summary: 'Multiplicative per-axis display scale.',
+      node: _realDropScriptAxisNode,
+    ),
+    GlossJsonField(
+      key: 'glow',
+      type: GlossJsonType.string,
+      title: 'Glow expression',
+      summary: 'Expression producing an optional outline colour.',
+      defaultLiteral: '""',
+    ),
+    GlossJsonField(
+      key: 'visible',
+      type: GlossJsonType.string,
+      title: 'Visibility expression',
+      summary: 'Boolean expression controlling display visibility.',
+      defaultLiteral: '"true"',
+    ),
+  ],
+);
+
 final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(1),
@@ -934,6 +1106,20 @@ final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
       title: 'Filters',
       summary: 'Where real drops are switched off.',
       node: _realDropFiltersNode,
+    ),
+    const GlossJsonField(
+      key: 'physics',
+      type: GlossJsonType.object,
+      title: 'Physics',
+      summary: 'Authoritative gravity, bounce, buoyancy, and drag.',
+      node: _realDropPhysicsNode,
+    ),
+    const GlossJsonField(
+      key: 'script',
+      type: GlossJsonType.object,
+      title: 'Advanced modifiers',
+      summary: 'Optional expression-driven visual modifiers.',
+      node: _realDropScriptNode,
     ),
   ],
 );

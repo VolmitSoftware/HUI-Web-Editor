@@ -155,6 +155,9 @@ final class GlossRealDropMotion {
     this.degreesPerSecondZ = 100,
     this.variance = 0.2,
     this.changeOnBounce = true,
+    this.velocityInfluence = 0.35,
+    this.submergedSpinMultiplier = 0.35,
+    this.groundRollMultiplier = 1,
     Map<String, dynamic>? extras,
   }) : extras = extras ?? <String, dynamic>{};
 
@@ -165,6 +168,9 @@ final class GlossRealDropMotion {
   double degreesPerSecondZ;
   double variance;
   bool changeOnBounce;
+  double velocityInfluence;
+  double submergedSpinMultiplier;
+  double groundRollMultiplier;
   Map<String, dynamic> extras;
 
   static GlossRealDropMotion fromJson(Object? raw) {
@@ -180,6 +186,21 @@ final class GlossRealDropMotion {
       changeOnBounce: map['changeOnBounce'] == null
           ? true
           : huiReadBool(map, 'changeOnBounce'),
+      velocityInfluence: huiReadDouble(
+        map,
+        'velocityInfluence',
+        fallback: 0.35,
+      ),
+      submergedSpinMultiplier: huiReadDouble(
+        map,
+        'submergedSpinMultiplier',
+        fallback: 0.35,
+      ),
+      groundRollMultiplier: huiReadDouble(
+        map,
+        'groundRollMultiplier',
+        fallback: 1,
+      ),
       extras: huiCollectExtras(map, const <String>{
         'tumble',
         'speedMultiplier',
@@ -188,6 +209,9 @@ final class GlossRealDropMotion {
         'degreesPerSecondZ',
         'variance',
         'changeOnBounce',
+        'velocityInfluence',
+        'submergedSpinMultiplier',
+        'groundRollMultiplier',
       }),
     );
   }
@@ -200,6 +224,9 @@ final class GlossRealDropMotion {
     'degreesPerSecondZ': degreesPerSecondZ,
     'variance': variance,
     'changeOnBounce': changeOnBounce,
+    'velocityInfluence': velocityInfluence,
+    'submergedSpinMultiplier': submergedSpinMultiplier,
+    'groundRollMultiplier': groundRollMultiplier,
   }, extras);
 
   GlossRealDropMotion copy() => GlossRealDropMotion.fromJson(toJson());
@@ -211,6 +238,10 @@ final class GlossRealDropLanding {
     this.tiltDegrees = 10,
     this.randomYaw = true,
     this.transitionTicks = 4,
+    this.faceAttraction = 0.55,
+    this.movingFaceAttraction = 0.15,
+    this.alignmentDegrees = 0.5,
+    this.settleDelayTicks = 4,
     Map<String, dynamic>? extras,
   }) : extras = extras ?? <String, dynamic>{};
 
@@ -218,6 +249,10 @@ final class GlossRealDropLanding {
   double tiltDegrees;
   bool randomYaw;
   int transitionTicks;
+  double faceAttraction;
+  double movingFaceAttraction;
+  double alignmentDegrees;
+  int settleDelayTicks;
   Map<String, dynamic> extras;
 
   static GlossRealDropLanding fromJson(Object? raw) {
@@ -230,11 +265,23 @@ final class GlossRealDropLanding {
           ? true
           : huiReadBool(map, 'randomYaw'),
       transitionTicks: huiReadInt(map, 'transitionTicks', fallback: 4),
+      faceAttraction: huiReadDouble(map, 'faceAttraction', fallback: 0.55),
+      movingFaceAttraction: huiReadDouble(
+        map,
+        'movingFaceAttraction',
+        fallback: 0.15,
+      ),
+      alignmentDegrees: huiReadDouble(map, 'alignmentDegrees', fallback: 0.5),
+      settleDelayTicks: huiReadInt(map, 'settleDelayTicks', fallback: 4),
       extras: huiCollectExtras(map, const <String>{
         'mode',
         'tiltDegrees',
         'randomYaw',
         'transitionTicks',
+        'faceAttraction',
+        'movingFaceAttraction',
+        'alignmentDegrees',
+        'settleDelayTicks',
       }),
     );
   }
@@ -244,6 +291,10 @@ final class GlossRealDropLanding {
     'tiltDegrees': tiltDegrees,
     'randomYaw': randomYaw,
     'transitionTicks': transitionTicks,
+    'faceAttraction': faceAttraction,
+    'movingFaceAttraction': movingFaceAttraction,
+    'alignmentDegrees': alignmentDegrees,
+    'settleDelayTicks': settleDelayTicks,
   }, extras);
 
   GlossRealDropLanding copy() => GlossRealDropLanding.fromJson(toJson());

@@ -22,6 +22,10 @@ void main() {
     expect(doc.limits.updateIntervalTicks, 2);
     expect(doc.motion.speedMultiplier, 1.35);
     expect(doc.motion.tumble, isTrue);
+    expect(doc.motion.velocityInfluence, 0.35);
+    expect(doc.motion.groundRollMultiplier, 1);
+    expect(doc.landing.faceAttraction, 0.55);
+    expect(doc.landing.settleDelayTicks, 4);
     expect(doc.labels.seeThrough, isTrue);
     expect(doc.filters.materialBlacklist, <String>['BEDROCK', 'BARRIER']);
     expect(validateRealDropSettingsDoc(doc), isEmpty);
@@ -62,6 +66,31 @@ void main() {
       hasLength(2),
     );
   });
+
+  test(
+    'continuous motion controls round-trip through the authored document',
+    () {
+      final GlossRealDropSettingsDoc doc = GlossRealDropSettingsDoc();
+      doc.motion.velocityInfluence = 1.4;
+      doc.motion.submergedSpinMultiplier = 0.2;
+      doc.motion.groundRollMultiplier = 0.8;
+      doc.landing.faceAttraction = 0.7;
+      doc.landing.movingFaceAttraction = 0.1;
+      doc.landing.alignmentDegrees = 0.25;
+      doc.landing.settleDelayTicks = 12;
+
+      final GlossRealDropSettingsDoc decoded = decodeGlossRealDropSettingsDoc(
+        encodeGlossRealDropSettingsDoc(doc),
+      );
+      expect(decoded.motion.velocityInfluence, 1.4);
+      expect(decoded.motion.submergedSpinMultiplier, 0.2);
+      expect(decoded.motion.groundRollMultiplier, 0.8);
+      expect(decoded.landing.faceAttraction, 0.7);
+      expect(decoded.landing.movingFaceAttraction, 0.1);
+      expect(decoded.landing.alignmentDegrees, 0.25);
+      expect(decoded.landing.settleDelayTicks, 12);
+    },
+  );
 
   test('unsupported schema is rejected', () {
     expect(

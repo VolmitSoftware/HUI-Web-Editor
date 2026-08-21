@@ -250,6 +250,42 @@ class _RealDropInspectorState extends State<RealDropInspector> {
               edited.motion.changeOnBounce = value,
         ),
       ),
+      _decimal(
+        label: 'Throw momentum',
+        help:
+            'How strongly real movement speed increases tumble speed. 0 ignores throw momentum; higher values tumble harder throws faster. 0..4.',
+        path: r'$.motion.velocityInfluence',
+        value: doc.motion.velocityInfluence,
+        onChanged: (double value) => _mutate(
+          'drop throw momentum',
+          (GlossRealDropSettingsDoc edited) =>
+              edited.motion.velocityInfluence = value,
+        ),
+      ),
+      _decimal(
+        label: 'Submerged spin',
+        help:
+            'Angular-speed multiplier while the item is in water. 0 stops rotation; 1 preserves airborne spin. 0..1.',
+        path: r'$.motion.submergedSpinMultiplier',
+        value: doc.motion.submergedSpinMultiplier,
+        onChanged: (double value) => _mutate(
+          'drop submerged spin',
+          (GlossRealDropSettingsDoc edited) =>
+              edited.motion.submergedSpinMultiplier = value,
+        ),
+      ),
+      _decimal(
+        label: 'Ground roll',
+        help:
+            'Rotation produced by real distance travelled on a surface. 0 slides without rolling; 1 uses the model radius. 0..4.',
+        path: r'$.motion.groundRollMultiplier',
+        value: doc.motion.groundRollMultiplier,
+        onChanged: (double value) => _mutate(
+          'drop ground roll',
+          (GlossRealDropSettingsDoc edited) =>
+              edited.motion.groundRollMultiplier = value,
+        ),
+      ),
     ],
   );
 
@@ -299,13 +335,61 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       _integer(
         label: 'Landing transition',
         help:
-            'Ticks used for the final carrier movement and landing pose. 0..20.',
+            'Client interpolation ticks between continuous pose samples. 0..20.',
         path: r'$.landing.transitionTicks',
         value: doc.landing.transitionTicks,
         onChanged: (int value) => _mutate(
           'drop landing transition',
           (GlossRealDropSettingsDoc edited) =>
               edited.landing.transitionTicks = value,
+        ),
+      ),
+      _decimal(
+        label: 'Resting face pull',
+        help:
+            'How strongly gravity pulls a nearly still item toward its nearest stable face each sample. 0..1.',
+        path: r'$.landing.faceAttraction',
+        value: doc.landing.faceAttraction,
+        onChanged: (double value) => _mutate(
+          'drop resting face attraction',
+          (GlossRealDropSettingsDoc edited) =>
+              edited.landing.faceAttraction = value,
+        ),
+      ),
+      _decimal(
+        label: 'Moving face pull',
+        help:
+            'Face attraction retained while the item is still rolling. Lower values preserve momentum longer. 0..1.',
+        path: r'$.landing.movingFaceAttraction',
+        value: doc.landing.movingFaceAttraction,
+        onChanged: (double value) => _mutate(
+          'drop moving face attraction',
+          (GlossRealDropSettingsDoc edited) =>
+              edited.landing.movingFaceAttraction = value,
+        ),
+      ),
+      _decimal(
+        label: 'Face snap tolerance',
+        help:
+            'Final subvisual angle where settling may become exactly flush. 0.05..10 degrees.',
+        path: r'$.landing.alignmentDegrees',
+        value: doc.landing.alignmentDegrees,
+        onChanged: (double value) => _mutate(
+          'drop face snap tolerance',
+          (GlossRealDropSettingsDoc edited) =>
+              edited.landing.alignmentDegrees = value,
+        ),
+      ),
+      _integer(
+        label: 'Stable delay',
+        help:
+            'Ticks the item must remain aligned and motionless before sparse settled polling. 0..100.',
+        path: r'$.landing.settleDelayTicks',
+        value: doc.landing.settleDelayTicks,
+        onChanged: (int value) => _mutate(
+          'drop stable delay',
+          (GlossRealDropSettingsDoc edited) =>
+              edited.landing.settleDelayTicks = value,
         ),
       ),
     ],
@@ -594,7 +678,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       title: 'Script',
       sectionKey: 'realDrops.script',
       description:
-          'Expressions evaluated once per display, per update. They move the '
+          'Expressions are compiled once; stack-shared and settled-static '
+          'results are reused when their inputs do not change. They move the '
           'displays only: the item, its collision and its pickup radius stay '
           'where Minecraft put them.',
       trailing: const HuiFieldHelp('realDrops.script'),

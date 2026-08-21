@@ -79,13 +79,20 @@ const String kGlossRealDropsDefaultJson = r'''
     "degreesPerSecondY": 120.0,
     "degreesPerSecondZ": 100.0,
     "variance": 0.2,
-    "changeOnBounce": true
+    "changeOnBounce": true,
+    "velocityInfluence": 0.35,
+    "submergedSpinMultiplier": 0.35,
+    "groundRollMultiplier": 1.0
   },
   "landing": {
     "mode": "NATURAL",
     "tiltDegrees": 10.0,
     "randomYaw": true,
-    "transitionTicks": 4
+    "transitionTicks": 4,
+    "faceAttraction": 0.55,
+    "movingFaceAttraction": 0.15,
+    "alignmentDegrees": 0.5,
+    "settleDelayTicks": 4
   },
   "labels": {
     "enabled": true,

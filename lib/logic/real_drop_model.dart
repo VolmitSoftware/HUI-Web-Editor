@@ -7,8 +7,8 @@
 /// takes, the fixed offset table, the authored Y lift, the tumble rates and
 /// the settled pose.
 ///
-/// Two deliberate departures from the Java, both because this is a preview and
-/// not a server:
+/// One deliberate departure from the Java, because this is a preview and not a
+/// server:
 ///
 ///  * Seeds. The plugin mixes an item's `UUID` through a 64-bit SplitMix step.
 ///    Web `int` is a double, so a faithful 64-bit mix is not available and a
@@ -16,11 +16,6 @@
 ///    [realDropLanding] take a caller-supplied unit source instead, so the
 ///    *shape* of the math — per-axis rate, variance band, sign flip, speed
 ///    multiplier, tilt bounds — is exact while the randomness is the stage's.
-///  * Rolling. `groundedBlockRotation` / `faceAlignedRotation` settle a block
-///    that is still sliding onto its nearest face. The stage drops straight
-///    down, so it goes from tumbling to [realDropLandingRotation] and never
-///    needs the roll.
-///
 /// Rotations are 3x3 matrices in Minecraft space (right-handed, +Y up) so the
 /// composition order matches JOML exactly; [DropRotation.cssMatrix3d] is the
 /// only place the browser's Y-down convention is applied.
@@ -166,28 +161,13 @@ DropAngles realDropSpin(
   ({bool x, bool y, bool z}) negative,
 ) => (
   x:
-      _varied(
-        motion.degreesPerSecondX,
-        motion.variance,
-        units.x,
-        negative.x,
-      ) *
+      _varied(motion.degreesPerSecondX, motion.variance, units.x, negative.x) *
       motion.speedMultiplier,
   y:
-      _varied(
-        motion.degreesPerSecondY,
-        motion.variance,
-        units.y,
-        negative.y,
-      ) *
+      _varied(motion.degreesPerSecondY, motion.variance, units.y, negative.y) *
       motion.speedMultiplier,
   z:
-      _varied(
-        motion.degreesPerSecondZ,
-        motion.variance,
-        units.z,
-        negative.z,
-      ) *
+      _varied(motion.degreesPerSecondZ, motion.variance, units.z, negative.z) *
       motion.speedMultiplier,
 );
 
@@ -256,17 +236,91 @@ DropRotation realDropIndexedRotation(DropRotation rotation, int index) =>
           .rotateY(index * glossRealDropStackYawRadians)
           .mul(rotation);
 
+({DropRotation rotation, bool aligned}) realDropGroundedBlockRotation(
+  DropRotation current,
+  double deltaX,
+  double deltaZ,
+  double horizontalSpeed,
+  double scale,
+  double groundRollMultiplier,
+  double faceAttraction,
+  double movingFaceAttraction,
+  double alignmentRadians,
+) {
+  final double distance = math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+  DropRotation rolled = current;
+  if (distance > 1e-6) {
+    final double axisX = deltaZ / distance;
+    final double axisZ = -deltaX / distance;
+    final double angle =
+        distance / math.max(0.05, scale) * math.pi / 2 * groundRollMultiplier;
+    rolled = DropRotation.axis(angle, axisX, 0, axisZ).mul(current);
+  }
+  final DropRotation target = realDropFaceAlignedRotation(rolled);
+  final double difference = rolled.difference(target);
+  if (difference <= alignmentRadians) {
+    return (rotation: target, aligned: true);
+  }
+  final double speedReference = math.max(0.02, scale * 0.25);
+  final double motionRatio = math.min(1, horizontalSpeed / speedReference);
+  final double gravityBlend =
+      faceAttraction - (faceAttraction - movingFaceAttraction) * motionRatio;
+  return (rotation: rolled.slerp(target, gravityBlend), aligned: false);
+}
+
+DropRotation realDropFaceAlignedRotation(DropRotation current) {
+  final int face = _nearestDownFace(current);
+  final DropRotation base = switch (face) {
+    0 => DropRotation.identity,
+    1 => DropRotation.identity.rotateX(math.pi),
+    2 => DropRotation.identity.rotateZ(math.pi / 2),
+    3 => DropRotation.identity.rotateZ(-math.pi / 2),
+    4 => DropRotation.identity.rotateX(-math.pi / 2),
+    _ => DropRotation.identity.rotateX(math.pi / 2),
+  };
+  final bool zTangent = face < 4;
+  final double currentHeading = _tangentHeading(current, zTangent);
+  final double baseHeading = _tangentHeading(base, zTangent);
+  return DropRotation.identity.rotateY(currentHeading - baseHeading).mul(base);
+}
+
+int _nearestDownFace(DropRotation rotation) {
+  final double rowX = rotation.m[3];
+  final double rowY = rotation.m[4];
+  final double rowZ = rotation.m[5];
+  int face = 0;
+  double lowest = -rowY;
+  if (rowY < lowest) {
+    face = 1;
+    lowest = rowY;
+  }
+  if (-rowX < lowest) {
+    face = 2;
+    lowest = -rowX;
+  }
+  if (rowX < lowest) {
+    face = 3;
+    lowest = rowX;
+  }
+  if (-rowZ < lowest) {
+    face = 4;
+    lowest = -rowZ;
+  }
+  if (rowZ < lowest) return 5;
+  return face;
+}
+
+double _tangentHeading(DropRotation rotation, bool zTangent) => math.atan2(
+  zTangent ? rotation.m[2] : rotation.m[0],
+  zTangent ? rotation.m[8] : rotation.m[6],
+);
+
 const double _degToRad = math.pi / 180;
 
 /// `RealDropModel.varied`: the configured rate widened by the variance band,
 /// then signed. [unit] is the plugin's `-1..1` draw and [negative] its
 /// direction bit.
-double _varied(
-  double configured,
-  double variance,
-  double unit,
-  bool negative,
-) {
+double _varied(double configured, double variance, double unit, bool negative) {
   final double magnitude = configured * (1 + unit * variance);
   return negative ? -magnitude : magnitude;
 }
@@ -288,6 +342,35 @@ final class DropRotation {
     0, 1, 0, //
     0, 0, 1, //
   ]);
+
+  static DropRotation axis(
+    double radians,
+    double axisX,
+    double axisY,
+    double axisZ,
+  ) {
+    final double length = math.sqrt(
+      axisX * axisX + axisY * axisY + axisZ * axisZ,
+    );
+    if (length <= 1e-12) return identity;
+    final double x = axisX / length;
+    final double y = axisY / length;
+    final double z = axisZ / length;
+    final double c = math.cos(radians);
+    final double s = math.sin(radians);
+    final double t = 1 - c;
+    return DropRotation(<double>[
+      t * x * x + c,
+      t * x * y - s * z,
+      t * x * z + s * y,
+      t * x * y + s * z,
+      t * y * y + c,
+      t * y * z - s * x,
+      t * x * z - s * y,
+      t * y * z + s * x,
+      t * z * z + c,
+    ]);
+  }
 
   DropRotation rotateX(double radians) {
     final double c = math.cos(radians);
@@ -324,6 +407,22 @@ final class DropRotation {
     return DropRotation(out);
   }
 
+  double difference(DropRotation other) {
+    double trace = 0;
+    for (int row = 0; row < 3; row++) {
+      for (int column = 0; column < 3; column++) {
+        trace += m[row * 3 + column] * other.m[row * 3 + column];
+      }
+    }
+    return math.acos(((trace - 1) / 2).clamp(-1.0, 1.0));
+  }
+
+  DropRotation slerp(DropRotation target, double amount) {
+    final _DropQuaternion from = _DropQuaternion.fromRotation(this);
+    final _DropQuaternion to = _DropQuaternion.fromRotation(target);
+    return from.slerp(to, amount.clamp(0.0, 1.0)).rotation;
+  }
+
   /// `RealDropModel.verticalHalfExtent`: half the height the model's own
   /// bounding cube spans once this rotation is applied.
   double verticalHalfExtent(double scale) =>
@@ -348,5 +447,103 @@ final class DropRotation {
         '${n(f[1])}, ${n(f[4])}, ${n(f[7])}, 0, '
         '${n(f[2])}, ${n(f[5])}, ${n(f[8])}, 0, '
         '0, 0, 0, 1)';
+  }
+}
+
+final class _DropQuaternion {
+  const _DropQuaternion(this.x, this.y, this.z, this.w);
+
+  final double x;
+  final double y;
+  final double z;
+  final double w;
+
+  factory _DropQuaternion.fromRotation(DropRotation rotation) {
+    final List<double> m = rotation.m;
+    final double trace = m[0] + m[4] + m[8];
+    if (trace > 0) {
+      final double s = math.sqrt(trace + 1) * 2;
+      return _DropQuaternion(
+        (m[7] - m[5]) / s,
+        (m[2] - m[6]) / s,
+        (m[3] - m[1]) / s,
+        s / 4,
+      );
+    }
+    if (m[0] > m[4] && m[0] > m[8]) {
+      final double s = math.sqrt(1 + m[0] - m[4] - m[8]) * 2;
+      return _DropQuaternion(
+        s / 4,
+        (m[1] + m[3]) / s,
+        (m[2] + m[6]) / s,
+        (m[7] - m[5]) / s,
+      );
+    }
+    if (m[4] > m[8]) {
+      final double s = math.sqrt(1 + m[4] - m[0] - m[8]) * 2;
+      return _DropQuaternion(
+        (m[1] + m[3]) / s,
+        s / 4,
+        (m[5] + m[7]) / s,
+        (m[2] - m[6]) / s,
+      );
+    }
+    final double s = math.sqrt(1 + m[8] - m[0] - m[4]) * 2;
+    return _DropQuaternion(
+      (m[2] + m[6]) / s,
+      (m[5] + m[7]) / s,
+      s / 4,
+      (m[3] - m[1]) / s,
+    );
+  }
+
+  DropRotation get rotation => DropRotation(<double>[
+    1 - 2 * (y * y + z * z),
+    2 * (x * y - z * w),
+    2 * (x * z + y * w),
+    2 * (x * y + z * w),
+    1 - 2 * (x * x + z * z),
+    2 * (y * z - x * w),
+    2 * (x * z - y * w),
+    2 * (y * z + x * w),
+    1 - 2 * (x * x + y * y),
+  ]);
+
+  _DropQuaternion slerp(_DropQuaternion target, double amount) {
+    double tx = target.x;
+    double ty = target.y;
+    double tz = target.z;
+    double tw = target.w;
+    double dot = x * tx + y * ty + z * tz + w * tw;
+    if (dot < 0) {
+      dot = -dot;
+      tx = -tx;
+      ty = -ty;
+      tz = -tz;
+      tw = -tw;
+    }
+    if (dot > 0.9995) {
+      return _DropQuaternion(
+        x + amount * (tx - x),
+        y + amount * (ty - y),
+        z + amount * (tz - z),
+        w + amount * (tw - w),
+      ).normalized;
+    }
+    final double theta = math.acos(dot.clamp(-1.0, 1.0));
+    final double sinTheta = math.sin(theta);
+    final double fromWeight = math.sin((1 - amount) * theta) / sinTheta;
+    final double toWeight = math.sin(amount * theta) / sinTheta;
+    return _DropQuaternion(
+      x * fromWeight + tx * toWeight,
+      y * fromWeight + ty * toWeight,
+      z * fromWeight + tz * toWeight,
+      w * fromWeight + tw * toWeight,
+    );
+  }
+
+  _DropQuaternion get normalized {
+    final double length = math.sqrt(x * x + y * y + z * z + w * w);
+    return _DropQuaternion(x / length, y / length, z / length, w / length);
   }
 }

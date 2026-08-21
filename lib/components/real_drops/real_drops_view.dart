@@ -70,6 +70,7 @@ library;
 import 'dart:async';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
+import 'dart:math' as math;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:arcane_jaspr/core/dom_value.dart';
@@ -467,6 +468,7 @@ class _RealDropsViewState extends State<RealDropsView> {
         _sampleButton(drop),
         _waterButton(),
         _resetButton(),
+        _timelineControl(timeline, frame, nowMs),
         dom.span(classes: 'hui-real-drops-readout-inline', <Widget>[
           Text(_readout(doc, drop, timeline, frame)),
         ]),
@@ -533,6 +535,48 @@ class _RealDropsViewState extends State<RealDropsView> {
     },
     child: ArcaneIcon.maximize(size: IconSize.sm),
   );
+
+  Widget _timelineControl(
+    DropStageTimeline timeline,
+    DropStageFrame frame,
+    int nowMs,
+  ) {
+    final int localMs = nowMs % timeline.cycleMs;
+    return dom.div(classes: 'hui-real-drops-timeline', <Widget>[
+      dom.span(
+        classes: 'hui-real-drops-phase is-${frame.phase.label}',
+        <Widget>[Text(frame.phase.label)],
+      ),
+      dom.input<num>(
+        type: dom.InputType.range,
+        classes: 'hui-range hui-real-drops-scrubber',
+        value: '$localMs',
+        onInput: (num next) => _scrubTo(next.toInt(), nowMs, timeline.cycleMs),
+        attributes: <String, String>{
+          'min': '0',
+          'max': '${math.max(0, timeline.cycleMs - 1)}',
+          'step': '25',
+          'aria-label': 'Scrub the dropped item animation timeline',
+        },
+      ),
+      dom.span(classes: 'hui-real-drops-time', <Widget>[
+        Text(
+          '${(localMs / 1000).toStringAsFixed(2)} / '
+          '${(timeline.cycleMs / 1000).toStringAsFixed(2)}s',
+        ),
+      ]),
+    ]);
+  }
+
+  void _scrubTo(int localMs, int nowMs, int cycleMs) {
+    final int cycleStart = nowMs ~/ cycleMs * cycleMs;
+    setState(() {
+      _heldMs = cycleStart + localMs.clamp(0, cycleMs - 1);
+      _playing = false;
+      _ticker?.cancel();
+      _ticker = null;
+    });
+  }
 
   Widget _scene(
     GlossRealDropSettingsDoc doc,
@@ -830,6 +874,8 @@ class _RealDropsViewState extends State<RealDropsView> {
       '${drop.amount}x ${drop.displayName}',
       '$kind model at ${frame.modelScale.toStringAsFixed(2)}',
       '${timeline.visualCount} of ${doc.limits.maxVisualsPerStack} displays',
+      '${frame.phase.label} for '
+          '${frame.phaseTimeTicks.toStringAsFixed(1)} ticks',
       frame.settled
           ? '${doc.landing.mode.toLowerCase()} landing, '
                 '${doc.landing.transitionTicks}-tick ease'

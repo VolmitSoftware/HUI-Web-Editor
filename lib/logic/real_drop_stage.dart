@@ -99,6 +99,7 @@ const double _restTicks = 50;
 /// upward velocity under which a contact is a settle rather than a bounce.
 const int _maxContacts = 3;
 const double _settleVelocity = 0.03;
+const double _settledHorizontalSpeed = 0.001;
 
 /// The cap on a flight that never comes to rest — a floating stack, or one with
 /// its gravity cleared. Six seconds is long enough to read the motion and short
@@ -262,6 +263,24 @@ final class DropStageVisual {
   final bool visible;
 }
 
+enum DropAnimationPhase {
+  airborne,
+  rebounding,
+  rolling,
+  settling,
+  settled,
+  submerged;
+
+  String get label => switch (this) {
+    DropAnimationPhase.airborne => 'airborne',
+    DropAnimationPhase.rebounding => 'rebounding',
+    DropAnimationPhase.rolling => 'rolling',
+    DropAnimationPhase.settling => 'settling',
+    DropAnimationPhase.settled => 'settled',
+    DropAnimationPhase.submerged => 'submerged',
+  };
+}
+
 /// The whole stage at one millisecond.
 final class DropStageFrame {
   const DropStageFrame({
@@ -270,6 +289,8 @@ final class DropStageFrame {
     required this.carrierZ,
     required this.grounded,
     required this.settled,
+    required this.phase,
+    required this.phaseTimeTicks,
     required this.submerged,
     required this.bounces,
     required this.interpolationTicks,
@@ -293,6 +314,8 @@ final class DropStageFrame {
 
   final bool grounded;
   final bool settled;
+  final DropAnimationPhase phase;
+  final double phaseTimeTicks;
 
   /// Below the stage's water surface, which is what `inWater` reads.
   final bool submerged;
@@ -368,6 +391,7 @@ final class DropStageTimeline {
     _plan = script == null || !script.enabled
         ? RealDropScriptPlan.empty
         : RealDropScriptPlan.compile(script);
+    _poses = _buildPoses();
   }
 
   final GlossRealDropSettingsDoc doc;
@@ -383,6 +407,7 @@ final class DropStageTimeline {
   final List<DropAngles> _spin;
   late final DropRotation _landing;
   late final RealDropScriptPlan _plan;
+  late final List<_DropPose> _poses;
 
   /// Blocks per model edge, the configured scale family.
   double get modelScale => _scale;
@@ -407,35 +432,17 @@ final class DropStageTimeline {
 
   DropStageFrame frameAt(int ms) {
     final double tick = (ms % cycleMs) / 50.0;
-    final int step = math.max(1, doc.limits.updateIntervalTicks);
-    final bool settled = _flight.settles && tick >= _flight.restTick;
-    final double height = settled ? 0 : _flight.heightAt(tick);
-    final double forward = settled
-        ? dropStageThrowBlocks
-        : _flight.forwardAt(tick);
+    final _DropPose pose = _poseAt(tick);
+    final bool settled = pose.phase == DropAnimationPhase.settled;
+    final double height = _flight.heightAt(tick);
+    final double forward = _flight.forwardAt(tick);
     final bool grounded = settled || height <= 0.001;
     final int bounces = settled
         ? _flight.bounces.length
         : _flight.bouncesBefore(tick);
 
-    DropRotation rotation = realDropBaseRotation(modelKind);
-    int bounceRevision = 0;
-    if (settled) {
-      rotation = _landing;
-      bounceRevision = _flight.bounces.length;
-    } else if (doc.motion.tumble) {
-      final double seconds = step / glossTicksPerSecond;
-      for (double at = 0; at < tick; at += step) {
-        bounceRevision = _flight.bouncesBefore(at);
-        if (!doc.motion.changeOnBounce) bounceRevision = 0;
-        final DropAngles spin =
-            _spin[math.min(bounceRevision, _spin.length - 1)];
-        rotation = rotation
-            .rotateX(spin.x * seconds * _degToRad)
-            .rotateY(spin.y * seconds * _degToRad)
-            .rotateZ(spin.z * seconds * _degToRad);
-      }
-    }
+    final DropRotation rotation = pose.rotation;
+    final int bounceRevision = doc.motion.changeOnBounce ? bounces : 0;
 
     final bool submerged = environment.water && height < dropStageWaterLevel;
     final Set<String> failures = <String>{};
@@ -451,6 +458,8 @@ final class DropStageTimeline {
             height: height,
             grounded: grounded,
             settled: settled,
+            phase: pose.phase,
+            phaseTimeTicks: pose.phaseTimeTicks,
             submerged: submerged,
             bounces: bounces,
             failures: failures,
@@ -464,6 +473,8 @@ final class DropStageTimeline {
       carrierZ: forward,
       grounded: grounded,
       settled: settled,
+      phase: pose.phase,
+      phaseTimeTicks: pose.phaseTimeTicks,
       submerged: submerged,
       bounces: bounces,
       interpolationTicks: settled
@@ -479,6 +490,160 @@ final class DropStageTimeline {
     );
   }
 
+  List<_DropPose> _buildPoses() {
+    final int lastTick = (cycleMs / 50).ceil();
+    final int requiredStableTicks = math.max(
+      math.max(1, doc.limits.updateIntervalTicks),
+      doc.landing.settleDelayTicks,
+    );
+    final List<_DropPose> poses = <_DropPose>[];
+    DropRotation rotation = realDropBaseRotation(modelKind);
+    DropAnimationPhase phase = DropAnimationPhase.airborne;
+    int phaseTicks = 0;
+    int stableTicks = 0;
+    poses.add(
+      _DropPose(
+        rotation: rotation,
+        phase: phase,
+        phaseTimeTicks: phaseTicks.toDouble(),
+      ),
+    );
+
+    for (int tick = 1; tick <= lastTick; tick++) {
+      final double height = _flight.heightAt(tick.toDouble());
+      final bool submerged = environment.water && height < dropStageWaterLevel;
+      final bool grounded = height <= 0.001;
+      final double previousForward = _flight.forwardAt((tick - 1).toDouble());
+      final double forward = _flight.forwardAt(tick.toDouble());
+      final double deltaZ = forward - previousForward;
+      final double speed = _flight.velocityZAt(tick.toDouble()).abs();
+      DropAnimationPhase nextPhase;
+
+      if (submerged) {
+        rotation = _advanceTumble(
+          rotation,
+          tick,
+          doc.motion.submergedSpinMultiplier,
+        );
+        stableTicks = 0;
+        nextPhase = DropAnimationPhase.submerged;
+      } else if (!grounded) {
+        rotation = _advanceTumble(rotation, tick, 1);
+        stableTicks = 0;
+        nextPhase = _flight.reboundingAt(tick.toDouble())
+            ? DropAnimationPhase.rebounding
+            : DropAnimationPhase.airborne;
+      } else {
+        final bool moving = speed > _settledHorizontalSpeed;
+        bool aligned;
+        if (modelKind == DropModelKind.block &&
+            doc.landing.mode.toUpperCase() == 'NATURAL') {
+          final ({DropRotation rotation, bool aligned}) roll =
+              realDropGroundedBlockRotation(
+                rotation,
+                0,
+                deltaZ,
+                speed,
+                _scale,
+                doc.motion.groundRollMultiplier,
+                doc.landing.faceAttraction,
+                doc.landing.movingFaceAttraction,
+                doc.landing.alignmentDegrees * _degToRad,
+              );
+          rotation = roll.rotation;
+          aligned = roll.aligned;
+        } else {
+          final double difference = rotation.difference(_landing);
+          aligned = difference <= doc.landing.alignmentDegrees * _degToRad;
+          if (aligned) {
+            rotation = _landing;
+          } else {
+            final double speedReference = math.max(0.02, _scale * 0.25);
+            final double motionRatio = math.min(1, speed / speedReference);
+            final double attraction =
+                doc.landing.faceAttraction -
+                (doc.landing.faceAttraction -
+                        doc.landing.movingFaceAttraction) *
+                    motionRatio;
+            rotation = rotation.slerp(_landing, attraction);
+          }
+        }
+
+        if (moving) {
+          stableTicks = 0;
+          nextPhase = DropAnimationPhase.rolling;
+        } else if (!aligned) {
+          stableTicks = 0;
+          nextPhase = DropAnimationPhase.settling;
+        } else {
+          stableTicks++;
+          nextPhase = stableTicks >= requiredStableTicks
+              ? DropAnimationPhase.settled
+              : DropAnimationPhase.settling;
+        }
+      }
+
+      if (phase == nextPhase) {
+        phaseTicks++;
+      } else {
+        phase = nextPhase;
+        phaseTicks = 0;
+      }
+      poses.add(
+        _DropPose(
+          rotation: rotation,
+          phase: phase,
+          phaseTimeTicks: phaseTicks.toDouble(),
+        ),
+      );
+    }
+    return poses;
+  }
+
+  DropRotation _advanceTumble(
+    DropRotation rotation,
+    int tick,
+    double mediumMultiplier,
+  ) {
+    if (!doc.motion.tumble) return rotation;
+    int revision = _flight.bouncesBefore(tick.toDouble());
+    if (!doc.motion.changeOnBounce) revision = 0;
+    final DropAngles spin = _spin[math.min(revision, _spin.length - 1)];
+    const double seconds = 1 / glossTicksPerSecond;
+    final double velocityY = _flight.velocityYAt(tick.toDouble());
+    final double velocityZ = _flight.velocityZAt(tick.toDouble());
+    final double speed = math.sqrt(
+      velocityY * velocityY + velocityZ * velocityZ,
+    );
+    final double momentumMultiplier =
+        1 + math.min(2, speed * doc.motion.velocityInfluence);
+    return rotation
+        .rotateX(
+          spin.x * seconds * mediumMultiplier * momentumMultiplier * _degToRad,
+        )
+        .rotateY(
+          spin.y * seconds * mediumMultiplier * momentumMultiplier * _degToRad,
+        )
+        .rotateZ(
+          spin.z * seconds * mediumMultiplier * momentumMultiplier * _degToRad,
+        );
+  }
+
+  _DropPose _poseAt(double tick) {
+    final int index = tick.floor().clamp(0, _poses.length - 1);
+    final _DropPose current = _poses[index];
+    if (index >= _poses.length - 1) return current;
+    final double fraction = tick - index;
+    final _DropPose next = _poses[index + 1];
+    return _DropPose(
+      rotation: current.rotation.slerp(next.rotation, fraction),
+      phase: current.phase,
+      phaseTimeTicks: current.phase == next.phase
+          ? current.phaseTimeTicks + fraction
+          : current.phaseTimeTicks,
+    );
+  }
+
   /// One script evaluation, for one display in one frame.
   ///
   /// `t` and `age` both count from the throw: the stage's stack is born when it
@@ -491,6 +656,8 @@ final class DropStageTimeline {
     required double height,
     required bool grounded,
     required bool settled,
+    required DropAnimationPhase phase,
+    required double phaseTimeTicks,
     required bool submerged,
     required int bounces,
     required Set<String> failures,
@@ -505,6 +672,15 @@ final class DropStageTimeline {
         amount: drop.amount,
         onGround: grounded,
         settled: settled,
+        phase: phase.name.toUpperCase(),
+        stateTime: phaseTimeTicks / glossTicksPerSecond,
+        impactSpeed: bounces <= 0
+            ? 0
+            : _flight
+                  .velocityYAt(
+                    math.max(0, _flight.bounces[bounces - 1] - 0.001),
+                  )
+                  .abs(),
         inWater: submerged,
         inLava: DropStageEnvironment.inLava,
         bounces: bounces,
@@ -636,9 +812,26 @@ _Flight _buildFlight(GlossRealDropPhysics? physics, {required bool water}) {
   int contacts = 0;
   double restTick = _hangTicks;
   bool settles = false;
+  bool supported = false;
 
   for (int tick = 1; tick <= _hangTicks; tick++) {
     final bool submerged = water && height < dropStageWaterLevel;
+    if (supported && !submerged) {
+      height = 0;
+      vy = 0;
+      forward += vz;
+      vz *= _bounceFriction;
+      heights.add(height);
+      forwards.add(forward);
+      velocityY.add(vy);
+      velocityZ.add(vz);
+      if (vz.abs() <= _settledHorizontalSpeed) {
+        restTick = tick.toDouble();
+        settles = true;
+        break;
+      }
+      continue;
+    }
     if (!hanging) vy -= gravity;
     if (submerged) {
       vy += _vanillaWaterLift + _buoyancyStep * buoyancy;
@@ -664,13 +857,8 @@ _Flight _buildFlight(GlossRealDropPhysics? physics, {required bool water}) {
         // submerged item settle either — it holds the fast polling interval
         // because a buoyant item is never really at rest.
         if (!submerged) {
-          restTick = tick.toDouble();
-          settles = true;
-          heights.add(height);
-          forwards.add(forward);
-          velocityY.add(vy);
-          velocityZ.add(vz);
-          break;
+          supported = true;
+          vz *= _bounceFriction;
         }
       } else {
         contacts++;
@@ -752,6 +940,13 @@ final class _Flight {
     return count;
   }
 
+  bool reboundingAt(double tick) {
+    for (final double bounce in bounces) {
+      if (tick > bounce && tick <= bounce + 1) return true;
+    }
+    return false;
+  }
+
   /// A position between two whole ticks. The client interpolates the same way
   /// between the poses Gloss hands it, so a straight line is the right shape.
   static double _lerp(List<double> table, double tick) {
@@ -769,6 +964,18 @@ final class _Flight {
     final int index = tick.floor();
     return index >= table.length ? table.last : table[index];
   }
+}
+
+final class _DropPose {
+  const _DropPose({
+    required this.rotation,
+    required this.phase,
+    required this.phaseTimeTicks,
+  });
+
+  final DropRotation rotation;
+  final DropAnimationPhase phase;
+  final double phaseTimeTicks;
 }
 
 const double _degToRad = math.pi / 180;

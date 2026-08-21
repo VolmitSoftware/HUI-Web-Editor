@@ -1160,8 +1160,61 @@
 }
 
 .hui-real-drops-readout-inline {
+  flex: 1 1 100%;
   color: var(--muted-foreground);
   font-size: 12px;
+}
+
+.hui-real-drops-timeline {
+  display: grid;
+  flex: 1 1 420px;
+  grid-template-columns: minmax(84px, auto) minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.hui-real-drops-phase {
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--muted) 54%, transparent);
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.hui-real-drops-phase.is-rolling,
+.hui-real-drops-phase.is-settling {
+  border-color: color-mix(in srgb, var(--hui-warning) 62%, var(--border));
+  background: color-mix(in srgb, var(--hui-warning) 13%, var(--background));
+  color: color-mix(in srgb, var(--hui-warning) 74%, white);
+}
+
+.hui-real-drops-phase.is-settled {
+  border-color: color-mix(in srgb, var(--hui-success) 62%, var(--border));
+  background: color-mix(in srgb, var(--hui-success) 13%, var(--background));
+  color: color-mix(in srgb, var(--hui-success) 74%, white);
+}
+
+.hui-real-drops-phase.is-submerged {
+  border-color: color-mix(in srgb, #4eb6e8 62%, var(--border));
+  background: color-mix(in srgb, #4eb6e8 13%, var(--background));
+  color: color-mix(in srgb, #4eb6e8 74%, white);
+}
+
+.hui-real-drops-scrubber { width: 100%; }
+
+.hui-real-drops-time {
+  min-width: 82px;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 /* The camera has no affordance of its own — the stage looks the same whether

@@ -192,6 +192,62 @@ void main() {
     );
   });
 
+  test('the timeline exposes continuous motion phases and phase time', () {
+    final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+    final DropStageTimeline stage = DropStageTimeline(
+      doc,
+      _drop('cobblestone'),
+    );
+    final Set<DropAnimationPhase> phases = <DropAnimationPhase>{};
+    DropStageFrame? rolling;
+    DropStageFrame? rollingNext;
+    DropAnimationPhase previous = DropAnimationPhase.airborne;
+
+    for (int ms = 0; ms < stage.cycleMs; ms += 25) {
+      final DropStageFrame frame = stage.frameAt(ms);
+      phases.add(frame.phase);
+      if (frame.phase != previous) {
+        expect(frame.phaseTimeTicks, lessThan(1));
+      }
+      previous = frame.phase;
+      if (rolling == null && frame.phase == DropAnimationPhase.rolling) {
+        final DropStageFrame candidate = stage.frameAt(ms + 50);
+        if (candidate.phase == DropAnimationPhase.rolling) {
+          rolling = frame;
+          rollingNext = candidate;
+        }
+      }
+    }
+
+    expect(phases, contains(DropAnimationPhase.airborne));
+    expect(phases, contains(DropAnimationPhase.rebounding));
+    expect(phases, contains(DropAnimationPhase.rolling));
+    expect(phases, contains(DropAnimationPhase.settling));
+    expect(phases, contains(DropAnimationPhase.settled));
+    expect(rolling, isNotNull);
+    expect(rollingNext!.phase, DropAnimationPhase.rolling);
+    expect(rollingNext.carrierZ, greaterThan(rolling!.carrierZ));
+    expect(
+      rollingNext.visuals.first.rotation.cssMatrix3d(),
+      isNot(rolling.visuals.first.rotation.cssMatrix3d()),
+      reason: 'ground travel keeps rotating the cube instead of snapping it',
+    );
+  });
+
+  test('a naturally settled cube finishes flush on its nearest face', () {
+    final DropStageTimeline stage = DropStageTimeline(
+      buildDefaultGlossRealDrops(),
+      _drop('cobblestone'),
+    );
+    final DropStageFrame settled = stage.frameAt(stage.cycleMs - 100);
+    final DropRotation rotation = settled.visuals.first.rotation;
+    final DropRotation face = realDropFaceAlignedRotation(rotation);
+
+    expect(settled.phase, DropAnimationPhase.settled);
+    expect(rotation.difference(face), lessThan(1e-6));
+    expect(settled.visuals.first.y, closeTo(settled.modelScale * 0.5, 1e-6));
+  });
+
   test('the cycle repeats and replays identically', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
     final DropStageTimeline first = DropStageTimeline(doc, _drop('feather'));

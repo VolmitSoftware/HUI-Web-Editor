@@ -72,6 +72,27 @@ List<HuiIssue> validateRealDropSettingsDoc(GlossRealDropSettingsDoc doc) {
     1440,
   );
   _range(issues, r'$.motion.variance', doc.motion.variance, 0, 1);
+  _range(
+    issues,
+    r'$.motion.velocityInfluence',
+    doc.motion.velocityInfluence,
+    0,
+    4,
+  );
+  _range(
+    issues,
+    r'$.motion.submergedSpinMultiplier',
+    doc.motion.submergedSpinMultiplier,
+    0,
+    1,
+  );
+  _range(
+    issues,
+    r'$.motion.groundRollMultiplier',
+    doc.motion.groundRollMultiplier,
+    0,
+    4,
+  );
   _range(issues, r'$.landing.tiltDegrees', doc.landing.tiltDegrees, 0, 45);
   _range(
     issues,
@@ -79,6 +100,28 @@ List<HuiIssue> validateRealDropSettingsDoc(GlossRealDropSettingsDoc doc) {
     doc.landing.transitionTicks,
     0,
     20,
+  );
+  _range(issues, r'$.landing.faceAttraction', doc.landing.faceAttraction, 0, 1);
+  _range(
+    issues,
+    r'$.landing.movingFaceAttraction',
+    doc.landing.movingFaceAttraction,
+    0,
+    1,
+  );
+  _range(
+    issues,
+    r'$.landing.alignmentDegrees',
+    doc.landing.alignmentDegrees,
+    0.05,
+    10,
+  );
+  _range(
+    issues,
+    r'$.landing.settleDelayTicks',
+    doc.landing.settleDelayTicks,
+    0,
+    100,
   );
   _choice(issues, r'$.landing.mode', doc.landing.mode, const <String>{
     'NATURAL',
