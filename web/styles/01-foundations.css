@@ -49,12 +49,13 @@ html.light, html.light #arcane-root, html.dark, html.dark #arcane-root {
   --hui-accent: var(--primary);
   --hui-accent-foreground: var(--primary-foreground);
   --hui-ring: var(--ring);
-  --hui-danger: var(--destructive);
+  --hui-danger-fill: var(--destructive);
   --hui-warning: var(--warning, #a06022);
   --hui-info: var(--info, #007acc);
   --hui-success: var(--success, #2e7d55);
 }
 html.light, html.light #arcane-root {
+  --hui-danger: #b4232c;
   --hui-bg: #f7f7f8;
   --hui-panel: #ffffff;
   --hui-panel-soft: #eeeeef;
@@ -67,6 +68,7 @@ html.light, html.light #arcane-root {
   --hui-shadow-md: 0 18px 48px rgb(20 20 24 / .13);
 }
 html.dark, html.dark #arcane-root {
+  --hui-danger: #ff8a8d;
   --hui-bg: #0a0a0b;
   --hui-panel: #111113;
   --hui-panel-soft: #17171a;

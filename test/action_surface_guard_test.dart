@@ -16,6 +16,9 @@ void main() {
   final String barMenu = File(
     'lib/components/shell/bar_menu.dart',
   ).readAsStringSync();
+  final String foundationsCss = File(
+    'web/styles/01-foundations.css',
+  ).readAsStringSync();
   final String shellCss = File('web/styles/02-shell.css').readAsStringSync();
 
   /// The four rungs, widest first, as `(tier, actions that rung folds)`.
@@ -193,18 +196,41 @@ void main() {
     expect(shellCss, contains('left: 8px !important;'));
     expect(shellCss, contains('.hui-bar-menu-item {'));
     expect(shellCss, contains('min-height: 44px;'));
-    expect(
-      shellCss,
-      contains('.hui-bar-menu-item:hover:not(:disabled),'),
-    );
+    expect(shellCss, contains('.hui-bar-menu-item:hover:not(:disabled),'));
   });
 
-  test('the armed delete action keeps destructive hierarchy', () {
+  test('danger text and filled delete actions keep accessible hierarchy', () {
+    final String lightTokens = _between(
+      foundationsCss,
+      'html.light, html.light #arcane-root {',
+      'html.dark, html.dark #arcane-root {',
+    );
+    final String darkTokens = _between(
+      foundationsCss,
+      'html.dark, html.dark #arcane-root {',
+      'html, body {',
+    );
+    expect(foundationsCss, contains('--hui-danger-fill: var(--destructive);'));
+    expect(lightTokens, contains('--hui-danger: #b4232c;'));
+    expect(darkTokens, contains('--hui-danger: #ff8a8d;'));
     expect(
       shellCss,
       contains('.hui-armed > .arcane-button[data-variant="destructive"] {'),
     );
-    expect(shellCss, contains('background: var(--hui-danger) !important;'));
+    expect(
+      shellCss,
+      contains('background: var(--hui-danger-fill) !important;'),
+    );
+    expect(
+      shellCss,
+      contains('border-color: var(--hui-danger-fill) !important;'),
+    );
+    expect(
+      shellCss,
+      contains(
+        'background: color-mix(in srgb, var(--hui-danger-fill) 84%, white) !important;',
+      ),
+    );
     expect(
       shellCss,
       contains('color: var(--destructive-foreground) !important;'),

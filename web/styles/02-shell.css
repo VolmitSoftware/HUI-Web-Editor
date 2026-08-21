@@ -372,13 +372,13 @@ body.hui-resizing * { cursor: col-resize !important; }
 }
 .hui-armed > .arcane-button { flex: 0 0 auto; }
 .hui-armed > .arcane-button[data-variant="destructive"] {
-  border-color: var(--hui-danger) !important;
-  background: var(--hui-danger) !important;
+  border-color: var(--hui-danger-fill) !important;
+  background: var(--hui-danger-fill) !important;
   color: var(--destructive-foreground) !important;
 }
 .hui-armed > .arcane-button[data-variant="destructive"]:hover,
 .hui-armed > .arcane-button[data-variant="destructive"]:focus-visible {
-  background: color-mix(in srgb, var(--hui-danger) 84%, white) !important;
+  background: color-mix(in srgb, var(--hui-danger-fill) 84%, white) !important;
 }
 
 /* Permanent compact selectors keep kind and view state visible without a tab
