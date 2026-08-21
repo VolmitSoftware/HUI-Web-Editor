@@ -6,12 +6,10 @@
 /// zooming never rebuild the Jaspr tree.
 ///
 /// Layout contract with `web/styles/03-canvas.css`:
-/// - the strip is ONE row at every width; it never wraps. Density is a CSS
-///   decision, not a Dart one: every label that may be dropped when the canvas
-///   cell gets narrow is wrapped in `.hui-canvas-tool-label`, and the
-///   stylesheet decides whether that span renders. The buttons keep their
-///   `aria-label` and their `ArcaneTooltip` either way, so dropping the text
-///   costs nothing but pixels.
+/// - the strip is ONE row at every width; it never wraps or scrolls. Density is
+///   a CSS decision: labels disappear first, then a compact More handoff swaps
+///   the view/order/state groups for one menu containing the same actions.
+///   Every action therefore has exactly one visible route at every width.
 /// - the uiScale control is a popover, not an inline slider. An inline slider
 ///   in a single row collapses to an unusable stub as soon as anything else
 ///   grows, so the row only carries the readout and the real slider lives in
@@ -31,6 +29,7 @@ import '../../logic/multi_select.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/class_names.dart';
+import '../common/hui_action_menu.dart';
 
 /// Cycle order for the backdrop button.
 const List<HuiBackdropMode> huiBackdropCycle = <HuiBackdropMode>[
@@ -92,16 +91,25 @@ class CanvasToolbar extends StatelessWidget {
     final List<Widget> stateControls = _stateControls();
     final List<Widget> orderControls = _orderControls();
     return dom.div(classes: 'hui-canvas-toolbar', <Widget>[
-      _group(_zoomControls()),
-      _group(_viewControls()),
-      _group(<Widget>[_UiScaleControl(store: store)]),
-      if (orderControls.isNotEmpty) _group(orderControls),
-      if (stateControls.isNotEmpty) _group(stateControls),
+      _group(_zoomControls(), 'is-zoom'),
+      _group(_viewControls(), 'is-view'),
+      _group(<Widget>[_UiScaleControl(store: store)], 'is-scale'),
+      if (orderControls.isNotEmpty) _group(orderControls, 'is-order'),
+      if (stateControls.isNotEmpty) _group(stateControls, 'is-state'),
+      _group(<Widget>[
+        _CanvasCompactControl(
+          store: store,
+          hasAnimatedIcons: hasAnimatedIcons,
+          onZoomReset: onZoomReset,
+          onFit: onFit,
+          onZOrder: onZOrder,
+        ),
+      ], 'is-compact'),
     ]);
   }
 
-  Widget _group(List<Widget> children) =>
-      dom.div(classes: 'hui-canvas-toolgroup', children);
+  Widget _group(List<Widget> children, String role) =>
+      dom.div(classes: 'hui-canvas-toolgroup $role', children);
 
   List<Widget> _zoomControls() => <Widget>[
     _iconAction(
@@ -341,6 +349,270 @@ class CanvasToolbar extends StatelessWidget {
         .replaceFirst(RegExp(r'0+$'), '')
         .replaceFirst(RegExp(r'\.$'), '');
   }
+}
+
+class _CanvasCompactControl extends StatefulWidget {
+  const _CanvasCompactControl({
+    required this.store,
+    required this.hasAnimatedIcons,
+    required this.onZoomReset,
+    required this.onFit,
+    required this.onZOrder,
+  });
+
+  final EditorStore store;
+  final bool hasAnimatedIcons;
+  final void Function() onZoomReset;
+  final void Function() onFit;
+  final void Function(HuiZOrder op) onZOrder;
+
+  @override
+  State<_CanvasCompactControl> createState() => _CanvasCompactControlState();
+}
+
+class _CanvasCompactControlState extends State<_CanvasCompactControl> {
+  static const String _triggerId = 'hui-canvas-compact-trigger';
+  static const String _menuId = 'hui-canvas-compact-menu';
+
+  HuiActionMenuPoint? _menuPoint;
+
+  EditorStore get _store => component.store;
+
+  void _open() {
+    setState(() => _menuPoint = huiActionMenuAnchor(_triggerId));
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu(_menuId);
+    });
+  }
+
+  void _close() {
+    if (_menuPoint == null) return;
+    setState(() => _menuPoint = null);
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu(_triggerId);
+    });
+  }
+
+  void _cycleBackdrop() {
+    final int index = huiBackdropCycle.indexOf(_store.backdrop);
+    _store.backdrop = huiBackdropCycle[(index + 1) % huiBackdropCycle.length];
+  }
+
+  void _changeScale(double delta) {
+    final double next =
+        ((_store.previewUiScale + delta).clamp(0.25, 4.0) * 100).round() / 100;
+    _store.previewUiScale = next;
+  }
+
+  void _nudgeDepth(double delta) {
+    final Map<String, Vec3> offsets = <String, Vec3>{
+      for (final HuiComponent selected in _store.selectedComponents)
+        selected.id: selected.offset.copy(),
+    };
+    if (offsets.isEmpty) return;
+    final Map<String, Vec3> next = shiftOffsets(offsets: offsets, dz: delta);
+    _store.setOffsets(
+      next.length == 1
+          ? 'depth ${next.keys.first}'
+          : 'depth ${next.length} components',
+      next,
+    );
+  }
+
+  HuiActionMenuItem _toggleItem({
+    required String noun,
+    required Widget icon,
+    required bool active,
+    required void Function() onSelect,
+    String activeVerb = 'Hide',
+    String inactiveVerb = 'Show',
+    String? hint,
+    bool separatorBefore = false,
+  }) => HuiActionMenuItem(
+    label: '${active ? activeVerb : inactiveVerb} $noun',
+    icon: icon,
+    hint: hint,
+    separatorBefore: separatorBefore,
+    onSelect: onSelect,
+  );
+
+  List<HuiActionMenuItem> _items() {
+    final HuiComponent? selected = _store.selected;
+    final bool hasSelection = _store.selectionIds.isNotEmpty;
+    final bool showsTrue = selected != null && selected.data is HuiToggleData
+        ? _store.togglePreviewFor(selected.id)
+        : false;
+    return <HuiActionMenuItem>[
+      HuiActionMenuItem(
+        label: 'Reset view',
+        icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
+        hint: 'Reset zoom and pan',
+        onSelect: component.onZoomReset,
+      ),
+      HuiActionMenuItem(
+        label: 'Fit to components',
+        icon: ArcaneIcon.maximize(size: IconSize.sm),
+        onSelect: component.onFit,
+      ),
+      _toggleItem(
+        noun: 'grid',
+        icon: ArcaneIcon.grid3x3(size: IconSize.sm),
+        active: _store.showGrid,
+        separatorBefore: true,
+        onSelect: () => _store.showGrid = !_store.showGrid,
+      ),
+      _toggleItem(
+        noun: 'snapping',
+        icon: ArcaneIcon.magnet(size: IconSize.sm),
+        active: _store.snapToGrid,
+        activeVerb: 'Disable',
+        inactiveVerb: 'Enable',
+        onSelect: () => _store.snapToGrid = !_store.snapToGrid,
+      ),
+      _toggleItem(
+        noun: 'hitboxes',
+        icon: ArcaneIcon.frame(size: IconSize.sm),
+        active: _store.showHitboxes,
+        onSelect: () => _store.showHitboxes = !_store.showHitboxes,
+      ),
+      _toggleItem(
+        noun: 'anchors',
+        icon: ArcaneIcon.locateFixed(size: IconSize.sm),
+        active: _store.showAnchors,
+        onSelect: () => _store.showAnchors = !_store.showAnchors,
+      ),
+      _toggleItem(
+        noun: 'true render',
+        icon: ArcaneIcon.moveVertical(size: IconSize.sm),
+        active: _store.trueRender,
+        activeVerb: 'Disable',
+        inactiveVerb: 'Enable',
+        onSelect: () => _store.trueRender = !_store.trueRender,
+      ),
+      HuiActionMenuItem(
+        label: 'Backdrop: ${huiBackdropLabels[_store.backdrop] ?? 'Backdrop'}',
+        icon: ArcaneIcon.image(size: IconSize.sm),
+        hint: 'Cycle the canvas backdrop',
+        onSelect: _cycleBackdrop,
+      ),
+      HuiActionMenuItem(
+        label: 'Decrease uiScale',
+        icon: ArcaneIcon.minus(size: IconSize.sm),
+        hint: '${_store.previewUiScale.toStringAsFixed(2)} · step 0.05',
+        separatorBefore: true,
+        disabled: _store.previewUiScale <= 0.25,
+        onSelect: () => _changeScale(-0.05),
+      ),
+      HuiActionMenuItem(
+        label: 'Increase uiScale',
+        icon: ArcaneIcon.plus(size: IconSize.sm),
+        hint: '${_store.previewUiScale.toStringAsFixed(2)} · step 0.05',
+        disabled: _store.previewUiScale >= 4,
+        onSelect: () => _changeScale(0.05),
+      ),
+      HuiActionMenuItem(
+        label: 'Reset uiScale to 1.00',
+        icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
+        disabled: _store.previewUiScale == 1,
+        onSelect: () => _store.previewUiScale = 1,
+      ),
+      if (hasSelection) ...<HuiActionMenuItem>[
+        HuiActionMenuItem(
+          label: 'Bring forward',
+          icon: ArcaneIcon.chevronUp(size: IconSize.sm),
+          separatorBefore: true,
+          onSelect: () => component.onZOrder(HuiZOrder.forward),
+        ),
+        HuiActionMenuItem(
+          label: 'Send back',
+          icon: ArcaneIcon.chevronDown(size: IconSize.sm),
+          onSelect: () => component.onZOrder(HuiZOrder.backward),
+        ),
+        HuiActionMenuItem(
+          label: 'Bring to front',
+          icon: ArcaneIcon.bringToFront(size: IconSize.sm),
+          onSelect: () => component.onZOrder(HuiZOrder.toFront),
+        ),
+        HuiActionMenuItem(
+          label: 'Send to back',
+          icon: ArcaneIcon.sendToBack(size: IconSize.sm),
+          onSelect: () => component.onZOrder(HuiZOrder.toBack),
+        ),
+        HuiActionMenuItem(
+          label: 'Move nearer (-z)',
+          icon: ArcaneIcon.moveLeft(size: IconSize.sm),
+          hint: 'Depth step ${huiDepthStep.toStringAsFixed(2)}',
+          onSelect: () => _nudgeDepth(-huiDepthStep),
+        ),
+        HuiActionMenuItem(
+          label: 'Move deeper (+z)',
+          icon: ArcaneIcon.moveRight(size: IconSize.sm),
+          hint: 'Depth step ${huiDepthStep.toStringAsFixed(2)}',
+          onSelect: () => _nudgeDepth(huiDepthStep),
+        ),
+      ],
+      if (component.hasAnimatedIcons)
+        _toggleItem(
+          noun: 'animations',
+          icon: _store.animationsPlaying
+              ? ArcaneIcon.pause(size: IconSize.sm)
+              : ArcaneIcon.play(size: IconSize.sm),
+          active: _store.animationsPlaying,
+          activeVerb: 'Pause',
+          inactiveVerb: 'Play',
+          separatorBefore: true,
+          onSelect: () => _store.animationsPlaying = !_store.animationsPlaying,
+        ),
+      if (selected != null &&
+          selected.data is HuiToggleData) ...<HuiActionMenuItem>[
+        HuiActionMenuItem(
+          label: 'Preview true icon',
+          icon: ArcaneIcon.toggleRight(size: IconSize.sm),
+          separatorBefore: !component.hasAnimatedIcons,
+          disabled: showsTrue,
+          onSelect: () => _store.setTogglePreview(selected.id, true),
+        ),
+        HuiActionMenuItem(
+          label: 'Preview false icon',
+          icon: ArcaneIcon.toggleLeft(size: IconSize.sm),
+          disabled: !showsTrue,
+          onSelect: () => _store.setTogglePreview(selected.id, false),
+        ),
+      ],
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      dom.span(classes: 'hui-canvas-compact-control', <Widget>[
+        ArcaneTooltip(
+          text: 'More canvas controls',
+          child: Button(
+            id: _triggerId,
+            key: ValueKey<bool>(_menuPoint != null),
+            icon: ArcaneIcon.ellipsis(size: IconSize.sm),
+            variant: ButtonVariant.ghost,
+            size: ButtonSize.iconSm,
+            type: ButtonType.button,
+            attributes: <String, String>{
+              'aria-label': 'More canvas controls',
+              'aria-haspopup': 'menu',
+              'aria-expanded': '${_menuPoint != null}',
+              'aria-controls': _menuId,
+              'data-arcane-interactive': 'true',
+            },
+            onPressed: _menuPoint == null ? _open : _close,
+          ),
+        ),
+        if (_menuPoint != null)
+          HuiActionMenu(
+            id: _menuId,
+            label: 'More canvas controls',
+            point: _menuPoint!,
+            items: _items(),
+            onClose: _close,
+          ),
+      ]);
 }
 
 /// Pointer travel that buys one [huiDepthStep] of depth.

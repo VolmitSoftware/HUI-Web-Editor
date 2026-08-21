@@ -10,7 +10,6 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:arcane_jaspr/component/input/mutable_text_types.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show Listenable;
-import 'package:web/web.dart' as web;
 
 import '../../doctype/doctype.dart';
 import '../../state/editor_store.dart';
@@ -52,11 +51,6 @@ class TopBar extends StatefulWidget {
 class _TopBarState extends State<TopBar> {
   bool _armedDelete = false;
   Listenable? _sources;
-
-  /// Kind whose tab was last scrolled into view. The strip is centred and only
-  /// as wide as the bar can spare, so a mode picked from the palette, the rail
-  /// or a document open can land outside the visible run.
-  String? _revealedKind;
 
   EditorStore get _store => component.intents.store;
 
@@ -127,13 +121,11 @@ class _TopBarState extends State<TopBar> {
     builder: (BuildContext context, String signature) => _bar(),
   );
 
-  /// Identity and document actions occupy the command row. Document kinds and
-  /// editor modes occupy the navigation row below it, matching the two-tier
-  /// chrome used by desktop IDEs. The breakpoint ladder still folds whole
-  /// action groups into [_overflowMenu], and CSS swaps the labelled navigation
-  /// strips for compact pickers without measuring the viewport in Dart.
+  /// Identity and document actions occupy the command row. Document kind and
+  /// editor mode occupy the navigation row below it, matching the compact
+  /// selector chrome used by desktop IDEs. The breakpoint ladder folds whole
+  /// action groups into [_overflowMenu] without measuring the viewport in Dart.
   Widget _bar() {
-    _scheduleKindTabReveal();
     return dom.header(
       classes: 'hui-bar',
       attributes: const <String, String>{'role': 'banner'},
@@ -180,7 +172,6 @@ class _TopBarState extends State<TopBar> {
                 label: 'Export $_documentNoun JSON',
                 visibleLabel: 'Export',
                 shortcut: 'mod+S',
-                variant: ButtonVariant.outline,
                 onPressed: _intents.exportMenu,
                 disabled: !_store.canTransferDocument,
               ),
@@ -199,42 +190,6 @@ class _TopBarState extends State<TopBar> {
                 hint: 'Upload the textures your textImage icons point at.',
                 onPressed: _intents.openImages,
               ),
-              _action(
-                icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
-                label: 'Templates',
-                optional: true,
-                onPressed: _intents.openTemplates,
-              ),
-            ]),
-            _cluster('Editor', 'editor', <Widget>[
-              _action(
-                icon: ArcaneIcon.command(size: IconSize.sm),
-                label: 'Command palette',
-                shortcut: 'mod+K',
-                optional: true,
-                onPressed: _intents.openPalette,
-              ),
-              _action(
-                icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
-                label: 'Help',
-                optional: true,
-                onPressed: _intents.openHelp,
-              ),
-              _action(
-                icon: ArcaneIcon.settings(size: IconSize.sm),
-                label: 'Settings',
-                optional: true,
-                onPressed: _intents.openSettings,
-              ),
-              _action(
-                icon: component.darkMode
-                    ? ArcaneIcon.sun(size: IconSize.sm)
-                    : ArcaneIcon.moon(size: IconSize.sm),
-                label: component.darkMode
-                    ? 'Switch to the light theme'
-                    : 'Switch to the dark theme',
-                onPressed: _intents.toggleTheme,
-              ),
             ]),
             for (int tier = 1; tier <= _overflowTiers; tier++)
               _overflowMenu(tier),
@@ -242,28 +197,10 @@ class _TopBarState extends State<TopBar> {
         ]),
         dom.div(classes: 'hui-bar-context', <Widget>[
           dom.div(classes: 'hui-bar-group hui-bar-center', <Widget>[
-            _kindTabs(),
             _kindPicker(),
           ]),
           dom.div(classes: 'hui-bar-group hui-bar-context-tools', <Widget>[
-            if (_store.hasActiveDocument) ...<Widget>[
-              dom.div(
-                classes: 'hui-bar-cluster hui-bar-views',
-                attributes: const <String, String>{
-                  'role': 'group',
-                  'aria-label': 'Editor mode',
-                },
-                <Widget>[
-                  ViewSwitcher(
-                    view: _store.view,
-                    surfaceLabel: _store.docType.surfaceLabel,
-                    unavailableReason: _store.unavailableViewReason,
-                    onChanged: _intents.setView,
-                  ),
-                ],
-              ),
-              _viewPicker(),
-            ],
+            if (_store.hasActiveDocument) ...<Widget>[_viewPicker()],
             _mobilePaneControls(),
           ]),
         ]),
@@ -277,62 +214,7 @@ class _TopBarState extends State<TopBar> {
     children,
   );
 
-  /// The mode tabs: one per document kind, plus the unscoped All.
-  ///
-  /// Selecting one scopes the library rail to that kind and points its create
-  /// action at it — "scoreboard mode shows all my scoreboards". Registry-driven
-  /// like the templates dialog's tabs, so a new kind arrives here with its
-  /// adapter and nothing else. The complete labelled strip is used at wide
-  /// widths, then folds into the labelled kind picker.
-  Widget _kindTabs() => dom.div(
-    classes: 'hui-kind-tabs',
-    attributes: const <String, String>{'aria-label': 'Document kinds'},
-    <Widget>[
-      ArcaneToggleGroup(
-        id: 'hui-kind-tabs',
-        value: _store.mode?.kind.name ?? _allKindsValue,
-        variant: ToggleGroupVariant.outline,
-        size: ToggleGroupSize.sm,
-        onChanged: _onKindTab,
-        items: <ToggleGroupItem>[
-          _kindTab(
-            value: _allKindsValue,
-            label: 'All',
-            title: 'Every document in the workspace',
-            icon: ArcaneIcon.layoutList(size: IconSize.sm),
-          ),
-          for (final DocumentTypeAdapter type in DocumentTypeRegistry.tabs)
-            _kindTab(
-              value: type.kind.name,
-              label: type.pluralLabel,
-              title: '${type.pluralLabel} only',
-              icon: type.tabIcon(),
-            ),
-        ],
-      ),
-    ],
-  );
-
-  ToggleGroupItem _kindTab({
-    required String value,
-    required String label,
-    required String title,
-    required Widget icon,
-  }) => ToggleGroupItem(
-    value: value,
-    child: dom.span(
-      classes: 'hui-kind-tab',
-      attributes: <String, String>{'title': title},
-      <Widget>[
-        icon,
-        dom.span(classes: 'hui-kind-tab-label', <Widget>[Text(label)]),
-      ],
-    ),
-  );
-
-  /// A null value is the toggle group reporting that the active tab was
-  /// clicked again; a mode strip has no "nothing selected" state, so it stays
-  /// where it is.
+  /// A null value has no meaning for the picker, so the active kind stays put.
   void _onKindTab(String? value) {
     if (value == null) return;
     if (value == _allKindsValue) {
@@ -343,9 +225,8 @@ class _TopBarState extends State<TopBar> {
     if (type != null) _intents.setMode(type);
   }
 
-  /// The tab strip folded into one control below wide-workbench widths. It
-  /// carries its kind's name so the current mode stays visible, which is the
-  /// one thing the strip did that a bare icon would lose.
+  /// A permanent compact selector keeps the current kind visible without an
+  /// icon wall or a horizontally scrollable run of tabs.
   Widget _kindPicker() => dom.div(
     classes: 'hui-bar-cluster hui-kind-picker',
     attributes: const <String, String>{
@@ -404,10 +285,8 @@ class _TopBarState extends State<TopBar> {
     onSelect: active ? null : () => _onKindTab(value),
   );
 
-  /// The view switcher folded into one control for the narrowest bars, where
-  /// four segments plus the pane toggles plus the overflow do not fit. The
-  /// trigger is the current view's own icon, so the segmented control and this
-  /// read as the same control at two sizes.
+  /// The view selector mirrors the kind selector and keeps its current state
+  /// visible at every width.
   Widget _viewPicker() => dom.div(
     classes: 'hui-bar-cluster hui-bar-view-picker',
     attributes: const <String, String>{
@@ -443,47 +322,12 @@ class _TopBarState extends State<TopBar> {
       ),
   ];
 
-  /// Keeps the selected tab inside the strip's visible run after a mode change
-  /// that did not come from clicking a tab — the palette, the rail's create
-  /// action and opening a document all move the mode, and the wide-screen strip
-  /// can still overflow when localized labels grow.
-  void _scheduleKindTabReveal() {
-    final String kind = _store.mode?.kind.name ?? _allKindsValue;
-    if (_revealedKind == kind) return;
-    _revealedKind = kind;
-    context.binding.addPostFrameCallback(_revealActiveKindTab);
-  }
-
-  void _revealActiveKindTab() {
-    try {
-      final web.Element? strip = web.document.querySelector('.hui-kind-tabs');
-      final web.Element? active = strip?.querySelector(
-        '.arcane-toggle-group-item.selected',
-      );
-      if (strip == null || active == null) return;
-      final web.DOMRect stripBox = strip.getBoundingClientRect();
-      final web.DOMRect activeBox = active.getBoundingClientRect();
-      const double margin = 8;
-      final double pastRight = activeBox.right - stripBox.right;
-      final double pastLeft = stripBox.left - activeBox.left;
-      if (pastRight > 0) {
-        strip.scrollLeft = strip.scrollLeft + pastRight + margin;
-      } else if (pastLeft > 0) {
-        strip.scrollLeft = strip.scrollLeft - pastLeft - margin;
-      }
-    } catch (_) {
-      // A strip that is folded into the picker, or a runtime without a DOM,
-      // has nothing to reveal.
-    }
-  }
-
   /// One overflow menu per rung of the give-way ladder, all four mounted and
-  /// exactly one shown by 02-shell.css. A menu carries precisely the actions
-  /// its own tier has taken off the bar and nothing else, which is what keeps
-  /// any width from offering two routes to the same command.
+  /// exactly one shown by 02-shell.css. Tier 1 is always present for secondary
+  /// commands; narrower tiers add the clusters removed at their breakpoint.
   ///
-  /// Tier 1 is `≤1800px`, tier 2 `≤1400px`, tier 3 `≤1150px`, tier 4
-  /// `≤1024px` — the same four numbers the stylesheet folds the clusters at.
+  /// Tier 2 is `≤1400px`, tier 3 `≤1150px`, and tier 4 `≤1024px` — the same
+  /// numbers the stylesheet folds the clusters at.
   Widget _overflowMenu(int tier) => dom
       .div(classes: 'hui-bar-cluster hui-bar-overflow is-tier$tier', <Widget>[
         BarMenu(
@@ -497,9 +341,7 @@ class _TopBarState extends State<TopBar> {
 
   /// Cumulative by construction: every tier carries what the tiers above it
   /// carry plus the cluster its own breakpoint folded. Read top to bottom this
-  /// is the give-way order — optional actions first, then Assets and Editor,
-  /// then File, and History last because undo is the action a narrow bar is
-  /// most likely to need.
+  /// is the give-way order — secondary actions, Assets, File, then History.
   List<BarMenuEntry> _overflowEntries(int tier) => <BarMenuEntry>[
     if (tier >= 4) ...<BarMenuEntry>[
       const BarMenuHeading('History'),
@@ -565,14 +407,13 @@ class _TopBarState extends State<TopBar> {
       icon: ArcaneIcon.settings(size: IconSize.sm),
       onSelect: _intents.openSettings,
     ),
-    if (tier >= 2)
-      BarMenuAction(
-        label: component.darkMode ? 'Light theme' : 'Dark theme',
-        icon: component.darkMode
-            ? ArcaneIcon.sun(size: IconSize.sm)
-            : ArcaneIcon.moon(size: IconSize.sm),
-        onSelect: _intents.toggleTheme,
-      ),
+    BarMenuAction(
+      label: component.darkMode ? 'Light theme' : 'Dark theme',
+      icon: component.darkMode
+          ? ArcaneIcon.sun(size: IconSize.sm)
+          : ArcaneIcon.moon(size: IconSize.sm),
+      onSelect: _intents.toggleTheme,
+    ),
   ];
 
   Widget _mobilePaneControls() => dom.div(
@@ -655,6 +496,7 @@ class _TopBarState extends State<TopBar> {
       id: 'hui-doc-menu',
       triggerIcon: ArcaneIcon.chevronDown(size: IconSize.sm),
       triggerLabel: 'Switch document',
+      align: BarMenuAlign.right,
       width: 260,
       entries: _documentItems,
     ),
@@ -740,14 +582,12 @@ class _TopBarState extends State<TopBar> {
     String? hint,
     String? visibleLabel,
     bool disabled = false,
-    bool optional = false,
-    ButtonVariant variant = ButtonVariant.ghost,
   }) {
     final String? aria = _ariaShortcut(shortcut);
     final Widget button = Button(
       icon: icon,
       label: visibleLabel,
-      variant: variant,
+      variant: ButtonVariant.ghost,
       size: visibleLabel == null ? ButtonSize.iconSm : ButtonSize.sm,
       disabled: disabled,
       onPressed: onPressed,
@@ -760,7 +600,6 @@ class _TopBarState extends State<TopBar> {
       classes: classNames(<String?>[
         'hui-bar-action',
         visibleLabel == null ? null : 'has-label',
-        optional ? 'is-optional' : null,
       ]),
       <Widget>[
         ArcaneTooltip.custom(

@@ -10,15 +10,36 @@
   top: 0;
   z-index: 4;
   display: flex;
-  padding: 8px 10px 6px;
+  padding: 0;
   border-bottom: 1px solid var(--hui-border-soft);
-  background: color-mix(in srgb, var(--hui-panel-soft) 94%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--hui-panel);
 }
 
 .hui-editor-rail-tabs > * { width: 100%; }
 .hui-editor-rail-tabs [role="group"] { width: 100%; }
-.hui-editor-rail-tabs button { flex: 1 1 0; min-width: 0; }
+.hui-editor-rail-tabs .arcane-toggle-group {
+  gap: 0 !important;
+  border-radius: 0 !important;
+}
+.hui-editor-rail-tabs button {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 32px !important;
+  min-height: 32px;
+  padding: 0 8px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.hui-editor-rail-tabs button:hover,
+.hui-editor-rail-tabs button:focus-visible {
+  background: var(--hui-panel-soft) !important;
+}
+.hui-editor-rail-tabs button[aria-pressed="true"] {
+  background: var(--hui-panel-soft) !important;
+  box-shadow: inset 0 -2px 0 var(--hui-accent) !important;
+}
 .hui-editor-rail-tabs button span {
   display: inline-flex;
   align-items: center;
@@ -52,21 +73,50 @@
    edge, so the heading reads as a label rather than a row of buttons. */
 .hui-library-heading .hui-rail-count { margin-right: auto; }
 
+.hui-library .arcane-button {
+  border-radius: 0 !important;
+}
+
+.hui-library .arcane-button[data-variant="ghost"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.hui-library .arcane-button[data-variant="ghost"]:hover:not(:disabled),
+.hui-library .arcane-button[data-variant="ghost"]:focus-visible {
+  background: var(--hui-panel-soft) !important;
+}
+
 /* Creation only. Import, export and erase are workspace-level operations and
    live in the header menu — as icon buttons in this row they read as three
    more document kinds, which is how they were being misread. */
 .hui-library-create {
   display: flex;
-  gap: 4px;
+  gap: 0;
   width: 100%;
+  border-top: 1px solid var(--hui-border-soft);
+  border-bottom: 1px solid var(--hui-border-soft);
 }
 .hui-library-create .arcane-button {
   width: auto;
   min-width: 0;
-  min-height: 32px;
+  min-height: 30px;
   padding-inline: 8px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--hui-text) !important;
 }
-.hui-library-create .arcane-button:first-child { flex: 0 0 auto; }
+.hui-library-create .arcane-button:hover:not(:disabled),
+.hui-library-create .arcane-button:focus-visible {
+  background: var(--hui-panel-soft) !important;
+}
+.hui-library-create .arcane-button:first-child {
+  flex: 0 0 auto;
+  border-right: 1px solid var(--hui-border-soft) !important;
+}
 .hui-library-create .arcane-button:last-child {
   flex: 1 1 auto;
   justify-content: flex-start;
@@ -117,8 +167,8 @@
 }
 
 .hui-library-row.is-selected {
-  border-color: color-mix(in srgb, var(--hui-accent) 34%, transparent);
-  background: color-mix(in srgb, var(--hui-accent) 10%, transparent);
+  border-color: transparent;
+  background: color-mix(in srgb, var(--hui-panel-soft) 92%, var(--hui-text) 8%);
 }
 
 .hui-library-row.is-active .hui-library-label { color: var(--hui-text); }
@@ -373,6 +423,8 @@
   }
   .hui-action-menu-item { min-height: 46px; padding: 10px 12px; }
   .hui-library-create .arcane-button { min-height: 42px; }
+  .hui-library-heading .arcane-button { min-width: 40px; min-height: 40px; }
+  .hui-editor-rail-tabs button { min-height: 40px; }
   .hui-library-disclosure { width: 40px; height: 40px; flex-basis: 40px; }
   .hui-library-row-menu { width: 40px; height: 40px; flex-basis: 40px; opacity: 1; }
 }
@@ -433,9 +485,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 16px;
+  padding: 7px 10px;
   border-bottom: 1px solid var(--hui-border-soft);
-  background: color-mix(in srgb, var(--hui-panel-soft) 62%, transparent);
+  background: var(--hui-panel);
 }
 
 .hui-board-heading,
@@ -449,7 +501,7 @@
 .hui-board-heading > svg { color: var(--hui-accent); }
 .hui-board-heading h1 { margin: 0; font-size: .95rem; line-height: 1.2; }
 .hui-board-heading p { margin: 2px 0 0; color: var(--hui-muted); font-size: .7rem; }
-.hui-board-controls { justify-content: flex-end; gap: 8px; }
+.hui-board-controls { justify-content: flex-end; gap: 2px; }
 .hui-board-scope { gap: 6px; color: var(--hui-muted); font-size: .7rem; }
 .hui-board-scope > div { min-width: 180px; }
 
@@ -544,12 +596,50 @@
 .hui-board-badges { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
 .hui-board-badge {
   padding: 2px 5px;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--hui-panel-soft);
   color: var(--hui-muted);
   font-size: .58rem;
   font-weight: 650;
   line-height: 1.3;
+}
+
+.hui-board-controls .arcane-button {
+  height: 30px !important;
+  min-height: 30px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.hui-board-controls .arcane-button:hover:not(:disabled),
+.hui-board-controls .arcane-button:focus-visible {
+  background: var(--hui-panel-soft) !important;
+}
+
+.hui-board-controls .arcane-toggle-group {
+  gap: 0 !important;
+  border-radius: 0 !important;
+}
+
+.hui-board-controls .arcane-toggle-group-item {
+  height: 30px !important;
+  min-height: 30px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.hui-board-controls .arcane-toggle-group-item:hover,
+.hui-board-controls .arcane-toggle-group-item:focus-visible,
+.hui-board-controls .arcane-toggle-group-item[aria-pressed="true"] {
+  background: var(--hui-panel-soft) !important;
+}
+
+.hui-board-controls .arcane-toggle-group-item[aria-pressed="true"] {
+  box-shadow: inset 0 -2px 0 var(--hui-accent) !important;
 }
 .hui-board-badge.is-cycle { color: var(--hui-warning); }
 .hui-board-badge.is-orphan { color: var(--hui-info); }
@@ -658,6 +748,14 @@
 @media (max-width: 980px) {
   .hui-board-toolbar { align-items: flex-start; flex-direction: column; }
   .hui-board-controls { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  .hui-board-controls .arcane-button,
+  .hui-board-controls .arcane-toggle-group-item {
+    min-width: 40px;
+    min-height: 40px;
+  }
 }
 .hui-board-runtime-json {
   width: 100%;

@@ -13,6 +13,9 @@ void main() {
   final String topBar = File(
     'lib/components/shell/top_bar.dart',
   ).readAsStringSync();
+  final String barMenu = File(
+    'lib/components/shell/bar_menu.dart',
+  ).readAsStringSync();
   final String shellCss = File('web/styles/02-shell.css').readAsStringSync();
 
   /// The four rungs, widest first, as `(tier, actions that rung folds)`.
@@ -22,8 +25,9 @@ void main() {
       "label: 'Command palette'",
       "label: 'Settings'",
       "label: 'Help'",
+      'Light theme',
     ],
-    2: <String>["label: 'Images'", 'Light theme'],
+    2: <String>["label: 'Images'"],
     3: <String>[
       "label: 'Import JSON'",
       "label: 'Export \$_documentNoun JSON'",
@@ -101,7 +105,17 @@ void main() {
         reason: 'tier $tier is mounted but never shown',
       );
     }
-    // Tiers 1..3 hand over to the next one; tier 4 is the floor.
+    // Tier 1 is the permanent desktop menu. Tiers 1..3 hand over to the next
+    // one as a complete action cluster leaves the row; tier 4 is the floor.
+    final String topBarRules = _between(
+      shellCss,
+      '/* ---- Top bar',
+      '/* ---- Status bar',
+    );
+    expect(
+      topBarRules,
+      contains('.hui-bar-overflow.is-tier1 { display: flex; }'),
+    );
     for (int tier = 1; tier <= 3; tier++) {
       expect(
         shellCss,
@@ -114,7 +128,7 @@ void main() {
   test('the ladder folds clusters in the documented order', () {
     // Widest first: the breakpoints must descend, or a narrower viewport would
     // show more of the bar than a wider one.
-    const List<int> rungs = <int>[1800, 1600, 1400, 1150, 1024, 900, 700, 430];
+    const List<int> rungs = <int>[1400, 1150, 1100, 1024, 700, 430];
     int previous = 1 << 30;
     for (final int rung in rungs) {
       expect(
@@ -125,19 +139,96 @@ void main() {
       expect(rung, lessThan(previous));
       previous = rung;
     }
-    // The strip and the switcher hand over to their pickers, and never the
-    // other way round.
-    expect(shellCss, contains('.hui-kind-tabs { display: none; }'));
+    // Kind and view are permanent stateful selectors, not a scrollable icon
+    // wall that changes shape at an arbitrary breakpoint.
+    expect(topBar, isNot(contains('_kindTabs()')));
+    expect(topBar, isNot(contains('hui-kind-tabs')));
+    expect(topBar, isNot(contains('hui-bar-views')));
+    expect(shellCss, isNot(contains('.hui-kind-tabs')));
+    expect(shellCss, isNot(contains('.hui-bar-views')));
     expect(shellCss, contains('.hui-kind-picker { display: flex; }'));
-    expect(shellCss, contains('.hui-bar-views { display: none; }'));
     expect(shellCss, contains('.hui-bar-view-picker { display: flex; }'));
-    final String kindHandoff = _between(
+    expect(topBar, contains('_kindPicker(),'));
+    expect(topBar, contains('_viewPicker()'));
+  });
+
+  test('the header owns no horizontal scrolling primitive', () {
+    final String topBarRules = _between(
       shellCss,
-      '@media (max-width: 1600px)',
-      '@media (max-width: 1400px)',
+      '/* ---- Top bar',
+      '/* ---- Status bar',
     );
-    expect(kindHandoff, contains('.hui-kind-tabs { display: none; }'));
-    expect(kindHandoff, contains('.hui-kind-picker { display: flex; }'));
+    expect(
+      topBarRules,
+      isNot(matches(RegExp(r'overflow(?:-x)?\s*:\s*(?:auto|scroll)'))),
+    );
+    expect(topBarRules, isNot(contains('scrollbar-width')));
+    expect(
+      topBarRules,
+      isNot(matches(RegExp(r'^\s*scroll-behavior\s*:', multiLine: true))),
+    );
+    expect(topBar, isNot(contains('scrollLeft')));
+    expect(topBar, isNot(contains('querySelector')));
+  });
+
+  test('header menus cannot focus-scroll or escape a short viewport', () {
+    expect(
+      shellCss,
+      contains('max-height: calc(100dvh - var(--hui-command-height) - 12px);'),
+    );
+    expect(shellCss, contains('.hui-bar-menu-panel {'));
+    expect(shellCss, contains('overflow-y: auto;'));
+    expect(
+      shellCss,
+      contains(
+        '100dvh - var(--hui-command-height) - '
+        'var(--hui-context-height) - 12px',
+      ),
+    );
+    expect(barMenu, contains('web.FocusOptions(preventScroll: true)'));
+    expect(topBar, contains('align: BarMenuAlign.right,'));
+    expect(shellCss, contains('#hui-doc-menu {'));
+    expect(shellCss, contains('position: fixed !important;'));
+    expect(shellCss, contains('right: 8px !important;'));
+    expect(shellCss, contains('left: 8px !important;'));
+    expect(shellCss, contains('.hui-bar-menu-item {'));
+    expect(shellCss, contains('min-height: 44px;'));
+    expect(
+      shellCss,
+      contains('.hui-bar-menu-item:hover:not(:disabled),'),
+    );
+  });
+
+  test('the armed delete action keeps destructive hierarchy', () {
+    expect(
+      shellCss,
+      contains('.hui-armed > .arcane-button[data-variant="destructive"] {'),
+    );
+    expect(shellCss, contains('background: var(--hui-danger) !important;'));
+    expect(
+      shellCss,
+      contains('color: var(--destructive-foreground) !important;'),
+    );
+  });
+
+  test('secondary commands have one permanent overflow route', () {
+    final String commandRow = _between(
+      topBar,
+      'Widget _bar()',
+      'Widget _cluster(',
+    );
+    for (final String action in foldedAtTier[1]!) {
+      expect(
+        commandRow,
+        isNot(contains(action)),
+        reason: '$action must not be duplicated outside the permanent menu',
+      );
+      expect(
+        entriesFor(1),
+        contains(action),
+        reason: '$action must remain reachable from the permanent menu',
+      );
+    }
   });
 
   test(
@@ -165,10 +256,27 @@ void main() {
       '@media (max-width: 700px)',
       '@media (max-width: 430px)',
     );
-    expect(phoneRules, contains('max-width: calc(100% - 84px);'));
-    expect(phoneRules, contains('.hui-kind-picker .hui-bar-menu'));
-    expect(phoneRules, contains('.hui-bar-view-picker .hui-bar-menu'));
+    expect(
+      phoneRules,
+      contains('grid-template-columns: minmax(0, 1fr) minmax(0, 2.15fr);'),
+    );
+    expect(phoneRules, contains('grid-template-columns: minmax(0, 1fr) auto;'));
+    expect(phoneRules, contains('grid-template-columns: auto auto;'));
+    expect(
+      phoneRules,
+      contains(
+        '.hui-kind-picker .hui-bar-menu,\n'
+        '  .hui-bar-view-picker .hui-bar-menu { width: 100%; }',
+      ),
+    );
     expect(phoneRules, contains('max-width: 100%;'));
+    final String topBarRules = _between(
+      shellCss,
+      '/* ---- Top bar',
+      '/* ---- Status bar',
+    );
+    expect(topBarRules, contains('.hui-kind-picker .hui-bar-menu'));
+    expect(topBarRules, contains('.hui-bar-view-picker .hui-bar-menu'));
     expect(shellCss, contains('.hui-picker-label {\n  min-width: 0;'));
   });
 

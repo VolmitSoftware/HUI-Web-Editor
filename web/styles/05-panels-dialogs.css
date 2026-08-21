@@ -65,9 +65,9 @@
   height: 18px;
   flex: 0 0 auto;
   padding: 0 5px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--hui-accent) 14%, transparent);
-  color: var(--hui-text);
+  border-radius: 0;
+  background: var(--hui-panel-soft);
+  color: var(--hui-muted);
   font-size: .68rem;
   font-variant-numeric: tabular-nums;
   font-weight: 650;
@@ -77,19 +77,31 @@
   display: inline-flex;
   flex: 0 0 auto;
   align-items: stretch;
-  gap: 1px;
+  gap: 0;
 }
 
-.hui-rail-add > * + * { margin-left: 1px; }
+.hui-rail-add > * + * {
+  margin-left: 0;
+  border-left: 1px solid var(--hui-border-soft) !important;
+}
 
 /* Arcane sizes its buttons with inline styles, so trimming them to the rail's
    rhythm needs !important. Sizing only — colour and state stay Arcane's. */
 .hui-rail-add .arcane-button {
   height: 28px !important;
   padding: 0 9px !important;
-  border-radius: var(--hui-radius) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--hui-text) !important;
   font-size: .78rem !important;
   gap: 5px !important;
+}
+
+.hui-rail-add .arcane-button:hover:not(:disabled),
+.hui-rail-add .arcane-button:focus-visible {
+  background: var(--hui-panel-soft) !important;
 }
 
 /* The split-button's second half is the dropdown trigger: icon only. */
@@ -124,38 +136,35 @@
   gap: 4px;
   min-height: 36px;
   padding: 2px 4px 2px 6px;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: var(--hui-radius);
   color: var(--hui-muted);
   background: transparent;
   transition:
     background var(--hui-dur-2) var(--hui-ease-out),
-    border-color var(--hui-dur-2) var(--hui-ease-out),
     color var(--hui-dur-2) var(--hui-ease-out);
 }
 
 .hui-rail-row:hover {
-  border-color: var(--hui-border-soft);
   background: var(--hui-panel-soft);
   color: var(--hui-text);
 }
 
 .hui-rail-row.is-selected {
-  border-color: var(--hui-border);
   color: var(--hui-text);
-  background: color-mix(in srgb, var(--hui-panel-soft) 86%, var(--hui-accent) 14%);
+  background: color-mix(in srgb, var(--hui-panel-soft) 92%, var(--hui-text) 8%);
 }
 
 .hui-rail-row.is-dragging { opacity: .45; }
 
 .hui-rail-row.is-drop-target {
-  border-color: var(--hui-accent);
   background: color-mix(in srgb, var(--hui-accent) 10%, var(--hui-panel));
+  box-shadow: inset 0 0 0 1px var(--hui-accent);
 }
 
 .hui-rail-row.is-armed {
-  border-color: color-mix(in srgb, var(--hui-danger) 60%, transparent);
   background: color-mix(in srgb, var(--hui-danger) 10%, var(--hui-panel));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hui-danger) 60%, transparent);
 }
 
 /* One line is enough while the row is asking to be deleted. */
@@ -299,6 +308,20 @@
   border-radius: 0 !important;
 }
 
+.hui-rail-tools .arcane-button[data-variant="ghost"],
+.hui-rail-confirm .arcane-button[data-variant="ghost"],
+.hui-rail-rename .arcane-button[data-variant="ghost"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.hui-rail-tools .arcane-button[data-variant="ghost"]:hover:not(:disabled),
+.hui-rail-confirm .arcane-button[data-variant="ghost"]:hover:not(:disabled),
+.hui-rail-rename .arcane-button[data-variant="ghost"]:hover:not(:disabled) {
+  background: var(--hui-panel-soft) !important;
+}
+
 /* No hover to reveal them with, and a coarse pointer needs a bigger target. */
 @media (hover: none) {
   .hui-rail-tools { opacity: 1; visibility: visible; transform: none; }
@@ -349,6 +372,7 @@
     min-width: 40px;
     min-height: 40px;
   }
+
 }
 
 .hui-rail-empty { padding: var(--hui-space-3) var(--hui-space-1); }
@@ -498,8 +522,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--hui-space-2);
-  min-height: 43px;
-  padding: 4px 10px;
+  min-height: 34px;
+  padding: 3px 8px;
   border-bottom: 1px solid var(--hui-border-soft);
   background: var(--hui-panel-soft);
 }
@@ -513,6 +537,28 @@
 }
 
 .hui-code-toolbar-tools { display: flex; align-items: center; gap: 2px; }
+
+.hui-code-toolbar .arcane-button {
+  height: 28px !important;
+  min-height: 28px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.hui-code-toolbar .arcane-button:hover:not(:disabled),
+.hui-code-toolbar .arcane-button:focus-visible {
+  background: var(--hui-panel-soft) !important;
+}
+
+@media (pointer: coarse) and (max-width: 1024px), (max-width: 700px) {
+  .hui-code-toolbar .arcane-button {
+    min-width: 40px;
+    height: 40px !important;
+    min-height: 40px;
+  }
+}
 
 .hui-code-error {
   display: flex;
@@ -676,6 +722,16 @@
   background: color-mix(in srgb, var(--hui-panel) 94%, var(--hui-bg));
 }
 
+[data-arcane-id^="hui-"] .arcane-button {
+  border-radius: 0 !important;
+}
+
+[data-arcane-id^="hui-"] .arcane-button[data-variant="ghost"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 /* ---- Dialog entrance ----
    The framework already animates the two boxes it writes inline styles on: the
    overlay fades and the panel scales in, both on `var(--transition-slow)`. What
@@ -743,7 +799,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .hui-dialog-note {
@@ -759,7 +815,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .hui-dialog-filename {
@@ -903,7 +959,7 @@
   height: 24px;
   padding: 0 9px;
   border: 1px solid var(--hui-border-soft);
-  border-radius: 999px;
+  border-radius: 0;
   color: var(--hui-muted);
   font-size: .72rem;
   font-variant-numeric: tabular-nums;
@@ -1105,7 +1161,28 @@
   display: flex !important;
   flex-wrap: wrap;
   width: 100%;
-  gap: 4px;
+  gap: 0 !important;
+  border-bottom: 1px solid var(--hui-border-soft);
+  border-radius: 0 !important;
+}
+
+.hui-template-tabs .arcane-toggle-group-item {
+  height: 30px !important;
+  min-height: 30px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.hui-template-tabs .arcane-toggle-group-item:hover,
+.hui-template-tabs .arcane-toggle-group-item:focus-visible,
+.hui-template-tabs .arcane-toggle-group-item[aria-pressed="true"] {
+  background: var(--hui-panel-soft) !important;
+}
+
+.hui-template-tabs .arcane-toggle-group-item[aria-pressed="true"] {
+  box-shadow: inset 0 -2px 0 var(--hui-accent) !important;
 }
 
 .hui-option-card {
@@ -1360,6 +1437,7 @@
   .hui-validation-cell { border-right: 0; border-bottom: 1px solid var(--hui-border-soft); }
   .hui-validation-cell:last-child { border-bottom: 0; }
   .hui-validation-row { flex-direction: column; align-items: stretch; }
+  .hui-template-tabs .arcane-toggle-group-item { min-height: 40px; }
 }
 
 /* No prefers-reduced-motion block here any more: every transition and animation

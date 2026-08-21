@@ -14,7 +14,7 @@
   padding: 0 0.35em;
   margin: 0 0.1em;
   border: 1px dashed color-mix(in srgb, var(--color-primary) 55%, transparent);
-  border-radius: 6px;
+  border-radius: 0;
   background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   color: var(--color-primary);
   font-size: 0.82em;
@@ -58,13 +58,63 @@
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
+  gap: 0;
+  padding: 2px;
   border: 1px solid var(--color-border);
   border-radius: 0;
-  background: color-mix(in srgb, var(--color-card) 88%, transparent);
-  box-shadow: var(--hui-shadow-sm);
-  backdrop-filter: blur(12px);
+  background: var(--color-card);
+  box-shadow: none;
+}
+
+:where(
+    .hui-gloss-preview-controls,
+    .hui-hologram-controls,
+    .hui-gloss-game-controls,
+    .hui-scoreboard-view-controls,
+    .hui-tablist-view-controls,
+    .hui-motd-controls,
+    .hui-bubble-controls
+  ) .arcane-button {
+  height: 28px !important;
+  min-height: 28px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:where(
+    .hui-gloss-preview-controls,
+    .hui-hologram-controls,
+    .hui-gloss-game-controls,
+    .hui-scoreboard-view-controls,
+    .hui-tablist-view-controls,
+    .hui-motd-controls,
+    .hui-bubble-controls
+  ) .arcane-button:hover:not(:disabled),
+:where(
+    .hui-gloss-preview-controls,
+    .hui-hologram-controls,
+    .hui-gloss-game-controls,
+    .hui-scoreboard-view-controls,
+    .hui-tablist-view-controls,
+    .hui-motd-controls,
+    .hui-bubble-controls
+  ) .arcane-button:focus-visible {
+  background: var(--hui-panel-soft) !important;
+}
+
+:where(
+    .hui-gloss-preview-controls,
+    .hui-hologram-controls,
+    .hui-gloss-game-controls,
+    .hui-scoreboard-view-controls,
+    .hui-tablist-view-controls,
+    .hui-motd-controls,
+    .hui-bubble-controls
+  ) .arcane-button[aria-pressed="true"] {
+  background: var(--hui-panel-soft) !important;
+  box-shadow: inset 0 -2px 0 var(--hui-accent) !important;
 }
 
 .hui-gloss-preview-percent,
@@ -500,7 +550,7 @@
 .hui-motd-entry-chip {
   min-width: 26px;
   padding: 3px 6px;
-  border: 1px solid var(--color-border);
+  border: 0;
   border-radius: 0;
   background: color-mix(in srgb, #000 18%, var(--color-card));
   color: var(--color-foreground);
@@ -510,8 +560,8 @@
 }
 
 .hui-motd-entry-chip.is-active {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 1px var(--color-primary);
+  background: var(--hui-panel-soft);
+  box-shadow: inset 0 -2px 0 var(--color-primary);
 }
 
 .hui-motd-readout {
@@ -655,8 +705,8 @@
   font-family: var(--font-mono);
   font-size: 10px;
   padding: 0 4px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  border-radius: 0;
+  background: transparent;
   color: var(--color-primary);
 }
 
@@ -1060,6 +1110,22 @@
   .hui-tablist-header,
   .hui-tablist-footer { font-size: 13px; }
   .hui-hologram-readout { right: 12px; }
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  :where(
+      .hui-gloss-preview-controls,
+      .hui-hologram-controls,
+      .hui-gloss-game-controls,
+      .hui-scoreboard-view-controls,
+      .hui-tablist-view-controls,
+      .hui-motd-controls,
+      .hui-bubble-controls
+    ) .arcane-button {
+    min-width: 40px;
+    height: 40px !important;
+    min-height: 40px;
+  }
 }
 
 @media (max-width: 420px) {

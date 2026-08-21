@@ -172,10 +172,10 @@
 .hui-type-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 0 9px;
-  border: 1px solid var(--hui-border);
-  border-radius: 999px;
+  min-height: 20px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--hui-muted);
   font-size: 0.68rem;
@@ -186,15 +186,13 @@
 }
 
 .hui-type-badge.is-button {
-  border-color: color-mix(in srgb, var(--hui-accent) 55%, var(--hui-border));
-  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
-  color: var(--hui-text);
+  background: transparent;
+  color: var(--hui-accent);
 }
 
 .hui-type-badge.is-toggle {
-  border-color: color-mix(in srgb, var(--hui-info) 55%, var(--hui-border));
-  background: color-mix(in srgb, var(--hui-info) 12%, transparent);
-  color: var(--hui-text);
+  background: transparent;
+  color: var(--hui-info);
 }
 
 /* ---------- sections ----------
@@ -266,7 +264,7 @@
   align-items: center;
   min-height: 18px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--hui-border-soft);
   color: var(--hui-muted);
   font-size: 0.66rem;
@@ -300,10 +298,11 @@
 .hui-default-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 0 8px;
-  border: 1px solid var(--hui-border-soft);
-  border-radius: 999px;
+  min-height: 18px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 0;
+  background: var(--hui-panel-soft);
   color: var(--hui-muted);
   font-size: 0.7rem;
   font-weight: 600;
@@ -314,7 +313,7 @@
 /* The runtime default, stated where the value is edited. Quieter than a unit
    chip: it is reference, not state, and must never out-shout the control. */
 .hui-default-chip {
-  border-style: dashed;
+  background: transparent;
   font-weight: 550;
   letter-spacing: -0.01em;
 }
@@ -445,12 +444,32 @@
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
   justify-content: stretch;
+  gap: 0 !important;
   width: 100%;
   min-width: 0;
+  border-bottom: 1px solid var(--hui-border-soft);
+  border-radius: 0 !important;
 }
 
 .hui-segmented .arcane-toggle-group-item {
   min-width: 0;
+  height: 30px !important;
+  min-height: 30px;
+  padding: 0 7px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.hui-segmented .arcane-toggle-group-item:hover,
+.hui-segmented .arcane-toggle-group-item:focus-visible {
+  background: var(--hui-panel-soft) !important;
+}
+
+.hui-segmented .arcane-toggle-group-item[aria-pressed="true"] {
+  background: var(--hui-panel-soft) !important;
+  box-shadow: inset 0 -2px 0 var(--hui-accent) !important;
 }
 
 .hui-segment-inner {
@@ -607,6 +626,29 @@
   color: var(--hui-text);
 }
 
+.hui-inspector .arcane-button {
+  border-radius: 0 !important;
+}
+
+.hui-inspector .arcane-button[data-variant="ghost"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.hui-inspector .arcane-button[data-variant="ghost"]:hover:not(:disabled),
+.hui-inspector .arcane-button[data-variant="ghost"]:focus-visible {
+  background: var(--hui-panel-soft) !important;
+}
+
+.hui-inspector-header-actions .arcane-button,
+.hui-row-tools .arcane-button,
+.hui-field-trailing .arcane-button {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+}
+
 /* ---------- minecraft text editor ---------- */
 
 .hui-text-editor {
@@ -638,8 +680,8 @@
   gap: 6px;
   min-height: 26px;
   padding: 0 8px;
-  border: 1px solid var(--hui-border);
-  border-radius: var(--hui-radius);
+  border: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--hui-muted);
   font: inherit;
@@ -654,8 +696,8 @@
 .hui-text-color:hover,
 .hui-text-tag:focus-visible {
   color: var(--hui-text);
-  border-color: color-mix(in srgb, var(--hui-accent) 55%, var(--hui-border));
-  background: color-mix(in srgb, var(--hui-accent) 10%, transparent);
+  background: var(--hui-panel-soft);
+  box-shadow: inset 0 -2px 0 var(--hui-accent);
   outline: none;
 }
 
@@ -1529,7 +1571,7 @@
   max-width: 100%;
   padding: 2px 6px;
   border: 1px solid var(--hui-border-soft);
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--background);
   color: var(--hui-text);
   font: inherit;
@@ -1710,6 +1752,12 @@
   .hui-inspector .hui-reorder-handle,
   .hui-inspector .hui-row-tools {
     opacity: 1;
+  }
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  .hui-segmented .arcane-toggle-group-item {
+    min-height: 40px;
   }
 }
 

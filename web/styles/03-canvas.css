@@ -28,24 +28,24 @@
 /* ---- toolbar strip (fused to the stage, anim-al markdown-toolbar shape) ---- */
 
 .hui-canvas-toolbar {
-  --hui-tool-size: 30px;
-  --hui-tool-pad: 7px;
+  --hui-tool-size: 28px;
+  --hui-tool-pad: 6px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   /* Load-bearing: wrapping is what turned this strip into four rows. */
   flex-wrap: nowrap;
   gap: 0;
-  min-height: 40px;
+  min-height: 34px;
   /* Grid items default to min-width:auto, so a nowrap strip would otherwise
      widen its own cell instead of being clipped by it — measured at 1179px
      inside a 1128px cell once the order cluster appeared. */
   min-width: 0;
-  padding: 4px 8px;
-  border: 1px solid var(--hui-border);
-  border-bottom: 0;
-  border-radius: var(--hui-radius) var(--hui-radius) 0 0;
-  background: var(--hui-panel-soft);
+  padding: 3px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--hui-border-soft);
+  border-radius: 0;
+  background: var(--hui-panel);
   scrollbar-width: none;
 }
 
@@ -60,6 +60,7 @@
 }
 
 .hui-canvas-toolgroup > * { flex: 0 0 auto; }
+.hui-canvas-toolgroup.is-compact { display: none; }
 
 /* Hairline between groups instead of a gap: the divider is the rhythm. */
 .hui-canvas-toolgroup + .hui-canvas-toolgroup {
@@ -69,11 +70,14 @@
 }
 
 /* Arcane sizes its buttons with inline styles, so the strip has to shout to
-   land on a 30px control. This is the documented override path. */
+   land on a 28px control. This is the documented override path. */
 .hui-canvas-toolbar .arcane-button {
   height: var(--hui-tool-size) !important;
   min-height: var(--hui-tool-size);
-  border-radius: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
   white-space: nowrap;
   /* --hui-dur-1: a toolbar toggle is a state flip and has to feel instant. The
      token, not a literal, is what puts it under 06-motion.css's one switch. */
@@ -81,6 +85,11 @@
     color var(--hui-dur-1) var(--hui-ease-out),
     background-color var(--hui-dur-1) var(--hui-ease-out),
     box-shadow var(--hui-dur-1) var(--hui-ease-out);
+}
+
+.hui-canvas-toolbar .arcane-button:hover:not(:disabled),
+.hui-canvas-toolbar .arcane-button:focus-visible {
+  background: var(--hui-panel-soft) !important;
 }
 
 .hui-canvas-toolbar .arcane-button[data-size="sm"] {
@@ -95,9 +104,9 @@
 }
 
 .hui-canvas-toolbar [aria-pressed="true"] {
-  color: var(--hui-accent);
-  background: color-mix(in srgb, var(--hui-accent) 12%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hui-accent) 34%, transparent);
+  color: var(--hui-text);
+  background: var(--hui-panel-soft) !important;
+  box-shadow: inset 0 -2px 0 var(--hui-accent) !important;
 }
 
 .hui-canvas-zoom {
@@ -276,8 +285,8 @@
   position: relative;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--hui-border);
-  border-radius: 0 0 var(--hui-radius) var(--hui-radius);
+  border: 0;
+  border-radius: 0;
   background: var(--hui-panel);
   /* Load-bearing: without these the browser pans/selects instead of the app. */
   touch-action: none;
@@ -319,8 +328,7 @@
   padding: 6px 10px;
   border: 1px solid var(--hui-border);
   border-radius: var(--hui-radius);
-  background: color-mix(in srgb, var(--hui-panel) 88%, transparent);
-  backdrop-filter: blur(10px) saturate(1.15);
+  background: var(--hui-panel);
   color: var(--hui-text);
   font-family: var(--font-mono);
   font-size: .74rem;
@@ -415,14 +423,32 @@
   .hui-canvas-hint-item:nth-child(2) { display: none; }
 }
 
-/* Last resort. A scroll container clips the CSS tooltips that hang above the
-   row, so the strip only becomes scrollable when the cell is genuinely too
-   narrow for the icon-only strip to fit (split view, phone widths).
-   760px, not the old 620px: the icon-only strip with the order cluster present
-   measures 755px. Below this the controls would be clipped with no way to
-   reach them, which is worse than a clipped tooltip. */
+/* The row never scrolls. Once the icon strip no longer fits, the stable zoom
+   cluster stays in place and the remaining groups hand off to one More menu.
+   Both routes are mounted, but `display: none` leaves exactly one visible and
+   keyboard-reachable copy of each command at every width. */
 @container hui-canvas (max-width: 760px) {
-  .hui-canvas-toolbar { overflow-x: auto; }
+  .hui-canvas-toolbar { overflow: visible; }
+  .hui-canvas-toolgroup.is-zoom > :nth-child(4),
+  .hui-canvas-toolgroup.is-zoom > :nth-child(5) { display: none !important; }
+  .hui-canvas-toolgroup.is-view,
+  .hui-canvas-toolgroup.is-scale,
+  .hui-canvas-toolgroup.is-order,
+  .hui-canvas-toolgroup.is-state { display: none; }
+  .hui-canvas-toolgroup.is-compact { display: flex; }
+}
+
+@media (pointer: coarse) {
+  @container hui-canvas (max-width: 1000px) {
+    .hui-canvas-toolbar { overflow: visible; }
+    .hui-canvas-toolgroup.is-zoom > :nth-child(4),
+    .hui-canvas-toolgroup.is-zoom > :nth-child(5) { display: none !important; }
+    .hui-canvas-toolgroup.is-view,
+    .hui-canvas-toolgroup.is-scale,
+    .hui-canvas-toolgroup.is-order,
+    .hui-canvas-toolgroup.is-state { display: none; }
+    .hui-canvas-toolgroup.is-compact { display: flex; }
+  }
 }
 
 @media (pointer: coarse), (max-width: 700px) {

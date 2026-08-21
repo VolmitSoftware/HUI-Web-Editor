@@ -110,7 +110,9 @@ class _BarMenuState extends State<BarMenu> {
       final web.Element? target = web.document.getElementById(
         open ? component.id : _triggerId,
       );
-      (target as web.HTMLElement?)?.focus();
+      (target as web.HTMLElement?)?.focus(
+        web.FocusOptions(preventScroll: true),
+      );
     });
   }
 

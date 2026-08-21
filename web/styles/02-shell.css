@@ -34,13 +34,9 @@ html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) var(--hui-status-height);
   /* Load-bearing. The implicit column is `auto`, whose minimum is the widest
-     row's MIN-CONTENT — and the top bar's min-content is the sum of its three
-     groups, because the action icons do not shrink. Naming a selected kind tab
-     is enough to push that past the viewport, and the whole grid then widened
-     with it and carried the inspector off the right edge (measured: a 1670px
-     bar in a 1600px window, inspector at x=1350 + 320 wide). Capping the
-     column at the container is what lets the bar overflow INSIDE its own row,
-     which is what `.hui-bar-center`'s shrink-and-scroll was written for. */
+     row's MIN-CONTENT. Capping it at the container lets the document label and
+     the permanent selectors contract while whole action clusters hand off to
+     the overflow menu, so header content never widens the shell. */
   grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   height: 100dvh;
@@ -213,6 +209,8 @@ body.hui-resizing * { cursor: col-resize !important; }
 
 /* ---- Top bar ------------------------------------------------------------ */
 .hui-bar {
+  --hui-command-height: 36px;
+  --hui-context-height: 30px;
   position: relative;
   z-index: 20;
   display: grid;
@@ -225,14 +223,14 @@ body.hui-resizing * { cursor: col-resize !important; }
 
 .hui-bar-primary,
 .hui-bar-context {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   min-width: 0;
   padding: 0 8px;
 }
 
 .hui-bar-primary {
-  justify-content: space-between;
   gap: 12px;
 }
 
@@ -243,14 +241,13 @@ body.hui-resizing * { cursor: col-resize !important; }
 }
 
 .hui-bar-group { display: flex; align-items: center; gap: 0; min-width: 0; }
-.hui-bar-left { flex: 1 1 auto; max-width: 100%; overflow: hidden; }
-.hui-bar-center { flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; }
+.hui-bar-left { max-width: 100%; }
+.hui-bar-center { max-width: 100%; }
 .hui-bar-right {
-  flex: 0 0 auto;
   justify-content: flex-end;
   max-width: 100%;
 }
-.hui-bar-context-tools { flex: 0 0 auto; justify-content: flex-end; }
+.hui-bar-context-tools { justify-content: flex-end; }
 
 /* One hairline per boundary, drawn by the cluster that follows it. Grouping the
    bar this way is what stops eleven identical icon buttons reading as one run. */
@@ -266,27 +263,50 @@ body.hui-resizing * { cursor: col-resize !important; }
   border-left: 1px solid var(--hui-border-soft);
 }
 
-/* Every collapsible surface is mounted at every width and chosen here: the four
-   overflow menus, the kind picker that replaces the tab strip and the view
-   picker that replaces the segmented switcher all start hidden, and the
-   responsive ladder turns on exactly one of each. Nothing in Dart measures the
-   viewport. */
+/* Every overflow tier is mounted at every width and chosen here. The kind and
+   view selectors are permanent; nothing in Dart measures the viewport. */
 .hui-bar-overflow,
-.hui-kind-picker,
-.hui-bar-view-picker,
 .hui-mobile-panes,
 .hui-pane-scrim { display: none; }
 
+.hui-kind-picker { display: flex; }
+.hui-bar-view-picker { display: flex; }
+.hui-bar-overflow.is-tier1 { display: flex; }
+
 .hui-bar .arcane-button {
-  min-height: 30px;
+  min-height: 28px;
+  padding-inline: 6px !important;
+  border: 1px solid transparent !important;
   border-radius: 0 !important;
-  box-shadow: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--hui-muted) !important;
   font-size: .75rem;
 }
 
 .hui-bar-context .arcane-button {
-  height: 32px !important;
-  min-height: 32px;
+  height: 28px !important;
+  min-height: 28px;
+}
+
+.hui-bar .arcane-button:hover,
+.hui-bar .arcane-button:focus-visible {
+  background: var(--hui-panel-soft) !important;
+  color: var(--hui-text) !important;
+}
+
+.hui-bar .arcane-button:active,
+.hui-bar .arcane-button[aria-expanded="true"],
+.hui-bar .arcane-button[aria-pressed="true"] {
+  background: var(--hui-surface-raised) !important;
+  box-shadow: inset 0 -2px 0 var(--hui-text) !important;
+  color: var(--hui-text) !important;
+}
+
+.hui-bar .arcane-button:disabled {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--hui-muted) !important;
 }
 
 .hui-bar-action {
@@ -304,8 +324,10 @@ body.hui-resizing * { cursor: col-resize !important; }
   white-space: nowrap;
 }
 
-.hui-doc { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.hui-bar-doc { flex: 1 1 auto; }
+.hui-doc { display: flex; flex: 1 1 auto; align-items: center; gap: 2px; min-width: 0; }
 .hui-doc-id {
+  flex: 1 1 auto;
   min-width: 0;
   max-width: 260px;
   overflow: hidden;
@@ -349,92 +371,40 @@ body.hui-resizing * { cursor: col-resize !important; }
   text-overflow: ellipsis;
 }
 .hui-armed > .arcane-button { flex: 0 0 auto; }
-
-.hui-view-switcher { display: flex; align-items: center; min-width: 0; }
-.hui-view-switcher-item { display: inline-flex; align-items: center; gap: 6px; }
-
-.hui-view-label {
-  white-space: nowrap;
-  font-size: 0.74rem;
-  font-weight: 600;
+.hui-armed > .arcane-button[data-variant="destructive"] {
+  border-color: var(--hui-danger) !important;
+  background: var(--hui-danger) !important;
+  color: var(--destructive-foreground) !important;
+}
+.hui-armed > .arcane-button[data-variant="destructive"]:hover,
+.hui-armed > .arcane-button[data-variant="destructive"]:focus-visible {
+  background: color-mix(in srgb, var(--hui-danger) 84%, white) !important;
 }
 
-.hui-kind-tabs [role="group"],
-.hui-view-switcher [role="group"] {
-  display: flex;
-  align-items: stretch;
-  flex-wrap: nowrap;
-  gap: 0;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
+/* Permanent compact selectors keep kind and view state visible without a tab
+   wall. Their labels are the only part allowed to contract. */
+.hui-kind-picker .arcane-button,
+.hui-bar-view-picker .arcane-button {
+  min-width: 0;
+  max-width: 38vw;
 }
-
-.hui-kind-tabs .arcane-toggle-group-item,
-.hui-view-switcher .arcane-toggle-group-item {
-  position: relative;
-  height: 32px !important;
-  min-height: 32px;
-  border: 0 !important;
-  border-right: 1px solid var(--hui-border-soft) !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+.hui-kind-picker .hui-bar-menu,
+.hui-bar-view-picker .hui-bar-menu { min-width: 0; max-width: 100%; }
+.hui-bar-menu-panel {
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - var(--hui-command-height) - 12px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
-
-.hui-kind-tabs .arcane-toggle-group-item:first-child,
-.hui-view-switcher .arcane-toggle-group-item:first-child {
-  border-left: 1px solid var(--hui-border-soft) !important;
+.hui-bar-context .hui-bar-menu-panel {
+  max-height: calc(
+    100dvh - var(--hui-command-height) - var(--hui-context-height) - 12px
+  );
 }
-
-.hui-kind-tabs .arcane-toggle-group-item:hover,
-.hui-view-switcher .arcane-toggle-group-item:hover {
+.hui-bar-menu-item:hover:not(:disabled),
+.hui-bar-menu-item:focus-visible {
   background: var(--hui-panel-soft) !important;
 }
-
-.hui-kind-tabs .arcane-toggle-group-item.selected,
-.hui-view-switcher .arcane-toggle-group-item.selected {
-  background: var(--hui-surface-raised) !important;
-  color: var(--hui-text) !important;
-  box-shadow: inset 0 -2px 0 var(--hui-text) !important;
-}
-
-/* A mode the open kind cannot serve keeps its place and reads as unavailable.
-   It stays clickable: the click is what says why, and a `disabled` button in
-   this runtime swallows the pointer before any tooltip of its own can fire. */
-.hui-view-switcher-item.is-unavailable {
-  opacity: .45;
-  cursor: not-allowed;
-}
-
-/* ---- Mode tabs ---------------------------------------------------------- */
-.hui-kind-tabs {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-}
-.hui-kind-tabs::-webkit-scrollbar { display: none; }
-.hui-kind-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.hui-kind-tab-label {
-  font-size: 0.74rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* The kind strip folds below 1600px and the view switcher below 900px. Both
-   pickers keep their current state visible in the trigger. */
-.hui-kind-picker .arcane-button,
-.hui-bar-view-picker .arcane-button { max-width: 38vw; }
 .hui-picker-label {
   min-width: 0;
   overflow: hidden;
@@ -550,14 +520,8 @@ body.hui-resizing * { cursor: col-resize !important; }
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--hui-border) 78%, transparent);
   border-radius: var(--hui-radius);
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--hui-surface-raised) 94%, transparent),
-    color-mix(in srgb, var(--hui-panel-soft) 92%, transparent)
-  );
+  background: var(--hui-surface-raised);
   box-shadow: var(--hui-shadow-md);
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
   /* Drops from above rather than rising: the palette is anchored to the top of
      the viewport, so it should arrive from the edge it is docked to. */
   animation: hui-slide-in-down var(--hui-dur-3) var(--hui-ease-out) backwards;
@@ -688,14 +652,8 @@ body.hui-resizing * { cursor: col-resize !important; }
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--hui-border) 78%, transparent);
   border-radius: var(--hui-radius);
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--hui-surface-raised) 94%, transparent),
-    color-mix(in srgb, var(--hui-panel-soft) 92%, transparent)
-  );
+  background: var(--hui-surface-raised);
   box-shadow: var(--hui-shadow-md);
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
   animation: hui-pop-in var(--hui-dur-3) var(--hui-ease-spring) backwards;
 }
 
@@ -954,20 +912,10 @@ body.hui-resizing * { cursor: col-resize !important; }
 }
 
 /* ---- Responsive --------------------------------------------------------- */
-/* Pane widths remain user-owned. The command row sheds whole action groups
-   into a matching overflow tier while the navigation row independently folds
-   views and document kinds into labelled pickers. */
-@media (max-width: 1800px) {
-  .hui-bar-action.is-optional { display: none; }
-  .hui-bar-overflow.is-tier1 { display: flex; }
-}
-@media (max-width: 1600px) {
-  .hui-kind-tabs { display: none; }
-  .hui-kind-picker { display: flex; }
-}
+/* Pane widths remain user-owned. Secondary commands live in tier 1 at every
+   width; each narrower tier adds the complete cluster removed from the row. */
 @media (max-width: 1400px) {
-  .hui-bar-assets,
-  .hui-bar-editor { display: none; }
+  .hui-bar-assets { display: none; }
   .hui-bar-overflow.is-tier1 { display: none; }
   .hui-bar-overflow.is-tier2 { display: flex; }
   .hui-doc-id { max-width: 200px; }
@@ -1067,15 +1015,6 @@ body.hui-resizing * { cursor: col-resize !important; }
   }
 }
 
-/* Four labelled-by-tooltip segments cost about 180px, and at tablet widths that
-   is most of what the strip has left. The switcher folds into a picker whose
-   trigger is the current view's own icon, so the two read as one control at two
-   sizes and the route to the code view survives at one press. */
-@media (max-width: 900px) {
-  .hui-bar-views { display: none; }
-  .hui-bar-view-picker { display: flex; }
-}
-
 /* ---- Phone -------------------------------------------------------------- */
 @media (max-width: 700px) {
   .hui-bar {
@@ -1083,14 +1022,18 @@ body.hui-resizing * { cursor: col-resize !important; }
     --hui-context-height: 44px;
   }
   .hui-bar-primary { gap: 4px; padding-inline: 8px; }
-  .hui-bar-context { gap: 0; justify-content: space-between; padding-inline: 4px; }
-  .hui-bar-left { flex: 1 1 auto; }
-  .hui-bar-center { flex: 1 1 auto; overflow: hidden; }
-  .hui-bar-right,
-  .hui-bar-context-tools { flex: 0 0 auto; }
+  .hui-bar-context {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.15fr);
+    gap: 0;
+    padding-inline: 4px;
+  }
+  .hui-bar-left { min-width: 0; }
+  .hui-bar-center { width: 100%; min-width: 0; }
   .hui-bar-context-tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
     min-width: 0;
-    max-width: calc(100% - 84px);
   }
 
   .hui-brand { display: flex; }
@@ -1101,21 +1044,21 @@ body.hui-resizing * { cursor: col-resize !important; }
   .hui-kind-picker,
   .hui-bar-view-picker {
     min-width: 0;
-    overflow: hidden;
   }
   .hui-kind-picker {
-    flex: 1 1 auto;
+    width: 100%;
     max-width: 100%;
   }
-  .hui-bar-view-picker { flex: 1 1 auto; }
-  .hui-mobile-panes { flex: 0 0 auto; }
+  .hui-bar-view-picker { width: 100%; max-width: 100%; }
+  .hui-mobile-panes {
+    display: grid;
+    grid-template-columns: auto auto;
+  }
   .hui-kind-picker .hui-bar-menu,
-  .hui-bar-view-picker .hui-bar-menu {
-    min-width: 0;
-    max-width: 100%;
-  }
+  .hui-bar-view-picker .hui-bar-menu { width: 100%; }
   .hui-kind-picker .arcane-button,
   .hui-bar-view-picker .arcane-button {
+    width: 100%;
     min-width: 0;
     max-width: 100%;
   }
@@ -1150,6 +1093,15 @@ body.hui-resizing * { cursor: col-resize !important; }
 }
 
 @media (max-width: 430px) {
+  #hui-doc-menu {
+    position: fixed !important;
+    top: calc(var(--hui-command-height) + 4px) !important;
+    right: 8px !important;
+    left: 8px !important;
+    width: auto;
+    min-width: 0 !important;
+  }
+
   .hui-brand { display: none; }
   .hui-kind-picker .arcane-button > i:first-child,
   .hui-bar-view-picker .arcane-button > i:first-child,
@@ -1173,6 +1125,13 @@ body.hui-resizing * { cursor: col-resize !important; }
   }
 }
 
+@media (pointer: coarse) and (max-width: 1024px) {
+  .hui-bar {
+    --hui-command-height: 44px;
+    --hui-context-height: 44px;
+  }
+}
+
 @media (pointer: coarse) and (max-width: 1024px), (max-width: 700px) {
   .hui-bar .arcane-button,
   .hui-canvas-toolbar .arcane-button,
@@ -1189,6 +1148,11 @@ body.hui-resizing * { cursor: col-resize !important; }
   }
 
   .hui-library-row { min-height: 44px; }
+
+  .hui-bar-menu-item {
+    min-height: 44px;
+    padding: 10px 12px !important;
+  }
 }
 
 /* Everything in this file that moves resolves its duration from --hui-dur-*,
@@ -1198,11 +1162,6 @@ body.hui-resizing * { cursor: col-resize !important; }
    reached is the @keyframes they name — redefining them as no-ops flattens the
    toast layer as completely as zeroing a duration would. */
 @media (prefers-reduced-motion: reduce) {
-  /* The one motion in this file that is not a duration: the strip's reveal
-     scroll. It still has to happen — the selected tab must end up visible —
-     so it jumps instead of gliding. */
-  .hui-kind-tabs { scroll-behavior: auto; }
-
   @keyframes arcane-toast-enter { from { opacity: 1; } }
   @keyframes arcane-toast-exit { to { opacity: 1; } }
   /* The countdown is decoration on top of a timer the user cannot influence;

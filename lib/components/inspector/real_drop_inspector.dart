@@ -74,7 +74,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       _integer(
         label: 'Settled poll interval',
         help:
-            'Ticks between checks after landing; this does not slow touchdown. 2..200.',
+            'Ticks between checks after the item is stable; landing slides retain the moving cadence. 2..200.',
         path: r'$.limits.settledPollIntervalTicks',
         value: doc.limits.settledPollIntervalTicks,
         onChanged: (int value) => _mutate(
@@ -253,7 +253,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     children: <Widget>[
       HuiField(
         label: 'Landing mode',
-        help: 'Natural tilt, completely flat, or standing upright.',
+        help:
+            'Natural lets block models settle on any of six faces; Flat lays every model down; Upright removes pitch and roll.',
         control: ArcaneSelect(
           value: doc.landing.mode,
           size: ComponentSize.sm,
@@ -270,8 +271,9 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Natural tilt',
-        help: 'Maximum landing tilt in degrees. 0..45.',
+        label: 'Natural face rotation',
+        help:
+            'Maximum in-face variation for stationary or rebuilt natural blocks; momentum landings preserve their physical heading. 0..45.',
         path: r'$.landing.tiltDegrees',
         value: doc.landing.tiltDegrees,
         step: 1,

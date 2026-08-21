@@ -45,10 +45,10 @@
   align-items: center;
   height: 22px;
   padding: 0 8px;
-  border: 1px solid color-mix(in srgb, var(--hui-border) 82%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--hui-accent) 10%, transparent);
-  color: var(--hui-text);
+  border: 0;
+  border-radius: 0;
+  background: var(--hui-panel-soft);
+  color: var(--hui-muted);
   font-size: .72rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -67,8 +67,7 @@
   padding: 6px 10px;
   border: 1px solid color-mix(in srgb, var(--hui-danger) 45%, transparent);
   border-radius: var(--hui-radius);
-  background: color-mix(in srgb, var(--hui-panel) 88%, transparent);
-  backdrop-filter: blur(10px) saturate(1.15);
+  background: var(--hui-panel);
   color: var(--hui-text);
   font-family: var(--font-mono);
   font-size: .72rem;
