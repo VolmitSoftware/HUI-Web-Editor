@@ -1,6 +1,7 @@
 library;
 
 import '../model/gloss_doc.dart';
+import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
 import 'real_drop_script.dart';
 import 'validation.dart';
@@ -155,7 +156,169 @@ List<HuiIssue> validateRealDropSettingsDoc(GlossRealDropSettingsDoc doc) {
   );
   _physics(issues, doc.physics);
   _script(issues, doc.script);
+  _animation(issues, doc.animation);
   return issues;
+}
+
+void _animation(List<HuiIssue> issues, GlossRealDropAnimation? animation) {
+  if (animation == null) return;
+  animation.materialProperties.forEach((
+    String mapName,
+    Map<String, GlossRealDropMaterialProperties> entries,
+  ) {
+    final String mapPath = '\$.animation.materialProperties.$mapName';
+    if (mapName.trim().isEmpty) {
+      _error(issues, mapPath, 'Material property map names must not be blank.');
+    }
+    entries.forEach((String pattern, GlossRealDropMaterialProperties value) {
+      final String path = '$mapPath.$pattern';
+      if (pattern.trim().isEmpty) {
+        _error(issues, path, 'Material patterns must not be blank.');
+      }
+      _range(issues, '$path.glow', value.glow, 0, 4294967295);
+      _range(issues, '$path.lightLevel', value.lightLevel, 0, 15);
+    });
+  });
+
+  final Set<String> profileIds = <String>{};
+  for (
+    int profileIndex = 0;
+    profileIndex < animation.profiles.length;
+    profileIndex++
+  ) {
+    final GlossRealDropAnimationProfile profile =
+        animation.profiles[profileIndex];
+    final String path = '\$.animation.profiles[$profileIndex]';
+    final String id = profile.id.trim();
+    if (id.isEmpty) {
+      _error(issues, '$path.id', 'Animation profile ids must not be blank.');
+    } else if (!profileIds.add(id)) {
+      _error(issues, '$path.id', 'Animation profile "$id" is declared twice.');
+    }
+    _range(issues, '$path.priority', profile.priority, -10000, 10000);
+    for (
+      int materialIndex = 0;
+      materialIndex < profile.materials.length;
+      materialIndex++
+    ) {
+      if (profile.materials[materialIndex].trim().isEmpty) {
+        _error(
+          issues,
+          '$path.materials[$materialIndex]',
+          'Animation material patterns must not be blank.',
+        );
+      }
+    }
+    for (int clipIndex = 0; clipIndex < profile.clips.length; clipIndex++) {
+      _animationClip(
+        issues,
+        animation,
+        profile.clips[clipIndex],
+        '$path.clips[$clipIndex]',
+      );
+    }
+  }
+}
+
+void _animationClip(
+  List<HuiIssue> issues,
+  GlossRealDropAnimation animation,
+  GlossRealDropAnimationClip clip,
+  String path,
+) {
+  _range(issues, '$path.durationTicks', clip.durationTicks, 0, 1000000);
+  for (int trackIndex = 0; trackIndex < clip.tracks.length; trackIndex++) {
+    final GlossRealDropAnimationTrack track = clip.tracks[trackIndex];
+    final String trackPath = '$path.tracks[$trackIndex]';
+    final bool validBlend = switch (track.blend) {
+      GlossRealDropAnimationBlend.replace => true,
+      GlossRealDropAnimationBlend.add =>
+        track.target == GlossRealDropAnimationTarget.offsetX ||
+            track.target == GlossRealDropAnimationTarget.offsetY ||
+            track.target == GlossRealDropAnimationTarget.offsetZ ||
+            track.target == GlossRealDropAnimationTarget.rotationX ||
+            track.target == GlossRealDropAnimationTarget.rotationY ||
+            track.target == GlossRealDropAnimationTarget.rotationZ,
+      GlossRealDropAnimationBlend.multiply =>
+        track.target == GlossRealDropAnimationTarget.scaleX ||
+            track.target == GlossRealDropAnimationTarget.scaleY ||
+            track.target == GlossRealDropAnimationTarget.scaleZ,
+    };
+    if (!validBlend) {
+      _error(
+        issues,
+        '$trackPath.blend',
+        '${track.blend.wire} is not valid for ${track.target.wire}.',
+      );
+    }
+    if (track.keyframes.isEmpty) {
+      _error(
+        issues,
+        '$trackPath.keyframes',
+        'Animation track ${track.target.wire} has no keyframes.',
+      );
+      continue;
+    }
+    final Set<double> ticks = <double>{};
+    for (
+      int frameIndex = 0;
+      frameIndex < track.keyframes.length;
+      frameIndex++
+    ) {
+      final GlossRealDropAnimationKeyframe frame = track.keyframes[frameIndex];
+      final String framePath = '$trackPath.keyframes[$frameIndex]';
+      if (!frame.tick.isFinite ||
+          frame.tick < 0 ||
+          frame.tick > clip.durationTicks) {
+        _error(
+          issues,
+          '$framePath.tick',
+          'Keyframe tick must be inside the clip duration.',
+        );
+      }
+      if (!ticks.add(frame.tick)) {
+        _error(
+          issues,
+          '$framePath.tick',
+          'Two keyframes cannot occupy tick ${frame.tick}.',
+        );
+      }
+      if (!frame.value.isFinite) {
+        _error(issues, '$framePath.value', 'Keyframe values must be finite.');
+      }
+      if (frame.materialMap.isNotEmpty) {
+        final bool supported =
+            track.target == GlossRealDropAnimationTarget.glow ||
+            track.target == GlossRealDropAnimationTarget.lightLevel;
+        if (!supported) {
+          _error(
+            issues,
+            '$framePath.materialMap',
+            'Material maps only support GLOW and LIGHT_LEVEL tracks.',
+          );
+        } else if (!animation.materialProperties.containsKey(
+          frame.materialMap,
+        )) {
+          _error(
+            issues,
+            '$framePath.materialMap',
+            'Material property map "${frame.materialMap}" does not exist.',
+          );
+        }
+      }
+    }
+  }
+}
+
+void _error(List<HuiIssue> issues, String path, String message) {
+  issues.add(
+    HuiIssue(
+      severity: HuiSeverity.error,
+      path: path,
+      message: message,
+      fix: 'Correct the animation contract before exporting this document.',
+    ),
+  );
 }
 
 /// The physics block's four clamps. Warnings, like every other clamp in this

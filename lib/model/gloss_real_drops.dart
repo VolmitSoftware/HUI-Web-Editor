@@ -3,6 +3,7 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_real_drop_animation.dart';
 import 'json_codec.dart';
 
 const int glossRealDropsCurrentSchemaVersion = 1;
@@ -18,7 +19,11 @@ const int glossRealDropsCurrentSchemaVersion = 1;
 /// would mean the editor rejects documents the server loads.
 bool looksLikeRealDropSettingsDoc(Object? json) {
   if (json is! Map || json['schemaVersion'] is! num) return false;
-  if (json.containsKey('physics') || json.containsKey('script')) return true;
+  if (json.containsKey('physics') ||
+      json.containsKey('script') ||
+      json.containsKey('animation')) {
+    return true;
+  }
   return json.containsKey('limits') &&
       json.containsKey('scale') &&
       json.containsKey('motion') &&
@@ -51,6 +56,7 @@ const Set<String> _docKnown = <String>{
   'filters',
   'physics',
   'script',
+  'animation',
 };
 
 final class GlossRealDropLimits {
@@ -443,6 +449,7 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
     GlossRealDropFilters? filters,
     this.physics,
     this.script,
+    this.animation,
     Map<String, dynamic>? extras,
   }) : limits = limits ?? GlossRealDropLimits(),
        scale = scale ?? GlossRealDropScale(),
@@ -468,6 +475,8 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
   /// [physics].
   GlossRealDropScript? script;
 
+  GlossRealDropAnimation? animation;
+
   Map<String, dynamic> extras;
 
   static GlossRealDropSettingsDoc fromJson(Object? raw) {
@@ -490,6 +499,9 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
       script: map['script'] == null
           ? null
           : GlossRealDropScript.fromJson(map['script']),
+      animation: map['animation'] == null
+          ? null
+          : GlossRealDropAnimation.fromJson(map['animation']),
       extras: huiCollectExtras(map, _docKnown),
     );
   }
@@ -506,6 +518,7 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
     'filters': filters.toJson(),
     if (physics != null) 'physics': physics!.toJson(),
     if (script != null) 'script': script!.toJson(),
+    if (animation != null) 'animation': animation!.toJson(),
   }, extras);
 
   GlossRealDropSettingsDoc copy() =>

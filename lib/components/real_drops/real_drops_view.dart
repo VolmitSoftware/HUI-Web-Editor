@@ -39,12 +39,9 @@
 ///    stack — at a distance the stage can frame rather than the five blocks
 ///    vanilla's own numbers would cover. The `physics` block changes that arc,
 ///    not the server's.
-///  * **Model faces.** The sprite catalog ships one rendered image per
-///    material — the same image the canvas draws — not the six face textures a
-///    cube model has. So a model is that sprite extruded to the depth of its
-///    family: a sixteenth of a block for a flat item, the full edge for a
-///    cube. Silhouette, size, pose and motion are real; the texture on a
-///    tumbling cube's side is the GUI render.
+///  * **Model faces.** Placeable sample blocks use six independently textured
+///    faces around their block bounds. Non-block items use the catalog's GUI
+///    sprite extruded to item-model depth.
 ///  * **The environment the script reads.** `inWater` is the stage's water
 ///    button, `inLava` is always false, and both light levels are 15. There is
 ///    no world under this stage to read them off — see [DropStageEnvironment],
@@ -80,6 +77,7 @@ import 'package:web/web.dart' as web;
 
 import '../../config/showcase_flavor.dart';
 import '../../logic/gloss_text.dart';
+import '../../logic/real_drop_block_geometry.dart';
 import '../../logic/real_drop_model.dart';
 import '../../logic/real_drop_stage.dart';
 import '../../model/model.dart';
@@ -92,17 +90,9 @@ import 'drop_stage_camera.dart';
 /// distance the document states is in blocks and is converted here.
 const double _pixelsPerBlock = 170;
 
-/// How deep a model is extruded, as a fraction of its edge.
-///
-/// A flat item model really is one texture pixel thick in game, and the
-/// catalog sprite for it really is its texture, so a flat item is exact. A
-/// cube's sprite is already a rendered cube seen from the GUI camera, so
-/// stacking it deep would draw four cubes in a row: cubes take just enough
-/// depth to keep an edge-on pose from vanishing, and no more.
+/// A flat item model is one texture pixel thick in game.
 const Map<DropModelKind, double> _extrusionDepth = <DropModelKind, double>{
   DropModelKind.flat: 1 / 16,
-  DropModelKind.thin: 1 / 10,
-  DropModelKind.block: 1 / 7,
 };
 
 /// Slices per screen pixel of depth. Any sparser and the slices read as a comb
@@ -588,7 +578,9 @@ class _RealDropsViewState extends State<RealDropsView> {
     final int easeMs = frame.interpolationTicks.clamp(0, 59) * 50;
     final double edgePx = frame.modelScale * _pixelsPerBlock;
     final double forwardPx = frame.carrierZ * _pixelsPerBlock;
-    final String? texture = _store.catalogs.textureFor(drop.material);
+    final String? itemTexture = drop.block
+        ? null
+        : _store.catalogs.textureFor(drop.material);
     final bool free = !component.gameContext;
 
     // The clipping element cannot also be the 3D context: `overflow: hidden`
@@ -648,7 +640,7 @@ class _RealDropsViewState extends State<RealDropsView> {
                 <Widget>[
                   for (final DropStageVisual visual in frame.visuals)
                     if (visual.visible)
-                      _model(visual, frame, edgePx, easeMs, texture),
+                      _model(visual, frame, edgePx, easeMs, drop, itemTexture),
                   if (labels.enabled) _label(labels, frame, nowMs),
                 ],
               ),
@@ -680,10 +672,23 @@ class _RealDropsViewState extends State<RealDropsView> {
     );
   }
 
-  /// One `ItemDisplay`: the sprite extruded along its own depth, posed by the
-  /// rotation the model math produced, offset and lifted the way the plugin's
-  /// transformation places it.
   Widget _model(
+    DropStageVisual visual,
+    DropStageFrame frame,
+    double edgePx,
+    int easeMs,
+    ShowcaseDrop drop,
+    String? itemTexture,
+  ) => realDropUsesBlockGeometry(drop.block)
+      ? _blockModel(
+          visual,
+          edgePx,
+          easeMs,
+          realDropBlockGeometry(drop.material),
+        )
+      : _itemModel(visual, frame, edgePx, easeMs, itemTexture);
+
+  Widget _itemModel(
     DropStageVisual visual,
     DropStageFrame frame,
     double edgePx,
@@ -759,6 +764,125 @@ class _RealDropsViewState extends State<RealDropsView> {
       ],
     );
   }
+
+  Widget _blockModel(
+    DropStageVisual visual,
+    double edgePx,
+    int easeMs,
+    RealDropBlockGeometry geometry,
+  ) {
+    final double width = edgePx * geometry.width;
+    final double height = edgePx * geometry.height;
+    final double depth = edgePx * geometry.depth;
+    final String? glow = _glowCss(visual.glowArgb, edgePx);
+    return dom.div(
+      classes: 'hui-real-drops-model is-block',
+      styles: dom.Styles(
+        raw: <String, String>{
+          'width': '0',
+          'height': '0',
+          'transform':
+              'translate3d('
+              '${(visual.x * _pixelsPerBlock).toStringAsFixed(2)}px, '
+              '${(-visual.y * _pixelsPerBlock).toStringAsFixed(2)}px, '
+              '${(visual.z * _pixelsPerBlock).toStringAsFixed(2)}px) '
+              '${visual.rotation.cssMatrix3d()} '
+              'scale3d(${visual.scaleX.toStringAsFixed(4)}, '
+              '${visual.scaleY.toStringAsFixed(4)}, '
+              '${visual.scaleZ.toStringAsFixed(4)})',
+          'transition': 'transform ${easeMs}ms linear',
+        },
+      ),
+      <Widget>[
+        _blockFace(
+          face: 'front',
+          width: width,
+          height: height,
+          transform: 'translateZ(${(depth / 2).toStringAsFixed(2)}px)',
+          texture: geometry.sideTexture,
+          glow: glow,
+        ),
+        _blockFace(
+          face: 'back',
+          width: width,
+          height: height,
+          transform:
+              'rotateY(180deg) translateZ(${(depth / 2).toStringAsFixed(2)}px)',
+          texture: geometry.sideTexture,
+          glow: glow,
+        ),
+        _blockFace(
+          face: 'right',
+          width: depth,
+          height: height,
+          transform:
+              'rotateY(90deg) translateZ(${(width / 2).toStringAsFixed(2)}px)',
+          texture: geometry.sideTexture,
+          glow: glow,
+        ),
+        _blockFace(
+          face: 'left',
+          width: depth,
+          height: height,
+          transform:
+              'rotateY(-90deg) translateZ(${(width / 2).toStringAsFixed(2)}px)',
+          texture: geometry.sideTexture,
+          glow: glow,
+        ),
+        _blockFace(
+          face: 'top',
+          width: width,
+          height: depth,
+          transform:
+              'rotateX(90deg) translateZ(${(height / 2).toStringAsFixed(2)}px)',
+          texture: geometry.topTexture,
+          glow: glow,
+        ),
+        _blockFace(
+          face: 'bottom',
+          width: width,
+          height: depth,
+          transform:
+              'rotateX(-90deg) translateZ(${(height / 2).toStringAsFixed(2)}px)',
+          texture: geometry.bottomTexture,
+          glow: glow,
+        ),
+      ],
+    );
+  }
+
+  Widget _blockFace({
+    required String face,
+    required double width,
+    required double height,
+    required String transform,
+    required String texture,
+    required String? glow,
+  }) => dom.div(
+    classes: 'hui-real-drops-block-face is-$face',
+    styles: dom.Styles(
+      raw: <String, String>{
+        'width': '${width.toStringAsFixed(2)}px',
+        'height': '${height.toStringAsFixed(2)}px',
+        'margin-left': '-${(width / 2).toStringAsFixed(2)}px',
+        'margin-top': '-${(height / 2).toStringAsFixed(2)}px',
+        'transform': transform,
+        'background-image': "url('$texture')",
+        'filter':
+            '${_blockFaceBrightness(face)}${glow == null ? '' : ' $glow'}',
+      },
+    ),
+    const <Widget>[],
+  );
+
+  String _blockFaceBrightness(String face) => switch (face) {
+    'front' => 'brightness(.94)',
+    'back' => 'brightness(.72)',
+    'right' => 'brightness(.84)',
+    'left' => 'brightness(.76)',
+    'top' => 'brightness(1.06)',
+    _ => 'brightness(.62)',
+  };
 
   /// `script.glow` as a CSS filter, or null for no outline.
   ///
@@ -893,6 +1017,10 @@ class _RealDropsViewState extends State<RealDropsView> {
             '${physics.bounce.toStringAsFixed(2)} — on the stage\'s arc, not '
             'the server\'s',
       if (timeline.scriptActive) _scriptReadout(frame),
+      if (frame.animationProfileId.isNotEmpty)
+        'animation ${frame.animationProfileId}: '
+            '${frame.animationPhysics ? 'physics' : 'physics held'}, '
+            'light ${frame.animationLightLevel}',
       _water
           ? 'stage flooded to $dropStageWaterLevel blocks: inWater is '
                 'simulated, and so are inLava, blockLight and skyLight'

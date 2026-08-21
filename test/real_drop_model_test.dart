@@ -6,43 +6,13 @@
 /// this port misses fails in one of the two suites.
 library;
 
-import 'dart:io';
 import 'dart:math' as math;
 
-import 'package:gloss_editor/config/real_drop_shapes.dart';
 import 'package:gloss_editor/logic/real_drop_model.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
-import 'support/gloss_repository.dart';
-
-const String _flatShapesPath =
-    'src/main/resources/model-shapes/vanilla-flat-block-items.txt';
-
 void main() {
-  test('the flat-block-item list still matches the Gloss resource', () {
-    final File resource = File(glossRepositoryFilePath(_flatShapesPath));
-    expect(
-      resource.existsSync(),
-      isTrue,
-      reason:
-          'missing $_flatShapesPath; set GLOSS_REPOSITORY to a Gloss checkout',
-    );
-    final Set<String> shipped = resource
-        .readAsLinesSync()
-        .map((String line) => line.trim())
-        .where((String line) => line.isNotEmpty)
-        .toSet();
-    expect(
-      glossFlatBlockItems,
-      shipped,
-      reason:
-          'lib/config/real_drop_shapes.dart has drifted from $_flatShapesPath. '
-          'Gloss is the truth repo: regenerate the Dart copy FROM Gloss, and '
-          'never edit the Gloss file to make this pass.',
-    );
-  });
-
   test('a stack grows displays in bands, never one per item', () {
     expect(realDropVisualCount(1, 64, 5), 1);
     expect(realDropVisualCount(16, 64, 5), 2);
@@ -66,13 +36,13 @@ void main() {
           ),
           'SNOW': (block: true, kind: DropModelKind.thin),
           'POWDER_SNOW': (block: true, kind: DropModelKind.block),
-          'OAK_DOOR': (block: true, kind: DropModelKind.flat),
-          'RAIL': (block: true, kind: DropModelKind.flat),
-          'OAK_SIGN': (block: true, kind: DropModelKind.flat),
-          'TORCH': (block: true, kind: DropModelKind.flat),
-          'DANDELION': (block: true, kind: DropModelKind.flat),
-          'IRON_BARS': (block: true, kind: DropModelKind.flat),
-          'HOPPER': (block: true, kind: DropModelKind.flat),
+          'OAK_DOOR': (block: true, kind: DropModelKind.block),
+          'RAIL': (block: true, kind: DropModelKind.block),
+          'OAK_SIGN': (block: true, kind: DropModelKind.block),
+          'TORCH': (block: true, kind: DropModelKind.block),
+          'DANDELION': (block: true, kind: DropModelKind.block),
+          'IRON_BARS': (block: true, kind: DropModelKind.block),
+          'HOPPER': (block: true, kind: DropModelKind.block),
           'OAK_STAIRS': (block: true, kind: DropModelKind.block),
           'DIAMOND_SWORD': (block: false, kind: DropModelKind.flat),
           'TRIDENT': (block: false, kind: DropModelKind.flat),
@@ -112,36 +82,39 @@ void main() {
     );
   });
 
-  test('flat items and thin blocks settle flush, cubes take a natural tilt', () {
-    final GlossRealDropLanding landing = GlossRealDropLanding();
-    const ({double yaw, double tiltX, double tiltZ}) units = (
-      yaw: 0.5,
-      tiltX: -0.8,
-      tiltZ: 0.6,
-    );
+  test(
+    'flat items settle broad-side while every block shape lands naturally',
+    () {
+      final GlossRealDropLanding landing = GlossRealDropLanding();
+      const ({double yaw, double tiltX, double tiltZ}) units = (
+        yaw: 0.5,
+        tiltX: -0.8,
+        tiltZ: 0.6,
+      );
 
-    expect(realDropLanding(DropModelKind.flat, landing, units).x, 90);
-    final DropAngles thin = realDropLanding(
-      DropModelKind.thin,
-      landing,
-      units,
-    );
-    expect(thin.x, 0);
-    expect(thin.z, 0);
-    final DropAngles block = realDropLanding(
-      DropModelKind.block,
-      landing,
-      units,
-    );
-    expect(block.x.abs(), lessThanOrEqualTo(landing.tiltDegrees));
-    expect(block.z.abs(), lessThanOrEqualTo(landing.tiltDegrees));
-    expect(block.y, closeTo(90, 1e-9), reason: 'randomYaw draws yaw * 180');
+      expect(realDropLanding(DropModelKind.flat, landing, units).x, 90);
+      final DropAngles thin = realDropLanding(
+        DropModelKind.thin,
+        landing,
+        units,
+      );
+      expect(thin.x.abs(), lessThanOrEqualTo(landing.tiltDegrees));
+      expect(thin.z.abs(), lessThanOrEqualTo(landing.tiltDegrees));
+      final DropAngles block = realDropLanding(
+        DropModelKind.block,
+        landing,
+        units,
+      );
+      expect(block.x.abs(), lessThanOrEqualTo(landing.tiltDegrees));
+      expect(block.z.abs(), lessThanOrEqualTo(landing.tiltDegrees));
+      expect(block.y, closeTo(90, 1e-9), reason: 'randomYaw draws yaw * 180');
 
-    final GlossRealDropLanding fixedYaw = GlossRealDropLanding(
-      randomYaw: false,
-    );
-    expect(realDropLanding(DropModelKind.block, fixedYaw, units).y, 0);
-  });
+      final GlossRealDropLanding fixedYaw = GlossRealDropLanding(
+        randomYaw: false,
+      );
+      expect(realDropLanding(DropModelKind.block, fixedYaw, units).y, 0);
+    },
+  );
 
   test('an ordinary cube rests its lowest corner on the surface', () {
     final GlossRealDropScale scale = GlossRealDropScale();
@@ -185,15 +158,12 @@ void main() {
     );
   });
 
-  test('authored Y offsets lift the models that sit low in their cube', () {
-    expect(realDropAuthoredYOffset('SNOW'), 0.2);
+  test('authored Y offsets only lift flat item-display models', () {
     expect(realDropAuthoredYOffset('TRIDENT'), 0.32);
-    expect(realDropAuthoredYOffset('WHITE_CARPET'), 0.26);
     expect(realDropAuthoredYOffset('SHIELD'), 0.26);
-    expect(realDropAuthoredYOffset('OAK_SLAB'), 0.16);
-    expect(realDropAuthoredYOffset('OAK_STAIRS'), 0.16);
-    expect(realDropAuthoredYOffset('RED_BED'), 0.22);
-    expect(realDropAuthoredYOffset('HEAVY_CORE'), 0.22);
+    expect(realDropAuthoredYOffset('WHITE_CARPET'), 0);
+    expect(realDropAuthoredYOffset('OAK_SLAB'), 0);
+    expect(realDropAuthoredYOffset('RED_BED'), 0);
     expect(realDropAuthoredYOffset('STONE'), 0);
   });
 
@@ -217,7 +187,10 @@ void main() {
     // A flat sprite lies down before it tumbles.
     final DropRotation flat = realDropBaseRotation(DropModelKind.flat);
     expect(flat.m[4], closeTo(0, 1e-9));
-    expect(realDropBaseRotation(DropModelKind.block).m, DropRotation.identity.m);
+    expect(
+      realDropBaseRotation(DropModelKind.block).m,
+      DropRotation.identity.m,
+    );
 
     // Stack yaw is applied outside the pose, so display 0 keeps it exactly.
     final DropRotation pose = DropRotation.identity.rotateX(0.3);
@@ -227,9 +200,25 @@ void main() {
     // The browser's Y points down, so X and Z rotations flip sign in CSS and
     // Y does not.
     final DropRotation yaw = DropRotation.identity.rotateY(0.4);
-    expect(
-      yaw.cssMatrix3d(),
-      contains(math.sin(0.4).toStringAsFixed(6)),
-    );
+    expect(yaw.cssMatrix3d(), contains(math.sin(0.4).toStringAsFixed(6)));
   });
+
+  test(
+    'flat items keep whichever broad side is already nearest the ground',
+    () {
+      final DropRotation front = DropRotation.identity
+          .rotateY(0.7)
+          .rotateX(math.pi * 0.48);
+      final DropRotation back = DropRotation.identity
+          .rotateY(-0.4)
+          .rotateX(math.pi * -0.48);
+      final DropRotation alignedFront = realDropBroadFaceAlignedRotation(front);
+      final DropRotation alignedBack = realDropBroadFaceAlignedRotation(back);
+
+      expect(front.difference(alignedFront), lessThan(0.08));
+      expect(back.difference(alignedBack), lessThan(0.08));
+      expect(alignedFront.m[5], closeTo(-1, 1e-9));
+      expect(alignedBack.m[5], closeTo(1, 1e-9));
+    },
+  );
 }

@@ -10,6 +10,7 @@ import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'real_drop_expr_field.dart';
+import 'real_drop_animation_inspector.dart';
 import 'reorder_list.dart';
 
 class RealDropInspector extends StatefulWidget {
@@ -44,6 +45,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       _filters(doc),
       _physics(doc),
       _script(doc),
+      RealDropAnimationInspector(store: _store),
     ]);
   }
 
@@ -151,7 +153,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       _decimal(
         label: 'Flat items',
         help:
-            'Scale for non-block items and vanilla sprite-modeled placeable items, including doors, rails, signs, panes, torches, and plants. 0.05..2.',
+            'Scale for non-block items rendered by ItemDisplay. Every block material uses true BlockDisplay geometry. 0.05..2.',
         path: r'$.scale.flatItems',
         value: doc.scale.flatItems,
         onChanged: (double value) => _mutate(

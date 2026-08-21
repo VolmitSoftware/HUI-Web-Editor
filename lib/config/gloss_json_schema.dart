@@ -21,6 +21,7 @@ import '../logic/json_schema.dart';
 import '../model/gloss_animation.dart';
 import '../model/gloss_bubble_style.dart';
 import '../model/gloss_motd.dart';
+import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_scoreboard.dart';
 import '../model/gloss_tablist.dart';
 import 'gloss_menu_json_schema.dart';
@@ -1061,6 +1062,226 @@ const GlossJsonObject _realDropScriptNode = GlossJsonObject(
   ],
 );
 
+final GlossJsonObject _realDropAnimationKeyframeNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'tick',
+      type: GlossJsonType.number,
+      title: 'Tick',
+      summary: 'Position in the clip, from zero through durationTicks.',
+      docKey: 'realDrops.animation.keyframe.tick',
+      defaultLiteral: '0',
+    ),
+    const GlossJsonField(
+      key: 'value',
+      type: GlossJsonType.number,
+      title: 'Value',
+      summary: 'Scalar value applied to the track target.',
+      docKey: 'realDrops.animation.keyframe.value',
+      defaultLiteral: '0',
+    ),
+    const GlossJsonField(
+      key: 'materialMap',
+      type: GlossJsonType.string,
+      title: 'Material map',
+      summary: 'Optional property map for GLOW or LIGHT_LEVEL values.',
+      docKey: 'realDrops.animation.keyframe.materialMap',
+      defaultLiteral: '""',
+    ),
+    GlossJsonField(
+      key: 'easing',
+      type: GlossJsonType.string,
+      title: 'Easing',
+      summary: 'Curve used while approaching this keyframe.',
+      docKey: 'realDrops.animation.keyframe.easing',
+      values: _values(<String>[
+        for (final GlossRealDropAnimationEasing easing
+            in GlossRealDropAnimationEasing.values)
+          easing.wire,
+      ]),
+      defaultLiteral: '"LINEAR"',
+    ),
+  ],
+);
+
+final GlossJsonObject _realDropAnimationTrackNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'target',
+      type: GlossJsonType.string,
+      title: 'Target',
+      summary: 'Display, physics, or light property driven by this track.',
+      docKey: 'realDrops.animation.track.target',
+      values: _values(<String>[
+        for (final GlossRealDropAnimationTarget target
+            in GlossRealDropAnimationTarget.values)
+          target.wire,
+      ]),
+      defaultLiteral: '"OFFSET_X"',
+    ),
+    GlossJsonField(
+      key: 'blend',
+      type: GlossJsonType.string,
+      title: 'Blend',
+      summary: 'How this track combines with the current target value.',
+      docKey: 'realDrops.animation.track.blend',
+      values: _values(<String>[
+        for (final GlossRealDropAnimationBlend blend
+            in GlossRealDropAnimationBlend.values)
+          blend.wire,
+      ]),
+      defaultLiteral: '"ADD"',
+    ),
+    GlossJsonField(
+      key: 'keyframes',
+      type: GlossJsonType.array,
+      title: 'Keyframes',
+      summary: 'Scalar samples; ticks must be unique inside the clip.',
+      docKey: 'realDrops.animation.track.keyframes',
+      node: GlossJsonArray(
+        item: _realDropAnimationKeyframeNode,
+        itemType: GlossJsonType.object,
+        itemTitle: 'Keyframe',
+        itemSummary: 'One scalar sample and its incoming easing curve.',
+      ),
+    ),
+  ],
+);
+
+final GlossJsonObject _realDropAnimationClipNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'trigger',
+      type: GlossJsonType.string,
+      title: 'Trigger',
+      summary: 'Lifecycle state or event that activates the clip.',
+      docKey: 'realDrops.animation.clip.trigger',
+      values: _values(<String>[
+        for (final GlossRealDropAnimationTrigger trigger
+            in GlossRealDropAnimationTrigger.values)
+          trigger.wire,
+      ]),
+      defaultLiteral: '"SPAWN"',
+    ),
+    const GlossJsonField(
+      key: 'durationTicks',
+      type: GlossJsonType.number,
+      title: 'Duration',
+      summary: 'Clip duration in ticks, from 0 through 1000000.',
+      docKey: 'realDrops.animation.clip.durationTicks',
+      defaultLiteral: '0',
+    ),
+    const GlossJsonField(
+      key: 'loop',
+      type: GlossJsonType.boolean,
+      title: 'Loop',
+      summary: 'Wraps elapsed time at durationTicks while active.',
+      docKey: 'realDrops.animation.clip.loop',
+      defaultLiteral: 'false',
+    ),
+    GlossJsonField(
+      key: 'tracks',
+      type: GlossJsonType.array,
+      title: 'Tracks',
+      summary: 'Ordered scalar tracks evaluated for this trigger.',
+      docKey: 'realDrops.animation.clip.tracks',
+      node: GlossJsonArray(
+        item: _realDropAnimationTrackNode,
+        itemType: GlossJsonType.object,
+        itemTitle: 'Track',
+        itemSummary: 'One typed target and its keyframes.',
+      ),
+    ),
+  ],
+);
+
+final GlossJsonObject _realDropAnimationProfileNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Profile id',
+      summary: 'Unique author-facing profile name.',
+      docKey: 'realDrops.animation.profile.id',
+      defaultLiteral: '"default"',
+    ),
+    const GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Higher matching profiles win. Clamped to -10000..10000.',
+      docKey: 'realDrops.animation.profile.priority',
+      defaultLiteral: '0',
+    ),
+    const GlossJsonField(
+      key: 'materials',
+      type: GlossJsonType.array,
+      title: 'Materials',
+      summary:
+          'Material globs matched case-insensitively after namespace removal.',
+      docKey: 'realDrops.animation.profile.materials',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.string,
+        itemTitle: 'Material glob',
+        itemSummary: '* and ? wildcards are supported.',
+      ),
+    ),
+    GlossJsonField(
+      key: 'clips',
+      type: GlossJsonType.array,
+      title: 'Clips',
+      summary: 'Trigger clips declared in evaluation order.',
+      docKey: 'realDrops.animation.profile.clips',
+      node: GlossJsonArray(
+        item: _realDropAnimationClipNode,
+        itemType: GlossJsonType.object,
+        itemTitle: 'Clip',
+        itemSummary: 'One trigger, duration, and track collection.',
+      ),
+    ),
+  ],
+);
+
+const GlossJsonObject _realDropAnimationMaterialMapsNode = GlossJsonObject(
+  openKeyType: GlossJsonType.object,
+  openKeyTitle: 'Property map',
+  openKeySummary: 'Named material-pattern map supplying glow and light values.',
+);
+
+final GlossJsonObject _realDropAnimationNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Enabled',
+      summary: 'Evaluates matching lifecycle animation profiles.',
+      docKey: 'realDrops.animation.enabled',
+      defaultLiteral: 'false',
+    ),
+    const GlossJsonField(
+      key: 'materialProperties',
+      type: GlossJsonType.object,
+      title: 'Material properties',
+      summary: 'Named material maps for GLOW and LIGHT_LEVEL keyframes.',
+      docKey: 'realDrops.animation.materialProperties',
+      node: _realDropAnimationMaterialMapsNode,
+    ),
+    GlossJsonField(
+      key: 'profiles',
+      type: GlossJsonType.array,
+      title: 'Profiles',
+      summary: 'Priority-ordered material profile candidates.',
+      docKey: 'realDrops.animation.profiles',
+      node: GlossJsonArray(
+        item: _realDropAnimationProfileNode,
+        itemType: GlossJsonType.object,
+        itemTitle: 'Profile',
+        itemSummary: 'One material selection and its trigger clips.',
+      ),
+    ),
+  ],
+);
+
 final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(1),
@@ -1120,6 +1341,14 @@ final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
       title: 'Advanced modifiers',
       summary: 'Optional expression-driven visual modifiers.',
       node: _realDropScriptNode,
+    ),
+    GlossJsonField(
+      key: 'animation',
+      type: GlossJsonType.object,
+      title: 'Timeline animation',
+      summary: 'Material profiles with event clips and typed scalar tracks.',
+      docKey: 'realDrops.animation',
+      node: _realDropAnimationNode,
     ),
   ],
 );

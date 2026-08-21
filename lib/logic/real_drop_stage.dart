@@ -44,7 +44,9 @@ library;
 import 'dart:math' as math;
 
 import '../config/showcase_flavor.dart';
+import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
+import 'real_drop_animation.dart';
 import 'real_drop_model.dart';
 import 'real_drop_script.dart';
 
@@ -301,6 +303,9 @@ final class DropStageFrame {
     required this.modelScale,
     required this.scriptActive,
     required this.scriptFailures,
+    required this.animationProfileId,
+    required this.animationPhysics,
+    required this.animationLightLevel,
   });
 
   final List<DropStageVisual> visuals;
@@ -348,6 +353,9 @@ final class DropStageFrame {
   /// Script fields that threw this frame and took their neutral fallback, in
   /// the server's own field spelling.
   final Set<String> scriptFailures;
+  final String animationProfileId;
+  final bool animationPhysics;
+  final int animationLightLevel;
 }
 
 /// The stage for one settings document and one sample stack.
@@ -391,7 +399,9 @@ final class DropStageTimeline {
     _plan = script == null || !script.enabled
         ? RealDropScriptPlan.empty
         : RealDropScriptPlan.compile(script);
+    _animationPlan = RealDropAnimationPlan(doc.animation);
     _poses = _buildPoses();
+    _carrierClock = _buildCarrierClock();
   }
 
   final GlossRealDropSettingsDoc doc;
@@ -407,7 +417,9 @@ final class DropStageTimeline {
   final List<DropAngles> _spin;
   late final DropRotation _landing;
   late final RealDropScriptPlan _plan;
+  late final RealDropAnimationPlan _animationPlan;
   late final List<_DropPose> _poses;
+  late final List<double> _carrierClock;
 
   /// Blocks per model edge, the configured scale family.
   double get modelScale => _scale;
@@ -432,19 +444,24 @@ final class DropStageTimeline {
 
   DropStageFrame frameAt(int ms) {
     final double tick = (ms % cycleMs) / 50.0;
-    final _DropPose pose = _poseAt(tick);
+    final double carrierTick = _carrierTickAt(tick);
+    final _DropPose pose = _poseAt(carrierTick);
     final bool settled = pose.phase == DropAnimationPhase.settled;
-    final double height = _flight.heightAt(tick);
-    final double forward = _flight.forwardAt(tick);
+    final double height = _flight.heightAt(carrierTick);
+    final double forward = _flight.forwardAt(carrierTick);
     final bool grounded = settled || height <= 0.001;
     final int bounces = settled
         ? _flight.bounces.length
-        : _flight.bouncesBefore(tick);
+        : _flight.bouncesBefore(carrierTick);
 
     final DropRotation rotation = pose.rotation;
     final int bounceRevision = doc.motion.changeOnBounce ? bounces : 0;
 
     final bool submerged = environment.water && height < dropStageWaterLevel;
+    final RealDropAnimationSample animation = _animationPlan.sample(
+      drop.registryName,
+      _activeAnimationClips(tick, carrierTick, pose),
+    );
     final Set<String> failures = <String>{};
     final List<DropStageVisual> visuals = <DropStageVisual>[
       for (int index = 0; index < _visualCount; index++)
@@ -452,9 +469,11 @@ final class DropStageTimeline {
           index,
           rotation,
           grounded,
+          animation,
           _sample(
             index: index,
             tick: tick,
+            carrierTick: carrierTick,
             height: height,
             grounded: grounded,
             settled: settled,
@@ -487,7 +506,121 @@ final class DropStageTimeline {
       modelScale: _scale,
       scriptActive: scriptActive,
       scriptFailures: failures,
+      animationProfileId: animation.profileId,
+      animationPhysics: animation.physics,
+      animationLightLevel: animation.lightLevel,
     );
+  }
+
+  List<RealDropActiveAnimationClip> _activeAnimationClips(
+    double animationTick,
+    double carrierTick,
+    _DropPose pose,
+  ) {
+    if (!_animationPlan.enabled) return const <RealDropActiveAnimationClip>[];
+    final List<RealDropActiveAnimationClip> clips =
+        <RealDropActiveAnimationClip>[
+          RealDropActiveAnimationClip(
+            GlossRealDropAnimationTrigger.spawn,
+            animationTick,
+          ),
+          RealDropActiveAnimationClip(
+            _phaseTrigger(pose.phase),
+            pose.phaseTimeTicks,
+          ),
+        ];
+    for (final GlossRealDropAnimationTrigger trigger
+        in const <GlossRealDropAnimationTrigger>[
+          GlossRealDropAnimationTrigger.impact,
+          GlossRealDropAnimationTrigger.bounce,
+          GlossRealDropAnimationTrigger.enterFluid,
+          GlossRealDropAnimationTrigger.exitFluid,
+          GlossRealDropAnimationTrigger.startRoll,
+          GlossRealDropAnimationTrigger.settle,
+          GlossRealDropAnimationTrigger.wake,
+        ]) {
+      final double? eventTick = _latestEventTick(trigger, carrierTick);
+      if (eventTick != null) {
+        clips.add(
+          RealDropActiveAnimationClip(trigger, carrierTick - eventTick),
+        );
+      }
+    }
+    return clips;
+  }
+
+  List<double> _buildCarrierClock() {
+    final int lastTick = (_flight.cycleMs / 50).ceil();
+    final List<double> carrierTicks = <double>[0];
+    double carrierTick = 0;
+    for (int animationTick = 0; animationTick < lastTick; animationTick++) {
+      final _DropPose pose = _poseAt(carrierTick);
+      final RealDropAnimationSample animation = _animationPlan.sample(
+        drop.registryName,
+        _activeAnimationClips(animationTick.toDouble(), carrierTick, pose),
+      );
+      if (animation.physics) carrierTick += 1;
+      carrierTicks.add(carrierTick);
+    }
+    return carrierTicks;
+  }
+
+  double _carrierTickAt(double animationTick) {
+    if (animationTick <= 0) return 0;
+    final int index = animationTick.floor();
+    if (index >= _carrierClock.length - 1) return _carrierClock.last;
+    final double fraction = animationTick - index;
+    return _carrierClock[index] +
+        (_carrierClock[index + 1] - _carrierClock[index]) * fraction;
+  }
+
+  GlossRealDropAnimationTrigger _phaseTrigger(DropAnimationPhase phase) =>
+      switch (phase) {
+        DropAnimationPhase.airborne => GlossRealDropAnimationTrigger.airborne,
+        DropAnimationPhase.rebounding =>
+          GlossRealDropAnimationTrigger.rebounding,
+        DropAnimationPhase.rolling => GlossRealDropAnimationTrigger.rolling,
+        DropAnimationPhase.settling => GlossRealDropAnimationTrigger.settling,
+        DropAnimationPhase.settled => GlossRealDropAnimationTrigger.settled,
+        DropAnimationPhase.submerged => GlossRealDropAnimationTrigger.submerged,
+      };
+
+  double? _latestEventTick(
+    GlossRealDropAnimationTrigger trigger,
+    double untilTick,
+  ) {
+    double? latest;
+    final int last = math.min(untilTick.floor(), _poses.length - 1);
+    for (int tick = 1; tick <= last; tick++) {
+      final DropAnimationPhase previous = _poses[tick - 1].phase;
+      final DropAnimationPhase current = _poses[tick].phase;
+      final double previousHeight = _flight.heightAt((tick - 1).toDouble());
+      final double currentHeight = _flight.heightAt(tick.toDouble());
+      final bool event = switch (trigger) {
+        GlossRealDropAnimationTrigger.impact =>
+          previousHeight > 0.001 && currentHeight <= 0.001,
+        GlossRealDropAnimationTrigger.bounce => _flight.bounces.contains(
+          tick.toDouble(),
+        ),
+        GlossRealDropAnimationTrigger.enterFluid =>
+          environment.water &&
+              previousHeight >= dropStageWaterLevel &&
+              currentHeight < dropStageWaterLevel,
+        GlossRealDropAnimationTrigger.exitFluid =>
+          environment.water &&
+              previousHeight < dropStageWaterLevel &&
+              currentHeight >= dropStageWaterLevel,
+        GlossRealDropAnimationTrigger.startRoll =>
+          current == DropAnimationPhase.rolling && previous != current,
+        GlossRealDropAnimationTrigger.settle =>
+          current == DropAnimationPhase.settled && previous != current,
+        GlossRealDropAnimationTrigger.wake =>
+          previous == DropAnimationPhase.settled && current != previous,
+        _ => false,
+      };
+      if (event) latest = tick.toDouble();
+    }
+    return latest;
   }
 
   List<_DropPose> _buildPoses() {
@@ -536,7 +669,7 @@ final class DropStageTimeline {
       } else {
         final bool moving = speed > _settledHorizontalSpeed;
         bool aligned;
-        if (modelKind == DropModelKind.block &&
+        if (modelKind != DropModelKind.flat &&
             doc.landing.mode.toUpperCase() == 'NATURAL') {
           final ({DropRotation rotation, bool aligned}) roll =
               realDropGroundedBlockRotation(
@@ -553,10 +686,13 @@ final class DropStageTimeline {
           rotation = roll.rotation;
           aligned = roll.aligned;
         } else {
-          final double difference = rotation.difference(_landing);
+          final DropRotation target = modelKind == DropModelKind.flat
+              ? realDropBroadFaceAlignedRotation(rotation)
+              : _landing;
+          final double difference = rotation.difference(target);
           aligned = difference <= doc.landing.alignmentDegrees * _degToRad;
           if (aligned) {
-            rotation = _landing;
+            rotation = target;
           } else {
             final double speedReference = math.max(0.02, _scale * 0.25);
             final double motionRatio = math.min(1, speed / speedReference);
@@ -565,7 +701,7 @@ final class DropStageTimeline {
                 (doc.landing.faceAttraction -
                         doc.landing.movingFaceAttraction) *
                     motionRatio;
-            rotation = rotation.slerp(_landing, attraction);
+            rotation = rotation.slerp(target, attraction);
           }
         }
 
@@ -653,6 +789,7 @@ final class DropStageTimeline {
   RealDropScriptSample _sample({
     required int index,
     required double tick,
+    required double carrierTick,
     required double height,
     required bool grounded,
     required bool settled,
@@ -685,8 +822,8 @@ final class DropStageTimeline {
         inLava: DropStageEnvironment.inLava,
         bounces: bounces,
         velocityX: 0,
-        velocityY: settled ? 0 : _flight.velocityYAt(tick),
-        velocityZ: settled ? 0 : _flight.velocityZAt(tick),
+        velocityY: settled ? 0 : _flight.velocityYAt(carrierTick),
+        velocityZ: settled ? 0 : _flight.velocityZAt(carrierTick),
         height: settled ? 0 : height,
         blockLight: DropStageEnvironment.blockLight,
         skyLight: DropStageEnvironment.skyLight,
@@ -703,6 +840,7 @@ final class DropStageTimeline {
     int index,
     DropRotation rotation,
     bool grounded,
+    RealDropAnimationSample animation,
     RealDropScriptSample sample,
   ) {
     final ({double x, double y, double z}) offset = realDropOffset(
@@ -716,10 +854,11 @@ final class DropStageTimeline {
     final DropRotation indexed = _compose(
       realDropIndexedRotation(rotation, index),
       sample,
+      animation,
     );
     return DropStageVisual(
       index: index,
-      x: offset.x + sample.offsetX,
+      x: offset.x + sample.offsetX + animation.offsetX,
       y:
           offset.y +
           realDropYOffset(
@@ -729,30 +868,36 @@ final class DropStageTimeline {
             indexed,
             grounded: grounded,
           ) +
-          sample.offsetY,
-      z: offset.z + sample.offsetZ,
+          sample.offsetY +
+          animation.offsetY,
+      z: offset.z + sample.offsetZ + animation.offsetZ,
       rotation: indexed,
       scale: _scale,
-      scaleX: sample.scaleX,
-      scaleY: sample.scaleY,
-      scaleZ: sample.scaleZ,
-      glowArgb: sample.glowArgb,
-      visible: sample.visible,
+      scaleX: sample.scaleX * animation.scaleX,
+      scaleY: sample.scaleY * animation.scaleY,
+      scaleZ: sample.scaleZ * animation.scaleZ,
+      glowArgb: animation.glowArgb == 0 ? sample.glowArgb : animation.glowArgb,
+      visible: sample.visible && animation.visible,
     );
   }
 
   /// `script.rotation` applied in X then Y then Z order, as the plugin applies
   /// it. Degrees in the document, radians in the matrix.
-  DropRotation _compose(DropRotation pose, RealDropScriptSample sample) {
-    if (sample.rotationX == 0 &&
-        sample.rotationY == 0 &&
-        sample.rotationZ == 0) {
+  DropRotation _compose(
+    DropRotation pose,
+    RealDropScriptSample sample,
+    RealDropAnimationSample animation,
+  ) {
+    final double x = sample.rotationX + animation.rotationX;
+    final double y = sample.rotationY + animation.rotationY;
+    final double z = sample.rotationZ + animation.rotationZ;
+    if (x == 0 && y == 0 && z == 0) {
       return pose;
     }
     return pose
-        .rotateX(sample.rotationX * _degToRad)
-        .rotateY(sample.rotationY * _degToRad)
-        .rotateZ(sample.rotationZ * _degToRad);
+        .rotateX(x * _degToRad)
+        .rotateY(y * _degToRad)
+        .rotateZ(z * _degToRad);
   }
 }
 

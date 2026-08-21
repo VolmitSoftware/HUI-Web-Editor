@@ -323,8 +323,7 @@ void main() {
     expect(flat.modelScale, doc.scale.flatItems);
     expect(thin.modelScale, doc.scale.thinBlocks);
 
-    // A settled cube lifts to rest on the ground; a slab uses its authored
-    // offset instead.
+    // Every placed block model lifts by its rotated model bounds.
     final DropStageTimeline cubeStage = DropStageTimeline(
       doc,
       _drop('cherry_log'),
@@ -339,7 +338,7 @@ void main() {
     );
     expect(
       slabStage.frameAt(slabStage.cycleMs - 200).visuals.first.y,
-      closeTo(0.16, 1e-9),
+      closeTo(0.225, 1e-9),
     );
   });
 

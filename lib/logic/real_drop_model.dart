@@ -23,8 +23,8 @@ library;
 
 import 'dart:math' as math;
 
-import '../config/real_drop_shapes.dart';
 import '../model/gloss_real_drops.dart';
+import 'real_drop_block_geometry.dart';
 
 /// `RealDropModel.OFFSETS`, in blocks before [GlossRealDropLimits.spread]
 /// scales them. Its length is also the hard ceiling on displays per stack.
@@ -46,8 +46,8 @@ enum DropModelKind {
   /// A full cube — the [GlossRealDropScale.defaultScale] family.
   block,
 
-  /// A flat sprite: every non-block item, plus the block items Minecraft
-  /// itself draws flat. The [GlossRealDropScale.flatItems] family.
+  /// A flat sprite: every non-block item. The
+  /// [GlossRealDropScale.flatItems] family.
   flat,
 
   /// Slabs, carpets, pressure plates and snow layers. The
@@ -75,7 +75,7 @@ int realDropVisualCount(int amount, int maxStackSize, int configuredMaximum) {
 /// stage's sample table states it per entry.
 DropModelKind realDropModelKind(String name, {required bool block}) {
   final String material = name.toUpperCase();
-  if (!block || glossFlatBlockItems.contains(material)) {
+  if (!block) {
     return DropModelKind.flat;
   }
   if (material.endsWith('_SLAB') ||
@@ -106,29 +106,8 @@ double realDropScale(DropModelKind kind, GlossRealDropScale scale) =>
 /// whose geometry sits low in its own cube from sinking into the ground.
 double realDropAuthoredYOffset(String name) {
   final String material = name.toUpperCase();
-  if (material.endsWith('SNOW')) return 0.2;
   if (material.endsWith('TRIDENT')) return 0.32;
-  if (material.endsWith('_CARPET') ||
-      material.endsWith('_PRESSURE_PLATE') ||
-      material.endsWith('SHIELD')) {
-    return 0.26;
-  }
-  if (material.endsWith('_SLAB') ||
-      material.endsWith('_STAIRS') ||
-      material.endsWith('_WALL') ||
-      material.endsWith('_FENCE') ||
-      material.endsWith('_FENCE_GATE') ||
-      material == 'DAYLIGHT_DETECTOR') {
-    return 0.16;
-  }
-  if (material.contains('BED') ||
-      material.contains('SKULL') ||
-      material.contains('HEAD') ||
-      material.contains('SCULK') ||
-      material.contains('_TRAPDOOR') ||
-      material == 'HEAVY_CORE') {
-    return 0.22;
-  }
+  if (material.endsWith('SHIELD')) return 0.26;
   return 0.0;
 }
 
@@ -142,8 +121,13 @@ double realDropYOffset(
   required bool grounded,
 }) {
   final double authored = realDropAuthoredYOffset(name);
-  if (!grounded || kind != DropModelKind.block) return authored;
-  return math.max(authored, rotation.verticalHalfExtent(scale));
+  if (!grounded || kind == DropModelKind.flat) return authored;
+  final RealDropBlockGeometry geometry = realDropBlockGeometry(name);
+  return rotation.verticalHalfExtentCuboid(
+    geometry.width * scale,
+    geometry.height * scale,
+    geometry.depth * scale,
+  );
 }
 
 /// One tumble or landing pose in degrees per axis.
@@ -185,7 +169,7 @@ DropAngles realDropLanding(
   if (mode == 'FLAT' || kind == DropModelKind.flat) {
     return (x: 90, y: yaw, z: 0);
   }
-  if (mode == 'UPRIGHT' || kind == DropModelKind.thin) {
+  if (mode == 'UPRIGHT') {
     return (x: 0, y: yaw, z: 0);
   }
   return (
@@ -215,11 +199,12 @@ DropRotation realDropLandingRotation(
         .rotateY(angles.y * _degToRad)
         .rotateX(angles.x * _degToRad);
   }
-  if (mode == 'NATURAL' && kind == DropModelKind.block) {
-    // `blockLandingRotation` with face 0: the tilt draws become one twist
-    // around the upright cube instead of leaning it off its face.
+  if (mode == 'NATURAL' && kind != DropModelKind.flat) {
     final double twist = (angles.x + angles.z) * 0.5;
-    return DropRotation.identity.rotateY((angles.y + twist) * _degToRad);
+    final int face = ((units.tiltX + 1) * 3).floor().clamp(0, 5);
+    return DropRotation.identity
+        .rotateY((angles.y + twist) * _degToRad)
+        .mul(realDropBlockFaceRotation(face));
   }
   return DropRotation.identity
       .rotateX(angles.x * _degToRad)
@@ -270,17 +255,30 @@ DropRotation realDropIndexedRotation(DropRotation rotation, int index) =>
 
 DropRotation realDropFaceAlignedRotation(DropRotation current) {
   final int face = _nearestDownFace(current);
-  final DropRotation base = switch (face) {
-    0 => DropRotation.identity,
-    1 => DropRotation.identity.rotateX(math.pi),
-    2 => DropRotation.identity.rotateZ(math.pi / 2),
-    3 => DropRotation.identity.rotateZ(-math.pi / 2),
-    4 => DropRotation.identity.rotateX(-math.pi / 2),
-    _ => DropRotation.identity.rotateX(math.pi / 2),
-  };
+  final DropRotation base = realDropBlockFaceRotation(face);
   final bool zTangent = face < 4;
   final double currentHeading = _tangentHeading(current, zTangent);
   final double baseHeading = _tangentHeading(base, zTangent);
+  return DropRotation.identity.rotateY(currentHeading - baseHeading).mul(base);
+}
+
+DropRotation realDropBlockFaceRotation(int face) => switch (face) {
+  0 => DropRotation.identity,
+  1 => DropRotation.identity.rotateX(math.pi),
+  2 => DropRotation.identity.rotateZ(math.pi / 2),
+  3 => DropRotation.identity.rotateZ(-math.pi / 2),
+  4 => DropRotation.identity.rotateX(-math.pi / 2),
+  5 => DropRotation.identity.rotateX(math.pi / 2),
+  _ => throw ArgumentError.value(face, 'face', 'must be between 0 and 5'),
+};
+
+DropRotation realDropBroadFaceAlignedRotation(DropRotation current) {
+  final double rowZ = current.m[5];
+  final DropRotation base = rowZ <= 0
+      ? DropRotation.identity.rotateX(math.pi / 2)
+      : DropRotation.identity.rotateX(-math.pi / 2);
+  final double currentHeading = _tangentHeading(current, false);
+  final double baseHeading = _tangentHeading(base, false);
   return DropRotation.identity.rotateY(currentHeading - baseHeading).mul(base);
 }
 
@@ -427,6 +425,11 @@ final class DropRotation {
   /// bounding cube spans once this rotation is applied.
   double verticalHalfExtent(double scale) =>
       scale * 0.5 * (m[3].abs() + m[4].abs() + m[5].abs());
+
+  double verticalHalfExtentCuboid(double width, double height, double depth) =>
+      m[3].abs() * width * 0.5 +
+      m[4].abs() * height * 0.5 +
+      m[5].abs() * depth * 0.5;
 
   /// The same rotation as a CSS `matrix3d(...)` argument list.
   ///

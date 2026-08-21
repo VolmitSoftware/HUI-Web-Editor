@@ -1239,4 +1239,127 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'expressions, so rank colours and effects can animate.',
     citation: 'TablistService.java:54-66',
   ),
+
+  // --- real-drop timeline animation ----------------------------------------
+  'realDrops.animation': HuiFieldDoc(
+    title: 'Timeline animation',
+    body:
+        'Profiles select by material and priority, then lifecycle trigger clips '
+        'compose typed scalar tracks over the normal drop presentation.',
+    citation: 'RealDropAnimationPlan.java:16-68',
+  ),
+  'realDrops.animation.enabled': HuiFieldDoc(
+    title: 'Animation enabled',
+    body:
+        'When off, Gloss skips the complete profile and clip layer while '
+        'retaining the authored data.',
+    citation: 'RealDropAnimationEngine.java:8-28',
+  ),
+  'realDrops.animation.materialProperties': HuiFieldDoc(
+    title: 'Material properties',
+    body:
+        'Named maps resolve material globs to glow ARGB and light-level values '
+        'for keyframes that opt into a map.',
+    citation: 'RealDropAnimationPlan.java:278-307',
+  ),
+  'realDrops.animation.profiles': HuiFieldDoc(
+    title: 'Animation profiles',
+    body:
+        'Gloss chooses the highest-priority matching profile, preserving '
+        'declaration order when priorities tie.',
+    citation: 'RealDropAnimationPlan.java:91-134',
+  ),
+  'realDrops.animation.profile.id': HuiFieldDoc(
+    title: 'Profile id',
+    body: 'The identifier must be non-blank and unique within the animation.',
+    citation: 'RealDropAnimationPlan.java:91-104',
+  ),
+  'realDrops.animation.profile.priority': HuiFieldDoc(
+    title: 'Profile priority',
+    body:
+        'Higher values win material selection; accepted values are -10000 through 10000.',
+    citation: 'RealDropSettingsDoc.java:431-457',
+  ),
+  'realDrops.animation.profile.materials': HuiFieldDoc(
+    title: 'Profile materials',
+    body:
+        'Patterns accept * and ? wildcards and match normalized material names '
+        'without requiring the minecraft namespace.',
+    citation: 'RealDropAnimationPlan.java:136-183',
+  ),
+  'realDrops.animation.profile.clips': HuiFieldDoc(
+    title: 'Profile clips',
+    body: 'Matching trigger clips evaluate in their declaration order.',
+    citation: 'RealDropAnimationPlan.java:48-68',
+  ),
+  'realDrops.animation.clip.trigger': HuiFieldDoc(
+    title: 'Clip trigger',
+    body:
+        'A trigger is either a continuing lifecycle state or a discrete event '
+        'such as impact, bounce, fluid entry, settling, or waking.',
+    citation: 'GlossConfig.java:222-240',
+  ),
+  'realDrops.animation.clip.durationTicks': HuiFieldDoc(
+    title: 'Clip duration',
+    body: 'Elapsed clip time clamps here unless looping is enabled.',
+    citation: 'RealDropAnimationPlan.java:462-486',
+  ),
+  'realDrops.animation.clip.loop': HuiFieldDoc(
+    title: 'Clip loop',
+    body:
+        'When on and duration is positive, elapsed time wraps at the duration.',
+    citation: 'RealDropAnimationPlan.java:462-486',
+  ),
+  'realDrops.animation.clip.tracks': HuiFieldDoc(
+    title: 'Clip tracks',
+    body:
+        'Each entry drives one target and must contain at least one keyframe.',
+    citation: 'RealDropAnimationPlan.java:207-273',
+  ),
+  'realDrops.animation.track.target': HuiFieldDoc(
+    title: 'Track target',
+    body:
+        'Targets cover offset, rotation, scale, glow, visibility, physics '
+        'gating, and light level.',
+    citation: 'GlossConfig.java:242-256',
+  ),
+  'realDrops.animation.track.blend': HuiFieldDoc(
+    title: 'Track blend',
+    body:
+        'Replace supports every target, add is limited to offset and rotation, '
+        'and multiply is limited to scale.',
+    citation: 'RealDropAnimationPlan.java:309-346',
+  ),
+  'realDrops.animation.track.keyframes': HuiFieldDoc(
+    title: 'Track keyframes',
+    body:
+        'Ticks must be finite, unique, non-negative, and inside the clip duration.',
+    citation: 'RealDropAnimationPlan.java:239-273',
+  ),
+  'realDrops.animation.keyframe.tick': HuiFieldDoc(
+    title: 'Keyframe tick',
+    body:
+        'The sample position is measured in server ticks from clip activation.',
+    citation: 'RealDropAnimationPlan.java:239-273',
+  ),
+  'realDrops.animation.keyframe.value': HuiFieldDoc(
+    title: 'Keyframe value',
+    body:
+        'This finite scalar is interpolated before the selected blend is applied.',
+    citation: 'RealDropAnimationPlan.java:239-273',
+  ),
+  'realDrops.animation.keyframe.materialMap': HuiFieldDoc(
+    title: 'Keyframe material map',
+    body:
+        'Only glow and light-level tracks may replace their scalar with a value '
+        'from a named material property map.',
+    citation: 'RealDropAnimationPlan.java:278-307',
+  ),
+  'realDrops.animation.keyframe.easing': HuiFieldDoc(
+    title: 'Keyframe easing',
+    body:
+        'Interpolation uses the easing declared on the destination keyframe, '
+        'including hold, cubic ease, and back-out curves.',
+    citation: 'RealDropAnimationPlan.java:365-405',
+  ),
 };

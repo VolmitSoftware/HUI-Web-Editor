@@ -1120,6 +1120,18 @@
   background: repeating-linear-gradient(45deg, #b04ac0 0 6px, #1b1220 6px 12px);
 }
 
+.hui-real-drops-block-face {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: 100% auto;
+  image-rendering: pixelated;
+  backface-visibility: hidden;
+}
+
 .hui-real-drops-shadow {
   position: absolute;
   left: 50%;
@@ -1217,6 +1229,62 @@
   text-align: right;
 }
 
+.hui-drop-animation-group,
+.hui-drop-animation-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hui-drop-animation-group { margin-top: 10px; }
+
+.hui-drop-animation-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--muted) 20%, transparent);
+}
+
+.hui-drop-animation-card.is-clip {
+  background: color-mix(in srgb, var(--muted) 32%, transparent);
+}
+
+.hui-drop-animation-card.is-track {
+  background: color-mix(in srgb, var(--background) 58%, transparent);
+}
+
+.hui-drop-animation-card > summary {
+  cursor: pointer;
+  padding: 8px 10px;
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.hui-drop-animation-card-body { padding: 0 10px 10px; }
+
+.hui-drop-animation-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.hui-drop-animation-row.is-material {
+  grid-template-columns: minmax(100px, 1fr) repeat(2, minmax(76px, .6fr)) auto;
+}
+
+.hui-drop-animation-row.is-keyframe {
+  grid-template-columns: repeat(4, minmax(80px, 1fr)) auto;
+}
+
+.hui-drop-animation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 /* The camera has no affordance of its own — the stage looks the same whether
    or not it can be flown — so the row says out loud that it can. */
 .hui-real-drops-hint {
@@ -1283,6 +1351,8 @@
   .hui-tablist-header,
   .hui-tablist-footer { font-size: 13px; }
   .hui-hologram-readout { right: 12px; }
+  .hui-drop-animation-row.is-material,
+  .hui-drop-animation-row.is-keyframe { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (pointer: coarse), (max-width: 700px) {
