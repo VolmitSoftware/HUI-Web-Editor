@@ -39,6 +39,7 @@ void main() {
             'missing-texture tile for it',
       );
       expect(drop.amount, greaterThan(0));
+      expect(drop.amount, lessThanOrEqualTo(3));
       expect(drop.amount, lessThanOrEqualTo(drop.maxStackSize));
     }
   });
@@ -273,11 +274,11 @@ void main() {
 
   test('the document decides how many displays a stack grows', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-    expect(DropStageTimeline(doc, _drop('sea_lantern')).visualCount, 3);
+    expect(DropStageTimeline(doc, _drop('sea_lantern')).visualCount, 2);
     expect(DropStageTimeline(doc, _drop('cake')).visualCount, 1);
 
     doc.limits.maxVisualsPerStack = 5;
-    expect(DropStageTimeline(doc, _drop('sea_lantern')).visualCount, 5);
+    expect(DropStageTimeline(doc, _drop('sea_lantern')).visualCount, 2);
     doc.limits.maxVisualsPerStack = 1;
     expect(DropStageTimeline(doc, _drop('sea_lantern')).visualCount, 1);
   });
@@ -296,7 +297,13 @@ void main() {
     );
   });
 
-  test('the label is the shipped name format for the stack', () {
+  test('single-item labels omit the redundant count', () {
+    final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+    final ShowcaseDrop drop = _drop('cobblestone');
+    expect(DropStageTimeline(doc, drop).label, '&7${drop.displayName}');
+  });
+
+  test('multi-item labels retain the shipped count format', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
     final ShowcaseDrop drop = _drop('cookie');
     expect(
@@ -424,13 +431,13 @@ void main() {
     test('index reaches the script, so a stack can fan out', () {
       final DropStageTimeline stage = DropStageTimeline(
         scripted((GlossRealDropScript s) => s.offset.x = 'index * 0.25'),
-        _drop('cobblestone'),
+        _drop('sea_lantern'),
       );
       final List<DropStageVisual> visuals = stage.frameAt(midFlight).visuals;
       expect(visuals.length, greaterThan(1));
       final DropStageTimeline plain = DropStageTimeline(
         buildDefaultGlossRealDrops(),
-        _drop('cobblestone'),
+        _drop('sea_lantern'),
       );
       final List<DropStageVisual> before = plain.frameAt(midFlight).visuals;
       for (int index = 0; index < visuals.length; index++) {
@@ -501,13 +508,13 @@ void main() {
     test('glow and visible reach the display', () {
       final DropStageTimeline glowing = DropStageTimeline(
         scripted((GlossRealDropScript s) => s.glow = '#FFAA55'),
-        _drop('cobblestone'),
+        _drop('sea_lantern'),
       );
       expect(glowing.frameAt(midFlight).visuals.first.glowArgb, 0xFFFFAA55);
 
       final DropStageTimeline hidden = DropStageTimeline(
         scripted((GlossRealDropScript s) => s.visible = 'index > 0'),
-        _drop('cobblestone'),
+        _drop('sea_lantern'),
       );
       final List<DropStageVisual> visuals = hidden.frameAt(midFlight).visuals;
       expect(visuals.first.visible, isFalse);

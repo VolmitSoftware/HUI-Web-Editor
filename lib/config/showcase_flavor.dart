@@ -379,8 +379,9 @@ final class ShowcaseDrop {
 /// The stacks the drop stage cycles through.
 ///
 /// Chosen to cover every branch that changes what a drop looks like: all three
-/// model families, the authored Y offsets (slab, carpet, bed, snow, trident,
-/// shield), and every visual-count band from a single model to five.
+/// model families and the authored Y offsets (slab, carpet, bed, snow,
+/// trident, shield). Samples stay at one item unless a two- or three-item
+/// stack makes the stacked presentation useful to inspect.
 ///
 /// Three rows are also the stage's unattended rotation — `dropStageRotation`
 /// names them, one per model family — so removing or renaming `cobblestone`,
@@ -389,13 +390,13 @@ const List<ShowcaseDrop> showcaseDrops = <ShowcaseDrop>[
   ShowcaseDrop(
     material: 'cherry_log',
     displayName: 'Ghostwood Timber',
-    amount: 32,
+    amount: 1,
     block: true,
   ),
   ShowcaseDrop(
     material: 'cobblestone',
     displayName: 'Packard Mill Cobble',
-    amount: 32,
+    amount: 1,
     block: true,
   ),
   ShowcaseDrop(
@@ -415,25 +416,25 @@ const List<ShowcaseDrop> showcaseDrops = <ShowcaseDrop>[
   ShowcaseDrop(
     material: 'cookie',
     displayName: 'Double R Doughnut',
-    amount: 16,
+    amount: 3,
     block: false,
   ),
   ShowcaseDrop(
     material: 'red_carpet',
     displayName: 'Red Room Carpet',
-    amount: 48,
+    amount: 1,
     block: true,
   ),
   ShowcaseDrop(
     material: 'oak_slab',
     displayName: 'Roadhouse Floorboard',
-    amount: 24,
+    amount: 2,
     block: true,
   ),
   ShowcaseDrop(
     material: 'feather',
     displayName: 'Owl Feather',
-    amount: 8,
+    amount: 2,
     block: false,
   ),
   ShowcaseDrop(
@@ -446,13 +447,13 @@ const List<ShowcaseDrop> showcaseDrops = <ShowcaseDrop>[
   ShowcaseDrop(
     material: 'lantern',
     displayName: 'Great Northern Lamp',
-    amount: 4,
+    amount: 2,
     block: true,
   ),
   ShowcaseDrop(
     material: 'black_candle',
     displayName: 'Black Lodge Candle',
-    amount: 12,
+    amount: 3,
     block: true,
   ),
   ShowcaseDrop(
@@ -465,7 +466,7 @@ const List<ShowcaseDrop> showcaseDrops = <ShowcaseDrop>[
   ShowcaseDrop(
     material: 'sea_lantern',
     displayName: 'Owl Cave Light',
-    amount: 64,
+    amount: 3,
     block: true,
   ),
   ShowcaseDrop(
@@ -492,19 +493,19 @@ const List<ShowcaseDrop> showcaseDrops = <ShowcaseDrop>[
   ShowcaseDrop(
     material: 'snow',
     displayName: 'Twin Peaks Snowfall',
-    amount: 40,
+    amount: 2,
     block: true,
   ),
   ShowcaseDrop(
     material: 'cherry_sapling',
     displayName: 'Glastonbury Sapling',
-    amount: 6,
+    amount: 2,
     block: true,
   ),
   ShowcaseDrop(
     material: 'sculk',
     displayName: 'Lodge Floor Static',
-    amount: 64,
+    amount: 1,
     block: true,
   ),
   ShowcaseDrop(

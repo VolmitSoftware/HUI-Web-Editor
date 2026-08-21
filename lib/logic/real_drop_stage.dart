@@ -440,7 +440,9 @@ final class DropStageTimeline {
 
   /// The label the plugin's default `drops.name-format` writes for this stack,
   /// with `drops.useItemDisplayNames` on, which is the shipped default.
-  String get label => '&7${drop.amount}x ${drop.displayName}';
+  String get label => drop.amount == 1
+      ? '&7${drop.displayName}'
+      : '&7${drop.amount}x ${drop.displayName}';
 
   DropStageFrame frameAt(int ms) {
     final double tick = (ms % cycleMs) / 50.0;
