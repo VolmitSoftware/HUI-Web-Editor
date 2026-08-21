@@ -99,6 +99,57 @@ final class RealDropDocumentType extends GlossDocumentTypeAdapter {
                 from: buildDefaultGlossRealDrops(),
               ),
             ),
+            DocumentTemplate(
+              id: 'real-drops-red-room',
+              name: 'Red Room drift',
+              description:
+                  'Slow, upright and legible: loot you are meant to read '
+                  'from across the room.',
+              highlights: const <String>[
+                'Upright landing',
+                'Half-speed tumble',
+                'Large tinted labels',
+              ],
+              create: (EditorStore store) => store.newGlossDocument(
+                this,
+                name: 'red-room',
+                from: buildRedRoomGlossRealDrops(),
+              ),
+            ),
+            DocumentTemplate(
+              id: 'real-drops-sawmill',
+              name: 'Sawmill scatter',
+              description:
+                  'Fast, wide and messy — a mined stack thrown across the '
+                  'floor, five models to a stack.',
+              highlights: const <String>[
+                'Natural tilt',
+                'Re-rolls on bounce',
+                'Player drops only',
+              ],
+              create: (EditorStore store) => store.newGlossDocument(
+                this,
+                name: 'sawmill',
+                from: buildSawmillGlossRealDrops(),
+              ),
+            ),
+            DocumentTemplate(
+              id: 'real-drops-quiet',
+              name: 'Quiet woods',
+              description:
+                  'Small, still ground clutter: no labels, no tumble, and a '
+                  'four-tick poll for the cheapest run.',
+              highlights: const <String>[
+                'No labels',
+                'Flat landing',
+                'Lowest cost',
+              ],
+              create: (EditorStore store) => store.newGlossDocument(
+                this,
+                name: 'quiet-woods',
+                from: buildQuietGlossRealDrops(),
+              ),
+            ),
           ],
         ),
       ];

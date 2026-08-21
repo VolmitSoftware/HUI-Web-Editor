@@ -507,3 +507,20 @@
   line-height: 1.5;
   color: var(--color-muted-foreground);
 }
+
+/* The drop stage draws its own ground in the editor; inside the game frame the
+   world backdrop is already there, so only the stack and its shadow belong. */
+.hui-gloss-game.is-world .hui-real-drops-scene {
+  background: transparent;
+}
+
+.hui-gloss-game.is-world .hui-real-drops-floor {
+  display: none;
+}
+
+/* Inside the frame the backdrop's own ground is far lower than the editor
+   stage's, so the stack lands where the photo's ground is. */
+.hui-gloss-game.is-world .hui-real-drops-carrier,
+.hui-gloss-game.is-world .hui-real-drops-shadow {
+  bottom: 22%;
+}

@@ -67,8 +67,8 @@ extension on GlossGameAnchor {
 /// client's own history does.
 const List<String> _idleChat = <String>[
   'Cyberpwn joined the game',
-  '<SwiftSwamp> anyone seen the nether portal',
-  '<Puretie> south of spawn, past the ravine',
+  '<SwiftSwamp> anyone seen the road out past the sawmill',
+  '<Puretie> south of spawn, through the sycamores',
 ];
 
 /// The frame with nothing anchored in it — what a surface renders under

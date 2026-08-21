@@ -2,6 +2,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:gloss_editor/config/gloss_templates.dart';
+import 'package:gloss_editor/config/showcase_flavor.dart';
 import 'package:gloss_editor/doctype/doctype.dart';
 import 'package:gloss_editor/logic/animation_validation.dart';
 import 'package:gloss_editor/logic/bubble_validation.dart';
@@ -9,6 +11,8 @@ import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/logic/preview_card_scene.dart';
 import 'package:gloss_editor/logic/preview_sim.dart';
 import 'package:gloss_editor/logic/preview_variant_resolver.dart';
+import 'package:gloss_editor/logic/real_drop_stage.dart';
+import 'package:gloss_editor/logic/real_drop_validation.dart';
 import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:gloss_editor/services/showcase_randomizer.dart';
@@ -207,27 +211,46 @@ void main() {
     );
   });
 
-  test('random animation showcase is a smooth procedural hue gradient', () {
+  test('random animations are authored colour, in several shapes', () {
+    final Set<int> lengths = <int>{};
+    final Set<int> intervals = <int>{};
     for (int seed = 0; seed < 64; seed++) {
       final GlossAnimationDoc animation = buildRandomAnimationShowcase(
         GlossAnimationDoc(revision: 9),
         math.Random(seed),
       );
       expect(animation.revision, 9, reason: 'seed $seed');
-      expect(animation.frameIntervalMs, 50, reason: 'seed $seed');
       expect(
-        animation.frames.length,
-        inInclusiveRange(48, 60),
+        glossAnimationModes,
+        contains(animation.mode),
         reason: 'seed $seed',
       );
-      expect(animation.frames.toSet(), hasLength(animation.frames.length));
+      expect(
+        animation.frameIntervalMs,
+        inInclusiveRange(glossMinFrameIntervalMs, glossMaxFrameIntervalMs),
+        reason: 'seed $seed',
+      );
+      expect(animation.frames.length, greaterThanOrEqualTo(5));
       expect(
         animation.frames,
         everyElement(matches(RegExp(r'^\[[0-9A-F]{6}\]'))),
         reason: 'seed $seed',
       );
+      expect(
+        animation.frames.toSet().length,
+        greaterThan(3),
+        reason: 'seed $seed',
+      );
       expect(validateAnimationDoc(animation), isEmpty, reason: 'seed $seed');
+      lengths.add(animation.frames.length);
+      intervals.add(animation.frameIntervalMs);
     }
+    expect(
+      intervals.length,
+      greaterThan(1),
+      reason: 'the pool holds more than one animation shape',
+    );
+    expect(lengths.length, greaterThan(4));
   });
 
   test('random MOTD and scoreboard are complete fake server examples', () {
@@ -487,6 +510,99 @@ void main() {
     expect(store.newDocument(), isTrue);
     expect(store.hasActiveDocument, isTrue);
     expect(storage.values[EditorStore.emptyWorkspaceKey], 'false');
+  });
+
+  test('randomized drop settings stay in range and vary everywhere', () {
+    final Set<String> encoded = <String>{};
+    final Set<String> landings = <String>{};
+    final Set<bool> tumbles = <bool>{};
+    final Set<bool> labelled = <bool>{};
+    final Set<String> billboards = <String>{};
+    for (int seed = 0; seed < 128; seed++) {
+      final GlossRealDropSettingsDoc doc = buildRandomRealDropShowcase(
+        buildDefaultGlossRealDrops(),
+        math.Random(seed),
+      );
+      expect(
+        validateRealDropSettingsDoc(doc),
+        isEmpty,
+        reason: 'seed $seed: ${encodeGlossRealDropSettingsDoc(doc)}',
+      );
+      // A randomized document has to stay presentable, not just legal.
+      final DropStageTimeline stage = DropStageTimeline(
+        doc,
+        showcaseDrops.first,
+      );
+      expect(stage.visualCount, greaterThan(0), reason: 'seed $seed');
+      expect(stage.frameAt(0).carrierY.isFinite, isTrue, reason: 'seed $seed');
+
+      encoded.add(encodeGlossRealDropSettingsDoc(doc));
+      landings.add(doc.landing.mode);
+      tumbles.add(doc.motion.tumble);
+      labelled.add(doc.labels.enabled);
+      billboards.add(doc.labels.billboard);
+    }
+    expect(encoded.length, greaterThan(120), reason: 'every press differs');
+    expect(landings, containsAll(<String>['NATURAL', 'FLAT', 'UPRIGHT']));
+    expect(tumbles, <bool>{true, false});
+    expect(labelled, <bool>{true, false});
+    expect(billboards.length, greaterThan(2));
+  });
+
+  test('generated copy comes from the themed pools and keeps the credits', () {
+    final Set<String> servers = <String>{};
+    final Set<String> moods = <String>{};
+    for (int seed = 0; seed < 96; seed++) {
+      final GlossScoreboardDoc board = buildRandomScoreboardShowcase(
+        GlossScoreboardDoc(),
+        math.Random(seed),
+      );
+      final String plainTitle = board.title
+          .replaceAll(RegExp(r'&[0-9a-fk-or]'), '')
+          .trim();
+      expect(
+        showcaseServerNames.map((String name) => name.toUpperCase()),
+        contains(plainTitle),
+        reason: 'seed $seed board title "$plainTitle"',
+      );
+      servers.add(plainTitle);
+
+      final GlossTablistDoc tablist = buildRandomTablistShowcase(
+        GlossTablistDoc(),
+        math.Random(seed),
+      );
+      expect(
+        showcaseServerNames.any((String name) => tablist.header.contains(name)),
+        isTrue,
+        reason: 'seed $seed tablist header',
+      );
+      for (final ShowcaseMood mood in showcaseMoods) {
+        if (tablist.header.contains(mood.primary)) moods.add(mood.name);
+      }
+    }
+    expect(servers.length, greaterThan(8), reason: 'the pool is actually used');
+
+    // The four real handles are the one thing the theme never replaces.
+    for (final String credit in showcaseCredits) {
+      expect(
+        showcaseEasterEggs.where((String egg) => egg.contains(credit)),
+        isNotEmpty,
+        reason: credit,
+      );
+      expect(
+        showcaseBoardEasterEggs.where((String egg) => egg.contains(credit)),
+        isNotEmpty,
+        reason: credit,
+      );
+    }
+  });
+
+  test('the mock tablist is the town, and the credits are in it', () {
+    for (final String credit in showcaseCredits) {
+      expect(showcaseTownspeople, isNot(contains(credit)));
+    }
+    expect(showcaseTownspeople.toSet(), hasLength(showcaseTownspeople.length));
+    expect(showcaseTownspeople.length, greaterThan(20));
   });
 
   test('every runtime kind has a teaching template', () {

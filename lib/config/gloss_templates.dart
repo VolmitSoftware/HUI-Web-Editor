@@ -115,6 +115,193 @@ const String kGlossRealDropsDefaultJson = r'''
 GlossRealDropSettingsDoc buildDefaultGlossRealDrops() =>
     decodeGlossRealDropSettingsDoc(kGlossRealDropsDefaultJson);
 
+/// Three authored looks for the same feature, so the templates tab teaches
+/// what the fields do rather than only what the defaults are. None of these
+/// ship with the plugin.
+///
+/// Slow, upright and legible: loot you are meant to read from across the room.
+const String kGlossRealDropsRedRoomJson = r"""
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "limits": {
+    "updateIntervalTicks": 1,
+    "settledPollIntervalTicks": 20,
+    "maxVisualsPerStack": 4,
+    "maxVisualsPerChunk": 128,
+    "viewRange": 48.0,
+    "spread": 0.3
+  },
+  "scale": {
+    "defaultScale": 0.55,
+    "flatItems": 0.85,
+    "thinBlocks": 0.6
+  },
+  "motion": {
+    "tumble": true,
+    "speedMultiplier": 0.5,
+    "degreesPerSecondX": 40.0,
+    "degreesPerSecondY": 70.0,
+    "degreesPerSecondZ": 30.0,
+    "variance": 0.1,
+    "changeOnBounce": false
+  },
+  "landing": {
+    "mode": "UPRIGHT",
+    "tiltDegrees": 4.0,
+    "randomYaw": true,
+    "transitionTicks": 12
+  },
+  "labels": {
+    "enabled": true,
+    "yOffset": 0.85,
+    "scale": 1.35,
+    "viewRange": 48.0,
+    "billboard": "CENTER",
+    "seeThrough": true,
+    "shadow": true,
+    "background": true,
+    "backgroundRed": 60,
+    "backgroundGreen": 6,
+    "backgroundBlue": 18,
+    "backgroundAlpha": 170
+  },
+  "filters": {
+    "disabledWorlds": [],
+    "materialBlacklist": [
+      "BEDROCK",
+      "BARRIER"
+    ],
+    "onlyPlayerDrops": false
+  }
+}
+""";
+
+/// Fast, wide and messy: a mined stack thrown across the floor.
+const String kGlossRealDropsSawmillJson = r"""
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "limits": {
+    "updateIntervalTicks": 1,
+    "settledPollIntervalTicks": 20,
+    "maxVisualsPerStack": 5,
+    "maxVisualsPerChunk": 192,
+    "viewRange": 32.0,
+    "spread": 0.75
+  },
+  "scale": {
+    "defaultScale": 0.35,
+    "flatItems": 0.6,
+    "thinBlocks": 0.4
+  },
+  "motion": {
+    "tumble": true,
+    "speedMultiplier": 2.6,
+    "degreesPerSecondX": 340.0,
+    "degreesPerSecondY": 260.0,
+    "degreesPerSecondZ": 300.0,
+    "variance": 0.6,
+    "changeOnBounce": true
+  },
+  "landing": {
+    "mode": "NATURAL",
+    "tiltDegrees": 28.0,
+    "randomYaw": true,
+    "transitionTicks": 3
+  },
+  "labels": {
+    "enabled": true,
+    "yOffset": 0.4,
+    "scale": 0.7,
+    "viewRange": 24.0,
+    "billboard": "CENTER",
+    "seeThrough": false,
+    "shadow": true,
+    "background": true,
+    "backgroundRed": 0,
+    "backgroundGreen": 0,
+    "backgroundBlue": 0,
+    "backgroundAlpha": 60
+  },
+  "filters": {
+    "disabledWorlds": [],
+    "materialBlacklist": [
+      "BEDROCK",
+      "BARRIER"
+    ],
+    "onlyPlayerDrops": true
+  }
+}
+""";
+
+/// Small, silent ground clutter: no labels, nothing spinning, cheap to run.
+const String kGlossRealDropsQuietJson = r"""
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "limits": {
+    "updateIntervalTicks": 4,
+    "settledPollIntervalTicks": 60,
+    "maxVisualsPerStack": 2,
+    "maxVisualsPerChunk": 64,
+    "viewRange": 16.0,
+    "spread": 0.12
+  },
+  "scale": {
+    "defaultScale": 0.25,
+    "flatItems": 0.4,
+    "thinBlocks": 0.28
+  },
+  "motion": {
+    "tumble": false,
+    "speedMultiplier": 1.0,
+    "degreesPerSecondX": 0.0,
+    "degreesPerSecondY": 0.0,
+    "degreesPerSecondZ": 0.0,
+    "variance": 0.0,
+    "changeOnBounce": false
+  },
+  "landing": {
+    "mode": "FLAT",
+    "tiltDegrees": 0.0,
+    "randomYaw": true,
+    "transitionTicks": 6
+  },
+  "labels": {
+    "enabled": false,
+    "yOffset": 0.55,
+    "scale": 0.85,
+    "viewRange": 16.0,
+    "billboard": "CENTER",
+    "seeThrough": false,
+    "shadow": true,
+    "background": true,
+    "backgroundRed": 0,
+    "backgroundGreen": 0,
+    "backgroundBlue": 0,
+    "backgroundAlpha": 80
+  },
+  "filters": {
+    "disabledWorlds": [],
+    "materialBlacklist": [
+      "BEDROCK",
+      "BARRIER"
+    ],
+    "onlyPlayerDrops": false
+  }
+}
+""";
+
+GlossRealDropSettingsDoc buildRedRoomGlossRealDrops() =>
+    decodeGlossRealDropSettingsDoc(kGlossRealDropsRedRoomJson);
+
+GlossRealDropSettingsDoc buildSawmillGlossRealDrops() =>
+    decodeGlossRealDropSettingsDoc(kGlossRealDropsSawmillJson);
+
+GlossRealDropSettingsDoc buildQuietGlossRealDrops() =>
+    decodeGlossRealDropSettingsDoc(kGlossRealDropsQuietJson);
+
 /// `Gloss/src/main/resources/defaults/animations/rainbow.json`, byte for
 /// byte — the animation the plugin extracts into
 /// `plugins/Gloss/animations/` on first run.

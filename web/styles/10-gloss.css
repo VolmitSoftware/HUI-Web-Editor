@@ -977,80 +977,131 @@
 
 .hui-real-drops-stage {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-height: 420px;
   overflow: hidden;
-  background: linear-gradient(#172333 0 58%, #263120 58% 100%);
+}
+
+.hui-real-drops-stage.is-empty {
+  background: linear-gradient(#141c24 0 58%, #1b2419 58% 100%);
 }
 
 .hui-real-drops-scene {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
+  background: linear-gradient(#0b1220 0%, #24384a 60%, #35506a 100%);
 }
 
-.hui-real-drops-ground {
+/* `overflow: hidden` forces a flat transform style, so the clipping element
+   above cannot also be the 3D context — this one is. */
+.hui-real-drops-world {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 38%;
-  background: repeating-linear-gradient(90deg, #495142 0 48px, #3f4938 48px 50px);
-  box-shadow: inset 0 2px rgba(255, 255, 255, .08);
+  inset: 0;
+  perspective: 650px;
+  perspective-origin: 50% 12%;
+  transform-style: preserve-3d;
+}
+
+/* The ground the stack lands on: one plane laid flat through the ground line,
+   so a model's height off it is height and not a guess. Centring the plane on
+   that line gives both halves — the near floor under the camera and the far
+   floor receding to the horizon. */
+.hui-real-drops-floor {
+  position: absolute;
+  left: 50%;
+  /* Two pixels under the ground line: a model that settles flush would
+     otherwise be coplanar with the floor and z-fight it away. */
+  top: calc(60% + 2px);
+  width: 2600px;
+  height: 2600px;
+  margin-left: -1300px;
+  margin-top: -1300px;
+  transform: rotateX(90deg);
+  transform-origin: 50% 50%;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .3) 0 2px, transparent 2px 108px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .3) 0 2px, transparent 2px 108px),
+    linear-gradient(#5c7040 0 30%, #3a4926 62%, #222c16);
+}
+
+/* The plugin parents every display to one carrier entity; so does the stage,
+   which is why the label rides the models instead of drifting from them. */
+.hui-real-drops-carrier {
+  position: absolute;
+  left: 50%;
+  bottom: 40%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
 }
 
 .hui-real-drops-model {
   position: absolute;
-  z-index: 2;
-  bottom: 82px;
-  border: 2px solid #71808b;
-  background: linear-gradient(135deg, #9aa4aa, #626d72 52%, #414a50);
-  box-shadow: inset -8px -8px rgba(0, 0, 0, .2), 0 9px 16px rgba(0, 0, 0, .35);
-  transform: translateX(-50%) rotateX(58deg) rotateZ(10deg);
-  transform-origin: 50% 80%;
+  left: 0;
+  top: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 
-.hui-real-drops-model.is-upright { transform: translateX(-50%); }
-.hui-real-drops-model.is-flat { transform: translateX(-50%) rotateX(78deg); }
-
-.hui-real-drops-model.is-tumbling {
-  animation-name: hui-real-drop-tumble;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+.hui-real-drops-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
 }
 
-@keyframes hui-real-drop-tumble {
-  from { transform: translateX(-50%) rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
-  to { transform: translateX(-50%) rotateX(360deg) rotateY(270deg) rotateZ(225deg); }
+.hui-real-drops-layer.is-missing {
+  border: 1px solid rgba(255, 255, 255, .25);
+  background: repeating-linear-gradient(45deg, #b04ac0 0 6px, #1b1220 6px 12px);
+}
+
+.hui-real-drops-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 40%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, .68), rgba(0, 0, 0, 0) 72%);
+  transform: translate(-50%, 50%);
+  pointer-events: none;
 }
 
 .hui-real-drops-label {
   position: absolute;
+  left: 0;
+  top: 0;
   z-index: 4;
-  left: 50%;
-  padding: 3px 7px;
-  color: #fff;
-  font-family: var(--font-mono);
   white-space: nowrap;
-  transform-origin: bottom center;
 }
 
+.hui-real-drops-plate {
+  padding: 2px 6px;
+  color: #fff;
+  transform-origin: 50% 100%;
+}
+
+/* `seeThrough` is depth-test off in game: the label draws over whatever is in
+   front of it, which here is the stack it belongs to. */
 .hui-real-drops-label.is-see-through { z-index: 8; }
 
-.hui-real-drops-readout {
-  position: absolute;
-  z-index: 10;
-  left: 16px;
-  right: 16px;
-  bottom: 14px;
-  padding: 8px 11px;
-  border: 1px solid var(--border);
-  border-radius: 0;
-  background: color-mix(in srgb, var(--background) 88%, transparent);
+.hui-real-drops-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--background) 92%, transparent);
+}
+
+.hui-real-drops-readout-inline {
   color: var(--muted-foreground);
   font-size: 12px;
-  text-align: center;
 }
 
 .hui-tablist-format-row {
