@@ -229,6 +229,7 @@ void main() {
   test('random animations are authored colour, in several shapes', () {
     final Set<int> lengths = <int>{};
     final Set<int> intervals = <int>{};
+    final Set<String> modes = <String>{};
     for (int seed = 0; seed < 64; seed++) {
       final GlossAnimationDoc animation = buildRandomAnimationShowcase(
         GlossAnimationDoc(revision: 9),
@@ -246,6 +247,7 @@ void main() {
         reason: 'seed $seed',
       );
       expect(animation.frames.length, greaterThanOrEqualTo(5));
+      expect(animation.frames.length, lessThanOrEqualTo(80));
       expect(
         animation.frames,
         everyElement(matches(RegExp(r'^\[[0-9A-F]{6}\]'))),
@@ -259,6 +261,7 @@ void main() {
       expect(validateAnimationDoc(animation), isEmpty, reason: 'seed $seed');
       lengths.add(animation.frames.length);
       intervals.add(animation.frameIntervalMs);
+      modes.add(animation.mode);
     }
     expect(
       intervals.length,
@@ -266,6 +269,7 @@ void main() {
       reason: 'the pool holds more than one animation shape',
     );
     expect(lengths.length, greaterThan(4));
+    expect(modes, glossAnimationModes.toSet());
   });
 
   test('random MOTD and scoreboard are complete fake server examples', () {

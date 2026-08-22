@@ -20,6 +20,7 @@ library;
 import 'dart:math' as math;
 
 import '../config/showcase_flavor.dart';
+import '../model/gloss_animation.dart' show glossAnimationModes;
 
 /// A named piece of motion, so generated copy can say what it is using and a
 /// test can assert the pool is actually diverse.
@@ -77,9 +78,7 @@ ShowcaseEffect showcaseTickPrefix(math.Random random, ShowcaseMood mood) {
   final int rate = 4 + random.nextInt(6);
   final List<String> glyphs = mood.glyphs;
   final String forward = glyphs.map((String g) => "'$g'").join(', ');
-  final String backward = glyphs.reversed
-      .map((String g) => "'$g'")
-      .join(', ');
+  final String backward = glyphs.reversed.map((String g) => "'$g'").join(', ');
   final String stutter = <String>[
     glyphs.first,
     glyphs.last,
@@ -121,8 +120,7 @@ ShowcaseEffect showcaseScanline(
   final List<String> frames = <String>[
     for (int lit = 0; lit < cells; lit++)
       <String>[
-        for (int cell = 0; cell < cells; cell++)
-          cell == lit ? '&f▌' : '&8▌',
+        for (int cell = 0; cell < cells; cell++) cell == lit ? '&f▌' : '&8▌',
       ].join(),
   ];
   final String list = frames.map((String f) => "'$f'").join(', ');
@@ -186,12 +184,14 @@ ShowcaseEffect showcaseWave(math.Random random, String text) {
 ) {
   final int shape = random.nextInt(4);
   final String glyph = showcasePick(random, mood.glyphs);
+  final String mode =
+      glossAnimationModes[random.nextInt(glossAnimationModes.length)];
   switch (shape) {
     case 0:
       final int count = 48 + random.nextInt(13);
       final int startHue = random.nextInt(360);
       return (
-        mode: random.nextBool() ? 'ascend' : 'descend',
+        mode: mode,
         intervalMs: 50,
         frames: <String>[
           for (int index = 0; index < count; index++)
@@ -201,15 +201,15 @@ ShowcaseEffect showcaseWave(math.Random random, String text) {
     case 1:
       final int count = 24 + random.nextInt(17);
       return (
-        mode: 'ascend',
+        mode: mode,
         intervalMs: 60,
         frames: <String>[
           for (int index = 0; index < count; index++)
             '[${showcaseMixHex(mood.primary, mood.secondary, index / (count - 1))}]'
-            '$word',
+                '$word',
           for (int index = count - 2; index > 0; index--)
             '[${showcaseMixHex(mood.primary, mood.secondary, index / (count - 1))}]'
-            '$word',
+                '$word',
         ],
       );
     case 2:
@@ -222,7 +222,7 @@ ShowcaseEffect showcaseWave(math.Random random, String text) {
       ];
       final int count = (4 * (3 + random.nextInt(4))).toInt();
       return (
-        mode: 'ascend',
+        mode: mode,
         intervalMs: 80,
         frames: <String>[
           for (int index = 0; index < count; index++)
@@ -232,15 +232,15 @@ ShowcaseEffect showcaseWave(math.Random random, String text) {
     default:
       final List<String> letters = word.split('');
       return (
-        mode: 'ascend',
+        mode: mode,
         intervalMs: 70,
         frames: <String>[
           for (int slot = 0; slot <= letters.length; slot++)
             '[${_stripHash(mood.primary)}]'
-            '${letters.sublist(0, slot).join()}'
-            '[${_stripHash(mood.secondary)}]$glyph'
-            '[${_stripHash(mood.primary)}]'
-            '${letters.sublist(slot).join()}',
+                '${letters.sublist(0, slot).join()}'
+                '[${_stripHash(mood.secondary)}]$glyph'
+                '[${_stripHash(mood.primary)}]'
+                '${letters.sublist(slot).join()}',
         ],
       );
   }

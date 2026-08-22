@@ -19,6 +19,7 @@ import '../logic/canvas_scene.dart' show huiIsBlockLikeMaterial;
 import '../logic/real_drop_model.dart';
 import '../model/model.dart';
 import '../state/editor_store.dart';
+import '../state/workspace.dart' show WorkspaceDoc;
 import 'catalogs.dart';
 import 'showcase_effects.dart';
 
@@ -112,59 +113,168 @@ bool randomizeMenuComponent(
   return true;
 }
 
+bool randomizePreviewElement(
+  EditorStore store,
+  int index, {
+  math.Random? random,
+}) {
+  final HuiPreviewDoc? document = store.previewDoc;
+  if (document == null || index < 0 || index >= document.elements.length) {
+    return false;
+  }
+  final math.Random source = random ?? math.Random.secure();
+  final String type = document.elements[index].type;
+  final HuiPreviewElement replacement = _randomPreviewElement(type, source);
+  store.mutatePreview('Randomize $type', (HuiPreviewDoc edited) {
+    if (index < edited.elements.length && edited.elements[index].type == type) {
+      edited.elements[index] = replacement;
+    }
+  });
+  return true;
+}
+
+HuiPreviewElement _randomPreviewElement(String type, math.Random random) {
+  final int red = 72 + random.nextInt(160);
+  final int green = 72 + random.nextInt(160);
+  final int blue = 72 + random.nextInt(160);
+  final String pulse = '(sin(time / ${3 + random.nextInt(7)}) + 1) / 2';
+  final String color =
+      'argb(220, round(lerp(32, $red, $pulse)), '
+      'round(lerp(32, $green, $pulse)), '
+      'round(lerp(32, $blue, $pulse)))';
+  final String visible = random.nextBool()
+      ? 'true'
+      : 'mod(floor(time / ${8 + random.nextInt(9)}), 2) == 0';
+  return switch (type) {
+    'panel' => HuiPreviewElement(
+      'panel',
+      x: random.nextInt(25) - 12,
+      y: random.nextInt(25) - 12,
+      z: 1 + random.nextInt(3),
+      width: 72 + random.nextInt(65),
+      height: 48 + random.nextInt(57),
+      color: color,
+      visible: visible,
+    ),
+    'slot' => HuiPreviewElement(
+      'slot',
+      x: 'slot * ${20 + random.nextInt(9)} - ${20 + random.nextInt(13)}',
+      y: random.nextInt(17) - 8,
+      z: 5 + random.nextInt(3),
+      size: 16 + random.nextInt(7),
+      wellColor: color,
+      index: 'slot',
+      visible: visible,
+      repeat: HuiPreviewRepeat(count: 2 + random.nextInt(3), varName: 'slot'),
+    ),
+    'label' => HuiPreviewElement(
+      'label',
+      x: random.nextInt(17) - 8,
+      y: random.nextInt(41) - 20,
+      z: 7 + random.nextInt(3),
+      background: color,
+      text:
+          "select(['&fLIVE', '&aREADY', '&bSYNC'], "
+          'mod(floor(time / ${6 + random.nextInt(7)}), 3))',
+      visible: visible,
+    ),
+    _ => HuiPreviewElement(
+      'cell',
+      x: 'cell * ${12 + random.nextInt(9)} - ${12 + random.nextInt(13)}',
+      y: random.nextInt(17) - 8,
+      z: 3 + random.nextInt(3),
+      size: '6 + round(4 * $pulse)',
+      color: color,
+      visible: visible,
+      repeat: HuiPreviewRepeat(count: 2 + random.nextInt(4), varName: 'cell'),
+    ),
+  };
+}
+
 HuiMenu buildRandomMenuShowcase(EditorStore store, math.Random random) {
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
   final String server = showcasePick(random, showcaseServerNames);
+  final int topology = random.nextInt(4);
+  final List<Vec3> positions = _menuTopologyPositions(topology);
+  final HuiIconStyle titleStyle = _randomStyle(random, mood)
+    ..lineWidth = 180
+    ..scaleX = 0.68
+    ..scaleY = 0.68
+    ..scaleZ = 0.68;
   final List<HuiComponent> components = <HuiComponent>[
     HuiComponent(
       'showcase-title',
-      Vec3(0, 1.15, 0),
+      positions[0],
       HuiDecorationData(
         HuiTextIcon(
-          '${mood.legacy}&l$server\n&7${showcasePick(random, showcaseEvents)}',
-          _randomStyle(random, mood),
-          20,
+          '${mood.legacy}&l$server\n'
+          "&7{{ player.name }} &8• &f{{ fixed(server.tps, 1) }} TPS\n"
+          '&8${showcasePick(random, showcaseStatusWords)} :star:',
+          titleStyle,
+          5 + random.nextInt(16),
         ),
       ),
     ),
     HuiComponent(
-      'all-actions',
-      Vec3(-2.4, 0.35, 0),
-      _randomButtonData(store, random, componentOffset: Vec3(-2.4, 0.35, 0)),
+      'viewer-head',
+      positions[1],
+      HuiDecorationData(
+        HuiPlayerHeadIcon(
+          random.nextBool() ? '%player_name%' : '{{player.name}}',
+          _randomStyle(random, mood),
+          random.nextBool() ? null : 20,
+        ),
+      ),
+    ),
+    HuiComponent(
+      'command-action',
+      positions[2],
+      _menuButtonRecipe(store, random, 0, positions[2]),
+    ),
+    HuiComponent(
+      'travel-action',
+      positions[3],
+      _menuButtonRecipe(store, random, 1, positions[3]),
+    ),
+    HuiComponent(
+      'network-action',
+      positions[4],
+      _menuButtonRecipe(store, random, 2, positions[4]),
+    ),
+    HuiComponent(
+      'navigation-action',
+      positions[5],
+      _menuButtonRecipe(store, random, 3, positions[5]),
     ),
     HuiComponent(
       'styled-block',
-      Vec3(0, 0.35, 0),
+      positions[6],
       HuiDecorationData(
         HuiBlockIcon(_blockMaterial(random), _randomStyle(random, mood)),
       ),
     ),
     HuiComponent(
       'living-entity',
-      Vec3(2.4, 0.35, 0),
+      positions[7],
       HuiDecorationData(
         HuiEntityIcon(
           huiSpawnableLivingEntityTypes[random.nextInt(
             huiSpawnableLivingEntityTypes.length,
           )],
-          0.7 + random.nextDouble() * 0.7,
-          0.7 + random.nextDouble() * 0.7,
+          0.55 + random.nextDouble() * 0.35,
+          0.55 + random.nextDouble() * 0.35,
         ),
       ),
     ),
-    HuiComponent(
-      'live-toggle',
-      Vec3(0, -0.55, 0),
-      _randomToggleData(store, random),
-    ),
+    HuiComponent('live-toggle', positions[8], _randomToggleData(store, random)),
   ];
-  final HuiIcon? assetIcon = _randomAssetIcon(store, random, mood);
-  if (assetIcon != null) {
+  final List<HuiIcon> assetIcons = _availableAssetIcons(store, random, mood);
+  for (int index = 0; index < assetIcons.length && index < 3; index++) {
     components.add(
       HuiComponent(
-        'local-asset',
-        Vec3(0, -1.35, 0),
-        HuiDecorationData(assetIcon),
+        'local-asset-${index + 1}',
+        positions[9 + index],
+        HuiDecorationData(assetIcons[index]),
       ),
     );
   }
@@ -174,32 +284,145 @@ HuiMenu buildRandomMenuShowcase(EditorStore store, math.Random random) {
       _round(1.4 + random.nextDouble() * 0.8),
       _round(2.2 + random.nextDouble()),
     ),
-    lockPosition: random.nextBool(),
-    followPlayer: random.nextBool(),
+    lockPosition: topology == 2 || random.nextBool(),
+    followPlayer: topology != 3 && random.nextBool(),
     maxDistance: 8 + random.nextInt(25).toDouble(),
-    closeOnDeath: true,
-    closeOnTeleport: true,
+    closeOnDeath: random.nextInt(5) != 0,
+    closeOnTeleport: random.nextInt(4) != 0,
     components: components,
   );
 }
 
-HuiPreviewDoc buildRandomPreviewShowcase(math.Random random) {
-  final int archetype = random.nextInt(9);
+List<Vec3> _menuTopologyPositions(int topology) => switch (topology) {
+  0 => <Vec3>[
+    Vec3(0, 1.35, 0),
+    Vec3(-2.7, 1.15, 0),
+    Vec3(-2.1, 0.35, 0),
+    Vec3(-0.7, 0.35, 0),
+    Vec3(0.7, 0.35, 0),
+    Vec3(2.1, 0.35, 0),
+    Vec3(-1.5, -0.55, 0),
+    Vec3(0, -0.55, 0),
+    Vec3(1.5, -0.55, 0),
+    Vec3(-1.5, -1.35, 0),
+    Vec3(0, -1.35, 0),
+    Vec3(1.5, -1.35, 0),
+  ],
+  1 => <Vec3>[
+    Vec3(-1.5, 1.35, 0),
+    Vec3(1.7, 1.25, 0),
+    Vec3(-1.8, 0.55, 0),
+    Vec3(-0.6, 0.55, 0),
+    Vec3(0.6, 0.55, 0),
+    Vec3(1.8, 0.55, 0),
+    Vec3(-1.4, -0.35, 0),
+    Vec3(0, -0.35, 0),
+    Vec3(1.4, -0.35, 0),
+    Vec3(-1.4, -1.15, 0),
+    Vec3(0, -1.15, 0),
+    Vec3(1.4, -1.15, 0),
+  ],
+  2 => <Vec3>[
+    Vec3(0, 1.55, 0),
+    Vec3(0, 0.95, 0),
+    Vec3(-2.25, 0.55, 0),
+    Vec3(2.25, 0.55, 0),
+    Vec3(-2.25, -0.25, 0),
+    Vec3(2.25, -0.25, 0),
+    Vec3(-1.35, -0.85, 0),
+    Vec3(0, -1.05, 0),
+    Vec3(1.35, -0.85, 0),
+    Vec3(-1.3, -1.65, 0),
+    Vec3(0, -1.75, 0),
+    Vec3(1.3, -1.65, 0),
+  ],
+  _ => <Vec3>[
+    Vec3(-2.3, 1.4, 0),
+    Vec3(2.25, 1.35, 0),
+    Vec3(-2.1, 0.65, 0),
+    Vec3(-0.7, 0.65, 0),
+    Vec3(0.7, 0.65, 0),
+    Vec3(2.1, 0.65, 0),
+    Vec3(-1.4, -0.25, 0),
+    Vec3(0, -0.25, 0),
+    Vec3(1.4, -0.25, 0),
+    Vec3(-1.4, -1.1, 0),
+    Vec3(0, -1.1, 0),
+    Vec3(1.4, -1.1, 0),
+  ],
+};
+
+enum PreviewShowcaseArchetype {
+  beehive,
+  brewingStand,
+  cauldron,
+  chest,
+  chiseledBookshelf,
+  dispenser,
+  enderChest,
+  furnace,
+  hopper,
+  jukebox,
+  locked,
+  minecart,
+  shelf,
+}
+
+HuiPreviewDoc buildRandomPreviewShowcase(
+  math.Random random, {
+  PreviewShowcaseArchetype? archetype,
+}) {
+  final PreviewShowcaseArchetype selectedArchetype =
+      archetype ??
+      PreviewShowcaseArchetype.values[random.nextInt(
+        PreviewShowcaseArchetype.values.length,
+      )];
   final _PreviewFurnaceTheme theme = showcasePick(
     random,
     _previewFurnaceThemes,
   );
-  return switch (archetype) {
-    0 => _buildRandomStoragePreview(random, theme),
-    1 => _buildRandomPreviewFurnaceLab(random, theme),
-    2 => _buildRandomBrewingPreview(random, theme),
-    3 => _buildRandomBeehivePreview(random, theme),
-    4 => _buildRandomCauldronPreview(random, theme),
-    5 => _buildRandomJukeboxPreview(random, theme),
-    6 => _buildRandomEnderPreview(random, theme),
-    7 => _buildRandomMobilePreview(random, theme),
-    _ => _buildRandomVitalsPreview(random, theme),
+  final HuiPreviewDoc doc = switch (selectedArchetype) {
+    PreviewShowcaseArchetype.beehive => _buildRandomBeehivePreview(
+      random,
+      theme,
+    ),
+    PreviewShowcaseArchetype.brewingStand => _buildRandomBrewingPreview(
+      random,
+      theme,
+    ),
+    PreviewShowcaseArchetype.cauldron => _buildRandomCauldronPreview(
+      random,
+      theme,
+    ),
+    PreviewShowcaseArchetype.chest => _buildRandomStoragePreview(random, theme),
+    PreviewShowcaseArchetype.chiseledBookshelf =>
+      _buildRandomChiseledBookshelfPreview(random, theme),
+    PreviewShowcaseArchetype.dispenser => _buildRandomDispenserPreview(
+      random,
+      theme,
+    ),
+    PreviewShowcaseArchetype.enderChest => _buildRandomEnderPreview(
+      random,
+      theme,
+    ),
+    PreviewShowcaseArchetype.furnace => _buildRandomPreviewFurnaceLab(
+      random,
+      theme,
+    ),
+    PreviewShowcaseArchetype.hopper => _buildRandomHopperPreview(random, theme),
+    PreviewShowcaseArchetype.jukebox => _buildRandomJukeboxPreview(
+      random,
+      theme,
+    ),
+    PreviewShowcaseArchetype.locked => _buildRandomLockedPreview(random, theme),
+    PreviewShowcaseArchetype.minecart => _buildRandomMobilePreview(
+      random,
+      theme,
+    ),
+    PreviewShowcaseArchetype.shelf => _buildRandomShelfPreview(random, theme),
   };
+  doc.match.priority = 8 + random.nextInt(7);
+  return doc;
 }
 
 HuiPreviewDoc buildRandomPreviewFurnaceLab(math.Random random) =>
@@ -505,6 +728,289 @@ HuiPreviewDoc _buildRandomStoragePreview(
   );
 }
 
+HuiPreviewDoc _buildRandomChiseledBookshelfPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int pulseRate = 4 + random.nextInt(6);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['CHISELED_BOOKSHELF'],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': showcasePick(random, <String>[
+          'Bookhouse Archive',
+          'Ghostwood Reading Room',
+          'Owl Cave Records',
+        ]),
+        'columns': 3,
+        'rows': 2,
+        'slots': 6,
+        'pulseRate': pulseRate,
+        'panelWidth': 136,
+        'panelHeight': 102,
+      },
+    ),
+    card: _previewCard(76),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        z: '2 + smoothstep(0, 1, (sin(time / vars.pulseRate) + 1) / 2)',
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'shelf'),
+        x: 'round((mod(shelf, vars.columns) - 1) * 30)',
+        y: 'round((0.5 - floor(shelf / vars.columns)) * 26)',
+        size: '16 + abs(cos(time / vars.pulseRate + shelf)) * 2',
+        color:
+            'mix(rgb(80, 48, 24), argb(255, 228, 184, 92), '
+            'smoothstep(0, 1, (sin(time / vars.pulseRate + shelf) + 1) / 2))',
+      ),
+      HuiPreviewElement(
+        'slot',
+        z: 5,
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'book'),
+        x: 'round((mod(book, vars.columns) - 1) * 30)',
+        y: 'round((0.5 - floor(book / vars.columns)) * 26)',
+        size: 18,
+        index: 'book',
+        wellColor: 'alpha(vars.wellColor, 210)',
+      ),
+      HuiPreviewElement(
+        'label',
+        z: 7,
+        x: 0,
+        y: -36,
+        background: 'alpha(vars.panelColor, 180)',
+        text:
+            "'&7Volumes &f' + str(inventory.occupied) + '&8/' + "
+            "str(min(inventory.size, vars.slots)) + ' &8• &7Ink ' + "
+            'hex(vars.fill)',
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomDispenserPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int pulseRate = 3 + random.nextInt(5);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['DISPENSER', 'DROPPER'],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': 'Ghostwood Dispenser',
+        'slots': 9,
+        'pulseRate': pulseRate,
+        'panelWidth': 142,
+        'panelHeight': 126,
+      },
+    ),
+    variants: <HuiPreviewVariant>[
+      HuiPreviewVariant(
+        blocks: <String>['DROPPER'],
+        vars: <String, dynamic>{
+          'title': 'Packard Dropper',
+          'accent': theme.accent,
+        },
+      ),
+    ],
+    card: _previewCard(78),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'slot',
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'slot'),
+        x: 'round((mod(slot, 3) - 1) * 24)',
+        y: 'round((1 - floor(slot / 3)) * 24)',
+        size: 18,
+        index: 'slot',
+        wellColor: 'vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'cell',
+        z: '3 + mod(floor(time.ticks / vars.pulseRate), 2)',
+        repeat: HuiPreviewRepeat(count: 8, varName: 'port'),
+        x: 'round(cos(port * 0.785398) * 50)',
+        y: 'round(sin(port * 0.785398) * 38)',
+        size: '4 + abs(cos(time / vars.pulseRate + port)) * 3',
+        color:
+            'port == mod(floor(time / vars.pulseRate), 8) '
+            '? vars.pulse : vars.idle',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -48,
+        background: 'alpha(vars.panelColor, 192)',
+        text:
+            "'&7Payload &f' + str(inventory.occupied) + '&8/' + "
+            "str(inventory.size) + ' &8• &7Cycle &f' + "
+            'str(mod(floor(time.seconds), 8) + 1)',
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomHopperPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int pulseRate = 3 + random.nextInt(7);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['HOPPER'],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': 'Packard Transfer Hopper',
+        'slots': 5,
+        'pulseRate': pulseRate,
+        'panelWidth': 154,
+        'panelHeight': 88,
+      },
+    ),
+    card: _previewCard(84),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'flow'),
+        x: 'round(lerp(-48, 48, flow / max(vars.slots - 1, 1)))',
+        y: 20,
+        size: '5 + smoothstep(-1, 1, sin(time / vars.pulseRate + flow)) * 3',
+        color:
+            'flow <= mod(floor(time / vars.pulseRate), vars.slots) '
+            '? vars.fill : vars.idle',
+      ),
+      HuiPreviewElement(
+        'slot',
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'slot'),
+        x: 'round(lerp(-48, 48, slot / max(vars.slots - 1, 1)))',
+        y: -4,
+        size: 18,
+        index: 'slot',
+        wellColor: 'vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -28,
+        background: 'alpha(vars.panelColor, 176)',
+        text:
+            "'&7Transfer load &f' + str(inventory.occupied) + '&8/' + "
+            'str(min(inventory.size, vars.slots))',
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomShelfPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int slots = 4 + random.nextInt(5);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      blocks: <String>['*_SHELF'],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': 'Great Northern Shelf',
+        'slots': slots,
+        'panelWidth': slots * 23 + 34,
+        'panelHeight': 88,
+      },
+    ),
+    card: _previewCard(82),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'grain'),
+        x: 'round((grain - (vars.slots - 1) / 2) * 23)',
+        y: 18,
+        size: '4 + pow((sin(time / 7 + grain) + 1) / 2, 2) * 4',
+        color:
+            'mix(vars.idle, vars.fill, '
+            'smoothstep(0, 1, (cos(time / 7 + grain) + 1) / 2))',
+      ),
+      HuiPreviewElement(
+        'slot',
+        repeat: HuiPreviewRepeat(count: 'vars.slots', varName: 'slot'),
+        x: 'round((slot - (vars.slots - 1) / 2) * 23)',
+        y: -4,
+        size: 18,
+        index: 'slot',
+        wellColor: 'vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -30,
+        background: 'alpha(vars.panelColor, 180)',
+        text:
+            "'&7Shelf &f' + str(inventory.occupied) + '&8/' + "
+            "str(vars.slots) + ' &8• &7Level &f' + str(player.level)",
+      ),
+    ],
+  );
+}
+
+HuiPreviewDoc _buildRandomLockedPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final bool animatedFrame = random.nextBool();
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      special: 'locked',
+      priority: 20,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': 'Restricted',
+        'cells': 4,
+        'panelWidth': 132,
+        'panelHeight': 86,
+      },
+    ),
+    card: HuiPreviewCard(
+      framed: animatedFrame ? 'mod(floor(time.seconds), 2) == 0' : false,
+      title: "'&c&l' + vars.title",
+      accent: 'vars.accent',
+      minHalfWidth: 72,
+    ),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        visible: 'player.health > 0',
+        repeat: HuiPreviewRepeat(count: 'vars.cells', varName: 'lock'),
+        x: 'round((lock - 1.5) * 22)',
+        y: 4,
+        size: '12 + abs(sin(time.ms / 500 + lock)) * 4',
+        color:
+            'mix(vars.idle, vars.pulse, '
+            'smoothstep(0, 1, (sin(time / 5 + lock) + 1) / 2))',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -24,
+        background: 'alpha(argb(220, 24, 12, 18), 210)',
+        text:
+            "'&cAccess denied &8• &7' + "
+            "papi('player_name', player.name) + ' &8• &7' + "
+            "fixed(metric('react.tick-ms', 50), 1) + 'ms &8• &7' + "
+            "str(number('42') + papiNumber('player_level', player.level))",
+      ),
+    ],
+  );
+}
+
 HuiPreviewDoc _buildRandomBrewingPreview(
   math.Random random,
   _PreviewFurnaceTheme theme,
@@ -530,7 +1036,7 @@ HuiPreviewDoc _buildRandomBrewingPreview(
         'panelHeight': 124,
       },
     ),
-    card: _previewCard(94),
+    card: random.nextInt(4) == 0 ? null : _previewCard(94),
     elements: <HuiPreviewElement>[
       _previewPanel(),
       HuiPreviewElement('slot', x: 0, y: 24, size: 20, index: 3),
@@ -951,70 +1457,6 @@ HuiPreviewDoc _buildRandomMobilePreview(
   );
 }
 
-HuiPreviewDoc _buildRandomVitalsPreview(
-  math.Random random,
-  _PreviewFurnaceTheme theme,
-) {
-  final int bars = 9 + random.nextInt(7);
-  return HuiPreviewDoc(
-    match: HuiPreviewMatch(
-      special: 'locked',
-      priority: 10,
-      vars: <String, dynamic>{
-        ..._previewThemeVars(theme),
-        'title': showcasePick(random, <String>[
-          'Blue Rose Telemetry',
-          'Sheriff Station Signal',
-          'Great Northern Status',
-        ]),
-        'bars': bars,
-        'panelWidth': 172,
-        'panelHeight': 118,
-      },
-    ),
-    card: _previewCard(92),
-    elements: <HuiPreviewElement>[
-      _previewPanel(),
-      HuiPreviewElement(
-        'cell',
-        repeat: HuiPreviewRepeat(count: 'vars.bars', varName: 'bar'),
-        x: 'round((bar - (vars.bars - 1) / 2) * 9)',
-        y: 18,
-        size: '4 + mod(bar + floor(time / 4), 4)',
-        color:
-            'palette([vars.fill, vars.pulse, vars.chase, vars.idle], '
-            'floor(time / 4) + bar)',
-      ),
-      HuiPreviewElement(
-        'cell',
-        repeat: HuiPreviewRepeat(count: 3, varName: 'signal'),
-        x: '-24 + signal * 24',
-        y: -4,
-        size: '8 + signal * 2',
-        color:
-            'mix(vars.fill, vars.pulse, '
-            '(sin(time / (5 + signal * 2)) + 1) / 2)',
-      ),
-      HuiPreviewElement(
-        'label',
-        x: 0,
-        y: -28,
-        text:
-            "vars.stateColor + '&lLIVE &8• &7TPS &a' + fixed(server.tps, 1) "
-            "+ ' &8• &7Ping &f' + str(player.ping) + 'ms'",
-      ),
-      HuiPreviewElement(
-        'label',
-        x: 0,
-        y: -43,
-        text:
-            "'&7Online &f' + str(server.online) + '&8/' + "
-            "str(server.maxPlayers) + ' &8• &7Agent &f' + player.name",
-      ),
-    ],
-  );
-}
-
 Map<String, dynamic> _previewThemeVars(_PreviewFurnaceTheme theme) =>
     <String, dynamic>{
       'panelColor': theme.panelColor,
@@ -1037,6 +1479,7 @@ HuiPreviewElement _previewPanel() => HuiPreviewElement(
   'panel',
   x: 0,
   y: -4,
+  z: 1,
   width: 'vars.panelWidth',
   height: 'vars.panelHeight',
   color: 'vars.panelColor',
@@ -1078,6 +1521,13 @@ GlossHologramDoc buildRandomHologramShowcase(
         showcaseWave(random, showcasePick(random, showcaseAnimationWords)).text,
       );
   }
+  final String billboard = showcasePick(random, glossHologramBillboards);
+  final double yaw = billboard == 'FIXED' || billboard == 'HORIZONTAL'
+      ? _round2(-180 + random.nextDouble() * 360)
+      : 0;
+  final double pitch = billboard == 'FIXED' || billboard == 'VERTICAL'
+      ? _round2(-45 + random.nextDouble() * 90)
+      : 0;
   return GlossHologramDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
@@ -1090,6 +1540,10 @@ GlossHologramDoc buildRandomHologramShowcase(
       ],
     ),
     lines: lines,
+    seeThrough: random.nextBool(),
+    billboard: billboard,
+    yaw: yaw,
+    pitch: pitch,
   );
 }
 
@@ -1144,15 +1598,26 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
   if (random.nextBool()) {
     lines.insert(2, '${mood.legacy}${mood.name}&8 style');
   }
+  final String titlePrefix = showcasePick(random, <String>[
+    '${mood.legacy}&l',
+    '${mood.legacy}&o',
+    '&f&l',
+    '&7&n',
+  ]);
   return GlossScoreboardDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
-    title: '${mood.legacy}&l${server.toUpperCase()}',
+    title: '$titlePrefix${server.toUpperCase()}',
     lines: lines,
     primary: random.nextBool(),
-    hideNumbers: true,
-    permission: random.nextBool() ? 'default' : 'vip',
-    groups: random.nextBool() ? <String>['vip', 'mvp'] : <String>[],
+    hideNumbers: random.nextInt(4) != 0,
+    permission: showcasePick(random, <String>['default', 'vip', 'staff']),
+    groups: switch (random.nextInt(4)) {
+      0 => <String>[],
+      1 => <String>['vip'],
+      2 => <String>['vip', 'mvp'],
+      _ => <String>['moderator', 'developer', 'owner'],
+    },
   );
 }
 
@@ -1191,12 +1656,18 @@ GlossEmojiDoc buildRandomEmojiShowcase(
   math.Random random,
 ) {
   final (String, String) choice = showcasePick(random, _emojiChoices);
+  final int shape = random.nextInt(3);
+  final String emoji = switch (shape) {
+    0 => choice.$2,
+    1 => glossParseUnicodeText(choice.$2),
+    _ => showcasePick(random, _emojiCompounds),
+  };
   return GlossEmojiDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
-    trigger: choice.$1,
-    emoji: choice.$2,
-    enabled: true,
+    trigger: random.nextInt(5) == 0 ? '' : choice.$1,
+    emoji: emoji,
+    enabled: random.nextInt(5) != 0,
   );
 }
 
@@ -1224,11 +1695,19 @@ const List<(String, String)> _emojiChoices = <(String, String)>[
   (':star:', 'U+2B50;'),
 ];
 
+const List<String> _emojiCompounds = <String>[
+  'U+1F3F3;U+FE0F;U+200D;U+1F308;',
+  'U+1F441;U+FE0F;U+200D;U+1F5E8;U+FE0F;',
+  'U+2601;U+FE0F;U+200D;U+1F525;',
+  'U+1F43F;U+FE0F;U+200D;U+2B1B;',
+];
+
 GlossBubbleStyleDoc buildRandomBubbleShowcase(
   GlossBubbleStyleDoc current,
   math.Random random,
 ) {
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
+  final int selectShape = random.nextInt(4);
   return GlossBubbleStyleDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
@@ -1241,24 +1720,38 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
       _round((random.nextDouble() - 0.5) * 0.8),
     ],
     wordWrapChars: 36 + random.nextInt(73),
-    maxAliveMs: 9000 + random.nextInt(21001),
+    maxAliveMs: 4000 + ((random.nextInt(8001) + 4000) % 8001),
     motion: _randomBubbleMotion(random),
     shimmer: _randomBubbleShimmer(random, mood),
     followPlayer: random.nextBool(),
     hideOwn: random.nextBool(),
-    select: GlossBubbleSelect(
-      worlds: <String>['world*', 'twin_peaks*'],
-      groups: <String>['owner', 'developer', 'vip'],
-      priority: 10 + random.nextInt(41),
-    ),
+    select: switch (selectShape) {
+      0 => null,
+      1 => GlossBubbleSelect(
+        worlds: <String>['world*', 'twin_peaks*'],
+        groups: <String>[],
+        priority: 10 + random.nextInt(41),
+      ),
+      2 => GlossBubbleSelect(
+        worlds: <String>[],
+        groups: <String>['owner', 'developer', 'vip'],
+        priority: 10 + random.nextInt(41),
+      ),
+      _ => GlossBubbleSelect(
+        worlds: <String>['world*', 'twin_peaks*'],
+        groups: <String>['owner', 'developer', 'vip'],
+        priority: 10 + random.nextInt(41),
+      ),
+    },
   );
 }
 
 GlossBubbleShimmer _randomBubbleShimmer(math.Random random, ShowcaseMood mood) {
   final int durationMs = 450 + random.nextInt(1051);
+  final int passShape = (random.nextInt(4) + 1) % 4;
   return GlossBubbleShimmer(
-    spawn: true,
-    flyAway: true,
+    spawn: passShape != 1,
+    flyAway: passShape != 2,
     color: showcasePick(random, <String>[
       '#ffffff',
       mood.primary.toLowerCase(),
@@ -1272,11 +1765,11 @@ GlossBubbleShimmer _randomBubbleShimmer(math.Random random, ShowcaseMood mood) {
 }
 
 GlossBubbleMotion _randomBubbleMotion(math.Random random) {
-  final double travel = _round(2.5 + random.nextDouble() * 5.5);
-  final double lift = _round(3.5 + random.nextDouble() * 7.5);
-  final double fall = _round(2.0 + random.nextDouble() * 8.0);
-  final double spin = _round(90 + random.nextDouble() * 630);
-  final double shrink = _round(0.35 + random.nextDouble() * 0.6);
+  final double travel = _round(0.25 + random.nextDouble() * 0.95);
+  final double lift = _round(0.4 + random.nextDouble() * 1.2);
+  final double fall = _round(0.2 + random.nextDouble());
+  final double spin = _round(10 + random.nextDouble() * 110);
+  final double shrink = _round(0.2 + random.nextDouble() * 0.35);
   final int mode = random.nextInt(4);
   return switch (mode) {
     0 => GlossBubbleMotion(
@@ -1357,10 +1850,31 @@ GlossTablistDoc buildRandomTablistShowcase(
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
   final String server = showcasePick(random, showcaseServerNames);
   final String easterEgg = showcaseEasterEgg(random);
+  final int formatShape = (random.nextInt(4) + 3) % 4;
+  final Map<String, String> nameFormats = switch (formatShape) {
+    0 => <String, String>{'default': r'&7$player'},
+    1 => <String, String>{
+      'default': r'&7[Townsfolk] &f$player',
+      '_op': '${showcaseColorEffect(random, mood).text}&l[Founder] &f\$player',
+    },
+    2 => <String, String>{
+      'default': r'&7[Townsfolk] &f$player',
+      'owner': '${mood.legacy}&l[Lodge Keeper] &f\$player',
+      'vip': '${mood.legacy}[\$group] &f\$player',
+    },
+    _ => <String, String>{
+      'default': r'&7[Townsfolk] &f$player',
+      '_op': '${showcaseColorEffect(random, mood).text}&l[Founder] &f\$player',
+      'owner': '${mood.legacy}&l[Lodge Keeper] &f\$player',
+      'developer': r'&b[Bookhouse] &f$player',
+      'moderator': r'&a[Deputy] &f$player',
+      'vip': '${mood.legacy}[\$group] &f\$player',
+    },
+  };
   return GlossTablistDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
-    useHeaderFooter: true,
+    useHeaderFooter: random.nextInt(5) != 0,
     header:
         '${showcaseColorEffect(random, mood).text}&l$server\n'
         "&7Welcome &f{{ player.name }} &8• "
@@ -1374,15 +1888,8 @@ GlossTablistDoc buildRandomTablistShowcase(
         '${showcaseTickPrefix(random, mood).text}'
         '&7${showcasePick(random, showcaseEvents)} &8• &b'
         '${showcasePick(random, showcaseDomains)}',
-    groupListNames: true,
-    nameFormats: <String, String>{
-      'default': r'&7[Townsfolk] &f$player',
-      '_op': '${showcaseColorEffect(random, mood).text}&l[Founder] &f\$player',
-      'owner': '${mood.legacy}&l[Lodge Keeper] &f\$player',
-      'developer': r'&b[Bookhouse] &f$player',
-      'moderator': r'&a[Deputy] &f$player',
-      'vip': '${mood.legacy}[\$group] &f\$player',
-    },
+    groupListNames: random.nextInt(5) != 0,
+    nameFormats: nameFormats,
   );
 }
 
@@ -2492,73 +2999,225 @@ HuiButtonData _randomButtonData(
   EditorStore store,
   math.Random random, {
   required Vec3 componentOffset,
+}) => _buttonDataForRecipe(
+  store,
+  random,
+  random.nextInt(6),
+  componentOffset,
+  requireHitbox: false,
+);
+
+HuiButtonData _menuButtonRecipe(
+  EditorStore store,
+  math.Random random,
+  int recipe,
+  Vec3 componentOffset,
+) => _buttonDataForRecipe(
+  store,
+  random,
+  recipe,
+  componentOffset,
+  requireHitbox: true,
+);
+
+HuiButtonData _buttonDataForRecipe(
+  EditorStore store,
+  math.Random random,
+  int recipe,
+  Vec3 componentOffset, {
+  required bool requireHitbox,
 }) {
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
   final bool menuAnchored = random.nextBool();
   final Vec3 hitboxOffset = menuAnchored
       ? Vec3(componentOffset.x, componentOffset.y, componentOffset.z + 0.02)
       : Vec3(0, 0, 0.02);
-  return HuiButtonData(
-    0.04 + random.nextDouble() * 0.16,
-    <HuiAction>[
-      HuiCommandAction('/spawn', 'player', 'left_click'),
-      HuiSoundAction(
-        _sound(store, random),
-        'master',
-        1,
-        0.8 + random.nextDouble(),
-        'right_click',
+  final String trigger = showcasePick(random, huiActionTriggers);
+  final String alternateTrigger = trigger == 'right_click'
+      ? 'shift_right_click'
+      : 'right_click';
+  final List<HuiAction> actions = switch (recipe % 6) {
+    0 => <HuiAction>[
+      _randomSoundAction(store, random, trigger),
+      random.nextBool()
+          ? HuiCommandAction('/spawn', 'player', trigger)
+          : HuiCommandAction('time query daytime', 'server', trigger),
+    ],
+    1 => <HuiAction>[
+      _randomSoundAction(store, random, trigger),
+      HuiTeleportAction(
+        showcasePick(random, <String>[
+          'minecraft:overworld',
+          'minecraft:the_nether',
+          'minecraft:the_end',
+        ]),
+        (random.nextInt(401) - 200).toDouble(),
+        (64 + random.nextInt(48)).toDouble(),
+        (random.nextInt(401) - 200).toDouble(),
+        (random.nextInt(361) - 180).toDouble(),
+        (random.nextInt(121) - 60).toDouble(),
+        trigger,
       ),
+    ],
+    2 => <HuiAction>[
       HuiMessageAction(
         '<gradient:${mood.primary}:${mood.secondary}>'
-            '${showcasePick(random, showcaseHeadlines)}</gradient>',
-        'shift_left_click',
+        '${showcasePick(random, showcaseHeadlines)}</gradient>',
+        trigger,
       ),
-      HuiTeleportAction(
-        'minecraft:overworld',
-        0,
-        80,
-        0,
-        0,
-        0,
-        'shift_right_click',
+      HuiConnectAction(
+        showcasePick(random, <String>[
+          'lobby',
+          'survival-1',
+          'events',
+          'creative',
+        ]),
+        trigger,
       ),
-      HuiConnectAction('lobby', 'any'),
-      HuiNavigateAction('', 'close', 'any'),
     ],
-    _randomIcon(store, random),
-    HuiHitbox(
-      0.8 + random.nextDouble(),
-      0.35 + random.nextDouble() * 0.8,
-      hitboxOffset,
-      menuAnchored ? HuiHitboxAnchor.menu : HuiHitboxAnchor.button,
+    3 => <HuiAction>[
+      HuiMessageAction(
+        '<gray>${showcasePick(random, showcaseEvents)}</gray>',
+        trigger,
+      ),
+      _randomNavigationAction(store, random, trigger),
+    ],
+    4 => <HuiAction>[
+      _randomSoundAction(store, random, trigger),
+      HuiMessageAction(
+        '<${mood.primary}>${showcasePick(random, showcaseStatusWords)}</${mood.primary}>',
+        trigger,
+      ),
+      HuiCommandAction('/help', 'player', alternateTrigger),
+    ],
+    _ => <HuiAction>[
+      HuiMessageAction(
+        '<white>${showcasePick(random, showcaseHeadlines)}</white>',
+        trigger,
+      ),
+      _randomSoundAction(store, random, alternateTrigger),
+      _randomNavigationAction(store, random, trigger),
+    ],
+  };
+  final List<String> iconTypes = <String>[
+    'item',
+    'block',
+    'text',
+    'playerHead',
+    'entity',
+    ..._availableAssetIconTypes(store),
+  ];
+  return HuiButtonData(
+    0.04 + random.nextDouble() * 0.16,
+    actions,
+    _randomIcon(
+      store,
+      random,
+      preferredType: iconTypes[recipe % iconTypes.length],
     ),
+    requireHitbox || random.nextInt(4) != 0
+        ? HuiHitbox(
+            0.45 + random.nextDouble() * 0.1,
+            0.18 + random.nextDouble() * 0.08,
+            hitboxOffset,
+            menuAnchored ? HuiHitboxAnchor.menu : HuiHitboxAnchor.button,
+          )
+        : null,
     random.nextInt(11),
     _randomHoverEasing(random),
+  );
+}
+
+HuiSoundAction _randomSoundAction(
+  EditorStore store,
+  math.Random random,
+  String trigger,
+) => HuiSoundAction(
+  _sound(store, random),
+  showcasePick(random, huiSoundSources),
+  _round2(0.55 + random.nextDouble() * 1.25),
+  _round2(0.55 + random.nextDouble() * 1.4),
+  trigger,
+);
+
+HuiNavigateAction _randomNavigationAction(
+  EditorStore store,
+  math.Random random,
+  String trigger,
+) {
+  final List<String> targets = <String>[
+    for (final WorkspaceDoc document in store.workspace.docs)
+      if (DocumentTypeRegistry.of(document.kind) is MenuDocumentType &&
+          document.runtimeId != null &&
+          document.id != store.workspace.activeId)
+        document.runtimeId!,
+  ];
+  if (targets.isNotEmpty && random.nextBool()) {
+    return HuiNavigateAction(
+      showcasePick(random, targets),
+      random.nextBool() ? 'push' : 'replace',
+      trigger,
+    );
+  }
+  return HuiNavigateAction(
+    '',
+    showcasePick(random, <String>['back', 'home', 'close']),
+    trigger,
   );
 }
 
 HuiToggleData _randomToggleData(EditorStore store, math.Random random) {
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
   final (String, String) labels = showcasePick(random, _toggleLabels);
+  final (String, String) condition = showcasePick(random, <(String, String)>[
+    ('%player_is_op%', 'yes'),
+    ('%player_world%', 'world'),
+    ('%player_has_permission_gloss.vip%', 'true'),
+  ]);
+  final int recipe = random.nextInt(3);
+  final String trigger = showcasePick(random, huiActionTriggers);
+  final HuiIcon trueIcon = switch (recipe) {
+    0 => HuiTextIcon(
+      '&a[ON] &f${labels.$1}',
+      _randomStyle(random, mood),
+      10 + random.nextInt(21),
+    ),
+    1 => HuiItemIcon(
+      _material(store, random),
+      1 + random.nextInt(3),
+      random.nextInt(5),
+      _randomStyle(random, mood),
+    ),
+    _ => HuiPlayerHeadIcon('%player_name%', _randomStyle(random, mood), 20),
+  };
+  final HuiIcon falseIcon = switch (recipe) {
+    0 => HuiTextIcon(
+      '&c[OFF] &7${labels.$2}',
+      _randomStyle(random, mood),
+      10 + random.nextInt(21),
+    ),
+    1 => HuiBlockIcon(_blockMaterial(random), _randomStyle(random, mood)),
+    _ => HuiTextIcon('&7${labels.$2}', _randomStyle(random, mood), 20),
+  };
   return HuiToggleData(
     0.05 + random.nextDouble() * 0.1,
-    '%player_is_op%',
-    'yes',
+    condition.$1,
+    condition.$2,
     <HuiAction>[
-      HuiMessageAction('<green>${labels.$1}</green>'),
-      HuiSoundAction(_sound(store, random), 'master', 1, 1.35),
+      HuiMessageAction('<green>${labels.$1}</green>', trigger),
+      _randomSoundAction(store, random, trigger),
     ],
     <HuiAction>[
-      HuiMessageAction('<red>${labels.$2}</red>'),
-      HuiSoundAction(_sound(store, random), 'master', 1, 0.7),
+      HuiMessageAction('<red>${labels.$2}</red>', trigger),
+      _randomSoundAction(store, random, trigger),
     ],
-    HuiTextIcon('&a[ON] &f${labels.$1}', _randomStyle(random, mood), 20),
-    HuiTextIcon('&c[OFF] &7${labels.$2}', _randomStyle(random, mood), 20),
+    trueIcon,
+    falseIcon,
     HuiHitbox(
-      0.9 + random.nextDouble(),
-      0.3 + random.nextDouble() * 0.6,
+      0.45 + random.nextDouble() * 0.1,
+      0.18 + random.nextDouble() * 0.08,
       Vec3(0, 0, random.nextDouble() * 0.06),
+      HuiHitboxAnchor.button,
     ),
     random.nextInt(11),
     _randomHoverEasing(random),
@@ -2577,46 +3236,46 @@ const List<(String, String)> _toggleLabels = <(String, String)>[
 HuiHoverEasing _randomHoverEasing(math.Random random) =>
     HuiHoverEasing.values[random.nextInt(HuiHoverEasing.values.length)];
 
-HuiIcon _randomIcon(EditorStore store, math.Random random) {
+HuiIcon _randomIcon(
+  EditorStore store,
+  math.Random random, {
+  String? preferredType,
+}) {
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
-  final HuiIcon? asset = _randomAssetIcon(store, random, mood);
-  final List<HuiIcon> choices = <HuiIcon>[
-    HuiTextIcon(
-      '${mood.legacy}&l${showcasePick(random, showcaseStatusWords)}\n'
-      '&7${showcasePick(random, showcaseEvents)}',
-      _randomStyle(random, mood),
-      20,
-    ),
-    HuiItemIcon(
-      _material(store, random),
-      1 + random.nextInt(4),
-      random.nextInt(4),
-      _randomStyle(random, mood),
-    ),
-    HuiBlockIcon(_blockMaterial(random), _randomStyle(random, mood)),
-    HuiEntityIcon(
-      huiSpawnableLivingEntityTypes[random.nextInt(
-        huiSpawnableLivingEntityTypes.length,
-      )],
-      0.75 + random.nextDouble(),
-      0.75 + random.nextDouble(),
-    ),
-    ?asset,
+  final List<String> availableTypes = <String>[
+    'text',
+    'item',
+    'block',
+    'entity',
+    'playerHead',
+    ..._availableAssetIconTypes(store),
   ];
-  return choices[random.nextInt(choices.length)];
+  final String selected =
+      preferredType != null && availableTypes.contains(preferredType)
+      ? preferredType
+      : showcasePick(random, availableTypes);
+  return _randomIconOfType(store, random, mood, selected);
 }
 
-HuiIcon? _randomAssetIcon(
+List<String> _availableAssetIconTypes(EditorStore store) => <String>[
+  if ((store.images?.paths.length ?? 0) >= 1) 'textImage',
+  if ((store.images?.paths.length ?? 0) >= 2) 'animatedTextImage',
+  if (store.catalogs.customItems.isNotEmpty) 'customItem',
+];
+
+List<HuiIcon> _availableAssetIcons(
   EditorStore store,
   math.Random random,
   ShowcaseMood mood,
 ) {
   final List<String> images = store.images?.paths.toList() ?? <String>[];
+  images.sort();
   final List<CustomItemEntry> customItems = store.catalogs.customItems.items;
   final CustomItemEntry? customItem = customItems.isEmpty
       ? null
       : customItems[random.nextInt(customItems.length)];
-  final List<HuiIcon> choices = <HuiIcon>[
+  final List<String> frames = List<String>.of(images)..shuffle(random);
+  return <HuiIcon>[
     if (images.isNotEmpty)
       HuiTextImageIcon(
         images[random.nextInt(images.length)],
@@ -2624,7 +3283,7 @@ HuiIcon? _randomAssetIcon(
       ),
     if (images.length >= 2)
       HuiAnimatedImageIcon(
-        <String>[images[0], images[1]],
+        frames.take(math.min(4, frames.length)).toList(),
         2 + random.nextInt(10),
         _randomStyle(random, mood),
       ),
@@ -2637,8 +3296,53 @@ HuiIcon? _randomAssetIcon(
             _randomStyle(random, mood),
           ),
   ];
-  return choices.isEmpty ? null : choices[random.nextInt(choices.length)];
 }
+
+HuiIcon _randomIconOfType(
+  EditorStore store,
+  math.Random random,
+  ShowcaseMood mood,
+  String type,
+) => switch (type) {
+  'item' => HuiItemIcon(
+    _material(store, random),
+    1 + random.nextInt(4),
+    random.nextInt(8),
+    _randomStyle(random, mood),
+  ),
+  'block' => HuiBlockIcon(_blockMaterial(random), _randomStyle(random, mood)),
+  'entity' => HuiEntityIcon(
+    showcasePick(random, huiSpawnableLivingEntityTypes),
+    0.55 + random.nextDouble() * 0.4,
+    0.55 + random.nextDouble() * 0.4,
+  ),
+  'playerHead' => HuiPlayerHeadIcon(
+    showcasePick(random, <String>[
+      '%player_name%',
+      '%player%',
+      '{{player.name}}',
+      'Notch',
+    ]),
+    _randomStyle(random, mood),
+    random.nextBool() ? null : 20 + random.nextInt(41),
+  ),
+  'textImage' ||
+  'animatedTextImage' ||
+  'customItem' => _availableAssetIcons(store, random, mood).firstWhere(
+    (HuiIcon icon) => icon.type == type,
+    orElse: () => HuiTextIcon(
+      '${mood.legacy}${showcasePick(random, showcaseStatusWords)}',
+      _randomStyle(random, mood),
+      10,
+    ),
+  ),
+  _ => HuiTextIcon(
+    '${mood.legacy}&l${showcasePick(random, showcaseStatusWords)}\n'
+    '&7{{ player.name }}',
+    _randomStyle(random, mood),
+    5 + random.nextInt(26),
+  ),
+};
 
 HuiIconStyle _randomStyle(math.Random random, ShowcaseMood mood) {
   final int? brightness = random.nextBool() ? random.nextInt(16) : null;
@@ -2664,9 +3368,9 @@ HuiIconStyle _randomStyle(math.Random random, ShowcaseMood mood) {
     cullingWidth: 1 + random.nextDouble() * 4,
     cullingHeight: 1 + random.nextDouble() * 4,
     glowColor: random.nextBool() ? '#FF${mood.primary.substring(1)}' : null,
-    scaleX: 0.7 + random.nextDouble() * 0.8,
-    scaleY: 0.7 + random.nextDouble() * 0.8,
-    scaleZ: 0.7 + random.nextDouble() * 0.8,
+    scaleX: 0.65 + random.nextDouble() * 0.4,
+    scaleY: 0.65 + random.nextDouble() * 0.4,
+    scaleZ: 0.65 + random.nextDouble() * 0.4,
   );
 }
 

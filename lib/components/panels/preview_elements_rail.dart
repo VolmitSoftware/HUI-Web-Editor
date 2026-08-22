@@ -20,6 +20,7 @@ import 'package:jaspr/jaspr.dart' show ListenableBuilder;
 import '../../config/defaults.dart';
 import '../../logic/validation.dart';
 import '../../model/preview_doc.dart';
+import '../../services/showcase_randomizer.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 
@@ -349,8 +350,15 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
       onClose: () => setState(() => _menuIndex = null),
       items: <HuiActionMenuItem>[
         HuiActionMenuItem(
+          label:
+              'Randomize ${_typeLabel(_store.previewDoc!.elements[index].type).toLowerCase()}',
+          icon: ArcaneIcon.dices(size: IconSize.sm),
+          onSelect: () => randomizePreviewElement(_store, index),
+        ),
+        HuiActionMenuItem(
           label: 'Duplicate',
           icon: ArcaneIcon.copy(size: IconSize.sm),
+          separatorBefore: true,
           onSelect: () => _store.duplicatePreviewElement(index),
         ),
         HuiActionMenuItem(
