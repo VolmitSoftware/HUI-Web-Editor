@@ -23,8 +23,6 @@ import 'package:jaspr/dom.dart' as dom;
 import 'package:web/web.dart' as web;
 
 import '../../logic/bubble_preview.dart';
-import '../../logic/bubble_shimmer.dart';
-import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
@@ -208,12 +206,9 @@ class _BubbleViewState extends State<BubbleView> {
           ),
           <Widget>[
             GlossTextLine(
-              render: renderGlossLine(
-                glossBubbleApplyShimmer(
-                  doc.effectivePrefix + bubble.text,
-                  doc.shimmer,
-                  bubble.shimmerBandIndex,
-                ),
+              render: renderGlossBubblePreviewText(
+                doc,
+                bubble,
                 animations: _store.workspaceAnimations,
                 emoji: _store.workspaceEmoji,
                 nowMs: nowMs,

@@ -98,7 +98,7 @@ void main() {
       final GlossAnimationDoc second = buildRainbowGlossAnimation();
       expect(identical(first, second), isFalse);
       expect(first.mode, 'ascend');
-      expect(first.frameIntervalMs, 50);
+      expect(first.frameIntervalMs, 53);
       expect(first.frames, hasLength(60));
       expect(first.frames.toSet(), hasLength(60));
       for (int index = 0; index < first.frames.length; index++) {

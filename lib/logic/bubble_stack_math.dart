@@ -8,12 +8,12 @@ double glossBubbleStackOffset(
   List<int> lineCounts,
 ) {
   if (bubbleIndex < 0 || bubbleIndex >= lineCounts.length) return 0;
-  int linesAtOrBelow = 0;
-  for (int index = bubbleIndex; index < lineCounts.length; index++) {
+  int linesBelow = 0;
+  for (int index = bubbleIndex + 1; index < lineCounts.length; index++) {
     final int count = lineCounts[index];
-    linesAtOrBelow += count > 0 ? count : 1;
+    linesBelow += count > 0 ? count : 1;
   }
-  final double offset = spread * linesAtOrBelow;
+  final double offset = spread * linesBelow;
   return offset > 0 ? offset : 0;
 }
 

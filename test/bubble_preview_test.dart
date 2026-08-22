@@ -3,15 +3,18 @@ library;
 import 'package:gloss_editor/logic/bubble_lines.dart';
 import 'package:gloss_editor/logic/bubble_preview.dart';
 import 'package:gloss_editor/logic/bubble_stack_math.dart';
+import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 GlossBubbleStyleDoc _style({
+  String prefix = '&7',
   int wrap = 32,
   int maxAliveMs = 5000,
   GlossBubbleMotion? motion,
   GlossBubbleShimmer? shimmer,
 }) => GlossBubbleStyleDoc(
+  prefix: prefix,
   wordWrapChars: wrap,
   maxAliveMs: maxAliveMs,
   motion: motion ?? GlossBubbleMotion.legacyFlyAway(),
@@ -87,6 +90,33 @@ void main() {
         glossBubbleStackY(glossBubbleDefaultStackSpread, index, lineCounts),
       );
     }
+    expect(bubbles.last.stackY, 0);
+  });
+
+  test('shimmer never exposes an unevaluated formatted prefix', () {
+    final GlossBubbleStyleDoc style = _style(
+      prefix:
+          '{{ hex(palette([#FF2D4E, #FFB3C4, #FFFFFF], '
+          'floor(time.seconds * 4))) }}',
+      shimmer: GlossBubbleShimmer(
+        spawn: true,
+        durationMs: 1000,
+        spawnDelayMs: 0,
+      ),
+    );
+    final GlossBubblePreviewBubble bubble = GlossBubblePreviewTimeline(
+      style,
+    ).bubblesAt(100).single;
+    expect(bubble.shimmerBandIndex, isNotNull);
+
+    final GlossLineRender rendered = renderGlossBubblePreviewText(
+      style,
+      bubble,
+      nowMs: 100,
+    );
+    expect(rendered.expressionErrors, isEmpty);
+    expect(rendered.plainText, isNot(contains('{{')));
+    expect(rendered.plainText, contains('Magic_Psycho'));
   });
 
   test(

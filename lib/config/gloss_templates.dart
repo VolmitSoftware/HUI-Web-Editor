@@ -345,7 +345,7 @@ const String kGlossAnimationRainbowJson = r'''
   "schemaVersion": 1,
   "revision": 1,
   "mode": "ascend",
-  "frameIntervalMs": 50,
+  "frameIntervalMs": 53,
   "frames": [
     "[FF0000]",
     "[FF1A00]",

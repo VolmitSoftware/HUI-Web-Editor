@@ -5,6 +5,7 @@ import 'bubble_lines.dart';
 import 'bubble_motion.dart';
 import 'bubble_shimmer.dart';
 import 'bubble_stack_math.dart';
+import 'gloss_text.dart';
 import 'preview_expr.dart';
 
 const List<String> glossBubblePreviewMessages = <String>[
@@ -151,6 +152,32 @@ final class GlossBubblePreviewTimeline {
       return null;
     }
   }
+}
+
+GlossLineRender renderGlossBubblePreviewText(
+  GlossBubbleStyleDoc style,
+  GlossBubblePreviewBubble bubble, {
+  GlossAnimationResolver animations = const GlossNoAnimations(),
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
+  required int nowMs,
+}) {
+  final String renderedPrefix = glossRenderMenuText(
+    style.effectivePrefix,
+    animations: animations,
+    emoji: emoji,
+    nowMs: nowMs,
+  );
+  final String shimmered = glossBubbleApplyShimmer(
+    renderedPrefix + bubble.text,
+    style.shimmer,
+    bubble.shimmerBandIndex,
+  );
+  return renderGlossLine(
+    shimmered,
+    animations: animations,
+    emoji: emoji,
+    nowMs: nowMs,
+  );
 }
 
 typedef _BubbleSpawn = ({int at, String text, int lineCount, double seed});
