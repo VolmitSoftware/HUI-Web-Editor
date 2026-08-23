@@ -52,6 +52,7 @@
 /// DOM-free: pure logic, runs on the VM under `dart test`.
 library;
 
+import '../l10n/hui_localizations.dart';
 import '../model/preview_doc.dart';
 import 'gloss_text.dart' show GlossEmojiResolver, GlossNoEmoji, glossApplyEmoji;
 import 'mc_text.dart';
@@ -260,8 +261,10 @@ PreviewCardScene buildCardScene(
       final HuiPreviewElement template = doc.elements[index];
       if (budget.exhausted) {
         sink(
-          'element cap $previewMaxTotalTemplates reached, '
-          'remaining elements skipped',
+          huiText(
+            'element cap {limit} reached, remaining elements skipped',
+            <String, Object?>{'limit': previewMaxTotalTemplates},
+          ),
         );
         break;
       }
@@ -269,7 +272,12 @@ PreviewCardScene buildCardScene(
       try {
         _expand(template, sim, budget, content, sink, emoji);
       } catch (failure) {
-        sink('${_describe(template)}: ${_reason(failure)}');
+        sink(
+          huiText('{element}: {reason}', <String, Object?>{
+            'element': _describe(template),
+            'reason': _reason(failure),
+          }),
+        );
       }
       for (int emitted = content.length - before; emitted > 0; emitted--) {
         sources.add(index);
@@ -289,7 +297,11 @@ PreviewCardScene buildCardScene(
       sources: List<int>.unmodifiable(owners),
     );
   } catch (failure) {
-    sink('build failed: ${_reason(failure)}');
+    sink(
+      huiText('build failed: {reason}', <String, Object?>{
+        'reason': _reason(failure),
+      }),
+    );
     return PreviewCardScene.empty;
   }
 }
@@ -312,7 +324,13 @@ void _noOpSink(String message) {}
 String _reason(Object failure) =>
     failure is PExprException ? failure.message : '$failure';
 
-String _describe(HuiPreviewElement template) => template.type;
+String _describe(HuiPreviewElement template) => switch (template.type) {
+  'panel' => huiText('panel'),
+  'cell' => huiText('cell'),
+  'slot' => huiText('slot'),
+  'label' => huiText('label'),
+  _ => template.type,
+};
 
 void _expand(
   HuiPreviewElement template,
@@ -331,8 +349,10 @@ void _expand(
   int count = _repeatCount(repeat, sim, sink);
   if (count > budget.remaining) {
     sink(
-      'repeat of $count truncated at the '
-      '$previewMaxTotalTemplates element cap',
+      huiText(
+        'repeat of {count} truncated at the {limit} element cap',
+        <String, Object?>{'count': count, 'limit': previewMaxTotalTemplates},
+      ),
     );
     count = budget.remaining;
   }
@@ -377,14 +397,24 @@ int _repeatCount(
   // the cap and only the message carries the value.
   if (!raw.isFinite) {
     sink(
-      'repeat count $_javaLongMaxText exceeds $previewMaxRepeatCount, '
-      'truncated',
+      huiText(
+        'repeat count {count} exceeds {limit}, truncated',
+        <String, Object?>{
+          'count': _javaLongMaxText,
+          'limit': previewMaxRepeatCount,
+        },
+      ),
     );
     return previewMaxRepeatCount;
   }
   final int count = raw.floor();
   if (count > previewMaxRepeatCount) {
-    sink('repeat count $count exceeds $previewMaxRepeatCount, truncated');
+    sink(
+      huiText(
+        'repeat count {count} exceeds {limit}, truncated',
+        <String, Object?>{'count': count, 'limit': previewMaxRepeatCount},
+      ),
+    );
     return previewMaxRepeatCount;
   }
   return count;
@@ -401,8 +431,9 @@ void _emit(
   final String type = template.type;
   if (!_elementTypes.contains(type)) {
     throw PExprException(
-      'type must be one of ${_elementTypes.join(', ')}',
+      'type must be one of {types}',
       previewNoPosition,
+      <String, Object?>{'types': _elementTypes.join(', ')},
     );
   }
   if (!_bool(template.visible, true, scope, 'visible')) return;
@@ -431,7 +462,7 @@ void _emit(
       out.add(CardCell(x, y, z, size, _cellColor(template.color, scope, sink)));
     case 'slot':
       if (sim.inventorySize <= 0) {
-        sink('slot: target has no inventory');
+        sink(huiText('slot: target has no inventory'));
         return;
       }
       final int size = _coordinate(
@@ -489,7 +520,11 @@ double _defaultZ(String type) => switch (type) {
 
 Object _required(Object? raw, String field) {
   if (raw == null) {
-    throw PExprException('$field required', previewNoPosition);
+    throw PExprException(
+      '{field} required',
+      previewNoPosition,
+      <String, Object?>{'field': field},
+    );
   }
   return raw;
 }
@@ -511,7 +546,11 @@ int _cellColor(Object? raw, PExprScope scope, void Function(String) sink) {
   try {
     return _color(_required(raw, 'color'), 0, scope, 'color');
   } catch (failure) {
-    sink('cell color: ${_reason(failure)}');
+    sink(
+      huiText('cell color: {reason}', <String, Object?>{
+        'reason': _reason(failure),
+      }),
+    );
     return previewTransparent;
   }
 }
@@ -530,7 +569,11 @@ List<StyledTextRun> _labelText(
       glossApplyEmoji(_string(_required(raw, 'text'), scope, 'text'), emoji),
     );
   } catch (failure) {
-    sink('label text: ${_reason(failure)}');
+    sink(
+      huiText('label text: {reason}', <String, Object?>{
+        'reason': _reason(failure),
+      }),
+    );
     return const <StyledTextRun>[];
   }
 }
@@ -573,7 +616,11 @@ bool _cardFramed(
   try {
     return _bool(card.framed, true, scope, 'card.framed');
   } catch (failure) {
-    sink('card framed: ${_reason(failure)}');
+    sink(
+      huiText('card framed: {reason}', <String, Object?>{
+        'reason': _reason(failure),
+      }),
+    );
     return false;
   }
 }
@@ -588,7 +635,11 @@ List<StyledTextRun> _cardTitle(
   try {
     return _parseRuns(_string(title, scope, 'card.title'));
   } catch (failure) {
-    sink('card title: ${_reason(failure)}');
+    sink(
+      huiText('card title: {reason}', <String, Object?>{
+        'reason': _reason(failure),
+      }),
+    );
     return const <StyledTextRun>[];
   }
 }
@@ -603,7 +654,11 @@ int _cardAccent(
   try {
     return _color(accent, 0, scope, 'card.accent');
   } catch (failure) {
-    sink('card accent: ${_reason(failure)}');
+    sink(
+      huiText('card accent: {reason}', <String, Object?>{
+        'reason': _reason(failure),
+      }),
+    );
     return previewDefaultAccentColor;
   }
 }
@@ -846,8 +901,9 @@ double _number(Object? raw, double fallback, PExprScope scope, String field) {
   if (raw is num) return raw.toDouble();
   if (raw is! String) {
     throw PExprException(
-      '$field: must be a number or a string expression',
+      '{field}: must be a number or a string expression',
       previewNoPosition,
+      <String, Object?>{'field': field},
     );
   }
   return _labelled(field, () => evalNumber(_compile(raw), scope));
@@ -870,8 +926,9 @@ bool _bool(Object? raw, bool fallback, PExprScope scope, String field) {
   if (raw is bool) return raw;
   if (raw is! String) {
     throw PExprException(
-      '$field: must be a boolean or a string expression',
+      '{field}: must be a boolean or a string expression',
       previewNoPosition,
+      <String, Object?>{'field': field},
     );
   }
   return _labelled(field, () => evalBool(_compile(raw), scope));
@@ -880,8 +937,9 @@ bool _bool(Object? raw, bool fallback, PExprScope scope, String field) {
 String _string(Object? raw, PExprScope scope, String field) {
   if (raw is! String) {
     throw PExprException(
-      '$field: must be a string expression',
+      '{field}: must be a string expression',
       previewNoPosition,
+      <String, Object?>{'field': field},
     );
   }
   return _labelled(field, () => evalString(_compile(raw), scope));
@@ -895,7 +953,14 @@ T _labelled<T>(String field, T Function() body) {
   try {
     return body();
   } on PExprException catch (failure) {
-    throw PExprException('$field: ${failure.message}', failure.position);
+    throw PExprException(
+      '{field}: {message}',
+      failure.position,
+      <String, Object?>{
+        'field': field,
+        'message': failure.localizedMessageArgument,
+      },
+    );
   }
 }
 

@@ -24,6 +24,7 @@ import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show EventCallback;
 import 'package:web/web.dart' as web;
 
+import '../../l10n/hui_localizations.dart';
 import '../common/class_names.dart';
 
 /// The browser's primary button on `PointerEvent.button`.
@@ -34,7 +35,7 @@ class HuiReorderList extends StatefulWidget {
     required this.itemCount,
     required this.itemBuilder,
     required this.onReorder,
-    this.handleLabel = 'Drag to reorder',
+    this.handleLabel,
     this.classes = '',
     super.key,
   });
@@ -49,7 +50,7 @@ class HuiReorderList extends StatefulWidget {
   /// `list.insert(to, moved)` — one mutation, so one undo step.
   final void Function(int from, int to) onReorder;
 
-  final String handleLabel;
+  final String? handleLabel;
   final String classes;
 
   @override
@@ -227,6 +228,8 @@ class _HuiReorderListState extends State<HuiReorderList> {
 
   Widget _row(int index) {
     final bool dragging = _dragIndex == index;
+    final String handleLabel =
+        component.handleLabel ?? huiText('Drag to reorder');
     return dom.div(
       id: '$_uid-row-$index',
       classes: classNames(<String?>[
@@ -245,7 +248,7 @@ class _HuiReorderListState extends State<HuiReorderList> {
         },
       ),
       <Widget>[
-        _handleWidget(index),
+        _handleWidget(index, handleLabel),
         dom.div(
           classes: 'hui-reorder-content',
           styles: const dom.Styles(raw: <String, String>{'min-width': '0'}),
@@ -255,13 +258,10 @@ class _HuiReorderListState extends State<HuiReorderList> {
     );
   }
 
-  Widget _handleWidget(int index) => dom.span(
+  Widget _handleWidget(int index, String handleLabel) => dom.span(
     id: _handleId(index),
     classes: 'hui-reorder-handle',
-    attributes: <String, String>{
-      'aria-hidden': 'true',
-      'title': component.handleLabel,
-    },
+    attributes: <String, String>{'aria-hidden': 'true', 'title': handleLabel},
     styles: dom.Styles(
       raw: <String, String>{
         'display': 'inline-flex',

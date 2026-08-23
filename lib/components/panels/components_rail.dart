@@ -24,6 +24,7 @@ import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'drag_data.dart';
 import 'preview_elements_rail.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ComponentsRail extends StatefulWidget {
   const ComponentsRail({required this.store, super.key});
@@ -244,9 +245,9 @@ class _ComponentsRailState extends State<ComponentsRail> {
   /// build ahead of its CSS is worse than no skeleton.
   Widget _skeleton() => dom.div(
     classes: 'hui-rail-list',
-    attributes: const <String, String>{
+    attributes: <String, String>{
       'aria-busy': 'true',
-      'aria-label': 'Loading',
+      'aria-label': huiText('Loading'),
     },
     <Widget>[
       for (int i = 0; i < 3; i++)
@@ -269,13 +270,15 @@ class _ComponentsRailState extends State<ComponentsRail> {
   /// 240-280px wide and every line spent here is a component row lost.
   Widget _header(int count) => dom.div(classes: 'hui-rail-header', <Widget>[
     dom.div(classes: 'hui-rail-heading', <Widget>[
-      const HuiEyebrow('Components'),
+      HuiEyebrow(huiText('Components')),
       // Plain text, not an aria-label: "Components 14" already reads
       // correctly and a labelled <span> has no role to carry a name.
       // The selection count is NOT here: a two-digit chip steals the
       // last pixel from the eyebrow and ellipsizes "Components". It
       // goes on the hint line below, which has a whole row to itself.
-      dom.span(classes: 'hui-rail-count', <Widget>[Text('$count')]),
+      dom.span(classes: 'hui-rail-count', <Widget>[
+        Text(huiText("{count}", <String, Object?>{'count': count})),
+      ]),
     ]),
     _addSplitButton(),
   ]);
@@ -294,17 +297,22 @@ class _ComponentsRailState extends State<ComponentsRail> {
       attributes: <String, String>{
         'data-no-tooltip': 'true',
         'title': group
-            ? 'Commands act on all $selected. Shift-click a row to add or '
-                  'remove it; Escape clears the selection.'
-            : 'The nearest hitbox fires; list order breaks an exact-distance '
-                  'tie. Drag a row, use the arrows, or use the right-click '
-                  'menu to change it.',
+            ? huiText(
+                'Commands act on all {count}. Shift-click a row to add or remove it; Escape clears the selection.',
+                <String, Object?>{'count': selected},
+              )
+            : huiText(
+                'The nearest hitbox fires; list order breaks an exact-distance tie. Drag a row, use the arrows, or use the right-click menu to change it.',
+              ),
       },
       <Widget>[
         Text(
           group
-              ? '$selected of $count selected'
-              : 'List order breaks click ties',
+              ? huiText('{selected} of {count} selected', <String, Object?>{
+                  'selected': selected,
+                  'count': count,
+                })
+              : huiText('List order breaks click ties'),
         ),
       ],
     );
@@ -319,9 +327,9 @@ class _ComponentsRailState extends State<ComponentsRail> {
       size: ButtonSize.small,
       onPressed: () => _add('button'),
       icon: ArcaneIcon.plus(size: IconSize.sm),
-      label: 'Add',
-      attributes: const <String, String>{
-        'aria-label': 'Add a button component',
+      label: huiText('Add'),
+      attributes: <String, String>{
+        'aria-label': huiText('Add a button component'),
       },
     ),
     // Was an ArcaneDropdownMenu. That component never opens in this
@@ -349,7 +357,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
         raw: <String, String>{'padding': '0 4px !important'},
       ),
       attributes: <String, String>{
-        'aria-label': 'Choose a component type',
+        'aria-label': huiText('Choose a component type'),
         'aria-expanded': _typesOpen ? 'true' : 'false',
         'aria-controls': _typesPanelId,
         // See the row menu's trigger: every `button[aria-expanded]` is
@@ -392,9 +400,9 @@ class _ComponentsRailState extends State<ComponentsRail> {
         'background': 'var(--hui-panel-soft)',
       },
     ),
-    attributes: const <String, String>{
+    attributes: <String, String>{
       'role': 'group',
-      'aria-label': 'Component types',
+      'aria-label': huiText('Component types'),
       // Focused on open so the Escape handler below is reachable; never
       // in the Tab order, which is what -1 buys over 0.
       'tabindex': '-1',
@@ -429,7 +437,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
           attributes: <String, String>{
             'type': 'button',
             'data-no-tooltip': 'true',
-            'title': huiComponentTypeDescriptions[type] ?? '',
+            'title': huiText(huiComponentTypeDescriptions[type] ?? ''),
           },
           events: <String, void Function(Object)>{
             'click': (Object _) => _add(type),
@@ -473,7 +481,9 @@ class _ComponentsRailState extends State<ComponentsRail> {
                       'color': 'var(--hui-muted)',
                     },
                   ),
-                  <Widget>[Text(huiComponentTypeDescriptions[type] ?? '')],
+                  <Widget>[
+                    Text(huiText(huiComponentTypeDescriptions[type] ?? '')),
+                  ],
                 ),
               ],
             ),
@@ -484,24 +494,25 @@ class _ComponentsRailState extends State<ComponentsRail> {
 
   Widget _empty() => dom.div(classes: 'hui-rail-empty', <Widget>[
     ArcaneEmptyState(
-      title: 'No components yet',
-      description:
-          'A menu needs at least one component to render. '
-          'Start with a text decoration or a button.',
+      title: huiText('No components yet'),
+      description: huiText(
+        'A menu needs at least one component to render. '
+        'Start with a text decoration or a button.',
+      ),
       icon: ArcaneIcon.layers(size: IconSize.lg),
       action: Button(
         variant: ButtonVariant.primary,
         size: ButtonSize.small,
         onPressed: () => _add('decoration'),
         icon: ArcaneIcon.plus(size: IconSize.sm),
-        label: 'Add your first component',
+        label: huiText('Add your first component'),
       ),
     ),
   ]);
 
   Widget _row(int index, HuiComponent data, int total) {
     final String id = data.id;
-    final String label = id.isEmpty ? '(no id)' : id;
+    final String label = id.isEmpty ? huiText('(no id)') : id;
     final String summary = _summary(data.data);
     final bool selected = _store.isSelected(id);
     final bool group = _store.selectionIds.length > 1;
@@ -570,9 +581,14 @@ class _ComponentsRailState extends State<ComponentsRail> {
             'type': 'button',
             'data-no-tooltip': 'true',
             'aria-pressed': selected ? 'true' : 'false',
-            'title':
-                '$label\n${_typeLabel(data.data.type)} - $summary'
-                '\nShift-click to add or remove it from the selection',
+            'title': huiText(
+              "{label}\n{typeLabel} - {summary}\nShift-click to add or remove it from the selection",
+              <String, Object?>{
+                'label': label,
+                'typeLabel': _typeLabel(data.data.type),
+                'summary': summary,
+              },
+            ),
           },
           events: <String, void Function(Object)>{
             'click': (Object event) => _click(event, id),
@@ -624,7 +640,9 @@ class _ComponentsRailState extends State<ComponentsRail> {
                   hasError ? 'is-error' : 'is-warning',
                 ]),
                 attributes: <String, String>{
-                  'aria-label': hasError ? 'Has errors' : 'Has warnings',
+                  'aria-label': hasError
+                      ? huiText('Has errors')
+                      : huiText('Has warnings'),
                 },
                 const <Widget>[],
               ),
@@ -632,21 +650,25 @@ class _ComponentsRailState extends State<ComponentsRail> {
         ),
         if (armed)
           dom.div(classes: 'hui-rail-confirm', <Widget>[
-            const dom.span(classes: 'hui-rail-confirm-label', <Widget>[
-              Text('Delete?'),
+            dom.span(classes: 'hui-rail-confirm-label', <Widget>[
+              Text(huiText('Delete?')),
             ]),
             Button(
               variant: ButtonVariant.destructive,
               size: ButtonSize.iconSm,
               onPressed: () => _delete(id),
-              attributes: <String, String>{'aria-label': 'Delete $label'},
+              attributes: <String, String>{
+                'aria-label': huiText("Delete {label}", <String, Object?>{
+                  'label': label,
+                }),
+              },
               child: ArcaneIcon.check(size: IconSize.sm),
             ),
             Button(
               variant: ButtonVariant.ghost,
               size: ButtonSize.iconSm,
               onPressed: () => setState(() => _armedDeleteId = null),
-              attributes: const <String, String>{'aria-label': 'Keep it'},
+              attributes: <String, String>{'aria-label': huiText('Keep it')},
               child: ArcaneIcon.x(size: IconSize.sm),
             ),
           ])
@@ -674,7 +696,11 @@ class _ComponentsRailState extends State<ComponentsRail> {
                 size: ButtonSize.iconSm,
                 disabled: index == 0,
                 onPressed: index == 0 ? null : () => _move(id, index - 1),
-                attributes: <String, String>{'aria-label': 'Move $label up'},
+                attributes: <String, String>{
+                  'aria-label': huiText("Move {label} up", <String, Object?>{
+                    'label': label,
+                  }),
+                },
                 child: ArcaneIcon.chevronUp(size: IconSize.sm),
               ),
               Button(
@@ -684,7 +710,11 @@ class _ComponentsRailState extends State<ComponentsRail> {
                 onPressed: index >= total - 1
                     ? null
                     : () => _move(id, index + 1),
-                attributes: <String, String>{'aria-label': 'Move $label down'},
+                attributes: <String, String>{
+                  'aria-label': huiText("Move {label} down", <String, Object?>{
+                    'label': label,
+                  }),
+                },
                 child: ArcaneIcon.chevronDown(size: IconSize.sm),
               ),
               Button(
@@ -709,7 +739,10 @@ class _ComponentsRailState extends State<ComponentsRail> {
                   // Never the word "Menu" with a capital M: the mobile-menu
                   // binder claims `[aria-label*="Menu"]`
                   // (`mobile_menu_scripts.dart:7`) and would hijack the click.
-                  'aria-label': 'Row actions for $label',
+                  'aria-label': huiText(
+                    "Row actions for {label}",
+                    <String, Object?>{'label': label},
+                  ),
                   // Opts this button out of the legacy accordion binder, which
                   // claims every `button[aria-expanded]` in a one-shot scan
                   // 100 ms after boot (`accordion_scripts.dart:7-16`). Left
@@ -750,6 +783,8 @@ class _ComponentsRailState extends State<ComponentsRail> {
           fullWidth: true,
           size: ComponentSize.sm,
           onInput: (String value) => setState(() => _renameDraft = value),
+          styles: huiTechnicalInputStyles,
+          attributes: huiTechnicalInputAttributes,
         ),
         Button(
           variant: ButtonVariant.primary,
@@ -759,14 +794,16 @@ class _ComponentsRailState extends State<ComponentsRail> {
             setState(() => _renameId = null);
             _store.renameComponent(id, draft);
           },
-          attributes: const <String, String>{'aria-label': 'Save component id'},
+          attributes: <String, String>{
+            'aria-label': huiText('Save component id'),
+          },
           child: ArcaneIcon.check(size: IconSize.sm),
         ),
         Button(
           variant: ButtonVariant.ghost,
           size: ButtonSize.iconSm,
           onPressed: () => setState(() => _renameId = null),
-          attributes: const <String, String>{'aria-label': 'Cancel rename'},
+          attributes: <String, String>{'aria-label': huiText('Cancel rename')},
           child: ArcaneIcon.x(size: IconSize.sm),
         ),
       ]);
@@ -779,18 +816,21 @@ class _ComponentsRailState extends State<ComponentsRail> {
   ) => <Widget>[
     HuiActionMenu(
       id: _rowMenuId,
-      label: 'Actions for $label',
+      label: huiText("Actions for {label}", <String, Object?>{'label': label}),
       point: _menuPoint,
       onClose: _dismissMenu,
       items: <HuiActionMenuItem>[
         HuiActionMenuItem(
-          label:
-              'Randomize ${_typeLabel(_store.menu.componentById(id)!.data.type).toLowerCase()}',
+          label: huiText("Randomize {toLowerCase}", <String, Object?>{
+            'toLowerCase': _typeLabel(
+              _store.menu.componentById(id)!.data.type,
+            ).toLowerCase(),
+          }),
           icon: ArcaneIcon.dices(size: IconSize.sm),
           onSelect: () => randomizeMenuComponent(_store, id),
         ),
         HuiActionMenuItem(
-          label: 'Rename',
+          label: huiText('Rename'),
           icon: ArcaneIcon.pencil(size: IconSize.sm),
           separatorBefore: true,
           onSelect: () => setState(() {
@@ -799,24 +839,24 @@ class _ComponentsRailState extends State<ComponentsRail> {
           }),
         ),
         HuiActionMenuItem(
-          label: 'Duplicate',
+          label: huiText('Duplicate'),
           icon: ArcaneIcon.copy(size: IconSize.sm),
           onSelect: () => _store.duplicateComponent(id),
         ),
         HuiActionMenuItem(
-          label: 'Move to top',
+          label: huiText('Move to top'),
           icon: ArcaneIcon.arrowUp(size: IconSize.sm),
           disabled: index == 0,
           onSelect: () => _move(id, 0),
         ),
         HuiActionMenuItem(
-          label: 'Move to bottom',
+          label: huiText('Move to bottom'),
           icon: ArcaneIcon.arrowDown(size: IconSize.sm),
           disabled: index >= total - 1,
           onSelect: () => _move(id, total - 1),
         ),
         HuiActionMenuItem(
-          label: 'Delete',
+          label: huiText('Delete'),
           icon: ArcaneIcon.trash2(size: IconSize.sm),
           destructive: true,
           separatorBefore: true,
@@ -836,9 +876,9 @@ class _ComponentsRailState extends State<ComponentsRail> {
   };
 
   String _typeLabel(String type) => switch (type) {
-    'button' => 'Button',
-    'toggle' => 'Toggle',
-    _ => 'Decoration',
+    'button' => huiText('Button'),
+    'toggle' => huiText('Toggle'),
+    _ => huiText('Decoration'),
   };
 
   String _summary(HuiComponentData data) => switch (data) {
@@ -846,33 +886,67 @@ class _ComponentsRailState extends State<ComponentsRail> {
       icon: final HuiIcon? icon,
       actions: final List<HuiAction> a,
     ) =>
-      '${_iconSummary(icon)} · ${a.length} action${a.length == 1 ? '' : 's'}',
-    HuiDecorationData(icon: final HuiIcon? icon) =>
-      '${_iconSummary(icon)} · not clickable',
+      huiText('{icon} · {actions}', <String, Object?>{
+        'icon': _iconSummary(icon),
+        'actions': huiPlural(
+          'components.summary.actions',
+          a.length,
+          oneEnglish: '{count} action',
+          otherEnglish: '{count} actions',
+        ),
+      }),
+    HuiDecorationData(icon: final HuiIcon? icon) => huiText(
+      '{icon} · not clickable',
+      <String, Object?>{'icon': _iconSummary(icon)},
+    ),
     HuiToggleData(trueIcon: final HuiIcon? t, falseIcon: final HuiIcon? f) =>
-      'true ${_iconSummary(t)} / false ${_iconSummary(f)}',
+      huiText('true {trueIcon} / false {falseIcon}', <String, Object?>{
+        'trueIcon': _iconSummary(t),
+        'falseIcon': _iconSummary(f),
+      }),
   };
 
   String _iconSummary(HuiIcon? icon) => switch (icon) {
-    null => 'no icon',
-    final HuiTextIcon text => 'text "${_plain(text.text)}"',
-    final HuiTextImageIcon image =>
-      'image ${image.path.isEmpty ? '(unset)' : image.path}',
-    final HuiAnimatedImageIcon animated =>
-      'animated ${animated.source.length} frame'
-          '${animated.source.length == 1 ? '' : 's'}',
-    final HuiItemIcon item =>
-      'item ${item.item.isEmpty ? '(unset)' : item.item}'
-          '${item.count > 1 ? ' x${item.count}' : ''}',
-    final HuiBlockIcon block =>
-      'block ${block.block.isEmpty ? '(unset)' : block.block}',
-    final HuiCustomItemIcon custom =>
-      '${custom.provider} ${custom.item.isEmpty ? '(unset)' : custom.item}'
-          '${custom.count > 1 ? ' x${custom.count}' : ''}',
-    final HuiEntityIcon entity =>
-      'entity ${entity.entity.isEmpty ? '(unset)' : entity.entity}',
-    final HuiPlayerHeadIcon head =>
-      'head ${head.player.trim().isEmpty ? '(unset)' : head.player.trim()}',
+    null => huiText('no icon'),
+    final HuiTextIcon text => huiText('text "{text}"', <String, Object?>{
+      'text': _plain(text.text),
+    }),
+    final HuiTextImageIcon image => huiText('image {path}', <String, Object?>{
+      'path': image.path.isEmpty ? huiText('(unset)') : image.path,
+    }),
+    final HuiAnimatedImageIcon animated => huiPlural(
+      'components.summary.animated-frames',
+      animated.source.length,
+      oneEnglish: 'animated {count} frame',
+      otherEnglish: 'animated {count} frames',
+    ),
+    final HuiItemIcon item => huiText('item {item}{count}', <String, Object?>{
+      'item': item.item.isEmpty ? huiText('(unset)') : item.item,
+      'count': item.count > 1
+          ? huiText(' x{count}', <String, Object?>{'count': item.count})
+          : '',
+    }),
+    final HuiBlockIcon block => huiText('block {block}', <String, Object?>{
+      'block': block.block.isEmpty ? huiText('(unset)') : block.block,
+    }),
+    final HuiCustomItemIcon custom => huiText(
+      '{provider} {item}{count}',
+      <String, Object?>{
+        'provider': custom.provider,
+        'item': custom.item.isEmpty ? huiText('(unset)') : custom.item,
+        'count': custom.count > 1
+            ? huiText(' x{count}', <String, Object?>{'count': custom.count})
+            : '',
+      },
+    ),
+    final HuiEntityIcon entity => huiText('entity {entity}', <String, Object?>{
+      'entity': entity.entity.isEmpty ? huiText('(unset)') : entity.entity,
+    }),
+    final HuiPlayerHeadIcon head => huiText('head {player}', <String, Object?>{
+      'player': head.player.trim().isEmpty
+          ? huiText('(unset)')
+          : head.player.trim(),
+    }),
   };
 
   /// First line only, colour codes and MiniMessage tags removed, ellipsized.
@@ -880,7 +954,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
     final int newline = raw.indexOf('\n');
     String line = newline >= 0 ? raw.substring(0, newline) : raw;
     line = line.replaceAll(_legacyCode, '').replaceAll(_tag, '').trim();
-    if (line.isEmpty) return '(empty)';
+    if (line.isEmpty) return huiText('(empty)');
     return line.length <= 22 ? line : '${line.substring(0, 21)}…';
   }
 }

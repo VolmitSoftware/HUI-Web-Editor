@@ -193,7 +193,12 @@ void _animation(List<HuiIssue> issues, GlossRealDropAnimation? animation) {
     if (id.isEmpty) {
       _error(issues, '$path.id', 'Animation profile ids must not be blank.');
     } else if (!profileIds.add(id)) {
-      _error(issues, '$path.id', 'Animation profile "$id" is declared twice.');
+      _error(
+        issues,
+        '$path.id',
+        'Animation profile "{id}" is declared twice.',
+        <String, Object?>{'id': id},
+      );
     }
     _range(issues, '$path.priority', profile.priority, -10000, 10000);
     for (
@@ -248,14 +253,19 @@ void _animationClip(
       _error(
         issues,
         '$trackPath.blend',
-        '${track.blend.wire} is not valid for ${track.target.wire}.',
+        '{blend} is not valid for {target}.',
+        <String, Object?>{
+          'blend': track.blend.wire,
+          'target': track.target.wire,
+        },
       );
     }
     if (track.keyframes.isEmpty) {
       _error(
         issues,
         '$trackPath.keyframes',
-        'Animation track ${track.target.wire} has no keyframes.',
+        'Animation track {target} has no keyframes.',
+        <String, Object?>{'target': track.target.wire},
       );
       continue;
     }
@@ -280,7 +290,8 @@ void _animationClip(
         _error(
           issues,
           '$framePath.tick',
-          'Two keyframes cannot occupy tick ${frame.tick}.',
+          'Two keyframes cannot occupy tick {tick}.',
+          <String, Object?>{'tick': frame.tick},
         );
       }
       if (!frame.value.isFinite) {
@@ -302,7 +313,8 @@ void _animationClip(
           _error(
             issues,
             '$framePath.materialMap',
-            'Material property map "${frame.materialMap}" does not exist.',
+            'Material property map "{name}" does not exist.',
+            <String, Object?>{'name': frame.materialMap},
           );
         }
       }
@@ -310,12 +322,18 @@ void _animationClip(
   }
 }
 
-void _error(List<HuiIssue> issues, String path, String message) {
+void _error(
+  List<HuiIssue> issues,
+  String path,
+  String message, [
+  Map<String, Object?> messageArguments = const <String, Object?>{},
+]) {
   issues.add(
     HuiIssue(
       severity: HuiSeverity.error,
       path: path,
       message: message,
+      messageArguments: messageArguments,
       fix: 'Correct the animation contract before exporting this document.',
     ),
   );
@@ -352,14 +370,33 @@ void _script(List<HuiIssue> issues, GlossRealDropScript? script) {
   for (final RealDropScriptIssue issue in RealDropScriptPlan.compile(
     script,
   ).issues) {
-    issues.add(
-      HuiIssue(
-        severity: HuiSeverity.error,
-        path: issue.path,
-        message: issue.message,
-        fix: 'Gloss refuses the whole document until this expression parses.',
-      ),
-    );
+    final String? pluralKey = issue.pluralKey;
+    final int? pluralCount = issue.pluralCount;
+    final String? oneEnglish = issue.oneEnglish;
+    if (pluralKey != null && pluralCount != null && oneEnglish != null) {
+      issues.add(
+        HuiIssue.plural(
+          severity: HuiSeverity.error,
+          path: issue.path,
+          pluralKey: pluralKey,
+          count: pluralCount,
+          oneEnglish: oneEnglish,
+          otherEnglish: issue.englishMessage,
+          messageArguments: issue.messageArguments,
+          fix: 'Gloss refuses the whole document until this expression parses.',
+        ),
+      );
+    } else {
+      issues.add(
+        HuiIssue(
+          severity: HuiSeverity.error,
+          path: issue.path,
+          message: issue.englishMessage,
+          messageArguments: issue.messageArguments,
+          fix: 'Gloss refuses the whole document until this expression parses.',
+        ),
+      );
+    }
   }
 }
 
@@ -375,7 +412,11 @@ void _range(
     HuiIssue(
       severity: HuiSeverity.warning,
       path: path,
-      message: 'Gloss clamps this value to $minimum..$maximum at load time.',
+      message: "Gloss clamps this value to {minimum}..{maximum} at load time.",
+      messageArguments: <String, Object?>{
+        'minimum': minimum,
+        'maximum': maximum,
+      },
       fix: 'Choose a value inside the supported range.',
     ),
   );
@@ -392,8 +433,13 @@ void _choice(
     HuiIssue(
       severity: HuiSeverity.warning,
       path: path,
-      message: 'Gloss does not recognize "$value" and uses ${allowed.first}.',
-      fix: 'Choose ${allowed.join(', ')}.',
+      message: "Gloss does not recognize \"{value}\" and uses {first}.",
+      messageArguments: <String, Object?>{
+        'value': value,
+        'first': allowed.first,
+      },
+      fix: "Choose {join}.",
+      fixArguments: <String, Object?>{'join': allowed.join(', ')},
     ),
   );
 }

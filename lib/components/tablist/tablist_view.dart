@@ -33,6 +33,7 @@ import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Animation repaint period, matching the hologram stage.
 const Duration _tickPeriod = Duration(milliseconds: 100);
@@ -172,7 +173,7 @@ class _TablistViewState extends State<TablistView> {
       if (component.gameContext) {
         return glossGameEmpty(
           anchor: GlossGameAnchor.tabOverlay,
-          label: 'Tab list in game',
+          label: huiText('Tab list in game'),
         );
       }
       return const dom.div(classes: 'hui-tablist-stage is-empty', <Widget>[]);
@@ -231,7 +232,7 @@ class _TablistViewState extends State<TablistView> {
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.tabOverlay,
-        label: 'Tab list in game',
+        label: huiText('Tab list in game'),
         controls: <Widget>[_playPause()],
         child: screen,
       );
@@ -240,15 +241,15 @@ class _TablistViewState extends State<TablistView> {
     return dom.div(classes: 'hui-tablist-stage', <Widget>[
       dom.div(classes: 'hui-tablist-sky', <Widget>[
         GlossPreviewZoom(
-          label: 'Tab list preview',
+          label: huiText('Tab list preview'),
           alignment: GlossPreviewAlignment.top,
           child: screen,
         ),
         dom.div(
           classes: 'hui-tablist-view-controls',
-          attributes: const <String, String>{
+          attributes: <String, String>{
             'role': 'group',
-            'aria-label': 'Tab list preview controls',
+            'aria-label': huiText('Tab list preview controls'),
           },
           <Widget>[_playPause()],
         ),
@@ -266,11 +267,11 @@ class _TablistViewState extends State<TablistView> {
     onPressed: () => _store.animationsPlaying = !_store.animationsPlaying,
     attributes: <String, String>{
       'aria-label': _store.animationsPlaying
-          ? 'Pause animations'
-          : 'Play animations',
+          ? huiText('Pause animations')
+          : huiText('Play animations'),
       'title': _store.animationsPlaying
-          ? 'Pause animations'
-          : 'Play animations',
+          ? huiText('Pause animations')
+          : huiText('Play animations'),
     },
     child: _store.animationsPlaying
         ? ArcaneIcon.pause(size: IconSize.sm)
@@ -280,14 +281,19 @@ class _TablistViewState extends State<TablistView> {
   String _readout(GlossTablistDoc doc) {
     final List<String> parts = <String>[
       doc.useHeaderFooter
-          ? 'header/footer on'
-          : 'header/footer off — the tab screen keeps its vanilla top and '
-                'bottom',
+          ? huiText('header/footer on')
+          : huiText(
+              'header/footer off — the tab screen keeps its vanilla top and '
+              'bottom',
+            ),
       doc.groupListNames
-          ? 'list names: Cyberpwn→_op, Magic_Psycho→developer, '
-                'SwiftSwamp→moderator, Puretie→vip'
-          : 'list names vanilla (groupListNames off)',
-      'ping bars and filler players are client cosmetics',
+          ? huiText('list names: {mapping}', <String, Object?>{
+              'mapping':
+                  'Cyberpwn→_op, Magic_Psycho→developer, '
+                  'SwiftSwamp→moderator, Puretie→vip',
+            })
+          : huiText('list names vanilla (groupListNames off)'),
+      huiText('ping bars and filler players are client cosmetics'),
     ];
     return parts.join(' · ');
   }

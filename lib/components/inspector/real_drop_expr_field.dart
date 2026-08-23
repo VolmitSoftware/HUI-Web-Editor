@@ -24,6 +24,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show Component;
 
+import '../../l10n/hui_localizations.dart';
 import '../../logic/preview_expr.dart';
 import '../../logic/validation.dart';
 import '../common/common.dart';
@@ -88,7 +89,7 @@ class _RealDropExprFieldState extends State<RealDropExprField> {
   /// input while an echo of our own keystroke does not.
   late String _lastCommitted = component.value;
 
-  String? _syntaxError;
+  String Function()? _syntaxError;
   int _syntaxPosition = previewNoPosition;
 
   @override
@@ -127,8 +128,11 @@ class _RealDropExprFieldState extends State<RealDropExprField> {
         _syntaxPosition = previewNoPosition;
       } on PExprException catch (e) {
         _syntaxError = e.position == previewNoPosition
-            ? e.message
-            : '${e.message} at position ${e.position}';
+            ? () => e.message
+            : () => huiText(
+                '{message} at position {position}',
+                <String, Object?>{'message': e.message, 'position': e.position},
+              );
         _syntaxPosition = e.position;
       }
     }
@@ -163,12 +167,13 @@ class _RealDropExprFieldState extends State<RealDropExprField> {
       size: ComponentSize.sm,
       fullWidth: true,
       placeholder: component.placeholder,
-      error: _syntaxError,
+      error: _syntaxError?.call(),
       onInput: _onInput,
       attributes: const <String, String>{
         'autocomplete': 'off',
         'autocapitalize': 'off',
         'spellcheck': 'false',
+        'dir': 'ltr',
       },
     ),
     if (_syntaxError != null) _errorBlock(),
@@ -187,7 +192,7 @@ class _RealDropExprFieldState extends State<RealDropExprField> {
       },
     ),
     <Widget>[
-      Text(_syntaxError!),
+      Text(_syntaxError!()),
       if (_syntaxPosition != previewNoPosition &&
           _syntaxPosition <= _text.length)
         dom.pre(

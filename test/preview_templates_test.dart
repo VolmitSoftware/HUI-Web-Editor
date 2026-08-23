@@ -25,6 +25,7 @@ const List<String> _shippedPreviewIds = <String>[
   'dispenser',
   'ender_chest',
   'furnace',
+  'furnace_minecart',
   'hopper',
   'jukebox',
   'locked',

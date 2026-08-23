@@ -7,6 +7,7 @@ import 'dart:math';
 import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 
 import '../config/defaults.dart';
+import '../l10n/hui_localizations.dart';
 import '../services/storage_service.dart';
 import 'workspace_repository.dart';
 
@@ -81,7 +82,7 @@ class WorkspaceFolder {
     }
     return WorkspaceFolder(
       id: id,
-      title: normalizeWorkspaceTitle(title, fallback: 'Folder'),
+      title: normalizeWorkspaceTitle(title, fallback: huiText('Folder')),
       parentId: parentId as String?,
       updatedAt: updatedAt is num ? updatedAt.toInt() : 0,
     );
@@ -144,7 +145,7 @@ class WorkspaceDoc {
       id: id,
       title: normalizeWorkspaceTitle(
         raw['title'],
-        fallback: runtimeId ?? 'Untitled panel',
+        fallback: runtimeId ?? huiText('Untitled panel'),
       ),
       runtimeId: runtimeId,
       json: json,
@@ -179,20 +180,57 @@ class WorkspaceRuntimeIdConflict {
   final List<WorkspaceDoc> documents;
 }
 
+typedef _WorkspaceMessage = String Function();
+
+_WorkspaceMessage _workspaceText(
+  String english, [
+  Map<String, Object?> arguments = const <String, Object?>{},
+]) {
+  final Map<String, Object?> captured = Map<String, Object?>.of(arguments);
+  return () => huiText(english, captured);
+}
+
+_WorkspaceMessage _workspacePlural(
+  String key,
+  int count, {
+  required String oneEnglish,
+  required String otherEnglish,
+}) =>
+    () => huiPlural(
+      key,
+      count,
+      oneEnglish: oneEnglish,
+      otherEnglish: otherEnglish,
+    );
+
 class WorkspacePortableStateCheck {
-  const WorkspacePortableStateCheck({
+  WorkspacePortableStateCheck({
     required this.isValid,
     required this.documentCount,
     required this.folderCount,
-    this.warning,
-    this.error,
-  });
+    String? warning,
+    String? error,
+  }) : _warning = warning == null ? null : _workspaceText(warning),
+       _error = error == null ? null : _workspaceText(error);
+
+  const WorkspacePortableStateCheck._messages({
+    required this.isValid,
+    required this.documentCount,
+    required this.folderCount,
+    _WorkspaceMessage? warning,
+    _WorkspaceMessage? error,
+  }) : _warning = warning,
+       _error = error;
 
   final bool isValid;
   final int documentCount;
   final int folderCount;
-  final String? warning;
-  final String? error;
+  final _WorkspaceMessage? _warning;
+  final _WorkspaceMessage? _error;
+
+  String? get warning => _warning?.call();
+
+  String? get error => _error?.call();
 }
 
 class Workspace extends ChangeNotifier {
@@ -250,7 +288,7 @@ class Workspace extends ChangeNotifier {
   final List<WorkspaceFolder> _folders = <WorkspaceFolder>[];
   late String _workspaceId;
   String? _activeId;
-  String? _lastError;
+  _WorkspaceMessage? _lastError;
   bool _quotaExceeded = false;
   bool _isReady = false;
   int _lastStamp = 0;
@@ -303,7 +341,9 @@ class Workspace extends ChangeNotifier {
 
   bool get isEmpty => _docs.isEmpty;
 
-  String? get lastError => _lastError;
+  String? get lastError => _lastError?.call();
+
+  String Function()? get lastErrorMessage => _lastError;
 
   bool get quotaExceeded => _quotaExceeded;
 
@@ -399,7 +439,7 @@ class Workspace extends ChangeNotifier {
       id: _newUniqueId(<String>{for (final WorkspaceDoc doc in _docs) doc.id}),
       title: normalizeWorkspaceTitle(
         title,
-        fallback: canonicalRuntimeId ?? 'Untitled panel',
+        fallback: canonicalRuntimeId ?? huiText('Untitled panel'),
       ),
       runtimeId: canonicalRuntimeId,
       json: json,
@@ -420,7 +460,7 @@ class Workspace extends ChangeNotifier {
     if (doc == null) return false;
     final String normalized = normalizeWorkspaceTitle(
       title,
-      fallback: doc.runtimeId ?? 'Untitled panel',
+      fallback: doc.runtimeId ?? huiText('Untitled panel'),
     );
     if (doc.title == normalized) return true;
     doc.title = normalized;
@@ -501,7 +541,7 @@ class Workspace extends ChangeNotifier {
     doc
       ..title = normalizeWorkspaceTitle(
         title,
-        fallback: canonicalRuntimeId ?? 'Untitled panel',
+        fallback: canonicalRuntimeId ?? huiText('Untitled panel'),
       )
       ..runtimeId = canonicalRuntimeId
       ..json = json
@@ -633,7 +673,7 @@ class Workspace extends ChangeNotifier {
     if (title != null) {
       final String normalized = normalizeWorkspaceTitle(
         title,
-        fallback: doc.runtimeId ?? 'Untitled panel',
+        fallback: doc.runtimeId ?? huiText('Untitled panel'),
       );
       if (normalized != doc.title) {
         doc.title = normalized;
@@ -733,7 +773,7 @@ class Workspace extends ChangeNotifier {
   WorkspacePortableStateCheck inspectPortableState(Object? raw) {
     try {
       final _DecodedWorkspace decoded = _decodeV2(jsonEncode(raw));
-      return WorkspacePortableStateCheck(
+      return WorkspacePortableStateCheck._messages(
         isValid: true,
         documentCount: decoded.state.docs.length,
         folderCount: decoded.state.folders.length,
@@ -747,7 +787,7 @@ class Workspace extends ChangeNotifier {
         error: error.message,
       );
     } catch (_) {
-      return const WorkspacePortableStateCheck(
+      return WorkspacePortableStateCheck(
         isValid: false,
         documentCount: 0,
         folderCount: 0,
@@ -758,9 +798,10 @@ class Workspace extends ChangeNotifier {
 
   Future<bool> replacePortableState(Object? raw) async {
     if (_requiresReload) {
-      _lastError =
-          'This workspace changed in another browser tab. Export this tab '
-          'before reloading to choose which version to keep.';
+      _lastError = _workspaceText(
+        'This workspace changed in another browser tab. Export this tab '
+        'before reloading to choose which version to keep.',
+      );
       notifyListeners();
       return false;
     }
@@ -768,7 +809,7 @@ class Workspace extends ChangeNotifier {
     try {
       decoded = _decodeV2(jsonEncode(raw));
     } catch (_) {
-      _lastError = 'The workspace state is unreadable.';
+      _lastError = _workspaceText('The workspace state is unreadable.');
       notifyListeners();
       return false;
     }
@@ -788,7 +829,9 @@ class Workspace extends ChangeNotifier {
     } catch (_) {
       _syncRepositoryConflict();
       _lastError = _repositoryFailure();
-      _lastError ??= 'The imported workspace could not be saved.';
+      _lastError ??= _workspaceText(
+        'The imported workspace could not be saved.',
+      );
       _quotaExceeded = !_requiresReload;
       notifyListeners();
       return false;
@@ -796,7 +839,9 @@ class Workspace extends ChangeNotifier {
     if (!stored) {
       _syncRepositoryConflict();
       _lastError = _repositoryFailure();
-      _lastError ??= 'The imported workspace could not be saved.';
+      _lastError ??= _workspaceText(
+        'The imported workspace could not be saved.',
+      );
       _quotaExceeded = !_requiresReload;
       notifyListeners();
       return false;
@@ -814,7 +859,9 @@ class Workspace extends ChangeNotifier {
     if (pending != null) await pending;
     final WorkspaceRepository source = repository;
     if (source is! WorkspaceMaintenanceRepository) {
-      _lastError = 'This workspace repository cannot clear saved data.';
+      _lastError = _workspaceText(
+        'This workspace repository cannot clear saved data.',
+      );
       notifyListeners();
       return false;
     }
@@ -824,7 +871,9 @@ class Workspace extends ChangeNotifier {
           source as WorkspaceMaintenanceRepository;
       cleared = await maintenance.clear();
     } catch (_) {
-      _lastError = 'Browser storage refused to clear the workspace.';
+      _lastError = _workspaceText(
+        'Browser storage refused to clear the workspace.',
+      );
       notifyListeners();
       return false;
     }
@@ -833,9 +882,11 @@ class Workspace extends ChangeNotifier {
           source is RecoverableWorkspaceRepository
           ? source as RecoverableWorkspaceRepository
           : null;
-      _lastError =
-          recoverable?.lastFailure ??
-          'Browser storage refused to clear the workspace.';
+      _lastError = recoverable?.lastFailure == null
+          ? _workspaceText('Browser storage refused to clear the workspace.')
+          : () =>
+                recoverable?.lastFailure ??
+                huiText('Browser storage refused to clear the workspace.');
       notifyListeners();
       return false;
     }
@@ -894,7 +945,7 @@ class Workspace extends ChangeNotifier {
         );
         return Future<void>.value();
       } on _FutureWorkspaceVersion catch (error) {
-        _completeEmpty(error.message, protectStoredData: true);
+        _completeEmpty(_workspaceText(error.message), protectStoredData: true);
         return Future<void>.value();
       } catch (_) {
         return _loadBackup(
@@ -942,7 +993,7 @@ class Workspace extends ChangeNotifier {
     try {
       recovered = _decodeV2(raw);
     } on _FutureWorkspaceVersion catch (error) {
-      _completeEmpty(error.message, protectStoredData: true);
+      _completeEmpty(_workspaceText(error.message), protectStoredData: true);
       return true;
     } catch (_) {
       return false;
@@ -963,11 +1014,15 @@ class Workspace extends ChangeNotifier {
     _applyState(
       recovered.state,
       warning: stored
-          ? 'The latest workspace snapshot was unreadable, so the previous '
-                'transaction was restored.'
-          : 'The previous workspace transaction was recovered in memory, but '
-                'could not be restored to browser storage. Export it before '
-                'closing this tab.',
+          ? _workspaceText(
+              'The latest workspace snapshot was unreadable, so the previous '
+              'transaction was restored.',
+            )
+          : _workspaceText(
+              'The previous workspace transaction was recovered in memory, but '
+              'could not be restored to browser storage. Export it before '
+              'closing this tab.',
+            ),
       quotaExceeded: !stored,
       loadProtected: !stored,
     );
@@ -979,7 +1034,9 @@ class Workspace extends ChangeNotifier {
       result = repository.read(legacyStorageKey);
     } catch (_) {
       _completeEmpty(
-        fallbackError ?? 'The saved workspace could not be read.',
+        _workspaceText(
+          fallbackError ?? 'The saved workspace could not be read.',
+        ),
         protectStoredData: true,
       );
       return Future<void>.value();
@@ -991,7 +1048,9 @@ class Workspace extends ChangeNotifier {
         .then((String? raw) => _finishLegacy(raw, fallbackError: fallbackError))
         .catchError((Object _) {
           _completeEmpty(
-            fallbackError ?? 'The saved workspace could not be read.',
+            _workspaceText(
+              fallbackError ?? 'The saved workspace could not be read.',
+            ),
             protectStoredData: true,
           );
         });
@@ -1002,7 +1061,7 @@ class Workspace extends ChangeNotifier {
       if (fallbackError == null) {
         _completeEmpty(null);
       } else {
-        _completeEmpty(fallbackError, protectStoredData: true);
+        _completeEmpty(_workspaceText(fallbackError), protectStoredData: true);
       }
       return Future<void>.value();
     }
@@ -1012,7 +1071,9 @@ class Workspace extends ChangeNotifier {
       migrated = _decodeLegacy(raw);
     } catch (_) {
       _completeEmpty(
-        fallbackError ?? 'The saved workspace was unreadable and was reset.',
+        _workspaceText(
+          fallbackError ?? 'The saved workspace was unreadable and was reset.',
+        ),
         protectStoredData: true,
       );
       return Future<void>.value();
@@ -1031,8 +1092,9 @@ class Workspace extends ChangeNotifier {
     } catch (_) {
       _applyState(
         migrated.state,
-        warning:
-            'The legacy workspace was recovered in memory, but its v2 migration could not be saved.',
+        warning: _workspaceText(
+          'The legacy workspace was recovered in memory, but its v2 migration could not be saved.',
+        ),
         quotaExceeded: true,
         loadProtected: true,
       );
@@ -1048,9 +1110,11 @@ class Workspace extends ChangeNotifier {
   }
 
   void _finishMigration(_DecodedWorkspace migrated, bool stored) {
-    final String? warning = stored
+    final _WorkspaceMessage? warning = stored
         ? migrated.warning
-        : 'The legacy workspace was recovered in memory, but its v2 migration could not be saved.';
+        : _workspaceText(
+            'The legacy workspace was recovered in memory, but its v2 migration could not be saved.',
+          );
     if (!stored) _syncRepositoryConflict();
     _applyState(
       migrated.state,
@@ -1152,7 +1216,14 @@ class Workspace extends ChangeNotifier {
       state,
       repaired == 0
           ? null
-          : '$repaired damaged workspace entr${repaired == 1 ? 'y was' : 'ies were'} repaired or skipped.',
+          : _workspacePlural(
+              'workspace.repaired_entries.count',
+              repaired,
+              oneEnglish:
+                  '{count} damaged workspace entry was repaired or skipped.',
+              otherEnglish:
+                  '{count} damaged workspace entries were repaired or skipped.',
+            ),
     );
   }
 
@@ -1229,13 +1300,19 @@ class Workspace extends ChangeNotifier {
       ),
       skipped == 0
           ? null
-          : '$skipped legacy document${skipped == 1 ? ' was' : 's were'} damaged and skipped.',
+          : _workspacePlural(
+              'workspace.legacy_damaged.count',
+              skipped,
+              oneEnglish: '{count} legacy document was damaged and skipped.',
+              otherEnglish:
+                  '{count} legacy documents were damaged and skipped.',
+            ),
     );
   }
 
   void _applyState(
     _WorkspaceState state, {
-    String? warning,
+    _WorkspaceMessage? warning,
     bool quotaExceeded = false,
     bool loadProtected = false,
   }) {
@@ -1261,7 +1338,10 @@ class Workspace extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _completeEmpty(String? error, {bool protectStoredData = false}) {
+  void _completeEmpty(
+    _WorkspaceMessage? error, {
+    bool protectStoredData = false,
+  }) {
     _resetToEmpty();
     _lastError = error;
     _loadProtected = protectStoredData;
@@ -1302,7 +1382,9 @@ class Workspace extends ChangeNotifier {
         return candidate;
       }
     }
-    throw StateError('The workspace id factory did not produce a unique UUID.');
+    throw StateError(
+      huiText('The workspace id factory did not produce a unique UUID.'),
+    );
   }
 
   bool _isDescendant(String? candidateId, String ancestorId) {
@@ -1317,7 +1399,9 @@ class Workspace extends ChangeNotifier {
 
   void _requireReady() {
     if (!_isReady) {
-      throw StateError('The workspace repository has not finished loading.');
+      throw StateError(
+        huiText('The workspace repository has not finished loading.'),
+      );
     }
   }
 
@@ -1325,10 +1409,12 @@ class Workspace extends ChangeNotifier {
     if (_loadProtected || _requiresReload) {
       throw StateError(
         _requiresReload
-            ? 'This workspace changed in another browser tab. Export this tab '
-                  'before reloading.'
-            : 'The saved workspace is protected from overwrite. Export or '
-                  'import a workspace before creating documents.',
+            ? huiText(
+                'This workspace changed in another browser tab. Export this tab before reloading.',
+              )
+            : huiText(
+                'The saved workspace is protected from overwrite. Export or import a workspace before creating documents.',
+              ),
       );
     }
   }
@@ -1362,20 +1448,29 @@ class Workspace extends ChangeNotifier {
           source is RecoverableWorkspaceRepository
           ? source as RecoverableWorkspaceRepository
           : null;
-      _lastError = recoverable?.lastFailure;
-      _lastError ??=
-          'Browser storage is full, so this change was not saved. '
-          'Export the document to keep it.';
+      _lastError = recoverable?.lastFailure == null
+          ? null
+          : () =>
+                recoverable?.lastFailure ??
+                huiText(
+                  'Browser storage is full, so this change was not saved. Export the document to keep it.',
+                );
+      _lastError ??= _workspaceText(
+        'Browser storage is full, so this change was not saved. '
+        'Export the document to keep it.',
+      );
     }
     if (_writeTail != null) notifyListeners();
   }
 
-  String? _repositoryFailure() {
+  _WorkspaceMessage? _repositoryFailure() {
     final WorkspaceRepository source = repository;
     if (source is! RecoverableWorkspaceRepository) return null;
     final RecoverableWorkspaceRepository recoverable =
         source as RecoverableWorkspaceRepository;
-    return recoverable.lastFailure;
+    if (recoverable.lastFailure == null) return null;
+    return () =>
+        recoverable.lastFailure ?? huiText('Workspace repository failed.');
   }
 
   void _syncRepositoryConflict() {
@@ -1394,10 +1489,14 @@ class Workspace extends ChangeNotifier {
     _requiresReload = true;
     _quotaExceeded = false;
     _lastError = notice.kind == WorkspaceRepositoryNoticeKind.cleared
-        ? 'Local workspace data was reset in another browser tab. Export this '
-              'tab before reloading if it contains work you need.'
-        : 'This workspace changed in another browser tab. Export this tab '
-              'before reloading to choose which version to keep.';
+        ? _workspaceText(
+            'Local workspace data was reset in another browser tab. Export this '
+            'tab before reloading if it contains work you need.',
+          )
+        : _workspaceText(
+            'This workspace changed in another browser tab. Export this tab '
+            'before reloading to choose which version to keep.',
+          );
     notifyListeners();
   }
 
@@ -1412,10 +1511,19 @@ class Workspace extends ChangeNotifier {
     super.dispose();
   }
 
-  String? _mergeWarnings(String? first, String? second) {
-    if (first == null || first.isEmpty) return second;
-    if (second == null || second.isEmpty) return first;
-    return '$first $second';
+  _WorkspaceMessage? _mergeWarnings(
+    _WorkspaceMessage? first,
+    _WorkspaceMessage? second,
+  ) {
+    if (first == null) return second;
+    if (second == null) return first;
+    return () {
+      final String firstMessage = first();
+      final String secondMessage = second();
+      if (firstMessage.isEmpty) return secondMessage;
+      if (secondMessage.isEmpty) return firstMessage;
+      return '$firstMessage $secondMessage';
+    };
   }
 
   int _repairFolderTree(List<WorkspaceFolder> folders) {
@@ -1482,7 +1590,7 @@ class _DecodedWorkspace {
   const _DecodedWorkspace(this.state, this.warning);
 
   final _WorkspaceState state;
-  final String? warning;
+  final _WorkspaceMessage? warning;
 }
 
 class _FutureWorkspaceVersion implements Exception {

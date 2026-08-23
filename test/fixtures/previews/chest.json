@@ -93,7 +93,7 @@
     }
   ],
   "card": {
-    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)))",
+    "title": "'&f&l' + (customName != '' ? customName : (plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) != '' ? plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) : readable(blockType)))",
     "accent": "vars.accent"
   },
   "elements": [

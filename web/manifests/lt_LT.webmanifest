@@ -1,19 +1,21 @@
 {
-  "name": "Gloss Editor",
+  "name": "Gloss redaktorius",
   "short_name": "Gloss",
-  "description": "Visual web editor for creating and previewing Gloss configurations.",
+  "description": "Vaizdinė žiniatinklio rengyklė, skirta kurti ir peržiūrėti Gloss meniu konfigūracijas.",
+  "lang": "lt-LT",
+  "dir": "ltr",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#050505",
   "theme_color": "#050505",
   "icons": [
     {
-      "src": "assets/brand/icon-192x192.png",
+      "src": "../assets/brand/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "assets/brand/icon-512x512.png",
+      "src": "../assets/brand/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

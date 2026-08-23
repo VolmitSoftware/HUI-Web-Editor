@@ -36,9 +36,11 @@ List<HuiIssue> validateScoreboardDoc(
         severity: HuiSeverity.warning,
         path: r'$.title',
         message:
-            'The rendered title is $titleLength UTF-16 units; VolmLib caps '
-            'it safely at $glossBoardMaxTitleLength — colour codes count, '
-            'and a [RRGGBB] tag costs 14.',
+            "The rendered title is {titleLength} UTF-16 units; VolmLib caps it safely at {glossBoardMaxTitleLength} — colour codes count, and a [RRGGBB] tag costs 14.",
+        messageArguments: <String, Object?>{
+          'titleLength': titleLength,
+          'glossBoardMaxTitleLength': glossBoardMaxTitleLength,
+        },
         fix: 'Shorten the title or use cheaper colour codes.',
       ),
     );
@@ -50,11 +52,16 @@ List<HuiIssue> validateScoreboardDoc(
         severity: HuiSeverity.warning,
         path: r'$.lines',
         message:
-            'The board has ${doc.lines.length} lines; Gloss renders only the '
-            'first $glossBoardMaxLines.',
+            "The board has {length} lines; Gloss renders only the first {glossBoardMaxLines}.",
+        messageArguments: <String, Object?>{
+          'length': doc.lines.length,
+          'glossBoardMaxLines': glossBoardMaxLines,
+        },
         fix:
-            'Trim the list — everything past line $glossBoardMaxLines is '
-            'invisible in game.',
+            "Trim the list — everything past line {glossBoardMaxLines} is invisible in game.",
+        fixArguments: <String, Object?>{
+          'glossBoardMaxLines': glossBoardMaxLines,
+        },
       ),
     );
   }
@@ -72,12 +79,12 @@ List<HuiIssue> validateScoreboardDoc(
           severity: HuiSeverity.warning,
           path: 'lines[$index]',
           message:
-              'This rendered line uses ${measure.encodedLength} encoded '
-              'characters. VolmLib keeps a 16-character prefix and a '
-              '16-character suffix; carried colour codes consume suffix '
-              'space, so ${measure.deliveredVisibleLength} of '
-              '${measure.visibleLength} visible characters reach the '
-              'client. Scoreboard rows never wrap.',
+              "This rendered line uses {encodedLength} encoded characters. VolmLib keeps a 16-character prefix and a 16-character suffix; carried colour codes consume suffix space, so {deliveredVisibleLength} of {visibleLength} visible characters reach the client. Scoreboard rows never wrap.",
+          messageArguments: <String, Object?>{
+            'encodedLength': measure.encodedLength,
+            'deliveredVisibleLength': measure.deliveredVisibleLength,
+            'visibleLength': measure.visibleLength,
+          },
           fix: 'Shorten the line or remove formatting codes.',
         ),
       );
@@ -91,8 +98,8 @@ List<HuiIssue> validateScoreboardDoc(
           severity: HuiSeverity.warning,
           path: 'lines[$index]',
           message:
-              '|$reference| names an animation document this workspace does '
-              'not have; the text will show literally in game.',
+              "|{reference}| names an animation document this workspace does not have; the text will show literally in game.",
+          messageArguments: <String, Object?>{'reference': reference},
           fix:
               'Create the animation document or pick an existing one from '
               'the reference picker.',
@@ -110,8 +117,8 @@ List<HuiIssue> validateScoreboardDoc(
         severity: HuiSeverity.warning,
         path: r'$.title',
         message:
-            '|$reference| names an animation document this workspace does '
-            'not have; the title will show it literally in game.',
+            "|{reference}| names an animation document this workspace does not have; the title will show it literally in game.",
+        messageArguments: <String, Object?>{'reference': reference},
         fix:
             'Create the animation document or pick an existing one from the '
             'reference picker.',
@@ -125,9 +132,11 @@ List<HuiIssue> validateScoreboardDoc(
         severity: HuiSeverity.info,
         path: r'$.permission',
         message:
-            'Gloss normalizes "${doc.permission}" to '
-            '"${doc.effectivePermission}" (trimmed, lowercased; blank means '
-            'default).',
+            "Gloss normalizes \"{permission}\" to \"{effectivePermission}\" (trimmed, lowercased; blank means default).",
+        messageArguments: <String, Object?>{
+          'permission': doc.permission,
+          'effectivePermission': doc.effectivePermission,
+        },
         fix: 'Write the normalized form to keep the file honest.',
       ),
     );
@@ -140,9 +149,10 @@ List<HuiIssue> validateScoreboardDoc(
         severity: HuiSeverity.info,
         path: r'$.groups',
         message:
-            'Gloss normalizes the groups to '
-            '[${doc.effectiveGroups.join(', ')}] — trimmed, lowercased, '
-            'blanks dropped, duplicates removed.',
+            "Gloss normalizes the groups to [{join}] — trimmed, lowercased, blanks dropped, duplicates removed.",
+        messageArguments: <String, Object?>{
+          'join': doc.effectiveGroups.join(', '),
+        },
         fix: 'Write the normalized names to keep the file honest.',
       ),
     );

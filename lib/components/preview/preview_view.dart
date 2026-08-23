@@ -24,6 +24,7 @@ import 'preview_log_view.dart';
 import 'preview_pose.dart';
 import 'preview_stage.dart';
 import 'preview_toolbar.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class PreviewView extends StatelessWidget {
   const PreviewView({
@@ -44,9 +45,9 @@ class PreviewView extends StatelessWidget {
     final PreviewPose pose = huiPreviewPose;
     return dom.div(
       classes: 'hui-preview',
-      attributes: const <String, String>{
+      attributes: <String, String>{
         'role': 'region',
-        'aria-label': 'Menu preview',
+        'aria-label': huiText('Menu preview'),
       },
       <Widget>[
         ListenableBuilder(

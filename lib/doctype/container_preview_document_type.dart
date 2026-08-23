@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'dart:math' as math;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
@@ -23,13 +25,13 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.containerPreview;
 
   @override
-  String get noun => 'preview';
+  String get noun => huiText('preview');
 
   @override
-  String get createLabel => 'New preview document';
+  String get createLabel => huiText('New preview document');
 
   @override
-  String get pluralLabel => 'Previews';
+  String get pluralLabel => huiText('Previews');
 
   @override
   int get tabOrder => 20;
@@ -38,10 +40,10 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.previewCard;
 
   @override
-  String get surfaceLabel => 'Card';
+  String get surfaceLabel => huiText('Card');
 
   @override
-  String? get contentsTabLabel => 'Elements';
+  String? get contentsTabLabel => huiText('Elements');
 
   @override
   bool get hasRuntimeId => true;
@@ -63,7 +65,10 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
 
   @override
   void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>
-      store.newPreviewDocument(name: 'New preview', folderId: folderId);
+      store.newPreviewDocument(
+        name: huiText('New preview'),
+        folderId: folderId,
+      );
 
   @override
   AdoptedDocument adopt(WorkspaceDoc doc) {
@@ -77,17 +82,19 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
       return AdoptedDocument(
         editorId: editorId,
         model: HuiPreviewDoc(),
-        failure:
-            'The saved document "${doc.title}" was unreadable '
-            '(${e.message}) and was replaced with a blank preview document.',
+        failureResolver: () => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank preview document.',
+          <String, Object?>{'title': doc.title, 'error': e.message},
+        ),
       );
     } catch (_) {
       return AdoptedDocument(
         editorId: editorId,
         model: HuiPreviewDoc(),
-        failure:
-            'The saved document "${doc.title}" was unreadable and was '
-            'replaced with a blank preview document.',
+        failureResolver: () => huiText(
+          'The saved document "{title}" was unreadable and was replaced with a blank preview document.',
+          <String, Object?>{'title': doc.title},
+        ),
       );
     }
   }

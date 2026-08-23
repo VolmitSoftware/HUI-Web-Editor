@@ -2,6 +2,7 @@ library;
 
 import 'dart:convert';
 
+import '../l10n/hui_localizations.dart';
 import '../services/image_library.dart';
 import 'workspace.dart';
 
@@ -30,20 +31,26 @@ final class WorkspaceBundleDecodeResult {
   const WorkspaceBundleDecodeResult({
     this.bundle,
     this.workspaceCheck,
-    this.error,
-  });
+    String? error,
+    this.errorResolver,
+  }) : _error = error;
 
   final WorkspaceBundle? bundle;
   final WorkspacePortableStateCheck? workspaceCheck;
-  final String? error;
+  final String? _error;
+  final String Function()? errorResolver;
+
+  String? get error =>
+      errorResolver?.call() ?? (_error == null ? null : huiText(_error));
 }
 
 final class WorkspaceBundleImportResult {
   const WorkspaceBundleImportResult._({
     required this.isSuccess,
-    this.error,
+    String? error,
+    this.errorResolver,
     this.compensationFailed = false,
-  });
+  }) : _error = error;
 
   const WorkspaceBundleImportResult.success() : this._(isSuccess: true);
 
@@ -56,8 +63,21 @@ final class WorkspaceBundleImportResult {
          compensationFailed: compensationFailed,
        );
 
+  const WorkspaceBundleImportResult.failureResolved(
+    String Function() resolver, {
+    bool compensationFailed = false,
+  }) : this._(
+         isSuccess: false,
+         errorResolver: resolver,
+         compensationFailed: compensationFailed,
+       );
+
   final bool isSuccess;
-  final String? error;
+  final String? _error;
+  final String Function()? errorResolver;
+
+  String? get error =>
+      errorResolver?.call() ?? (_error == null ? null : huiText(_error));
   final bool compensationFailed;
 }
 
@@ -98,7 +118,8 @@ WorkspaceBundleDecodeResult decodeWorkspaceBundle(
   if (!check.isValid || rawWorkspace is! Map) {
     return WorkspaceBundleDecodeResult(
       workspaceCheck: check,
-      error: check.error ?? 'The bundled workspace is unreadable.',
+      errorResolver: () =>
+          check.error ?? huiText('The bundled workspace is unreadable.'),
     );
   }
   final Object? rawImages = decoded['images'];
@@ -139,24 +160,28 @@ Future<WorkspaceBundleImportResult> importWorkspaceBundle(
       ? null
       : List<StoredImage>.of(images.images);
   if (images != null && !images.replaceAll(bundle.images)) {
-    return WorkspaceBundleImportResult.failure(
-      images.lastError ?? 'The bundled images could not be saved.',
+    return WorkspaceBundleImportResult.failureResolved(
+      () =>
+          images.lastError ?? huiText('The bundled images could not be saved.'),
     );
   }
   if (await workspace.replacePortableState(bundle.workspaceState)) {
     return const WorkspaceBundleImportResult.success();
   }
-  final String workspaceFailure =
-      workspace.lastError ?? 'The bundled workspace could not be saved.';
+  String workspaceFailure() =>
+      workspace.lastError ??
+      huiText('The bundled workspace could not be saved.');
   if (images != null && previousImages != null) {
     final bool restored = images.replaceAll(previousImages);
     if (!restored) {
-      return WorkspaceBundleImportResult.failure(
-        '$workspaceFailure The previous image library also could not be '
-        'restored; export this tab before closing it.',
+      return WorkspaceBundleImportResult.failureResolved(
+        () => huiText(
+          '{workspaceFailure} The previous image library also could not be restored; export this tab before closing it.',
+          <String, Object?>{'workspaceFailure': workspaceFailure()},
+        ),
         compensationFailed: true,
       );
     }
   }
-  return WorkspaceBundleImportResult.failure(workspaceFailure);
+  return WorkspaceBundleImportResult.failureResolved(workspaceFailure);
 }

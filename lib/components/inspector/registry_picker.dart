@@ -15,6 +15,7 @@ import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show EventCallback;
 
 import '../common/common.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// One row in the browse list. [texture] is a data URI or null, [detail] a
 /// muted second line (a display name, the owning plugin, ...).
@@ -33,9 +34,9 @@ class RegistryPicker extends StatefulWidget {
     required this.search,
     this.textureFor,
     this.placeholder,
-    this.browseLabel = 'Browse',
-    this.searchPlaceholder = 'Search',
-    this.emptyMessage = 'No matches in the shipped catalogue.',
+    this.browseLabel,
+    this.searchPlaceholder,
+    this.emptyMessage,
     this.catalogAvailable = true,
     this.maxResults = 60,
     this.showThumbnail = true,
@@ -53,9 +54,9 @@ class RegistryPicker extends StatefulWidget {
   /// Sprite for the current value, when the catalogue has one.
   final String? Function(String key)? textureFor;
   final String? placeholder;
-  final String browseLabel;
-  final String searchPlaceholder;
-  final String emptyMessage;
+  final String? browseLabel;
+  final String? searchPlaceholder;
+  final String? emptyMessage;
 
   /// False while the catalogue assets are missing: the browse button hides and
   /// the field degrades to plain free text.
@@ -105,6 +106,12 @@ class _RegistryPickerState extends State<RegistryPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final String browseLabel =
+        component.browseLabel ?? huiText('Browse catalog');
+    final String searchPlaceholder =
+        component.searchPlaceholder ?? huiText('Search catalog');
+    final String emptyMessage =
+        component.emptyMessage ?? huiText('No matches in the shipped catalog.');
     final List<RegistryOption> results = _browsing
         ? component.search(_query, component.maxResults)
         : const <RegistryOption>[];
@@ -143,6 +150,7 @@ class _RegistryPickerState extends State<RegistryPicker> {
                     'autocomplete': 'off',
                     'autocapitalize': 'off',
                     'spellcheck': 'false',
+                    'dir': 'ltr',
                   },
                 ),
               ],
@@ -158,14 +166,14 @@ class _RegistryPickerState extends State<RegistryPicker> {
                   _query = '';
                 }),
                 attributes: <String, String>{
-                  'aria-label': component.browseLabel,
+                  'aria-label': browseLabel,
                   'aria-expanded': _browsing ? 'true' : 'false',
                   // Opt out of the legacy accordion binder, which claims every
                   // `button[aria-expanded]` and would flip the attribute Dart
                   // owns (accordion_scripts.dart:8).
                   'data-arcane-interactive': 'true',
                 },
-                child: Text(component.browseLabel),
+                child: Text(browseLabel),
               ),
           ],
         ),
@@ -175,7 +183,7 @@ class _RegistryPickerState extends State<RegistryPicker> {
               value: _query,
               size: ComponentSize.sm,
               fullWidth: true,
-              placeholder: component.searchPlaceholder,
+              placeholder: searchPlaceholder,
               onInput: (String raw) => setState(() => _query = raw),
               attributes: const <String, String>{
                 'autocomplete': 'off',
@@ -183,9 +191,7 @@ class _RegistryPickerState extends State<RegistryPicker> {
               },
             ),
             if (results.isEmpty)
-              dom.p(classes: 'hui-registry-empty', <Widget>[
-                Text(component.emptyMessage),
-              ])
+              dom.p(classes: 'hui-registry-empty', <Widget>[Text(emptyMessage)])
             else
               dom.div(classes: 'hui-registry-results', <Widget>[
                 for (final RegistryOption option in results) _resultRow(option),
@@ -193,8 +199,10 @@ class _RegistryPickerState extends State<RegistryPicker> {
             if (results.length >= component.maxResults)
               dom.p(classes: 'hui-registry-more', <Widget>[
                 Text(
-                  'Showing the first ${component.maxResults} matches. '
-                  'Keep typing to narrow it down.',
+                  huiText(
+                    "Showing the first {maxResults} matches. Keep typing to narrow it down.",
+                    <String, Object?>{'maxResults': component.maxResults},
+                  ),
                 ),
               ]),
           ]),

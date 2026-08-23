@@ -33,6 +33,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import '../model/gloss_hologram.dart';
 import '../preview/preview_types.dart';
 import '../preview/projection.dart';
@@ -257,8 +259,10 @@ HologramFacing hologramFacing({
   final double cameraPitch = toCamera.lengthSquared == 0
       ? doc.pitch
       : -math.asin(toCamera.y.clamp(-1.0, 1.0)) * 180 / math.pi;
-  final bool tracksYaw = doc.billboard != 'FIXED' && doc.billboard != 'HORIZONTAL';
-  final bool tracksPitch = doc.billboard != 'FIXED' && doc.billboard != 'VERTICAL';
+  final bool tracksYaw =
+      doc.billboard != 'FIXED' && doc.billboard != 'HORIZONTAL';
+  final bool tracksPitch =
+      doc.billboard != 'FIXED' && doc.billboard != 'VERTICAL';
   return HologramFacing(
     yawDegrees: tracksYaw ? cameraYaw : doc.yaw,
     pitchDegrees: tracksPitch ? cameraPitch : doc.pitch,
@@ -356,7 +360,9 @@ HologramPlaneTransform hologramPlaneTransform({
   );
 
   final ProjectedPoint? origin = project(anchor);
-  final ProjectedPoint? alongRight = project(anchor + right * _planeProbeBlocks);
+  final ProjectedPoint? alongRight = project(
+    anchor + right * _planeProbeBlocks,
+  );
   final ProjectedPoint? alongUp = project(anchor + up * _planeProbeBlocks);
   if (origin == null || alongRight == null || alongUp == null) {
     return HologramPlaneTransform.identity;
@@ -380,18 +386,25 @@ HologramPlaneTransform hologramPlaneTransform({
 /// standing apart never see the same pose — a fixed frame can show one of
 /// those poses, never the fact that they differ.
 String hologramBillboardNote(String billboard) => switch (billboard) {
-  'FIXED' =>
+  'FIXED' => huiText(
     'billboard fixed · never turns; orbit behind it to read it mirrored',
-  'VERTICAL' =>
+  ),
+  'VERTICAL' => huiText(
     'billboard vertical · yaws to each viewer, keeps its pitch; solved here '
-        'for this camera only',
-  'HORIZONTAL' =>
+    'for this camera only',
+  ),
+  'HORIZONTAL' => huiText(
     'billboard horizontal · pitches to each viewer, keeps its yaw; solved '
-        'here for this camera only',
-  'CENTER' =>
+    'here for this camera only',
+  ),
+  'CENTER' => huiText(
     'billboard center · faces every viewer on both axes, so this camera '
-        'stands in for all of them',
-  _ => 'billboard $billboard is not a mode Gloss accepts; drawn as center',
+    'stands in for all of them',
+  ),
+  _ => huiText(
+    'billboard {billboard} is not a mode Gloss accepts; drawn as center',
+    <String, Object?>{'billboard': billboard},
+  ),
 };
 
 /// Every line rendered through the Gloss text pipeline at [nowMs], in

@@ -10,6 +10,7 @@ import '../../logic/workspace_flow_graph.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../../state/workspace_panel.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class PanelView extends StatefulWidget {
   const PanelView({required this.store, super.key});
@@ -43,8 +44,8 @@ class _PanelViewState extends State<PanelView> {
   Widget _body() {
     final WorkspacePanelDecodeResult? decoded = component.store.activePanel;
     if (decoded == null) {
-      return const dom.div(classes: 'hui-board-empty', <Widget>[
-        Text('Open a menu flow map to inspect menu navigation.'),
+      return dom.div(classes: 'hui-board-empty', <Widget>[
+        Text(huiText('Open a menu flow map to inspect menu navigation.')),
       ]);
     }
     final WorkspacePanelData panel = decoded.data;
@@ -58,7 +59,9 @@ class _PanelViewState extends State<PanelView> {
         _notice(decoded.warning!, 'is-warning')
       else if (graph.scopeMissing)
         _notice(
-          'This panel\'s saved folder no longer exists. All menus are shown.',
+          huiText(
+            'This panel\'s saved folder no longer exists. All menus are shown.',
+          ),
           'is-warning',
         ),
       _summary(graph),
@@ -77,26 +80,33 @@ class _PanelViewState extends State<PanelView> {
           ArcaneIcon.workflow(size: IconSize.md),
           dom.div(<Widget>[
             dom.h1(<Widget>[
-              Text(component.store.workspace.active?.title ?? 'Menu flow map'),
+              Text(
+                component.store.workspace.active?.title ??
+                    huiText('Menu flow map'),
+              ),
             ]),
             dom.p(<Widget>[
               Text(
-                '${graph.documents.length} '
-                '${graph.documents.length == 1 ? 'menu' : 'menus'} in flow',
+                huiPlural(
+                  'panel.flow.menu_count',
+                  graph.documents.length,
+                  oneEnglish: '{count} menu in flow',
+                  otherEnglish: '{count} menus in flow',
+                ),
               ),
             ]),
           ]),
         ]),
         dom.div(classes: 'hui-board-controls', <Widget>[
           dom.div(classes: 'hui-board-scope', <Widget>[
-            const dom.span(<Widget>[Text('Scope')]),
+            dom.span(<Widget>[Text(huiText('Scope'))]),
             ArcaneSelect(
               value: panel.scopeFolderId ?? _allFoldersValue,
               size: ComponentSize.sm,
               onChange: (String value) => _setScope(panel, value),
               options: <ArcaneSelectOption>[
-                const ArcaneSelectOption(
-                  label: 'All workspace folders',
+                ArcaneSelectOption(
+                  label: huiText('All workspace folders'),
                   value: _allFoldersValue,
                 ),
                 for (final WorkspaceFolder folder in _sortedFolders(
@@ -112,7 +122,7 @@ class _PanelViewState extends State<PanelView> {
           Button.outline(
             size: ButtonSize.sm,
             icon: ArcaneIcon.wandSparkles(size: IconSize.sm),
-            label: 'Arrange',
+            label: huiText('Arrange'),
             onPressed: () => _arrange(panel, graph),
           ),
           ArcaneToggleGroup(
@@ -153,13 +163,13 @@ class _PanelViewState extends State<PanelView> {
         .where((WorkspaceFlowEdge edge) => _isSink(edge.targetKind))
         .length;
     return dom.div(classes: 'hui-board-summary', <Widget>[
-      _metric('${graph.documents.length}', 'Menus'),
-      _metric('${graph.edges.length}', 'Routes'),
-      _metric('$sinks', 'Back / Home / Close'),
-      _metric('$external', 'External'),
-      _metric('$dangling', 'Needs attention', danger: dangling > 0),
-      _metric('${graph.cycleDocumentIds.length}', 'In cycles'),
-      _metric('${graph.orphanDocumentIds.length}', 'No inbound links'),
+      _metric('${graph.documents.length}', huiText('Menus')),
+      _metric('${graph.edges.length}', huiText('Routes')),
+      _metric('$sinks', huiText('Back / Home / Close')),
+      _metric('$external', huiText('External')),
+      _metric('$dangling', huiText('Needs attention'), danger: dangling > 0),
+      _metric('${graph.cycleDocumentIds.length}', huiText('In cycles')),
+      _metric('${graph.orphanDocumentIds.length}', huiText('No inbound links')),
     ]);
   }
 
@@ -233,7 +243,7 @@ class _PanelViewState extends State<PanelView> {
           Button.outline(
             size: ButtonSize.sm,
             icon: ArcaneIcon.pencil(size: IconSize.sm),
-            label: 'Edit menu',
+            label: huiText('Edit menu'),
             onPressed: () => component.store.openDocument(doc.id),
           ),
         ]),
@@ -258,7 +268,7 @@ class _PanelViewState extends State<PanelView> {
       Button.ghost(
         size: ButtonSize.sm,
         icon: ArcaneIcon.pencil(size: IconSize.sm),
-        label: 'Edit menu',
+        label: huiText('Edit menu'),
         onPressed: () => component.store.openDocument(doc.id),
       ),
     ],
@@ -272,20 +282,20 @@ class _PanelViewState extends State<PanelView> {
         ]),
         dom.div(classes: 'hui-board-badges', <Widget>[
           if (graph.cycleDocumentIds.contains(doc.id))
-            _badge('Cycle', 'is-cycle'),
+            _badge(huiText('Cycle'), 'is-cycle'),
           if (graph.orphanDocumentIds.contains(doc.id))
-            _badge('Orphan', 'is-orphan'),
+            _badge(huiText('Orphan'), 'is-orphan'),
           if (graph.invalidDocumentIds.contains(doc.id))
-            _badge('Invalid JSON', 'is-danger'),
+            _badge(huiText('Invalid JSON'), 'is-danger'),
           if (graph.duplicateRuntimeIds.contains(doc.runtimeId))
-            _badge('Duplicate id', 'is-danger'),
+            _badge(huiText('Duplicate id'), 'is-danger'),
         ]),
       ]);
 
   Widget _routeList(List<WorkspaceFlowEdge> edges, {bool compact = false}) {
     if (edges.isEmpty) {
-      return const dom.p(classes: 'hui-board-no-routes', <Widget>[
-        Text('No navigation actions'),
+      return dom.p(classes: 'hui-board-no-routes', <Widget>[
+        Text(huiText('No navigation actions')),
       ]);
     }
     final List<WorkspaceFlowEdge> shown = compact && edges.length > 3
@@ -299,7 +309,11 @@ class _PanelViewState extends State<PanelView> {
         ]),
       if (shown.length < edges.length)
         dom.span(classes: 'hui-board-more-routes', <Widget>[
-          Text('+${edges.length - shown.length} more'),
+          Text(
+            huiText("+{value} more", <String, Object?>{
+              'value': edges.length - shown.length,
+            }),
+          ),
         ]),
     ]);
   }
@@ -366,8 +380,8 @@ class _PanelViewState extends State<PanelView> {
     return out;
   }
 
-  Widget _emptyGraph() => const dom.div(classes: 'hui-board-empty', <Widget>[
-    Text('No menu documents are inside this panel scope.'),
+  Widget _emptyGraph() => dom.div(classes: 'hui-board-empty', <Widget>[
+    Text(huiText('No menu documents are inside this panel scope.')),
   ]);
 
   Widget _notice(String message, String tone) => dom.div(
@@ -395,27 +409,38 @@ class _PanelViewState extends State<PanelView> {
     final String trigger = edge.triggers.length == 4
         ? ''
         : '${edge.triggers.join(' / ')}: ';
+    final String prefix = '$branch$trigger';
     return switch (edge.targetKind) {
-      WorkspaceFlowTargetKind.menu =>
-        '$branch$trigger${edge.mode} → ${edge.target}',
-      WorkspaceFlowTargetKind.back => '$branch${trigger}Back sink',
-      WorkspaceFlowTargetKind.home => '$branch${trigger}Home sink',
-      WorkspaceFlowTargetKind.close => '$branch${trigger}Close sink',
-      WorkspaceFlowTargetKind.external =>
-        '$branch$trigger${edge.target} · outside scope',
-      WorkspaceFlowTargetKind.dangling =>
-        '$branch$trigger${edge.target.isEmpty ? '(missing target)' : edge.target} · dangling',
-      WorkspaceFlowTargetKind.ambiguous =>
-        '$branch$trigger${edge.target} · duplicate runtime id',
-      WorkspaceFlowTargetKind.invalid =>
-        '$branch$trigger${edge.mode} · unknown mode',
+      WorkspaceFlowTargetKind.menu => '$prefix${edge.mode} → ${edge.target}',
+      WorkspaceFlowTargetKind.back => '$prefix${huiText('Back sink')}',
+      WorkspaceFlowTargetKind.home => '$prefix${huiText('Home sink')}',
+      WorkspaceFlowTargetKind.close => '$prefix${huiText('Close sink')}',
+      WorkspaceFlowTargetKind.external => huiText(
+        '{route} · outside scope',
+        <String, Object?>{'route': '$prefix${edge.target}'},
+      ),
+      WorkspaceFlowTargetKind.dangling => huiText('{route} · dangling', <
+        String,
+        Object?
+      >{
+        'route':
+            '$prefix${edge.target.isEmpty ? huiText('(missing target)') : edge.target}',
+      }),
+      WorkspaceFlowTargetKind.ambiguous => huiText(
+        '{route} · duplicate runtime id',
+        <String, Object?>{'route': '$prefix${edge.target}'},
+      ),
+      WorkspaceFlowTargetKind.invalid => huiText(
+        '{route} · unknown mode',
+        <String, Object?>{'route': '$prefix${edge.mode}'},
+      ),
     };
   }
 
   String _targetLabel(WorkspaceFlowTargetKind kind) => switch (kind) {
-    WorkspaceFlowTargetKind.back => 'Back',
-    WorkspaceFlowTargetKind.home => 'Home',
-    WorkspaceFlowTargetKind.close => 'Close',
+    WorkspaceFlowTargetKind.back => huiText('Back'),
+    WorkspaceFlowTargetKind.home => huiText('Home'),
+    WorkspaceFlowTargetKind.close => huiText('Close'),
     _ => kind.name,
   };
 

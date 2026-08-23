@@ -506,9 +506,18 @@ extension _PreviewCardInteractions on _PreviewCardViewportState {
     if (readout == null) return;
     final StringBuffer text = StringBuffer('x ${point.x}   y ${point.y}');
     if (size?.size != null) {
-      text.write('   size ${size!.size}');
+      text
+        ..write('   ')
+        ..write(huiText('size {size}', <String, Object?>{'size': size!.size}));
     } else if (size?.width != null) {
-      text.write('   ${size!.width} x ${size.height}');
+      text
+        ..write('   ')
+        ..write(
+          huiText('{width} × {height}', <String, Object?>{
+            'width': size!.width,
+            'height': size.height,
+          }),
+        );
     }
     readout.textContent = text.toString();
     readout.classList.add('is-visible');

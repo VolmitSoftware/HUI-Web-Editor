@@ -18,6 +18,7 @@ import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import 'shell_intents.dart';
 import 'shortcut_sheet.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ShellAction {
   ShellAction({
@@ -57,6 +58,19 @@ const String shellGroupHelp = 'Help';
 const String shellGroupLibrary = 'Library';
 const String shellGroupDocuments = 'Documents';
 
+String shellGroupLabel(String group) => switch (group) {
+  shellGroupFile => huiText('File'),
+  shellGroupEdit => huiText('Edit'),
+  shellGroupSelection => huiText('Selection'),
+  shellGroupAdd => huiText('Add component'),
+  shellGroupView => huiText('View'),
+  shellGroupCanvas => huiText('Canvas'),
+  shellGroupHelp => huiText('Help'),
+  shellGroupLibrary => huiText('Library'),
+  shellGroupDocuments => huiText('Documents'),
+  _ => group,
+};
+
 /// [onShowShortcuts] and [onReplayTour] are shell-owned overlays the intents
 /// layer has no handle on; their commands are omitted when the shell does not
 /// supply them rather than being listed and dead.
@@ -72,7 +86,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'file.new',
       group: shellGroupFile,
-      label: 'New menu',
+      label: huiText('New menu'),
       icon: ArcaneIcon.filePlus(size: IconSize.sm),
       keywords: const <String>['document', 'blank', 'create'],
       run: intents.newDocument,
@@ -80,7 +94,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'file.import',
       group: shellGroupFile,
-      label: 'Import JSON',
+      label: huiText('Import JSON'),
       icon: ArcaneIcon.upload(size: IconSize.sm),
       keywords: <String>['open', 'load', 'file', documentNoun],
       enabled: store.canTransferDocument,
@@ -89,7 +103,9 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'file.export',
       group: shellGroupFile,
-      label: 'Export $documentNoun JSON',
+      label: huiText("Export {documentNoun} JSON", <String, Object?>{
+        'documentNoun': documentNoun,
+      }),
       icon: ArcaneIcon.download(size: IconSize.sm),
       shortcut: huiShortcutSpec('file.export'),
       keywords: const <String>['save', 'download', 'json'],
@@ -99,7 +115,9 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'file.copy',
       group: shellGroupFile,
-      label: 'Copy $documentNoun JSON',
+      label: huiText("Copy {documentNoun} JSON", <String, Object?>{
+        'documentNoun': documentNoun,
+      }),
       icon: ArcaneIcon.copy(size: IconSize.sm),
       keywords: const <String>['clipboard'],
       enabled: store.canTransferDocument,
@@ -108,7 +126,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'file.templates',
       group: shellGroupFile,
-      label: 'Browse templates',
+      label: huiText('Browse templates'),
       icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
       keywords: const <String>['starter', 'example', 'preset'],
       run: intents.openTemplates,
@@ -116,7 +134,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'file.images',
       group: shellGroupFile,
-      label: 'Manage images',
+      label: huiText('Manage images'),
       icon: ArcaneIcon.images(size: IconSize.sm),
       keywords: const <String>['upload', 'texture', 'library', 'zip'],
       run: intents.openImages,
@@ -124,7 +142,11 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'edit.undo',
       group: shellGroupEdit,
-      label: store.undoLabel == null ? 'Undo' : 'Undo ${store.undoLabel}',
+      label: store.undoLabel == null
+          ? huiText('Undo')
+          : huiText('Undo {action}', <String, Object?>{
+              'action': store.undoLabel!,
+            }),
       icon: ArcaneIcon.undo(size: IconSize.sm),
       shortcut: huiShortcutSpec('edit.undo'),
       enabled: store.canUndo,
@@ -133,7 +155,11 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'edit.redo',
       group: shellGroupEdit,
-      label: store.redoLabel == null ? 'Redo' : 'Redo ${store.redoLabel}',
+      label: store.redoLabel == null
+          ? huiText('Redo')
+          : huiText('Redo {action}', <String, Object?>{
+              'action': store.redoLabel!,
+            }),
       icon: ArcaneIcon.redo(size: IconSize.sm),
       shortcut: huiShortcutSpec('edit.redo'),
       enabled: store.canRedo,
@@ -142,7 +168,9 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'edit.duplicate',
       group: shellGroupEdit,
-      label: 'Duplicate ${_selectionNoun(selected)}',
+      label: huiText("Duplicate {selectionNoun}", <String, Object?>{
+        'selectionNoun': _selectionNoun(selected),
+      }),
       icon: ArcaneIcon.copy(size: IconSize.sm),
       shortcut: huiShortcutSpec('edit.duplicate'),
       enabled: selected > 0,
@@ -151,7 +179,9 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'edit.delete',
       group: shellGroupEdit,
-      label: 'Delete ${_selectionNoun(selected)}',
+      label: huiText("Delete {selectionNoun}", <String, Object?>{
+        'selectionNoun': _selectionNoun(selected),
+      }),
       icon: ArcaneIcon.trash2(size: IconSize.sm),
       shortcut: huiShortcutSpec('edit.delete'),
       enabled: selected > 0,
@@ -160,7 +190,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'edit.deselect',
       group: shellGroupEdit,
-      label: selected > 1 ? 'Deselect all' : 'Deselect',
+      label: selected > 1 ? huiText('Deselect all') : huiText('Deselect'),
       icon: ArcaneIcon.x(size: IconSize.sm),
       shortcut: huiShortcutSpec('edit.deselect'),
       enabled: selected > 0,
@@ -169,7 +199,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'selection.all',
       group: shellGroupSelection,
-      label: 'Select all components',
+      label: huiText('Select all components'),
       icon: ArcaneIcon.listChecks(size: IconSize.sm),
       shortcut: huiShortcutSpec('selection.all'),
       keywords: const <String>['every', 'everything', 'multi'],
@@ -194,7 +224,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'selection.distribute.horizontal',
       group: shellGroupSelection,
-      label: 'Distribute horizontally',
+      label: huiText('Distribute horizontally'),
       icon: ArcaneIcon.alignHorizontalDistributeCenter(size: IconSize.sm),
       keywords: const <String>['space', 'even', 'gap', 'arrange'],
       enabled: selected > 0,
@@ -203,7 +233,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'selection.distribute.vertical',
       group: shellGroupSelection,
-      label: 'Distribute vertically',
+      label: huiText('Distribute vertically'),
       icon: ArcaneIcon.alignVerticalDistributeCenter(size: IconSize.sm),
       keywords: const <String>['space', 'even', 'gap', 'arrange'],
       enabled: selected > 0,
@@ -227,7 +257,9 @@ List<ShellAction> buildShellActions(
       ShellAction(
         id: 'add.$type',
         group: shellGroupAdd,
-        label: 'Add ${_typeLabel(type)}',
+        label: huiText("Add {typeLabel}", <String, Object?>{
+          'typeLabel': _typeLabel(type),
+        }),
         icon: ArcaneIcon.plus(size: IconSize.sm),
         keywords: <String>[type, 'component', 'new'],
         enabled: store.isMenuDoc,
@@ -238,7 +270,9 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'view.visual',
       group: shellGroupView,
-      label: 'Visual mode (${store.docType.surfaceLabel})',
+      label: huiText("Visual mode ({surfaceLabel})", <String, Object?>{
+        'surfaceLabel': store.docType.surfaceLabel,
+      }),
       icon: ArcaneIcon.eye(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.visual'),
       keywords: const <String>['surface', 'editor', 'design'],
@@ -248,7 +282,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'view.preview',
       group: shellGroupView,
-      label: 'Preview mode',
+      label: huiText('Preview mode'),
       icon: ArcaneIcon.rotate3d(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.preview'),
       keywords: const <String>['3d', 'player', 'simulate', 'stage', 'in game'],
@@ -258,7 +292,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'view.code',
       group: shellGroupView,
-      label: 'Code mode',
+      label: huiText('Code mode'),
       icon: ArcaneIcon.code(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.code'),
       keywords: const <String>['json', 'text'],
@@ -268,7 +302,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'view.split',
       group: shellGroupView,
-      label: 'Split mode',
+      label: huiText('Split mode'),
       icon: ArcaneIcon.layers(size: IconSize.sm),
       shortcut: huiShortcutSpec('view.split'),
       keywords: const <String>['side by side', 'json'],
@@ -278,7 +312,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'view.theme',
       group: shellGroupView,
-      label: 'Toggle light / dark theme',
+      label: huiText('Toggle light / dark theme'),
       icon: ArcaneIcon.sun(size: IconSize.sm),
       keywords: const <String>['dark', 'light', 'appearance'],
       run: intents.toggleTheme,
@@ -286,7 +320,9 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'canvas.grid',
       group: shellGroupCanvas,
-      label: store.showGrid ? 'Hide block grid' : 'Show block grid',
+      label: store.showGrid
+          ? huiText('Hide block grid')
+          : huiText('Show block grid'),
       icon: ArcaneIcon.grid3x3(size: IconSize.sm),
       enabled: store.isMenuDoc,
       run: intents.toggleGrid,
@@ -294,7 +330,9 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'canvas.snap',
       group: shellGroupCanvas,
-      label: store.snapToGrid ? 'Disable snapping' : 'Enable snapping',
+      label: store.snapToGrid
+          ? huiText('Disable snapping')
+          : huiText('Enable snapping'),
       icon: ArcaneIcon.magnet(size: IconSize.sm),
       keywords: const <String>['grid', 'align'],
       enabled: store.isMenuDoc,
@@ -303,7 +341,9 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'canvas.hitboxes',
       group: shellGroupCanvas,
-      label: store.showHitboxes ? 'Hide hitboxes' : 'Show hitboxes',
+      label: store.showHitboxes
+          ? huiText('Hide hitboxes')
+          : huiText('Show hitboxes'),
       icon: ArcaneIcon.square(size: IconSize.sm),
       keywords: const <String>['click', 'bounds'],
       enabled: store.isMenuDoc,
@@ -312,7 +352,9 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'canvas.anchors',
       group: shellGroupCanvas,
-      label: store.showAnchors ? 'Hide anchors' : 'Show anchors',
+      label: store.showAnchors
+          ? huiText('Hide anchors')
+          : huiText('Show anchors'),
       icon: ArcaneIcon.mousePointer(size: IconSize.sm),
       keywords: const <String>['offset', 'origin'],
       enabled: store.isMenuDoc,
@@ -322,8 +364,8 @@ List<ShellAction> buildShellActions(
       id: 'canvas.trueRender',
       group: shellGroupCanvas,
       label: store.trueRender
-          ? 'Show authored positions'
-          : 'Show true in-game positions',
+          ? huiText('Show authored positions')
+          : huiText('Show true in-game positions'),
       icon: ArcaneIcon.maximize(size: IconSize.sm),
       keywords: const <String>['bias', 'offset', 'display entity'],
       enabled: store.isMenuDoc,
@@ -332,7 +374,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'help.validation',
       group: shellGroupHelp,
-      label: 'Show validation issues',
+      label: huiText('Show validation issues'),
       icon: ArcaneIcon.triangleAlert(size: IconSize.sm),
       keywords: const <String>['errors', 'warnings', 'problems'],
       enabled: !store.isPanelDoc,
@@ -341,7 +383,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'help.help',
       group: shellGroupHelp,
-      label: 'Help and formatting reference',
+      label: huiText('Help and formatting reference'),
       icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
       keywords: const <String>['docs', 'guide', 'colours', 'minimessage'],
       run: intents.openHelp,
@@ -350,7 +392,7 @@ List<ShellAction> buildShellActions(
       ShellAction(
         id: 'help.shortcuts',
         group: shellGroupHelp,
-        label: 'Keyboard shortcuts',
+        label: huiText('Keyboard shortcuts'),
         icon: ArcaneIcon.keyboard(size: IconSize.sm),
         shortcut: huiShortcutSpec('help.shortcuts'),
         keywords: const <String>['keys', 'chord', 'binding', 'cheat sheet'],
@@ -360,7 +402,7 @@ List<ShellAction> buildShellActions(
       ShellAction(
         id: 'help.tour',
         group: shellGroupHelp,
-        label: 'Replay the guided tour',
+        label: huiText('Replay the guided tour'),
         icon: ArcaneIcon.compass(size: IconSize.sm),
         keywords: const <String>['onboarding', 'intro', 'walkthrough', 'first'],
         run: onReplayTour,
@@ -368,7 +410,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'help.settings',
       group: shellGroupHelp,
-      label: 'Settings',
+      label: huiText('Settings'),
       icon: ArcaneIcon.settings(size: IconSize.sm),
       keywords: const <String>['preferences', 'reset'],
       run: intents.openSettings,
@@ -382,7 +424,7 @@ List<ShellAction> buildShellActions(
     ShellAction(
       id: 'library.mode.all',
       group: shellGroupLibrary,
-      label: 'Show all documents',
+      label: huiText('Show all documents'),
       icon: ArcaneIcon.layoutList(size: IconSize.sm),
       keywords: const <String>['mode', 'filter', 'scope', 'library'],
       enabled: store.mode != null,
@@ -394,7 +436,9 @@ List<ShellAction> buildShellActions(
       ShellAction(
         id: 'library.mode.${type.kind.name}',
         group: shellGroupLibrary,
-        label: 'Show only ${type.pluralLabel.toLowerCase()}',
+        label: huiText("Show only {toLowerCase}", <String, Object?>{
+          'toLowerCase': type.pluralLabel.toLowerCase(),
+        }),
         icon: type.tabIcon(),
         keywords: <String>['mode', 'filter', 'scope', type.noun],
         enabled: !identical(store.mode, type),
@@ -410,7 +454,7 @@ List<ShellAction> buildShellActions(
       ShellAction(
         id: 'doc.${doc.id}',
         group: shellGroupDocuments,
-        label: 'Open ${doc.title}',
+        label: huiText("Open {title}", <String, Object?>{'title': doc.title}),
         icon: ArcaneIcon.files(size: IconSize.sm),
         keywords: const <String>['switch', 'document', 'workspace'],
         run: () => intents.openDocument(doc.id),
@@ -421,81 +465,85 @@ List<ShellAction> buildShellActions(
 }
 
 String _typeLabel(String type) => switch (type) {
-  'button' => 'button (clickable)',
-  'toggle' => 'toggle (two states)',
-  _ => 'decoration (display only)',
+  'button' => huiText('button (clickable)'),
+  'toggle' => huiText('toggle (two states)'),
+  _ => huiText('decoration (display only)'),
 };
 
 /// "selected component" reads as though only one is selected when eight are,
 /// and the commands act on all of them.
-String _selectionNoun(int selected) =>
-    selected > 1 ? '$selected selected components' : 'selected component';
+String _selectionNoun(int selected) => huiPlural(
+  'shell.selection-noun',
+  selected,
+  oneEnglish: 'selected component',
+  otherEnglish: '{count} selected components',
+);
 
 /// Lucide's object-alignment glyphs: a vertical rule means the components line
 /// up horizontally, and the other way round.
-final List<(String, String, HuiAlign, Widget)> _alignments =
+List<(String, String, HuiAlign, Widget)> get _alignments =>
     <(String, String, HuiAlign, Widget)>[
       (
         'left',
-        'Align left edges',
+        huiText('Align left edges'),
         HuiAlign.left,
         ArcaneIcon.alignStartVertical(size: IconSize.sm),
       ),
       (
         'centerX',
-        'Align horizontal centres',
+        huiText('Align horizontal centres'),
         HuiAlign.centerX,
         ArcaneIcon.alignCenterVertical(size: IconSize.sm),
       ),
       (
         'right',
-        'Align right edges',
+        huiText('Align right edges'),
         HuiAlign.right,
         ArcaneIcon.alignEndVertical(size: IconSize.sm),
       ),
       (
         'top',
-        'Align top edges',
+        huiText('Align top edges'),
         HuiAlign.top,
         ArcaneIcon.alignStartHorizontal(size: IconSize.sm),
       ),
       (
         'middleY',
-        'Align vertical centres',
+        huiText('Align vertical centres'),
         HuiAlign.middleY,
         ArcaneIcon.alignCenterHorizontal(size: IconSize.sm),
       ),
       (
         'bottom',
-        'Align bottom edges',
+        huiText('Align bottom edges'),
         HuiAlign.bottom,
         ArcaneIcon.alignEndHorizontal(size: IconSize.sm),
       ),
     ];
 
-final List<(String, String, HuiZOrder, Widget)> _depths =
+List<(String, String, HuiZOrder, Widget)> get _depths =>
     <(String, String, HuiZOrder, Widget)>[
       (
         'forward',
-        'Bring forward',
+        huiText('Bring forward'),
         HuiZOrder.forward,
         ArcaneIcon.arrowUp(size: IconSize.sm),
       ),
       (
         'backward',
-        'Send backward',
+        huiText('Send backward'),
         HuiZOrder.backward,
         ArcaneIcon.arrowDown(size: IconSize.sm),
       ),
       (
         'toFront',
-        'Bring to front',
+        huiText('Bring to front'),
         HuiZOrder.toFront,
         ArcaneIcon.bringToFront(size: IconSize.sm),
       ),
       (
         'toBack',
-        'Send to back',
+        huiText('Send to back'),
         HuiZOrder.toBack,
         ArcaneIcon.sendToBack(size: IconSize.sm),
       ),

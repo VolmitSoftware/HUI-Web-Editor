@@ -468,7 +468,7 @@ const String kGlossScoreboardShowcaseJson = r'''
     "&7Tick &f{{ fixed(metric('react.tick-ms', 1000 / server.tps), 1) }}ms",
     "&7Balance &6${{ fixed(papiNumber('vault_eco_balance', 0), 2) }}",
     "",
-    "&d{{ select(['·', '•', '●', '•'], floor(time.seconds * 8)) }} &f&lLIVE EVENT",
+    "&d{{ select(['·', '•', '●', '•'], floor(time.seconds)) }} &f&lLIVE EVENT",
     "&d:heart: &fWelcome!",
     "&bplay.example.net"
   ],

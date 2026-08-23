@@ -32,11 +32,11 @@ void main() {
     );
 
     expect(normalized, isNotNull);
-    expect(normalized!.width, 64);
-    expect(normalized.height, 32);
+    expect(normalized!.width, 16);
+    expect(normalized.height, 8);
     final StoredPngData? decoded = decodeNormalizedPngData(normalized.dataUri);
-    expect(decoded?.width, 64);
-    expect(decoded?.height, 32);
+    expect(decoded?.width, 16);
+    expect(decoded?.height, 8);
   });
 
   test('animated uploads expose their ordered frame group to insertion UI', () {

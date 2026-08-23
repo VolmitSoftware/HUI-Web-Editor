@@ -20,17 +20,34 @@ List<HuiIssue> validateAnimationDoc(GlossAnimationDoc doc) {
   }
 
   if (doc.normalizedMode == null) {
-    issues.add(
-      HuiIssue(
-        severity: HuiSeverity.error,
-        path: r'$.mode',
-        message: doc.mode.trim().isEmpty
-            ? 'The mode is missing; Gloss rejects an animation without one.'
-            : '"${doc.mode}" is not an animation mode; Gloss rejects the '
-                  'whole file.',
-        fix: 'Use one of: ${glossAnimationModes.join(', ')}.',
-      ),
-    );
+    if (doc.mode.trim().isEmpty) {
+      issues.add(
+        HuiIssue(
+          severity: HuiSeverity.error,
+          path: r'$.mode',
+          message:
+              'The mode is missing; Gloss rejects an animation without one.',
+          fix: "Use one of: {join}.",
+          fixArguments: <String, Object?>{
+            'join': glossAnimationModes.join(', '),
+          },
+        ),
+      );
+    } else {
+      issues.add(
+        HuiIssue(
+          severity: HuiSeverity.error,
+          path: r'$.mode',
+          message:
+              '"{mode}" is not an animation mode; Gloss rejects the whole file.',
+          messageArguments: <String, Object?>{'mode': doc.mode},
+          fix: "Use one of: {join}.",
+          fixArguments: <String, Object?>{
+            'join': glossAnimationModes.join(', '),
+          },
+        ),
+      );
+    }
   }
 
   if (doc.frames.isEmpty) {
@@ -52,9 +69,11 @@ List<HuiIssue> validateAnimationDoc(GlossAnimationDoc doc) {
         severity: HuiSeverity.warning,
         path: r'$.frameIntervalMs',
         message:
-            '${doc.frameIntervalMs} ms is outside 1..60000. Gloss loads the '
-            'file but silently plays it at '
-            '${doc.effectiveFrameIntervalMs} ms.',
+            "{frameIntervalMs} ms is outside 1..60000. Gloss loads the file but silently plays it at {effectiveFrameIntervalMs} ms.",
+        messageArguments: <String, Object?>{
+          'frameIntervalMs': doc.frameIntervalMs,
+          'effectiveFrameIntervalMs': doc.effectiveFrameIntervalMs,
+        },
         fix: 'Write the interval you actually want, between 1 and 60000.',
       ),
     );

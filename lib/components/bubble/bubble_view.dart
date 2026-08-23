@@ -28,6 +28,7 @@ import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Repaint period for motion alone. The stack eases every poll in game; 50 ms
 /// (one tick) keeps mathematical motion smooth without burning frames.
@@ -171,7 +172,7 @@ class _BubbleViewState extends State<BubbleView> {
       if (component.gameContext) {
         return glossGameEmpty(
           anchor: GlossGameAnchor.overPlayer,
-          label: 'Chat bubbles in game',
+          label: huiText('Chat bubbles in game'),
         );
       }
       return const dom.div(classes: 'hui-bubble-stage is-empty', <Widget>[]);
@@ -227,7 +228,7 @@ class _BubbleViewState extends State<BubbleView> {
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.overPlayer,
-        label: 'Chat bubbles in game',
+        label: huiText('Chat bubbles in game'),
         controls: <Widget>[_playPause()],
         child: scene,
       );
@@ -236,7 +237,7 @@ class _BubbleViewState extends State<BubbleView> {
     return dom.div(classes: 'hui-bubble-stage', <Widget>[
       dom.div(classes: 'hui-bubble-sky', <Widget>[
         GlossPreviewZoom(
-          label: 'Chat bubble preview',
+          label: huiText('Chat bubble preview'),
           alignment: GlossPreviewAlignment.bottom,
           child: scene,
         ),
@@ -258,8 +259,8 @@ class _BubbleViewState extends State<BubbleView> {
     size: ButtonSize.iconSm,
     onPressed: _togglePlaying,
     attributes: <String, String>{
-      'aria-label': _playing ? 'Pause' : 'Play',
-      'title': _playing ? 'Pause' : 'Play',
+      'aria-label': _playing ? huiText('Pause') : huiText('Play'),
+      'title': _playing ? huiText('Pause') : huiText('Play'),
     },
     child: _playing
         ? ArcaneIcon.pause(size: IconSize.sm)
@@ -268,14 +269,29 @@ class _BubbleViewState extends State<BubbleView> {
 
   String _readout(GlossBubbleStyleDoc doc) {
     final List<String> parts = <String>[
-      'wrap ${doc.effectiveWordWrapChars} chars',
-      'offset ${doc.offset.map((double value) => value.toStringAsFixed(1)).join(', ')}',
-      'alive ${doc.effectiveMaxAliveMs} ms',
-      'expression motion',
+      huiPlural(
+        'bubble.readout.wrap',
+        doc.effectiveWordWrapChars,
+        oneEnglish: 'wrap {count} character',
+        otherEnglish: 'wrap {count} characters',
+      ),
+      huiText('offset {offset}', <String, Object?>{
+        'offset': doc.offset
+            .map((double value) => value.toStringAsFixed(1))
+            .join(', '),
+      }),
+      huiText('alive {duration} ms', <String, Object?>{
+        'duration': doc.effectiveMaxAliveMs,
+      }),
+      huiText('expression motion'),
       if (doc.shimmer.spawn || doc.shimmer.flyAway)
-        'shine ${doc.shimmer.effectiveDurationMs} ms sweep',
-      doc.followPlayer ? 'follows the player' : 'anchored where sent',
-      if (doc.hideOwn) 'hidden from the sender',
+        huiText('shine {duration} ms sweep', <String, Object?>{
+          'duration': doc.shimmer.effectiveDurationMs,
+        }),
+      doc.followPlayer
+          ? huiText('follows the player')
+          : huiText('anchored where sent'),
+      if (doc.hideOwn) huiText('hidden from the sender'),
     ];
     return parts.join(' · ');
   }

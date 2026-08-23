@@ -16,6 +16,7 @@ import '../../logic/gloss_text.dart'
 import '../../logic/mc_text.dart';
 import '../common/common.dart';
 import '../gloss/gloss_mc_span.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class McTextPreview extends StatelessWidget {
   const McTextPreview({
@@ -45,13 +46,25 @@ class McTextPreview extends StatelessWidget {
     final McTextResult result = parseMcText(
       glossRenderMenuText(raw, emoji: emoji),
     );
+    final String lineMetric = huiPlural(
+      'text_preview.line_count',
+      result.lineCount,
+      oneEnglish: '{count} line',
+      otherEnglish: '{count} lines',
+    );
+    final String characterMetric = huiPlural(
+      'text_preview.character_count',
+      result.maxLineLength,
+      oneEnglish: '{count} character',
+      otherEnglish: '{count} characters',
+    );
     return dom.div(
       classes: classNames(<String?>['hui-mc-preview', classes]),
       <Widget>[
         dom.div(classes: 'hui-mc-preview-surface', <Widget>[
           if (result.lines.isEmpty)
-            const dom.div(classes: 'hui-mc-line is-empty', <Widget>[
-              Text('(empty)'),
+            dom.div(classes: 'hui-mc-line is-empty', <Widget>[
+              Text(huiText('(empty)')),
             ])
           else
             for (final List<McSpan> line in result.lines) _line(line),
@@ -59,10 +72,10 @@ class McTextPreview extends StatelessWidget {
         if (showMetrics)
           dom.p(classes: 'hui-mc-preview-metrics', <Widget>[
             Text(
-              '${result.lineCount} '
-              '${result.lineCount == 1 ? 'line' : 'lines'} · longest '
-              '${result.maxLineLength} '
-              '${result.maxLineLength == 1 ? 'char' : 'chars'}',
+              huiText('{lines} · longest {characters}', <String, Object?>{
+                'lines': lineMetric,
+                'characters': characterMetric,
+              }),
             ),
           ]),
         if (showWarnings && result.hasWarnings)

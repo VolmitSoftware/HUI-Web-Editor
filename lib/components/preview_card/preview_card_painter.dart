@@ -15,6 +15,7 @@ import 'dart:math' as math;
 
 import 'package:web/web.dart' as web;
 
+import '../../l10n/hui_localizations.dart';
 import '../../logic/preview_card_edit.dart';
 import '../../logic/preview_card_scene.dart';
 import '../../logic/preview_sim.dart';
@@ -508,7 +509,9 @@ class PreviewCardPainter {
     ctx.textBaseline = 'middle';
     _fill(ctx, palette.labelMuted);
     ctx.fillText(
-      'Nothing drawn yet - add an element, or check the simulated state',
+      huiText(
+        'Nothing drawn yet - add an element, or check the simulated state',
+      ),
       view.widthPx / 2,
       view.heightPx / 2,
     );

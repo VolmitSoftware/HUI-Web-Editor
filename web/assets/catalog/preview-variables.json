@@ -41,6 +41,11 @@
     "jukebox": {
       "playing": { "type": "boolean", "description": "True while a loaded record is playing." },
       "record": { "type": "string", "description": "Readable name of the loaded record, or empty when none is loaded." }
+    },
+    "poweredMinecart": {
+      "fuelTicks": { "type": "number", "description": "Ticks of fuel remaining in the furnace minecart." },
+      "fuelSeconds": { "type": "number", "description": "Fuel remaining in whole seconds (fuelTicks divided by 20)." },
+      "powered": { "type": "boolean", "description": "True while the furnace minecart has fuel." }
     }
   },
   "standardVariables": {

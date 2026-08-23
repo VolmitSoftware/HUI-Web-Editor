@@ -48,18 +48,38 @@ List<HuiIssue> validateMotdDoc(
     final GlossMotdEntry entry = doc.entries[index];
     final String path = 'entries[$index]';
     if (entry.lines.isEmpty || entry.lines.length > glossMotdMaxLinesPerEntry) {
-      issues.add(
-        HuiIssue(
-          severity: HuiSeverity.error,
-          path: '$path.lines',
-          message: entry.lines.isEmpty
-              ? 'This entry has no lines; Gloss rejects the whole file — an '
-                    'entry needs 1 to $glossMotdMaxLinesPerEntry.'
-              : 'This entry has ${entry.lines.length} lines; Gloss rejects '
-                    'the whole file past $glossMotdMaxLinesPerEntry.',
-          fix: 'Give the entry one or two lines.',
-        ),
-      );
+      if (entry.lines.isEmpty) {
+        issues.add(
+          HuiIssue(
+            severity: HuiSeverity.error,
+            path: '$path.lines',
+            message:
+                'This entry has no lines; Gloss rejects the whole file — an '
+                'entry needs 1 to {maximum}.',
+            messageArguments: <String, Object?>{
+              'maximum': glossMotdMaxLinesPerEntry,
+            },
+            fix: 'Give the entry one or two lines.',
+          ),
+        );
+      } else {
+        issues.add(
+          HuiIssue.plural(
+            severity: HuiSeverity.error,
+            path: '$path.lines',
+            pluralKey: 'validation.motd.entry_line_count',
+            count: entry.lines.length,
+            oneEnglish:
+                'This entry has {count} line; Gloss rejects the whole file past {maximum}.',
+            otherEnglish:
+                'This entry has {count} lines; Gloss rejects the whole file past {maximum}.',
+            messageArguments: <String, Object?>{
+              'maximum': glossMotdMaxLinesPerEntry,
+            },
+            fix: 'Give the entry one or two lines.',
+          ),
+        );
+      }
     }
     for (int line = 0; line < entry.lines.length; line++) {
       final String text = entry.lines[line];
@@ -71,9 +91,11 @@ List<HuiIssue> validateMotdDoc(
             severity: HuiSeverity.warning,
             path: linePath,
             message:
-                'This line shows $visible visible characters; the vanilla '
-                'server list clips rows around '
-                '$glossMotdMaxVisibleLineLength.',
+                "This line shows {visible} visible characters; the vanilla server list clips rows around {glossMotdMaxVisibleLineLength}.",
+            messageArguments: <String, Object?>{
+              'visible': visible,
+              'glossMotdMaxVisibleLineLength': glossMotdMaxVisibleLineLength,
+            },
             fix: 'Shorten the line.',
           ),
         );
@@ -87,9 +109,8 @@ List<HuiIssue> validateMotdDoc(
             severity: HuiSeverity.warning,
             path: linePath,
             message:
-                '|$reference| names an animation document this workspace '
-                'does not have; the text will show literally in the server '
-                'list.',
+                "|{reference}| names an animation document this workspace does not have; the text will show literally in the server list.",
+            messageArguments: <String, Object?>{'reference': reference},
             fix:
                 'Create the animation document or pick an existing one from '
                 'the reference picker.',
@@ -106,9 +127,10 @@ List<HuiIssue> validateMotdDoc(
             severity: HuiSeverity.info,
             path: linePath,
             message:
-                '${placeholders.join(', ')} will stay literal: a server-list '
-                'ping has no viewer, so PlaceholderAPI never runs for a '
-                'MOTD.',
+                "{join} will stay literal: a server-list ping has no viewer, so PlaceholderAPI never runs for a MOTD.",
+            messageArguments: <String, Object?>{
+              'join': placeholders.join(', '),
+            },
             fix: 'Remove the placeholder or accept the literal text.',
           ),
         );

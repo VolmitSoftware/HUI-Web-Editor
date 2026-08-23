@@ -23,6 +23,7 @@ import 'dart:js_interop';
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:web/web.dart' as web;
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Storage key for "this browser has been shown the tour".
 const String huiTourSeenKey = 'gloss.tour.v1';
@@ -116,7 +117,8 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
         'sync only exists when /gloss menu edit <id> gave you a capability link.',
     selectors: <String>['.hui-bar'],
     hint:
-        'File → Export, or the command palette. Images unzip into plugins/Gloss/images/.',
+        'File → Export, or the command palette. Images unzip into '
+        'plugins/Gloss/images/.',
   ),
   HuiTourStep(
     title: 'Everything else is one keystroke away',
@@ -343,23 +345,31 @@ class _HuiTourState extends State<HuiTour> {
       styles: dom.Styles(
         raw: <String, String>{'left': '${left}px', 'top': '${top}px'},
       ),
-      attributes: <String, String>{'role': 'dialog', 'aria-label': step.title},
+      attributes: <String, String>{
+        'role': 'dialog',
+        'aria-label': huiText(step.title),
+      },
       <Widget>[
         dom.div(classes: 'hui-tour-eyebrow', <Widget>[
-          Text('Step ${_step + 1} of ${huiTourSteps.length}'),
+          Text(
+            huiText("Step {value} of {length}", <String, Object?>{
+              'value': _step + 1,
+              'length': huiTourSteps.length,
+            }),
+          ),
         ]),
-        dom.h2(classes: 'hui-tour-title', <Widget>[Text(step.title)]),
-        dom.p(classes: 'hui-tour-body', <Widget>[Text(step.body)]),
+        dom.h2(classes: 'hui-tour-title', <Widget>[Text(huiText(step.title))]),
+        dom.p(classes: 'hui-tour-body', <Widget>[Text(huiText(step.body))]),
         if (step.hint != null)
-          dom.p(classes: 'hui-tour-hint', <Widget>[Text(step.hint!)]),
+          dom.p(classes: 'hui-tour-hint', <Widget>[Text(huiText(step.hint!))]),
         dom.div(classes: 'hui-tour-actions', <Widget>[
           Button(
             variant: ButtonVariant.ghost,
             size: ButtonSize.small,
             onPressed: component.onNever,
-            label: "Don't show again",
-            attributes: const <String, String>{
-              'aria-label': 'Never show the guided tour again',
+            label: huiText("Don't show again"),
+            attributes: <String, String>{
+              'aria-label': huiText('Never show the guided tour again'),
             },
           ),
           const dom.span(classes: 'hui-tour-spacer', <Widget>[]),
@@ -367,9 +377,9 @@ class _HuiTourState extends State<HuiTour> {
             variant: ButtonVariant.ghost,
             size: ButtonSize.small,
             onPressed: component.onSkip,
-            label: 'Skip',
-            attributes: const <String, String>{
-              'aria-label': 'Close the tour for now',
+            label: huiText('Skip'),
+            attributes: <String, String>{
+              'aria-label': huiText('Close the tour for now'),
             },
           ),
           if (_step > 0)
@@ -377,7 +387,7 @@ class _HuiTourState extends State<HuiTour> {
               variant: ButtonVariant.outline,
               size: ButtonSize.small,
               onPressed: () => _goto(_step - 1),
-              label: 'Back',
+              label: huiText('Back'),
             ),
           Button(
             // Arcane renders a Button's attributes one build behind (C15);
@@ -387,11 +397,14 @@ class _HuiTourState extends State<HuiTour> {
             variant: ButtonVariant.primary,
             size: ButtonSize.small,
             onPressed: last ? component.onFinish : () => _goto(_step + 1),
-            label: last ? 'Done' : 'Next',
+            label: last ? huiText('Done') : huiText('Next'),
             attributes: <String, String>{
               'aria-label': last
-                  ? 'Finish the tour'
-                  : 'Go to step ${_step + 2} of ${huiTourSteps.length}',
+                  ? huiText('Finish the tour')
+                  : huiText('Go to step {step} of {count}', <String, Object?>{
+                      'step': _step + 2,
+                      'count': huiTourSteps.length,
+                    }),
             },
           ),
         ]),

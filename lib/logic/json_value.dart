@@ -10,24 +10,44 @@ library;
 
 import 'dart:convert';
 
+import '../l10n/hui_localizations.dart';
+
 /// Outcome of [parseJsonValue].
 ///
 /// [ok] is separate from [value] because `null` is a legal JSON value: a
 /// successful parse of `null` and a failed parse both carry a null [value].
 class JsonParseResult {
-  const JsonParseResult._(this.ok, this.value, this.error);
+  const JsonParseResult._(
+    this.ok,
+    this.value,
+    this._errorEnglish,
+    this._errorArguments,
+  );
 
-  const JsonParseResult.value(Object? value) : this._(true, value, null);
+  const JsonParseResult.value(Object? value)
+    : this._(true, value, null, const <String, Object?>{});
 
-  const JsonParseResult.failure(String message) : this._(false, null, message);
+  JsonParseResult.failure(
+    String message, [
+    Map<String, Object?> arguments = const <String, Object?>{},
+  ]) : this._(
+         false,
+         null,
+         message,
+         Map<String, Object?>.unmodifiable(arguments),
+       );
 
   final bool ok;
 
   /// Null, bool, int, double, String, `List<Object?>` or `Map<String, dynamic>`.
   final Object? value;
 
+  final String? _errorEnglish;
+  final Map<String, Object?> _errorArguments;
+
   /// One sentence naming what could not be read. Null when [ok].
-  final String? error;
+  String? get error =>
+      _errorEnglish == null ? null : huiText(_errorEnglish, _errorArguments);
 }
 
 /// JSON number grammar, widened to the forms people actually type: a leading
@@ -71,7 +91,13 @@ JsonParseResult parseJsonValue(String raw) {
     try {
       return JsonParseResult.value(jsonDecode(text));
     } on FormatException catch (error) {
-      return JsonParseResult.failure(_describe(error));
+      final int? offset = error.offset;
+      return offset == null
+          ? JsonParseResult.failure('Not valid JSON.')
+          : JsonParseResult.failure(
+              'Not valid JSON (at character {character}).',
+              <String, Object?>{'character': offset + 1},
+            );
     }
   }
 
@@ -111,13 +137,4 @@ bool _isBare(String value) {
   if (value == 'null' || value == 'true' || value == 'false') return false;
   if (_bareUnsafeStart.hasMatch(value)) return false;
   return !_numberPattern.hasMatch(value);
-}
-
-/// `FormatException.toString()` carries the whole source; the message and
-/// offset are the parts worth putting under a field.
-String _describe(FormatException error) {
-  final String message = error.message.trim();
-  final int? offset = error.offset;
-  if (message.isEmpty) return 'Not valid JSON.';
-  return offset == null ? message : '$message (at character ${offset + 1})';
 }

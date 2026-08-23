@@ -43,6 +43,7 @@ import 'preview_expr_functions.dart';
 const List<String> previewSimCategories = <String>[
   'chest',
   'furnace',
+  'poweredMinecart',
   'brewing',
   'beehive',
   'cauldron',
@@ -60,6 +61,7 @@ const Map<String, List<String>> previewSimCategoryGroups =
     <String, List<String>>{
       'chest': <String>['universal', 'inventory'],
       'furnace': <String>['universal', 'inventory', 'furnace'],
+      'poweredMinecart': <String>['universal', 'poweredMinecart'],
       'brewing': <String>['universal', 'inventory', 'brewing'],
       'beehive': <String>['universal', 'beehive'],
       'cauldron': <String>['universal', 'cauldron'],
@@ -97,6 +99,7 @@ const Map<String, List<String>> previewSimGroupVariables =
       'beehive': <String>['bees', 'maxBees', 'honey', 'maxHoney'],
       'cauldron': <String>['level', 'maxLevel', 'fluid'],
       'jukebox': <String>['playing', 'record'],
+      'poweredMinecart': <String>['fuelTicks', 'fuelSeconds', 'powered'],
     };
 
 /// Gloss's shared text-expression variables, evaluated after document vars
@@ -149,6 +152,8 @@ const Set<String> previewTickVaryingVariables = <String>{
   'burnTime',
   'fuelSeconds',
   'lit',
+  'fuelTicks',
+  'powered',
   // brewing.
   'brewTime',
   'fuelLevel',
@@ -404,6 +409,8 @@ class PreviewSim implements PExprScope {
   double fuelLevel = 0;
   double maxFuel = 0;
 
+  double fuelTicks = 0;
+
   double bees = 0;
   double maxBees = 0;
   double honey = 0;
@@ -465,6 +472,8 @@ class PreviewSim implements PExprScope {
           cookTime = (cookTime + advance) % cookTimeTotal;
         }
         burnTime = _wrapDown(burnTime - gameTicks, _furnaceBurnTicks);
+      case 'poweredMinecart':
+        fuelTicks = fuelTicks > gameTicks ? fuelTicks - gameTicks : 0;
       case 'brewing':
         final double next = brewTime - advance;
         if (next <= 0) {
@@ -605,6 +614,15 @@ class PreviewSim implements PExprScope {
           case 'record':
             return record;
         }
+      case 'poweredMinecart':
+        switch (name) {
+          case 'fuelTicks':
+            return fuelTicks;
+          case 'fuelSeconds':
+            return (fuelTicks / _ticksPerSecond).floorToDouble();
+          case 'powered':
+            return fuelTicks > 0;
+        }
     }
     return null;
   }
@@ -644,15 +662,17 @@ class PreviewSim implements PExprScope {
   SimSlotItem? _slotItem(String name, List<Object?> args) {
     if (args.length != 1) {
       throw PExprException(
-        '$name expects 1 argument(s), got ${args.length}',
+        '{name} expects exactly one argument, got {count}',
         previewNoPosition,
+        <String, Object?>{'name': name, 'count': args.length},
       );
     }
     final Object? index = args.first;
     if (index is! double) {
       throw PExprException(
-        '$name argument 1 must be a number',
+        '{name} argument 1 must be a number',
         previewNoPosition,
+        <String, Object?>{'name': name},
       );
     }
     if (inventorySize <= 0 || !index.isFinite) return null;
@@ -684,6 +704,11 @@ class PreviewSim implements PExprScope {
           SimSlotItem(1, 'COAL', 8),
           SimSlotItem(2, 'IRON_INGOT', 2),
         ];
+      case 'poweredMinecart':
+        blockType = 'FURNACE_MINECART';
+        inventorySize = 0;
+        fuelTicks = 600;
+        slotItems = const <SimSlotItem>[];
       case 'brewing':
         blockType = 'BREWING_STAND';
         inventorySize = 5;

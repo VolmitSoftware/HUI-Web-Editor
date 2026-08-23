@@ -74,8 +74,15 @@ ShowcaseEffect showcaseColorEffect(math.Random random, ShowcaseMood mood) {
 
 /// A one-character animated glyph plus a reset, cheap enough for a scoreboard
 /// row. The mood's glyphs cycle forward, backward or in a stutter.
-ShowcaseEffect showcaseTickPrefix(math.Random random, ShowcaseMood mood) {
-  final int rate = 4 + random.nextInt(6);
+ShowcaseEffect showcaseTickPrefix(
+  math.Random random,
+  ShowcaseMood mood, {
+  required double framesPerSecond,
+}) {
+  assert(framesPerSecond.isFinite && framesPerSecond > 0);
+  final String frameIndex = framesPerSecond == 1.0
+      ? 'floor(time.seconds)'
+      : 'floor(time.seconds * $framesPerSecond)';
   final List<String> glyphs = mood.glyphs;
   final String forward = glyphs.map((String g) => "'$g'").join(', ');
   final String backward = glyphs.reversed.map((String g) => "'$g'").join(', ');
@@ -88,23 +95,20 @@ ShowcaseEffect showcaseTickPrefix(math.Random random, ShowcaseMood mood) {
   return showcasePick(random, <ShowcaseEffect>[
     ShowcaseEffect(
       'tick-forward',
-      '${mood.legacy}{{ select([$forward], '
-          'floor(time.seconds * $rate)) }} &f',
+      '${mood.legacy}{{ select([$forward], $frameIndex) }} &f',
     ),
     ShowcaseEffect(
       'tick-backward',
-      '${mood.legacy}{{ select([$backward], '
-          'floor(time.seconds * $rate)) }} &f',
+      '${mood.legacy}{{ select([$backward], $frameIndex) }} &f',
     ),
     ShowcaseEffect(
       'tick-stutter',
-      '${mood.legacy}{{ select([$stutter], '
-          'floor(time.seconds * $rate)) }} &f',
+      '${mood.legacy}{{ select([$stutter], $frameIndex) }} &f',
     ),
     ShowcaseEffect(
       'tick-flicker',
       "{{ select(['${mood.legacy}', '&8', '${mood.legacy}', '&7'], "
-          'floor(time.seconds * $rate)) }}${glyphs.first} &f',
+          '$frameIndex) }}${glyphs.first} &f',
     ),
   ]);
 }

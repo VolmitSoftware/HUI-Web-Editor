@@ -116,7 +116,7 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
   /// apart from an echo of our own edit and only the former resyncs [_text].
   Object? _lastCommitted;
 
-  String? _syntaxError;
+  String Function()? _syntaxError;
   int _syntaxPosition = previewNoPosition;
   List<String> _categoryHints = const <String>[];
   bool _showSuggestions = false;
@@ -184,7 +184,7 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
     } on PExprException catch (e) {
       // Held locally, never committed: a broken draft must not overwrite the
       // last value the document actually builds from.
-      _syntaxError = e.message;
+      _syntaxError = () => e.message;
       _syntaxPosition = e.position;
       return;
     }
@@ -252,8 +252,8 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
           severity: HuiSeverity.info,
           path: component.label,
           message:
-              '$name is not published while previewing this category; '
-              'it reads as unresolved there.',
+              "{name} is not published while previewing this category; it reads as unresolved there.",
+          messageArguments: <String, Object?>{'name': name},
         ),
     ];
     return HuiField(
@@ -271,12 +271,13 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: component.placeholder,
-            error: _syntaxError,
+            error: _syntaxError?.call(),
             onInput: _onInput,
             onBlur: _onBlur,
             attributes: const <String, String>{
               'autocomplete': 'off',
               'spellcheck': 'false',
+              'dir': 'ltr',
             },
           ),
           if (suggestions.isNotEmpty) _suggestionList(suggestions),
@@ -297,7 +298,7 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
       },
     ),
     <Widget>[
-      Text(_syntaxError!),
+      Text(_syntaxError!()),
       if (_syntaxPosition != previewNoPosition &&
           _syntaxPosition <= _text.length)
         dom.pre(

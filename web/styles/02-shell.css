@@ -258,9 +258,9 @@ body.hui-resizing * { cursor: col-resize !important; }
   min-width: 0;
 }
 .hui-bar-cluster + .hui-bar-cluster {
-  margin-left: 6px;
-  padding-left: 6px;
-  border-left: 1px solid var(--hui-border-soft);
+  margin-inline-start: 6px;
+  padding-inline-start: 6px;
+  border-inline-start: 1px solid var(--hui-border-soft);
 }
 
 /* Every overflow tier is mounted at every width and chosen here. The kind and
@@ -410,6 +410,37 @@ body.hui-resizing * { cursor: col-resize !important; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.hui-bar-language [data-locale][aria-current="true"] { opacity: 1 !important; }
+
+html[dir="rtl"] .hui-shell { direction: rtl; }
+html[dir="rtl"] .hui-shell-body,
+html[dir="rtl"] .hui-bar { direction: ltr; }
+html[dir="rtl"] .hui-rail,
+html[dir="rtl"] .hui-inspector,
+html[dir="rtl"] .hui-center,
+html[dir="rtl"] .hui-status { direction: rtl; }
+html[dir="rtl"] .hui-bar-left,
+html[dir="rtl"] .hui-bar-center,
+html[dir="rtl"] .hui-bar-context-tools { direction: rtl; }
+html[dir="rtl"] .hui-bar-right { direction: ltr; }
+html[dir="rtl"] .hui-bar-right > .hui-bar-cluster { direction: rtl; }
+html[dir="rtl"] code,
+html[dir="rtl"] pre,
+html[dir="rtl"] .hui-code,
+html[dir="rtl"] .hui-canvas,
+html[dir="rtl"] .hui-preview-stage { direction: ltr; unicode-bidi: isolate; }
+
+.hui-ltr,
+.hui-image-tile-path,
+.hui-frame-path,
+.hui-scoreboard-sim-id,
+.hui-emoji-cell-name,
+.hui-board-runtime-json {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
 }
 
 .hui-tip { display: grid; gap: 4px; }
@@ -1010,8 +1041,8 @@ body.hui-resizing * { cursor: col-resize !important; }
   .hui-bar-context { padding-inline: 6px; }
   .hui-doc-id { max-width: 132px; }
   .hui-bar-cluster + .hui-bar-cluster {
-    margin-left: 5px;
-    padding-left: 5px;
+    margin-inline-start: 5px;
+    padding-inline-start: 5px;
   }
 }
 
@@ -1064,9 +1095,9 @@ body.hui-resizing * { cursor: col-resize !important; }
   }
 
   .hui-bar-context .hui-bar-cluster + .hui-bar-cluster {
-    margin-left: 2px;
-    padding-left: 2px;
-    border-left: 0;
+    margin-inline-start: 2px;
+    padding-inline-start: 2px;
+    border-inline-start: 0;
   }
 
   .hui-sync-bar {

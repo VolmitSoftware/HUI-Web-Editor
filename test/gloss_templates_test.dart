@@ -385,6 +385,16 @@ void main() {
     expect(doc.lines.join('\n'), contains('server.tps'));
     expect(doc.lines.join('\n'), contains("papi('vault_prefix',"));
     expect(doc.lines.join('\n'), contains("metric('react.tick-ms',"));
+    final String ticker = doc.lines.singleWhere(
+      (String line) => line.contains('LIVE EVENT'),
+    );
+    expect(ticker, contains('floor(time.seconds)'));
+    expect(ticker, isNot(contains('time.seconds *')));
+    const int epochMs = 1787426000000;
+    expect(
+      renderGlossLine(ticker, nowMs: epochMs).plainText,
+      isNot(renderGlossLine(ticker, nowMs: epochMs + 1000).plainText),
+    );
     final List<HuiIssue> issues = validateScoreboardDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),

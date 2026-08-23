@@ -52,6 +52,17 @@ String _previewSceneSignature(PreviewCardScene scene) => scene.items
     )
     .join('|');
 
+String _glossLineSignature(GlossLineRender render) => render.pieces
+    .map(
+      (GlossTextPiece piece) => switch (piece) {
+        GlossTextRun() => 'text:${piece.span.text}:${piece.span.color}',
+        GlossPlaceholderChip() =>
+          'placeholder:${piece.token}:${piece.style.color}',
+        GlossMetricChip() => 'metric:${piece.token}:${piece.style.color}',
+      },
+    )
+    .join('|');
+
 void main() {
   test('every runtime document kind randomizes in place without errors', () {
     for (final DocumentTypeAdapter type in DocumentTypeRegistry.all) {
@@ -394,6 +405,44 @@ void main() {
     expect(
       tablist.effectiveNameFormats.keys,
       containsAll(<String>['_op', 'owner', 'developer', 'moderator', 'vip']),
+    );
+  });
+
+  test('generated ticker rates match the default surface refreshes', () {
+    const int epochMs = 1787426000000;
+    final GlossScoreboardDoc scoreboard = buildRandomScoreboardShowcase(
+      GlossScoreboardDoc(),
+      math.Random(4),
+    );
+    final String scoreboardTicker = scoreboard.lines.singleWhere(
+      (String line) => line.contains('select(['),
+    );
+    expect(scoreboardTicker, contains('floor(time.seconds)'));
+    expect(scoreboardTicker, isNot(contains('time.seconds *')));
+    expect(
+      _glossLineSignature(renderGlossLine(scoreboardTicker, nowMs: epochMs)),
+      isNot(
+        _glossLineSignature(
+          renderGlossLine(scoreboardTicker, nowMs: epochMs + 1000),
+        ),
+      ),
+    );
+
+    final GlossTablistDoc tablist = buildRandomTablistShowcase(
+      GlossTablistDoc(),
+      math.Random(4),
+    );
+    final String tablistTicker = tablist.footer
+        .split('\n')
+        .singleWhere((String line) => line.contains('select(['));
+    expect(tablistTicker, contains('floor(time.seconds * 0.5)'));
+    expect(
+      _glossLineSignature(renderGlossLine(tablistTicker, nowMs: epochMs)),
+      isNot(
+        _glossLineSignature(
+          renderGlossLine(tablistTicker, nowMs: epochMs + 2000),
+        ),
+      ),
     );
   });
 

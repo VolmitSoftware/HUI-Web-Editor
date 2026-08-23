@@ -16,6 +16,7 @@ import 'package:jaspr/jaspr.dart' show EventCallback;
 import '../../config/field_docs.dart';
 import '../common/class_names.dart';
 import 'dom_bridge.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Which edge of the trigger the card lines up with. The inspector is narrow,
 /// so a card hanging off the right edge is the usual choice.
@@ -42,7 +43,9 @@ class HuiFieldHelp extends StatelessWidget {
       title: doc.title,
       body: doc.body,
       citation: doc.citation,
-      triggerLabel: 'What ${doc.title} does',
+      triggerLabel: huiText("What {title} does", <String, Object?>{
+        'title': doc.title,
+      }),
       align: align,
     );
   }

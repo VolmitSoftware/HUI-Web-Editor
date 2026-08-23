@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -22,13 +24,13 @@ final class MotdDocumentType extends GlossDocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.motd;
 
   @override
-  String get noun => 'MOTD';
+  String get noun => huiText('MOTD');
 
   @override
-  String get createLabel => 'New MOTD';
+  String get createLabel => huiText('New MOTD');
 
   @override
-  String get pluralLabel => 'MOTDs';
+  String get pluralLabel => huiText('MOTDs');
 
   @override
   int get tabOrder => 70;
@@ -37,7 +39,7 @@ final class MotdDocumentType extends GlossDocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.motd;
 
   @override
-  String get surfaceLabel => 'Server list';
+  String get surfaceLabel => huiText('Server list');
 
   @override
   String? get syncWireKind => 'motd';

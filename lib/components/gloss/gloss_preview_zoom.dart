@@ -2,6 +2,7 @@ library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 enum GlossPreviewAlignment { center, end, top, bottom }
 
@@ -58,28 +59,34 @@ class _GlossPreviewZoomState extends State<GlossPreviewZoom> {
         classes: 'hui-gloss-preview-controls',
         attributes: <String, String>{
           'role': 'group',
-          'aria-label': '${component.label} zoom',
+          'aria-label': huiText("{label} zoom", <String, Object?>{
+            'label': component.label,
+          }),
         },
         <Widget>[
           _action(
-            label: 'Zoom out',
+            label: huiText('Zoom out'),
             icon: ArcaneIcon.zoomOut(size: IconSize.sm),
             onPressed: _scale <= _minimumScale
                 ? null
                 : () => _zoomBy(-_scaleStep),
           ),
           dom.span(classes: 'hui-gloss-preview-percent', <Widget>[
-            Text('${(_scale * 100).round()}%'),
+            Text(
+              huiText("{round}%", <String, Object?>{
+                'round': (_scale * 100).round(),
+              }),
+            ),
           ]),
           _action(
-            label: 'Zoom in',
+            label: huiText('Zoom in'),
             icon: ArcaneIcon.zoomIn(size: IconSize.sm),
             onPressed: _scale >= _maximumScale
                 ? null
                 : () => _zoomBy(_scaleStep),
           ),
           _action(
-            label: 'Fit preview',
+            label: huiText('Fit preview'),
             icon: ArcaneIcon.maximize(size: IconSize.sm),
             onPressed: _fit,
           ),

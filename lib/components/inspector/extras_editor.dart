@@ -14,6 +14,7 @@ import 'package:jaspr/dom.dart' as dom;
 
 import '../../logic/json_value.dart';
 import '../common/common.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ExtrasEditor extends StatefulWidget {
   const ExtrasEditor({
@@ -42,10 +43,10 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
   /// Text the user is typing, per key. Held locally so an entry that does not
   /// parse yet stays on screen instead of being reverted by the next rebuild.
   final Map<String, String> _drafts = <String, String>{};
-  final Map<String, String> _errors = <String, String>{};
+  final Map<String, JsonParseResult> _errors = <String, JsonParseResult>{};
 
   String _newKey = '';
-  String? _newKeyError;
+  String Function()? _newKeyError;
 
   @override
   void didUpdateComponent(ExtrasEditor oldComponent) {
@@ -59,7 +60,9 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
       final Object? now = next[key];
       return formatJsonValue(was) != formatJsonValue(now);
     });
-    _errors.removeWhere((String key, String _) => !_drafts.containsKey(key));
+    _errors.removeWhere(
+      (String key, JsonParseResult _) => !_drafts.containsKey(key),
+    );
   }
 
   String _valueText(String key) =>
@@ -71,16 +74,13 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
   void _editValue(String key, String raw) {
     _drafts[key] = raw;
     final JsonParseResult parsed = parseJsonValue(raw);
-    final String? error = parsed.ok ? null : parsed.error;
-    if (_errors[key] != error) {
-      setState(() {
-        if (error == null) {
-          _errors.remove(key);
-        } else {
-          _errors[key] = error;
-        }
-      });
-    }
+    setState(() {
+      if (parsed.ok) {
+        _errors.remove(key);
+      } else {
+        _errors[key] = parsed;
+      }
+    });
     if (!parsed.ok) return;
     final Map<String, dynamic> next = Map<String, dynamic>.of(component.extras);
     next[key] = parsed.value;
@@ -98,11 +98,14 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
   void _add() {
     final String key = _newKey.trim();
     if (key.isEmpty) {
-      setState(() => _newKeyError = 'Give the key a name.');
+      setState(() => _newKeyError = () => huiText('Give the key a name.'));
       return;
     }
     if (component.extras.containsKey(key)) {
-      setState(() => _newKeyError = '$key is already here.');
+      setState(
+        () => _newKeyError = () =>
+            huiText('{key} is already here.', <String, Object?>{'key': key}),
+      );
       return;
     }
     setState(() {
@@ -166,7 +169,9 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
       ),
       <Widget>[
         Text(component.title),
-        dom.span(classes: 'hui-count-chip', <Widget>[Text('$count')]),
+        dom.span(classes: 'hui-count-chip', <Widget>[
+          Text(huiText("{count}", <String, Object?>{'count': count})),
+        ]),
       ],
     ),
   );
@@ -193,9 +198,9 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
   );
 
   /// The one thing a reader has to know before touching this section.
-  Widget _note() => const dom.p(
+  Widget _note() => dom.p(
     classes: 'hui-extras-note',
-    styles: dom.Styles(
+    styles: const dom.Styles(
       raw: <String, String>{
         'margin': '0',
         'font-size': '0.72rem',
@@ -205,43 +210,49 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
     ),
     <Widget>[
       Text(
-        'Gloss ignores keys it does not recognise, so nothing here changes '
-        'anything in game. The editor keeps them and writes them back on '
-        'export, which is why an imported file never loses what it arrived '
-        'with.',
+        huiText(
+          'Gloss ignores keys it does not recognise, so nothing here changes '
+          'anything in game. The editor keeps them and writes them back on '
+          'export, which is why an imported file never loses what it arrived '
+          'with.',
+        ),
       ),
     ],
   );
 
-  Widget _empty() => const dom.p(
+  Widget _empty() => dom.p(
     classes: 'hui-extras-empty',
-    styles: dom.Styles(
+    styles: const dom.Styles(
       raw: <String, String>{
         'margin': '0',
         'font-size': '0.74rem',
         'color': 'var(--muted-foreground)',
       },
     ),
-    <Widget>[Text('No extra keys on this object.')],
+    <Widget>[Text(huiText('No extra keys on this object.'))],
   );
 
   Widget _row(String key) => HuiField(
     label: key,
     classes: 'hui-extras-row',
-    error: _errors[key],
-    help: 'Bare text is a string; quote it to keep a literal like true or 7.',
+    error: _errors[key]?.error,
+    help: huiText(
+      'Bare text is a string; quote it to keep a literal like true or 7.',
+    ),
     trailing: Button(
       variant: ButtonVariant.ghost,
       size: ButtonSize.iconSm,
       onPressed: () => _remove(key),
-      attributes: <String, String>{'aria-label': 'Remove $key'},
+      attributes: <String, String>{
+        'aria-label': huiText("Remove {key}", <String, Object?>{'key': key}),
+      },
       child: ArcaneIcon.trash2(size: IconSize.sm),
     ),
     control: TextInput(
       value: _valueText(key),
       size: ComponentSize.sm,
       fullWidth: true,
-      placeholder: 'value',
+      placeholder: huiText('value'),
       onInput: (String value) => _editValue(key, value),
       attributes: const <String, String>{
         'autocomplete': 'off',
@@ -251,8 +262,8 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
   );
 
   Widget _addRow() => HuiField(
-    label: 'Add a key',
-    error: _newKeyError,
+    label: huiText('Add a key'),
+    error: _newKeyError?.call(),
     control: dom.div(
       classes: 'hui-extras-add',
       styles: const dom.Styles(
@@ -269,24 +280,22 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
           value: _newKey,
           size: ComponentSize.sm,
           fullWidth: true,
-          placeholder: 'myPluginKey',
+          placeholder: huiText('myPluginKey'),
           onInput: (String value) {
             _newKey = value;
             if (_newKeyError != null) {
               setState(() => _newKeyError = null);
             }
           },
-          attributes: const <String, String>{
-            'autocomplete': 'off',
-            'spellcheck': 'false',
-          },
+          styles: huiTechnicalInputStyles,
+          attributes: huiTechnicalInputAttributes,
         ),
         Button(
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
           icon: ArcaneIcon.plus(size: IconSize.sm),
           onPressed: _add,
-          child: const Text('Add'),
+          child: Text(huiText('Add')),
         ),
       ],
     ),

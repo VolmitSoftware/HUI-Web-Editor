@@ -601,6 +601,11 @@ String previewAutoSimCategory(HuiPreviewDoc doc) {
   if (special == 'anyInventoryHolder') {
     return doc.match.entities.isNotEmpty ? 'entity' : 'chest';
   }
+  for (final String entity in doc.match.entities) {
+    if (entity.toUpperCase() == 'FURNACE_MINECART') {
+      return 'poweredMinecart';
+    }
+  }
   for (final String block in doc.match.blocks) {
     final String name = block.toUpperCase();
     if (name.contains('FURNACE') || name.contains('SMOKER')) return 'furnace';

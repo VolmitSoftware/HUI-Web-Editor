@@ -11,6 +11,7 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
+import '../../l10n/hui_localizations.dart';
 import 'class_names.dart';
 
 class HuiNumberField extends StatefulWidget {
@@ -212,14 +213,18 @@ class _HuiNumberFieldState extends State<HuiNumberField> {
         },
       ),
       <Widget>[
-        _stepButton('Decrease', ArcaneIcon.minus(size: IconSize.sm), -1),
+        _stepButton(
+          huiText('Decrease'),
+          ArcaneIcon.minus(size: IconSize.sm),
+          -1,
+        ),
         dom.div(
           styles: const dom.Styles(
             raw: <String, String>{'flex': '1 1 auto', 'min-width': '0'},
           ),
           <Widget>[input],
         ),
-        _stepButton('Increase', ArcaneIcon.plus(size: IconSize.sm), 1),
+        _stepButton(huiText('Increase'), ArcaneIcon.plus(size: IconSize.sm), 1),
       ],
     );
   }

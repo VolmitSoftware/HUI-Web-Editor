@@ -17,11 +17,16 @@
 /// `preventDefault`s mousedown and leaves focus on `body`.
 library;
 
+import 'dart:async' show Timer;
+import 'dart:js_interop';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:arcane_jaspr/core/dom_value.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show EventCallback;
 import 'package:web/web.dart' as web;
+
+import 'bar_menu_navigation.dart';
 
 /// One row of a [BarMenu].
 sealed class BarMenuEntry {
@@ -46,12 +51,14 @@ class BarMenuAction extends BarMenuEntry {
     this.icon,
     this.onSelect,
     this.destructive = false,
+    this.attributes = const <String, String>{},
   });
 
   final String label;
   final Widget? icon;
   final void Function()? onSelect;
   final bool destructive;
+  final Map<String, String> attributes;
 }
 
 enum BarMenuAlign { left, right }
@@ -103,17 +110,64 @@ class _BarMenuState extends State<BarMenu> {
 
   String get _triggerId => '${component.id}-trigger';
 
-  void _setOpen(bool open) {
+  void _setOpen(bool open, {bool restoreFocus = true}) {
     if (_open == open) return;
     setState(() => _open = open);
     context.binding.addPostFrameCallback(() {
-      final web.Element? target = web.document.getElementById(
-        open ? component.id : _triggerId,
-      );
-      (target as web.HTMLElement?)?.focus(
-        web.FocusOptions(preventScroll: true),
-      );
+      if (!mounted) return;
+      if (open) {
+        _focusInitialItem();
+      } else if (restoreFocus) {
+        _focusElement(_triggerId);
+      }
     });
+  }
+
+  void _focusElement(String elementId) {
+    final web.Element? element = web.document.getElementById(elementId);
+    if (element == null || !element.isA<web.HTMLElement>()) return;
+    (element as web.HTMLElement).focus(web.FocusOptions(preventScroll: true));
+  }
+
+  void _focusInitialItem() {
+    final web.Element? menu = web.document.getElementById(component.id);
+    if (menu == null) return;
+    final web.Element? preferred = menu.querySelector(
+      '.hui-bar-menu-item[data-hui-menu-initial="true"]:not(:disabled)',
+    );
+    final web.Element? first = menu.querySelector(
+      '.hui-bar-menu-item:not(:disabled)',
+    );
+    final web.Element target = preferred ?? first ?? menu;
+    if (!target.isA<web.HTMLElement>()) return;
+    final web.HTMLElement focusable = target as web.HTMLElement;
+    focusable.focus(web.FocusOptions(preventScroll: true));
+    focusable.scrollIntoView(
+      web.ScrollIntoViewOptions(block: 'nearest', inline: 'nearest'),
+    );
+  }
+
+  void _moveFocus(String key) {
+    final web.Element? menu = web.document.getElementById(component.id);
+    if (menu == null) return;
+    final web.NodeList items = menu.querySelectorAll(
+      '.hui-bar-menu-item:not(:disabled)',
+    );
+    final web.Element? active = web.document.activeElement;
+    int current = -1;
+    for (int index = 0; index < items.length; index += 1) {
+      if (identical(items.item(index), active)) {
+        current = index;
+        break;
+      }
+    }
+    final int target = huiBarMenuTargetIndex(
+      current: current,
+      count: items.length,
+      key: key,
+    );
+    if (target < 0) return;
+    (items.item(target) as web.HTMLElement?)?.focus();
   }
 
   @override
@@ -128,9 +182,30 @@ class _BarMenuState extends State<BarMenu> {
     events: _open
         ? <String, EventCallback>{
             'keydown': (Object event) {
-              if (domEventKey(event) != 'Escape') return;
+              final String key = domEventKey(event);
+              if (key == 'Escape') {
+                domPreventDefault(event);
+                domStopPropagation(event);
+                _setOpen(false);
+                return;
+              }
+              if (key == 'Tab') {
+                Timer.run(() {
+                  if (mounted && _open) {
+                    _setOpen(false, restoreFocus: false);
+                  }
+                });
+                return;
+              }
+              if (key != 'ArrowDown' &&
+                  key != 'ArrowUp' &&
+                  key != 'Home' &&
+                  key != 'End') {
+                return;
+              }
+              domPreventDefault(event);
               domStopPropagation(event);
-              _setOpen(false);
+              _moveFocus(key);
             },
           }
         : null,
@@ -185,7 +260,7 @@ class _BarMenuState extends State<BarMenu> {
       events: <String, EventCallback>{
         // Dismissing by clicking away leaves focus alone: the pointer has
         // already moved on.
-        'pointerdown': (Object _) => setState(() => _open = false),
+        'pointerdown': (Object _) => _setOpen(false, restoreFocus: false),
       },
       const <Widget>[],
     ),
@@ -255,8 +330,9 @@ class _BarMenuState extends State<BarMenu> {
       icon: final Widget? icon,
       onSelect: final void Function()? onSelect,
       destructive: final bool destructive,
+      attributes: final Map<String, String> attributes,
     ) =>
-      _action(label, icon, onSelect, destructive),
+      _action(label, icon, onSelect, destructive, attributes),
   };
 
   Widget _action(
@@ -264,6 +340,7 @@ class _BarMenuState extends State<BarMenu> {
     Widget? icon,
     void Function()? onSelect,
     bool destructive,
+    Map<String, String> attributes,
   ) {
     final bool disabled = onSelect == null;
     return dom.button(
@@ -281,14 +358,16 @@ class _BarMenuState extends State<BarMenu> {
           'color': destructive ? 'var(--hui-danger)' : 'var(--hui-text)',
           'font': 'inherit',
           'font-size': '0.8rem',
-          'text-align': 'left',
+          'text-align': 'start',
           'cursor': disabled ? 'default' : 'pointer',
           'opacity': disabled ? '0.45' : '1',
         },
       ),
       attributes: <String, String>{
         'type': 'button',
-        'role': 'menuitem',
+        ...attributes,
+        'role': attributes['role'] ?? 'menuitem',
+        'tabindex': '-1',
         if (disabled) 'disabled': '',
         if (disabled) 'aria-disabled': 'true',
       },

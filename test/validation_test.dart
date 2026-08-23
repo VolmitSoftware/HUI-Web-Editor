@@ -635,10 +635,20 @@ void main() {
       expect(issue.message, isNot(contains('throws')));
     });
 
-    test('accepts speed zero because runtime treats it as every tick', () {
+    test('rejects animation speeds outside the runtime budget', () {
+      expect(
+        _has(
+          validateHuiMenu(
+            _withIcon(HuiAnimatedImageIcon(<String>['a.png'], 1)),
+          ),
+          HuiSeverity.error,
+          'between 2 and 1200',
+        ),
+        isTrue,
+      );
       expect(
         validateHuiMenu(
-          _withIcon(HuiAnimatedImageIcon(<String>['a.png'], 0)),
+          _withIcon(HuiAnimatedImageIcon(<String>['a.png'], 1200)),
         ).where((HuiIssue issue) => issue.path.endsWith('.speed')),
         isEmpty,
       );

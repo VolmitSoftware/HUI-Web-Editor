@@ -554,7 +554,7 @@ CanvasItem _resolveItem({
     case HuiAnimatedImageIcon():
       animationFrameCount = icon.source.length;
       if (animationFrameCount > 0) {
-        final int speed = math.max(1, icon.speed);
+        final int speed = math.max(2, icon.speed);
         animationFrame = (animationTicks ~/ speed) % animationFrameCount;
         final String path = icon.source[animationFrame];
         final _ResolvedImage resolved = _resolveImage(path, images);

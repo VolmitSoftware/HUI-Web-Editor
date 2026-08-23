@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
 import '../config/defaults.dart';
+import '../l10n/hui_localizations.dart';
 import '../model/model.dart';
 import 'workspace.dart';
 
@@ -64,10 +65,12 @@ final class WorkspaceMenuImportEnvelope {
 }
 
 final class WorkspaceRouteResult {
-  const WorkspaceRouteResult({this.route, this.error});
+  const WorkspaceRouteResult({this.route, String? error}) : _error = error;
 
   final WorkspaceRoute? route;
-  final String? error;
+  final String? _error;
+
+  String? get error => _error == null ? null : huiText(_error);
 }
 
 String workspaceDocumentHash(String workspaceId, String documentId) =>

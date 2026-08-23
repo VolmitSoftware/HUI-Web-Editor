@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -20,13 +22,13 @@ final class PanelDocumentType extends DocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.panel;
 
   @override
-  String get noun => 'flow map';
+  String get noun => huiText('flow map');
 
   @override
-  String get createLabel => 'New menu flow map';
+  String get createLabel => huiText('New menu flow map');
 
   @override
-  String get pluralLabel => 'Flow maps';
+  String get pluralLabel => huiText('Flow maps');
 
   @override
   int get tabOrder => 30;
@@ -35,7 +37,7 @@ final class PanelDocumentType extends DocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.panel;
 
   @override
-  String get surfaceLabel => 'Flow map';
+  String get surfaceLabel => huiText('Flow map');
 
   /// A flow map is a diagram of other documents, not a thing the server ever
   /// renders, so its preview mode has nothing to show.
@@ -63,7 +65,7 @@ final class PanelDocumentType extends DocumentTypeAdapter {
   @override
   void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>
       store.newPanelDocument(
-        name: 'Menu flow map',
+        name: huiText('Menu flow map'),
         folderId: folderId,
         scopeFolderId: folderId,
       );
@@ -74,21 +76,22 @@ final class PanelDocumentType extends DocumentTypeAdapter {
 
   @override
   Object decodeSnapshot(String snapshot) => throw StateError(
-    'Panel metadata does not use the runtime snapshot path.',
+    huiText('Panel metadata does not use the runtime snapshot path.'),
   );
 
   @override
   String snapshot(DocumentStateView state) => throw StateError(
-    'Panel metadata does not use the runtime snapshot path.',
+    huiText('Panel metadata does not use the runtime snapshot path.'),
   );
 
   @override
-  String exportJson(DocumentStateView state) =>
-      throw StateError('Panel metadata is editor-only and cannot be exported.');
+  String exportJson(DocumentStateView state) => throw StateError(
+    huiText('Panel metadata is editor-only and cannot be exported.'),
+  );
 
   @override
   String formattedJson(DocumentStateView state) => throw StateError(
-    'Panel metadata is editor-only and cannot be formatted.',
+    huiText('Panel metadata is editor-only and cannot be formatted.'),
   );
 
   @override
@@ -103,8 +106,10 @@ final class PanelDocumentType extends DocumentTypeAdapter {
     final WorkspacePanelDecodeResult decoded = decodeWorkspacePanel(doc.json);
     if (decoded.warning != null) {
       return MenuRenameRewrite(
-        failure:
-            'Cannot safely rename while menu flow map "${doc.title}" is unreadable.',
+        failureResolver: () => huiText(
+          'Cannot safely rename while menu flow map "{title}" is unreadable.',
+          <String, Object?>{'title': doc.title},
+        ),
       );
     }
     final Map<String, dynamic>? runtimeBoard = decoded.data.runtimeBoard;

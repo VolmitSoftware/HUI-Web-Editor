@@ -5,6 +5,7 @@ import 'package:jaspr/dom.dart' as dom;
 
 import '../../services/editor_sync.dart';
 import 'dialog_parts.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 bool editorSyncImportDialogShouldOpen({
   required Uri? relayEndpoint,
@@ -45,13 +46,13 @@ class EditorSyncImportDialog extends StatelessWidget {
         session: session,
       ),
       onClose: onCancel,
-      title: 'Connect server project',
+      title: huiText('Connect server project'),
       maxWidth: 720,
       actions: <Widget>[
         Button(
           variant: ButtonVariant.outline,
           onPressed: onCancel,
-          label: 'Cancel',
+          label: huiText('Cancel'),
         ),
         Button(
           variant: ButtonVariant.primary,
@@ -60,73 +61,92 @@ class EditorSyncImportDialog extends StatelessWidget {
           icon: ArcaneIcon.link(size: IconSize.sm),
           label: project != null
               ? hasLocalConflicts
-                    ? 'Replace matching resources'
-                    : 'Connect project'
+                    ? huiText('Replace matching resources')
+                    : huiText('Connect project')
               : error != null
-              ? 'Retry relay'
-              : 'Read from relay',
+              ? huiText('Retry relay')
+              : huiText('Read from relay'),
         ),
       ],
       children: <Widget>[
         dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
           if (loading)
-            const ArcaneAlert.info(
-              message: 'Reading the project from the configured relay…',
+            ArcaneAlert.info(
+              message: huiText(
+                'Reading the project from the configured relay…',
+              ),
             ),
           if (error != null) ArcaneAlert.error(message: error!),
           if (!loading && project == null && relayEndpoint != null)
             ArcaneAlert.warning(
-              title: 'Approve relay connection',
-              message:
-                  'This capability will make a bounded request to '
-                  '$relayEndpoint. Continue only if you trust the server '
-                  'that gave you this link.',
+              title: huiText('Approve relay connection'),
+              message: huiText(
+                'This capability will make a bounded request to {relayEndpoint}. '
+                'Continue only if you trust the server that gave you this link.',
+                <String, Object?>{'relayEndpoint': relayEndpoint},
+              ),
             ),
           if (project != null) ...<Widget>[
-            const ArcaneAlert.warning(
-              message:
-                  'Review this server-owned scope before importing it. Local '
-                  'autosave never publishes; only Publish to Server does.',
+            ArcaneAlert.warning(
+              message: huiText(
+                'Review this server-owned scope before importing it. Local autosave never publishes; only Publish to Server does.',
+              ),
             ),
             if (hasLocalConflicts)
-              const ArcaneAlert.error(
-                message:
-                    'Matching runtime ids or asset paths already exist locally. '
-                    'Continuing replaces only those matching resources after '
-                    'this confirmation.',
+              ArcaneAlert.error(
+                message: huiText(
+                  'Matching runtime ids or asset paths already exist locally. Continuing replaces only those matching resources after this confirmation.',
+                ),
               ),
             HuiDialogSection(
-              title: project.kind == 'panel' ? 'World panel' : 'Menu',
-              description:
-                  'Exact menu source is retained. World panels use the strict '
-                  'runtime panel contract.',
+              title: project.kind == 'panel'
+                  ? huiText('World panel')
+                  : huiText('Menu'),
+              description: huiText(
+                'Exact menu source is retained. World panels use the strict '
+                'runtime panel contract.',
+              ),
               children: <Widget>[
                 dom.dl(classes: 'hui-handoff-details', <Widget>[
-                  const dom.dt(<Widget>[Text('Server id')]),
+                  dom.dt(<Widget>[Text(huiText('Server id'))]),
                   dom.dd(<Widget>[
                     dom.code(<Widget>[Text(project.subjectId)]),
                   ]),
-                  const dom.dt(<Widget>[Text('Menus')]),
-                  dom.dd(<Widget>[Text('${project.menus.length}')]),
-                  const dom.dt(<Widget>[Text('Images')]),
-                  dom.dd(<Widget>[Text('${project.images.length}')]),
-                  const dom.dt(<Widget>[Text('New menu ids')]),
+                  dom.dt(<Widget>[Text(huiText('Menus'))]),
+                  dom.dd(<Widget>[
+                    Text(
+                      huiText("{length}", <String, Object?>{
+                        'length': project.menus.length,
+                      }),
+                    ),
+                  ]),
+                  dom.dt(<Widget>[Text(huiText('Images'))]),
+                  dom.dd(<Widget>[
+                    Text(
+                      huiText("{length}", <String, Object?>{
+                        'length': project.images.length,
+                      }),
+                    ),
+                  ]),
+                  dom.dt(<Widget>[Text(huiText('New menu ids'))]),
                   dom.dd(<Widget>[
                     dom.code(<Widget>[
                       Text(
-                        project.constraints.newMenuPrefix ?? 'not permitted',
+                        project.constraints.newMenuPrefix ??
+                            huiText('not permitted'),
                       ),
                     ]),
                   ]),
-                  const dom.dt(<Widget>[Text('New image paths')]),
+                  dom.dt(<Widget>[Text(huiText('New image paths'))]),
                   dom.dd(<Widget>[
                     dom.code(<Widget>[
                       Text(
-                        project.constraints.newImagePrefix ?? 'not permitted',
+                        project.constraints.newImagePrefix ??
+                            huiText('not permitted'),
                       ),
                     ]),
                   ]),
-                  const dom.dt(<Widget>[Text('Expires')]),
+                  dom.dt(<Widget>[Text(huiText('Expires'))]),
                   dom.dd(<Widget>[
                     Text(session!.expiresAt.toLocal().toString()),
                   ]),
@@ -163,29 +183,29 @@ class EditorSyncConflictDialog extends StatelessWidget {
     id: 'hui-editor-sync-conflict-dialog',
     isOpen: isOpen,
     onClose: onClose,
-    title: 'Server project changed',
+    title: huiText('Server project changed'),
     maxWidth: 620,
     actions: <Widget>[
       Button(
         variant: ButtonVariant.outline,
         onPressed: onExport,
-        label: 'Export local work',
+        label: huiText('Export local work'),
       ),
       Button(
         variant: ButtonVariant.destructive,
         onPressed: onRefresh,
-        label: 'Replace with server copy',
+        label: huiText('Replace with server copy'),
       ),
-      Button(onPressed: onClose, label: 'Keep editing'),
+      Button(onPressed: onClose, label: huiText('Keep editing')),
     ],
     children: <Widget>[
       dom.div(classes: 'hui-dialog-body', <Widget>[
         ArcaneAlert.error(
           message:
               message ??
-              'The server revision no longer matches. Your local edits are '
-                  'still safe. Export them, or explicitly replace this bound '
-                  'scope with the latest server copy.',
+              huiText(
+                'The server revision no longer matches. Your local edits are still safe. Export them, or explicitly replace this bound scope with the latest server copy.',
+              ),
         ),
       ]),
     ],

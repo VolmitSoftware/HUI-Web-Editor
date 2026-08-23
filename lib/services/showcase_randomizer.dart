@@ -361,6 +361,7 @@ enum PreviewShowcaseArchetype {
   dispenser,
   enderChest,
   furnace,
+  furnaceMinecart,
   hopper,
   jukebox,
   locked,
@@ -409,6 +410,8 @@ HuiPreviewDoc buildRandomPreviewShowcase(
       random,
       theme,
     ),
+    PreviewShowcaseArchetype.furnaceMinecart =>
+      _buildRandomPoweredMinecartPreview(random, theme),
     PreviewShowcaseArchetype.hopper => _buildRandomHopperPreview(random, theme),
     PreviewShowcaseArchetype.jukebox => _buildRandomJukeboxPreview(
       random,
@@ -1457,6 +1460,52 @@ HuiPreviewDoc _buildRandomMobilePreview(
   );
 }
 
+HuiPreviewDoc _buildRandomPoweredMinecartPreview(
+  math.Random random,
+  _PreviewFurnaceTheme theme,
+) {
+  final int cells = 6 + random.nextInt(4);
+  return HuiPreviewDoc(
+    match: HuiPreviewMatch(
+      entities: <String>['FURNACE_MINECART'],
+      priority: 10,
+      vars: <String, dynamic>{
+        ..._previewThemeVars(theme),
+        'title': showcasePick(random, <String>[
+          'Ghostwood Furnace Cart',
+          'Packard Rail Heater',
+          'Blue Pine Engine',
+        ]),
+        'cells': cells,
+        'panelWidth': cells * 13 + 42,
+        'panelHeight': 88,
+      },
+    ),
+    card: _previewCard(88),
+    elements: <HuiPreviewElement>[
+      _previewPanel(),
+      HuiPreviewElement(
+        'cell',
+        repeat: HuiPreviewRepeat(count: 'vars.cells', varName: 'i'),
+        x: 'round((i - (vars.cells - 1) / 2) * 13)',
+        y: 4,
+        size: 9,
+        color:
+            'powered ? (i == mod(floor(time / 2), vars.cells) '
+            '? vars.pulse : vars.fill) : vars.wellColor',
+      ),
+      HuiPreviewElement(
+        'label',
+        x: 0,
+        y: -22,
+        text:
+            "powered ? vars.stateColor + '&lPOWERED &8• &7Fuel &f' + "
+            "str(fuelSeconds) + 's' : '&8Out of fuel'",
+      ),
+    ],
+  );
+}
+
 Map<String, dynamic> _previewThemeVars(_PreviewFurnaceTheme theme) =>
     <String, dynamic>{
       'panelColor': theme.panelColor,
@@ -1582,7 +1631,7 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
     '&7TPS &a{{ fixed(server.tps, 1) }}',
     "&7Tick &f{{ fixed(metric('react.tick-ms', 1000 / server.tps), 1) }}ms",
     '',
-    '${showcaseTickPrefix(random, mood).text}&l'
+    '${showcaseTickPrefix(random, mood, framesPerSecond: 1.0).text}&l'
         '${showcasePick(random, showcaseStatusWords)}',
     '&7${showcasePick(random, showcaseEvents)}',
     showcaseBoardEasterEgg(random),
@@ -1885,7 +1934,7 @@ GlossTablistDoc buildRandomTablistShowcase(
     footer:
         '$easterEgg\n'
         '&8${showcasePick(random, showcaseHeadlines)}\n'
-        '${showcaseTickPrefix(random, mood).text}'
+        '${showcaseTickPrefix(random, mood, framesPerSecond: 0.5).text}'
         '&7${showcasePick(random, showcaseEvents)} &8• &b'
         '${showcasePick(random, showcaseDomains)}',
     groupListNames: random.nextInt(5) != 0,

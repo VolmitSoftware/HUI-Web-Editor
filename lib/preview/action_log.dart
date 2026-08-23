@@ -10,6 +10,8 @@
 /// Pure and DOM-free: the log dock renders these, it does not define them.
 library;
 
+import '../l10n/hui_localizations.dart';
+
 import '../model/hui_actions.dart';
 
 /// One thing the runtime does when a component is clicked.
@@ -158,9 +160,9 @@ enum ActionLogTrigger {
   toggleToFalse;
 
   String get label => switch (this) {
-    ActionLogTrigger.button => 'click',
-    ActionLogTrigger.toggleToTrue => 'toggle → true',
-    ActionLogTrigger.toggleToFalse => 'toggle → false',
+    ActionLogTrigger.button => huiText('click'),
+    ActionLogTrigger.toggleToTrue => huiText('toggle → true'),
+    ActionLogTrigger.toggleToFalse => huiText('toggle → false'),
   };
 }
 
@@ -222,11 +224,11 @@ bool _matchesClickTrigger(String binding, String interaction) =>
     binding == 'any' || binding == interaction;
 
 String actionClickTriggerLabel(String trigger) => switch (trigger) {
-  'left_click' => 'left click',
-  'right_click' => 'right click',
-  'shift_left_click' => 'sneak + left click',
-  'shift_right_click' => 'sneak + right click',
-  'any' => 'any click',
+  'left_click' => huiText('left click'),
+  'right_click' => huiText('right click'),
+  'shift_left_click' => huiText('sneak + left click'),
+  'shift_right_click' => huiText('sneak + right click'),
+  'any' => huiText('any click'),
   _ => trigger,
 };
 

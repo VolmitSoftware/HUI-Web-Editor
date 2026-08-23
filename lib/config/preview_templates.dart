@@ -35,7 +35,7 @@ class HuiPreviewTemplate {
   /// — the simulation panel preselects it so the starter renders right away.
   final String category;
 
-  /// True when this is one of the thirteen documents the plugin extracts
+  /// True when this is one of the fourteen documents the plugin extracts
   /// into `plugins/Gloss/previews/` on first start.
   final bool inGame;
 
@@ -130,6 +130,15 @@ const List<_ShippedPreviewSpec> _shippedPreviewSpecs = <_ShippedPreviewSpec>[
         'smoker: a progress ring, a fuel flame, and two state labels.',
     highlights: <String>['In-game', '3 slots', 'Live progress + fuel'],
     category: 'furnace',
+  ),
+  _ShippedPreviewSpec(
+    id: 'furnace_minecart',
+    name: 'Furnace minecart',
+    description:
+        'A fuel-aware entity card for furnace minecarts, with an animated '
+        'heat strip and remaining-fuel label.',
+    highlights: <String>['In-game', 'Entity', 'Live fuel'],
+    category: 'poweredMinecart',
   ),
   _ShippedPreviewSpec(
     id: 'hopper',

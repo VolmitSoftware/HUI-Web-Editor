@@ -13,6 +13,8 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import 'class_names.dart';
+import 'hui_technical_input.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Whether the stored text carries an alpha byte.
 enum HuiColorFormat {
@@ -118,6 +120,9 @@ class HuiColorSwatch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final HuiColorParts? parts = huiParseHexColor(value);
+    final String accessibleLabel = label == 'Pick a colour'
+        ? huiText('Pick a colour')
+        : huiText(label);
     final Map<String, String> box = <String, String>{
       'display': 'block',
       'width': '${size}px',
@@ -151,7 +156,7 @@ class HuiColorSwatch extends StatelessWidget {
       );
     }
     return ArcaneTooltip(
-      text: label,
+      text: accessibleLabel,
       child: dom.input<dom.Color>(
         type: dom.InputType.color,
         classes: classNames(<String?>[
@@ -171,7 +176,7 @@ class HuiColorSwatch extends StatelessWidget {
         // argument has to say so — `input<String>` throws on the first pick.
         onInput: (dom.Color next) => picked(next.value),
         styles: dom.Styles(raw: <String, String>{...box, 'cursor': 'pointer'}),
-        attributes: <String, String>{'aria-label': label},
+        attributes: <String, String>{'aria-label': accessibleLabel},
       ),
     );
   }
@@ -215,7 +220,9 @@ class HuiColorField extends StatelessWidget {
     <Widget>[
       HuiColorSwatch(
         value: value,
-        label: 'Pick a $label',
+        label: huiText("Pick a {label}", <String, Object?>{
+          'label': label == 'colour' ? huiText('colour') : huiText(label),
+        }),
         onPicked: disabled
             ? null
             : (String picked) =>
@@ -231,14 +238,12 @@ class HuiColorField extends StatelessWidget {
             size: ComponentSize.sm,
             fullWidth: true,
             disabled: disabled,
+            styles: huiTechnicalInputStyles,
             placeholder:
                 placeholder ??
                 (format == HuiColorFormat.argb ? '#FFFFFFFF' : '#FFFFFF'),
             onInput: onChanged,
-            attributes: const <String, String>{
-              'autocomplete': 'off',
-              'spellcheck': 'false',
-            },
+            attributes: const <String, String>{...huiTechnicalInputAttributes},
           ),
         ],
       ),

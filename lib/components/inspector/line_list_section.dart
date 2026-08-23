@@ -21,6 +21,7 @@ import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'reorder_list.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// One chip per `|animation.<id>|` reference no document in this workspace
 /// answers. The text stays literal in game, which the rendered preview beside
@@ -40,12 +41,23 @@ List<Widget> huiMissingAnimationChips(
     dom.span(
       classes: 'hui-gloss-chip is-missing',
       attributes: <String, String>{
-        'title':
-            'No animation document named '
-            '"${reference.substring(glossAnimationFunctionPrefix.length)}" '
-            'exists in this workspace; the text shows literally $where.',
+        'title': huiText(
+          "No animation document named \"{substring}\" exists in this workspace; the text shows literally {where}.",
+          <String, Object?>{
+            'substring': reference.substring(
+              glossAnimationFunctionPrefix.length,
+            ),
+            'where': where,
+          },
+        ),
       },
-      <Widget>[Text('missing $reference')],
+      <Widget>[
+        Text(
+          huiText("missing {reference}", <String, Object?>{
+            'reference': reference,
+          }),
+        ),
+      ],
     ),
 ];
 
@@ -176,7 +188,9 @@ class HuiLineListSection extends StatelessWidget {
     description: description,
     sectionKey: sectionKey,
     trailing: dom.div(classes: 'hui-field-tools', <Widget>[
-      dom.span(classes: 'hui-count-chip', <Widget>[Text('$itemCount')]),
+      dom.span(classes: 'hui-count-chip', <Widget>[
+        Text(huiText("{itemCount}", <String, Object?>{'itemCount': itemCount})),
+      ]),
       if (docKey != null) HuiFieldHelp(docKey!),
     ]),
     children: <Widget>[
@@ -193,7 +207,7 @@ class HuiLineListSection extends StatelessWidget {
       if (itemCount == 0)
         HuiEmptyState(
           icon: ArcaneIcon.listIcon(size: IconSize.md),
-          title: 'Nothing here yet',
+          title: huiText('Nothing here yet'),
           body: emptyBody,
           tone: emptyTone,
           actions: <Widget>[

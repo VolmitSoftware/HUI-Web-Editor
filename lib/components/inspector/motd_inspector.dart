@@ -21,6 +21,7 @@ import 'animation_reference_picker.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'line_list_section.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class MotdInspector extends StatefulWidget {
   const MotdInspector({required this.store, super.key});
@@ -54,34 +55,39 @@ class _MotdInspectorState extends State<MotdInspector> {
     ]);
   }
 
-  Widget _header(GlossMotdDoc doc) => dom.div(
-    classes: 'hui-inspector-headgroup',
-    <Widget>[
-      dom.div(classes: 'hui-inspector-header is-motd', <Widget>[
-        const HuiEyebrow('MOTD'),
-        dom.div(classes: 'hui-inspector-title-row', <Widget>[
-          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
-          const HuiFieldHelp('motd.id'),
+  Widget _header(GlossMotdDoc doc) =>
+      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+        dom.div(classes: 'hui-inspector-header is-motd', <Widget>[
+          HuiEyebrow(huiText('MOTD')),
+          dom.div(classes: 'hui-inspector-title-row', <Widget>[
+            dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+              Text(_store.menuId),
+            ]),
+            const HuiFieldHelp('motd.id'),
+          ]),
         ]),
-      ]),
-      const dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text('The server-list text. Every ping picks one entry at random.'),
-      ]),
-      HuiRevisionRow(revision: doc.revision),
-    ],
-  );
+        dom.p(classes: 'hui-inspector-lede', <Widget>[
+          Text(
+            huiText(
+              'The server-list text. Every ping picks one entry at random.',
+            ),
+          ),
+        ]),
+        HuiRevisionRow(revision: doc.revision),
+      ]);
 
   Widget _entries(GlossMotdDoc doc) => HuiLineListSection(
-    title: 'Entries',
+    title: huiText('Entries'),
     docKey: 'motd.entries',
-    addLabel: 'Add entry',
+    addLabel: huiText('Add entry'),
     itemCount: doc.entries.length,
     issues: _issuesFor(r'$.entries'),
     emptyTone: HuiNoteTone.danger,
-    emptyBody:
-        'Gloss rejects a MOTD file with no entries, so the server list '
-        'falls back to the vanilla line. Add one to make the document '
-        'loadable.',
+    emptyBody: huiText(
+      'Gloss rejects a MOTD file with no entries, so the server list '
+      'falls back to the vanilla line. Add one to make the document '
+      'loadable.',
+    ),
     onAdd: () {
       final int next = doc.entries.length;
       _store.mutateMotd(
@@ -105,12 +111,12 @@ class _MotdInspectorState extends State<MotdInspector> {
     return dom.div(classes: 'hui-motd-entry-card', <Widget>[
       dom.div(classes: 'hui-motd-entry-head', <Widget>[
         dom.span(classes: 'hui-motd-entry-label', <Widget>[
-          Text('Entry ${index + 1}'),
+          Text(huiText("Entry {value}", <String, Object?>{'value': index + 1})),
         ]),
         dom.span(classes: 'hui-motd-entry-actions', <Widget>[
           const HuiFieldHelp('motd.lines'),
           HuiIconButton(
-            label: 'Duplicate entry',
+            label: huiText('Duplicate entry'),
             icon: ArcaneIcon.copy(size: IconSize.sm),
             onPressed: () => _store.mutateMotd('duplicate entry', (
               GlossMotdDoc edited,
@@ -121,7 +127,7 @@ class _MotdInspectorState extends State<MotdInspector> {
             }),
           ),
           HuiIconButton(
-            label: 'Delete entry',
+            label: huiText('Delete entry'),
             icon: ArcaneIcon.trash2(size: IconSize.sm),
             onPressed: () =>
                 _store.mutateMotd('delete entry', (GlossMotdDoc edited) {
@@ -144,7 +150,7 @@ class _MotdInspectorState extends State<MotdInspector> {
               edited.entries[index].lines.add('');
             }
           }),
-          child: const Text('Add second line'),
+          child: Text(huiText('Add second line')),
         ),
       HuiInlineIssues(_issuesFor('entries[$index]')),
     ]);
@@ -155,8 +161,11 @@ class _MotdInspectorState extends State<MotdInspector> {
     final bool beyondRender = lineIndex >= glossMotdMaxLinesPerEntry;
     return HuiLineRow(
       value: line,
-      placeholder: '&dA glossy server',
-      removeLabel: 'Delete line ${lineIndex + 1} of entry ${entryIndex + 1}',
+      placeholder: huiText('&dA glossy server'),
+      removeLabel: huiText(
+        'Delete line {line} of entry {entry}',
+        <String, Object?>{'line': lineIndex + 1, 'entry': entryIndex + 1},
+      ),
       beyondRender: beyondRender,
       onChanged: (String value) => _editLine(entryIndex, lineIndex, value),
       onFocus: () {
@@ -177,8 +186,8 @@ class _MotdInspectorState extends State<MotdInspector> {
           where: 'in the server list',
         ),
         if (beyondRender)
-          const dom.span(classes: 'hui-gloss-chip is-missing', <Widget>[
-            Text('past line 2 — Gloss rejects this entry'),
+          dom.span(classes: 'hui-gloss-chip is-missing', <Widget>[
+            Text(huiText('past line 2 — Gloss rejects this entry')),
           ]),
       ],
       onRemove: () => _store.mutateMotd('delete line', (GlossMotdDoc edited) {

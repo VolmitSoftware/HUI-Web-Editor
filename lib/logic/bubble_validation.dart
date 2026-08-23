@@ -43,9 +43,15 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
         severity: HuiSeverity.warning,
         path: '\$.$key',
         message:
-            '$written is outside $min..$max. Gloss loads the file but '
-            'silently runs $effective.',
-        fix: 'Write the value you actually want, between $min and $max.',
+            "{written} is outside {min}..{max}. Gloss loads the file but silently runs {effective}.",
+        messageArguments: <String, Object?>{
+          'written': written,
+          'min': min,
+          'max': max,
+          'effective': effective,
+        },
+        fix: "Write the value you actually want, between {min} and {max}.",
+        fixArguments: <String, Object?>{'min': min, 'max': max},
       ),
     );
   }
@@ -75,10 +81,11 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
         severity: HuiSeverity.info,
         path: r'$.select',
         message:
-            'No select rule: this style never auto-matches. Players reach '
-            'it only by explicit choice (needing '
-            '$glossBubbleStylePermissionPrefix<id>), or as the fallback '
-            'when the file is named "$glossBubbleDefaultStyleId".',
+            "No select rule: this style never auto-matches. Players reach it only by explicit choice (needing {glossBubbleStylePermissionPrefix}<id>), or as the fallback when the file is named \"{glossBubbleDefaultStyleId}\".",
+        messageArguments: <String, Object?>{
+          'glossBubbleStylePermissionPrefix': glossBubbleStylePermissionPrefix,
+          'glossBubbleDefaultStyleId': glossBubbleDefaultStyleId,
+        },
         fix: 'Add a select rule to auto-apply it by world or group.',
       ),
     );
@@ -102,9 +109,10 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
           severity: HuiSeverity.info,
           path: r'$.select.groups',
           message:
-              'Gloss normalizes the groups to '
-              '[${select.effectiveGroups.join(', ')}] — trimmed, lowercased, '
-              'blanks dropped.',
+              "Gloss normalizes the groups to [{join}] — trimmed, lowercased, blanks dropped.",
+          messageArguments: <String, Object?>{
+            'join': select.effectiveGroups.join(', '),
+          },
           fix: 'Write the normalized names to keep the file honest.',
         ),
       );
@@ -161,8 +169,13 @@ List<HuiIssue> _validateShimmer(GlossBubbleStyleDoc doc) {
         severity: HuiSeverity.warning,
         path: '\$.shimmer.$key',
         message:
-            '$written is outside $minimum..$maximum. Gloss loads the file '
-            'but silently runs $effective.',
+            "{written} is outside {minimum}..{maximum}. Gloss loads the file but silently runs {effective}.",
+        messageArguments: <String, Object?>{
+          'written': written,
+          'minimum': minimum,
+          'maximum': maximum,
+          'effective': effective,
+        },
         fix: 'Write the bounded value the server will actually use.',
       ),
     );
@@ -349,9 +362,12 @@ List<HuiIssue> _validateMotion(GlossBubbleMotion motion) {
           severity: HuiSeverity.error,
           path: leaf.path,
           message:
-              'The expression is ${leaf.source.length} characters; Gloss '
-              'rejects motion expressions longer than '
-              '$glossBubbleMotionMaxExpressionLength.',
+              "The expression is {length} characters; Gloss rejects motion expressions longer than {glossBubbleMotionMaxExpressionLength}.",
+          messageArguments: <String, Object?>{
+            'length': leaf.source.length,
+            'glossBubbleMotionMaxExpressionLength':
+                glossBubbleMotionMaxExpressionLength,
+          },
           fix: 'Shorten the expression.',
         ),
       );
@@ -365,7 +381,8 @@ List<HuiIssue> _validateMotion(GlossBubbleMotion motion) {
         HuiIssue(
           severity: HuiSeverity.error,
           path: leaf.path,
-          message: failure.message,
+          message: failure.englishMessage,
+          messageArguments: failure.arguments,
           fix: 'Write a valid numeric motion expression.',
         ),
       );
@@ -385,19 +402,38 @@ List<HuiIssue> _validateMotion(GlossBubbleMotion motion) {
             .toList()
           ..sort();
     if (unknownVariables.isNotEmpty || unknownFunctions.isNotEmpty) {
-      issues.add(
-        HuiIssue(
-          severity: HuiSeverity.error,
-          path: leaf.path,
-          message: <String>[
-            if (unknownVariables.isNotEmpty)
-              'Unknown variables: ${unknownVariables.join(', ')}.',
-            if (unknownFunctions.isNotEmpty)
-              'Unknown functions: ${unknownFunctions.join(', ')}.',
-          ].join(' '),
-          fix: 'Use the bubble lifetime variables and shared math functions.',
-        ),
-      );
+      if (unknownVariables.isNotEmpty) {
+        issues.add(
+          HuiIssue.plural(
+            severity: HuiSeverity.error,
+            path: leaf.path,
+            pluralKey: 'validation.bubble.unknown_variables',
+            count: unknownVariables.length,
+            oneEnglish: 'Unknown variable: {variables}.',
+            otherEnglish: 'Unknown variables: {variables}.',
+            messageArguments: <String, Object?>{
+              'variables': unknownVariables.join(', '),
+            },
+            fix: 'Use the bubble lifetime variables and shared math functions.',
+          ),
+        );
+      }
+      if (unknownFunctions.isNotEmpty) {
+        issues.add(
+          HuiIssue.plural(
+            severity: HuiSeverity.error,
+            path: leaf.path,
+            pluralKey: 'validation.bubble.unknown_functions',
+            count: unknownFunctions.length,
+            oneEnglish: 'Unknown function: {functions}.',
+            otherEnglish: 'Unknown functions: {functions}.',
+            messageArguments: <String, Object?>{
+              'functions': unknownFunctions.join(', '),
+            },
+            fix: 'Use the bubble lifetime variables and shared math functions.',
+          ),
+        );
+      }
       continue;
     }
 
@@ -423,7 +459,11 @@ List<HuiIssue> _validateMotion(GlossBubbleMotion motion) {
           HuiIssue(
             severity: HuiSeverity.error,
             path: leaf.path,
-            message: '${failure.message} at t=$t.',
+            message: "{message} at t={t}.",
+            messageArguments: <String, Object?>{
+              'message': failure.localizedMessageArgument,
+              't': t,
+            },
             fix: 'Make the expression numeric and finite across its lifetime.',
           ),
         );
@@ -436,8 +476,13 @@ List<HuiIssue> _validateMotion(GlossBubbleMotion motion) {
             severity: HuiSeverity.warning,
             path: leaf.path,
             message:
-                'At t=$t this evaluates to $value; Gloss clamps it into '
-                '${leaf.min}..${leaf.max}.',
+                "At t={t} this evaluates to {value}; Gloss clamps it into {min}..{max}.",
+            messageArguments: <String, Object?>{
+              't': t,
+              'value': value,
+              'min': leaf.min,
+              'max': leaf.max,
+            },
             fix: 'Clamp the expression explicitly if that bound is intended.',
           ),
         );

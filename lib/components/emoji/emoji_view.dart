@@ -27,6 +27,7 @@ import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../gloss/gloss_game_screen.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class EmojiView extends StatefulWidget {
   const EmojiView({required this.store, this.gameContext = false, super.key});
@@ -102,7 +103,7 @@ class _EmojiViewState extends State<EmojiView> {
       if (component.gameContext) {
         return glossGameEmpty(
           anchor: GlossGameAnchor.chat,
-          label: 'Emoji in chat',
+          label: huiText('Emoji in chat'),
         );
       }
       return const dom.div(classes: 'hui-emoji-stage is-empty', <Widget>[]);
@@ -111,7 +112,7 @@ class _EmojiViewState extends State<EmojiView> {
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.chat,
-        label: 'Emoji in chat',
+        label: huiText('Emoji in chat'),
         child: _chatPreview(doc, openId),
       );
     }
@@ -125,29 +126,33 @@ class _EmojiViewState extends State<EmojiView> {
         TextInput(
           value: _query,
           size: ComponentSize.sm,
-          placeholder: 'Search name, trigger or glyph',
+          placeholder: huiText('Search name, trigger or glyph'),
           onInput: (String value) => setState(() => _query = value),
-          attributes: const <String, String>{
+          attributes: <String, String>{
             'autocomplete': 'off',
             'spellcheck': 'false',
-            'aria-label': 'Search emoji',
+            'aria-label': huiText('Search emoji'),
           },
         ),
         dom.span(classes: 'hui-emoji-count', <Widget>[
           Text(
-            '${entries.length} of ${_store.workspaceEmoji.entries.length} '
-            'emoji',
+            huiText("{length} of {length2} emoji", <String, Object?>{
+              'length': entries.length,
+              'length2': _store.workspaceEmoji.entries.length,
+            }),
           ),
         ]),
       ]),
       dom.div(classes: 'hui-emoji-grid', <Widget>[
         for (final GlossEmojiEntry entry in entries) _cell(entry, openId),
       ]),
-      const dom.div(classes: 'hui-emoji-readout', <Widget>[
+      dom.div(classes: 'hui-emoji-readout', <Widget>[
         Text(
-          'Glyphs render with the browser font stack here — coverage and '
-          'metrics differ from the Minecraft client font in game. Workspace '
-          'documents override same-named shipped emoji in these previews.',
+          huiText(
+            'Glyphs render with the browser font stack here — coverage and '
+            'metrics differ from the Minecraft client font in game. Workspace '
+            'documents override same-named shipped emoji in these previews.',
+          ),
         ),
       ]),
     ]);
@@ -158,30 +163,52 @@ class _EmojiViewState extends State<EmojiView> {
   Widget _chatPreview(GlossEmojiDoc doc, String openId) {
     final String token = ':$openId:';
     final String sample = doc.trigger.isEmpty
-        ? 'SwiftSwamp smells >.< $token'
-        : 'SwiftSwamp smells >.< $token ${doc.trigger}';
+        ? huiText('{player} smells >.< {token}', <String, Object?>{
+            'player': 'SwiftSwamp',
+            'token': token,
+          })
+        : huiText('{player} smells >.< {token} {trigger}', <String, Object?>{
+            'player': 'SwiftSwamp',
+            'token': token,
+            'trigger': doc.trigger,
+          });
     final String substituted = glossApplyEmoji(sample, _store.workspaceEmoji);
     return dom.div(classes: 'hui-emoji-chat', <Widget>[
       dom.div(classes: 'hui-emoji-chat-line is-raw', <Widget>[
         const dom.span(classes: 'hui-emoji-chat-speaker', <Widget>[
           Text('<Magic_Psycho>'),
         ]),
-        Text(' $sample'),
+        Text(huiText(" {sample}", <String, Object?>{'sample': sample})),
       ]),
       dom.div(classes: 'hui-emoji-chat-line', <Widget>[
         const dom.span(classes: 'hui-emoji-chat-speaker', <Widget>[
           Text('<Magic_Psycho>'),
         ]),
-        Text(' $substituted'),
+        Text(
+          huiText(" {substituted}", <String, Object?>{
+            'substituted': substituted,
+          }),
+        ),
       ]),
       dom.div(classes: 'hui-emoji-chat-meta', <Widget>[
         Text(
           doc.enabled
               ? (doc.trigger.isEmpty
-                    ? '$token substitutes; no trigger.'
-                    : '$token and "${doc.trigger}" both substitute.')
-              : 'Disabled: neither $token nor the trigger substitutes in '
-                    'game.',
+                    ? huiText(
+                        '{token} substitutes; no trigger.',
+                        <String, Object?>{'token': token},
+                      )
+                    : huiText(
+                        '{token} and "{trigger}" both substitute.',
+                        <String, Object?>{
+                          'token': token,
+                          'trigger': doc.trigger,
+                        },
+                      ))
+              : huiText(
+                  'Disabled: neither {token} nor the trigger substitutes in game.',
+                  <String, Object?>{'token': token},
+                ),
         ),
       ]),
     ]);
@@ -197,18 +224,21 @@ class _EmojiViewState extends State<EmojiView> {
     ];
     final String title = <String>[
       entry.token,
-      if (entry.hasTrigger) 'trigger ${entry.trigger}',
-      if (!entry.enabled) 'disabled',
+      if (entry.hasTrigger)
+        huiText('trigger {trigger}', <String, Object?>{
+          'trigger': entry.trigger,
+        }),
+      if (!entry.enabled) huiText('disabled'),
       entry.fromWorkspace
-          ? 'workspace document — click to open'
-          : 'shipped catalog',
+          ? huiText('workspace document — click to open')
+          : huiText('shipped catalog'),
     ].join(' · ');
     return dom.button(
       classes: classes.join(' '),
       attributes: <String, String>{
         'type': 'button',
         'title': title,
-        'aria-label': 'Emoji ${entry.id}',
+        'aria-label': huiText("Emoji {id}", <String, Object?>{'id': entry.id}),
         if (!entry.fromWorkspace) 'disabled': '',
       },
       events: <String, EventCallback>{

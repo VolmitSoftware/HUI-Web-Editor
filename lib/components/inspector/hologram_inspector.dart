@@ -21,6 +21,7 @@ import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'line_list_section.dart';
 import 'placeholder_picker.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class HologramInspector extends StatefulWidget {
   const HologramInspector({
@@ -61,10 +62,10 @@ class _HologramInspectorState extends State<HologramInspector> {
   }
 
   Widget _presentation(GlossHologramDoc doc) => InspectorSection(
-    title: 'Presentation',
+    title: huiText('Presentation'),
     children: <Widget>[
       HuiSwitchRow(
-        label: 'See through blocks',
+        label: huiText('See through blocks'),
         value: doc.seeThrough,
         trailing: const HuiFieldHelp('hologram.seeThrough'),
         onChanged: (bool value) => _store.mutateHologram(
@@ -76,10 +77,10 @@ class _HologramInspectorState extends State<HologramInspector> {
         ),
       ),
       HuiField(
-        label: 'Billboard',
+        label: huiText('Billboard'),
         trailing: const HuiFieldHelp('hologram.billboard'),
-        help: 'Which axes the entity may turn on to face a viewer.',
-        defaultValue: 'CENTER',
+        help: huiText('Which axes the entity may turn on to face a viewer.'),
+        defaultValue: huiTextKey('billboard.center', 'Center'),
         onReset: doc.billboard == glossHologramDefaultBillboard
             ? null
             : () => _setBillboard(glossHologramDefaultBillboard),
@@ -88,21 +89,25 @@ class _HologramInspectorState extends State<HologramInspector> {
             value: doc.billboard,
             size: ComponentSize.sm,
             fullWidth: true,
-            options: const <ArcaneSelectOption>[
+            options: <ArcaneSelectOption>[
               ArcaneSelectOption(
-                label: 'Center — faces the viewer on both axes',
+                label: huiText('Center — faces the viewer on both axes'),
                 value: 'CENTER',
               ),
               ArcaneSelectOption(
-                label: 'Vertical — yaws to the viewer, keeps its pitch',
+                label: huiText(
+                  'Vertical — yaws to the viewer, keeps its pitch',
+                ),
                 value: 'VERTICAL',
               ),
               ArcaneSelectOption(
-                label: 'Horizontal — pitches to the viewer, keeps its yaw',
+                label: huiText(
+                  'Horizontal — pitches to the viewer, keeps its yaw',
+                ),
                 value: 'HORIZONTAL',
               ),
               ArcaneSelectOption(
-                label: 'Fixed — never turns',
+                label: huiText('Fixed — never turns'),
                 value: 'FIXED',
               ),
             ],
@@ -112,47 +117,41 @@ class _HologramInspectorState extends State<HologramInspector> {
         ]),
       ),
       _angle(
-        label: 'Yaw',
+        label: huiText('Yaw'),
         docKey: 'hologram.yaw',
         path: r'$.yaw',
         value: doc.yaw,
         limit: glossHologramMaxYawDegrees,
         used: doc.billboard == 'FIXED' || doc.billboard == 'HORIZONTAL',
-        help: '0 faces south, 90 faces west, 180 north, -90 east.',
-        onChanged: (double value) => _store.mutateHologram(
-          'hologram yaw',
-          (GlossHologramDoc edited) {
-            edited.yaw = value;
-            edited.absentKeys.remove('yaw');
-          },
-        ),
+        help: huiText('0 faces south, 90 faces west, 180 north, -90 east.'),
+        onChanged: (double value) =>
+            _store.mutateHologram('hologram yaw', (GlossHologramDoc edited) {
+              edited.yaw = value;
+              edited.absentKeys.remove('yaw');
+            }),
       ),
       _angle(
-        label: 'Pitch',
+        label: huiTextKey('field.pitch.orientation', 'Pitch'),
         docKey: 'hologram.pitch',
         path: r'$.pitch',
         value: doc.pitch,
         limit: glossHologramMaxPitchDegrees,
         used: doc.billboard == 'FIXED' || doc.billboard == 'VERTICAL',
-        help: 'Positive tips the face downward, negative tips it up.',
-        onChanged: (double value) => _store.mutateHologram(
-          'hologram pitch',
-          (GlossHologramDoc edited) {
-            edited.pitch = value;
-            edited.absentKeys.remove('pitch');
-          },
-        ),
+        help: huiText('Positive tips the face downward, negative tips it up.'),
+        onChanged: (double value) =>
+            _store.mutateHologram('hologram pitch', (GlossHologramDoc edited) {
+              edited.pitch = value;
+              edited.absentKeys.remove('pitch');
+            }),
       ),
     ],
   );
 
-  void _setBillboard(String value) => _store.mutateHologram(
-    'hologram billboard',
-    (GlossHologramDoc edited) {
-      edited.billboard = value;
-      edited.absentKeys.remove('billboard');
-    },
-  );
+  void _setBillboard(String value) =>
+      _store.mutateHologram('hologram billboard', (GlossHologramDoc edited) {
+        edited.billboard = value;
+        edited.absentKeys.remove('billboard');
+      });
 
   /// One orientation angle. The row stays put and says so when the current
   /// billboard mode turns that axis itself, because a control that vanishes
@@ -170,9 +169,15 @@ class _HologramInspectorState extends State<HologramInspector> {
     label: label,
     trailing: HuiFieldHelp(docKey),
     help: used
-        ? '$help Degrees, -${limit.toInt()} to ${limit.toInt()}.'
-        : 'The current billboard mode turns this axis itself, so this value '
-              'never reaches the screen.',
+        ? huiText('{help} Degrees, {minimum} to {maximum}.', <String, Object?>{
+            'help': help,
+            'minimum': -limit.toInt(),
+            'maximum': limit.toInt(),
+          })
+        : huiText(
+            'The current billboard mode turns this axis itself, so this value '
+            'never reaches the screen.',
+          ),
     defaultValue: '0',
     onReset: value == 0 ? null : () => onChanged(0),
     control: dom.div(<Widget>[
@@ -187,42 +192,44 @@ class _HologramInspectorState extends State<HologramInspector> {
     ]),
   );
 
-  Widget _header(GlossHologramDoc doc) => dom.div(
-    classes: 'hui-inspector-headgroup',
-    <Widget>[
-      dom.div(classes: 'hui-inspector-header is-hologram', <Widget>[
-        const HuiEyebrow('Hologram'),
-        dom.div(classes: 'hui-inspector-title-row', <Widget>[
-          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
-          const HuiFieldHelp('hologram.id'),
+  Widget _header(GlossHologramDoc doc) =>
+      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+        dom.div(classes: 'hui-inspector-header is-hologram', <Widget>[
+          HuiEyebrow(huiText('Hologram')),
+          dom.div(classes: 'hui-inspector-title-row', <Widget>[
+            dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+              Text(_store.menuId),
+            ]),
+            const HuiFieldHelp('hologram.id'),
+          ]),
         ]),
-      ]),
-      const dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text('Every line joins into one TextDisplay at a world anchor.'),
-      ]),
-      // The revision used to be a clause in that sentence, where it read as
-      // prose about the document rather than as the value it is — and the
-      // written help for it had nowhere to mount.
-      HuiRevisionRow(revision: doc.revision, docKey: 'hologram.revision'),
-    ],
-  );
+        dom.p(classes: 'hui-inspector-lede', <Widget>[
+          Text(
+            huiText('Every line joins into one TextDisplay at a world anchor.'),
+          ),
+        ]),
+        // The revision used to be a clause in that sentence, where it read as
+        // prose about the document rather than as the value it is — and the
+        // written help for it had nowhere to mount.
+        HuiRevisionRow(revision: doc.revision, docKey: 'hologram.revision'),
+      ]);
 
   Widget _anchor(GlossHologramDoc doc) {
     final List<double> position = doc.anchor.position;
     return InspectorSection(
-      title: 'Anchor',
+      title: huiText('Anchor'),
       children: <Widget>[
         HuiField(
-          label: 'World',
+          label: huiText('World'),
           required: true,
           trailing: const HuiFieldHelp('hologram.anchor.world'),
-          help: 'The world the hologram stands in.',
+          help: huiText('The world the hologram stands in.'),
           control: dom.div(<Widget>[
             TextInput(
               value: doc.anchor.world,
               size: ComponentSize.sm,
               fullWidth: true,
-              placeholder: 'world',
+              placeholder: huiText('world'),
               onInput: (String value) => _store.mutateHologram(
                 'hologram world',
                 (GlossHologramDoc edited) => edited.anchor.world = value,
@@ -230,16 +237,17 @@ class _HologramInspectorState extends State<HologramInspector> {
               attributes: const <String, String>{
                 'autocomplete': 'off',
                 'spellcheck': 'false',
+                'dir': 'ltr',
               },
             ),
             HuiInlineIssues(_issuesFor(r'$.anchor.world')),
           ]),
         ),
         HuiField(
-          label: 'Position',
+          label: huiText('Position'),
           required: true,
           trailing: const HuiFieldHelp('hologram.anchor.position'),
-          help: 'Block coordinates of the TextDisplay entity.',
+          help: huiText('Block coordinates of the TextDisplay entity.'),
           control: dom.div(<Widget>[
             HuiVec3Field(
               value: Vec3(position[0], position[1], position[2]),
@@ -247,10 +255,10 @@ class _HologramInspectorState extends State<HologramInspector> {
               decimals: 2,
               // World coordinates, not a menu-space offset: the shared hints
               // would say "right of the player", which is wrong here.
-              axisHints: const <String>[
-                'x: world east',
-                'y: world height; the stack grows upward from here',
-                'z: world south',
+              axisHints: <String>[
+                huiText('x: world east'),
+                huiText('y: world height; the stack grows upward from here'),
+                huiText('z: world south'),
               ],
               onChanged: (Vec3 value) => _store.mutateHologram(
                 'hologram position',
@@ -266,14 +274,15 @@ class _HologramInspectorState extends State<HologramInspector> {
   }
 
   Widget _lines(GlossHologramDoc doc) => HuiLineListSection(
-    title: 'Lines',
+    title: huiText('Lines'),
     docKey: 'hologram.lines',
-    addLabel: 'Add line',
+    addLabel: huiText('Add line'),
     itemCount: doc.lines.length,
     issues: _issuesFor('lines['),
-    emptyBody:
-        'Gloss loads the file and draws nothing at the anchor. Add a line '
-        'to give the hologram something to say.',
+    emptyBody: huiText(
+      'Gloss loads the file and draws nothing at the anchor. Add a line '
+      'to give the hologram something to say.',
+    ),
     onAdd: () {
       final int next = doc.lines.length;
       _store.mutateHologram(
@@ -300,8 +309,10 @@ class _HologramInspectorState extends State<HologramInspector> {
     final String line = doc.lines[index];
     return HuiLineRow(
       value: line,
-      placeholder: '&fText, %papi%, |animation.id|, {{ expression }}',
-      removeLabel: 'Delete line ${index + 1}',
+      placeholder: huiText('&fText, %papi%, |animation.id|, {{ expression }}'),
+      removeLabel: huiText('Delete line {number}', <String, Object?>{
+        'number': index + 1,
+      }),
       onChanged: (String value) => _editLine(index, value),
       onFocus: () => _focusedLine = index,
       preview: GlossTextLine(

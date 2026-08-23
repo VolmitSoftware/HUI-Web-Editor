@@ -6,6 +6,7 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
+import '../l10n/hui_localizations.dart';
 import '../services/storage_service.dart';
 import 'workspace_repository_contract.dart';
 
@@ -63,7 +64,8 @@ final class IndexedDbWorkspaceRepository
   bool _requiresReload = false;
 
   @override
-  String? get lastFailure => _lastFailure;
+  String? get lastFailure =>
+      _lastFailure == null ? null : huiText(_lastFailure!);
 
   @override
   bool get requiresReload => _requiresReload;

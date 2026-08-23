@@ -28,6 +28,8 @@
 /// these tables.
 library;
 
+import '../l10n/hui_localizations.dart';
+
 /// How a value slot is spelled in JSON. [integer] is a [number] the format
 /// only ever writes without a fraction; the distinction drives the placeholder
 /// a key completion inserts, nothing else.
@@ -42,13 +44,13 @@ enum GlossJsonType {
 
   /// Short label for the completion row's right-hand column.
   String get label => switch (this) {
-    GlossJsonType.object => 'object',
-    GlossJsonType.array => 'array',
-    GlossJsonType.string => 'string',
-    GlossJsonType.number => 'number',
-    GlossJsonType.integer => 'integer',
-    GlossJsonType.boolean => 'boolean',
-    GlossJsonType.any => 'any',
+    GlossJsonType.object => huiText('object'),
+    GlossJsonType.array => huiText('array'),
+    GlossJsonType.string => huiText('string'),
+    GlossJsonType.number => huiText('number'),
+    GlossJsonType.integer => huiText('integer'),
+    GlossJsonType.boolean => huiText('boolean'),
+    GlossJsonType.any => huiText('any'),
   };
 
   /// The literal a key completion drops in when it has to invent a value.

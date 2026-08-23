@@ -2,6 +2,7 @@ library;
 
 import 'dart:async';
 
+import '../l10n/hui_localizations.dart';
 import '../services/storage_service.dart';
 
 typedef WorkspaceStorageReader = String? Function(String key);
@@ -24,9 +25,11 @@ final class WorkspaceRepositoryNotice {
 }
 
 final class WorkspaceRepositoryCorruption implements Exception {
-  const WorkspaceRepositoryCorruption(this.message);
+  const WorkspaceRepositoryCorruption(this._message);
 
-  final String message;
+  final String _message;
+
+  String get message => huiText(_message);
 
   @override
   String toString() => message;

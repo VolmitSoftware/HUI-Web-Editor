@@ -15,6 +15,7 @@ import '../../logic/validation.dart';
 import '../common/common.dart';
 import 'code_completion.dart';
 import 'code_hover.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// The one place the pane says, in words, whether the document has the text.
 class HuiCodeStateChip extends StatelessWidget {
@@ -41,10 +42,10 @@ class HuiCodeStateChip extends StatelessWidget {
       dom.span(<Widget>[
         Text(
           dirty
-              ? 'Unsaved changes'
+              ? huiText('Unsaved changes')
               : saved
-              ? 'Saved'
-              : 'Matches the document',
+              ? huiText('Saved')
+              : huiText('Matches the document'),
         ),
       ]),
     ],
@@ -65,7 +66,12 @@ class HuiCodeErrorStrip extends StatelessWidget {
     <Widget>[
       ArcaneIcon.circleAlert(size: IconSize.sm),
       dom.span(classes: 'hui-code-error-text', <Widget>[
-        Text('$message — nothing was committed, your text is untouched.'),
+        Text(
+          huiText(
+            "{message} — nothing was committed, your text is untouched.",
+            <String, Object?>{'message': message},
+          ),
+        ),
       ]),
     ],
   );
@@ -133,9 +139,9 @@ class HuiCodeCompletionPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) => dom.div(
     classes: 'hui-code-complete',
-    attributes: const <String, String>{
+    attributes: <String, String>{
       'role': 'listbox',
-      'aria-label': 'JSON completion',
+      'aria-label': huiText('JSON completion'),
     },
     styles: dom.Styles(
       raw: <String, String>{
@@ -143,9 +149,7 @@ class HuiCodeCompletionPopup extends StatelessWidget {
         'top': '${y.round()}px',
       },
     ),
-    <Widget>[
-      for (int i = 0; i < items.length; i++) _row(items[i], i),
-    ],
+    <Widget>[for (int i = 0; i < items.length; i++) _row(items[i], i)],
   );
 
   Widget _row(HuiCompletion item, int at) => dom.div(
@@ -238,36 +242,47 @@ class HuiCodeIssueList extends StatelessWidget {
   final List<HuiIssue> issues;
 
   @override
-  Widget build(BuildContext context) =>
-      dom.div(classes: 'hui-code-issues', <Widget>[
-        dom.div(classes: 'hui-code-issues-head', <Widget>[
-          HuiEyebrow(issues.isEmpty ? 'no issues' : 'issues (${issues.length})'),
-        ]),
-        if (issues.isEmpty)
-          const dom.p(classes: 'hui-code-issues-empty', <Widget>[
-            Text('This document matches everything the plugin expects.'),
-          ])
-        else
-          dom.ul(classes: 'hui-code-issues-list', <Widget>[
-            for (final HuiIssue issue in issues)
-              dom.li(
-                classes: classNames(<String?>[
-                  'hui-code-issue',
-                  switch (issue.severity) {
-                    HuiSeverity.error => 'is-error',
-                    HuiSeverity.warning => 'is-warning',
-                    HuiSeverity.info => 'is-info',
-                  },
+  Widget build(BuildContext context) => dom.div(
+    classes: 'hui-code-issues',
+    <Widget>[
+      dom.div(classes: 'hui-code-issues-head', <Widget>[
+        HuiEyebrow(
+          issues.isEmpty
+              ? huiText('no issues')
+              : huiPlural(
+                  'code.issue-count',
+                  issues.length,
+                  oneEnglish: '{count} issue',
+                  otherEnglish: '{count} issues',
+                ),
+        ),
+      ]),
+      if (issues.isEmpty)
+        dom.p(classes: 'hui-code-issues-empty', <Widget>[
+          Text(huiText('This document matches everything the plugin expects.')),
+        ])
+      else
+        dom.ul(classes: 'hui-code-issues-list', <Widget>[
+          for (final HuiIssue issue in issues)
+            dom.li(
+              classes: classNames(<String?>[
+                'hui-code-issue',
+                switch (issue.severity) {
+                  HuiSeverity.error => 'is-error',
+                  HuiSeverity.warning => 'is-warning',
+                  HuiSeverity.info => 'is-info',
+                },
+              ]),
+              <Widget>[
+                dom.code(classes: 'hui-code-issue-path', <Widget>[
+                  Text(issue.path),
                 ]),
-                <Widget>[
-                  dom.code(classes: 'hui-code-issue-path', <Widget>[
-                    Text(issue.path),
-                  ]),
-                  dom.span(classes: 'hui-code-issue-message', <Widget>[
-                    Text(issue.message),
-                  ]),
-                ],
-              ),
-          ]),
-      ]);
+                dom.span(classes: 'hui-code-issue-message', <Widget>[
+                  Text(issue.message),
+                ]),
+              ],
+            ),
+        ]),
+    ],
+  );
 }

@@ -18,6 +18,7 @@ import 'package:archive/archive.dart';
 import 'package:image/image.dart' as img;
 import 'package:jaspr/jaspr.dart';
 
+import '../l10n/hui_localizations.dart';
 import 'image_library_stub.dart'
     if (dart.library.js_interop) 'image_library_web.dart';
 import 'storage_service.dart';
@@ -26,10 +27,10 @@ import 'storage_service.dart';
 /// this is rejected by common filesystems.
 const int huiMaxImagePathLength = 256;
 
-/// One `TextDisplay` per image row and one character per pixel: a 64x64 image is
-/// already 4096 characters across 64 displays. Beyond this the preview stays
-/// correct but the server will not be happy.
-const int huiRecommendedMaxImageDimension = 64;
+/// One `TextDisplay` per image row and one character per pixel. Text images are
+/// intentionally limited to compact pixel art because glyphs are not a seamless
+/// or inexpensive general-purpose image surface.
+const int huiRecommendedMaxImageDimension = 16;
 
 /// Hard ceiling for a single stored image. localStorage gives the whole origin
 /// roughly 5 MB, so a single oversized upload must never be allowed to consume
@@ -41,6 +42,7 @@ const String huiNormalizedPngDataUriPrefix = 'data:image/png;base64,';
 final RegExp _animationFramePathPattern = RegExp(r'^(.*)/frame-\d{3}\.png$');
 
 typedef ImageStorageWriter = bool Function(String key, String value);
+typedef ImageLocalizedMessage = String Function();
 
 bool _writeImageStorage(String key, String value) =>
     StorageService.write(key, value);
@@ -296,10 +298,23 @@ class ImagePixels {
 class ImageAddOutcome {
   const ImageAddOutcome({
     required this.added,
-    required this.errors,
-    required this.warnings,
+    required List<String> errors,
+    required List<String> warnings,
     required this.quotaExceeded,
-  });
+  }) : _literalErrors = errors,
+       _literalWarnings = warnings,
+       _localizedErrors = null,
+       _localizedWarnings = null;
+
+  ImageAddOutcome._localized({
+    required this.added,
+    required List<ImageLocalizedMessage> errors,
+    required List<ImageLocalizedMessage> warnings,
+    required this.quotaExceeded,
+  }) : _literalErrors = null,
+       _literalWarnings = null,
+       _localizedErrors = errors,
+       _localizedWarnings = warnings;
 
   static const ImageAddOutcome empty = ImageAddOutcome(
     added: <StoredImage>[],
@@ -309,11 +324,57 @@ class ImageAddOutcome {
   );
 
   final List<StoredImage> added;
-  final List<String> errors;
-  final List<String> warnings;
+  final List<String>? _literalErrors;
+  final List<String>? _literalWarnings;
+  final List<ImageLocalizedMessage>? _localizedErrors;
+  final List<ImageLocalizedMessage>? _localizedWarnings;
   final bool quotaExceeded;
 
-  bool get isSuccess => added.isNotEmpty && errors.isEmpty && !quotaExceeded;
+  List<String> get errors {
+    final List<ImageLocalizedMessage>? messages = _localizedErrors;
+    if (messages == null) return _literalErrors!;
+    return messages
+        .map((ImageLocalizedMessage message) => message())
+        .toList(growable: false);
+  }
+
+  List<String> get warnings {
+    final List<ImageLocalizedMessage>? messages = _localizedWarnings;
+    if (messages == null) return _literalWarnings!;
+    return messages
+        .map((ImageLocalizedMessage message) => message())
+        .toList(growable: false);
+  }
+
+  List<ImageLocalizedMessage> get errorMessages {
+    final List<ImageLocalizedMessage>? messages = _localizedErrors;
+    if (messages != null) return messages;
+    return _literalErrors!
+        .map(
+          (String message) =>
+              () => message,
+        )
+        .toList(growable: false);
+  }
+
+  List<ImageLocalizedMessage> get warningMessages {
+    final List<ImageLocalizedMessage>? messages = _localizedWarnings;
+    if (messages != null) return messages;
+    return _literalWarnings!
+        .map(
+          (String message) =>
+              () => message,
+        )
+        .toList(growable: false);
+  }
+
+  bool get hasErrors =>
+      _localizedErrors?.isNotEmpty ?? _literalErrors!.isNotEmpty;
+
+  bool get hasWarnings =>
+      _localizedWarnings?.isNotEmpty ?? _literalWarnings!.isNotEmpty;
+
+  bool get isSuccess => added.isNotEmpty && !hasErrors && !quotaExceeded;
 }
 
 /// Applies Gloss's path rules without rejecting the input: backslashes become
@@ -349,30 +410,39 @@ String sanitizeImagePath(String raw) {
 
 /// Null when [path] is a legal Gloss image path, otherwise the reason.
 String? validateImagePath(String path) {
+  return _validateImagePathMessage(path)?.call();
+}
+
+ImageLocalizedMessage? _validateImagePathMessage(String path) {
   if (path.trim().isEmpty) {
-    return 'Image path must not be empty.';
+    return () => huiText('Image path must not be empty.');
   }
   if (path.length > huiMaxImagePathLength) {
-    return 'Image path must be at most $huiMaxImagePathLength characters.';
+    return () => huiText(
+      'Image path must be at most {count} characters.',
+      <String, Object?>{'count': huiMaxImagePathLength},
+    );
   }
   if (path.startsWith('/')) {
-    return 'Image path must be relative to plugins/Gloss/images (no leading slash).';
+    return () => huiText(
+      'Image path must be relative to plugins/Gloss/images (no leading slash).',
+    );
   }
   if (path.contains('\\')) {
-    return 'Image path must use forward slashes.';
+    return () => huiText('Image path must use forward slashes.');
   }
   if (path.contains(':')) {
-    return 'Image path must not contain ":".';
+    return () => huiText('Image path must not contain ":".');
   }
   if (path.endsWith('/')) {
-    return 'Image path must point at a file.';
+    return () => huiText('Image path must point at a file.');
   }
   for (final String segment in path.split('/')) {
     if (segment == '..') {
-      return 'Image path must not contain "..".';
+      return () => huiText('Image path must not contain "..".');
     }
     if (segment.trim().isEmpty) {
-      return 'Image path must not contain empty segments.';
+      return () => huiText('Image path must not contain empty segments.');
     }
   }
   return null;
@@ -649,7 +719,7 @@ class ImageLibrary extends ChangeNotifier {
       <String, Future<ImagePixels?>>{};
   final ImageStorageWriter _writer;
   bool _quotaExceeded = false;
-  String? _lastError;
+  ImageLocalizedMessage? _lastError;
 
   List<StoredImage> get images => _imagesView;
 
@@ -660,7 +730,9 @@ class ImageLibrary extends ChangeNotifier {
 
   bool get quotaExceeded => _quotaExceeded;
 
-  String? get lastError => _lastError;
+  String? get lastError => _lastError?.call();
+
+  ImageLocalizedMessage? get lastErrorMessage => _lastError;
 
   void clearError() {
     _lastError = null;
@@ -719,7 +791,8 @@ class ImageLibrary extends ChangeNotifier {
           }
         }
       } catch (_) {
-        _lastError = 'The stored image library was unreadable and was ignored.';
+        _lastError = () =>
+            huiText('The stored image library was unreadable and was ignored.');
       }
     }
     _reindex();
@@ -737,17 +810,22 @@ class ImageLibrary extends ChangeNotifier {
       return ImageAddOutcome.empty;
     }
     final List<StoredImage> candidates = <StoredImage>[];
-    final List<String> errors = <String>[];
-    final List<String> warnings = <String>[];
+    final List<ImageLocalizedMessage> errors = <ImageLocalizedMessage>[];
+    final List<ImageLocalizedMessage> warnings = <ImageLocalizedMessage>[];
     for (final Object file in files) {
       final DecodedImageBatch? decoded = await decodeImageFileToPngFrames(file);
       if (decoded == null || decoded.frames.isEmpty) {
-        errors.add('A file could not be decoded as an image and was skipped.');
+        errors.add(
+          () => huiText(
+            'A file could not be decoded as an image and was skipped.',
+          ),
+        );
         continue;
       }
+      final String decodedName = decoded.name;
       final bool animated = decoded.totalFrames > 1;
       final List<StoredImage> fileCandidates = <StoredImage>[];
-      String? fileError;
+      ImageLocalizedMessage? fileError;
       bool resized = false;
       int originalWidth = 0;
       int originalHeight = 0;
@@ -759,7 +837,10 @@ class ImageLibrary extends ChangeNotifier {
           frame.dataUri,
         );
         if (normalized == null) {
-          fileError = '"${decoded.name}" could not be normalized as a PNG.';
+          fileError = () => huiText(
+            '"{name}" could not be normalized as a PNG.',
+            <String, Object?>{'name': decodedName},
+          );
           break;
         }
         if (frame.width != normalized.width ||
@@ -772,12 +853,19 @@ class ImageLibrary extends ChangeNotifier {
         }
         final int bytes = decodeDataUriBytes(normalized.dataUri)?.length ?? 0;
         String path = animated
-            ? animationFrameImagePath(decoded.name, index)
-            : _withPngExtension(sanitizeImagePath(decoded.name));
+            ? animationFrameImagePath(decodedName, index)
+            : _withPngExtension(sanitizeImagePath(decodedName));
         if (bytes > huiMaxStoredImageBytes) {
-          fileError =
-              '"$path" is ${(bytes / 1024).round()} KB after conversion; the limit is '
-              '${huiMaxStoredImageBytes ~/ 1024} KB. Scale it down before uploading.';
+          final String oversizedPath = path;
+          final int size = (bytes / 1024).round();
+          fileError = () => huiText(
+            '"{path}" is {size} KB after conversion; the limit is {limit} KB. Scale it down before uploading.',
+            <String, Object?>{
+              'path': oversizedPath,
+              'size': size,
+              'limit': huiMaxStoredImageBytes ~/ 1024,
+            },
+          );
           break;
         }
         if (!replaceExisting &&
@@ -809,25 +897,58 @@ class ImageLibrary extends ChangeNotifier {
           (StoredImage candidate) => candidate.isOversized,
         );
         warnings.add(
-          '"${decoded.name}" is ${image.width}x${image.height}. Gloss renders one text display '
-          'per row and one character per pixel; keep images at or under '
-          '${huiRecommendedMaxImageDimension}x$huiRecommendedMaxImageDimension.',
+          () => huiText(
+            '"{name}" is {width}x{height}. Gloss renders one text display per row and one character per pixel; keep images at or under {maximum}x{maximum}.',
+            <String, Object?>{
+              'name': decodedName,
+              'width': image.width,
+              'height': image.height,
+              'maximum': huiRecommendedMaxImageDimension,
+            },
+          ),
         );
       }
       if (resized) {
         warnings.add(
-          'Resized "${decoded.name}" from ${originalWidth}x$originalHeight to '
-          '${resizedWidth}x$resizedHeight for Gloss.',
+          () => huiText(
+            'Resized "{name}" from {originalWidth}x{originalHeight} to {width}x{height} for Gloss.',
+            <String, Object?>{
+              'name': decodedName,
+              'originalWidth': originalWidth,
+              'originalHeight': originalHeight,
+              'width': resizedWidth,
+              'height': resizedHeight,
+            },
+          ),
         );
       }
       if (animated) {
+        final int expandedFrameCount = decoded.frames.length;
+        final int omittedFrameCount = decoded.totalFrames - expandedFrameCount;
         warnings.add(
-          decoded.totalFrames > decoded.frames.length
-              ? 'Expanded "${decoded.name}" into ${decoded.frames.length} PNG frames; '
-                    '${decoded.totalFrames - decoded.frames.length} frames were omitted at the '
-                    '$huiMaxImportedAnimationFrames-frame import limit.'
-              : 'Expanded "${decoded.name}" into ${decoded.frames.length} PNG frames for '
-                    'an animatedTextImage icon.',
+          () => omittedFrameCount > 0
+              ? huiPlural(
+                  'image.animation_expanded_omitted.count',
+                  expandedFrameCount,
+                  oneEnglish:
+                      'Expanded "{name}" into {count} PNG frame. Omitted frame count: {omitted}. The import limit is {limit} frames.',
+                  otherEnglish:
+                      'Expanded "{name}" into {count} PNG frames. Omitted frame count: {omitted}. The import limit is {limit} frames.',
+                  arguments: <String, Object?>{
+                    'name': decodedName,
+                    'omitted': omittedFrameCount,
+                    'limit': huiMaxImportedAnimationFrames,
+                  },
+                )
+              : huiPlural(
+                  'image.animation_expanded.count',
+                  expandedFrameCount,
+                  oneEnglish:
+                      'Expanded "{name}" into {count} PNG frame for an animatedTextImage icon.',
+                  otherEnglish:
+                      'Expanded "{name}" into {count} PNG frames for an animatedTextImage icon.',
+                  arguments: <String, Object?>{'name': decodedName},
+                ),
         );
       }
       for (final StoredImage image in fileCandidates) {
@@ -838,7 +959,7 @@ class ImageLibrary extends ChangeNotifier {
       }
     }
     if (candidates.isEmpty) {
-      return ImageAddOutcome(
+      return ImageAddOutcome._localized(
         added: const <StoredImage>[],
         errors: errors,
         warnings: warnings,
@@ -858,14 +979,14 @@ class ImageLibrary extends ChangeNotifier {
       }
     });
     if (!stored) {
-      return ImageAddOutcome(
+      return ImageAddOutcome._localized(
         added: const <StoredImage>[],
-        errors: <String>[...errors, _quotaMessage],
+        errors: <ImageLocalizedMessage>[...errors, _quotaMessage],
         warnings: warnings,
         quotaExceeded: true,
       );
     }
-    return ImageAddOutcome(
+    return ImageAddOutcome._localized(
       added: candidates,
       errors: errors,
       warnings: warnings,
@@ -879,16 +1000,22 @@ class ImageLibrary extends ChangeNotifier {
   }) async {
     if (files.isEmpty) return ImageAddOutcome.empty;
     final List<StoredImage> candidates = <StoredImage>[];
-    final List<String> errors = <String>[];
+    final List<ImageLocalizedMessage> errors = <ImageLocalizedMessage>[];
     for (final Object file in files) {
       final DecodedImageBatch? decoded = await decodeImageFileToPngFrames(file);
       if (decoded == null || decoded.frames.isEmpty) {
-        errors.add('A skin file could not be decoded and was skipped.');
+        errors.add(
+          () => huiText('A skin file could not be decoded and was skipped.'),
+        );
         continue;
       }
+      final String decodedName = decoded.name;
       if (decoded.totalFrames != 1) {
         errors.add(
-          '"${decoded.name}" is animated; player skins must be still images.',
+          () => huiText(
+            '"{name}" is animated; player skins must be still images.',
+            <String, Object?>{'name': decodedName},
+          ),
         );
         continue;
       }
@@ -897,12 +1024,14 @@ class ImageLibrary extends ChangeNotifier {
       );
       if (head == null) {
         errors.add(
-          '"${decoded.name}" is not a valid 64x32, 64x64, or high-resolution '
-          'Minecraft skin.',
+          () => huiText(
+            '"{name}" is not a valid 64x32, 64x64, or high-resolution Minecraft skin.',
+            <String, Object?>{'name': decodedName},
+          ),
         );
         continue;
       }
-      String path = _playerHeadPath(decoded.name);
+      String path = _playerHeadPath(decodedName);
       if (!replaceExisting &&
           (_paths.contains(path) ||
               candidates.any((StoredImage image) => image.path == path))) {
@@ -919,10 +1048,10 @@ class ImageLibrary extends ChangeNotifier {
       );
     }
     if (candidates.isEmpty) {
-      return ImageAddOutcome(
+      return ImageAddOutcome._localized(
         added: const <StoredImage>[],
         errors: errors,
-        warnings: const <String>[],
+        warnings: const <ImageLocalizedMessage>[],
         quotaExceeded: false,
       );
     }
@@ -939,18 +1068,20 @@ class ImageLibrary extends ChangeNotifier {
       }
     });
     if (!stored) {
-      return ImageAddOutcome(
+      return ImageAddOutcome._localized(
         added: const <StoredImage>[],
-        errors: <String>[...errors, _quotaMessage],
-        warnings: const <String>[],
+        errors: <ImageLocalizedMessage>[...errors, _quotaMessage],
+        warnings: const <ImageLocalizedMessage>[],
         quotaExceeded: true,
       );
     }
-    return ImageAddOutcome(
+    return ImageAddOutcome._localized(
       added: candidates,
       errors: errors,
-      warnings: const <String>[
-        'Extracted each face and translucent hat layer as an 8x8 pixel image.',
+      warnings: <ImageLocalizedMessage>[
+        () => huiText(
+          'Extracted each face and translucent hat layer as an 8x8 pixel image.',
+        ),
       ],
       quotaExceeded: false,
     );
@@ -973,13 +1104,15 @@ class ImageLibrary extends ChangeNotifier {
   }) {
     final NormalizedImageData? head = minecraftHeadFromSkinPng(skinPngDataUri);
     if (head == null) {
-      return ImageAddOutcome(
+      return ImageAddOutcome._localized(
         added: const <StoredImage>[],
-        errors: <String>[
-          'The skin returned for "$username" is not a valid 64x32, 64x64, or '
-              'high-resolution Minecraft skin.',
+        errors: <ImageLocalizedMessage>[
+          () => huiText(
+            'The skin returned for "{username}" is not a valid 64x32, 64x64, or high-resolution Minecraft skin.',
+            <String, Object?>{'username': username},
+          ),
         ],
-        warnings: const <String>[],
+        warnings: const <ImageLocalizedMessage>[],
         quotaExceeded: false,
       );
     }
@@ -988,12 +1121,16 @@ class ImageLibrary extends ChangeNotifier {
     // plugin's cache key (PlayerHeadService.java:110), so "Notch" and "notch"
     // must land on one asset rather than two heads of the same person.
     String path = _playerHeadPath(username.toLowerCase());
-    final String problem = validateImagePath(path) ?? '';
-    if (problem.isNotEmpty) {
-      return ImageAddOutcome(
+    if (_validateImagePathMessage(path) != null) {
+      return ImageAddOutcome._localized(
         added: const <StoredImage>[],
-        errors: <String>['"$username" does not make a usable image path.'],
-        warnings: const <String>[],
+        errors: <ImageLocalizedMessage>[
+          () => huiText(
+            '"{username}" does not make a usable image path.',
+            <String, Object?>{'username': username},
+          ),
+        ],
+        warnings: const <ImageLocalizedMessage>[],
         quotaExceeded: false,
       );
     }
@@ -1018,17 +1155,17 @@ class ImageLibrary extends ChangeNotifier {
       }
     });
     if (!committed) {
-      return ImageAddOutcome(
+      return ImageAddOutcome._localized(
         added: const <StoredImage>[],
-        errors: <String>[_quotaMessage],
-        warnings: const <String>[],
+        errors: <ImageLocalizedMessage>[_quotaMessage],
+        warnings: const <ImageLocalizedMessage>[],
         quotaExceeded: true,
       );
     }
-    return ImageAddOutcome(
+    return ImageAddOutcome._localized(
       added: <StoredImage>[stored],
-      errors: const <String>[],
-      warnings: const <String>[],
+      errors: const <ImageLocalizedMessage>[],
+      warnings: const <ImageLocalizedMessage>[],
       quotaExceeded: false,
     );
   }
@@ -1038,20 +1175,26 @@ class ImageLibrary extends ChangeNotifier {
   bool rename(String oldPath, String newPath) {
     final int index = _images.indexWhere((StoredImage e) => e.path == oldPath);
     if (index < 0) {
-      _lastError = 'No image stored at "$oldPath".';
+      _lastError = () => huiText(
+        'No image stored at "{path}".',
+        <String, Object?>{'path': oldPath},
+      );
       return false;
     }
     final String sanitized = _withPngExtension(sanitizeImagePath(newPath));
     if (sanitized == oldPath) {
       return true;
     }
-    final String? problem = validateImagePath(sanitized);
+    final ImageLocalizedMessage? problem = _validateImagePathMessage(sanitized);
     if (problem != null) {
       _lastError = problem;
       return false;
     }
     if (_paths.contains(sanitized)) {
-      _lastError = 'An image named "$sanitized" already exists.';
+      _lastError = () => huiText(
+        'An image named "{name}" already exists.',
+        <String, Object?>{'name': sanitized},
+      );
       return false;
     }
     return _commit(() {
@@ -1072,10 +1215,11 @@ class ImageLibrary extends ChangeNotifier {
     final List<StoredImage> next = List<StoredImage>.of(replacements);
     final Set<String> paths = <String>{};
     for (final StoredImage image in next) {
-      if (validateImagePath(image.path) != null ||
+      if (_validateImagePathMessage(image.path) != null ||
           !paths.add(image.path) ||
           !isValidStoredImageData(image)) {
-        _lastError = 'The imported image library contains an invalid entry.';
+        _lastError = () =>
+            huiText('The imported image library contains an invalid entry.');
         _quotaExceeded = false;
         notifyListeners();
         return false;
@@ -1092,10 +1236,11 @@ class ImageLibrary extends ChangeNotifier {
     final List<StoredImage> next = List<StoredImage>.of(replacements);
     final Set<String> paths = <String>{};
     for (final StoredImage image in next) {
-      if (validateImagePath(image.path) != null ||
+      if (_validateImagePathMessage(image.path) != null ||
           !paths.add(image.path) ||
           !isValidStoredImageData(image)) {
-        _lastError = 'The server sync contains an invalid image.';
+        _lastError = () =>
+            huiText('The server sync contains an invalid image.');
         _quotaExceeded = false;
         notifyListeners();
         return false;
@@ -1194,9 +1339,11 @@ class ImageLibrary extends ChangeNotifier {
     return total;
   }
 
-  String get _quotaMessage =>
-      'Browser storage is full, so nothing was saved. Remove images or shrink them '
-      '(Gloss images are usually under ${huiRecommendedMaxImageDimension}x$huiRecommendedMaxImageDimension pixels).';
+  ImageLocalizedMessage get _quotaMessage =>
+      () => huiText(
+        'Browser storage is full, so nothing was saved. Remove images or shrink them (Gloss images are usually under {maximum}x{maximum} pixels).',
+        <String, Object?>{'maximum': huiRecommendedMaxImageDimension},
+      );
 
   /// Runs [mutation], persists, and restores the previous list when the browser
   /// refuses the write so memory never drifts from storage.

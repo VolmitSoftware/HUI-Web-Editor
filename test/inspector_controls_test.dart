@@ -7,6 +7,8 @@
 /// confusion it exists to remove.
 library;
 
+import 'dart:io';
+
 import 'package:gloss_editor/components/common/hui_color_field.dart';
 import 'package:gloss_editor/components/common/hui_duration_field.dart';
 import 'package:test/test.dart';
@@ -88,6 +90,29 @@ void main() {
       );
     });
   });
+
+  test('text colour picker inserts only the committed selection', () {
+    final String editor = File(
+      'lib/components/inspector/text_icon_editor.dart',
+    ).readAsStringSync();
+    const String handler =
+        "(event) => _insertColor(domInputValue(event.target))";
+
+    expect(editor, contains("'change': $handler"));
+    expect(editor, isNot(contains("'input': $handler")));
+  });
+
+  test(
+    'entity search displays invariant registry ids without English detail',
+    () {
+      final String picker = File(
+        'lib/components/inspector/entity_picker.dart',
+      ).readAsStringSync();
+
+      expect(picker, contains('RegistryOption(entityType)'));
+      expect(picker, isNot(contains('String _label(')));
+    },
+  );
 
   group('huiFormatDuration', () {
     test('reads ticks at 50 ms each', () {

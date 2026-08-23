@@ -9,6 +9,7 @@ import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'registry_picker.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class EntityIconEditor extends StatelessWidget {
   const EntityIconEditor({
@@ -37,22 +38,10 @@ class EntityIconEditor extends StatelessWidget {
     final List<RegistryOption> results = <RegistryOption>[];
     for (final String entityType in huiSpawnableLivingEntityTypes) {
       if (normalized.isNotEmpty && !entityType.contains(normalized)) continue;
-      results.add(RegistryOption(entityType, null, _label(entityType)));
+      results.add(RegistryOption(entityType));
       if (results.length >= limit) break;
     }
     return results;
-  }
-
-  String _label(String key) {
-    final String path = key.substring(key.indexOf(':') + 1);
-    return path
-        .split('_')
-        .map(
-          (String word) => word.isEmpty
-              ? word
-              : '${word.substring(0, 1).toUpperCase()}${word.substring(1)}',
-        )
-        .join(' ');
   }
 
   @override
@@ -60,18 +49,19 @@ class EntityIconEditor extends StatelessWidget {
     BuildContext context,
   ) => dom.div(classes: 'hui-icon-entity', <Widget>[
     HuiField(
-      label: 'Entity type',
+      label: huiText('Entity type'),
       required: true,
       trailing: const HuiFieldHelp('icon.entity.entity'),
-      help:
-          'Spawnable living registry id. No server entity or physical '
-          'collision is created.',
+      help: huiText(
+        'Spawnable living registry id. No server entity or physical '
+        'collision is created.',
+      ),
       control: dom.div(<Widget>[
         RegistryPicker(
           value: icon.entity,
-          placeholder: 'minecraft:parrot',
-          browseLabel: 'Browse entities',
-          searchPlaceholder: 'Search living entities',
+          placeholder: huiText('minecraft:parrot'),
+          browseLabel: huiText('Browse entities'),
+          searchPlaceholder: huiText('Search living entities'),
           showThumbnail: false,
           search: _search,
           onChanged: (String value) =>
@@ -90,7 +80,7 @@ class EntityIconEditor extends StatelessWidget {
       ),
       <Widget>[
         HuiField(
-          label: 'Click width',
+          label: huiText('Click width'),
           trailing: const HuiFieldHelp('icon.entity.width'),
           control: dom.div(<Widget>[
             HuiNumberField(
@@ -98,7 +88,7 @@ class EntityIconEditor extends StatelessWidget {
               min: 0.01,
               max: 64,
               step: 0.05,
-              suffix: 'blocks',
+              suffix: huiText('blocks'),
               onChanged: (double value) =>
                   onChanged('entity width', _with(width: value)),
             ),
@@ -106,7 +96,7 @@ class EntityIconEditor extends StatelessWidget {
           ]),
         ),
         HuiField(
-          label: 'Click height',
+          label: huiText('Click height'),
           trailing: const HuiFieldHelp('icon.entity.height'),
           control: dom.div(<Widget>[
             HuiNumberField(
@@ -114,7 +104,7 @@ class EntityIconEditor extends StatelessWidget {
               min: 0.01,
               max: 64,
               step: 0.05,
-              suffix: 'blocks',
+              suffix: huiText('blocks'),
               onChanged: (double value) =>
                   onChanged('entity height', _with(height: value)),
             ),
@@ -123,11 +113,13 @@ class EntityIconEditor extends StatelessWidget {
         ),
       ],
     ),
-    const HuiNote(
-      'The component anchor is the entity\'s feet. Gloss keeps body, pitch and '
-      'head yaw aligned with the menu and disables player pushing. Width and '
-      'height define the editor silhouette and a button or toggle\'s click '
-      'plane, not the client model; decorations have no click plane.',
+    HuiNote(
+      huiText(
+        'The component anchor is the entity\'s feet. Gloss keeps body, pitch and '
+        'head yaw aligned with the menu and disables player pushing. Width and '
+        'height define the editor silhouette and a button or toggle\'s click '
+        'plane, not the client model; decorations have no click plane.',
+      ),
     ),
   ]);
 }

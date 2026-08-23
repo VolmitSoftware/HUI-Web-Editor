@@ -16,6 +16,7 @@ library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart' show Widget;
 
+import '../l10n/hui_localizations.dart';
 import '../logic/canvas_scene.dart';
 import '../logic/gloss_text.dart'
     show GlossAnimationResolver, GlossEmojiResolver;
@@ -71,7 +72,7 @@ final class AdoptedDocument {
     required this.editorId,
     this.model,
     this.preservedSource,
-    this.failure,
+    this.failureResolver,
   });
 
   /// The per-kind model to install, or null for kinds with no in-store model.
@@ -86,7 +87,9 @@ final class AdoptedDocument {
 
   /// User-facing message when the stored JSON was unreadable and [model] is a
   /// replacement default instead.
-  final String? failure;
+  final String Function()? failureResolver;
+
+  String? get failure => failureResolver?.call();
 }
 
 /// What one document contributes to a workspace-wide menu rename.
@@ -95,7 +98,7 @@ final class MenuRenameRewrite {
     this.json,
     this.navigationLinks = 0,
     this.panelRoots = 0,
-    this.failure,
+    this.failureResolver,
   });
 
   static const MenuRenameRewrite none = MenuRenameRewrite();
@@ -112,7 +115,9 @@ final class MenuRenameRewrite {
 
   /// Aborts the whole rename with this message when the document could not be
   /// read safely.
-  final String? failure;
+  final String Function()? failureResolver;
+
+  String? get failure => failureResolver?.call();
 }
 
 /// A named starter document offered by the templates dialog.
@@ -216,11 +221,15 @@ abstract class DocumentTypeAdapter {
     EditorView.preview =>
       hasRuntimePreview
           ? null
-          : 'A $noun has no in-game rendering, so there is nothing to preview.',
+          : huiText(
+              'This document has no in-game rendering, so there is nothing to preview.',
+            ),
     EditorView.code || EditorView.split =>
       transferable
           ? null
-          : 'A $noun is editor-only, so it has no runtime JSON to edit.',
+          : huiText(
+              'This document is editor-only, so it has no runtime JSON to edit.',
+            ),
   };
 
   bool supportsView(EditorView view) => unavailableViewReason(view) == null;

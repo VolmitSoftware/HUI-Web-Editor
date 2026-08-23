@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -22,13 +24,13 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.scoreboard;
 
   @override
-  String get noun => 'scoreboard';
+  String get noun => huiText('scoreboard');
 
   @override
-  String get createLabel => 'New scoreboard';
+  String get createLabel => huiText('New scoreboard');
 
   @override
-  String get pluralLabel => 'Scoreboards';
+  String get pluralLabel => huiText('Scoreboards');
 
   @override
   int get tabOrder => 60;
@@ -37,7 +39,7 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.scoreboard;
 
   @override
-  String get surfaceLabel => 'Sidebar';
+  String get surfaceLabel => huiText('Sidebar');
 
   @override
   String? get syncWireKind => 'scoreboard';

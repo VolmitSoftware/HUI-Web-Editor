@@ -39,7 +39,12 @@ List<HuiIssue> parseCheckPreviewDoc(HuiPreviewDoc doc) {
       parsePreviewExpr(raw);
     } on PExprException catch (e) {
       issues.add(
-        HuiIssue(severity: HuiSeverity.error, path: path, message: e.message),
+        HuiIssue(
+          severity: HuiSeverity.error,
+          path: path,
+          message: e.englishMessage,
+          messageArguments: e.arguments,
+        ),
       );
     }
   }
@@ -119,10 +124,15 @@ final Set<String> previewReservedNamespaces = <String>{
 /// plugin itself refuses to compile, or a soft warning it logs and still
 /// compiles ([HuiSeverity.warning] for an unreserved provider namespace).
 class PreviewVarProblem {
-  const PreviewVarProblem(this.severity, this.message);
+  const PreviewVarProblem(
+    this.severity,
+    this.message, [
+    this.messageArguments = const <String, Object?>{},
+  ]);
 
   final HuiSeverity severity;
   final String message;
+  final Map<String, Object?> messageArguments;
 }
 
 /// Port of `PreviewDocumentParser.checkVariableName`. [declaredVars] is every
@@ -140,22 +150,35 @@ PreviewVarProblem? previewCheckVariableName(
   if (previewFlatCatalog.contains(name)) return null;
   if (name.startsWith('vars.')) {
     if (declaredVars.contains(name.substring('vars.'.length))) return null;
-    return PreviewVarProblem(HuiSeverity.error, 'Unknown variable: $name');
+    return PreviewVarProblem(
+      HuiSeverity.error,
+      'Unknown variable: {name}',
+      <String, Object?>{'name': name},
+    );
   }
   final int dot = name.indexOf('.');
   if (dot < 0) {
     if (scope.contains(name)) return null;
-    return PreviewVarProblem(HuiSeverity.error, 'Unknown variable: $name');
+    return PreviewVarProblem(
+      HuiSeverity.error,
+      'Unknown variable: {name}',
+      <String, Object?>{'name': name},
+    );
   }
   final String prefix = name.substring(0, dot);
   if (previewReservedNamespaces.contains(prefix)) {
-    return PreviewVarProblem(HuiSeverity.error, 'Unknown variable: $name');
+    return PreviewVarProblem(
+      HuiSeverity.error,
+      'Unknown variable: {name}',
+      <String, Object?>{'name': name},
+    );
   }
   return PreviewVarProblem(
     HuiSeverity.warning,
-    '$name references provider namespace "$prefix", which nothing currently '
-    'cataloged publishes. It may be supplied by another plugin at '
-    'runtime, or it may be a typo.',
+    '{name} references provider namespace "{prefix}", which nothing currently '
+    'cataloged publishes. It may be supplied by another plugin at runtime, or '
+    'it may be a typo.',
+    <String, Object?>{'name': name, 'prefix': prefix},
   );
 }
 
@@ -413,9 +436,23 @@ List<HuiIssue> validatePreviewDoc(
 }) {
   final List<HuiIssue> issues = <HuiIssue>[];
 
-  void add(HuiSeverity severity, String path, String message, {String? fix}) {
+  void add(
+    HuiSeverity severity,
+    String path,
+    String message, {
+    String? fix,
+    Map<String, Object?> messageArguments = const <String, Object?>{},
+    Map<String, Object?> fixArguments = const <String, Object?>{},
+  }) {
     issues.add(
-      HuiIssue(severity: severity, path: path, message: message, fix: fix),
+      HuiIssue(
+        severity: severity,
+        path: path,
+        message: message,
+        messageArguments: messageArguments,
+        fix: fix,
+        fixArguments: fixArguments,
+      ),
     );
   }
 
@@ -426,9 +463,15 @@ List<HuiIssue> validatePreviewDoc(
     add(
       HuiSeverity.warning,
       path,
-      'Lang key "$value" uses the legacy "$kLegacyPreviewLangPrefix" prefix, '
-      'renamed in Gloss; imported docs are rewritten on import.',
-      fix: 'Use "${previewRenamedLangKey(value)}".',
+      "Lang key \"{value}\" uses the legacy \"{kLegacyPreviewLangPrefix}\" prefix, renamed in Gloss; imported docs are rewritten on import.",
+      fix: "Use \"{previewRenamedLangKey}\".",
+      messageArguments: <String, Object?>{
+        'value': value,
+        'kLegacyPreviewLangPrefix': kLegacyPreviewLangPrefix,
+      },
+      fixArguments: <String, Object?>{
+        'previewRenamedLangKey': previewRenamedLangKey(value),
+      },
     );
   }
 
@@ -442,13 +485,24 @@ List<HuiIssue> validatePreviewDoc(
     try {
       expr = parsePreviewExpr(raw);
     } on PExprException catch (e) {
-      add(
-        HuiSeverity.error,
-        path,
-        e.position == previewNoPosition
-            ? e.message
-            : '${e.message} at character ${e.position}',
-      );
+      if (e.position == previewNoPosition) {
+        add(
+          HuiSeverity.error,
+          path,
+          e.englishMessage,
+          messageArguments: e.arguments,
+        );
+      } else {
+        add(
+          HuiSeverity.error,
+          path,
+          '{message} at character {position}',
+          messageArguments: <String, Object?>{
+            'message': e.localizedMessageArgument,
+            'position': e.position,
+          },
+        );
+      }
       return;
     }
     previewCollectVarRefs(expr, (String name) {
@@ -457,7 +511,14 @@ List<HuiIssue> validatePreviewDoc(
         declaredVars: declaredVars,
         scope: scope,
       );
-      if (problem != null) add(problem.severity, path, problem.message);
+      if (problem != null) {
+        add(
+          problem.severity,
+          path,
+          problem.message,
+          messageArguments: problem.messageArguments,
+        );
+      }
     });
     _previewCollectStrLiterals(expr, (String value) {
       warnLegacyLangKey(value, path);
@@ -466,7 +527,12 @@ List<HuiIssue> validatePreviewDoc(
       try {
         evalPreviewExpr(expr, _previewEmptyScope);
       } on PExprException catch (e) {
-        add(HuiSeverity.error, path, e.message);
+        add(
+          HuiSeverity.error,
+          path,
+          e.englishMessage,
+          messageArguments: e.arguments,
+        );
       }
     }
   }
@@ -481,13 +547,22 @@ List<HuiIssue> validatePreviewDoc(
         try {
           final PExpr expr = parsePreviewExpr(value);
           if (expr is! PNum) {
-            add(HuiSeverity.error, path, 'Invalid color literal "$value".');
+            add(
+              HuiSeverity.error,
+              path,
+              "Invalid color literal \"{value}\".",
+              messageArguments: <String, Object?>{'value': value},
+            );
           }
         } on PExprException catch (e) {
           add(
             HuiSeverity.error,
             path,
-            'Invalid color literal "$value": ${e.message}',
+            "Invalid color literal \"{value}\": {message}",
+            messageArguments: <String, Object?>{
+              'value': value,
+              'message': e.message,
+            },
           );
         }
         return;
@@ -506,8 +581,11 @@ List<HuiIssue> validatePreviewDoc(
       add(
         HuiSeverity.error,
         path,
-        'Unknown special value "$special"; must be one of '
-        '${_previewSpecialValueSet.join(", ")}.',
+        "Unknown special value \"{special}\"; must be one of {join}.",
+        messageArguments: <String, Object?>{
+          'special': special,
+          'join': _previewSpecialValueSet.join(", "),
+        },
       );
     }
   }
@@ -532,10 +610,11 @@ List<HuiIssue> validatePreviewDoc(
             add(
               HuiSeverity.info,
               path,
-              'Glob "$raw" does not currently match any known $kind.',
+              "Glob \"{raw}\" does not currently match any known {kind}.",
               fix:
                   'Double check the pattern; a target added later can still '
                   'match it.',
+              messageArguments: <String, Object?>{'raw': raw, 'kind': kind},
             );
           }
         }
@@ -552,7 +631,8 @@ List<HuiIssue> validatePreviewDoc(
         add(
           HuiSeverity.warning,
           path,
-          'Unknown $kind "$raw"; it may still be valid on a newer server.',
+          "Unknown {kind} \"{raw}\"; it may still be valid on a newer server.",
+          messageArguments: <String, Object?>{'kind': kind, 'raw': raw},
         );
       }
     }
@@ -654,14 +734,15 @@ List<HuiIssue> validatePreviewDoc(
         add(
           HuiSeverity.error,
           '$path.repeat.var',
-          'Repeat var "$varName" must be a valid identifier.',
+          "Repeat var \"{varName}\" must be a valid identifier.",
+          messageArguments: <String, Object?>{'varName': varName},
         );
       } else if (varName == 'vars' || previewFlatCatalog.contains(varName)) {
         add(
           HuiSeverity.error,
           '$path.repeat.var',
-          'Repeat var "$varName" collides with a reserved variable name and '
-              'would be unreachable.',
+          "Repeat var \"{varName}\" collides with a reserved variable name and would be unreachable.",
+          messageArguments: <String, Object?>{'varName': varName},
         );
       } else {
         scope = <String>{varName};
@@ -683,8 +764,11 @@ List<HuiIssue> validatePreviewDoc(
           add(
             HuiSeverity.error,
             '$path.repeat.count',
-            'Constant repeat count ${_previewFormatNumber(countConstant)} '
-                'exceeds $previewMaxRepeatCount.',
+            "Constant repeat count {previewFormatNumber} exceeds {previewMaxRepeatCount}.",
+            messageArguments: <String, Object?>{
+              'previewFormatNumber': _previewFormatNumber(countConstant),
+              'previewMaxRepeatCount': previewMaxRepeatCount,
+            },
           );
         }
       }
@@ -790,8 +874,11 @@ List<HuiIssue> validatePreviewDoc(
     add(
       HuiSeverity.error,
       'elements',
-      'Total compiled element count ($totalTemplateCount, after expanding '
-          'repeats) exceeds $previewMaxTotalTemplates.',
+      "Total compiled element count ({totalTemplateCount}, after expanding repeats) exceeds {previewMaxTotalTemplates}.",
+      messageArguments: <String, Object?>{
+        'totalTemplateCount': totalTemplateCount,
+        'previewMaxTotalTemplates': previewMaxTotalTemplates,
+      },
     );
   }
 

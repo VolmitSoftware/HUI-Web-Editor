@@ -18,6 +18,7 @@ import '../gloss/gloss_text_line.dart';
 import 'animation_reference_picker.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 const List<({String name, String? group, bool op})> _samples =
     <({String name, String? group, bool op})>[
@@ -61,25 +62,27 @@ class _TablistInspectorState extends State<TablistInspector> {
     ]);
   }
 
-  Widget _header(GlossTablistDoc doc) => dom.div(
-    classes: 'hui-inspector-headgroup',
-    <Widget>[
-      dom.div(classes: 'hui-inspector-header is-tablist', <Widget>[
-        const HuiEyebrow('Tablist'),
-        dom.div(classes: 'hui-inspector-title-row', <Widget>[
-          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
-          const HuiFieldHelp('tablist.id'),
+  Widget _header(GlossTablistDoc doc) =>
+      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+        dom.div(classes: 'hui-inspector-header is-tablist', <Widget>[
+          HuiEyebrow(huiText('Tablist')),
+          dom.div(classes: 'hui-inspector-title-row', <Widget>[
+            dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+              Text(_store.menuId),
+            ]),
+            const HuiFieldHelp('tablist.id'),
+          ]),
         ]),
-      ]),
-      const dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text(
-          'The tab screen: header and footer over the player grid, and '
-          'per-group list names.',
-        ),
-      ]),
-      HuiRevisionRow(revision: doc.revision),
-    ],
-  );
+        dom.p(classes: 'hui-inspector-lede', <Widget>[
+          Text(
+            huiText(
+              'The tab screen: header and footer over the player grid, and '
+              'per-group list names.',
+            ),
+          ),
+        ]),
+        HuiRevisionRow(revision: doc.revision),
+      ]);
 
   Widget _pipelinePreview(String text) =>
       dom.div(classes: 'hui-hologram-line-preview', <Widget>[
@@ -96,13 +99,14 @@ class _TablistInspectorState extends State<TablistInspector> {
       ]);
 
   Widget _headerFooter(GlossTablistDoc doc) => InspectorSection(
-    title: 'Header and footer',
+    title: huiText('Header and footer'),
     children: <Widget>[
       HuiSwitchRow(
-        label: 'Use header and footer',
-        help:
-            'Off leaves the tab screen\'s top and bottom vanilla; the texts '
-            'below go unused.',
+        label: huiText('Use header and footer'),
+        help: huiText(
+          'Off leaves the tab screen\'s top and bottom vanilla; the texts '
+          'below go unused.',
+        ),
         trailing: const HuiFieldHelp('tablist.useHeaderFooter'),
         value: doc.useHeaderFooter,
         onChanged: (bool value) => _store.mutateTablist(
@@ -118,17 +122,18 @@ class _TablistInspectorState extends State<TablistInspector> {
         AnimationReferencePicker(store: _store, onPicked: _insert),
       ]),
       HuiField(
-        label: 'Header',
+        label: huiText('Header'),
         trailing: const HuiFieldHelp('tablist.header'),
-        help:
-            'Above the player grid, through the text pipeline per viewer. '
-            r'Use \n for extra lines.',
+        help: huiText(
+          'Above the player grid, through the text pipeline per viewer. '
+          r'Use \n for extra lines.',
+        ),
         control: dom.div(<Widget>[
           TextInput(
             value: doc.header,
             size: ComponentSize.sm,
             fullWidth: true,
-            placeholder: '&d&lGloss',
+            placeholder: huiText('&d&lGloss'),
             onInput: (String value) => _store.mutateTablist('tablist header', (
               GlossTablistDoc edited,
             ) {
@@ -146,15 +151,15 @@ class _TablistInspectorState extends State<TablistInspector> {
         ]),
       ),
       HuiField(
-        label: 'Footer',
+        label: huiText('Footer'),
         trailing: const HuiFieldHelp('tablist.footer'),
-        help: 'Below the player grid, same pipeline.',
+        help: huiText('Below the player grid, same pipeline.'),
         control: dom.div(<Widget>[
           TextInput(
             value: doc.footer,
             size: ComponentSize.sm,
             fullWidth: true,
-            placeholder: '&7VolmitSoftware.com',
+            placeholder: huiText('&7VolmitSoftware.com'),
             onInput: (String value) => _store.mutateTablist('tablist footer', (
               GlossTablistDoc edited,
             ) {
@@ -177,15 +182,16 @@ class _TablistInspectorState extends State<TablistInspector> {
   Widget _formats(GlossTablistDoc doc) {
     final List<String> keys = doc.nameFormats.keys.toList();
     return InspectorSection(
-      title: 'List names',
+      title: huiText('List names'),
       sectionKey: 'tablist.names',
       trailing: const HuiFieldHelp('tablist.nameFormats'),
       children: <Widget>[
         HuiSwitchRow(
-          label: 'Group list names',
-          help:
-              'Off resets every player to their vanilla list name; the '
-              'formats below go unused.',
+          label: huiText('Group list names'),
+          help: huiText(
+            'Off resets every player to their vanilla list name; the '
+            'formats below go unused.',
+          ),
           trailing: const HuiFieldHelp('tablist.groupListNames'),
           value: doc.groupListNames,
           onChanged: (bool value) => _store.mutateTablist(
@@ -198,8 +204,8 @@ class _TablistInspectorState extends State<TablistInspector> {
         ),
         HuiInlineIssues(_issuesFor(r'$.groupListNames')),
         dom.div(classes: 'hui-tablist-token-chips', <Widget>[
-          _tokenChip(r'$player', 'The player account name.'),
-          _tokenChip(r'$group', 'The resolved group key.'),
+          _tokenChip(r'$player', huiText('The player account name.')),
+          _tokenChip(r'$group', huiText('The resolved group key.')),
         ]),
         for (final String key in keys) _formatRow(doc, key),
         Button(
@@ -217,13 +223,15 @@ class _TablistInspectorState extends State<TablistInspector> {
                 edited.nameFormats[key] = r'&7$player';
                 edited.absentKeys.remove('nameFormats');
               }),
-          child: const Text('Add format'),
+          child: Text(huiText('Add format')),
         ),
         HuiInlineIssues(_issuesFor(r'$.nameFormats')),
-        const HuiNote(
-          'Resolution order: operators take _op first, then the player\'s '
-          'primary group, then default; with no default the literal '
-          r'$player fallback applies.',
+        HuiNote(
+          huiText(
+            'Resolution order: operators take _op first, then the player\'s '
+            'primary group, then default; with no default the literal '
+            r'$player fallback applies.',
+          ),
         ),
         _livePreview(doc),
       ],
@@ -234,8 +242,13 @@ class _TablistInspectorState extends State<TablistInspector> {
     classes: 'hui-gloss-chip hui-tablist-token-chip',
     attributes: <String, String>{
       'type': 'button',
-      'title': '$hint Click to append to the focused header/footer field.',
-      'aria-label': 'Insert $token',
+      'title': huiText(
+        "{hint} Click to append to the focused header/footer field.",
+        <String, Object?>{'hint': hint},
+      ),
+      'aria-label': huiText("Insert {token}", <String, Object?>{
+        'token': token,
+      }),
     },
     events: <String, EventCallback>{'click': (Object? _) => _insert(token)},
     <Widget>[Text(token)],
@@ -247,7 +260,7 @@ class _TablistInspectorState extends State<TablistInspector> {
       TextInput(
         value: key,
         size: ComponentSize.sm,
-        placeholder: 'vip',
+        placeholder: huiText('vip'),
         onInput: (String next) =>
             _store.mutateTablist('rename format', (GlossTablistDoc edited) {
               if (!edited.nameFormats.containsKey(key) ||
@@ -265,31 +278,34 @@ class _TablistInspectorState extends State<TablistInspector> {
                 ..clear()
                 ..addAll(rebuilt);
             }),
-        attributes: const <String, String>{
+        attributes: <String, String>{
           'autocomplete': 'off',
           'spellcheck': 'false',
-          'aria-label': 'Group key',
+          'dir': 'ltr',
+          'aria-label': huiText('Group key'),
         },
       ),
       TextInput(
         value: value,
         size: ComponentSize.sm,
         fullWidth: true,
-        placeholder: r'&7$player',
+        placeholder: huiText(r'&7$player'),
         onInput: (String next) =>
             _store.mutateTablist('edit format', (GlossTablistDoc edited) {
               if (edited.nameFormats.containsKey(key)) {
                 edited.nameFormats[key] = next;
               }
             }),
+        styles: huiTechnicalInputStyles,
         attributes: <String, String>{
-          'autocomplete': 'off',
-          'spellcheck': 'false',
-          'aria-label': 'Format for $key',
+          ...huiTechnicalInputAttributes,
+          'aria-label': huiText("Format for {key}", <String, Object?>{
+            'key': key,
+          }),
         },
       ),
       HuiIconButton(
-        label: 'Remove format $key',
+        label: huiText("Remove format {key}", <String, Object?>{'key': key}),
         icon: ArcaneIcon.trash2(size: IconSize.sm),
         onPressed: () => _store.mutateTablist(
           'remove format',
@@ -301,13 +317,23 @@ class _TablistInspectorState extends State<TablistInspector> {
 
   Widget _livePreview(GlossTablistDoc doc) =>
       dom.div(classes: 'hui-tablist-live-preview', <Widget>[
-        const HuiEyebrow('Live preview'),
+        HuiEyebrow(huiText('Live preview')),
         for (final ({String name, String? group, bool op}) sample in _samples)
           dom.div(classes: 'hui-tablist-live-row', <Widget>[
             dom.span(classes: 'hui-tablist-live-meta', <Widget>[
               Text(
-                '${sample.name} — '
-                '${sample.op ? 'op, ' : ''}group ${sample.group ?? 'none'}',
+                sample.op
+                    ? huiText(
+                        '{name} — operator, group {group}',
+                        <String, Object?>{
+                          'name': sample.name,
+                          'group': sample.group ?? huiText('none'),
+                        },
+                      )
+                    : huiText('{name} — group {group}', <String, Object?>{
+                        'name': sample.name,
+                        'group': sample.group ?? huiText('none'),
+                      }),
               ),
             ]),
             dom.span(classes: 'hui-tablist-live-name', <Widget>[

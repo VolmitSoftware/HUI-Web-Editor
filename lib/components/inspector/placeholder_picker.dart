@@ -12,12 +12,13 @@ import 'package:jaspr/jaspr.dart' show EventCallback;
 
 import '../../services/catalogs.dart';
 import '../common/common.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class PlaceholderPicker extends StatefulWidget {
   const PlaceholderPicker({
     required this.catalogs,
     required this.onPicked,
-    this.label = 'Placeholders',
+    this.label,
     super.key,
   });
 
@@ -25,7 +26,7 @@ class PlaceholderPicker extends StatefulWidget {
 
   /// Receives the raw placeholder token, e.g. `%gloss_available%`.
   final void Function(String placeholder) onPicked;
-  final String label;
+  final String? label;
 
   @override
   State<PlaceholderPicker> createState() => _PlaceholderPickerState();
@@ -36,6 +37,7 @@ class _PlaceholderPickerState extends State<PlaceholderPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final String label = component.label ?? huiText('Placeholders');
     final List<(String, String)> entries = component.catalogs.placeholders;
     return ArcanePopover(
       isOpen: _open,
@@ -46,7 +48,7 @@ class _PlaceholderPickerState extends State<PlaceholderPicker> {
         size: ButtonSize.sm,
         icon: ArcaneIcon.hash(size: IconSize.sm),
         attributes: <String, String>{
-          'aria-label': component.label,
+          'aria-label': label,
           'aria-expanded': _open ? 'true' : 'false',
           // Inside a floating container the trigger's next sibling IS the
           // popup, so the legacy accordion binder would write `display` onto
@@ -55,23 +57,27 @@ class _PlaceholderPickerState extends State<PlaceholderPicker> {
           // keys on `arcanePopoverInteractive` and is unaffected.
           'data-arcane-interactive': 'true',
         },
-        child: Text(component.label),
+        child: Text(label),
       ),
       content: dom.div(classes: 'hui-placeholder-list', <Widget>[
-        const HuiEyebrow('Placeholders'),
+        HuiEyebrow(huiText('Placeholders')),
         if (entries.isEmpty)
-          const dom.p(classes: 'hui-placeholder-empty', <Widget>[
+          dom.p(classes: 'hui-placeholder-empty', <Widget>[
             Text(
-              'The placeholder catalogue could not be loaded. Type the '
-              'placeholder by hand, including the surrounding % signs.',
+              huiText(
+                'The placeholder catalogue could not be loaded. Type the '
+                'placeholder by hand, including the surrounding % signs.',
+              ),
             ),
           ])
         else
           for (final (String, String) entry in entries) _row(entry),
-        const dom.p(classes: 'hui-placeholder-foot', <Widget>[
+        dom.p(classes: 'hui-placeholder-foot', <Widget>[
           Text(
-            'Anything outside Gloss needs PlaceholderAPI installed on the '
-            'server. Without it the condition string is compared literally.',
+            huiText(
+              'Anything outside Gloss needs PlaceholderAPI installed on the '
+              'server. Without it the condition string is compared literally.',
+            ),
           ),
         ]),
       ]),
@@ -82,7 +88,9 @@ class _PlaceholderPickerState extends State<PlaceholderPicker> {
     classes: 'hui-placeholder-row',
     attributes: <String, String>{
       'type': 'button',
-      'aria-label': 'Use ${entry.$1}',
+      'aria-label': huiText("Use {value}", <String, Object?>{
+        'value': entry.$1,
+      }),
     },
     events: <String, EventCallback>{
       'click': (_) {

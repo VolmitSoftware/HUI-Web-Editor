@@ -16,6 +16,7 @@ import '../common/common.dart';
 import 'extras_editor.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class MenuInspector extends StatelessWidget {
   const MenuInspector({required this.store, super.key});
@@ -48,28 +49,32 @@ class MenuInspector extends StatelessWidget {
   /// scrolling body, which is what `position: sticky` needs.
   Widget _header() => dom.div(classes: 'hui-inspector-headgroup', <Widget>[
     dom.div(classes: 'hui-inspector-header is-menu', <Widget>[
-      const HuiEyebrow('Menu'),
+      HuiEyebrow(huiText('Menu')),
       dom.div(classes: 'hui-inspector-title-row', <Widget>[
-        dom.h2(classes: 'hui-inspector-title', <Widget>[Text(store.menuId)]),
+        dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+          Text(store.menuId),
+        ]),
         const HuiFieldHelp('menu.id'),
       ]),
     ]),
-    const dom.p(classes: 'hui-inspector-lede', <Widget>[
+    dom.p(classes: 'hui-inspector-lede', <Widget>[
       Text(
-        'Nothing is selected, so these are the settings for the whole '
-        'menu. Pick a component to edit it.',
+        huiText(
+          'Nothing is selected, so these are the settings for the whole '
+          'menu. Pick a component to edit it.',
+        ),
       ),
     ]),
   ]);
 
   Widget _placement() => InspectorSection(
-    title: 'Placement',
+    title: huiText('Placement'),
     children: <Widget>[
       HuiField(
-        label: 'Offset',
+        label: huiText('Offset'),
         required: true,
         trailing: const HuiFieldHelp('menu.offset'),
-        help: 'Blocks from the player\'s feet at the moment it opens.',
+        help: huiText('Blocks from the player\'s feet at the moment it opens.'),
         // Eye level, arm's length forward — what a new document and every
         // template open at.
         defaultValue: '0, $huiDefaultMenuHeight, $huiDefaultMenuDistance',
@@ -98,9 +103,9 @@ class MenuInspector extends StatelessWidget {
         ]),
       ),
       HuiSwitchRow(
-        label: 'Lock position',
+        label: huiText('Lock position'),
         value: _menu.lockPosition,
-        help: 'Freezes the player while the menu is open.',
+        help: huiText('Freezes the player while the menu is open.'),
         trailing: const HuiFieldHelp('menu.lockPosition'),
         onChanged: (bool value) => store.mutate(
           'menu lockPosition',
@@ -108,11 +113,15 @@ class MenuInspector extends StatelessWidget {
         ),
       ),
       HuiSwitchRow(
-        label: 'Follow player',
+        label: huiText('Follow player'),
         value: _menu.followPlayer,
-        help: 'Re-centres and turns the menu as the player moves or looks.',
+        help: huiText(
+          'Re-centres and turns the menu as the player moves or looks.',
+        ),
         warning: _menu.lockPosition && _menu.followPlayer
-            ? 'Position stays locked, but look changes can still turn it.'
+            ? huiText(
+                'Position stays locked, but look changes can still turn it.',
+              )
             : null,
         trailing: const HuiFieldHelp('menu.followPlayer'),
         onChanged: (bool value) => store.mutate(
@@ -121,18 +130,22 @@ class MenuInspector extends StatelessWidget {
         ),
       ),
       _maxDistance(),
-      const HuiMore(
-        summary: 'How placement is applied',
+      HuiMore(
+        summary: huiText('How placement is applied'),
         children: <Widget>[
           HuiNote(
-            'The offset is measured from the player\'s feet, so y 1.7 is '
-            'about eye level and z is how far in front of them the menu '
-            'floats.',
+            huiText(
+              'The offset is measured from the player\'s feet, so y 1.7 is '
+              'about eye level and z is how far in front of them the menu '
+              'floats.',
+            ),
           ),
           HuiNote(
-            'Lock position rewrites movement back and zeroes velocity every '
-            'tick. The player can still look; follow player turns the menu '
-            'with that yaw.',
+            huiText(
+              'Lock position rewrites movement back and zeroes velocity every '
+              'tick. The player can still look; follow player turns the menu '
+              'with that yaw.',
+            ),
           ),
         ],
       ),
@@ -143,13 +156,15 @@ class MenuInspector extends StatelessWidget {
     final double? value = _menu.maxDistance;
     final bool unlimited = value == null;
     return HuiField(
-      label: 'Max distance',
-      help: 'Closes the menu once the player is further away than this.',
+      label: huiText('Max distance'),
+      help: huiText(
+        'Closes the menu once the player is further away than this.',
+      ),
       trailing: dom.div(classes: 'hui-inline-check', <Widget>[
         ArcaneCheckbox(
           checked: unlimited,
           size: ComponentSize.sm,
-          label: 'Unlimited',
+          label: huiText('Unlimited'),
           onChanged: (bool checked) => store.mutate(
             'menu maxDistance',
             (HuiMenu menu) => menu.maxDistance = checked ? null : 8,
@@ -159,9 +174,11 @@ class MenuInspector extends StatelessWidget {
       ]),
       control: dom.div(<Widget>[
         if (unlimited)
-          const HuiNote(
-            'The key is left out of the JSON, which the plugin reads as '
-            '60000000 blocks.',
+          HuiNote(
+            huiText(
+              'The key is left out of the JSON, which the plugin reads as '
+              '60000000 blocks.',
+            ),
           )
         else
           HuiNumberField(
@@ -170,7 +187,7 @@ class MenuInspector extends StatelessWidget {
             max: huiMaxDistanceCeiling,
             step: 1,
             decimals: 2,
-            suffix: 'blocks',
+            suffix: huiText('blocks'),
             onChanged: (double next) => store.mutate(
               'menu maxDistance',
               (HuiMenu menu) => menu.maxDistance = next,
@@ -182,16 +199,17 @@ class MenuInspector extends StatelessWidget {
   }
 
   Widget _lifetime() => InspectorSection(
-    title: 'Auto close',
+    title: huiText('Auto close'),
     sectionKey: 'menu.autoClose',
-    description:
-        'A player can only have one menu open at a time; opening '
-        'another replaces this one.',
+    description: huiText(
+      'A player can only have one menu open at a time; opening '
+      'another replaces this one.',
+    ),
     children: <Widget>[
       HuiSwitchRow(
-        label: 'Close on death',
+        label: huiText('Close on death'),
         value: _menu.closeOnDeath,
-        help: 'Closes when the player dies.',
+        help: huiText('Closes when the player dies.'),
         trailing: const HuiFieldHelp('menu.closeOnDeath'),
         onChanged: (bool value) => store.mutate(
           'menu closeOnDeath',
@@ -199,9 +217,9 @@ class MenuInspector extends StatelessWidget {
         ),
       ),
       HuiSwitchRow(
-        label: 'Close on teleport',
+        label: huiText('Close on teleport'),
         value: _menu.closeOnTeleport,
-        help: 'Closes on any teleport, including portals.',
+        help: huiText('Closes on any teleport, including portals.'),
         trailing: const HuiFieldHelp('menu.closeOnTeleport'),
         onChanged: (bool value) => store.mutate(
           'menu closeOnTeleport',
@@ -214,37 +232,46 @@ class MenuInspector extends StatelessWidget {
   /// Reference facts, not controls: the four paths stay visible because they
   /// are one line each, the three traps sit behind a closed disclosure.
   Widget _install() => InspectorSection(
-    title: 'Install on the server',
+    title: huiText('Install on the server'),
     sectionKey: 'menu.install',
     children: <Widget>[
-      HuiDetailRow('Menu file', 'plugins/Gloss/menus/${store.menuId}.json'),
-      const HuiDetailRow('Images', 'plugins/Gloss/images/'),
-      HuiDetailRow('Test command', '/gloss menu open ${store.menuId}'),
       HuiDetailRow(
-        'Permissions',
+        huiText('Menu file'),
+        'plugins/Gloss/menus/${store.menuId}.json',
+      ),
+      HuiDetailRow(huiText('Images'), 'plugins/Gloss/images/'),
+      HuiDetailRow(huiText('Test command'), '/gloss menu open ${store.menuId}'),
+      HuiDetailRow(
+        huiText('Permissions'),
         'gloss.menus.open + gloss.open.${store.menuId}',
       ),
-      const HuiMore(
-        summary: 'Directory rules, hot reload and the permission trap',
+      HuiMore(
+        summary: huiText('Directory rules, hot reload and the permission trap'),
         children: <Widget>[
           HuiNote(
-            'The menu id is the file base name, so renaming the file '
-            'renames the menu. Slash-separated ids map to matching subfolders '
-            'under menus/, such as shop/tools.json for shop/tools.',
-            title: 'Nested menu ids',
+            huiText(
+              'The menu id is the file base name, so renaming the file '
+              'renames the menu. Slash-separated ids map to matching subfolders '
+              'under menus/, such as shop/tools.json for shop/tools.',
+            ),
+            title: huiText('Nested menu ids'),
           ),
           HuiNote(
-            'Saving over an existing file re-registers it within about 5 '
-            'ticks and closes every session that had it open. New and '
-            'deleted files are picked up within about 20 ticks.',
-            title: 'Hot reload',
+            huiText(
+              'Saving over an existing file re-registers it within about 5 '
+              'ticks and closes every session that had it open. New and '
+              'deleted files are picked up within about 20 ticks.',
+            ),
+            title: huiText('Hot reload'),
           ),
           HuiNote(
-            'gloss.open.<id> is not declared in plugin.yml, so it has to '
-            'be granted explicitly in your permissions plugin. Command '
-            'aliases: gl, glo, gg.',
+            huiText(
+              'gloss.open.<id> is not declared in plugin.yml, so it has to '
+              'be granted explicitly in your permissions plugin. Command '
+              'aliases: gl, glo, gg.',
+            ),
             tone: HuiNoteTone.info,
-            title: 'Permission trap',
+            title: huiText('Permission trap'),
           ),
         ],
       ),
@@ -255,12 +282,12 @@ class MenuInspector extends StatelessWidget {
   /// files: the plugin ignores it and takes the id from the filename, so seeing
   /// it here is the only way to learn it does nothing.
   Widget _extras() => InspectorSection(
-    title: 'Extra keys',
+    title: huiText('Extra keys'),
     sectionKey: 'menu.extras',
     initiallyOpen: false,
     children: <Widget>[
       ExtrasEditor(
-        title: 'Menu',
+        title: huiText('Menu'),
         extras: _menu.extras,
         onChanged: (String label, Map<String, dynamic> next) =>
             store.mutate(label, (HuiMenu menu) => menu.extras = next),
@@ -268,18 +295,19 @@ class MenuInspector extends StatelessWidget {
     ],
   );
 
-  Widget _nonFeatures() =>
-      const dom.div(classes: 'hui-inspector-aside', <Widget>[
-        HuiMore(
-          summary: 'Not in this format',
-          children: <Widget>[
-            HuiNote(
-              'The menu root has exactly seven keys. There is no background, '
-              'no scale or rotation, no title, no per-menu permission, no '
-              'version and no localization of menu text - none of those exist '
-              'in the plugin, so the editor does not offer them.',
-            ),
-          ],
+  Widget _nonFeatures() => dom.div(classes: 'hui-inspector-aside', <Widget>[
+    HuiMore(
+      summary: huiText('Not in this format'),
+      children: <Widget>[
+        HuiNote(
+          huiText(
+            'The menu root has exactly seven keys. There is no background, '
+            'no scale or rotation, no title, no per-menu permission, no '
+            'version and no localization of menu text - none of those exist '
+            'in the plugin, so the editor does not offer them.',
+          ),
         ),
-      ]);
+      ],
+    ),
+  ]);
 }

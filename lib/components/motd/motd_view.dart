@@ -13,12 +13,9 @@
 /// as the multiplayer GUI screen it already looks like — no HUD behind it,
 /// because a GUI screen replaces the world view.
 ///
-/// Owns a playback clock while the shown entry plays an animation and the
-/// store's animations toggle is on. Mounted only while the MOTD view is
-/// active.
+/// Holds one sampled frame until Refresh is pressed, matching the client: an
+/// already displayed server-list row is not redrawn between status pings.
 library;
-
-import 'dart:async';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
@@ -30,9 +27,7 @@ import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
-
-/// Animation repaint period, matching the hologram stage.
-const Duration _tickPeriod = Duration(milliseconds: 100);
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class MotdView extends StatefulWidget {
   const MotdView({required this.store, this.gameContext = false, super.key});
@@ -48,11 +43,10 @@ class MotdView extends StatefulWidget {
 }
 
 class _MotdViewState extends State<MotdView> {
-  Timer? _ticker;
-
   /// The previewed entry. Clamped on read: the inspector can shorten the
   /// list under it.
   int _entryIndex = 0;
+  int _sampledAtMs = DateTime.now().millisecondsSinceEpoch;
 
   EditorStore get _store => component.store;
 
@@ -74,7 +68,6 @@ class _MotdViewState extends State<MotdView> {
   @override
   void dispose() {
     _store.removeListener(_onStoreChanged);
-    _ticker?.cancel();
     super.dispose();
   }
 
@@ -82,27 +75,25 @@ class _MotdViewState extends State<MotdView> {
     if (mounted) setState(() {});
   }
 
-  void _syncTicker(bool animated) {
-    final bool wanted = animated && _store.animationsPlaying;
-    if (wanted && _ticker == null) {
-      _ticker = Timer.periodic(_tickPeriod, (Timer _) {
-        if (mounted) setState(() {});
-      });
-    } else if (!wanted && _ticker != null) {
-      _ticker?.cancel();
-      _ticker = null;
-    }
+  void _refreshSample() {
+    setState(() => _sampledAtMs = DateTime.now().millisecondsSinceEpoch);
+  }
+
+  void _selectEntry(int index) {
+    setState(() {
+      _entryIndex = index;
+      _sampledAtMs = DateTime.now().millisecondsSinceEpoch;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final GlossMotdDoc? doc = _store.motdDoc;
     if (doc == null) {
-      _syncTicker(false);
       if (component.gameContext) {
         return glossGameEmpty(
           anchor: GlossGameAnchor.screen,
-          label: 'Server list entry in game',
+          label: huiText('Server list entry in game'),
         );
       }
       return const dom.div(classes: 'hui-motd-stage is-empty', <Widget>[]);
@@ -117,15 +108,7 @@ class _MotdViewState extends State<MotdView> {
     final List<String> lines = entry == null
         ? const <String>[]
         : entry.lines.take(glossMotdMaxLinesPerEntry).toList();
-    bool animated = false;
-    for (final String line in lines) {
-      if (renderGlossLine(line, animations: animations).isAnimated) {
-        animated = true;
-        break;
-      }
-    }
-    _syncTicker(animated);
-    final int nowMs = DateTime.now().millisecondsSinceEpoch;
+    final int nowMs = _sampledAtMs;
 
     final Widget row = dom.div(classes: 'hui-motd-row', <Widget>[
       const dom.div(classes: 'hui-motd-icon', <Widget>[
@@ -133,8 +116,8 @@ class _MotdViewState extends State<MotdView> {
       ]),
       dom.div(classes: 'hui-motd-row-body', <Widget>[
         dom.div(classes: 'hui-motd-row-head', <Widget>[
-          const dom.span(classes: 'hui-motd-server-name', <Widget>[
-            Text('My Server'),
+          dom.span(classes: 'hui-motd-server-name', <Widget>[
+            Text(huiText('My Server')),
           ]),
           dom.span(classes: 'hui-motd-row-status', <Widget>[
             const dom.span(classes: 'hui-motd-players', <Widget>[
@@ -150,8 +133,8 @@ class _MotdViewState extends State<MotdView> {
           ]),
         ]),
         if (entry == null)
-          const dom.div(classes: 'hui-motd-line is-blank', <Widget>[
-            Text('No entries — Gloss would reject this file.'),
+          dom.div(classes: 'hui-motd-line is-blank', <Widget>[
+            Text(huiText('No entries — Gloss would reject this file.')),
           ])
         else
           for (final String line in lines)
@@ -171,20 +154,20 @@ class _MotdViewState extends State<MotdView> {
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.screen,
-        label: 'Server list entry in game',
-        controls: <Widget>[_playPause()],
+        label: huiText('Server list entry in game'),
+        controls: <Widget>[_refresh()],
         child: dom.div(classes: 'hui-motd-screen', <Widget>[row]),
       );
     }
 
     return dom.div(classes: 'hui-motd-stage', <Widget>[
       GlossPreviewZoom(
-        label: 'MOTD preview',
+        label: huiText('MOTD preview'),
         child: dom.div(classes: 'hui-motd-screen', <Widget>[
           row,
           dom.div(classes: 'hui-motd-controls', <Widget>[
-            const dom.span(classes: 'hui-motd-entry-label', <Widget>[
-              Text('Preview entry'),
+            dom.span(classes: 'hui-motd-entry-label', <Widget>[
+              Text(huiText('Preview entry')),
             ]),
             dom.div(classes: 'hui-motd-entry-chips', <Widget>[
               for (int index = 0; index < doc.entries.length; index++)
@@ -193,61 +176,62 @@ class _MotdViewState extends State<MotdView> {
                       'hui-motd-entry-chip${index == shown ? ' is-active' : ''}',
                   attributes: <String, String>{
                     'type': 'button',
-                    'aria-label': 'Preview entry ${index + 1}',
+                    'aria-label': huiText(
+                      "Preview entry {value}",
+                      <String, Object?>{'value': index + 1},
+                    ),
                   },
                   events: <String, EventCallback>{
-                    'click': (Object? _) => setState(() => _entryIndex = index),
+                    'click': (Object? _) => _selectEntry(index),
                   },
-                  <Widget>[Text('${index + 1}')],
+                  <Widget>[
+                    Text(
+                      huiText("{value}", <String, Object?>{'value': index + 1}),
+                    ),
+                  ],
                 ),
             ]),
-            _playPause(),
+            _refresh(),
           ]),
         ]),
       ),
       dom.div(classes: 'hui-motd-readout', <Widget>[
-        Text(_readout(doc, entry, shown, animated)),
+        Text(_readout(doc, entry, shown)),
       ]),
     ]);
   }
 
-  /// The animation transport, the same shape the hologram stage uses. It
-  /// drives the store's workspace-wide toggle, so pausing here pauses every
-  /// surface that references an animation.
-  Widget _playPause() => Button(
+  Widget _refresh() => Button(
     variant: ButtonVariant.outline,
     size: ButtonSize.iconSm,
-    onPressed: () => _store.animationsPlaying = !_store.animationsPlaying,
+    onPressed: _refreshSample,
     attributes: <String, String>{
-      'aria-label': _store.animationsPlaying
-          ? 'Pause animations'
-          : 'Play animations',
-      'title': _store.animationsPlaying
-          ? 'Pause animations'
-          : 'Play animations',
+      'aria-label': huiText('Refresh'),
+      'title': huiText('Refresh'),
     },
-    child: _store.animationsPlaying
-        ? ArcaneIcon.pause(size: IconSize.sm)
-        : ArcaneIcon.play(size: IconSize.sm),
+    child: ArcaneIcon.refreshCcw(size: IconSize.sm),
   );
 
-  String _readout(
-    GlossMotdDoc doc,
-    GlossMotdEntry? entry,
-    int shown,
-    bool animated,
-  ) {
+  String _readout(GlossMotdDoc doc, GlossMotdEntry? entry, int shown) {
     final List<String> parts = <String>[
       doc.entries.isEmpty
-          ? 'no entries'
-          : 'entry ${shown + 1} of ${doc.entries.length} — every ping picks '
-                'one at random',
-      if (animated)
-        'animation plays here; Minecraft samples its current frame per ping',
+          ? huiText('no entries')
+          : huiText(
+              'entry {current} of {total} — every ping picks one at random',
+              <String, Object?>{
+                'current': shown + 1,
+                'total': doc.entries.length,
+              },
+            ),
       if (entry != null && entry.lines.length > glossMotdMaxLinesPerEntry)
-        'entry has ${entry.lines.length} lines; Gloss rejects past '
-            '$glossMotdMaxLinesPerEntry',
-      'placeholders stay literal (a ping has no viewer)',
+        huiPlural(
+          'motd.readout.excess-lines',
+          entry.lines.length,
+          oneEnglish: 'entry has {count} line; Gloss rejects past {maximum}',
+          otherEnglish: 'entry has {count} lines; Gloss rejects past {maximum}',
+          arguments: <String, Object?>{'maximum': glossMotdMaxLinesPerEntry},
+        ),
+      huiText('placeholders stay literal (a ping has no viewer)'),
     ];
     return parts.join(' · ');
   }

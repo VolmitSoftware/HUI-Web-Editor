@@ -13,6 +13,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 
 import '../../logic/preview_doc_validation.dart';
 import '../common/hui_color_field.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// `#AARRGGBB` for a value that folds to a constant colour, else null.
 String? _constantColorHex(Object? raw) {
@@ -35,7 +36,7 @@ Widget? previewColorPicker(
   return HuiColorSwatch(
     value: hex,
     size: 18,
-    label: 'Pick a $label',
+    label: huiText("Pick a {label}", <String, Object?>{'label': label}),
     onPicked: (String picked) =>
         onPicked(huiApplyPickedColor(picked, hex, HuiColorFormat.argb)),
   );

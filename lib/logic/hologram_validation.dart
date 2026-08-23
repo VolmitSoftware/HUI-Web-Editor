@@ -66,18 +66,22 @@ List<HuiIssue> validateHologramDoc(
         severity: HuiSeverity.error,
         path: r'$.billboard',
         message:
-            '"${doc.billboard}" is not a billboard mode; Gloss rejects the '
-            'whole file unless it is one of '
-            '${glossHologramBillboards.join(', ')}.',
+            "\"{billboard}\" is not a billboard mode; Gloss rejects the whole file unless it is one of {join}.",
+        messageArguments: <String, Object?>{
+          'billboard': doc.billboard,
+          'join': glossHologramBillboards.join(', '),
+        },
         fix: 'Pick CENTER, VERTICAL, HORIZONTAL or FIXED.',
       ),
     );
   }
 
-  issues.addAll(<HuiIssue?>[
-    _angleIssue(r'$.yaw', 'yaw', doc.yaw, glossHologramMaxYawDegrees),
-    _angleIssue(r'$.pitch', 'pitch', doc.pitch, glossHologramMaxPitchDegrees),
-  ].whereType<HuiIssue>());
+  issues.addAll(
+    <HuiIssue?>[
+      _angleIssue(r'$.yaw', 'yaw', doc.yaw, glossHologramMaxYawDegrees),
+      _angleIssue(r'$.pitch', 'pitch', doc.pitch, glossHologramMaxPitchDegrees),
+    ].whereType<HuiIssue>(),
+  );
 
   if (doc.billboard == 'CENTER' && (doc.yaw != 0 || doc.pitch != 0)) {
     issues.add(
@@ -117,8 +121,8 @@ List<HuiIssue> validateHologramDoc(
           severity: HuiSeverity.warning,
           path: 'lines[$index]',
           message:
-              '|$reference| names an animation document this workspace does '
-              'not have; the text will show literally in game.',
+              "|{reference}| names an animation document this workspace does not have; the text will show literally in game.",
+          messageArguments: <String, Object?>{'reference': reference},
           fix:
               'Create the animation document or pick an existing one from '
               'the reference picker.',
@@ -147,8 +151,18 @@ HuiIssue? _angleIssue(String path, String axis, double value, double limit) {
     severity: HuiSeverity.error,
     path: path,
     message:
-        'A $axis of $value is out of range; Gloss rejects the whole file '
-        'unless it is between -$limit and $limit degrees.',
-    fix: 'Use a $axis between -${limit.toInt()} and ${limit.toInt()}.',
+        "A {axis} of {value} is out of range; Gloss rejects the whole file unless it is between -{limit} and {limit2} degrees.",
+    messageArguments: <String, Object?>{
+      'axis': axis,
+      'value': value,
+      'limit': limit,
+      'limit2': limit,
+    },
+    fix: "Use a {axis} between -{toInt} and {toInt2}.",
+    fixArguments: <String, Object?>{
+      'axis': axis,
+      'toInt': limit.toInt(),
+      'toInt2': limit.toInt(),
+    },
   );
 }

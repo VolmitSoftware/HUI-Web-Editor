@@ -36,6 +36,24 @@
         ]
       },
       {
+        "source": "/languages/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, must-revalidate, max-age=0"
+          }
+        ]
+      },
+      {
+        "source": "/manifests/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, must-revalidate, max-age=0"
+          }
+        ]
+      },
+      {
         "source": "**/*.@(woff|woff2|ttf)",
         "headers": [
           {

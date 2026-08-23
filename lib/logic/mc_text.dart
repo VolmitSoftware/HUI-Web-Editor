@@ -15,6 +15,8 @@
 /// empty parts: `"a\n"` is one line, `"\n"` is zero lines, `""` is one line.
 library;
 
+import '../l10n/hui_localizations.dart';
+
 /// Colour applied to text with no colour tag in scope.
 const int mcDefaultTextColor = 0xFFFFFF;
 
@@ -451,7 +453,10 @@ bool _isKnownTag(_TagNode tag) {
 }
 
 String _unknownTagWarning(_TagNode tag) {
-  return 'Unknown tag ${tag.raw} renders as literal text.';
+  return huiText(
+    'Unknown tag {tag} renders as literal text.',
+    <String, Object?>{'tag': tag.raw},
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -791,7 +796,12 @@ List<McSpan> _render(List<_Node> nodes, Set<String> warnings) {
         (_Frame frame) => _tagCloses(tag.key, frame.key),
       );
       if (index < 0) {
-        warnings.add('Closing tag ${tag.raw} has no matching opening tag.');
+        warnings.add(
+          huiText(
+            'Closing tag {tag} has no matching opening tag.',
+            <String, Object?>{'tag': tag.raw},
+          ),
+        );
         continue;
       }
       stack.removeRange(index, stack.length);

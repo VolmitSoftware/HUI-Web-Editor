@@ -613,6 +613,20 @@ class HuiCatalogs {
     loaded: loaded,
   );
 
+  HuiCatalogs withPreviewLang(PreviewLangCatalog catalog) => HuiCatalogs._(
+    materials: _materials,
+    materialIndex: _materialIndex,
+    materialKeys: _materialKeys,
+    sounds: _sounds,
+    soundKeys: _soundKeys,
+    entityTextures: _entityTextures,
+    customItems: customItems,
+    previewVariables: previewVariables,
+    previewLang: catalog,
+    emoji: emoji,
+    loaded: loaded,
+  );
+
   /// Registry keys sorted alphabetically; textured entries and key-only entries
   /// are interleaved.
   List<MaterialEntry> get materials => _materials;

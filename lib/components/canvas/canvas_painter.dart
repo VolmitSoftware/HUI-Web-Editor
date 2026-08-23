@@ -10,6 +10,7 @@ import 'dart:math' as math;
 
 import 'package:web/web.dart' as web;
 
+import '../../l10n/hui_localizations.dart';
 import '../../logic/canvas_scene.dart';
 import '../../logic/hui_geometry.dart';
 import '../../logic/multi_select.dart';
@@ -229,8 +230,16 @@ class CanvasPainter {
     final CanvasOverlap first = scene.overlaps.first;
     brush.chip(
       scene.overlaps.length == 1
-          ? 'overlap: ${first.firstId} + ${first.secondId}'
-          : '${scene.overlaps.length} clickable overlaps',
+          ? huiText('overlap: {first} + {second}', <String, Object?>{
+              'first': first.firstId,
+              'second': first.secondId,
+            })
+          : huiPlural(
+              'canvas.clickable_overlaps',
+              scene.overlaps.length,
+              oneEnglish: '{count} clickable overlap',
+              otherEnglish: '{count} clickable overlaps',
+            ),
       brush.sx(first.region.x),
       brush.sy(first.region.top) - 14,
       color: brush.palette.overlap,
@@ -440,7 +449,7 @@ class CanvasPainter {
     brush.textBaseline = 'middle';
     brush.fill = brush.palette.labelMuted;
     brush.fillTextPx(
-      'No components yet - add one from the Components rail',
+      huiText('No components yet - add one from the Components rail'),
       brush.widthPx / 2,
       brush.heightPx / 2,
     );

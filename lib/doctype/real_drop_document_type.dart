@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -19,13 +21,13 @@ final class RealDropDocumentType extends GlossDocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.realDrops;
 
   @override
-  String get noun => 'real-drop settings';
+  String get noun => huiText('real-drop settings');
 
   @override
-  String get createLabel => 'Real drops';
+  String get createLabel => huiText('Real drops');
 
   @override
-  String get pluralLabel => 'Real drops';
+  String get pluralLabel => huiText('Real drops');
 
   @override
   int get tabOrder => 110;
@@ -34,7 +36,7 @@ final class RealDropDocumentType extends GlossDocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.realDrops;
 
   @override
-  String get surfaceLabel => 'Drop stage';
+  String get surfaceLabel => huiText('Drop stage');
 
   @override
   String? get syncWireKind => 'real-drops';

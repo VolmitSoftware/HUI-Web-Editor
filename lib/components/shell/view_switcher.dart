@@ -12,6 +12,7 @@ import 'package:jaspr/dom.dart' as dom;
 
 import '../../state/editor_store.dart';
 import '../common/class_names.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ViewSwitcher extends StatelessWidget {
   const ViewSwitcher({
@@ -35,7 +36,7 @@ class ViewSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) => dom.div(
     classes: 'hui-view-switcher',
-    attributes: const <String, String>{'aria-label': 'Editor mode'},
+    attributes: <String, String>{'aria-label': huiText('Editor mode')},
     <Widget>[
       ArcaneToggleGroup(
         id: 'hui-view-switcher',
@@ -51,10 +52,10 @@ class ViewSwitcher extends StatelessWidget {
   );
 
   static String labelOf(EditorView value) => switch (value) {
-    EditorView.visual => 'Visual',
-    EditorView.preview => 'Preview',
-    EditorView.code => 'Code',
-    EditorView.split => 'Split',
+    EditorView.visual => huiText('Visual'),
+    EditorView.preview => huiText('Preview'),
+    EditorView.code => huiText('Code'),
+    EditorView.split => huiText('Split'),
   };
 
   static Widget iconOf(EditorView value) => switch (value) {
@@ -65,12 +66,20 @@ class ViewSwitcher extends StatelessWidget {
   };
 
   String _titleOf(EditorView value, String? reason) {
-    if (reason != null) return reason;
+    if (reason != null) return huiText(reason);
     return switch (value) {
-      EditorView.visual => 'Visual — the $surfaceLabel surface',
-      EditorView.preview => 'Preview — rendered the way the server renders it',
-      EditorView.code => 'Code — the document JSON',
-      EditorView.split => 'Split — $surfaceLabel and JSON side by side',
+      EditorView.visual => huiText(
+        'Visual — the {surface} surface',
+        <String, Object?>{'surface': huiText(surfaceLabel)},
+      ),
+      EditorView.preview => huiText(
+        'Preview — rendered the way the server renders it',
+      ),
+      EditorView.code => huiText('Code — the document JSON'),
+      EditorView.split => huiText(
+        'Split — {surface} and JSON side by side',
+        <String, Object?>{'surface': huiText(surfaceLabel)},
+      ),
     };
   }
 

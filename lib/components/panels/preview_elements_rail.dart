@@ -23,6 +23,7 @@ import '../../model/preview_doc.dart';
 import '../../services/showcase_randomizer.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class PreviewElementsRail extends StatefulWidget {
   const PreviewElementsRail({required this.store, super.key});
@@ -85,8 +86,10 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
 
   Widget _header(int count) => dom.div(classes: 'hui-rail-header', <Widget>[
     dom.div(classes: 'hui-rail-heading', <Widget>[
-      const HuiEyebrow('Elements'),
-      dom.span(classes: 'hui-rail-count', <Widget>[Text('$count')]),
+      HuiEyebrow(huiText('Elements')),
+      dom.span(classes: 'hui-rail-count', <Widget>[
+        Text(huiText("{count}", <String, Object?>{'count': count})),
+      ]),
     ]),
     dom.div(classes: 'hui-rail-add', <Widget>[
       Button(
@@ -94,8 +97,10 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
         size: ButtonSize.small,
         onPressed: () => _add('cell'),
         icon: ArcaneIcon.plus(size: IconSize.sm),
-        label: 'Add',
-        attributes: const <String, String>{'aria-label': 'Add a cell element'},
+        label: huiText('Add'),
+        attributes: <String, String>{
+          'aria-label': huiText('Add a cell element'),
+        },
       ),
       Button(
         key: ValueKey<bool>(_typesOpen),
@@ -106,7 +111,7 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
           raw: <String, String>{'padding': '0 4px !important'},
         ),
         attributes: <String, String>{
-          'aria-label': 'Choose an element type',
+          'aria-label': huiText('Choose an element type'),
           'aria-expanded': _typesOpen ? 'true' : 'false',
           'data-arcane-interactive': 'true',
         },
@@ -131,9 +136,9 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
         'background': 'var(--hui-panel-soft)',
       },
     ),
-    attributes: const <String, String>{
+    attributes: <String, String>{
       'role': 'group',
-      'aria-label': 'Element types',
+      'aria-label': huiText('Element types'),
     },
     <Widget>[
       for (final String type in previewElementTypes)
@@ -158,7 +163,7 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
           attributes: <String, String>{
             'type': 'button',
             'data-no-tooltip': 'true',
-            'title': previewElementTypeDescriptions[type] ?? '',
+            'title': huiText(previewElementTypeDescriptions[type] ?? ''),
           },
           events: <String, void Function(Object)>{
             'click': (Object _) => _add(type),
@@ -173,17 +178,18 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
 
   Widget _empty() => dom.div(classes: 'hui-rail-empty', <Widget>[
     ArcaneEmptyState(
-      title: 'No elements yet',
-      description:
-          'A container preview needs at least one element to '
-          'draw anything. Start with a cell or a label.',
+      title: huiText('No elements yet'),
+      description: huiText(
+        'A container preview needs at least one element to '
+        'draw anything. Start with a cell or a label.',
+      ),
       icon: ArcaneIcon.layers(size: IconSize.lg),
       action: Button(
         variant: ButtonVariant.primary,
         size: ButtonSize.small,
         onPressed: () => _add('cell'),
         icon: ArcaneIcon.plus(size: IconSize.sm),
-        label: 'Add your first element',
+        label: huiText('Add your first element'),
       ),
     ),
   ]);
@@ -225,7 +231,10 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                 'type': 'button',
                 'data-no-tooltip': 'true',
                 'aria-pressed': selected ? 'true' : 'false',
-                'title': '$label\n${_summary(element)}',
+                'title': huiText("{label}\n{summary}", <String, Object?>{
+                  'label': label,
+                  'summary': _summary(element),
+                }),
               },
               events: <String, void Function(Object)>{
                 'click': (Object _) => _store.selectPreviewElement(index),
@@ -249,7 +258,9 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                       hasError ? 'is-error' : 'is-warning',
                     ]),
                     attributes: <String, String>{
-                      'aria-label': hasError ? 'Has errors' : 'Has warnings',
+                      'aria-label': hasError
+                          ? huiText('Has errors')
+                          : huiText('Has warnings'),
                     },
                     const <Widget>[],
                   ),
@@ -257,21 +268,27 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
             ),
             if (armed)
               dom.div(classes: 'hui-rail-confirm', <Widget>[
-                const dom.span(classes: 'hui-rail-confirm-label', <Widget>[
-                  Text('Delete?'),
+                dom.span(classes: 'hui-rail-confirm-label', <Widget>[
+                  Text(huiText('Delete?')),
                 ]),
                 Button(
                   variant: ButtonVariant.destructive,
                   size: ButtonSize.iconSm,
                   onPressed: () => _delete(index),
-                  attributes: <String, String>{'aria-label': 'Delete $label'},
+                  attributes: <String, String>{
+                    'aria-label': huiText("Delete {label}", <String, Object?>{
+                      'label': label,
+                    }),
+                  },
                   child: ArcaneIcon.check(size: IconSize.sm),
                 ),
                 Button(
                   variant: ButtonVariant.ghost,
                   size: ButtonSize.iconSm,
                   onPressed: () => setState(() => _armedDeleteIndex = null),
-                  attributes: const <String, String>{'aria-label': 'Keep it'},
+                  attributes: <String, String>{
+                    'aria-label': huiText('Keep it'),
+                  },
                   child: ArcaneIcon.x(size: IconSize.sm),
                 ),
               ])
@@ -284,7 +301,11 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                   onPressed: index == 0
                       ? null
                       : () => _store.reorderPreviewElement(index, index - 1),
-                  attributes: <String, String>{'aria-label': 'Move $label up'},
+                  attributes: <String, String>{
+                    'aria-label': huiText("Move {label} up", <String, Object?>{
+                      'label': label,
+                    }),
+                  },
                   child: ArcaneIcon.chevronUp(size: IconSize.sm),
                 ),
                 Button(
@@ -295,7 +316,10 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                       ? null
                       : () => _store.reorderPreviewElement(index, index + 1),
                   attributes: <String, String>{
-                    'aria-label': 'Move $label down',
+                    'aria-label': huiText(
+                      "Move {label} down",
+                      <String, Object?>{'label': label},
+                    ),
                   },
                   child: ArcaneIcon.chevronDown(size: IconSize.sm),
                 ),
@@ -306,7 +330,10 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                   onPressed: () =>
                       _openElementMenu(index, triggerId: _menuTriggerId(index)),
                   attributes: <String, String>{
-                    'aria-label': 'Actions for $label',
+                    'aria-label': huiText(
+                      "Actions for {label}",
+                      <String, Object?>{'label': label},
+                    ),
                     'aria-haspopup': 'menu',
                     'aria-expanded': _menuIndex == index ? 'true' : 'false',
                     'data-arcane-interactive': 'true',
@@ -345,36 +372,41 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
     final int index = _menuIndex!;
     return HuiActionMenu(
       id: 'hui-preview-element-menu',
-      label: 'Actions for preview element ${index + 1}',
+      label: huiText("Actions for preview element {value}", <String, Object?>{
+        'value': index + 1,
+      }),
       point: _menuPoint,
       onClose: () => setState(() => _menuIndex = null),
       items: <HuiActionMenuItem>[
         HuiActionMenuItem(
-          label:
-              'Randomize ${_typeLabel(_store.previewDoc!.elements[index].type).toLowerCase()}',
+          label: huiText("Randomize {toLowerCase}", <String, Object?>{
+            'toLowerCase': _typeLabel(
+              _store.previewDoc!.elements[index].type,
+            ).toLowerCase(),
+          }),
           icon: ArcaneIcon.dices(size: IconSize.sm),
           onSelect: () => randomizePreviewElement(_store, index),
         ),
         HuiActionMenuItem(
-          label: 'Duplicate',
+          label: huiText('Duplicate'),
           icon: ArcaneIcon.copy(size: IconSize.sm),
           separatorBefore: true,
           onSelect: () => _store.duplicatePreviewElement(index),
         ),
         HuiActionMenuItem(
-          label: 'Move to top',
+          label: huiText('Move to top'),
           icon: ArcaneIcon.arrowUp(size: IconSize.sm),
           disabled: index == 0,
           onSelect: () => _store.reorderPreviewElement(index, 0),
         ),
         HuiActionMenuItem(
-          label: 'Move to bottom',
+          label: huiText('Move to bottom'),
           icon: ArcaneIcon.arrowDown(size: IconSize.sm),
           disabled: index >= total - 1,
           onSelect: () => _store.reorderPreviewElement(index, total - 1),
         ),
         HuiActionMenuItem(
-          label: 'Delete element',
+          label: huiText('Delete element'),
           icon: ArcaneIcon.trash2(size: IconSize.sm),
           destructive: true,
           separatorBefore: true,
@@ -393,21 +425,24 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
   };
 
   static String _typeLabel(String type) => switch (type) {
-    'panel' => 'Panel',
-    'cell' => 'Cell',
-    'slot' => 'Slot',
-    'label' => 'Label',
-    _ => type.isEmpty ? '(no type)' : type,
+    'panel' => huiText('Panel'),
+    'cell' => huiText('Cell'),
+    'slot' => huiText('Slot'),
+    'label' => huiText('Label'),
+    _ => type.isEmpty ? huiText('(no type)') : type,
   };
 
   String _summary(HuiPreviewElement element) {
-    final String repeat = element.repeat == null ? '' : ' x repeat';
+    final String repeat = element.repeat == null ? '' : huiText(' × repeat');
     return switch (element.type) {
-      'panel' => 'panel$repeat',
-      'cell' => 'cell$repeat',
-      'slot' => 'slot index ${element.index ?? '?'}$repeat',
-      'label' => 'label${repeat.isEmpty ? '' : repeat}',
-      _ => 'unknown type$repeat',
+      'panel' => huiText('panel{repeat}', <String, Object?>{'repeat': repeat}),
+      'cell' => huiText('cell{repeat}', <String, Object?>{'repeat': repeat}),
+      'slot' => huiText('slot index {index}{repeat}', <String, Object?>{
+        'index': element.index ?? '?',
+        'repeat': repeat,
+      }),
+      'label' => huiText('label{repeat}', <String, Object?>{'repeat': repeat}),
+      _ => huiText('unknown type{repeat}', <String, Object?>{'repeat': repeat}),
     };
   }
 }

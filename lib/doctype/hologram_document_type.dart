@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -21,13 +23,13 @@ final class HologramDocumentType extends GlossDocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.hologram;
 
   @override
-  String get noun => 'hologram';
+  String get noun => huiText('hologram');
 
   @override
-  String get createLabel => 'New hologram';
+  String get createLabel => huiText('New hologram');
 
   @override
-  String get pluralLabel => 'Holograms';
+  String get pluralLabel => huiText('Holograms');
 
   @override
   int get tabOrder => 40;
@@ -36,7 +38,7 @@ final class HologramDocumentType extends GlossDocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.hologram;
 
   @override
-  String get surfaceLabel => 'Stage';
+  String get surfaceLabel => huiText('Stage');
 
   @override
   String? get syncWireKind => 'hologram';

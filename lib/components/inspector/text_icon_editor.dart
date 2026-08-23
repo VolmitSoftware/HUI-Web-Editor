@@ -18,6 +18,7 @@ import '../common/common.dart';
 import 'dom_bridge.dart';
 import 'inspector_widgets.dart';
 import 'mc_text_preview.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// One formatting button. [close] null means "insert at the caret" rather than
 /// "wrap the selection".
@@ -42,7 +43,7 @@ class TextIconEditor extends StatefulWidget {
     required this.onChanged,
     this.emoji = const GlossNoEmoji(),
     this.issues = const <HuiIssue>[],
-    this.label = 'Text',
+    this.label,
     super.key,
   });
 
@@ -56,7 +57,7 @@ class TextIconEditor extends StatefulWidget {
   /// Called with a mutation label and the new text.
   final void Function(String label, String text) onChanged;
   final List<HuiIssue> issues;
-  final String label;
+  final String? label;
 
   @override
   State<TextIconEditor> createState() => _TextIconEditorState();
@@ -204,8 +205,10 @@ class _TextIconEditorState extends State<TextIconEditor> {
   Widget build(BuildContext context) =>
       dom.div(classes: 'hui-text-editor', <Widget>[
         HuiField(
-          label: component.label,
-          help: 'One stacked line per line break; each is parsed on its own.',
+          label: component.label ?? huiText('Text'),
+          help: huiText(
+            'One stacked line per line break; each is parsed on its own.',
+          ),
           control: dom.div(classes: 'hui-text-editor-control', <Widget>[
             _toolbar(),
             TextArea(
@@ -214,23 +217,25 @@ class _TextIconEditorState extends State<TextIconEditor> {
               rows: 4,
               fullWidth: true,
               resize: TextAreaResize.vertical,
-              placeholder: '&6&lShop\n&7Click to browse',
+              placeholder: huiText('&6&lShop\n&7Click to browse'),
               onInput: (String raw) => _push('text', raw),
             ),
             HuiInlineIssues(component.issues),
           ]),
         ),
         dom.div(classes: 'hui-text-preview-block', <Widget>[
-          const HuiEyebrow('In-game preview'),
+          HuiEyebrow(huiText('In-game preview')),
           McTextPreview(raw: _text, emoji: component.emoji),
         ]),
-        const HuiMore(
-          summary: 'Legacy formatting codes',
+        HuiMore(
+          summary: huiText('Legacy formatting codes'),
           children: <Widget>[
             HuiNote(
-              'Legacy codes work too: &0-&f for colour, &k obfuscated, '
-              '&l bold, &m strikethrough, &n underlined, &o italic, '
-              '&r reset.',
+              huiText(
+                'Legacy codes work too: &0-&f for colour, &k obfuscated, '
+                '&l bold, &m strikethrough, &n underlined, &o italic, '
+                '&r reset.',
+              ),
             ),
           ],
         ),
@@ -240,37 +245,40 @@ class _TextIconEditorState extends State<TextIconEditor> {
     _colorControl(),
     for (final _TagAction tag in _tags)
       ArcaneTooltip(
-        text: tag.hint,
+        text: huiText(tag.hint),
         child: dom.button(
           classes: 'hui-text-tag',
           attributes: <String, String>{
             'type': 'button',
-            'aria-label': 'Insert ${tag.label}',
+            'aria-label': huiText("Insert {label}", <String, Object?>{
+              'label': huiText(tag.label),
+            }),
           },
           events: <String, EventCallback>{'click': (_) => _apply(tag)},
-          <Widget>[Text(tag.label)],
+          <Widget>[Text(huiText(tag.label))],
         ),
       ),
   ]);
 
   Widget _colorControl() => ArcaneTooltip(
-    text:
-        'Insert a <#rrggbb> colour tag at the caret. Everything after it '
-        'takes that colour until the next colour tag or <reset>.',
+    text: huiText(
+      'Insert a <#rrggbb> colour tag at the caret. Everything after it '
+      'takes that colour until the next colour tag or <reset>.',
+    ),
     child: dom.label(classes: 'hui-text-color', <Widget>[
       ArcaneIcon.palette(size: IconSize.sm),
       Component.element(
         tag: 'input',
         classes: 'hui-text-color-input',
-        attributes: const <String, String>{
+        attributes: <String, String>{
           'type': 'color',
           'value': '#ffaa00',
-          'aria-label': 'Insert a colour tag',
+          'aria-label': huiText('Insert a colour tag'),
         },
         // `event` is jaspr's `EventCallback` argument; its type is left to
         // inference so this file never imports `package:web`.
         events: <String, EventCallback>{
-          'input': (event) => _insertColor(domInputValue(event.target)),
+          'change': (event) => _insertColor(domInputValue(event.target)),
         },
       ),
     ]),

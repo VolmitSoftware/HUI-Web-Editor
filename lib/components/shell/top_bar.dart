@@ -12,6 +12,7 @@ import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show Listenable;
 
 import '../../doctype/doctype.dart';
+import '../../l10n/hui_localizations.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
 import '../common/class_names.dart';
@@ -29,6 +30,9 @@ class TopBar extends StatefulWidget {
     required this.mobileInspectorOpen,
     required this.onToggleMobileRail,
     required this.onToggleMobileInspector,
+    required this.activeLocale,
+    required this.localeLoading,
+    required this.onLocaleChanged,
     this.syncControls,
     this.apple = false,
     this.darkMode = true,
@@ -40,6 +44,9 @@ class TopBar extends StatefulWidget {
   final bool mobileInspectorOpen;
   final VoidCallback onToggleMobileRail;
   final VoidCallback onToggleMobileInspector;
+  final String activeLocale;
+  final bool localeLoading;
+  final ValueChanged<String> onLocaleChanged;
   final EditorSyncControls? syncControls;
   final bool apple;
   final bool darkMode;
@@ -99,6 +106,10 @@ class _TopBarState extends State<TopBar> {
       ..write('|')
       ..write(component.syncControls?.message)
       ..write('|')
+      ..write(component.activeLocale)
+      ..write('|')
+      ..write(component.localeLoading)
+      ..write('|')
       ..write(workspace.activeId);
     for (final WorkspaceDoc doc in workspace.recent) {
       buffer
@@ -132,18 +143,20 @@ class _TopBarState extends State<TopBar> {
       <Widget>[
         dom.div(classes: 'hui-bar-primary', <Widget>[
           dom.div(classes: 'hui-bar-group hui-bar-left', <Widget>[
-            _cluster('Application', 'app', <Widget>[_brand()]),
-            _cluster('Document', 'doc', <Widget>[
+            _cluster(huiText('Application'), 'app', <Widget>[_brand()]),
+            _cluster(huiText('Document'), 'doc', <Widget>[
               if (_armedDelete) _deleteStrip() else _documentSwitcher(),
             ]),
           ]),
           dom.div(classes: 'hui-bar-group hui-bar-right', <Widget>[
-            _cluster('History', 'history', <Widget>[
+            _cluster(huiText('History'), 'history', <Widget>[
               _action(
                 icon: ArcaneIcon.undo(size: IconSize.sm),
                 label: _store.undoLabel == null
-                    ? 'Undo'
-                    : 'Undo ${_store.undoLabel}',
+                    ? huiText('Undo')
+                    : huiText('Undo {action}', <String, Object?>{
+                        'action': _store.undoLabel,
+                      }),
                 shortcut: 'mod+Z',
                 disabled: !_store.canUndo,
                 onPressed: _intents.undo,
@@ -151,48 +164,59 @@ class _TopBarState extends State<TopBar> {
               _action(
                 icon: ArcaneIcon.redo(size: IconSize.sm),
                 label: _store.redoLabel == null
-                    ? 'Redo'
-                    : 'Redo ${_store.redoLabel}',
+                    ? huiText('Redo')
+                    : huiText('Redo {action}', <String, Object?>{
+                        'action': _store.redoLabel,
+                      }),
                 shortcut: 'mod+Shift+Z',
                 disabled: !_store.canRedo,
                 onPressed: _intents.redo,
               ),
             ]),
-            _cluster('File', 'file', <Widget>[
+            _cluster(huiText('File'), 'file', <Widget>[
               _action(
                 icon: ArcaneIcon.upload(size: IconSize.sm),
-                label: 'Import JSON',
-                visibleLabel: 'Import',
-                hint: 'Dropping a .json file anywhere works too.',
+                label: huiText('Import JSON'),
+                visibleLabel: huiText('Import'),
+                hint: huiText('Dropping a .json file anywhere works too.'),
                 onPressed: () => _intents.importMenu(),
                 disabled: !_store.canTransferDocument,
               ),
               _action(
                 icon: ArcaneIcon.download(size: IconSize.sm),
-                label: 'Export $_documentNoun JSON',
-                visibleLabel: 'Export',
+                label: huiText('Export {document} JSON', <String, Object?>{
+                  'document': _documentNoun,
+                }),
+                visibleLabel: huiText('Export'),
                 shortcut: 'mod+S',
                 onPressed: _intents.exportMenu,
                 disabled: !_store.canTransferDocument,
               ),
               _action(
                 icon: ArcaneIcon.copy(size: IconSize.sm),
-                label: 'Copy $_documentNoun JSON',
+                label: huiText('Copy {document} JSON', <String, Object?>{
+                  'document': _documentNoun,
+                }),
                 onPressed: () => _intents.copyJson(),
                 disabled: !_store.canTransferDocument,
               ),
             ]),
-            _cluster('Assets', 'assets', <Widget>[
+            _cluster(huiText('Assets'), 'assets', <Widget>[
               _action(
                 icon: ArcaneIcon.images(size: IconSize.sm),
-                label: 'Images',
-                visibleLabel: 'Images',
-                hint: 'Upload the textures your textImage icons point at.',
+                label: huiText('Images'),
+                visibleLabel: huiText('Images'),
+                hint: huiText(
+                  'Upload the textures your textImage icons point at.',
+                ),
                 onPressed: _intents.openImages,
               ),
             ]),
             for (int tier = 1; tier <= _overflowTiers; tier++)
               _overflowMenu(tier),
+            _cluster(huiText('Language'), 'language', <Widget>[
+              _languagePicker(),
+            ]),
           ]),
         ]),
         dom.div(classes: 'hui-bar-context', <Widget>[
@@ -207,6 +231,45 @@ class _TopBarState extends State<TopBar> {
       ],
     );
   }
+
+  Widget _languagePicker() => BarMenu(
+    id: 'hui-language-picker',
+    align: BarMenuAlign.right,
+    triggerIcon: ArcaneIcon.languages(size: IconSize.sm),
+    triggerLabel: component.localeLoading
+        ? huiText('Loading language')
+        : huiText('Choose language'),
+    width: 240,
+    entries: _languageItems,
+  );
+
+  List<BarMenuEntry> _languageItems() => <BarMenuEntry>[
+    BarMenuHeading(huiText('Languages')),
+    for (final HuiLocale locale in huiSupportedLocales)
+      BarMenuAction(
+        label: locale.nativeName,
+        icon: locale.code == component.activeLocale
+            ? ArcaneIcon.check(size: IconSize.sm)
+            : null,
+        onSelect: component.localeLoading
+            ? null
+            : () {
+                if (locale.code != component.activeLocale) {
+                  component.onLocaleChanged(locale.code);
+                }
+              },
+        attributes: <String, String>{
+          'role': 'menuitemradio',
+          'aria-checked': (locale.code == component.activeLocale).toString(),
+          'lang': locale.htmlLanguage,
+          'dir': locale.rightToLeft ? 'rtl' : 'ltr',
+          'data-locale': locale.code,
+          if (locale.code == component.activeLocale)
+            'data-hui-menu-initial': 'true',
+          if (locale.code == component.activeLocale) 'aria-current': 'true',
+        },
+      ),
+  ];
 
   Widget _cluster(String label, String slug, List<Widget> children) => dom.div(
     classes: 'hui-bar-cluster hui-bar-$slug',
@@ -229,9 +292,9 @@ class _TopBarState extends State<TopBar> {
   /// icon wall or a horizontally scrollable run of tabs.
   Widget _kindPicker() => dom.div(
     classes: 'hui-bar-cluster hui-kind-picker',
-    attributes: const <String, String>{
+    attributes: <String, String>{
       'role': 'group',
-      'aria-label': 'Document kinds',
+      'aria-label': huiText('Document kinds'),
     },
     <Widget>[
       BarMenu(
@@ -239,14 +302,16 @@ class _TopBarState extends State<TopBar> {
         triggerIcon: _activeKindIcon(),
         triggerText: _activeKindLabel,
         triggerTrailing: ArcaneIcon.chevronDown(size: IconSize.sm),
-        triggerLabel: 'Document kind: $_activeKindLabel',
+        triggerLabel: huiText('Document kind: {kind}', <String, Object?>{
+          'kind': _activeKindLabel,
+        }),
         width: 220,
         entries: _kindItems,
       ),
     ],
   );
 
-  String get _activeKindLabel => _store.mode?.pluralLabel ?? 'All';
+  String get _activeKindLabel => _store.mode?.pluralLabel ?? huiText('All');
 
   Widget _activeKindIcon() =>
       _store.mode?.tabIcon() ?? ArcaneIcon.layoutList(size: IconSize.sm);
@@ -254,10 +319,10 @@ class _TopBarState extends State<TopBar> {
   List<BarMenuEntry> _kindItems() {
     final String active = _store.mode?.kind.name ?? _allKindsValue;
     return <BarMenuEntry>[
-      const BarMenuHeading('Document kinds'),
+      BarMenuHeading(huiText('Document kinds')),
       _kindItem(
         value: _allKindsValue,
-        label: 'All',
+        label: huiText('All'),
         icon: ArcaneIcon.layoutList(size: IconSize.sm),
         active: active == _allKindsValue,
       ),
@@ -289,9 +354,9 @@ class _TopBarState extends State<TopBar> {
   /// visible at every width.
   Widget _viewPicker() => dom.div(
     classes: 'hui-bar-cluster hui-bar-view-picker',
-    attributes: const <String, String>{
+    attributes: <String, String>{
       'role': 'group',
-      'aria-label': 'Editor mode',
+      'aria-label': huiText('Editor mode'),
     },
     <Widget>[
       BarMenu(
@@ -300,7 +365,9 @@ class _TopBarState extends State<TopBar> {
         triggerIcon: ViewSwitcher.iconOf(_store.view),
         triggerText: ViewSwitcher.labelOf(_store.view),
         triggerTrailing: ArcaneIcon.chevronDown(size: IconSize.sm),
-        triggerLabel: 'Editor mode: ${ViewSwitcher.labelOf(_store.view)}',
+        triggerLabel: huiText('Editor mode: {mode}', <String, Object?>{
+          'mode': ViewSwitcher.labelOf(_store.view),
+        }),
         width: 200,
         entries: _viewItems,
       ),
@@ -311,7 +378,7 @@ class _TopBarState extends State<TopBar> {
   /// reason it stays clickable in the segmented control: the click is what
   /// reports why.
   List<BarMenuEntry> _viewItems() => <BarMenuEntry>[
-    const BarMenuHeading('Editor mode'),
+    BarMenuHeading(huiText('Editor mode')),
     for (final EditorView value in EditorView.values)
       BarMenuAction(
         label: ViewSwitcher.labelOf(value),
@@ -334,7 +401,7 @@ class _TopBarState extends State<TopBar> {
           id: 'hui-bar-more-tier$tier',
           align: BarMenuAlign.right,
           triggerIcon: ArcaneIcon.ellipsis(size: IconSize.sm),
-          triggerLabel: 'More actions',
+          triggerLabel: huiText('More actions'),
           entries: () => _overflowEntries(tier),
         ),
       ]);
@@ -344,71 +411,77 @@ class _TopBarState extends State<TopBar> {
   /// is the give-way order — secondary actions, Assets, File, then History.
   List<BarMenuEntry> _overflowEntries(int tier) => <BarMenuEntry>[
     if (tier >= 4) ...<BarMenuEntry>[
-      const BarMenuHeading('History'),
+      BarMenuHeading(huiText('History')),
       BarMenuAction(
-        label: 'Undo',
+        label: huiText('Undo'),
         icon: ArcaneIcon.undo(size: IconSize.sm),
         onSelect: _store.canUndo ? _intents.undo : null,
       ),
       BarMenuAction(
-        label: 'Redo',
+        label: huiText('Redo'),
         icon: ArcaneIcon.redo(size: IconSize.sm),
         onSelect: _store.canRedo ? _intents.redo : null,
       ),
       const BarMenuSeparator(),
     ],
     if (tier >= 3) ...<BarMenuEntry>[
-      const BarMenuHeading('Document'),
+      BarMenuHeading(huiText('Document')),
       BarMenuAction(
-        label: 'Import JSON',
+        label: huiText('Import JSON'),
         icon: ArcaneIcon.upload(size: IconSize.sm),
         onSelect: _store.canTransferDocument
             ? () => _intents.importMenu()
             : null,
       ),
       BarMenuAction(
-        label: 'Export $_documentNoun JSON',
+        label: huiText('Export {document} JSON', <String, Object?>{
+          'document': _documentNoun,
+        }),
         icon: ArcaneIcon.download(size: IconSize.sm),
         onSelect: _store.canTransferDocument ? _intents.exportMenu : null,
       ),
       BarMenuAction(
-        label: 'Copy $_documentNoun JSON',
+        label: huiText('Copy {document} JSON', <String, Object?>{
+          'document': _documentNoun,
+        }),
         icon: ArcaneIcon.copy(size: IconSize.sm),
         onSelect: _store.canTransferDocument ? () => _intents.copyJson() : null,
       ),
       const BarMenuSeparator(),
     ],
-    const BarMenuHeading('Resources'),
+    BarMenuHeading(huiText('Resources')),
     if (tier >= 2)
       BarMenuAction(
-        label: 'Images',
+        label: huiText('Images'),
         icon: ArcaneIcon.images(size: IconSize.sm),
         onSelect: _intents.openImages,
       ),
     BarMenuAction(
-      label: 'Templates',
+      label: huiText('Templates'),
       icon: ArcaneIcon.layoutTemplate(size: IconSize.sm),
       onSelect: _intents.openTemplates,
     ),
     const BarMenuSeparator(),
-    const BarMenuHeading('Editor'),
+    BarMenuHeading(huiText('Editor')),
     BarMenuAction(
-      label: 'Command palette',
+      label: huiText('Command palette'),
       icon: ArcaneIcon.command(size: IconSize.sm),
       onSelect: _intents.openPalette,
     ),
     BarMenuAction(
-      label: 'Help',
+      label: huiText('Help'),
       icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
       onSelect: _intents.openHelp,
     ),
     BarMenuAction(
-      label: 'Settings',
+      label: huiText('Settings'),
       icon: ArcaneIcon.settings(size: IconSize.sm),
       onSelect: _intents.openSettings,
     ),
     BarMenuAction(
-      label: component.darkMode ? 'Light theme' : 'Dark theme',
+      label: component.darkMode
+          ? huiText('Light theme')
+          : huiText('Dark theme'),
       icon: component.darkMode
           ? ArcaneIcon.sun(size: IconSize.sm)
           : ArcaneIcon.moon(size: IconSize.sm),
@@ -418,24 +491,26 @@ class _TopBarState extends State<TopBar> {
 
   Widget _mobilePaneControls() => dom.div(
     classes: 'hui-bar-cluster hui-mobile-panes',
-    attributes: const <String, String>{
+    attributes: <String, String>{
       'role': 'group',
-      'aria-label': 'Workspace panes',
+      'aria-label': huiText('Workspace panes'),
     },
     <Widget>[
       _mobilePaneAction(
         icon: ArcaneIcon.panelLeft(size: IconSize.sm),
-        label: component.mobileRailOpen ? 'Close library' : 'Open library',
-        visibleLabel: 'Files',
+        label: component.mobileRailOpen
+            ? huiText('Close library')
+            : huiText('Open library'),
+        visibleLabel: huiText('Files'),
         pressed: component.mobileRailOpen,
         onPressed: component.onToggleMobileRail,
       ),
       _mobilePaneAction(
         icon: ArcaneIcon.panelRight(size: IconSize.sm),
         label: component.mobileInspectorOpen
-            ? 'Close inspector'
-            : 'Open inspector',
-        visibleLabel: 'Inspect',
+            ? huiText('Close inspector')
+            : huiText('Open inspector'),
+        visibleLabel: huiText('Inspect'),
         pressed: component.mobileInspectorOpen,
         onPressed: component.onToggleMobileInspector,
       ),
@@ -477,25 +552,30 @@ class _TopBarState extends State<TopBar> {
   Widget _documentSwitcher() => dom.div(classes: 'hui-doc', <Widget>[
     dom.span(classes: 'hui-doc-id', <Widget>[
       if (!_store.hasActiveDocument)
-        const Text('No document')
+        Text(huiText('No document'))
       else if (_store.isPanelDoc)
-        Text(_store.workspace.active?.title ?? 'Menu flow map')
+        Text(_store.workspace.active?.title ?? huiText('Menu flow map'))
       else
-        MutableText(
-          _store.menuId,
-          onChanged: _store.renameActiveRuntimeId,
-          placeholder: 'menu-id',
-          variant: MutableTextStyle.dashed,
-        ),
+        dom.span(classes: 'hui-ltr', <Widget>[
+          MutableText(
+            _store.menuId,
+            onChanged: _store.renameActiveRuntimeId,
+            placeholder: 'menu-id',
+            variant: MutableTextStyle.dashed,
+          ),
+        ]),
     ]),
-    dom.span(classes: 'hui-doc-ext', <Widget>[
-      if (_store.hasActiveDocument)
-        Text(_store.isPanelDoc ? ' · flow map' : '.json'),
-    ]),
+    dom.span(
+      classes: _store.isPanelDoc ? 'hui-doc-ext' : 'hui-doc-ext hui-ltr',
+      <Widget>[
+        if (_store.hasActiveDocument)
+          Text(_store.isPanelDoc ? ' · ${huiText('flow map')}' : '.json'),
+      ],
+    ),
     BarMenu(
       id: 'hui-doc-menu',
       triggerIcon: ArcaneIcon.chevronDown(size: IconSize.sm),
-      triggerLabel: 'Switch document',
+      triggerLabel: huiText('Switch document'),
       align: BarMenuAlign.right,
       width: 260,
       entries: _documentItems,
@@ -505,7 +585,7 @@ class _TopBarState extends State<TopBar> {
   List<BarMenuEntry> _documentItems() {
     final Workspace workspace = _store.workspace;
     final List<BarMenuEntry> items = <BarMenuEntry>[
-      const BarMenuHeading('Recent documents'),
+      BarMenuHeading(huiText('Recent documents')),
     ];
     for (final WorkspaceDoc doc in workspace.recent) {
       final bool active = doc.id == workspace.activeId;
@@ -521,14 +601,14 @@ class _TopBarState extends State<TopBar> {
       ..add(const BarMenuSeparator())
       ..add(
         BarMenuAction(
-          label: 'New menu',
+          label: huiText('New menu'),
           icon: ArcaneIcon.filePlus(size: IconSize.sm),
           onSelect: _intents.newDocument,
         ),
       )
       ..add(
         BarMenuAction(
-          label: 'Delete this document',
+          label: huiText('Delete this document'),
           icon: ArcaneIcon.trash2(size: IconSize.sm),
           destructive: true,
           onSelect: _store.hasActiveDocument
@@ -553,13 +633,16 @@ class _TopBarState extends State<TopBar> {
     <Widget>[
       dom.span(<Widget>[
         Text(
-          'Delete ${_store.workspace.active?.title ?? _store.menuId}${_store.isPanelDoc ? '' : '.json'}?',
+          huiText('Delete {name}?', <String, Object?>{
+            'name':
+                '${_store.workspace.active?.title ?? _store.menuId}${_store.isPanelDoc ? '' : '.json'}',
+          }),
         ),
       ]),
       Button.destructive(
         size: ButtonSize.sm,
         icon: ArcaneIcon.check(size: IconSize.sm),
-        label: 'Delete',
+        label: huiText('Delete'),
         onPressed: () {
           setState(() => _armedDelete = false);
           _intents.deleteActiveDocument();
@@ -568,7 +651,7 @@ class _TopBarState extends State<TopBar> {
       Button.ghost(
         size: ButtonSize.sm,
         icon: ArcaneIcon.x(size: IconSize.sm),
-        label: 'Keep',
+        label: huiText('Keep'),
         onPressed: () => setState(() => _armedDelete = false),
       ),
     ],

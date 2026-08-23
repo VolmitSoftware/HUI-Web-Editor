@@ -168,13 +168,14 @@ void main() {
     });
 
     test('time expressions animate without a separate animation document', () {
+      const int epochMs = 1787426000000;
       final GlossLineRender first = renderGlossLine(
         "{{ select(['&c', '&b'], floor(time.seconds * 4)) }}Pulse",
-        nowMs: 0,
+        nowMs: epochMs,
       );
       final GlossLineRender second = renderGlossLine(
         "{{ select(['&c', '&b'], floor(time.seconds * 4)) }}Pulse",
-        nowMs: 250,
+        nowMs: epochMs + 250,
       );
       expect(_spans(first).single.rgb, 0xFF5555);
       expect(_spans(second).single.rgb, 0x55FFFF);

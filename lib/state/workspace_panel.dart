@@ -2,6 +2,7 @@ library;
 
 import 'dart:convert';
 
+import '../l10n/hui_localizations.dart';
 import 'workspace.dart';
 
 enum WorkspacePanelView { canvas, list }
@@ -88,10 +89,12 @@ class WorkspacePanelData {
 }
 
 class WorkspacePanelDecodeResult {
-  const WorkspacePanelDecodeResult(this.data, this.warning);
+  const WorkspacePanelDecodeResult(this.data, this._warning);
 
   final WorkspacePanelData data;
-  final String? warning;
+  final String? _warning;
+
+  String? get warning => _warning == null ? null : huiText(_warning);
 }
 
 WorkspacePanelDecodeResult decodeWorkspacePanel(String raw) {

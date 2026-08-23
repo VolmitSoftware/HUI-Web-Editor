@@ -17,6 +17,7 @@
 /// silent or when the schema's wording hides a trap.
 library;
 
+import '../l10n/hui_localizations.dart';
 import 'field_docs.g.dart';
 
 class HuiFieldDoc {
@@ -39,8 +40,20 @@ class HuiFieldDoc {
 /// a hand-written body exists because the schema's own wording was wrong,
 /// missing, or silent about a trap, so regenerating the schema layer can never
 /// take a corrected explanation back off the screen.
-HuiFieldDoc? huiFieldDoc(String key) =>
-    huiFieldDocs[key] ?? huiGeneratedFieldDocs[key];
+HuiFieldDoc? huiFieldDoc(String key) {
+  final HuiFieldDoc? source = huiFieldDocs[key] ?? huiGeneratedFieldDocs[key];
+  if (source == null) return null;
+  return HuiFieldDoc(
+    title: switch (key) {
+      'action.sound.pitch' => huiTextKey('field.pitch.sound', 'Pitch'),
+      'action.teleport.pitch' => huiTextKey('field.pitch.orientation', 'Pitch'),
+      'hologram.pitch' => huiTextKey('field.pitch.orientation', 'Pitch'),
+      _ => huiText(source.title),
+    },
+    body: huiText(source.body),
+    citation: source.citation,
+  );
+}
 
 const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   // --- menu root ------------------------------------------------------------
@@ -265,9 +278,10 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Image path',
     body:
         'Relative to plugins/Gloss/images/. The image is drawn one block '
-        'character per pixel with a hex colour, so a 64 by 64 image becomes 64 '
-        'text displays of 64 characters each; fully transparent pixels are left '
-        'blank. A path that does not resolve renders the magenta and black '
+        'character per pixel with a hex colour and is limited to 16 by 16 '
+        'pixels; fully transparent pixels are left blank. Vanilla glyph spacing '
+        'makes this suitable for compact pixel art, not continuous photos. A '
+        'path that does not resolve renders the magenta and black '
         'checkerboard instead of failing the menu.',
     citation: 'TextImageMenuIcon.java:86-110',
   ),
@@ -286,8 +300,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Speed',
     body:
         'Ticks between frames, not milliseconds. One tick is 50 ms, so 2 is '
-        '100 ms a frame and 20 is one frame a second. Zero and negative values '
-        'advance every tick, the same as 1. There is no per-frame duration, '
+        '100 ms a frame and 20 is one frame a second. Values below 2 or above '
+        '1200 are rejected. There is no per-frame duration, '
         'ping-pong or play-once: the list loops forever at this one interval.',
     citation: 'AnimatedTextImageMenuIcon.java:52-60',
   ),

@@ -271,7 +271,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   ],
   "card": {
-    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)))",
+    "title": "'&f&l' + (customName != '' ? customName : (plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) != '' ? plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) : readable(blockType)))",
     "accent": "vars.accent"
   },
   "elements": [
@@ -509,6 +509,43 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "x": 0,
       "y": -46,
       "text": "(burnTime > 0 ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('gloss.preview.stat.fuel_ready') : '&8' + lang('gloss.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('gloss.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('gloss.preview.stat.xp_zero') + '</dark_gray>') : '')"
+    }
+  ]
+}
+''',
+  'furnace_minecart': r'''
+{
+  "match": {
+    "entities": ["FURNACE_MINECART"],
+    "priority": 10,
+    "vars": {
+      "cells": 7,
+      "wellColor": "#FF15151B",
+      "flame0": "#FFE2641E",
+      "flame1": "#FFF2A535",
+      "flame2": "#FFF7D14C",
+      "titleKey": "gloss.preview.theme.title.mobile",
+      "accent": "#F2A535"
+    }
+  },
+  "card": {
+    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, readable(blockType))))",
+    "accent": "vars.accent"
+  },
+  "elements": [
+    {
+      "type": "cell",
+      "repeat": { "count": "vars.cells", "var": "i" },
+      "x": "round((i - (vars.cells - 1) / 2) * 10)",
+      "y": 0,
+      "size": 8,
+      "color": "powered ? (i == mod(floor(time / 2), vars.cells) ? palette([vars.flame0, vars.flame1, vars.flame2], floor(time / 2)) : vars.flame0) : vars.wellColor"
+    },
+    {
+      "type": "label",
+      "x": 0,
+      "y": -19,
+      "text": "powered ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : '&8' + lang('gloss.preview.stat.no_fuel')"
     }
   ]
 }

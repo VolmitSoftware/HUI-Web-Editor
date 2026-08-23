@@ -31,6 +31,7 @@ import 'package:web/web.dart' as web;
 import '../../preview/action_log.dart';
 import '../../state/editor_store.dart';
 import 'preview_pose.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// The custom property `.hui-preview-log` reads its height from. Its fallback
 /// in `07-preview.css` is [huiPreviewLogDefaultHeight].
@@ -109,9 +110,9 @@ class _PreviewLogViewState extends State<PreviewLogView> {
       // Entrance only; the caller owns the unmount, so there is nothing to
       // animate out (see the note at the foot of 06-motion.css).
       classes: 'hui-preview-log hui-anim-slide-up',
-      attributes: const <String, String>{
+      attributes: <String, String>{
         'role': 'region',
-        'aria-label': 'Action log',
+        'aria-label': huiText('Action log'),
       },
       <Widget>[
         _splitter(),
@@ -129,10 +130,12 @@ class _PreviewLogViewState extends State<PreviewLogView> {
     attributes: <String, String>{
       'role': 'separator',
       'aria-orientation': 'horizontal',
-      'aria-label': 'Resize the action log',
+      'aria-label': huiText('Resize the action log'),
       'aria-valuemin': huiPreviewLogMinHeight.round().toString(),
       'aria-valuenow': _heightPx.round().toString(),
-      'aria-valuetext': '${_heightPx.round()} pixels tall',
+      'aria-valuetext': huiText('{height} pixels tall', <String, Object?>{
+        'height': _heightPx.round(),
+      }),
       'tabindex': '0',
     },
     const <Widget>[
@@ -145,8 +148,8 @@ class _PreviewLogViewState extends State<PreviewLogView> {
   );
 
   Widget _head() => dom.div(classes: 'hui-preview-log-head', <Widget>[
-    const dom.span(classes: 'hui-eyebrow', <Widget>[
-      Component.text('action log'),
+    dom.span(classes: 'hui-eyebrow', <Widget>[
+      Component.text(huiText('action log')),
     ]),
     dom.span(classes: 'hui-preview-log-count', <Widget>[
       Component.text(_countText()),
@@ -154,7 +157,7 @@ class _PreviewLogViewState extends State<PreviewLogView> {
     dom.div(classes: 'hui-preview-log-headtools', <Widget>[
       if (!_pinned && _log.isNotEmpty)
         ArcaneTooltip(
-          text: 'Jump back to the newest entry and follow it again',
+          text: huiText('Jump back to the newest entry and follow it again'),
           // Opens leftward: these two sit hard against the dock's right
           // edge, and a top-positioned bubble hangs past it — clipped by
           // `.hui-preview`'s overflow, and it widens the dock's scroll
@@ -162,12 +165,12 @@ class _PreviewLogViewState extends State<PreviewLogView> {
           position: FloatingPosition.left,
           child: Button(
             icon: ArcaneIcon.arrowDownToLine(size: IconSize.sm),
-            label: 'Newest',
+            label: huiText('Newest'),
             variant: ButtonVariant.ghost,
             size: ButtonSize.sm,
             type: ButtonType.button,
-            attributes: const <String, String>{
-              'aria-label': 'Scroll to the newest entry',
+            attributes: <String, String>{
+              'aria-label': huiText('Scroll to the newest entry'),
             },
             onPressed: () {
               _scrollToTail();
@@ -176,15 +179,15 @@ class _PreviewLogViewState extends State<PreviewLogView> {
           ),
         ),
       ArcaneTooltip(
-        text: 'Close the log dock',
+        text: huiText('Close the log dock'),
         position: FloatingPosition.left,
         child: Button(
           icon: ArcaneIcon.x(size: IconSize.sm),
           variant: ButtonVariant.ghost,
           size: ButtonSize.iconSm,
           type: ButtonType.button,
-          attributes: const <String, String>{
-            'aria-label': 'Close the action log',
+          attributes: <String, String>{
+            'aria-label': huiText('Close the action log'),
           },
           onPressed: () => _store.previewLogOpen = false,
         ),
@@ -193,17 +196,30 @@ class _PreviewLogViewState extends State<PreviewLogView> {
   ]);
 
   String _countText() {
-    if (_log.isEmpty) return 'nothing fired yet';
+    if (_log.isEmpty) return huiText('nothing fired yet');
     final String dropped = _log.droppedCount > 0
-        ? ' · ${_log.droppedCount} dropped'
+        ? huiPlural(
+            'preview_log.dropped_count',
+            _log.droppedCount,
+            oneEnglish: ' · {count} dropped entry',
+            otherEnglish: ' · {count} dropped entries',
+          )
         : '';
-    return '${_log.length} ${_log.length == 1 ? 'entry' : 'entries'}$dropped';
+    return huiPlural(
+      'preview_log.entry_count',
+      _log.length,
+      oneEnglish: '{count} entry{dropped}',
+      otherEnglish: '{count} entries{dropped}',
+      arguments: <String, Object?>{'dropped': dropped},
+    );
   }
 
-  Widget _empty() => const dom.p(classes: 'hui-preview-log-empty', <Widget>[
+  Widget _empty() => dom.p(classes: 'hui-preview-log-empty', <Widget>[
     Component.text(
-      'Left- or right-click a component in the preview. The nearest hitbox '
-      'fires; hold Shift to test sneak-bound actions.',
+      huiText(
+        'Left- or right-click a component in the preview. The nearest hitbox '
+        'fires; hold Shift to test sneak-bound actions.',
+      ),
     ),
   ]);
 
@@ -220,28 +236,35 @@ class _PreviewLogViewState extends State<PreviewLogView> {
   );
 
   /// Entries sharing a tick are grouped under one compact heading.
-  Widget _group(List<ActionLogEntry> entries, {required bool newest}) =>
-      dom.div(
-        // Only the newest group carries the entrance, so an append animates the
-        // arrival and leaves everything above it alone.
-        classes:
-            'hui-preview-log-group${newest ? ' is-newest hui-anim-in' : ''}',
-        <Widget>[
-          dom.div(classes: 'hui-preview-log-grouphead', <Widget>[
-            dom.span(classes: 'hui-preview-log-tick', <Widget>[
-              Component.text('#${entries.first.tick}'),
-            ]),
-            if (entries.length > 1)
-              dom.span(classes: 'hui-preview-log-groupnote', <Widget>[
-                Component.text(
-                  '${entries.length} clicks were recorded before the next '
-                  'simulation tick',
-                ),
-              ]),
+  Widget _group(
+    List<ActionLogEntry> entries, {
+    required bool newest,
+  }) => dom.div(
+    // Only the newest group carries the entrance, so an append animates the
+    // arrival and leaves everything above it alone.
+    classes: 'hui-preview-log-group${newest ? ' is-newest hui-anim-in' : ''}',
+    <Widget>[
+      dom.div(classes: 'hui-preview-log-grouphead', <Widget>[
+        dom.span(classes: 'hui-preview-log-tick', <Widget>[
+          Component.text('#${entries.first.tick}'),
+        ]),
+        if (entries.length > 1)
+          dom.span(classes: 'hui-preview-log-groupnote', <Widget>[
+            Component.text(
+              huiPlural(
+                'preview_log.click_count',
+                entries.length,
+                oneEnglish:
+                    '{count} click was recorded before the next simulation tick',
+                otherEnglish:
+                    '{count} clicks were recorded before the next simulation tick',
+              ),
+            ),
           ]),
-          for (final ActionLogEntry entry in entries) _row(entry),
-        ],
-      );
+      ]),
+      for (final ActionLogEntry entry in entries) _row(entry),
+    ],
+  );
 
   Widget _row(ActionLogEntry entry) =>
       dom.div(classes: 'hui-preview-log-row', <Widget>[
@@ -251,14 +274,16 @@ class _PreviewLogViewState extends State<PreviewLogView> {
           ]),
           dom.span(classes: 'hui-preview-log-trigger', <Widget>[
             Component.text(
-              '${entry.trigger.label} · '
-              '${actionClickTriggerLabel(entry.clickTrigger)}',
+              huiText('{trigger} · {click}', <String, Object?>{
+                'trigger': huiText(entry.trigger.label),
+                'click': huiText(actionClickTriggerLabel(entry.clickTrigger)),
+              }),
             ),
           ]),
         ]),
         if (entry.actions.isEmpty)
-          const dom.div(classes: 'hui-preview-log-action is-empty', <Widget>[
-            Component.text('no actions — it still fired'),
+          dom.div(classes: 'hui-preview-log-action is-empty', <Widget>[
+            Component.text(huiText('no actions — it still fired')),
           ])
         else
           for (final LoggedAction action in entry.actions) _action(action),
@@ -275,25 +300,27 @@ class _PreviewLogViewState extends State<PreviewLogView> {
 
   Widget _message(LoggedMessage message) =>
       dom.div(classes: 'hui-preview-log-action is-message', <Widget>[
-        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
-          Component.text('message player'),
+        dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text(huiText('message player')),
         ]),
         dom.code(classes: 'hui-preview-log-cmd', <Widget>[
           Component.text(message.message),
         ]),
         if (message.hasStrippedInteractions)
           _badge(
-            'interactions stripped',
+            huiText('interactions stripped'),
             'is-unknown',
-            'Gloss keeps MiniMessage styling but removes click and insertion '
-                'events before sending the message.',
+            huiText(
+              'Gloss keeps MiniMessage styling but removes click and insertion '
+              'events before sending the message.',
+            ),
           ),
       ]);
 
   Widget _teleport(LoggedTeleport teleport) =>
       dom.div(classes: 'hui-preview-log-action is-teleport', <Widget>[
-        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
-          Component.text('teleport'),
+        dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text(huiText('teleport')),
         ]),
         dom.code(classes: 'hui-preview-log-cmd', <Widget>[
           Component.text(
@@ -303,28 +330,31 @@ class _PreviewLogViewState extends State<PreviewLogView> {
         ]),
         dom.span(classes: 'hui-preview-log-soundmeta', <Widget>[
           Component.text(
-            'yaw ${_number(teleport.yaw)} · pitch ${_number(teleport.pitch)}',
+            huiText('yaw {yaw} · pitch {pitch}', <String, Object?>{
+              'yaw': _number(teleport.yaw),
+              'pitch': _number(teleport.pitch),
+            }),
           ),
         ]),
       ]);
 
   Widget _connect(LoggedConnect connect) =>
       dom.div(classes: 'hui-preview-log-action is-connect', <Widget>[
-        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
-          Component.text('connect'),
+        dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text(huiText('connect')),
         ]),
         dom.code(classes: 'hui-preview-log-cmd', <Widget>[
           Component.text(connect.server),
         ]),
-        const dom.span(classes: 'hui-preview-log-dispatch is-player', <Widget>[
-          Component.text('via proxy'),
+        dom.span(classes: 'hui-preview-log-dispatch is-player', <Widget>[
+          Component.text(huiText('via proxy')),
         ]),
       ]);
 
   Widget _navigation(LoggedNavigation navigation) =>
       dom.div(classes: 'hui-preview-log-action is-navigation', <Widget>[
-        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
-          Component.text('navigate'),
+        dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text(huiText('navigate')),
         ]),
         dom.code(classes: 'hui-preview-log-cmd', <Widget>[
           Component.text(
@@ -347,8 +377,8 @@ class _PreviewLogViewState extends State<PreviewLogView> {
           'hui-preview-log-action is-command'
           '${command.asConsole ? ' is-console' : ''}',
       <Widget>[
-        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
-          Component.text('run'),
+        dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text(huiText('run')),
         ]),
         dom.code(classes: 'hui-preview-log-cmd', <Widget>[
           Component.text('/${command.command}'),
@@ -360,21 +390,31 @@ class _PreviewLogViewState extends State<PreviewLogView> {
               '${unknown ? ' is-uncertain' : ''}',
           attributes: <String, String>{
             'title': command.asPlayer
-                ? 'Anything but the exact token "server" dispatches as the '
-                      'clicking player, with their own permissions.'
-                : 'Dispatched from the server console, so the player\'s own '
-                      'permissions never apply.',
+                ? huiText(
+                    'Anything but the exact token "server" dispatches as the '
+                    'clicking player, with their own permissions.',
+                  )
+                : huiText(
+                    'Dispatched from the server console, so the player\'s own '
+                    'permissions never apply.',
+                  ),
           },
           <Widget>[
-            Component.text(command.asPlayer ? 'as player' : 'as console'),
+            Component.text(
+              command.asPlayer ? huiText('as player') : huiText('as console'),
+            ),
           ],
         ),
         if (unknown)
           _badge(
-            'source "${command.rawSource}"',
+            huiText('source "{source}"', <String, Object?>{
+              'source': command.rawSource,
+            }),
             'is-unknown',
-            'Not a spelling Gloss defines. It resolves to null and the command '
-                'uses the player default.',
+            huiText(
+              'Not a spelling Gloss defines. It resolves to null and the command '
+              'uses the player default.',
+            ),
           ),
       ],
     );
@@ -382,8 +422,8 @@ class _PreviewLogViewState extends State<PreviewLogView> {
 
   Widget _sound(LoggedSound sound) =>
       dom.div(classes: 'hui-preview-log-action is-sound', <Widget>[
-        const dom.span(classes: 'hui-preview-log-verb', <Widget>[
-          Component.text('play'),
+        dom.span(classes: 'hui-preview-log-verb', <Widget>[
+          Component.text(huiText('play')),
         ]),
         dom.code(classes: 'hui-preview-log-cmd', <Widget>[
           Component.text(sound.key),
@@ -391,24 +431,39 @@ class _PreviewLogViewState extends State<PreviewLogView> {
         dom.span(classes: 'hui-preview-log-soundmeta', <Widget>[
           Component.text(
             sound.categoryMissing
-                ? 'master · volume ${_number(sound.volume)} · '
-                      'pitch ${_number(sound.pitch)}'
-                : '${sound.category} · volume ${_number(sound.volume)} · '
-                      'pitch ${_number(sound.pitch)}',
+                ? huiText(
+                    'master · volume {volume} · pitch {pitch}',
+                    <String, Object?>{
+                      'volume': _number(sound.volume),
+                      'pitch': _number(sound.pitch),
+                    },
+                  )
+                : huiText(
+                    '{category} · volume {volume} · pitch {pitch}',
+                    <String, Object?>{
+                      'category': sound.category,
+                      'volume': _number(sound.volume),
+                      'pitch': _number(sound.pitch),
+                    },
+                  ),
           ),
         ]),
         if (sound.inaudible)
           _badge(
-            'inaudible',
+            huiText('inaudible'),
             'is-inaudible',
-            'An omitted volume defaults to 1, so a volume of 0 is one the '
-                'file wrote itself, and the click is silent.',
+            huiText(
+              'An omitted volume defaults to 1, so a volume of 0 is one the '
+              'file wrote itself, and the click is silent.',
+            ),
           ),
         if (sound.categoryMissing)
           _badge(
-            'source defaulted',
+            huiText('source defaulted'),
             'is-omitted',
-            'No category on the action, so the plugin plays it on master.',
+            huiText(
+              'No category on the action, so the plugin plays it on master.',
+            ),
           ),
       ]);
 
@@ -654,7 +709,12 @@ class _PreviewLogViewState extends State<PreviewLogView> {
     try {
       _element(_splitterId)
         ?..setAttribute('aria-valuenow', px.round().toString())
-        ..setAttribute('aria-valuetext', '${px.round()} pixels tall');
+        ..setAttribute(
+          'aria-valuetext',
+          huiText('{height} pixels tall', <String, Object?>{
+            'height': px.round(),
+          }),
+        );
     } catch (_) {}
   }
 

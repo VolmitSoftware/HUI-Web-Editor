@@ -125,6 +125,7 @@ void main() {
       for (final String category in <String>[
         'beehive',
         'cauldron',
+        'poweredMinecart',
         'statics',
       ]) {
         expect(

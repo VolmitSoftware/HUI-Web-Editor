@@ -245,8 +245,8 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   'icon.animated.speed': HuiFieldDoc(
     title: 'Speed',
     body:
-        'Defines the amount of ticks between frame advances. Values of 1 '
-        'or less advance every tick.',
+        'Defines the amount of ticks between frame advances. Accepted '
+        'range: 2 through 1200.',
     citation:
         'gloss.schema.json#/\$defs/animatedTextImageIcon/properties/speed',
   ),
@@ -709,7 +709,10 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   ),
   'preview.match.entities': HuiFieldDoc(
     title: 'Entities',
-    body: 'Entity types this document draws.',
+    body:
+        'Entity types this document draws. Exact names and globs make '
+        'matching entities raycast targets even when they do not hold an '
+        'inventory.',
     citation: 'gloss-preview.schema.json#/\$defs/match/properties/entities',
   ),
   'preview.match.priority': HuiFieldDoc(
@@ -730,8 +733,9 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'chest instead of a tile entity, \'locked\' is the target-less card '
         'shown when a viewer may not open the container, and '
         '\'anyInventoryHolder\' is the fallback for an inventory-holding '
-        'entity no document names. Read from the top-level match only. '
-        'Accepted values: enderChest, locked, anyInventoryHolder.',
+        'minecart or chest boat no document names. Read from the '
+        'top-level match only. Accepted values: enderChest, locked, '
+        'anyInventoryHolder.',
     citation: 'gloss-preview.schema.json#/\$defs/match/properties/special',
   ),
   'preview.match.vars': HuiFieldDoc(
@@ -829,6 +833,16 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         '"#FFB02E26" without losing the alpha byte to a signed int. A '
         'leading \'#\' that is not a valid colour literal fails to compile.',
     citation: 'gloss-preview.schema.json#/\$defs/vars',
+  ),
+  'realDrops.animation': HuiFieldDoc(
+    title: 'Animation',
+    body:
+        'Typed keyframe animation profiles selected by material. Clips '
+        'are triggered by lifecycle events and physical phases, then '
+        'compose scalar display, physics-gate, glow and temporary-light '
+        'outputs. Disabled by default and independent of the advanced '
+        'script layer.',
+    citation: 'gloss-real-drops.schema.json#/properties/animation',
   ),
   'realDrops.axis': HuiFieldDoc(
     title: 'Axis',
@@ -1100,7 +1114,7 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   'realDrops.limits.maxVisualsPerStack': HuiFieldDoc(
     title: 'Max visuals per stack',
     body:
-        'Upper bound on the number of ItemDisplay models drawn for one '
+        'Upper bound on the number of display models drawn for one '
         'dropped stack. Larger stacks earn more models up to this cap: 1 '
         'model below 2 items, 2 up to 16, 3 up to 32, 4 up to 48, then '
         'the cap. Clamped to 1-5, default 3. Accepted range: 1 through 5.',
@@ -1333,10 +1347,10 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   'realDrops.scale.flatItems': HuiFieldDoc(
     title: 'Flat items',
     body:
-        'Display size for items rendered as a flat sprite: every '
-        'non-block item, plus block items whose model is a flat plane '
-        'such as TORCH, RAIL, signs and doors. Clamped to 0.05-2, default '
-        '0.65. Accepted range: 0.05 through 2.',
+        'Display size for non-block items rendered through ItemDisplay. '
+        'Placeable materials use BlockDisplay even when their inventory '
+        'icon is flat. Clamped to 0.05-2, default 0.65. Accepted range: '
+        '0.05 through 2.',
     citation: 'gloss-real-drops.schema.json#/\$defs/scale/properties/flatItems',
   ),
   'realDrops.scale.thinBlocks': HuiFieldDoc(

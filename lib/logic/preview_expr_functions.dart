@@ -17,6 +17,12 @@ import 'dart:math' as math;
 
 import 'preview_expr.dart';
 
+final BigInt _javaLongMax = BigInt.parse('9223372036854775807');
+final BigInt _javaLongMin = BigInt.parse('-9223372036854775808');
+const double _javaLongMaxAsDouble = 9223372036854775807.0;
+const double _javaLongMinAsDouble = -9223372036854775808.0;
+const double _maxSafeIntegerAsDouble = 9007199254740992.0;
+
 /// Every pure function shared by authored text and container-preview
 /// expressions. Contexts add `lang`, inventory functions, PAPI and metrics.
 const List<String> previewStandardFunctionNames = <String>[
@@ -217,31 +223,32 @@ double _packArgb(int a, int r, int g, int b) =>
 // Lists / strings
 // ---------------------------------------------------------------------------
 
-/// Index is `(int) floor(index)` — a saturating cast in Java — wrapped into
+/// Index is `(long) floor(index)` — a saturating cast in Java — wrapped into
 /// range with `floorMod`.
 double _palette(String name, List<Object?> args) {
   _requireCount(name, args, 2);
   final Object? listArg = args[0];
   if (listArg is! List<Object?>) {
-    throw PExprException('$name argument 1 must be a list', previewNoPosition);
+    throw PExprException(
+      '{function} argument 1 must be a list',
+      previewNoPosition,
+      <String, Object?>{'function': name},
+    );
   }
   if (listArg.isEmpty) {
-    throw PExprException('$name list must not be empty', previewNoPosition);
+    throw PExprException(
+      '{function} list must not be empty',
+      previewNoPosition,
+      <String, Object?>{'function': name},
+    );
   }
-  final double index = _numArg(name, args, 1).floorToDouble();
-  final int narrowed = index.isNaN
-      ? 0
-      : index >= 2147483647.0
-      ? 2147483647
-      : index <= -2147483648.0
-      ? -2147483648
-      : index.toInt();
-  // Dart's int % is the floor variant, which is Java's floorMod here.
-  final Object? item = listArg[narrowed % listArg.length];
+  final int index = _floorModSignedLong(_numArg(name, args, 1), listArg.length);
+  final Object? item = listArg[index];
   if (item is! double) {
     throw PExprException(
-      '$name list entries must be numbers',
+      '{function} list entries must be numbers',
       previewNoPosition,
+      <String, Object?>{'function': name},
     );
   }
   return item;
@@ -251,13 +258,35 @@ Object? _select(String name, List<Object?> args) {
   _requireCount(name, args, 2);
   final Object? listArg = args[0];
   if (listArg is! List<Object?>) {
-    throw PExprException('$name argument 1 must be a list', previewNoPosition);
+    throw PExprException(
+      '{function} argument 1 must be a list',
+      previewNoPosition,
+      <String, Object?>{'function': name},
+    );
   }
   if (listArg.isEmpty) {
-    throw PExprException('$name list must not be empty', previewNoPosition);
+    throw PExprException(
+      '{function} list must not be empty',
+      previewNoPosition,
+      <String, Object?>{'function': name},
+    );
   }
-  final int index = _numArg(name, args, 1).floor();
-  return listArg[index % listArg.length];
+  final int index = _floorModSignedLong(_numArg(name, args, 1), listArg.length);
+  return listArg[index];
+}
+
+int _floorModSignedLong(double value, int divisor) {
+  if (value.isNaN) return 0;
+  final double floored = value.floorToDouble();
+  if (floored.abs() < _maxSafeIntegerAsDouble) {
+    return floored.toInt() % divisor;
+  }
+  final BigInt narrowed = floored >= _javaLongMaxAsDouble
+      ? _javaLongMax
+      : floored <= _javaLongMinAsDouble
+      ? _javaLongMin
+      : BigInt.from(floored);
+  return (narrowed % BigInt.from(divisor)).toInt();
 }
 
 double _number(String name, List<Object?> args) {
@@ -266,8 +295,9 @@ double _number(String name, List<Object?> args) {
   if (value is double) return value;
   if (value is! String) {
     throw PExprException(
-      '$name argument 1 must be a number or string',
+      '{function} argument 1 must be a number or string',
       previewNoPosition,
+      <String, Object?>{'function': name},
     );
   }
   final String plain = value
@@ -277,7 +307,11 @@ double _number(String name, List<Object?> args) {
     r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)',
   ).firstMatch(plain);
   if (match == null) {
-    throw PExprException('$name could not find a number', previewNoPosition);
+    throw PExprException(
+      '{function} could not find a number',
+      previewNoPosition,
+      <String, Object?>{'function': name},
+    );
   }
   return double.parse(match.group(0)!);
 }
@@ -289,16 +323,18 @@ String _bar(String name, List<Object?> args) {
   final double widthValue = _numArg(name, args, 2);
   if (maximum <= 0) {
     throw PExprException(
-      '$name argument 2 must be greater than zero',
+      '{function} argument 2 must be greater than zero',
       previewNoPosition,
+      <String, Object?>{'function': name},
     );
   }
   if (widthValue != widthValue.roundToDouble() ||
       widthValue < 1 ||
       widthValue > 64) {
     throw PExprException(
-      '$name argument 3 must be a whole number in [1, 64]',
+      '{function} argument 3 must be a whole number in [1, 64]',
       previewNoPosition,
+      <String, Object?>{'function': name},
     );
   }
   final int width = widthValue.toInt();
@@ -326,8 +362,9 @@ String _fixed(String name, List<Object?> args) {
       digitsArg < 0 ||
       digitsArg > 20) {
     throw PExprException(
-      '$name argument 2 (digits) must be a whole number in [0, 20]',
+      '{function} argument 2 (digits) must be a whole number in [0, 20]',
       previewNoPosition,
+      <String, Object?>{'function': name},
     );
   }
   final int digits = digitsArg.toInt();
@@ -461,8 +498,13 @@ double _oneNumArg(String name, List<Object?> args) {
 void _requireCount(String name, List<Object?> args, int count) {
   if (args.length != count) {
     throw PExprException(
-      '$name expects $count argument(s), got ${args.length}',
+      'Required argument count for {function}: {count}; received: {actual}',
       previewNoPosition,
+      <String, Object?>{
+        'function': name,
+        'count': count,
+        'actual': args.length,
+      },
     );
   }
 }
@@ -473,8 +515,9 @@ double _numArg(String name, List<Object?> args, int index) {
     return value;
   }
   throw PExprException(
-    '$name argument ${index + 1} must be a number',
+    '{function} argument {index} must be a number',
     previewNoPosition,
+    <String, Object?>{'function': name, 'index': index + 1},
   );
 }
 
@@ -484,7 +527,8 @@ String _strArg(String name, List<Object?> args, int index) {
     return value;
   }
   throw PExprException(
-    '$name argument ${index + 1} must be a string',
+    '{function} argument {index} must be a string',
     previewNoPosition,
+    <String, Object?>{'function': name, 'index': index + 1},
   );
 }

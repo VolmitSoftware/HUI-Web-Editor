@@ -41,6 +41,7 @@ import '../shell/key_listener.dart' show huiMobilePaneOpen;
 import '../shell/shell_status.dart';
 import 'preview_card_painter.dart';
 import 'preview_card_toolbar.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 part 'preview_card_interactions.dart';
 
@@ -122,6 +123,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
 
   web.HTMLCanvasElement? _canvas;
   web.HTMLElement? _stage;
+  String _renderedAriaLocale = '';
   web.ResizeObserver? _resizeObserver;
   final Map<String, JSFunction> _stageListeners = <String, JSFunction>{};
   JSFunction? _windowResizeListener;
@@ -176,6 +178,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);
     }
+    _statusDirty = true;
     _markDirty();
   }
 
@@ -204,13 +207,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   late final Widget _stageTree = dom.div(
     id: _stageId,
     classes: 'hui-canvas-stage hui-preview-card-stage',
-    attributes: const <String, String>{
-      'tabindex': '0',
-      'role': 'application',
-      'aria-label':
-          'Container preview card. Drag empty canvas to pan on touch, use the '
-          'zoom controls or scroll to zoom, and drag an element to move it.',
-    },
+    attributes: <String, String>{'tabindex': '0', 'role': 'application'},
     <Widget>[
       Component.element(
         tag: 'canvas',
@@ -233,7 +230,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.screen,
-        label: 'Container preview in game',
+        label: huiText('Container preview in game'),
         child: dom.div(classes: 'hui-preview-card-game', <Widget>[_stageTree]),
       );
     }
@@ -256,37 +253,41 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
         ),
       ),
       _stageTree,
-      const dom.div(classes: 'hui-canvas-hint hui-canvas-hint-desktop', <
-        Widget
-      >[
+      dom.div(classes: 'hui-canvas-hint hui-canvas-hint-desktop', <Widget>[
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
           Component.text(
-            'Space or middle-drag pans - scroll zooms - 0 resets '
-            '- F fits',
+            huiText(
+              'Space or middle-drag pans - scroll zooms - 0 resets '
+              '- F fits',
+            ),
           ),
         ]),
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
           Component.text(
-            'Click selects - drag moves - corner handles resize - '
-            'arrows nudge',
+            huiText(
+              'Click selects - drag moves - corner handles resize - '
+              'arrows nudge',
+            ),
           ),
         ]),
         dom.span(classes: 'hui-canvas-hint-item hui-canvas-hint-note', <Widget>[
           Component.text(
-            'Positions are whole pixels from the card centre, y '
-            'up. Expression-driven fields are edited in the inspector.',
+            huiText(
+              'Positions are whole pixels from the card centre, y '
+              'up. Expression-driven fields are edited in the inspector.',
+            ),
           ),
         ]),
       ]),
-      const dom.div(classes: 'hui-canvas-hint hui-canvas-hint-touch', <Widget>[
+      dom.div(classes: 'hui-canvas-hint hui-canvas-hint-touch', <Widget>[
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
-          Component.text('Drag empty canvas to pan'),
+          Component.text(huiText('Drag empty canvas to pan')),
         ]),
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
-          Component.text('Use the zoom controls'),
+          Component.text(huiText('Use the zoom controls')),
         ]),
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
-          Component.text('Drag elements to move'),
+          Component.text(huiText('Drag elements to move')),
         ]),
       ]),
     ]);
@@ -294,7 +295,10 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
 
   // --- frame loop -----------------------------------------------------------
 
-  void _onStoreChanged() => _markDirty();
+  void _onStoreChanged() {
+    _statusDirty = true;
+    _markDirty();
+  }
 
   void _markDirty() {
     if (_disposed) return;
@@ -326,14 +330,30 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     _statusDirty = false;
     status.setZoom(_view.zoom.toDouble());
     status.setHint(
-      _hint ??
-          switch (_dragMode) {
-            _PreviewDragMode.element => huiPreviewDragHint,
-            _PreviewDragMode.resize => huiPreviewResizeHint,
-            _PreviewDragMode.pan || _PreviewDragMode.none => null,
-          },
+      _hint == null
+          ? switch (_dragMode) {
+              _PreviewDragMode.element => huiText(
+                'Drag to move - whole pixels - one undo step per gesture',
+              ),
+              _PreviewDragMode.resize => huiText(
+                'Drag to resize - whole pixels - one undo step per gesture',
+              ),
+              _PreviewDragMode.pan || _PreviewDragMode.none => null,
+            }
+          : _localizedRefusalHint(_hint!),
     );
   }
+
+  String _localizedRefusalHint(String hint) => switch (hint) {
+    previewExpressionMoveHint => huiText(
+      'This element is positioned by an expression - edit x/y in the inspector',
+    ),
+    previewExpressionResizeHint => huiText(
+      'This element is sized by an expression - edit it in the inspector',
+    ),
+    previewNoResizeHint => huiText('A label has no size to drag'),
+    _ => hint,
+  };
 
   void _schedulePostFrame() {
     if (_postFramePending || _disposed) return;
@@ -342,6 +362,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
       _postFramePending = false;
       if (_disposed) return;
       _attachToDom();
+      _syncStageAriaLabel();
       _syncZoomReadout();
       _syncCanvasSize();
       _markDirty();
@@ -363,6 +384,19 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     _attachListeners(stage);
     _observeResize(stage);
     _ensureMinecraftFont();
+  }
+
+  void _syncStageAriaLabel() {
+    final web.HTMLElement? stage = _stage;
+    final String locale = huiLocalizations.activeLocale;
+    if (stage == null || _renderedAriaLocale == locale) return;
+    _renderedAriaLocale = locale;
+    stage.setAttribute(
+      'aria-label',
+      huiText(
+        'Container preview card. Drag empty canvas to pan on touch, use the zoom controls or scroll to zoom, and drag an element to move it.',
+      ),
+    );
   }
 
   void _attachListeners(web.HTMLElement stage) {
@@ -637,7 +671,13 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
     }
     final int extra = _buildErrors.length - 1;
     strip.textContent = extra > 0
-        ? '${_buildErrors.first}  (+$extra more)'
+        ? huiPlural(
+            'preview.errors.additional',
+            extra,
+            oneEnglish: '{error}  (+{count} more)',
+            otherEnglish: '{error}  (+{count} more)',
+            arguments: <String, Object?>{'error': _buildErrors.first},
+          )
         : _buildErrors.first;
     strip.classList.add('is-visible');
   }

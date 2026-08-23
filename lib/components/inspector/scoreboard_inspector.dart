@@ -19,6 +19,7 @@ import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'line_list_section.dart';
 import 'placeholder_picker.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ScoreboardInspector extends StatefulWidget {
   const ScoreboardInspector({
@@ -59,39 +60,44 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
     ]);
   }
 
-  Widget _header(GlossScoreboardDoc doc) => dom.div(
-    classes: 'hui-inspector-headgroup',
-    <Widget>[
-      dom.div(classes: 'hui-inspector-header is-scoreboard', <Widget>[
-        const HuiEyebrow('Scoreboard'),
-        dom.div(classes: 'hui-inspector-title-row', <Widget>[
-          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
-          const HuiFieldHelp('scoreboard.id'),
+  Widget _header(GlossScoreboardDoc doc) =>
+      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+        dom.div(classes: 'hui-inspector-header is-scoreboard', <Widget>[
+          HuiEyebrow(huiText('Scoreboard')),
+          dom.div(classes: 'hui-inspector-title-row', <Widget>[
+            dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+              Text(_store.menuId),
+            ]),
+            const HuiFieldHelp('scoreboard.id'),
+          ]),
         ]),
-      ]),
-      const dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text('The right-hand sidebar. Only the first 15 lines reach a client.'),
-      ]),
-      HuiRevisionRow(revision: doc.revision),
-    ],
-  );
+        dom.p(classes: 'hui-inspector-lede', <Widget>[
+          Text(
+            huiText(
+              'The right-hand sidebar. Only the first 15 lines reach a client.',
+            ),
+          ),
+        ]),
+        HuiRevisionRow(revision: doc.revision),
+      ]);
 
   Widget _title(GlossScoreboardDoc doc) => InspectorSection(
-    title: 'Title',
+    title: huiText('Title'),
     children: <Widget>[
       HuiField(
-        label: 'Title',
+        label: huiText('Title'),
         required: true,
         trailing: const HuiFieldHelp('scoreboard.title'),
-        help:
-            'Centered above the lines. The rendered form is safely capped '
-            'at 32 UTF-16 units, colour codes included.',
+        help: huiText(
+          'Centered above the lines. The rendered form is safely capped '
+          'at 32 UTF-16 units, colour codes included.',
+        ),
         control: dom.div(<Widget>[
           TextInput(
             value: doc.title,
             size: ComponentSize.sm,
             fullWidth: true,
-            placeholder: '&d&lGloss',
+            placeholder: huiText('&d&lGloss'),
             onInput: (String value) => _store.mutateScoreboard(
               'scoreboard title',
               (GlossScoreboardDoc edited) => edited.title = value,
@@ -118,14 +124,15 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
   );
 
   Widget _lines(GlossScoreboardDoc doc) => HuiLineListSection(
-    title: 'Lines',
+    title: huiText('Lines'),
     docKey: 'scoreboard.lines',
-    addLabel: 'Add line',
+    addLabel: huiText('Add line'),
     itemCount: doc.lines.length,
     issues: _issuesFor('lines['),
-    emptyBody:
-        'The sidebar shows its title and nothing else. Add a line to put '
-        'something under it.',
+    emptyBody: huiText(
+      'The sidebar shows its title and nothing else. Add a line to put '
+      'something under it.',
+    ),
     onAdd: () {
       final int next = doc.lines.length;
       _store.mutateScoreboard(
@@ -151,8 +158,10 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
     final bool beyondRender = index >= glossBoardMaxLines;
     return HuiLineRow(
       value: line,
-      placeholder: '&fText, %papi%, |animation.id|, {{ expression }}',
-      removeLabel: 'Delete line ${index + 1}',
+      placeholder: huiText('&fText, %papi%, |animation.id|, {{ expression }}'),
+      removeLabel: huiText('Delete line {number}', <String, Object?>{
+        'number': index + 1,
+      }),
       beyondRender: beyondRender,
       onChanged: (String value) => _editLine(index, value),
       onFocus: () => _focusedLine = index,
@@ -170,8 +179,8 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
           where: 'in game',
         ),
         if (beyondRender)
-          const dom.span(classes: 'hui-gloss-chip is-missing', <Widget>[
-            Text('past line 15 — not rendered'),
+          dom.span(classes: 'hui-gloss-chip is-missing', <Widget>[
+            Text(huiText('past line 15 — not rendered')),
           ]),
       ],
       onRemove: () =>
@@ -182,14 +191,15 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
   }
 
   Widget _selection(GlossScoreboardDoc doc) => InspectorSection(
-    title: 'Selection',
+    title: huiText('Selection'),
     children: <Widget>[
       HuiSwitchRow(
-        label: 'Hide score numbers',
-        help:
-            'Removes the red numeric column for 1.20.3+ clients. Older '
-            'server versions need ViaVersion\'s hide-scoreboard-numbers '
-            'fallback for newer clients.',
+        label: huiText('Hide score numbers'),
+        help: huiText(
+          'Removes the red numeric column for 1.20.3+ clients. Older '
+          'server versions need ViaVersion\'s hide-scoreboard-numbers '
+          'fallback for newer clients.',
+        ),
         trailing: const HuiFieldHelp('scoreboard.hideNumbers'),
         value: doc.hideNumbers,
         onChanged: (bool value) => _store.mutateScoreboard(
@@ -198,10 +208,11 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
         ),
       ),
       HuiSwitchRow(
-        label: 'Primary board',
-        help:
-            'Volunteers this board as the default for players nothing else '
-            'steers.',
+        label: huiText('Primary board'),
+        help: huiText(
+          'Volunteers this board as the default for players nothing else '
+          'steers.',
+        ),
         trailing: const HuiFieldHelp('scoreboard.primary'),
         value: doc.primary,
         onChanged: (bool value) => _store.mutateScoreboard(
@@ -210,41 +221,43 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
         ),
       ),
       HuiField(
-        label: 'Permission',
+        label: huiText('Permission'),
         trailing: const HuiFieldHelp('scoreboard.permission'),
-        help:
-            '"default" means everyone. Anything else gates the board behind '
-            'gloss.board.<permission>, which operators pass and players '
-            'need granted.',
+        help: huiText(
+          '"default" means everyone. Anything else gates the board behind '
+          'gloss.board.<permission>, which operators pass and players '
+          'need granted.',
+        ),
         control: dom.div(<Widget>[
           TextInput(
             value: doc.permission,
             size: ComponentSize.sm,
             fullWidth: true,
-            placeholder: 'default',
+            placeholder: huiText('default'),
             onInput: (String value) => _store.mutateScoreboard(
               'scoreboard permission',
               (GlossScoreboardDoc edited) => edited.permission = value,
             ),
-            attributes: const <String, String>{
-              'autocomplete': 'off',
-              'spellcheck': 'false',
-            },
+            styles: huiTechnicalInputStyles,
+            attributes: huiTechnicalInputAttributes,
           ),
           if (doc.permissionGated)
             HuiNote(
-              'Gated: players need '
-              '$glossBoardPermissionNodePrefix${doc.effectivePermission}.',
+              huiText('Gated: players need {permission}.', <String, Object?>{
+                'permission':
+                    '$glossBoardPermissionNodePrefix${doc.effectivePermission}',
+              }),
             ),
           HuiInlineIssues(_issuesFor(r'$.permission')),
         ]),
       ),
       HuiField(
-        label: 'Groups',
+        label: huiText('Groups'),
         trailing: const HuiFieldHelp('scoreboard.groups'),
-        help:
-            'Vault group names this board attaches to. Lowercased and '
-            'deduplicated by the server.',
+        help: huiText(
+          'Vault group names this board attaches to. Lowercased and '
+          'deduplicated by the server.',
+        ),
         control: dom.div(<Widget>[
           for (int index = 0; index < doc.groups.length; index++)
             dom.div(classes: 'hui-scoreboard-group-row', <Widget>[
@@ -252,7 +265,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
                 value: doc.groups[index],
                 size: ComponentSize.sm,
                 fullWidth: true,
-                placeholder: 'vip',
+                placeholder: huiText('vip'),
                 onInput: (String value) => _store.mutateScoreboard(
                   'edit group',
                   (GlossScoreboardDoc edited) {
@@ -261,13 +274,11 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
                     }
                   },
                 ),
-                attributes: const <String, String>{
-                  'autocomplete': 'off',
-                  'spellcheck': 'false',
-                },
+                styles: huiTechnicalInputStyles,
+                attributes: huiTechnicalInputAttributes,
               ),
               HuiIconButton(
-                label: 'Remove group',
+                label: huiText('Remove group'),
                 icon: ArcaneIcon.trash2(size: IconSize.sm),
                 onPressed: () => _store.mutateScoreboard('remove group', (
                   GlossScoreboardDoc edited,
@@ -286,7 +297,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
               'add group',
               (GlossScoreboardDoc edited) => edited.groups.add(''),
             ),
-            child: const Text('Add group'),
+            child: Text(huiText('Add group')),
           ),
           HuiInlineIssues(_issuesFor(r'$.groups')),
         ]),

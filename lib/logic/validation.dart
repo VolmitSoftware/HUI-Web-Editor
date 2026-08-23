@@ -1,4 +1,5 @@
 import '../config/defaults.dart' show validateMenuId;
+import '../l10n/hui_localizations.dart';
 import '../model/model.dart';
 import '../services/catalogs.dart';
 import 'canvas_scene.dart' show CanvasOverlap, huiIsBlockLikeMaterial;
@@ -22,18 +23,84 @@ class HuiIssue {
   /// Dotted path into the exported JSON, e.g. `components[2].data.icon.text`.
   final String path;
   final String? componentId;
-  final String message;
+  final String _message;
+  final Map<String, Object?> messageArguments;
+  final String? _pluralKey;
+  final int? _pluralCount;
+  final String? _zeroMessage;
+  final String? _oneMessage;
+  final String? _twoMessage;
+  final String? _fewMessage;
+  final String? _manyMessage;
 
   /// Short suggested remedy, shown as help text next to the issue.
-  final String? fix;
+  final String? _fix;
+  final Map<String, Object?> fixArguments;
 
   const HuiIssue({
     required this.severity,
     required this.path,
-    required this.message,
+    required String message,
+    this.messageArguments = const <String, Object?>{},
     this.componentId,
-    this.fix,
-  });
+    String? fix,
+    this.fixArguments = const <String, Object?>{},
+  }) : _message = message,
+       _fix = fix,
+       _pluralKey = null,
+       _pluralCount = null,
+       _zeroMessage = null,
+       _oneMessage = null,
+       _twoMessage = null,
+       _fewMessage = null,
+       _manyMessage = null;
+
+  const HuiIssue.plural({
+    required this.severity,
+    required this.path,
+    required String pluralKey,
+    required int count,
+    required String oneEnglish,
+    required String otherEnglish,
+    String? zeroEnglish,
+    String? twoEnglish,
+    String? fewEnglish,
+    String? manyEnglish,
+    this.messageArguments = const <String, Object?>{},
+    this.componentId,
+    String? fix,
+    this.fixArguments = const <String, Object?>{},
+  }) : _message = otherEnglish,
+       _fix = fix,
+       _pluralKey = pluralKey,
+       _pluralCount = count,
+       _zeroMessage = zeroEnglish,
+       _oneMessage = oneEnglish,
+       _twoMessage = twoEnglish,
+       _fewMessage = fewEnglish,
+       _manyMessage = manyEnglish;
+
+  String get message {
+    final String? pluralKey = _pluralKey;
+    final int? pluralCount = _pluralCount;
+    final String? oneMessage = _oneMessage;
+    if (pluralKey == null || pluralCount == null || oneMessage == null) {
+      return huiText(_message, messageArguments);
+    }
+    return huiPlural(
+      pluralKey,
+      pluralCount,
+      oneEnglish: oneMessage,
+      otherEnglish: _message,
+      zeroEnglish: _zeroMessage,
+      twoEnglish: _twoMessage,
+      fewEnglish: _fewMessage,
+      manyEnglish: _manyMessage,
+      arguments: messageArguments,
+    );
+  }
+
+  String? get fix => _fix == null ? null : huiText(_fix, fixArguments);
 
   @override
   String toString() => '${severity.name.toUpperCase()} $path: $message';
@@ -58,14 +125,20 @@ HuiIssue? glossMetricInfo(Iterable<String> texts, {String path = r'$'}) {
     }
   }
   if (keys.isEmpty) return null;
-  return HuiIssue(
+  return HuiIssue.plural(
     severity: HuiSeverity.info,
     path: path,
-    message:
-        'Reads ${keys.length == 1 ? 'the metric' : '${keys.length} metrics'} '
-        '${keys.join(', ')} from other Volmit plugins through the integration '
-        'bridge. The editor has no bridge, so each one previews as its token; '
-        'in game it is empty until the first sample lands.',
+    pluralKey: 'validation.integration_metrics',
+    count: keys.length,
+    oneEnglish:
+        'Reads the metric {keys} from other Volmit plugins through the '
+        'integration bridge. The editor has no bridge, so it previews as '
+        'its token; in game it is empty until the first sample lands.',
+    otherEnglish:
+        'Reads {count} metrics {keys} from other Volmit plugins through the '
+        'integration bridge. The editor has no bridge, so each one previews '
+        'as its token; in game it is empty until the first sample lands.',
+    messageArguments: <String, Object?>{'keys': keys.join(', ')},
     fix:
         'Nothing to fix if the publishing plugin is installed. Check the key '
         'spelling if it stays blank in game.',
@@ -85,8 +158,8 @@ List<HuiIssue> glossTextExpressionIssues(
           severity: HuiSeverity.warning,
           path: field.path,
           message:
-              'This Gloss expression cannot run: $error. The raw {{ ... }} '
-              'code stays visible in game.',
+              "This Gloss expression cannot run: {error}. The raw {{ ... }} code stays visible in game.",
+          messageArguments: <String, Object?>{'error': error},
           fix: 'Correct the expression syntax, function, variable, or type.',
         ),
       );
@@ -333,14 +406,23 @@ class _Validator {
 
   String? _componentId;
 
-  void _add(HuiSeverity severity, String path, String message, {String? fix}) {
+  void _add(
+    HuiSeverity severity,
+    String path,
+    String message, {
+    String? fix,
+    Map<String, Object?> messageArguments = const <String, Object?>{},
+    Map<String, Object?> fixArguments = const <String, Object?>{},
+  }) {
     issues.add(
       HuiIssue(
         severity: severity,
         path: path,
         message: message,
+        messageArguments: messageArguments,
         componentId: _componentId,
         fix: fix,
+        fixArguments: fixArguments,
       ),
     );
   }
@@ -431,9 +513,9 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         'components[$index]',
-        'Hitbox overlaps "${overlap.secondId}": only the nearest component '
-            'fires, so one can hide the other across this region',
+        "Hitbox overlaps \"{secondId}\": only the nearest component fires, so one can hide the other across this region",
         fix: 'Move or shrink one of them, or make one a decoration',
+        messageArguments: <String, Object?>{'secondId': overlap.secondId},
       );
     }
     _componentId = null;
@@ -486,9 +568,9 @@ class _Validator {
         _add(
           HuiSeverity.warning,
           '$path.id',
-          'Duplicate component id "$id": the plugin keeps the first component '
-              'and ignores later duplicates',
+          "Duplicate component id \"{id}\": the plugin keeps the first component and ignores later duplicates",
           fix: 'Rename this component to a unique id',
+          messageArguments: <String, Object?>{'id': id},
         );
       }
     }
@@ -568,8 +650,9 @@ class _Validator {
       _add(
         HuiSeverity.error,
         path,
-        '$label components must be finite numbers',
+        "{label} components must be finite numbers",
         fix: 'Set finite right, up and forward offsets',
+        messageArguments: <String, Object?>{'label': label},
       );
     }
   }
@@ -667,6 +750,13 @@ class _Validator {
         for (int i = 0; i < animated.source.length; i++) {
           _validateImagePath(animated.source[i], '$path.source[$i]');
         }
+        if (animated.speed < 2 || animated.speed > 1200) {
+          _add(
+            HuiSeverity.error,
+            '$path.speed',
+            'Animated image speed must be between 2 and 1200 ticks',
+          );
+        }
       case final HuiItemIcon item:
         _validateMaterial(item.item, '$path.item');
       case final HuiBlockIcon block:
@@ -686,16 +776,20 @@ class _Validator {
       _add(
         HuiSeverity.error,
         '$path.billboard',
-        'Unknown billboard mode "${style.billboard}"',
+        "Unknown billboard mode \"{billboard}\"",
         fix: 'Use fixed, vertical, horizontal or center',
+        messageArguments: <String, Object?>{'billboard': style.billboard},
       );
     }
     if (!huiIconTextAlignments.contains(style.textAlignment)) {
       _add(
         HuiSeverity.error,
         '$path.textAlignment',
-        'Unknown text alignment "${style.textAlignment}"',
+        "Unknown text alignment \"{textAlignment}\"",
         fix: 'Use center, left or right',
+        messageArguments: <String, Object?>{
+          'textAlignment': style.textAlignment,
+        },
       );
     }
     _validateArgb(style.backgroundArgb, '$path.backgroundArgb');
@@ -763,8 +857,12 @@ class _Validator {
     _add(
       HuiSeverity.error,
       path,
-      'Display style value must be finite and between $minimum and $maximum',
+      "Display style value must be finite and between {minimum} and {maximum}",
       fix: 'Set a value in the supported range',
+      messageArguments: <String, Object?>{
+        'minimum': minimum,
+        'maximum': maximum,
+      },
     );
   }
 
@@ -797,9 +895,12 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         '$path.provider',
-        'Unknown item provider "$provider"; Gloss has no adapter for it and '
-            'the icon will not resolve',
-        fix: 'Use one of ${huiCustomItemProviders.join(", ")}, or auto',
+        "Unknown item provider \"{provider}\"; Gloss has no adapter for it and the icon will not resolve",
+        fix: "Use one of {join}, or auto",
+        messageArguments: <String, Object?>{'provider': provider},
+        fixArguments: <String, Object?>{
+          'join': huiCustomItemProviders.join(", "),
+        },
       );
     }
 
@@ -807,9 +908,12 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         '$path.count',
-        'Stack count is outside 1-$huiMaxStackCount; the plugin turns anything '
-            'below 1 into 1 and the client cannot draw a larger stack',
-        fix: 'Use a count between 1 and $huiMaxStackCount',
+        "Stack count is outside 1-{huiMaxStackCount}; the plugin turns anything below 1 into 1 and the client cannot draw a larger stack",
+        fix: "Use a count between 1 and {huiMaxStackCount}",
+        messageArguments: <String, Object?>{
+          'huiMaxStackCount': huiMaxStackCount,
+        },
+        fixArguments: <String, Object?>{'huiMaxStackCount': huiMaxStackCount},
       );
     }
 
@@ -824,9 +928,9 @@ class _Validator {
       _add(
         HuiSeverity.info,
         '$path.item',
-        '"$id" is not in the custom item catalog exported from your server; '
-            'the server is the only thing that can confirm it',
+        "\"{id}\" is not in the custom item catalog exported from your server; the server is the only thing that can confirm it",
         fix: 'Re-run /gloss item export if you added the item recently',
+        messageArguments: <String, Object?>{'id': id},
       );
     }
   }
@@ -849,7 +953,8 @@ class _Validator {
         HuiSeverity.error,
         '$path.entity',
         'Entity type must be lowercase with no surrounding whitespace',
-        fix: 'Use ${key.toLowerCase()}',
+        fix: "Use {toLowerCase}",
+        fixArguments: <String, Object?>{'toLowerCase': key.toLowerCase()},
       );
     }
     if (!_registryKeyPattern.hasMatch(key)) {
@@ -926,10 +1031,9 @@ class _Validator {
         _add(
           HuiSeverity.error,
           '$path.player',
-          '"$trimmed" can never resolve: a lookup needs 1 to 16 characters of '
-              'A-Z, a-z, 0-9 or underscore, so this icon always draws the '
-              'fallback head',
+          "\"{trimmed}\" can never resolve: a lookup needs 1 to 16 characters of A-Z, a-z, 0-9 or underscore, so this icon always draws the fallback head",
           fix: 'Use a Minecraft username, or a placeholder that expands to one',
+          messageArguments: <String, Object?>{'trimmed': trimmed},
         );
       }
     }
@@ -971,7 +1075,10 @@ class _Validator {
         HuiSeverity.error,
         '$path.block',
         'Block material must be lowercase with no surrounding whitespace',
-        fix: 'Use ${key.trim().toLowerCase()}',
+        fix: "Use {toLowerCase}",
+        fixArguments: <String, Object?>{
+          'toLowerCase': key.trim().toLowerCase(),
+        },
       );
     }
     if (!_registryKeyPattern.hasMatch(key)) {
@@ -988,8 +1095,9 @@ class _Validator {
       _add(
         HuiSeverity.error,
         '$path.block',
-        'Block material "$key" is not in the material catalog',
+        "Block material \"{key}\" is not in the material catalog",
         fix: 'Pick a known Bukkit block material',
+        messageArguments: <String, Object?>{'key': key},
       );
       return;
     }
@@ -997,8 +1105,9 @@ class _Validator {
       _add(
         HuiSeverity.error,
         '$path.block',
-        'Material "$key" is not a block',
+        "Material \"{key}\" is not a block",
         fix: 'Pick a block from the block browser',
+        messageArguments: <String, Object?>{'key': key},
       );
     }
   }
@@ -1008,8 +1117,10 @@ class _Validator {
     _add(
       HuiSeverity.error,
       path,
-      'Entity $label must be finite, greater than 0, and at most 64 blocks',
-      fix: 'Set a positive $label between 0 and 64 blocks',
+      "Entity {label} must be finite, greater than 0, and at most 64 blocks",
+      fix: "Set a positive {label} between 0 and 64 blocks",
+      messageArguments: <String, Object?>{'label': label},
+      fixArguments: <String, Object?>{'label': label},
     );
   }
 
@@ -1032,12 +1143,11 @@ class _Validator {
         _add(
           HuiSeverity.info,
           path,
-          'Text hitboxes are sized by character count, not by how wide the '
-          'glyphs look: $chars characters make this click plane $blocks '
-          'blocks wide at UI scale 1',
+          "Text hitboxes are sized by character count, not by how wide the glyphs look: {chars} characters make this click plane {blocks} blocks wide at UI scale 1",
           fix:
               'Shorten the line, or leave room around it; the canvas hitbox '
               'outline shows the real extent',
+          messageArguments: <String, Object?>{'chars': chars, 'blocks': blocks},
         );
       }
     }
@@ -1051,9 +1161,12 @@ class _Validator {
             ? 'Uses dynamic text: it is rendered when the icon opens and '
                   'then frozen because refreshTicks is 0'
             : 'Uses live functions, expressions or PAPI: it refreshes every '
-                  '${refreshTicks ?? 10} ticks. Native Gloss values do not '
+                  '{ticks} ticks. Native Gloss values do not '
                   'require PlaceholderAPI.',
         fix: null,
+        messageArguments: frozen
+            ? const <String, Object?>{}
+            : <String, Object?>{'ticks': refreshTicks ?? 10},
       );
     }
   }
@@ -1114,9 +1227,9 @@ class _Validator {
       _add(
         HuiSeverity.info,
         jsonPath,
-        'Image "$path" is not in the image library; make sure it exists in '
-        'plugins/Gloss/images/',
+        "Image \"{path}\" is not in the image library; make sure it exists in plugins/Gloss/images/",
         fix: 'Upload the image so it ships with the exported zip',
+        messageArguments: <String, Object?>{'path': path},
       );
     }
   }
@@ -1139,7 +1252,8 @@ class _Validator {
         'Material key must be lowercase: NamespacedKey rejects uppercase, so '
         'the item resolves to null and the icon falls back to the '
         'missing-icon placeholder',
-        fix: 'Use ${material.toLowerCase()}',
+        fix: "Use {toLowerCase}",
+        fixArguments: <String, Object?>{'toLowerCase': material.toLowerCase()},
       );
       return;
     }
@@ -1157,9 +1271,9 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         path,
-        'Material "$material" is not in the material catalog; it may still be '
-        'valid on a newer server',
+        "Material \"{material}\" is not in the material catalog; it may still be valid on a newer server",
         fix: 'Double-check the spelling against the item picker',
+        messageArguments: <String, Object?>{'material': material},
       );
     }
   }
@@ -1172,8 +1286,10 @@ class _Validator {
         _add(
           HuiSeverity.error,
           '$actionPath.trigger',
-          'Action trigger "${action.trigger}" is not recognized',
-          fix: 'Use ${huiActionTriggers.join(", ")}',
+          "Action trigger \"{trigger}\" is not recognized",
+          fix: "Use {join}",
+          messageArguments: <String, Object?>{'trigger': action.trigger},
+          fixArguments: <String, Object?>{'join': huiActionTriggers.join(", ")},
         );
       }
       switch (action) {
@@ -1269,8 +1385,9 @@ class _Validator {
       _add(
         HuiSeverity.error,
         path,
-        '$label must be a finite number',
+        "{label} must be a finite number",
         fix: 'Enter a normal numeric value',
+        messageArguments: <String, Object?>{'label': label},
       );
     }
   }
@@ -1280,8 +1397,10 @@ class _Validator {
       _add(
         HuiSeverity.error,
         '$path.mode',
-        'Navigation mode "${action.mode}" is not recognized',
-        fix: 'Use ${huiNavigationModes.join(", ")}',
+        "Navigation mode \"{mode}\" is not recognized",
+        fix: "Use {join}",
+        messageArguments: <String, Object?>{'mode': action.mode},
+        fixArguments: <String, Object?>{'join': huiNavigationModes.join(", ")},
       );
     }
     if (action.requiresTarget && action.target.trim().isEmpty) {
@@ -1332,7 +1451,8 @@ class _Validator {
         'This command targets the retired /holoui root; the merged Gloss '
             'plugin does not register it, so clicking prints an '
             'unknown-command message',
-        fix: 'Use "$replacement"',
+        fix: "Use \"{replacement}\"",
+        fixArguments: <String, Object?>{'replacement': replacement},
       );
     }
 
@@ -1345,18 +1465,17 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         '$path.source',
-        '"$playerOnly" only works for a player, and source "server" '
-            'runs this action from the console, so clicking does nothing but '
-            'print a player-only notice to the server log',
+        "\"{playerOnly}\" only works for a player, and source \"server\" runs this action from the console, so clicking does nothing but print a player-only notice to the server log",
         fix: 'Set the source to "player"',
+        messageArguments: <String, Object?>{'playerOnly': playerOnly},
       );
     } else if (!huiCommandSources.contains(action.source)) {
       _add(
         HuiSeverity.warning,
         '$path.source',
-        'Command source "${action.source}" is not recognized; Gloss resolves '
-            'it to null and uses the player default',
+        "Command source \"{source}\" is not recognized; Gloss resolves it to null and uses the player default",
         fix: 'Use "player" or "server"',
+        messageArguments: <String, Object?>{'source': action.source},
       );
     }
   }
@@ -1376,7 +1495,8 @@ class _Validator {
         '$path.sound',
         'Sound key must be lowercase: NamespacedKey rejects uppercase and the '
             'sound resolves to null',
-        fix: 'Use ${sound.toLowerCase()}',
+        fix: "Use {toLowerCase}",
+        fixArguments: <String, Object?>{'toLowerCase': sound.toLowerCase()},
       );
     } else if (!_registryKeyPattern.hasMatch(sound)) {
       _add(
@@ -1391,9 +1511,9 @@ class _Validator {
         _add(
           HuiSeverity.warning,
           '$path.sound',
-          'Sound "$sound" is not in the sound catalog; it may still be valid '
-              'on a newer server',
+          "Sound \"{sound}\" is not in the sound catalog; it may still be valid on a newer server",
           fix: 'Double-check the spelling against the sound picker',
+          messageArguments: <String, Object?>{'sound': sound},
         );
       }
     }
@@ -1405,9 +1525,12 @@ class _Validator {
       _add(
         HuiSeverity.warning,
         '$path.source',
-        'Sound source "${action.source}" is not one of '
-            '${huiSoundSources.join(", ")}, so the sound falls back to master',
+        "Sound source \"{source}\" is not one of {join}, so the sound falls back to master",
         fix: 'Pick a sound category, for example master',
+        messageArguments: <String, Object?>{
+          'source': action.source,
+          'join': huiSoundSources.join(", "),
+        },
       );
     }
 

@@ -1,6 +1,7 @@
 library;
 
 import '../state/editor_store.dart';
+import '../l10n/hui_localizations.dart';
 import 'storage_service.dart';
 
 const String _themeStorageKey = 'gloss.theme';
@@ -22,7 +23,8 @@ Future<LocalDataResetResult> resetAllLocalEditorData(
     return LocalDataResetResult(
       success: false,
       message:
-          store.workspace.lastError ?? 'Browser storage refused the reset.',
+          store.workspace.lastError ??
+          huiText('Browser storage refused the reset.'),
     );
   }
   final bool imagesCleared = store.images?.clear() ?? true;
@@ -30,6 +32,10 @@ Future<LocalDataResetResult> resetAllLocalEditorData(
   final bool themeSaved = StorageService.write(
     _themeStorageKey,
     isDarkMode ? 'dark' : 'light',
+  );
+  final bool localeSaved = StorageService.write(
+    huiLocaleStorageKey,
+    huiLocalizations.activeLocale,
   );
   store.images?.load();
   store.resetLocalPreferences();
@@ -39,17 +45,20 @@ Future<LocalDataResetResult> resetAllLocalEditorData(
       store.workspace.docs.isEmpty &&
       store.workspace.folders.isEmpty &&
       !store.workspace.hasUnsavedChanges;
-  if (imagesCleared && localStorageCleared && themeSaved && workspaceReady) {
-    return const LocalDataResetResult(
+  if (imagesCleared &&
+      localStorageCleared &&
+      themeSaved &&
+      localeSaved &&
+      workspaceReady) {
+    return LocalDataResetResult(
       success: true,
-      message: 'Local data cleared. The workspace is empty.',
+      message: huiText('Local data cleared. The workspace is empty.'),
     );
   }
-  return const LocalDataResetResult(
+  return LocalDataResetResult(
     success: false,
-    message:
-        'The workspace was reset, but some browser data could not be cleared '
-        'or the empty workspace could not be saved. Reload and verify local '
-        'data before continuing.',
+    message: huiText(
+      'The workspace was reset, but some browser data could not be cleared or the empty workspace could not be saved. Reload and verify local data before continuing.',
+    ),
   );
 }

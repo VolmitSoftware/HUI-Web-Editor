@@ -41,6 +41,7 @@ import '../../preview/projection.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_text_line.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Animation playback repaint period. Fine enough for the 1 ms floor to look
 /// continuous without running a menu-preview-grade frame loop.
@@ -234,7 +235,7 @@ class _HologramViewState extends State<HologramView> {
       if (component.gameContext) {
         return glossGameEmpty(
           anchor: GlossGameAnchor.world,
-          label: 'Hologram in game',
+          label: huiText('Hologram in game'),
         );
       }
       return const dom.div(classes: 'hui-hologram-stage is-empty', <Widget>[]);
@@ -279,9 +280,9 @@ class _HologramViewState extends State<HologramView> {
     final Widget stage = dom.div(
       id: _stageId,
       classes: 'hui-hologram-stage',
-      attributes: const <String, String>{
+      attributes: <String, String>{
         'role': 'img',
-        'aria-label': 'Hologram stage preview',
+        'aria-label': huiText('Hologram stage preview'),
       },
       events: <String, EventCallback>{
         'pointerdown': _onPointerDown,
@@ -297,27 +298,31 @@ class _HologramViewState extends State<HologramView> {
         if (placement != null) _anchorMarker(placement),
         dom.div(
           classes: 'hui-hologram-controls',
-          attributes: const <String, String>{
+          attributes: <String, String>{
             'role': 'group',
-            'aria-label': 'Hologram preview controls',
+            'aria-label': huiText('Hologram preview controls'),
           },
           events: <String, EventCallback>{'pointerdown': _stopPointer},
           <Widget>[
             _cameraAction(
-              label: 'Zoom out',
+              label: huiText('Zoom out'),
               icon: ArcaneIcon.zoomOut(size: IconSize.sm),
               onPressed: () => _zoomBy(1.25),
             ),
             dom.span(classes: 'hui-hologram-zoom', <Widget>[
-              Text('$zoomPercent%'),
+              Text(
+                huiText("{zoomPercent}%", <String, Object?>{
+                  'zoomPercent': zoomPercent,
+                }),
+              ),
             ]),
             _cameraAction(
-              label: 'Zoom in',
+              label: huiText('Zoom in'),
               icon: ArcaneIcon.zoomIn(size: IconSize.sm),
               onPressed: () => _zoomBy(0.8),
             ),
             _cameraAction(
-              label: 'Reset view',
+              label: huiText('Reset view'),
               icon: ArcaneIcon.maximize(size: IconSize.sm),
               onPressed: _resetCamera,
             ),
@@ -326,16 +331,27 @@ class _HologramViewState extends State<HologramView> {
         if (!component.gameContext)
           dom.div(classes: 'hui-hologram-readout', <Widget>[
             Text(
-              '${doc.anchor.world.isEmpty ? '(no world)' : doc.anchor.world} '
-              '${position[0].toStringAsFixed(2)}, '
-              '${position[1].toStringAsFixed(2)}, '
-              '${position[2].toStringAsFixed(2)} · '
-              'TextDisplay · ${hologramBillboardNote(doc.billboard)}'
-              '${plane.isEdgeOn ? ' · edge-on from here, so it draws as '
-                    'nothing — in game too' : plane.isMirrored
-                    ? ' · reading it from behind now'
-                    : ''} · '
-              'drag to orbit, wheel or controls to zoom',
+              huiText(
+                '{world} {x}, {y}, {z} · TextDisplay · {billboard}{viewNote} · '
+                'drag to orbit, wheel or controls to zoom',
+                <String, Object?>{
+                  'world': doc.anchor.world.isEmpty
+                      ? huiText('(no world)')
+                      : doc.anchor.world,
+                  'x': position[0].toStringAsFixed(2),
+                  'y': position[1].toStringAsFixed(2),
+                  'z': position[2].toStringAsFixed(2),
+                  'billboard': hologramBillboardNote(doc.billboard),
+                  'viewNote': plane.isEdgeOn
+                      ? huiText(
+                          ' · edge-on from here, so it draws as nothing — '
+                          'in game too',
+                        )
+                      : plane.isMirrored
+                      ? huiText(' · reading it from behind now')
+                      : '',
+                },
+              ),
             ),
           ]),
       ],
@@ -344,7 +360,7 @@ class _HologramViewState extends State<HologramView> {
     if (!component.gameContext) return stage;
     return GlossGameScreen(
       anchor: GlossGameAnchor.world,
-      label: 'Hologram in game',
+      label: huiText('Hologram in game'),
       child: stage,
     );
   }

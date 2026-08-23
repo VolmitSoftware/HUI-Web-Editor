@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'dart:math' as math;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
@@ -23,13 +25,13 @@ final class MenuDocumentType extends DocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.menu;
 
   @override
-  String get noun => 'menu';
+  String get noun => huiText('menu');
 
   @override
-  String get createLabel => 'New menu';
+  String get createLabel => huiText('New menu');
 
   @override
-  String get pluralLabel => 'Menus';
+  String get pluralLabel => huiText('Menus');
 
   @override
   int get tabOrder => 10;
@@ -38,10 +40,10 @@ final class MenuDocumentType extends DocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.canvas;
 
   @override
-  String get surfaceLabel => 'Canvas';
+  String get surfaceLabel => huiText('Canvas');
 
   @override
-  String? get contentsTabLabel => 'Components';
+  String? get contentsTabLabel => huiText('Components');
 
   @override
   bool get hasRuntimeId => true;
@@ -67,7 +69,7 @@ final class MenuDocumentType extends DocumentTypeAdapter {
   @override
   void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>
       store.newDocument(
-        name: 'New menu',
+        name: huiText('New menu'),
         runtimeId: runtimeId,
         folderId: folderId,
       );
@@ -85,17 +87,19 @@ final class MenuDocumentType extends DocumentTypeAdapter {
       return AdoptedDocument(
         editorId: editorId,
         model: createDefaultMenu(),
-        failure:
-            'The saved document "${doc.title}" was unreadable '
-            '(${e.message}) and was replaced with a new menu.',
+        failureResolver: () => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a new menu.',
+          <String, Object?>{'title': doc.title, 'error': e.message},
+        ),
       );
     } catch (_) {
       return AdoptedDocument(
         editorId: editorId,
         model: createDefaultMenu(),
-        failure:
-            'The saved document "${doc.title}" was unreadable and was '
-            'replaced with a new menu.',
+        failureResolver: () => huiText(
+          'The saved document "{title}" was unreadable and was replaced with a new menu.',
+          <String, Object?>{'title': doc.title},
+        ),
       );
     }
   }
@@ -140,8 +144,10 @@ final class MenuDocumentType extends DocumentTypeAdapter {
       menu = decodeHuiMenu(doc.json);
     } catch (_) {
       return MenuRenameRewrite(
-        failure:
-            'Cannot safely rename while menu "${doc.runtimeId}" is unreadable.',
+        failureResolver: () => huiText(
+          'Cannot safely rename while menu "{id}" is unreadable.',
+          <String, Object?>{'id': doc.runtimeId},
+        ),
       );
     }
     final int changed = _rewriteNavigationTargets(menu, previous, next);

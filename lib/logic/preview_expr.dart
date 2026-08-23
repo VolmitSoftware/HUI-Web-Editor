@@ -23,6 +23,8 @@
 /// DOM-free: this file is pure logic and runs on the VM under `dart test`.
 library;
 
+import '../l10n/hui_localizations.dart';
+
 /// Evaluation errors carry no source position — the tree they walk has no
 /// remaining source text to point at. Parse errors always carry one.
 const int previewNoPosition = -1;
@@ -33,17 +35,37 @@ const int previewNoPosition = -1;
 const int previewMaxExprDepth = 256;
 
 class PExprException implements Exception {
-  final String message;
+  final String _message;
+  final Map<String, Object?> arguments;
 
   /// Source character offset, or [previewNoPosition] for evaluation errors.
   final int position;
 
-  const PExprException(this.message, this.position);
+  const PExprException(
+    String message,
+    this.position, [
+    this.arguments = const <String, Object?>{},
+  ]) : _message = message;
+
+  String get englishMessage => _message;
+
+  Object get localizedMessageArgument => _PExprLocalizedMessage(this);
+
+  String get message => huiText(_message, arguments);
 
   @override
   String toString() => position == previewNoPosition
       ? 'PExprException: $message'
       : 'PExprException: $message (at $position)';
+}
+
+final class _PExprLocalizedMessage {
+  const _PExprLocalizedMessage(this.exception);
+
+  final PExprException exception;
+
+  @override
+  String toString() => exception.message;
 }
 
 // ---------------------------------------------------------------------------
@@ -668,7 +690,11 @@ Object evalPreviewExpr(PExpr expr, PExprScope scope) {
     case PVar(name: final String name):
       final Object? value = scope.variable(name);
       if (value == null) {
-        throw PExprException('unknown variable: $name', previewNoPosition);
+        throw PExprException(
+          'unknown variable: {name}',
+          previewNoPosition,
+          <String, Object?>{'name': name},
+        );
       }
       return value;
     case PUnary():
@@ -685,7 +711,11 @@ Object evalPreviewExpr(PExpr expr, PExprScope scope) {
       ];
       final Object? result = scope.call(name, values);
       if (result == null) {
-        throw PExprException('unknown function: $name', previewNoPosition);
+        throw PExprException(
+          'unknown function: {name}',
+          previewNoPosition,
+          <String, Object?>{'name': name},
+        );
       }
       return result;
   }
@@ -740,8 +770,9 @@ Object _evalUnary(PUnary u, PExprScope scope) {
       return !previewRequireBool(value);
     default:
       throw PExprException(
-        'unknown unary operator: ${u.op}',
+        'unknown unary operator: {operator}',
         previewNoPosition,
+        <String, Object?>{'operator': u.op},
       );
   }
 }
@@ -791,7 +822,11 @@ Object _evalBinary(PBinary b, PExprScope scope) {
     case '>=':
       return previewRequireNumber(left) >= previewRequireNumber(right);
     default:
-      throw PExprException('unknown binary operator: $op', previewNoPosition);
+      throw PExprException(
+        'unknown binary operator: {operator}',
+        previewNoPosition,
+        <String, Object?>{'operator': op},
+      );
   }
 }
 
@@ -807,8 +842,12 @@ bool _valuesEqual(Object? left, Object? right) {
     return left == right;
   }
   throw PExprException(
-    'cannot compare ${previewTypeName(left)} and ${previewTypeName(right)}',
+    'cannot compare {leftType} and {rightType}',
     previewNoPosition,
+    <String, Object?>{
+      'leftType': previewTypeName(left),
+      'rightType': previewTypeName(right),
+    },
   );
 }
 
@@ -821,8 +860,9 @@ double previewRequireNumber(Object? value) {
     return value;
   }
   throw PExprException(
-    'expected number, got ${previewTypeName(value)}',
+    'expected number, got {type}',
     previewNoPosition,
+    <String, Object?>{'type': previewTypeName(value)},
   );
 }
 
@@ -831,8 +871,9 @@ bool previewRequireBool(Object? value) {
     return value;
   }
   throw PExprException(
-    'expected boolean, got ${previewTypeName(value)}',
+    'expected boolean, got {type}',
     previewNoPosition,
+    <String, Object?>{'type': previewTypeName(value)},
   );
 }
 
@@ -846,19 +887,19 @@ double _requireNonZero(Object? value) {
 
 String previewTypeName(Object? value) {
   if (value == null) {
-    return 'null';
+    return huiText('null');
   }
   if (value is double) {
-    return 'number';
+    return huiText('number');
   }
   if (value is String) {
-    return 'string';
+    return huiText('string');
   }
   if (value is bool) {
-    return 'boolean';
+    return huiText('boolean');
   }
   if (value is List) {
-    return 'list';
+    return huiText('list');
   }
   return value.runtimeType.toString();
 }
@@ -877,8 +918,9 @@ String previewStringify(Object? value) {
     return value ? 'true' : 'false';
   }
   throw PExprException(
-    'cannot convert ${previewTypeName(value)} to string',
+    'cannot convert {type} to string',
     previewNoPosition,
+    <String, Object?>{'type': previewTypeName(value)},
   );
 }
 

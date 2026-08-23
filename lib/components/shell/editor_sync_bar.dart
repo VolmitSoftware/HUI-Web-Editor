@@ -4,6 +4,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import '../../services/editor_sync.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class EditorSyncControls {
   const EditorSyncControls({
@@ -26,27 +27,39 @@ class EditorSyncControls {
 
   bool get canPublish => busy == false && canPublishEditorSyncStatus(status);
 
-  String get publishLabel => busy ? 'Publishing…' : 'Publish to Server';
+  String get publishLabel =>
+      busy ? huiText('Publishing…') : huiText('Publish to Server');
 
   String get publishHint => switch (status) {
-    EditorSyncStatus.connected =>
-      'Publish the connected $subjectId project for server validation and apply.',
-    EditorSyncStatus.applied =>
-      'Publish new changes to the connected $subjectId server project.',
-    EditorSyncStatus.rejected =>
+    EditorSyncStatus.connected => huiText(
+      'Publish the connected {subject} project for server validation and apply.',
+      <String, Object?>{'subject': subjectId},
+    ),
+    EditorSyncStatus.applied => huiText(
+      'Publish new changes to the connected {subject} server project.',
+      <String, Object?>{'subject': subjectId},
+    ),
+    EditorSyncStatus.rejected => huiText(
       'The last publication was rejected. Fix the reported issue, then publish again.',
-    EditorSyncStatus.pending =>
+    ),
+    EditorSyncStatus.pending => huiText(
       'The server is still validating and applying the current publication.',
-    EditorSyncStatus.conflict =>
+    ),
+    EditorSyncStatus.conflict => huiText(
       'Resolve the server revision conflict before publishing again.',
-    EditorSyncStatus.expired =>
+    ),
+    EditorSyncStatus.expired => huiText(
       'This server capability expired. Create a new link in Minecraft.',
-    EditorSyncStatus.revoked =>
+    ),
+    EditorSyncStatus.revoked => huiText(
       'This server capability was revoked. Create a new link in Minecraft.',
-    EditorSyncStatus.disconnected =>
+    ),
+    EditorSyncStatus.disconnected => huiText(
       'This tab is disconnected from the server project.',
-    EditorSyncStatus.unavailable =>
+    ),
+    EditorSyncStatus.unavailable => huiText(
       'The configured sync relay is currently unavailable.',
+    ),
   };
 }
 
@@ -83,13 +96,13 @@ class EditorSyncBar extends StatelessWidget {
           size: ButtonSize.sm,
           onPressed: controls.onCopyLink,
           icon: ArcaneIcon.copy(size: IconSize.sm),
-          label: 'Copy link',
+          label: huiText('Copy link'),
         ),
         Button.ghost(
           size: ButtonSize.sm,
           onPressed: controls.onDisconnect,
           icon: ArcaneIcon.unlink(size: IconSize.sm),
-          label: 'Disconnect',
+          label: huiText('Disconnect'),
         ),
       ]),
     ],
@@ -97,13 +110,13 @@ class EditorSyncBar extends StatelessWidget {
 }
 
 String _label(EditorSyncStatus status) => switch (status) {
-  EditorSyncStatus.connected => 'Connected',
-  EditorSyncStatus.pending => 'Pending server apply',
-  EditorSyncStatus.applied => 'Applied',
-  EditorSyncStatus.conflict => 'Conflict',
-  EditorSyncStatus.rejected => 'Rejected',
-  EditorSyncStatus.expired => 'Expired',
-  EditorSyncStatus.revoked => 'Revoked',
-  EditorSyncStatus.disconnected => 'Disconnected',
-  EditorSyncStatus.unavailable => 'Relay unavailable',
+  EditorSyncStatus.connected => huiText('Connected'),
+  EditorSyncStatus.pending => huiText('Pending server apply'),
+  EditorSyncStatus.applied => huiText('Applied'),
+  EditorSyncStatus.conflict => huiText('Conflict'),
+  EditorSyncStatus.rejected => huiText('Rejected'),
+  EditorSyncStatus.expired => huiText('Expired'),
+  EditorSyncStatus.revoked => huiText('Revoked'),
+  EditorSyncStatus.disconnected => huiText('Disconnected'),
+  EditorSyncStatus.unavailable => huiText('Relay unavailable'),
 };

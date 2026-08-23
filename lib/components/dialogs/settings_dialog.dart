@@ -18,6 +18,7 @@ import '../../state/editor_store.dart';
 import '../common/common.dart';
 import '../panels/two_step_button.dart';
 import 'dialog_parts.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class SettingsDialog extends StatelessWidget {
   const SettingsDialog({
@@ -60,13 +61,13 @@ class SettingsDialog extends StatelessWidget {
     id: 'hui-settings-dialog',
     isOpen: isOpen,
     onClose: onClose,
-    title: 'Settings',
+    title: huiText('Settings'),
     maxWidth: 720,
     actions: <Widget>[
       Button(
         variant: ButtonVariant.outline,
         onPressed: onClose,
-        label: 'Close',
+        label: huiText('Close'),
       ),
     ],
     children: <Widget>[
@@ -85,24 +86,44 @@ class SettingsDialog extends StatelessWidget {
     final HuiCustomItemCatalog? parsed = HuiCustomItemCatalog.parse(picked.$2);
     if (parsed == null) {
       toast.error(
-        '${picked.$1} is not a Gloss custom item catalog. Run /gloss item '
-        'export and pick the file it names.',
+        huiText(
+          "{value} is not a Gloss custom item catalog. Run /gloss item export and pick the file it names.",
+          <String, Object?>{'value': picked.$1},
+        ),
       );
       return;
     }
     store.setCatalogs(store.catalogs.withCustomItems(parsed));
     if (!HuiCustomItemCatalog.store(picked.$2)) {
       toast.warning(
-        'Loaded ${parsed.items.length} items, but this browser refused to '
-        'save them, so they are gone on reload.',
+        huiPlural(
+          'custom_items.storage_failure',
+          parsed.items.length,
+          oneEnglish:
+              'Loaded {count} item, but this browser refused to save it, so it will be gone after a reload.',
+          otherEnglish:
+              'Loaded {count} items, but this browser refused to save them, so they will be gone after a reload.',
+        ),
       );
       return;
     }
+    final String itemCount = huiPlural(
+      'custom_items.item_count',
+      parsed.items.length,
+      oneEnglish: '{count} custom item',
+      otherEnglish: '{count} custom items',
+    );
+    final String providerCount = huiPlural(
+      'custom_items.provider_count',
+      parsed.providers.length,
+      oneEnglish: '{count} provider',
+      otherEnglish: '{count} providers',
+    );
     toast.success(
-      'Loaded ${parsed.items.length} custom item'
-      '${parsed.items.length == 1 ? '' : 's'} from '
-      '${parsed.providers.length} provider'
-      '${parsed.providers.length == 1 ? '' : 's'}.',
+      huiText('Loaded {items} from {providers}.', <String, Object?>{
+        'items': itemCount,
+        'providers': providerCount,
+      }),
     );
   }
 
@@ -111,7 +132,7 @@ class SettingsDialog extends StatelessWidget {
     store.setCatalogs(
       store.catalogs.withCustomItems(HuiCustomItemCatalog.empty()),
     );
-    toast.warning('Custom item catalog cleared.');
+    toast.warning(huiText('Custom item catalog cleared.'));
   }
 
   Widget _body() => dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
@@ -124,27 +145,34 @@ class SettingsDialog extends StatelessWidget {
   Widget _customItems() {
     final HuiCustomItemCatalog catalog = store.catalogs.customItems;
     return HuiDialogSection(
-      title: 'Custom item catalog',
-      description:
-          'Optional. Only powers autocomplete and the canvas preview '
-          'for customItem icons; ids always work without it.',
+      title: huiText('Custom item catalog'),
+      description: huiText(
+        'Optional. Only powers autocomplete and the canvas preview '
+        'for customItem icons; ids always work without it.',
+      ),
       children: <Widget>[
         HuiChips(
           labels: <String>[
             if (catalog.isEmpty)
-              'no catalog loaded'
+              huiText('no catalog loaded')
             else ...<String>[
-              '${catalog.items.length} item'
-                  '${catalog.items.length == 1 ? '' : 's'}',
+              huiPlural(
+                'settings.custom_items.count',
+                catalog.items.length,
+                oneEnglish: '{count} item',
+                otherEnglish: '{count} items',
+              ),
               ...catalog.providers,
             ],
           ],
         ),
-        const dom.p(classes: 'hui-dialog-note', <Widget>[
+        dom.p(classes: 'hui-dialog-note', <Widget>[
           Text(
-            'Run /gloss item export on your server, then import '
-            'plugins/Gloss/custom-items.json here. The server is still '
-            'the only thing that can confirm an id.',
+            huiText(
+              'Run /gloss item export on your server, then import '
+              'plugins/Gloss/custom-items.json here. The server is still '
+              'the only thing that can confirm an id.',
+            ),
           ),
         ]),
         dom.div(classes: 'hui-catalog-actions', <Widget>[
@@ -152,12 +180,12 @@ class SettingsDialog extends StatelessWidget {
             variant: ButtonVariant.outline,
             size: ButtonSize.sm,
             onPressed: _importCustomItems,
-            child: const Text('Import custom item catalog'),
+            child: Text(huiText('Import custom item catalog')),
           ),
           if (catalog.isNotEmpty)
             HuiTwoStepButton(
-              label: 'Forget catalog',
-              confirmLabel: 'Forget it',
+              label: huiText('Forget catalog'),
+              confirmLabel: huiText('Forget it'),
               icon: ArcaneIcon.trash2(size: IconSize.sm),
               onConfirm: _forgetCustomItems,
             ),
@@ -167,32 +195,35 @@ class SettingsDialog extends StatelessWidget {
   }
 
   Widget _appearance() => HuiDialogSection(
-    title: 'Appearance',
-    description: 'Stored in this browser at gloss.theme.',
+    title: huiText('Appearance'),
+    description: huiText('Stored in this browser at gloss.theme.'),
     children: <Widget>[
       HuiField(
-        label: 'Dark mode',
+        label: huiText('Dark mode'),
         inline: true,
         help: onToggleTheme == null
-            ? 'The theme switch is wired up by the editor shell.'
-            : 'The page is stamped before paint, so reloading never '
-                  'flashes the wrong theme.',
+            ? huiText('The theme switch is wired up by the editor shell.')
+            : huiText(
+                'The page is stamped before paint, so reloading never flashes the wrong theme.',
+              ),
         control: ArcaneToggleSwitch(
           value: isDarkMode,
           disabled: onToggleTheme == null,
           onChanged: (bool _) => onToggleTheme?.call(),
-          label: isDarkMode ? 'Dark' : 'Light',
+          label: isDarkMode ? huiText('Dark') : huiText('Light'),
         ),
       ),
     ],
   );
 
   Widget _canvas() => HuiDialogSection(
-    title: 'Canvas defaults',
-    description: 'Preview only. None of this is written to the menu file.',
+    title: huiText('Canvas defaults'),
+    description: huiText(
+      'Preview only. None of this is written to the menu file.',
+    ),
     children: <Widget>[
       HuiField(
-        label: 'Show grid',
+        label: huiText('Show grid'),
         inline: true,
         control: ArcaneToggleSwitch(
           value: store.showGrid,
@@ -200,7 +231,7 @@ class SettingsDialog extends StatelessWidget {
         ),
       ),
       HuiField(
-        label: 'Snap to grid',
+        label: huiText('Snap to grid'),
         inline: true,
         control: ArcaneToggleSwitch(
           value: store.snapToGrid,
@@ -208,58 +239,61 @@ class SettingsDialog extends StatelessWidget {
         ),
       ),
       HuiField(
-        label: 'Grid size',
-        help: 'Blocks per snap step. 0.05 matches the arrow-key nudge.',
+        label: huiText('Grid size'),
+        help: huiText(
+          'Blocks per snap step. 0.05 matches the arrow-key nudge.',
+        ),
         control: HuiNumberField(
           value: store.gridSize,
           min: 0.01,
           max: 1,
           step: 0.05,
           onChanged: (double value) => store.gridSize = value,
-          suffix: 'blocks',
+          suffix: huiText('blocks'),
         ),
       ),
       HuiField(
-        label: 'Show anchors',
+        label: huiText('Show anchors'),
         inline: true,
-        help: 'Draws the component anchor dots and the menu centre.',
+        help: huiText('Draws the component anchor dots and the menu centre.'),
         control: ArcaneToggleSwitch(
           value: store.showAnchors,
           onChanged: (bool value) => store.showAnchors = value,
         ),
       ),
       HuiField(
-        label: 'Show hitboxes',
+        label: huiText('Show hitboxes'),
         inline: true,
-        help: 'Mirrors the plugin debugHitbox particles.',
+        help: huiText('Mirrors the plugin debugHitbox particles.'),
         control: ArcaneToggleSwitch(
           value: store.showHitboxes,
           onChanged: (bool value) => store.showHitboxes = value,
         ),
       ),
       HuiField(
-        label: 'True render offsets',
+        label: huiText('True render offsets'),
         inline: true,
-        help:
-            'Applies the in-game vertical bias: text sits lower than its '
-            'anchor and items lower still. Turn it off to author against '
-            'clean anchors.',
+        help: huiText(
+          'Applies the in-game vertical bias: text sits lower than its '
+          'anchor and items lower still. Turn it off to author against '
+          'clean anchors.',
+        ),
         control: ArcaneToggleSwitch(
           value: store.trueRender,
           onChanged: (bool value) => store.trueRender = value,
         ),
       ),
       HuiField(
-        label: 'Backdrop',
+        label: huiText('Backdrop'),
         control: ArcaneSelect(
           value: store.backdrop.name,
           size: ComponentSize.sm,
           fullWidth: true,
-          options: const <ArcaneSelectOption>[
-            ArcaneSelectOption(label: 'Screenshot', value: 'image'),
-            ArcaneSelectOption(label: 'Dark', value: 'dark'),
-            ArcaneSelectOption(label: 'Light', value: 'light'),
-            ArcaneSelectOption(label: 'None', value: 'none'),
+          options: <ArcaneSelectOption>[
+            ArcaneSelectOption(label: huiText('Screenshot'), value: 'image'),
+            ArcaneSelectOption(label: huiText('Dark'), value: 'dark'),
+            ArcaneSelectOption(label: huiText('Light'), value: 'light'),
+            ArcaneSelectOption(label: huiText('None'), value: 'none'),
           ],
           onChange: (String value) {
             for (final HuiBackdropMode mode in HuiBackdropMode.values) {
@@ -288,11 +322,12 @@ class SettingsDialog extends StatelessWidget {
   Widget _uiScale() {
     final String value = store.previewUiScale.toStringAsFixed(2);
     return HuiField(
-      label: 'Server uiScale (preview)',
-      help:
-          'The real value lives in plugins/Gloss/settings.json and is '
-          'global for the server. It multiplies every offset and every '
-          'icon size.',
+      label: huiText('Server uiScale (preview)'),
+      help: huiText(
+        'The real value lives in plugins/Gloss/settings.json and is '
+        'global for the server. It multiplies every offset and every '
+        'icon size.',
+      ),
       // Always mounted, disabled at 1.00: a button that appears only once the
       // value moves would shift the row's header as the user drags.
       trailing: Button(
@@ -301,9 +336,9 @@ class SettingsDialog extends StatelessWidget {
         disabled: store.previewUiScale == 1,
         onPressed: () => store.previewUiScale = 1,
         icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
-        label: 'Reset',
-        attributes: const <String, String>{
-          'aria-label': 'Reset uiScale to 1.00',
+        label: huiText('Reset'),
+        attributes: <String, String>{
+          'aria-label': huiText('Reset uiScale to 1.00'),
         },
       ),
       control: dom.div(classes: 'hui-range-row', <Widget>[
@@ -317,14 +352,16 @@ class SettingsDialog extends StatelessWidget {
           // wraps this body rebuilds it, exactly as the toolbar does.
           onInput: (num next) =>
               store.previewUiScale = (next.toDouble() * 100).round() / 100,
-          attributes: const <String, String>{
+          attributes: <String, String>{
             'min': '0.25',
             'max': '4',
             'step': '0.05',
-            'aria-label': 'Server uiScale (preview)',
+            'aria-label': huiText('Server uiScale (preview)'),
           },
         ),
-        dom.span(classes: 'hui-range-value', <Widget>[Text('${value}x')]),
+        dom.span(classes: 'hui-range-value', <Widget>[
+          Text(huiText("{value}x", <String, Object?>{'value': value})),
+        ]),
       ]),
     );
   }
@@ -333,36 +370,51 @@ class SettingsDialog extends StatelessWidget {
     final int used = StorageService.estimateUsageBytes();
     final int workspaceBytes = store.workspace.estimateBytes();
     return HuiDialogSection(
-      title: 'Local data',
-      description:
-          'Documents use transactional IndexedDB storage. Images and '
-          'preferences remain in this browser too. Nothing is uploaded.',
+      title: huiText('Local data'),
+      description: huiText(
+        'Documents use transactional IndexedDB storage. Images and '
+        'preferences remain in this browser too. Nothing is uploaded.',
+      ),
       children: <Widget>[
         HuiChips(
           labels: <String>[
-            '${huiFormatBytes(workspaceBytes)} workspace',
-            '${huiFormatBytes(used)} localStorage',
-            '${store.workspace.docs.length} document'
-                '${store.workspace.docs.length == 1 ? '' : 's'}',
-            '${store.images?.images.length ?? 0} image'
-                '${(store.images?.images.length ?? 0) == 1 ? '' : 's'}',
+            huiText('{size} workspace', <String, Object?>{
+              'size': huiFormatBytes(workspaceBytes),
+            }),
+            huiText('{size} localStorage', <String, Object?>{
+              'size': huiFormatBytes(used),
+            }),
+            huiPlural(
+              'settings.documents.count',
+              store.workspace.docs.length,
+              oneEnglish: '{count} document',
+              otherEnglish: '{count} documents',
+            ),
+            huiPlural(
+              'settings.images.count',
+              store.images?.images.length ?? 0,
+              oneEnglish: '{count} image',
+              otherEnglish: '{count} images',
+            ),
             if (!StorageService.isWritable)
-              'image and preference storage is read-only',
+              huiText('image and preference storage is read-only'),
           ],
         ),
-        const dom.p(classes: 'hui-dialog-note', <Widget>[
+        dom.p(classes: 'hui-dialog-note', <Widget>[
           Text(
-            'Each workspace save retains the previous committed transaction '
-            'for recovery. Resetting removes both copies, every stored image '
-            'and the canvas preferences, then starts one new empty document. '
-            'The reset reports an error if any browser store refuses its part. '
-            'Only the light or dark choice survives. Export anything you want '
-            'to keep first.',
+            huiText(
+              'Each workspace save retains the previous committed transaction '
+              'for recovery. Resetting removes both copies, every stored image '
+              'and the canvas preferences, then starts one new empty document. '
+              'The reset reports an error if any browser store refuses its part. '
+              'Only the light or dark choice survives. Export anything you want '
+              'to keep first.',
+            ),
           ),
         ]),
         HuiTwoStepButton(
-          label: 'Reset local data',
-          confirmLabel: 'Erase everything',
+          label: huiText('Reset local data'),
+          confirmLabel: huiText('Erase everything'),
           icon: ArcaneIcon.trash2(size: IconSize.sm),
           onConfirm: _resetLocalData,
         ),

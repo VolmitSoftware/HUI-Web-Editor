@@ -13,6 +13,7 @@ import '../../logic/validation.dart';
 import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_session.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// One inspector section: uppercase eyebrow, optional trailing control, body.
 /// Sections are separated by hairlines, never by nested cards.
@@ -135,8 +136,12 @@ class _InspectorSectionState extends State<InspectorSection> {
       'type': 'button',
       'aria-expanded': open ? 'true' : 'false',
       'aria-label': open
-          ? 'Collapse ${component.title}'
-          : 'Expand ${component.title}',
+          ? huiText('Collapse {title}', <String, Object?>{
+              'title': component.title,
+            })
+          : huiText('Expand {title}', <String, Object?>{
+              'title': component.title,
+            }),
     },
     events: dom.events<Null>(onClick: _toggle),
     <Widget>[
@@ -148,7 +153,11 @@ class _InspectorSectionState extends State<InspectorSection> {
       HuiEyebrow(component.title),
       if (!open)
         dom.span(classes: 'hui-inspector-section-count', <Widget>[
-          Text('${component.children.length}'),
+          Text(
+            huiText("{length}", <String, Object?>{
+              'length': component.children.length,
+            }),
+          ),
         ]),
     ],
   );
@@ -290,6 +299,8 @@ class HuiDetailRow extends StatelessWidget {
             'overflow-wrap': 'anywhere',
             if (mono)
               'font-family': 'var(--font-mono, ui-monospace, monospace)',
+            if (mono) 'direction': 'ltr',
+            if (mono) 'unicode-bidi': 'isolate',
           },
         ),
         <Widget>[Text(value)],
@@ -331,7 +342,7 @@ class HuiRevisionRow extends StatelessWidget {
         styles: const dom.Styles(
           raw: <String, String>{'flex': '1 1 auto', 'min-width': '0'},
         ),
-        <Widget>[HuiDetailRow('Revision', '$revision')],
+        <Widget>[HuiDetailRow(huiText('Revision'), '$revision')],
       ),
       HuiFieldHelp(docKey),
     ],
@@ -465,7 +476,7 @@ class _HuiArmedButtonState extends State<HuiArmedButton> {
         if (component.iconOnly)
           HuiIconButton(
             icon: ArcaneIcon.check(size: IconSize.sm),
-            label: component.armedLabel ?? 'Confirm',
+            label: component.armedLabel ?? huiText('Confirm'),
             variant: ButtonVariant.destructive,
             onPressed: _confirm,
           )
@@ -477,13 +488,13 @@ class _HuiArmedButtonState extends State<HuiArmedButton> {
             onPressed: _confirm,
             icon: ArcaneIcon.check(size: IconSize.sm),
             attributes: <String, String>{
-              'aria-label': component.armedLabel ?? 'Confirm',
+              'aria-label': component.armedLabel ?? huiText('Confirm'),
             },
-            child: Text(component.armedLabel ?? 'Confirm'),
+            child: Text(component.armedLabel ?? huiText('Confirm')),
           ),
         HuiIconButton(
           icon: ArcaneIcon.x(size: IconSize.sm),
-          label: 'Cancel',
+          label: huiText('Cancel'),
           onPressed: () => setState(() => _armed = false),
         ),
       ],
@@ -803,7 +814,10 @@ class HuiSliderField extends StatelessWidget {
       if (resetTo != null)
         HuiIconButton(
           icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
-          label: 'Reset $label to ${_text(resetTo!)}',
+          label: huiText("Reset {label} to {text}", <String, Object?>{
+            'label': label,
+            'text': _text(resetTo!),
+          }),
           disabled: value == resetTo,
           onPressed: () => onChanged(resetTo!),
         ),
@@ -999,17 +1013,17 @@ class HuiRowTools extends StatelessWidget {
     <Widget>[
       HuiIconButton(
         icon: ArcaneIcon.chevronUp(size: IconSize.sm),
-        label: 'Move up',
+        label: huiText('Move up'),
         onPressed: onMoveUp,
       ),
       HuiIconButton(
         icon: ArcaneIcon.chevronDown(size: IconSize.sm),
-        label: 'Move down',
+        label: huiText('Move down'),
         onPressed: onMoveDown,
       ),
       HuiArmedButton(
         label: removeLabel,
-        armedLabel: 'Remove',
+        armedLabel: huiText('Remove'),
         icon: ArcaneIcon.trash2(size: IconSize.sm),
         iconOnly: true,
         onConfirm: onRemove,

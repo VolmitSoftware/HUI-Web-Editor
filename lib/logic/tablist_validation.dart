@@ -61,9 +61,8 @@ List<HuiIssue> validateTablistDoc(
         severity: HuiSeverity.info,
         path: r'$.nameFormats',
         message:
-            'Gloss normalizes the format keys to '
-            '[${effectiveKeys.join(', ')}] — trimmed, lowercased, blank '
-            'keys dropped.',
+            "Gloss normalizes the format keys to [{join}] — trimmed, lowercased, blank keys dropped.",
+        messageArguments: <String, Object?>{'join': effectiveKeys.join(', ')},
         fix: 'Write the normalized keys to keep the file honest.',
       ),
     );
@@ -90,16 +89,20 @@ List<HuiIssue> validateTablistDoc(
           severity: HuiSeverity.info,
           path: r'$.nameFormats',
           message:
-              'The "${entry.key}" format is blank, which RESETS matching '
-              'players to their vanilla list name rather than applying an '
-              'empty one.',
+              "The \"{key}\" format is blank, which RESETS matching players to their vanilla list name rather than applying an empty one.",
+          messageArguments: <String, Object?>{'key': entry.key},
           fix: 'Give it a format, or keep the reset deliberately.',
         ),
       );
     }
   }
 
-  void danglingRefs(String text, String path, String where) {
+  void danglingRefs(
+    String text,
+    String path,
+    String message, {
+    Map<String, Object?> messageArguments = const <String, Object?>{},
+  }) {
     for (final String reference in glossLineMissingAnimationRefs(
       text,
       animations,
@@ -108,9 +111,11 @@ List<HuiIssue> validateTablistDoc(
         HuiIssue(
           severity: HuiSeverity.warning,
           path: path,
-          message:
-              '|$reference| names an animation document this workspace does '
-              'not have; the text will show literally in $where.',
+          message: message,
+          messageArguments: <String, Object?>{
+            'reference': reference,
+            ...messageArguments,
+          },
           fix:
               'Create the animation document or pick an existing one from '
               'the reference picker.',
@@ -119,10 +124,26 @@ List<HuiIssue> validateTablistDoc(
     }
   }
 
-  danglingRefs(doc.header, r'$.header', 'the tab header');
-  danglingRefs(doc.footer, r'$.footer', 'the tab footer');
+  danglingRefs(
+    doc.header,
+    r'$.header',
+    '|{reference}| names an animation document this workspace does not have; '
+        'the text will show literally in the tab header.',
+  );
+  danglingRefs(
+    doc.footer,
+    r'$.footer',
+    '|{reference}| names an animation document this workspace does not have; '
+        'the text will show literally in the tab footer.',
+  );
   for (final MapEntry<String, String> entry in effective.entries) {
-    danglingRefs(entry.value, r'$.nameFormats', 'the "${entry.key}" list name');
+    danglingRefs(
+      entry.value,
+      r'$.nameFormats',
+      '|{reference}| names an animation document this workspace does not have; '
+          'the text will show literally in the "{key}" list name.',
+      messageArguments: <String, Object?>{'key': entry.key},
+    );
   }
 
   final HuiIssue? metrics = glossMetricInfo(<String>[

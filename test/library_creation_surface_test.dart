@@ -9,8 +9,8 @@ void main() {
   final String css = File('web/styles/09-workspace.css').readAsStringSync();
 
   test('library exposes two labeled creation controls', () {
-    expect(source, contains("label: 'Folder'"));
-    expect(source, contains("label: 'New document'"));
+    expect(source, contains("label: huiText('Folder')"));
+    expect(source, contains("label: huiText('New document')"));
     expect(source, isNot(contains('Widget _iconButton(')));
     expect(css, isNot(contains('repeat(auto-fit, minmax(34px, 1fr))')));
   });

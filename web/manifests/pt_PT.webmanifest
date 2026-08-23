@@ -1,0 +1,23 @@
+{
+  "name": "Editor do Gloss",
+  "short_name": "Gloss",
+  "description": "Editor web visual para criar e visualizar configurações de menu Gloss.",
+  "lang": "pt-PT",
+  "dir": "ltr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "icons": [
+    {
+      "src": "../assets/brand/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "../assets/brand/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

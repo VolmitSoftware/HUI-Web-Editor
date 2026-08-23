@@ -8,6 +8,7 @@ library;
 
 import 'dart:math' as math;
 
+import '../l10n/hui_localizations.dart';
 import '../model/model.dart';
 
 /// Fallback file base name. The plugin names the menu after the file, so this
@@ -26,7 +27,7 @@ const double huiDefaultHitboxWidth = 1.0;
 const double huiDefaultHitboxHeight = 0.5;
 
 /// Ticks per animated frame. 2 ticks = 100 ms, which reads as animation without
-/// strobing; anything below 1 is rejected by validation.
+/// strobing; anything below 2 is rejected by validation.
 const int huiDefaultAnimationSpeed = 2;
 
 /// What the runtime uses for a text icon that omits `refreshTicks`: ten ticks,
@@ -358,22 +359,26 @@ String sanitizeMenuId(String raw) {
 
 String? validateMenuId(String raw) {
   if (raw.isEmpty || raw != raw.trim()) {
-    return 'Menu id must not be blank or have surrounding whitespace.';
+    return huiText('Menu id must not be blank or have surrounding whitespace.');
   }
   if (raw.length > huiMaxMenuIdLength) {
-    return 'Menu id must be at most $huiMaxMenuIdLength characters.';
+    return huiText(
+      'Menu id must be at most {count} characters.',
+      <String, Object?>{'count': huiMaxMenuIdLength},
+    );
   }
   if (raw.contains('\\')) {
-    return 'Menu id must use forward slashes between folders.';
+    return huiText('Menu id must use forward slashes between folders.');
   }
   for (final String segment in raw.split('/')) {
     if (segment.isEmpty || segment == '.' || segment == '..') {
-      return 'Menu id contains an empty, dot, or traversal segment.';
+      return huiText('Menu id contains an empty, dot, or traversal segment.');
     }
     if (segment.length > huiMaxMenuIdSegmentLength ||
         !_menuIdSegment.hasMatch(segment)) {
-      return 'Each menu id segment must start with a letter or number and use '
-          'only letters, numbers, dots, underscores, or hyphens.';
+      return huiText(
+        'Each menu id segment must start with a letter or number and use only letters, numbers, dots, underscores, or hyphens.',
+      );
     }
   }
   return null;

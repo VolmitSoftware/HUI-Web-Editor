@@ -281,6 +281,16 @@ void main() {
       expect(entity.variable('inventory.size'), 5.0);
       expect(entity.variable('inventory.occupied'), 2.0);
 
+      final PreviewSim poweredMinecart = PreviewSim(
+        'poweredMinecart',
+        lang: lang,
+      );
+      expect(poweredMinecart.variable('blockType'), 'FURNACE_MINECART');
+      expect(poweredMinecart.variable('fuelTicks'), 600.0);
+      expect(poweredMinecart.variable('fuelSeconds'), 30.0);
+      expect(poweredMinecart.variable('powered'), isTrue);
+      expect(poweredMinecart.variable('inventory.size'), isNull);
+
       final PreviewSim statics = PreviewSim('statics', lang: lang);
       expect(statics.variable('blockType'), '');
       expect(statics.variable('inventory.size'), isNull);
@@ -297,6 +307,17 @@ void main() {
       expect(sim.variable('blockType'), '');
       sim.tick(20);
       expect(sim.variable('time'), 1254.0);
+    });
+
+    test('a powered minecart consumes fuel and stops at zero', () {
+      final PreviewSim sim = PreviewSim('poweredMinecart', lang: lang);
+      sim.tick(590);
+      expect(sim.variable('fuelTicks'), 10.0);
+      expect(sim.variable('fuelSeconds'), 0.0);
+      expect(sim.variable('powered'), isTrue);
+      sim.tick(20);
+      expect(sim.variable('fuelTicks'), 0.0);
+      expect(sim.variable('powered'), isFalse);
     });
 
     test('reset restores the canned state but keeps vars', () {

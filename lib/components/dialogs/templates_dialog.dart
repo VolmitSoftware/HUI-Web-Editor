@@ -17,6 +17,7 @@ import '../../doctype/doctype.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'dialog_parts.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class TemplatesDialog extends StatefulWidget {
   const TemplatesDialog({
@@ -87,7 +88,10 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
     if (template == null) return;
     template.create(component.store);
     toast.success(
-      'Created "${template.id}" from the ${template.name} template',
+      huiText("Created \"{id}\" from the {name} template", <String, Object?>{
+        'id': template.id,
+        'name': huiText(template.name),
+      }),
     );
     component.onClose();
   }
@@ -97,19 +101,19 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
     id: 'hui-templates-dialog',
     isOpen: component.isOpen,
     onClose: component.onClose,
-    title: 'Start from a template',
+    title: huiText('Start from a template'),
     maxWidth: 1120,
     actions: <Widget>[
       Button(
         variant: ButtonVariant.outline,
         onPressed: component.onClose,
-        label: 'Cancel',
+        label: huiText('Cancel'),
       ),
       Button(
         variant: ButtonVariant.primary,
         onPressed: _apply,
         icon: ArcaneIcon.plus(size: IconSize.sm),
-        label: 'Create document',
+        label: huiText('Create document'),
       ),
     ],
     children: <Widget>[_body()],
@@ -133,12 +137,14 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
             for (final DocumentTypeAdapter type in _tabs)
               ToggleGroupItem(
                 value: type.kind.name,
-                child: Text(type.templatesTabLabel!),
+                child: Text(huiText(type.templatesTabLabel!)),
               ),
           ],
         ),
       ]),
-      dom.p(classes: 'hui-dialog-note', <Widget>[Text(_kind.templatesNote)]),
+      dom.p(classes: 'hui-dialog-note', <Widget>[
+        Text(huiText(_kind.templatesNote)),
+      ]),
       ..._sections(),
     ],
   );
@@ -165,8 +171,8 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
 
   Widget _groupHeading(String title, String note) =>
       dom.div(classes: 'hui-option-group-head', <Widget>[
-        HuiEyebrow(title),
-        dom.p(classes: 'hui-dialog-note', <Widget>[Text(note)]),
+        HuiEyebrow(huiText(title)),
+        dom.p(classes: 'hui-dialog-note', <Widget>[Text(huiText(note))]),
       ]);
 
   Widget _card(DocumentTemplate template) {
@@ -191,15 +197,20 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
       },
       <Widget>[
         dom.div(classes: 'hui-option-card-head', <Widget>[
-          dom.strong(<Widget>[Text(template.name)]),
+          dom.strong(<Widget>[Text(huiText(template.name))]),
           dom.code(classes: 'hui-option-card-id', <Widget>[
-            Text('${template.id}.json'),
+            Text(huiText("{id}.json", <String, Object?>{'id': template.id})),
           ]),
         ]),
         dom.p(classes: 'hui-option-card-text', <Widget>[
-          Text(template.description),
+          Text(huiText(template.description)),
         ]),
-        HuiChips(labels: template.highlights),
+        HuiChips(
+          labels: <String>[
+            for (final String highlight in template.highlights)
+              huiText(highlight),
+          ],
+        ),
       ],
     );
   }

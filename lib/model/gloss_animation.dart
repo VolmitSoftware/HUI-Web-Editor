@@ -53,7 +53,9 @@ GlossAnimationDoc decodeGlossAnimationDoc(String json) {
   try {
     raw = jsonDecode(json);
   } on FormatException catch (e) {
-    throw HuiFormatException('Invalid JSON: ${e.message}', r'$');
+    throw HuiFormatException('Invalid JSON: {error}', r'$', <String, Object?>{
+      'error': e.message,
+    });
   }
   return GlossAnimationDoc.fromJson(raw);
 }

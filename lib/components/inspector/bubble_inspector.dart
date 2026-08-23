@@ -16,6 +16,7 @@ import '../../logic/bubble_motion.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'preview_expr_field.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class BubbleInspector extends StatefulWidget {
   const BubbleInspector({required this.store, super.key});
@@ -50,33 +51,38 @@ class _BubbleInspectorState extends State<BubbleInspector> {
     ]);
   }
 
-  Widget _header(GlossBubbleStyleDoc doc) => dom.div(
-    classes: 'hui-inspector-headgroup',
-    <Widget>[
-      dom.div(classes: 'hui-inspector-header is-bubble', <Widget>[
-        const HuiEyebrow('Bubble style'),
-        dom.div(classes: 'hui-inspector-title-row', <Widget>[
-          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
-          const HuiFieldHelp('bubble.id'),
+  Widget _header(GlossBubbleStyleDoc doc) =>
+      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+        dom.div(classes: 'hui-inspector-header is-bubble', <Widget>[
+          HuiEyebrow(huiText('Bubble style')),
+          dom.div(classes: 'hui-inspector-title-row', <Widget>[
+            dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+              Text(_store.menuId),
+            ]),
+            const HuiFieldHelp('bubble.id'),
+          ]),
         ]),
-      ]),
-      const dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text('How chat bubbles look and move for players this style selects.'),
-      ]),
-      HuiRevisionRow(revision: doc.revision),
-    ],
-  );
+        dom.p(classes: 'hui-inspector-lede', <Widget>[
+          Text(
+            huiText(
+              'How chat bubbles look and move for players this style selects.',
+            ),
+          ),
+        ]),
+        HuiRevisionRow(revision: doc.revision),
+      ]);
 
   Widget _look(GlossBubbleStyleDoc doc) => InspectorSection(
-    title: 'Look',
+    title: huiText('Look'),
     children: <Widget>[
       HuiField(
-        label: 'Prefix',
+        label: huiText('Prefix'),
         trailing: const HuiFieldHelp('bubble.prefix'),
-        help:
-            'Colour codes prepended to every bubble line. Leaving the key '
-            'out of the file means &7; an explicit empty string stays '
-            'empty.',
+        help: huiText(
+          'Colour codes prepended to every bubble line. Leaving the key '
+          'out of the file means &7; an explicit empty string stays '
+          'empty.',
+        ),
         control: dom.div(<Widget>[
           TextInput(
             value: doc.prefix,
@@ -98,18 +104,19 @@ class _BubbleInspectorState extends State<BubbleInspector> {
           dom.div(classes: 'hui-hologram-line-preview', <Widget>[
             GlossTextLine(
               render: renderGlossLine(
-                '${doc.effectivePrefix}Like this bubble line',
+                '${doc.effectivePrefix}${huiText('Like this bubble line')}',
               ),
             ),
           ]),
         ]),
       ),
       HuiField(
-        label: 'Offset',
+        label: huiText('Offset'),
         trailing: const HuiFieldHelp('bubble.offset'),
-        help:
-            'Blocks added to the sender\'s eye location before stacking. '
-            'The shipped default floats one block up.',
+        help: huiText(
+          'Blocks added to the sender\'s eye location before stacking. '
+          'The shipped default floats one block up.',
+        ),
         control: dom.div(<Widget>[
           HuiVec3Field(
             value: Vec3(doc.offset[0], doc.offset[1], doc.offset[2]),
@@ -126,13 +133,15 @@ class _BubbleInspectorState extends State<BubbleInspector> {
   );
 
   Widget _timing(GlossBubbleStyleDoc doc) => InspectorSection(
-    title: 'Wrap and timing',
+    title: huiText('Wrap and timing'),
     sectionKey: 'bubble.timing',
     children: <Widget>[
       _clampedNumber(
-        label: 'Word wrap',
+        label: huiText('Word wrap'),
         helpKey: 'bubble.wordWrapChars',
-        help: 'Characters per bubble line before the soft wrap. 8..128.',
+        help: huiText(
+          'Characters per bubble line before the soft wrap. 8..128.',
+        ),
         value: doc.wordWrapChars,
         effective: doc.effectiveWordWrapChars,
         path: r'$.wordWrapChars',
@@ -144,9 +153,9 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         }),
       ),
       _clampedNumber(
-        label: 'Lifetime',
+        label: huiText('Lifetime'),
         helpKey: 'bubble.maxAliveMs',
-        help: 'Milliseconds a bubble block lives. 500..60000.',
+        help: huiText('Milliseconds a bubble block lives. 500..60000.'),
         value: doc.maxAliveMs,
         effective: doc.effectiveMaxAliveMs,
         path: r'$.maxAliveMs',
@@ -163,46 +172,51 @@ class _BubbleInspectorState extends State<BubbleInspector> {
   );
 
   Widget _motion(GlossBubbleStyleDoc doc) => InspectorSection(
-    title: 'Motion',
+    title: huiText('Motion'),
     sectionKey: 'bubble.motion',
     children: <Widget>[
-      const HuiNote(
-        'Every field is a live expression. Use t (0..1), remaining, ageMs, '
-        'lifetimeMs, stackIndex, stackCount, lineCount, stackY, seed and pi.',
+      HuiNote(
+        huiText(
+          'Every field is a live expression. Use t (0..1), remaining, ageMs, '
+          'lifetimeMs, stackIndex, stackCount, lineCount, stackY, seed and pi.',
+        ),
       ),
       dom.div(classes: 'hui-bubble-motion-presets', <Widget>[
-        _motionPreset('Static', GlossBubbleMotion.identity),
-        _motionPreset('Legacy fly-away', GlossBubbleMotion.legacyFlyAway),
-        _motionPreset('Fly up', _flyUpMotion),
-        _motionPreset('Fade away', _fadeMotion),
-        _motionPreset('Shrink away', _shrinkMotion),
-        _motionPreset('Arc + fall', _arcMotion),
+        _motionPreset(huiText('Static'), GlossBubbleMotion.identity),
+        _motionPreset(
+          huiText('Legacy fly-away'),
+          GlossBubbleMotion.legacyFlyAway,
+        ),
+        _motionPreset(huiText('Fly up'), _flyUpMotion),
+        _motionPreset(huiText('Fade away'), _fadeMotion),
+        _motionPreset(huiText('Shrink away'), _shrinkMotion),
+        _motionPreset(huiText('Arc + fall'), _arcMotion),
       ]),
       _motionVector(
-        title: 'Translation (blocks)',
+        title: huiText('Translation (blocks)'),
         path: r'$.motion.translation',
         vector: doc.motion.translation,
         onEdit: (GlossBubbleMotion edited) => edited.translation,
       ),
       _motionVector(
-        title: 'Scale',
+        title: huiText('Scale'),
         path: r'$.motion.scale',
         vector: doc.motion.scale,
         onEdit: (GlossBubbleMotion edited) => edited.scale,
       ),
       _motionVector(
-        title: 'Rotation (degrees)',
+        title: huiText('Rotation (degrees)'),
         path: r'$.motion.rotation',
         vector: doc.motion.rotation,
         onEdit: (GlossBubbleMotion edited) => edited.rotation,
       ),
       PreviewExprField(
-        label: 'Opacity',
+        label: huiText('Opacity'),
         raw: doc.motion.opacity,
         kind: PreviewExprKind.string,
         required: true,
-        placeholder: '1 - smoothstep(0.7, 1, t)',
-        help: 'Runtime clamps the result to 0..1.',
+        placeholder: huiText('1 - smoothstep(0.7, 1, t)'),
+        help: huiText('Runtime clamps the result to 0..1.'),
         scope: glossBubbleMotionVariables,
         issues: _issuesFor(r'$.motion.opacity'),
         onChanged: (Object? value) => _store.mutateBubbleStyle(
@@ -232,7 +246,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
     required GlossBubbleMotionVector Function(GlossBubbleMotion motion) onEdit,
   }) => dom.div(<Widget>[
     const dom.div(classes: 'hui-field-separator', <Widget>[]),
-    const HuiEyebrow('Vector'),
+    HuiEyebrow(huiText('Vector')),
     dom.div(classes: 'hui-bubble-motion-grid', <Widget>[
       for (final (String, String) axis in <(String, String)>[
         ('X', vector.x),
@@ -240,7 +254,10 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         ('Z', vector.z),
       ])
         PreviewExprField(
-          label: '$title ${axis.$1}',
+          label: huiText("{title} {value}", <String, Object?>{
+            'title': title,
+            'value': axis.$1,
+          }),
           raw: axis.$2,
           kind: PreviewExprKind.string,
           required: true,
@@ -312,13 +329,15 @@ class _BubbleInspectorState extends State<BubbleInspector> {
   );
 
   Widget _shimmer(GlossBubbleStyleDoc doc) => InspectorSection(
-    title: 'Shimmer',
+    title: huiText('Shimmer'),
     sectionKey: 'bubble.shimmer',
     children: <Widget>[
-      const HuiNote(
-        'One solid three-glyph wave crosses the complete wrapped message. The '
-        'first pass waits 400 ms after chat; the second runs during the final '
-        '700 ms. Wrapped rows share one continuous band instead of restarting.',
+      HuiNote(
+        huiText(
+          'One solid three-glyph wave crosses the complete wrapped message. The '
+          'first pass waits 400 ms after chat; the second runs during the final '
+          '700 ms. Wrapped rows share one continuous band instead of restarting.',
+        ),
       ),
       dom.div(classes: 'hui-bubble-motion-presets', <Widget>[
         Button(
@@ -329,14 +348,15 @@ class _BubbleInspectorState extends State<BubbleInspector> {
             (GlossBubbleStyleDoc edited) =>
                 edited.shimmer = GlossBubbleShimmer(),
           ),
-          child: const Text('Original Gloss'),
+          child: Text(huiText('Original Gloss')),
         ),
       ]),
       HuiSwitchRow(
-        label: 'At spawn',
-        help:
-            'Run one complete left-to-right sweep after the configured spawn '
-            'delay.',
+        label: huiText('At spawn'),
+        help: huiText(
+          'Run one complete left-to-right sweep after the configured spawn '
+          'delay.',
+        ),
         value: doc.shimmer.spawn,
         onChanged: (bool value) => _store.mutateBubbleStyle(
           'bubble spawn shimmer',
@@ -344,11 +364,12 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         ),
       ),
       HuiSwitchRow(
-        label: 'At fly-away',
+        label: huiText('At fly-away'),
         trailing: const HuiFieldHelp('bubble.shimmer.flyAway'),
-        help:
-            'Run a second complete sweep beginning flyAwayLeadMs before '
-            'expiry, alongside the configured motion expressions.',
+        help: huiText(
+          'Run a second complete sweep beginning flyAwayLeadMs before '
+          'expiry, alongside the configured motion expressions.',
+        ),
         value: doc.shimmer.flyAway,
         onChanged: (bool value) => _store.mutateBubbleStyle(
           'bubble fly-away shimmer',
@@ -356,10 +377,11 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         ),
       ),
       HuiField(
-        label: 'Band color',
+        label: huiText('Band color'),
         trailing: const HuiFieldHelp('bubble.shimmer.color'),
-        help:
-            'Every lit glyph in the wave. Exactly six RGB digits in #RRGGBB form.',
+        help: huiText(
+          'Every lit glyph in the wave. Exactly six RGB digits in #RRGGBB form.',
+        ),
         defaultValue: glossBubbleShimmerDefaultColor,
         onReset: doc.shimmer.color == glossBubbleShimmerDefaultColor
             ? null
@@ -372,7 +394,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
           HuiColorField(
             value: doc.shimmer.color,
             format: HuiColorFormat.rgb,
-            label: 'shimmer band colour',
+            label: huiText('shimmer band colour'),
             placeholder: glossBubbleShimmerDefaultColor,
             onChanged: (String value) => _store.mutateBubbleStyle(
               'bubble shimmer color',
@@ -383,9 +405,10 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         ]),
       ),
       _clampedNumber(
-        label: 'Band width',
-        help:
-            'Visible characters lit at once. The original Gloss width is 3. 1..16.',
+        label: huiText('Band width'),
+        help: huiText(
+          'Visible characters lit at once. The original Gloss width is 3. 1..16.',
+        ),
         value: doc.shimmer.width,
         effective: doc.shimmer.effectiveWidth,
         path: r'$.shimmer.width',
@@ -402,11 +425,12 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         ),
       ),
       _clampedNumber(
-        label: 'Sweep duration',
+        label: huiText('Sweep duration'),
         helpKey: 'bubble.shimmer.durationMs',
-        help:
-            'Milliseconds for the band to cross the complete wrapped message. '
-            'Shorter durations refresh and travel faster. 100..10000.',
+        help: huiText(
+          'Milliseconds for the band to cross the complete wrapped message. '
+          'Shorter durations refresh and travel faster. 100..10000.',
+        ),
         value: doc.shimmer.durationMs,
         effective: doc.shimmer.effectiveDurationMs,
         path: r'$.shimmer.durationMs',
@@ -426,8 +450,10 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         ),
       ),
       _clampedNumber(
-        label: 'Spawn delay',
-        help: 'Milliseconds after the bubble appears before the first sweep.',
+        label: huiText('Spawn delay'),
+        help: huiText(
+          'Milliseconds after the bubble appears before the first sweep.',
+        ),
         value: doc.shimmer.spawnDelayMs,
         effective: doc.shimmer.effectiveSpawnDelayMs,
         path: r'$.shimmer.spawnDelayMs',
@@ -448,11 +474,12 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         ),
       ),
       _clampedNumber(
-        label: 'Fly-away lead',
-        help:
-            'Milliseconds before expiry when the second sweep starts from '
-            'the left edge. Match or exceed the sweep duration to show a '
-            'complete pass.',
+        label: huiText('Fly-away lead'),
+        help: huiText(
+          'Milliseconds before expiry when the second sweep starts from '
+          'the left edge. Match or exceed the sweep duration to show a '
+          'complete pass.',
+        ),
         value: doc.shimmer.flyAwayLeadMs,
         effective: doc.shimmer.effectiveFlyAwayLeadMs,
         path: r'$.shimmer.flyAwayLeadMs',
@@ -521,19 +548,25 @@ class _BubbleInspectorState extends State<BubbleInspector> {
           step: step,
           onChanged: (double parsed) => onChanged(parsed.round()),
         ),
-      if (value != effective) HuiNote('The server silently runs $effective.'),
+      if (value != effective)
+        HuiNote(
+          huiText('The server silently runs {effective}.', <String, Object?>{
+            'effective': effective,
+          }),
+        ),
       HuiInlineIssues(_issuesFor(path)),
     ]),
   );
 
   Widget _behavior(GlossBubbleStyleDoc doc) => InspectorSection(
-    title: 'Behavior',
+    title: huiText('Behavior'),
     children: <Widget>[
       HuiSwitchRow(
-        label: 'Follow player',
-        help:
-            'Bubbles track the sender\'s eyes as they move; off keeps them '
-            'where the message was sent.',
+        label: huiText('Follow player'),
+        help: huiText(
+          'Bubbles track the sender\'s eyes as they move; off keeps them '
+          'where the message was sent.',
+        ),
         trailing: const HuiFieldHelp('bubble.followPlayer'),
         value: doc.followPlayer,
         onChanged: (bool value) => _store.mutateBubbleStyle(
@@ -545,8 +578,8 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         ),
       ),
       HuiSwitchRow(
-        label: 'Hide own',
-        help: 'The sender does not see their own bubbles.',
+        label: huiText('Hide own'),
+        help: huiText('The sender does not see their own bubbles.'),
         trailing: const HuiFieldHelp('bubble.hideOwn'),
         value: doc.hideOwn,
         onChanged: (bool value) => _store.mutateBubbleStyle('bubble hideOwn', (
@@ -562,14 +595,16 @@ class _BubbleInspectorState extends State<BubbleInspector> {
   Widget _selection(GlossBubbleStyleDoc doc) {
     final GlossBubbleSelect? select = doc.select;
     return InspectorSection(
-      title: 'Selection',
+      title: huiText('Selection'),
       sectionKey: 'bubble.selection',
       children: <Widget>[
         if (select == null) ...<Widget>[
-          const HuiNote(
-            'No select rule: players reach this style only by explicit '
-            'choice, or as the fallback when the document is named '
-            '"default".',
+          HuiNote(
+            huiText(
+              'No select rule: players reach this style only by explicit '
+              'choice, or as the fallback when the document is named '
+              '"default".',
+            ),
           ),
           Button(
             variant: ButtonVariant.outline,
@@ -580,17 +615,18 @@ class _BubbleInspectorState extends State<BubbleInspector> {
               (GlossBubbleStyleDoc edited) =>
                   edited.select = GlossBubbleSelect(),
             ),
-            child: const Text('Add select rule'),
+            child: Text(huiText('Add select rule')),
           ),
           HuiInlineIssues(_issuesFor(r'$.select')),
         ] else ...<Widget>[
           _selectStrings(
-            label: 'World globs',
+            label: huiText('World globs'),
             helpKey: 'bubble.select.worlds',
-            help:
-                'World-name patterns with * and ? wildcards. Empty matches '
-                'every world.',
-            placeholder: 'world*',
+            help: huiText(
+              'World-name patterns with * and ? wildcards. Empty matches '
+              'every world.',
+            ),
+            placeholder: huiText('world*'),
             values: select.worlds,
             onEdit: (int index, String value) => _store.mutateBubbleStyle(
               'edit select world',
@@ -622,12 +658,13 @@ class _BubbleInspectorState extends State<BubbleInspector> {
             issuesPath: r'$.select.worlds',
           ),
           _selectStrings(
-            label: 'Groups',
+            label: huiText('Groups'),
             helpKey: 'bubble.select.groups',
-            help:
-                'Vault group names, lowercased by the server. Empty skips '
-                'the group check.',
-            placeholder: 'vip',
+            help: huiText(
+              'Vault group names, lowercased by the server. Empty skips '
+              'the group check.',
+            ),
+            placeholder: huiText('vip'),
             values: select.groups,
             onEdit: (int index, String value) => _store.mutateBubbleStyle(
               'edit select group',
@@ -659,11 +696,12 @@ class _BubbleInspectorState extends State<BubbleInspector> {
             issuesPath: r'$.select.groups',
           ),
           HuiField(
-            label: 'Priority',
+            label: huiText('Priority'),
             trailing: const HuiFieldHelp('bubble.select.priority'),
-            help:
-                'Highest matching priority wins; ties go to the smaller '
-                'style id.',
+            help: huiText(
+              'Highest matching priority wins; ties go to the smaller '
+              'style id.',
+            ),
             control: dom.div(<Widget>[
               HuiNumberField(
                 value: select.priority.toDouble(),
@@ -691,7 +729,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
               'remove select',
               (GlossBubbleStyleDoc edited) => edited.select = null,
             ),
-            child: const Text('Remove select rule'),
+            child: Text(huiText('Remove select rule')),
           ),
           HuiInlineIssues(_issuesFor(r'$.select')),
         ],
@@ -720,15 +758,15 @@ class _BubbleInspectorState extends State<BubbleInspector> {
             value: values[index],
             size: ComponentSize.sm,
             fullWidth: true,
+            styles: huiTechnicalInputStyles,
             placeholder: placeholder,
             onInput: (String value) => onEdit(index, value),
-            attributes: const <String, String>{
-              'autocomplete': 'off',
-              'spellcheck': 'false',
-            },
+            attributes: const <String, String>{...huiTechnicalInputAttributes},
           ),
           HuiIconButton(
-            label: 'Remove $label entry',
+            label: huiText("Remove {label} entry", <String, Object?>{
+              'label': label,
+            }),
             icon: ArcaneIcon.trash2(size: IconSize.sm),
             onPressed: () => onRemove(index),
           ),
@@ -738,7 +776,11 @@ class _BubbleInspectorState extends State<BubbleInspector> {
         size: ButtonSize.sm,
         icon: ArcaneIcon.plus(size: IconSize.sm),
         onPressed: onAdd,
-        child: Text('Add ${label.toLowerCase()} entry'),
+        child: Text(
+          huiText("Add {toLowerCase} entry", <String, Object?>{
+            'toLowerCase': label.toLowerCase(),
+          }),
+        ),
       ),
       HuiInlineIssues(_issuesFor(issuesPath)),
     ]),

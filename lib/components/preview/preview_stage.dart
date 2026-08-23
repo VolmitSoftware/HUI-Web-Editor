@@ -32,7 +32,6 @@ import 'dart:math' as math;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
-import 'package:jaspr/jaspr.dart' show Component;
 import 'package:web/web.dart' as web;
 
 import '../../logic/canvas_scene.dart';
@@ -52,6 +51,7 @@ import '../../state/editor_store.dart';
 import '../render/icon_sprites.dart';
 import 'preview_player.dart';
 import 'preview_pose.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Sprites rasterize at twice the scene scale and NEVER at a camera-derived
 /// one: `spriteCacheKey` carries the px-per-block, so a scale that tracked the
@@ -98,6 +98,8 @@ class _PreviewStageState extends State<PreviewStage>
   String get _sceneId => '$_uid-scene';
   String get _bannerId => '$_uid-banner';
   String get _hintId => '$_uid-hint';
+  String get _clickHintId => '$_uid-click-hint';
+  String get _axisHintId => '$_uid-axis-hint';
   String get _crosshairId => '$_uid-crosshair';
 
   late final IconSpriteRasterizer _rasterizer = IconSpriteRasterizer(
@@ -146,6 +148,7 @@ class _PreviewStageState extends State<PreviewStage>
   bool _inputSinceTick = true;
   bool _needsInitialFrame = true;
   bool _crosshairVisible = false;
+  String _renderedChromeLocale = '';
   String _liveSignature = '';
   String _cameraTransform = '';
   bool _renderedPaused = false;
@@ -230,16 +233,7 @@ class _PreviewStageState extends State<PreviewStage>
   late final Widget _stageTree = dom.div(
     id: _stageId,
     classes: 'hui-preview-stage',
-    attributes: const <String, String>{
-      'tabindex': '0',
-      'role': 'application',
-      'aria-label':
-          'Gloss menu preview. Drag to orbit, scroll to dolly, '
-          'space or middle-drag to pan, 0 resets to the open position, '
-          'left or right click fires the nearest hovered component, 1 to 6 '
-          'toggle overlays. In Player mode WASD walks and clicking '
-          'takes the pointer for mouselook.',
-    },
+    attributes: <String, String>{'tabindex': '0', 'role': 'application'},
     <Widget>[
       dom.div(id: _sceneId, classes: 'hui-preview-scene', const <Widget>[]),
       dom.div(
@@ -254,18 +248,15 @@ class _PreviewStageState extends State<PreviewStage>
           classes: 'hui-preview-hint-item',
           const <Widget>[],
         ),
-        const dom.span(classes: 'hui-preview-hint-item', <Widget>[
-          Component.text('Left or right click fires the nearest hitbox'),
-        ]),
-        const dom.span(
+        dom.span(
+          id: _clickHintId,
+          classes: 'hui-preview-hint-item',
+          const <Widget>[],
+        ),
+        dom.span(
+          id: _axisHintId,
           classes: 'hui-preview-hint-item hui-preview-hint-note',
-          <Widget>[
-            Component.text(
-              '+X is the player\'s RIGHT: Gloss negates the JSON x '
-              'at load (MenuSession.java:70), so the menu is mirrored relative '
-              'to the numbers in the file.',
-            ),
-          ],
+          const <Widget>[],
         ),
       ]),
     ],
@@ -1232,11 +1223,19 @@ class _PreviewStageState extends State<PreviewStage>
         .join(' ');
     final int refreshTicks = icon.refreshTicks ?? 10;
     return refreshTicks == 0
-        ? '$tokens: placeholder text resolves initially on the server, then '
-              'stays frozen because refreshTicks is 0. The editor has no '
-              'PlaceholderAPI, so it is drawn verbatim.'
-        : '$tokens: server refresh cadence is $refreshTicks ticks. The '
-              'editor has no PlaceholderAPI, so it is drawn verbatim.';
+        ? huiText(
+            '{tokens}: placeholder text resolves initially on the server, then stays frozen because refreshTicks is 0. The editor has no PlaceholderAPI, so it is drawn verbatim.',
+            <String, Object?>{'tokens': tokens},
+          )
+        : huiPlural(
+            'preview.placeholder.refreshTicks',
+            refreshTicks,
+            oneEnglish:
+                '{tokens}: server refresh cadence is {count} tick. The editor has no PlaceholderAPI, so it is drawn verbatim.',
+            otherEnglish:
+                '{tokens}: server refresh cadence is {count} ticks. The editor has no PlaceholderAPI, so it is drawn verbatim.',
+            arguments: <String, Object?>{'tokens': tokens},
+          );
   }
 
   void _renderCrosshair() {
@@ -1251,13 +1250,29 @@ class _PreviewStageState extends State<PreviewStage>
   void _renderHint() {
     final web.HTMLElement? hint = _hint;
     if (hint == null) return;
+    final String locale = huiLocalizations.activeLocale;
+    if (_renderedChromeLocale != locale) {
+      _renderedChromeLocale = locale;
+      _stage?.setAttribute(
+        'aria-label',
+        huiText(
+          'Gloss menu preview. Drag to orbit, scroll to dolly, space or middle-drag to pan, 0 resets to the open position, left or right click fires the nearest hovered component, 1 to 6 toggle overlays. In Player mode WASD walks and clicking takes the pointer for mouselook.',
+        ),
+      );
+      web.document.getElementById(_clickHintId)?.textContent = huiText(
+        'Left or right click fires the nearest hitbox',
+      );
+      web.document.getElementById(_axisHintId)?.textContent = huiText(
+        '+X is the player\'s RIGHT: Gloss negates the JSON x at load (MenuSession.java:70), so the menu is mirrored relative to the numbers in the file.',
+      );
+    }
     final String text = _playerMode
-        ? 'WASD walks - left/right click activates, Shift selects sneak '
-              'bindings - Esc releases - 0 returns to the open spot - '
-              '1-6 overlays - K pause'
-        : 'Drag orbits - right click activates, Shift selects sneak bindings '
-              '- scroll dollies - space-drag pans - 0 resets - 1-6 overlays '
-              '- K pause';
+        ? huiText(
+            'WASD walks - left/right click activates, Shift selects sneak bindings - Esc releases - 0 returns to the open spot - 1-6 overlays - K pause',
+          )
+        : huiText(
+            'Drag orbits - right click activates, Shift selects sneak bindings - scroll dollies - space-drag pans - 0 resets - 1-6 overlays - K pause',
+          );
     if (hint.textContent == text) return;
     hint.textContent = text;
   }
@@ -1287,24 +1302,28 @@ class _PreviewStageState extends State<PreviewStage>
     // it the banner keeps telling a browser that already refused to click and
     // take the pointer.
     final String signature =
-        '$_playerMode|$locked|$paused|$follows|'
+        '${huiLocalizations.activeLocale}|$_playerMode|$locked|$paused|$follows|'
         '$range|${_input.pointerLockAvailable}|$dismissed';
     if (banner.getAttribute('data-signature') == signature) return;
     banner.setAttribute('data-signature', signature);
     _clear(banner);
     if (!dismissed) {
       final web.HTMLElement head = huiPreviewElement('hui-preview-banner-head');
-      head.append(_text('hui-preview-banner-mode', 'Runtime billboards'));
+      head.append(
+        _text('hui-preview-banner-mode', huiText('Runtime billboards')),
+      );
       head.append(_bannerCloseButton());
       banner.append(head);
       banner.append(
         _text(
           'hui-preview-banner-body',
           follows
-              ? 'Icons honor fixed, vertical, horizontal and center facing. '
-                    'Follow player also updates the menu position and yaw.'
-              : 'Icons honor fixed, vertical, horizontal and center facing; '
-                    'their click planes use the same billboard rule.',
+              ? huiText(
+                  'Icons honor fixed, vertical, horizontal and center facing. Follow player also updates the menu position and yaw.',
+                )
+              : huiText(
+                  'Icons honor fixed, vertical, horizontal and center facing; their click planes use the same billboard rule.',
+                ),
         ),
       );
     }
@@ -1312,28 +1331,35 @@ class _PreviewStageState extends State<PreviewStage>
       _note(
         banner,
         '#ffd479',
-        'Paused (K). Animated frames and obfuscated glyphs are frozen and '
-            'the preview schedules no work at all; hover and clicks still run.',
+        huiText(
+          'Paused (K). Animated frames and obfuscated glyphs are frozen and the preview schedules no work at all; hover and clicks still run.',
+        ),
       );
     }
     if (sphere) {
       // The rings show the boundary; only a number can say WHY it is not the
       // maxDistance the file asked for (`MenuSession.java:147-151`).
-      _note(banner, '#ff7a7a', 'maxDistance $range');
+      _note(
+        banner,
+        '#ff7a7a',
+        huiText('maxDistance {range}', <String, Object?>{'range': range}),
+      );
     }
     if (_playerMode) {
       _note(
         banner,
         '#7fd4ff',
         locked
-            ? 'Player mode: the mouse looks, WASD walks at 4.3 blocks a '
-                  'second, and the crosshair is the look ray the runtime '
-                  'hit-tests. Escape releases the pointer.'
+            ? huiText(
+                'Player mode: the mouse looks, WASD walks at 4.3 blocks a second, and the crosshair is the look ray the runtime hit-tests. Escape releases the pointer.',
+              )
             : _input.pointerLockAvailable
-            ? 'Player mode: click the stage to take the pointer, then the '
-                  'mouse looks and WASD walks. Escape gives it back.'
-            : 'Player mode: this browser refused the pointer lock, so the '
-                  'cursor is the aim instead. WASD still walks.',
+            ? huiText(
+                'Player mode: click the stage to take the pointer, then the mouse looks and WASD walks. Escape gives it back.',
+              )
+            : huiText(
+                'Player mode: this browser refused the pointer lock, so the cursor is the aim instead. WASD still walks.',
+              ),
       );
     }
     // Nothing left to say: the box goes, rather than sitting there empty on
@@ -1350,10 +1376,12 @@ class _PreviewStageState extends State<PreviewStage>
       ..className = 'hui-preview-banner-close'
       ..type = 'button'
       ..textContent = '×';
-    button.setAttribute('aria-label', 'Dismiss the billboard note');
+    button.setAttribute('aria-label', huiText('Dismiss the billboard note'));
     button.setAttribute(
       'title',
-      'Dismiss. The full billboard explanation stays in the preview toolbar.',
+      huiText(
+        'Dismiss. The full billboard explanation stays in the preview toolbar.',
+      ),
     );
     button.addEventListener(
       'pointerdown',

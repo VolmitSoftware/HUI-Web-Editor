@@ -6,6 +6,7 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../model/model.dart';
 import '../../state/workspace_route.dart';
 import 'dialog_parts.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class MenuHandoffDialog extends StatelessWidget {
   const MenuHandoffDialog({
@@ -27,48 +28,55 @@ class MenuHandoffDialog extends StatelessWidget {
       id: 'hui-menu-handoff-dialog',
       isOpen: pending != null,
       onClose: onClose,
-      title: 'Import menu from server',
+      title: huiText('Import menu from server'),
       maxWidth: 720,
       actions: <Widget>[
         Button(
           variant: ButtonVariant.outline,
           onPressed: onClose,
-          label: 'Cancel',
+          label: huiText('Cancel'),
         ),
         Button(
           variant: ButtonVariant.primary,
           disabled: pending == null,
           onPressed: pending == null ? null : onConfirm,
           icon: ArcaneIcon.filePlus(size: IconSize.sm),
-          label: 'Add to library',
+          label: huiText('Add to library'),
         ),
       ],
       children: <Widget>[
         if (pending != null && menu != null)
           dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
-            const ArcaneAlert.warning(
-              message:
-                  'This link cannot replace a document automatically. Review '
-                  'the menu, then add it as a new workspace document.',
+            ArcaneAlert.warning(
+              message: huiText(
+                'This link cannot replace a document automatically. Review the menu, then add it as a new workspace document.',
+              ),
             ),
             HuiDialogSection(
-              title: 'Proposed document',
-              description:
-                  'The runtime id is preserved exactly, including nested '
-                  'folder segments.',
+              title: huiText('Proposed document'),
+              description: huiText(
+                'The runtime id is preserved exactly, including nested '
+                'folder segments.',
+              ),
               children: <Widget>[
                 dom.dl(classes: 'hui-handoff-details', <Widget>[
-                  const dom.dt(<Widget>[Text('Runtime id')]),
+                  dom.dt(<Widget>[Text(huiText('Runtime id'))]),
                   dom.dd(<Widget>[
                     dom.code(<Widget>[Text(pending.runtimeId)]),
                   ]),
-                  const dom.dt(<Widget>[Text('Components')]),
-                  dom.dd(<Widget>[Text('${menu.components.length}')]),
+                  dom.dt(<Widget>[Text(huiText('Components'))]),
+                  dom.dd(<Widget>[
+                    Text(
+                      huiText("{length}", <String, Object?>{
+                        'length': menu.components.length,
+                      }),
+                    ),
+                  ]),
                 ]),
               ],
             ),
             HuiDialogSection(
-              title: 'Menu JSON',
+              title: huiText('Menu JSON'),
               children: <Widget>[
                 HuiCodeBlock(
                   text: pending.json.length <= 12000

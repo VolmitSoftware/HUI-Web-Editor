@@ -22,8 +22,9 @@ class Vec3 {
     }
     if (raw.length != 3) {
       throw HuiFormatException(
-        'Expected exactly 3 numbers, found ${raw.length}',
+        'Expected exactly 3 numbers, found {count}',
         path,
+        <String, Object?>{'count': raw.length},
       );
     }
     return Vec3(

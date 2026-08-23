@@ -558,6 +558,13 @@ void main() {
       expect(previewAutoSimCategory(doc), 'entity');
     });
 
+    test('a furnace minecart document uses its powered simulation', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        match: HuiPreviewMatch(entities: <String>['FURNACE_MINECART']),
+      );
+      expect(previewAutoSimCategory(doc), 'poweredMinecart');
+    });
+
     test('a plain container falls back to a chest', () {
       final HuiPreviewDoc doc = HuiPreviewDoc(
         match: HuiPreviewMatch(blocks: <String>['BARREL']),

@@ -8,6 +8,70 @@ import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
+String _animationTriggerLabel(GlossRealDropAnimationTrigger trigger) =>
+    switch (trigger) {
+      GlossRealDropAnimationTrigger.spawn => huiText('Spawn'),
+      GlossRealDropAnimationTrigger.airborne => huiText('Airborne'),
+      GlossRealDropAnimationTrigger.rebounding => huiText('Rebounding'),
+      GlossRealDropAnimationTrigger.rolling => huiText('Rolling'),
+      GlossRealDropAnimationTrigger.sliding => huiText('Sliding'),
+      GlossRealDropAnimationTrigger.settling => huiText('Settling'),
+      GlossRealDropAnimationTrigger.settled => huiText('Settled'),
+      GlossRealDropAnimationTrigger.submerged => huiText('Submerged'),
+      GlossRealDropAnimationTrigger.floating => huiText('Floating'),
+      GlossRealDropAnimationTrigger.impact => huiText('Impact'),
+      GlossRealDropAnimationTrigger.bounce => huiText('Bounce'),
+      GlossRealDropAnimationTrigger.enterFluid => huiText('Enter fluid'),
+      GlossRealDropAnimationTrigger.exitFluid => huiText('Exit fluid'),
+      GlossRealDropAnimationTrigger.startRoll => huiText('Start roll'),
+      GlossRealDropAnimationTrigger.settle => huiText('Settle'),
+      GlossRealDropAnimationTrigger.wake => huiText('Wake'),
+    };
+
+String _animationTargetLabel(GlossRealDropAnimationTarget target) =>
+    switch (target) {
+      GlossRealDropAnimationTarget.offsetX => huiText('Offset X'),
+      GlossRealDropAnimationTarget.offsetY => huiText('Offset Y'),
+      GlossRealDropAnimationTarget.offsetZ => huiText('Offset Z'),
+      GlossRealDropAnimationTarget.rotationX => huiText('Rotation X'),
+      GlossRealDropAnimationTarget.rotationY => huiText('Rotation Y'),
+      GlossRealDropAnimationTarget.rotationZ => huiText('Rotation Z'),
+      GlossRealDropAnimationTarget.scaleX => huiText('Scale X'),
+      GlossRealDropAnimationTarget.scaleY => huiText('Scale Y'),
+      GlossRealDropAnimationTarget.scaleZ => huiText('Scale Z'),
+      GlossRealDropAnimationTarget.glow => huiText('Glow'),
+      GlossRealDropAnimationTarget.visible => huiText('Visible'),
+      GlossRealDropAnimationTarget.physics => huiText('Physics'),
+      GlossRealDropAnimationTarget.lightLevel => huiText('Light level'),
+    };
+
+String _animationBlendLabel(GlossRealDropAnimationBlend blend) =>
+    switch (blend) {
+      GlossRealDropAnimationBlend.add => huiTextKey(
+        'animation_blend.add',
+        'Add',
+      ),
+      GlossRealDropAnimationBlend.replace => huiTextKey(
+        'animation_blend.replace',
+        'Replace',
+      ),
+      GlossRealDropAnimationBlend.multiply => huiTextKey(
+        'animation_blend.multiply',
+        'Multiply',
+      ),
+    };
+
+String _animationEasingLabel(GlossRealDropAnimationEasing easing) =>
+    switch (easing) {
+      GlossRealDropAnimationEasing.linear => huiText('Linear'),
+      GlossRealDropAnimationEasing.hold => huiText('Hold'),
+      GlossRealDropAnimationEasing.easeIn => huiText('Ease in'),
+      GlossRealDropAnimationEasing.easeOut => huiText('Ease out'),
+      GlossRealDropAnimationEasing.easeInOut => huiText('Ease in/out'),
+      GlossRealDropAnimationEasing.backOut => huiText('Back out'),
+    };
 
 class RealDropAnimationInspector extends StatelessWidget {
   const RealDropAnimationInspector({required this.store, super.key});
@@ -20,15 +84,16 @@ class RealDropAnimationInspector extends StatelessWidget {
   Widget build(BuildContext context) {
     final GlossRealDropAnimation? animation = _doc?.animation;
     return InspectorSection(
-      title: 'Animation authoring',
+      title: huiText('Animation authoring'),
       sectionKey: 'realDrops.animation',
-      description:
-          'Material profiles select trigger clips. Typed tracks animate '
-          'display transforms, visibility, physics gating, glow and light.',
+      description: huiText(
+        'Material profiles select trigger clips. Typed tracks animate '
+        'display transforms, visibility, physics gating, glow and light.',
+      ),
       trailing: const HuiFieldHelp('realDrops.animation'),
       children: <Widget>[
         HuiSwitchRow(
-          label: 'Run animation profiles',
+          label: huiText('Run animation profiles'),
           value: animation?.enabled ?? false,
           onChanged: (bool value) => _mutate(
             'drop animation',
@@ -45,9 +110,9 @@ class RealDropAnimationInspector extends StatelessWidget {
     final List<MapEntry<String, Map<String, GlossRealDropMaterialProperties>>>
     maps = animation?.materialProperties.entries.toList() ?? const [];
     return dom.div(classes: 'hui-drop-animation-group', <Widget>[
-      const dom.div(classes: 'hui-drop-subhead', <Widget>[
-        Text('Material properties'),
-        HuiFieldHelp('realDrops.animation.materialProperties'),
+      dom.div(classes: 'hui-drop-subhead', <Widget>[
+        Text(huiText('Material properties')),
+        const HuiFieldHelp('realDrops.animation.materialProperties'),
       ]),
       for (int mapIndex = 0; mapIndex < maps.length; mapIndex++)
         _propertyMap(maps, mapIndex),
@@ -66,7 +131,7 @@ class RealDropAnimationInspector extends StatelessWidget {
                 '*': GlossRealDropMaterialProperties(),
               };
         }),
-        child: const Text('Add property map'),
+        child: Text(huiText('Add property map')),
       ),
     ]);
   }
@@ -82,10 +147,22 @@ class RealDropAnimationInspector extends StatelessWidget {
         .entries
         .toList();
     return dom.details(classes: 'hui-drop-animation-card', <Widget>[
-      dom.summary(<Widget>[Text('${map.key} · ${entries.length} materials')]),
+      dom.summary(<Widget>[
+        Text(
+          huiText('{key} · {materials}', <String, Object?>{
+            'key': map.key,
+            'materials': huiPlural(
+              'real_drop.material_count',
+              entries.length,
+              oneEnglish: '{count} material',
+              otherEnglish: '{count} materials',
+            ),
+          }),
+        ),
+      ]),
       dom.div(classes: 'hui-drop-animation-card-body', <Widget>[
         _text(
-          'Map name',
+          huiText('Map name'),
           map.key,
           (String value) => _mutate('rename material property map', (
             GlossRealDropAnimation edited,
@@ -110,7 +187,7 @@ class RealDropAnimationInspector extends StatelessWidget {
               target[_freshName('MATERIAL', target.keys)] =
                   GlossRealDropMaterialProperties();
             }),
-            child: const Text('Add material'),
+            child: Text(huiText('Add material')),
           ),
           Button(
             variant: ButtonVariant.ghost,
@@ -120,7 +197,7 @@ class RealDropAnimationInspector extends StatelessWidget {
               (GlossRealDropAnimation edited) =>
                   edited.materialProperties.remove(map.key),
             ),
-            child: const Text('Remove map'),
+            child: Text(huiText('Remove map')),
           ),
         ]),
       ]),
@@ -136,7 +213,7 @@ class RealDropAnimationInspector extends StatelessWidget {
         entries[entryIndex];
     return dom.div(classes: 'hui-drop-animation-row is-material', <Widget>[
       _text(
-        'Material glob',
+        huiText('Material glob'),
         entry.key,
         (String value) => _mutate('edit material property glob', (
           GlossRealDropAnimation edited,
@@ -150,7 +227,7 @@ class RealDropAnimationInspector extends StatelessWidget {
         }),
       ),
       _number(
-        'Glow ARGB',
+        huiText('Glow ARGB'),
         entry.value.glow,
         (double value) => _mutate(
           'edit material glow',
@@ -159,7 +236,7 @@ class RealDropAnimationInspector extends StatelessWidget {
         ),
       ),
       _number(
-        'Light 0..15',
+        huiText('Light 0..15'),
         entry.value.lightLevel,
         (double value) => _mutate(
           'edit material light',
@@ -176,7 +253,7 @@ class RealDropAnimationInspector extends StatelessWidget {
           (GlossRealDropAnimation edited) =>
               edited.materialProperties[mapName]!.remove(entry.key),
         ),
-        child: const Text('Remove'),
+        child: Text(huiText('Remove')),
       ),
     ]);
   }
@@ -185,9 +262,9 @@ class RealDropAnimationInspector extends StatelessWidget {
     final List<GlossRealDropAnimationProfile> profiles =
         animation?.profiles ?? const <GlossRealDropAnimationProfile>[];
     return dom.div(classes: 'hui-drop-animation-group', <Widget>[
-      const dom.div(classes: 'hui-drop-subhead', <Widget>[
-        Text('Profiles and clips'),
-        HuiFieldHelp('realDrops.animation.profiles'),
+      dom.div(classes: 'hui-drop-subhead', <Widget>[
+        Text(huiText('Profiles and clips')),
+        const HuiFieldHelp('realDrops.animation.profiles'),
       ]),
       for (int profileIndex = 0; profileIndex < profiles.length; profileIndex++)
         _profile(profiles[profileIndex], profileIndex),
@@ -207,7 +284,7 @@ class RealDropAnimationInspector extends StatelessWidget {
             edited.enabled = true;
             edited.profiles.add(_hoverReleaseProfile(id));
           }),
-          child: const Text('Add hover/release sequence'),
+          child: Text(huiText('Add hover/release sequence')),
         ),
         Button(
           variant: ButtonVariant.outline,
@@ -225,74 +302,80 @@ class RealDropAnimationInspector extends StatelessWidget {
               ),
             ),
           ),
-          child: const Text('Add profile'),
+          child: Text(huiText('Add profile')),
         ),
       ]),
     ]);
   }
 
-  Widget _profile(
-    GlossRealDropAnimationProfile profile,
-    int profileIndex,
-  ) => dom.details(classes: 'hui-drop-animation-card', <Widget>[
-    dom.summary(<Widget>[Text('${profile.id} · priority ${profile.priority}')]),
-    dom.div(classes: 'hui-drop-animation-card-body', <Widget>[
-      _text(
-        'Profile id',
-        profile.id,
-        (String value) => _editProfile(
-          profileIndex,
-          'rename animation profile',
-          (GlossRealDropAnimationProfile edited) => edited.id = value,
-        ),
-      ),
-      _number(
-        'Priority',
-        profile.priority.toDouble(),
-        (double value) => _editProfile(
-          profileIndex,
-          'edit animation profile priority',
-          (GlossRealDropAnimationProfile edited) =>
-              edited.priority = value.round(),
-        ),
-      ),
-      _text(
-        'Material globs',
-        profile.materials.join(', '),
-        (String value) => _editProfile(
-          profileIndex,
-          'edit animation profile materials',
-          (GlossRealDropAnimationProfile edited) =>
-              edited.materials = _split(value),
-        ),
-      ),
-      for (int clipIndex = 0; clipIndex < profile.clips.length; clipIndex++)
-        _clip(profile.clips[clipIndex], profileIndex, clipIndex),
-      dom.div(classes: 'hui-drop-animation-actions', <Widget>[
-        Button(
-          variant: ButtonVariant.outline,
-          size: ButtonSize.sm,
-          onPressed: () => _editProfile(
-            profileIndex,
-            'add animation clip',
-            (GlossRealDropAnimationProfile edited) =>
-                edited.clips.add(GlossRealDropAnimationClip(durationTicks: 20)),
+  Widget _profile(GlossRealDropAnimationProfile profile, int profileIndex) =>
+      dom.details(classes: 'hui-drop-animation-card', <Widget>[
+        dom.summary(<Widget>[
+          Text(
+            huiText("{id} · priority {priority}", <String, Object?>{
+              'id': profile.id,
+              'priority': profile.priority,
+            }),
           ),
-          child: const Text('Add clip'),
-        ),
-        Button(
-          variant: ButtonVariant.ghost,
-          size: ButtonSize.sm,
-          onPressed: () => _mutate(
-            'remove animation profile',
-            (GlossRealDropAnimation edited) =>
-                edited.profiles.removeAt(profileIndex),
+        ]),
+        dom.div(classes: 'hui-drop-animation-card-body', <Widget>[
+          _text(
+            huiText('Profile id'),
+            profile.id,
+            (String value) => _editProfile(
+              profileIndex,
+              'rename animation profile',
+              (GlossRealDropAnimationProfile edited) => edited.id = value,
+            ),
           ),
-          child: const Text('Remove profile'),
-        ),
-      ]),
-    ]),
-  ]);
+          _number(
+            huiText('Priority'),
+            profile.priority.toDouble(),
+            (double value) => _editProfile(
+              profileIndex,
+              'edit animation profile priority',
+              (GlossRealDropAnimationProfile edited) =>
+                  edited.priority = value.round(),
+            ),
+          ),
+          _text(
+            huiText('Material globs'),
+            profile.materials.join(', '),
+            (String value) => _editProfile(
+              profileIndex,
+              'edit animation profile materials',
+              (GlossRealDropAnimationProfile edited) =>
+                  edited.materials = _split(value),
+            ),
+          ),
+          for (int clipIndex = 0; clipIndex < profile.clips.length; clipIndex++)
+            _clip(profile.clips[clipIndex], profileIndex, clipIndex),
+          dom.div(classes: 'hui-drop-animation-actions', <Widget>[
+            Button(
+              variant: ButtonVariant.outline,
+              size: ButtonSize.sm,
+              onPressed: () => _editProfile(
+                profileIndex,
+                'add animation clip',
+                (GlossRealDropAnimationProfile edited) => edited.clips.add(
+                  GlossRealDropAnimationClip(durationTicks: 20),
+                ),
+              ),
+              child: Text(huiText('Add clip')),
+            ),
+            Button(
+              variant: ButtonVariant.ghost,
+              size: ButtonSize.sm,
+              onPressed: () => _mutate(
+                'remove animation profile',
+                (GlossRealDropAnimation edited) =>
+                    edited.profiles.removeAt(profileIndex),
+              ),
+              child: Text(huiText('Remove profile')),
+            ),
+          ]),
+        ]),
+      ]);
 
   Widget _clip(
     GlossRealDropAnimationClip clip,
@@ -300,16 +383,21 @@ class RealDropAnimationInspector extends StatelessWidget {
     int clipIndex,
   ) => dom.details(classes: 'hui-drop-animation-card is-clip', <Widget>[
     dom.summary(<Widget>[
-      Text('${clip.trigger.wire} · ${clip.durationTicks} ticks'),
+      Text(
+        huiText("{trigger} · {durationTicks} ticks", <String, Object?>{
+          'trigger': _animationTriggerLabel(clip.trigger),
+          'durationTicks': clip.durationTicks,
+        }),
+      ),
     ]),
     dom.div(classes: 'hui-drop-animation-card-body', <Widget>[
       _select(
-        'Trigger',
+        huiText('Trigger'),
         clip.trigger.wire,
-        <String>[
+        <({String label, String value})>[
           for (final GlossRealDropAnimationTrigger value
               in GlossRealDropAnimationTrigger.values)
-            value.wire,
+            (label: _animationTriggerLabel(value), value: value.wire),
         ],
         (String value) => _editClip(
           profileIndex,
@@ -320,7 +408,7 @@ class RealDropAnimationInspector extends StatelessWidget {
         ),
       ),
       _number(
-        'Duration ticks',
+        huiText('Duration ticks'),
         clip.durationTicks,
         (double value) => _editClip(
           profileIndex,
@@ -330,7 +418,7 @@ class RealDropAnimationInspector extends StatelessWidget {
         ),
       ),
       HuiSwitchRow(
-        label: 'Loop clip',
+        label: huiText('Loop clip'),
         value: clip.loop,
         onChanged: (bool value) => _editClip(
           profileIndex,
@@ -358,7 +446,7 @@ class RealDropAnimationInspector extends StatelessWidget {
               ),
             ),
           ),
-          child: const Text('Add track'),
+          child: Text(huiText('Add track')),
         ),
         Button(
           variant: ButtonVariant.ghost,
@@ -369,7 +457,7 @@ class RealDropAnimationInspector extends StatelessWidget {
             (GlossRealDropAnimationProfile edited) =>
                 edited.clips.removeAt(clipIndex),
           ),
-          child: const Text('Remove clip'),
+          child: Text(huiText('Remove clip')),
         ),
       ]),
     ]),
@@ -381,15 +469,22 @@ class RealDropAnimationInspector extends StatelessWidget {
     int clipIndex,
     int trackIndex,
   ) => dom.details(classes: 'hui-drop-animation-card is-track', <Widget>[
-    dom.summary(<Widget>[Text('${track.target.wire} · ${track.blend.wire}')]),
+    dom.summary(<Widget>[
+      Text(
+        huiText("{target} · {blend}", <String, Object?>{
+          'target': _animationTargetLabel(track.target),
+          'blend': _animationBlendLabel(track.blend),
+        }),
+      ),
+    ]),
     dom.div(classes: 'hui-drop-animation-card-body', <Widget>[
       _select(
-        'Target',
+        huiText('Target'),
         track.target.wire,
-        <String>[
+        <({String label, String value})>[
           for (final GlossRealDropAnimationTarget value
               in GlossRealDropAnimationTarget.values)
-            value.wire,
+            (label: _animationTargetLabel(value), value: value.wire),
         ],
         (String value) => _editTrack(
           profileIndex,
@@ -401,12 +496,12 @@ class RealDropAnimationInspector extends StatelessWidget {
         ),
       ),
       _select(
-        'Blend',
+        huiText('Blend'),
         track.blend.wire,
-        <String>[
+        <({String label, String value})>[
           for (final GlossRealDropAnimationBlend value
               in GlossRealDropAnimationBlend.values)
-            value.wire,
+            (label: _animationBlendLabel(value), value: value.wire),
         ],
         (String value) => _editTrack(
           profileIndex,
@@ -441,7 +536,7 @@ class RealDropAnimationInspector extends StatelessWidget {
             (GlossRealDropAnimationTrack edited) =>
                 edited.keyframes.add(GlossRealDropAnimationKeyframe()),
           ),
-          child: const Text('Add keyframe'),
+          child: Text(huiText('Add keyframe')),
         ),
         Button(
           variant: ButtonVariant.ghost,
@@ -453,7 +548,7 @@ class RealDropAnimationInspector extends StatelessWidget {
             (GlossRealDropAnimationClip edited) =>
                 edited.tracks.removeAt(trackIndex),
           ),
-          child: const Text('Remove track'),
+          child: Text(huiText('Remove track')),
         ),
       ]),
     ]),
@@ -467,7 +562,7 @@ class RealDropAnimationInspector extends StatelessWidget {
     int frameIndex,
   ) => dom.div(classes: 'hui-drop-animation-row is-keyframe', <Widget>[
     _number(
-      'Tick',
+      huiText('Tick'),
       frame.tick,
       (double value) => _editFrame(
         profileIndex,
@@ -479,7 +574,7 @@ class RealDropAnimationInspector extends StatelessWidget {
       ),
     ),
     _number(
-      'Value',
+      huiText('Value'),
       frame.value,
       (double value) => _editFrame(
         profileIndex,
@@ -491,12 +586,12 @@ class RealDropAnimationInspector extends StatelessWidget {
       ),
     ),
     _select(
-      'Easing',
+      huiText('Easing'),
       frame.easing.wire,
-      <String>[
+      <({String label, String value})>[
         for (final GlossRealDropAnimationEasing value
             in GlossRealDropAnimationEasing.values)
-          value.wire,
+          (label: _animationEasingLabel(value), value: value.wire),
       ],
       (String value) => _editFrame(
         profileIndex,
@@ -509,7 +604,7 @@ class RealDropAnimationInspector extends StatelessWidget {
       ),
     ),
     _text(
-      'Material map',
+      huiText('Material map'),
       frame.materialMap,
       (String value) => _editFrame(
         profileIndex,
@@ -532,7 +627,7 @@ class RealDropAnimationInspector extends StatelessWidget {
         (GlossRealDropAnimationTrack edited) =>
             edited.keyframes.removeAt(frameIndex),
       ),
-      child: const Text('Remove'),
+      child: Text(huiText('Remove')),
     ),
   ]);
 
@@ -546,7 +641,9 @@ class RealDropAnimationInspector extends StatelessWidget {
       value: value,
       size: ComponentSize.sm,
       fullWidth: true,
+      styles: huiTechnicalInputStyles,
       onInput: changed,
+      attributes: huiTechnicalInputAttributes,
     ),
   );
 
@@ -567,7 +664,7 @@ class RealDropAnimationInspector extends StatelessWidget {
   Widget _select(
     String label,
     String value,
-    List<String> values,
+    List<({String label, String value})> options,
     void Function(String value) changed,
   ) => HuiField(
     label: label,
@@ -577,8 +674,8 @@ class RealDropAnimationInspector extends StatelessWidget {
       size: ComponentSize.sm,
       onChange: changed,
       options: <ArcaneSelectOption>[
-        for (final String option in values)
-          ArcaneSelectOption(label: option, value: option),
+        for (final ({String label, String value}) option in options)
+          ArcaneSelectOption(label: option.label, value: option.value),
       ],
     ),
   );

@@ -18,6 +18,7 @@
 ///     file stays in the shape a person would have typed.
 library;
 
+import '../../l10n/hui_localizations.dart';
 import '../../logic/json_schema.dart';
 import 'json_caret.dart';
 
@@ -94,8 +95,8 @@ List<HuiCompletion> _keyCompletions(
     out.add(
       HuiCompletion(
         label: field.key,
-        detail: field.type.label,
-        description: field.summary,
+        detail: huiText(field.type.label),
+        description: huiText(field.summary),
         kind: HuiCompletionKind.key,
         insert: insert,
         caretOffset: _keyCaret(insert, field, caret),
@@ -162,8 +163,8 @@ List<HuiCompletion> _valueCompletions(
     out.add(
       HuiCompletion(
         label: _label(value.literal),
-        detail: isDefault ? 'default' : type.label,
-        description: value.summary ?? '',
+        detail: isDefault ? huiText('default') : huiText(type.label),
+        description: huiText(value.summary ?? ''),
         kind: HuiCompletionKind.value,
         insert: value.literal,
         caretOffset: value.literal.length,
@@ -178,8 +179,8 @@ List<HuiCompletion> _valueCompletions(
     out.add(
       HuiCompletion(
         label: _label(defaultLiteral),
-        detail: 'default',
-        description: 'What Gloss uses when this key is absent.',
+        detail: huiText('default'),
+        description: huiText('What Gloss uses when this key is absent.'),
         kind: HuiCompletionKind.value,
         insert: defaultLiteral,
         caretOffset: defaultLiteral.length,

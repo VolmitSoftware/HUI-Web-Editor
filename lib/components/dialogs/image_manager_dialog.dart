@@ -22,6 +22,7 @@ import '../common/common.dart';
 import '../panels/two_step_button.dart';
 import 'dialog_parts.dart';
 import 'image_picker.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ImageManagerDialog extends StatefulWidget {
   const ImageManagerDialog({
@@ -47,7 +48,8 @@ class ImageManagerDialog extends StatefulWidget {
 
 class _ImageManagerDialogState extends State<ImageManagerDialog> {
   final Map<String, String> _drafts = <String, String>{};
-  final Map<String, String> _errors = <String, String>{};
+  final Map<String, ImageLocalizedMessage> _errors =
+      <String, ImageLocalizedMessage>{};
   final PlayerSkinSource _skins = PlayerSkinSource();
   String _username = '';
   bool _busy = false;
@@ -128,7 +130,12 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
       if (outcome.isSuccess) _username = '';
     });
     if (outcome.isSuccess) {
-      toast.success('Added ${outcome.added.single.path} from ${fetched.host}');
+      toast.success(
+        huiText("Added {path} from {host}", <String, Object?>{
+          'path': outcome.added.single.path,
+          'host': fetched.host,
+        }),
+      );
       return;
     }
     _reportOutcome(outcome);
@@ -143,8 +150,12 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     }
     if (outcome.added.isNotEmpty) {
       toast.success(
-        'Added ${outcome.added.length} image'
-        '${outcome.added.length == 1 ? '' : 's'}',
+        huiPlural(
+          'images.added_count_short',
+          outcome.added.length,
+          oneEnglish: 'Added {count} image',
+          otherEnglish: 'Added {count} images',
+        ),
       );
     }
   }
@@ -164,12 +175,18 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     final String next = _expectedPath(draft);
     final String? problem = validateImagePath(next);
     if (problem != null) {
-      setState(() => _errors[path] = problem);
+      setState(
+        () =>
+            _errors[path] = () =>
+                validateImagePath(next) ?? huiText('Rename failed.'),
+      );
       return;
     }
     final bool renamed = _library.rename(path, next);
     if (!renamed) {
-      setState(() => _errors[path] = _library.lastError ?? 'Rename failed.');
+      final ImageLocalizedMessage failure =
+          _library.lastErrorMessage ?? () => huiText('Rename failed.');
+      setState(() => _errors[path] = failure);
       return;
     }
     _store.mutate('rename image', (HuiMenu menu) {
@@ -200,7 +217,7 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
   void _downloadOne(StoredImage image) {
     final List<int>? bytes = decodeDataUriBytes(image.dataUri);
     if (bytes == null) {
-      toast.error('That image could not be decoded.');
+      toast.error(huiText('That image could not be decoded.'));
       return;
     }
     final int slash = image.path.lastIndexOf('/');
@@ -226,7 +243,11 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     if (!mounted) return;
     setState(() => _busy = false);
     downloadBytes('images.zip', bytes, mime: 'application/zip');
-    toast.success('Saved images.zip (${huiFormatBytes(bytes.length)})');
+    toast.success(
+      huiText("Saved images.zip ({huiFormatBytes})", <String, Object?>{
+        'huiFormatBytes': huiFormatBytes(bytes.length),
+      }),
+    );
   }
 
   @override
@@ -234,13 +255,13 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     id: 'hui-image-dialog',
     isOpen: component.isOpen,
     onClose: component.onClose,
-    title: 'Images',
+    title: huiText('Images'),
     maxWidth: 860,
     actions: <Widget>[
       Button(
         variant: ButtonVariant.outline,
         onPressed: component.onClose,
-        label: 'Close',
+        label: huiText('Close'),
       ),
     ],
     children: <Widget>[
@@ -274,8 +295,8 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
               _library.animationFramesFor(image.path),
             ),
           if (_busy)
-            const HuiSkeleton(
-              label: 'Reading images',
+            HuiSkeleton(
+              label: huiText('Reading images'),
               block: true,
               lines: 2,
               classes: 'hui-skeleton-card',
@@ -284,78 +305,81 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
     ]);
   }
 
-  Widget _toolbar(bool hasImages) =>
-      dom.div(classes: 'hui-image-toolbar', <Widget>[
-        dom.div(classes: 'hui-dialog-actions', <Widget>[
-          Button(
-            variant: ButtonVariant.primary,
-            size: ButtonSize.small,
-            loading: _busy,
-            onPressed: _upload,
-            icon: ArcaneIcon.upload(size: IconSize.sm),
-            label: 'Upload images',
-          ),
-          Button(
-            variant: ButtonVariant.outline,
-            size: ButtonSize.small,
-            loading: _busy,
-            onPressed: _uploadPlayerHeads,
-            icon: ArcaneIcon.userRound(size: IconSize.sm),
-            label: 'Import skin heads',
-          ),
-          Button(
-            variant: ButtonVariant.outline,
-            size: ButtonSize.small,
-            disabled: !hasImages || _busy,
-            onPressed: hasImages ? _downloadZip : null,
-            icon: ArcaneIcon.fileArchive(size: IconSize.sm),
-            label: 'Download images.zip',
-          ),
-        ]),
-        dom.div(classes: 'hui-dialog-actions', <Widget>[
-          HuiField(
-            label: 'Head by username',
-            help: 'Fetches that player\'s skin from minotar.net',
-            control: TextInput(
-              value: _username,
-              size: ComponentSize.sm,
-              placeholder: 'Notch',
-              disabled: _fetching,
-              onInput: (String value) => setState(() => _username = value),
-              onSubmit: (String _) => _fetchHeadByName(),
-              attributes: const <String, String>{
-                'aria-label': 'Minecraft username',
-                'autocomplete': 'off',
-                'spellcheck': 'false',
-                'maxlength': '16',
-              },
-            ),
-          ),
-          Button(
-            variant: ButtonVariant.outline,
-            size: ButtonSize.small,
-            loading: _fetching,
-            disabled: _busy,
-            onPressed: _fetchHeadByName,
-            icon: ArcaneIcon.download(size: IconSize.sm),
-            label: 'Fetch head',
-          ),
-        ]),
-        const dom.p(classes: 'hui-dialog-note', <Widget>[
-          Text(
-            'Uploads are automatically resized to fit 64x64. Skin head import '
-            'extracts the 8x8 face and hat layer from a Minecraft skin PNG, '
-            'either from a file you pick or from a username fetched from '
-            'minotar.net (mc-heads.net if that is down) — the username is all '
-            'that is sent. A name those hosts do not know comes back as one '
-            'of the vanilla default skins rather than as an error, so a head '
-            'that is plainly not that player means the name was probably '
-            'wrong. You can also drop images anywhere in '
-            'the editor. Unzip images.zip into plugins/Gloss/images/ and the '
-            'paths resolve unchanged.',
-          ),
-        ]),
-      ]);
+  Widget _toolbar(
+    bool hasImages,
+  ) => dom.div(classes: 'hui-image-toolbar', <Widget>[
+    dom.div(classes: 'hui-dialog-actions', <Widget>[
+      Button(
+        variant: ButtonVariant.primary,
+        size: ButtonSize.small,
+        loading: _busy,
+        onPressed: _upload,
+        icon: ArcaneIcon.upload(size: IconSize.sm),
+        label: huiText('Upload images'),
+      ),
+      Button(
+        variant: ButtonVariant.outline,
+        size: ButtonSize.small,
+        loading: _busy,
+        onPressed: _uploadPlayerHeads,
+        icon: ArcaneIcon.userRound(size: IconSize.sm),
+        label: huiText('Import Minecraft player heads from skins'),
+      ),
+      Button(
+        variant: ButtonVariant.outline,
+        size: ButtonSize.small,
+        disabled: !hasImages || _busy,
+        onPressed: hasImages ? _downloadZip : null,
+        icon: ArcaneIcon.fileArchive(size: IconSize.sm),
+        label: huiText('Download images.zip'),
+      ),
+    ]),
+    dom.div(classes: 'hui-dialog-actions', <Widget>[
+      HuiField(
+        label: huiText('Head by username'),
+        help: huiText('Fetches that player\'s skin from minotar.net'),
+        control: TextInput(
+          value: _username,
+          size: ComponentSize.sm,
+          placeholder: 'Notch',
+          disabled: _fetching,
+          onInput: (String value) => setState(() => _username = value),
+          onSubmit: (String _) => _fetchHeadByName(),
+          styles: huiTechnicalInputStyles,
+          attributes: <String, String>{
+            ...huiTechnicalInputAttributes,
+            'aria-label': huiText('Minecraft username'),
+            'maxlength': '16',
+          },
+        ),
+      ),
+      Button(
+        variant: ButtonVariant.outline,
+        size: ButtonSize.small,
+        loading: _fetching,
+        disabled: _busy,
+        onPressed: _fetchHeadByName,
+        icon: ArcaneIcon.download(size: IconSize.sm),
+        label: huiText('Fetch head'),
+      ),
+    ]),
+    dom.p(classes: 'hui-dialog-note', <Widget>[
+      Text(
+        huiText(
+          'Image-icon uploads are automatically resized to fit 16x16. Skin head import '
+          'extracts the 8x8 face and hat layer from a Minecraft skin PNG, '
+          'either from a file you pick or from a username fetched from '
+          'minotar.net (mc-heads.net if that is down) — the username is all '
+          'that is sent. A name those hosts do not know comes back as one '
+          'of the vanilla default skins rather than as an error, so a head '
+          'that is plainly not that player means the name was probably '
+          'wrong. You can also drop images anywhere in '
+          'the editor. Unzip images.zip into plugins/Gloss/images/ and the '
+          'paths resolve unchanged.',
+        ),
+      ),
+    ]),
+  ]);
 
   Widget _quota() {
     final int used = StorageService.estimateUsageBytes();
@@ -369,11 +393,17 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
       ]),
       <Widget>[
         dom.div(classes: 'hui-quota-head', <Widget>[
-          const HuiEyebrow('browser storage'),
+          HuiEyebrow(huiText('browser storage')),
           dom.span(classes: 'hui-quota-value', <Widget>[
             Text(
-              '${huiFormatBytes(used)} of about '
-              '${huiFormatBytes(quota)} ($percent%)',
+              huiText(
+                "{huiFormatBytes} of about {huiFormatBytes2} ({percent}%)",
+                <String, Object?>{
+                  'huiFormatBytes': huiFormatBytes(used),
+                  'huiFormatBytes2': huiFormatBytes(quota),
+                  'percent': percent,
+                },
+              ),
             ),
           ]),
         ]),
@@ -389,13 +419,15 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
         dom.p(classes: 'hui-dialog-note', <Widget>[
           Text(
             percent >= 60
-                ? 'Storage is filling up. Images are kept in this browser '
-                      'only, and a full store silently refuses to save. Export '
-                      'what you need and delete unused images.'
-                : 'Images live in this browser only. Keep them at or under '
-                      '${huiRecommendedMaxImageDimension}x'
-                      '$huiRecommendedMaxImageDimension pixels: Gloss draws '
-                      'one text display per row and one character per pixel.',
+                ? huiText(
+                    'Storage is filling up. Images are kept in this browser only, and a full store silently refuses to save. Export what you need and delete unused images.',
+                  )
+                : huiText(
+                    'Images live in this browser only. Keep them at or under {dimension}x{dimension} pixels: Gloss draws one text display per row and one character per pixel.',
+                    <String, Object?>{
+                      'dimension': huiRecommendedMaxImageDimension,
+                    },
+                  ),
           ),
         ]),
       ],
@@ -404,12 +436,11 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
 
   Widget _empty() => dom.div(classes: 'hui-image-empty', <Widget>[
     ArcaneEmptyState(
-      title: 'No images yet',
-      description:
-          'Upload PNG or GIF files to use them as textImage and '
-          'animatedTextImage icons, or import an uploaded Minecraft skin as '
-          'an 8x8 player head. Oversized uploads are resized automatically. '
-          'Assets are exported as $huiImageFolder in images.zip.',
+      title: huiText('No images yet'),
+      description: huiText(
+        "Upload PNG or GIF files to use them as textImage and animatedTextImage icons, or import an uploaded Minecraft skin as an 8x8 player head. Oversized uploads are resized automatically. Assets are exported as {huiImageFolder} in images.zip.",
+        <String, Object?>{'huiImageFolder': huiImageFolder},
+      ),
       icon: ArcaneIcon.images(size: IconSize.lg),
       action: Button(
         variant: ButtonVariant.primary,
@@ -417,7 +448,7 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
         loading: _busy,
         onPressed: _upload,
         icon: ArcaneIcon.upload(size: IconSize.sm),
-        label: 'Upload images',
+        label: huiText('Upload images'),
       ),
     ),
   ]);
@@ -429,7 +460,7 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
   ) {
     final String path = image.path;
     final String draft = _drafts[path] ?? path;
-    final String? error = _errors[path];
+    final String? error = _errors[path]?.call();
     final bool firstAnimationFrame =
         animationFrames.isNotEmpty && animationFrames.first.path == path;
     return dom.div(
@@ -445,12 +476,20 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
         ]),
         dom.div(classes: 'hui-image-meta', <Widget>[
           HuiField(
-            label: 'Path',
+            label: huiText('Path'),
             error: error,
-            help:
-                '${image.width}x${image.height} px · '
-                '${huiFormatBytes(image.approximateBytes)}'
-                '${image.isOversized ? ' · larger than recommended' : ''}',
+            help: image.isOversized
+                ? huiText(
+                    '{dimensions} px · {size} · larger than recommended',
+                    <String, Object?>{
+                      'dimensions': '${image.width}x${image.height}',
+                      'size': huiFormatBytes(image.approximateBytes),
+                    },
+                  )
+                : huiText('{dimensions} px · {size}', <String, Object?>{
+                    'dimensions': '${image.width}x${image.height}',
+                    'size': huiFormatBytes(image.approximateBytes),
+                  }),
             control: TextInput(
               value: draft,
               size: ComponentSize.sm,
@@ -459,16 +498,19 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
               onBlur: () => _commitRename(path),
               onSubmit: (String _) => _commitRename(path),
               attributes: <String, String>{
-                'aria-label': 'Path for $path',
+                'aria-label': huiText("Path for {path}", <String, Object?>{
+                  'path': path,
+                }),
                 'autocomplete': 'off',
                 'spellcheck': 'false',
+                'dir': 'ltr',
               },
             ),
           ),
           dom.div(classes: 'hui-image-card-tools', <Widget>[
             if (inUse)
-              const dom.span(classes: 'hui-chip is-accent', <Widget>[
-                Text('used in this menu'),
+              dom.span(classes: 'hui-chip is-accent', <Widget>[
+                Text(huiText('used in this menu')),
               ]),
             if (component.onUseImage != null)
               Button(
@@ -476,7 +518,7 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
                 size: ButtonSize.sm,
                 onPressed: () => _useImage(image),
                 icon: ArcaneIcon.plus(size: IconSize.sm),
-                label: 'Use image',
+                label: huiText('Use image'),
               ),
             if (component.onUseAnimation != null && firstAnimationFrame)
               Button(
@@ -484,18 +526,27 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
                 size: ButtonSize.sm,
                 onPressed: () => _useAnimation(animationFrames),
                 icon: ArcaneIcon.play(size: IconSize.sm),
-                label: 'Use ${animationFrames.length} frames',
+                label: huiPlural(
+                  'image_manager.use_frames',
+                  animationFrames.length,
+                  oneEnglish: 'Use {count} frame',
+                  otherEnglish: 'Use {count} frames',
+                ),
               ),
             Button(
               variant: ButtonVariant.ghost,
               size: ButtonSize.iconSm,
               onPressed: () => _downloadOne(image),
-              attributes: <String, String>{'aria-label': 'Download $path'},
+              attributes: <String, String>{
+                'aria-label': huiText("Download {path}", <String, Object?>{
+                  'path': path,
+                }),
+              },
               child: ArcaneIcon.download(size: IconSize.sm),
             ),
             HuiTwoStepButton(
-              label: 'Delete $path',
-              confirmLabel: 'Delete',
+              label: huiText("Delete {path}", <String, Object?>{'path': path}),
+              confirmLabel: huiText('Delete'),
               icon: ArcaneIcon.trash2(size: IconSize.sm),
               iconOnly: true,
               size: ButtonSize.iconSm,

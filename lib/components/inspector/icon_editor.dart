@@ -30,6 +30,7 @@ import 'item_picker.dart';
 import 'player_head_picker.dart';
 import 'reorder_list.dart';
 import 'text_icon_editor.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Which icon field of a component data object is being edited.
 enum IconSlot { icon, trueIcon, falseIcon }
@@ -42,9 +43,9 @@ extension IconSlotNames on IconSlot {
   };
 
   String get label => switch (this) {
-    IconSlot.icon => 'Icon',
-    IconSlot.trueIcon => 'True icon',
-    IconSlot.falseIcon => 'False icon',
+    IconSlot.icon => huiText('Icon'),
+    IconSlot.trueIcon => huiText('True icon'),
+    IconSlot.falseIcon => huiText('False icon'),
   };
 }
 
@@ -189,8 +190,8 @@ class IconEditor extends StatelessWidget {
           trailing: icon == null
               ? null
               : HuiArmedButton(
-                  label: 'Remove icon',
-                  armedLabel: 'Remove',
+                  label: huiText('Remove icon'),
+                  armedLabel: huiText('Remove'),
                   icon: ArcaneIcon.trash2(size: IconSize.sm),
                   iconOnly: true,
                   onConfirm: () {
@@ -209,57 +210,57 @@ class IconEditor extends StatelessWidget {
       segments: <HuiSegment>[
         HuiSegment(
           value: 'text',
-          label: 'Text',
+          label: huiText('Text'),
           icon: ArcaneIcon.baseline(size: IconSize.sm),
-          hint: huiIconTypeDescriptions['text'],
+          hint: huiText(huiIconTypeDescriptions['text']!),
         ),
         HuiSegment(
           value: 'textImage',
-          label: 'Image',
+          label: huiText('Image'),
           icon: ArcaneIcon.image(size: IconSize.sm),
-          hint: huiIconTypeDescriptions['textImage'],
+          hint: huiText(huiIconTypeDescriptions['textImage']!),
         ),
         HuiSegment(
           value: 'animatedTextImage',
-          label: 'Animated',
+          label: huiText('Animated'),
           icon: ArcaneIcon.film(size: IconSize.sm),
-          hint: huiIconTypeDescriptions['animatedTextImage'],
+          hint: huiText(huiIconTypeDescriptions['animatedTextImage']!),
         ),
         HuiSegment(
           value: 'item',
-          label: 'Item',
+          label: huiText('Item'),
           icon: ArcaneIcon.package(size: IconSize.sm),
-          hint: huiIconTypeDescriptions['item'],
+          hint: huiText(huiIconTypeDescriptions['item']!),
         ),
         HuiSegment(
           value: 'block',
-          label: 'Block',
+          label: huiText('Block'),
           icon: ArcaneIcon.package(size: IconSize.sm),
-          hint: huiIconTypeDescriptions['block'],
+          hint: huiText(huiIconTypeDescriptions['block']!),
         ),
         HuiSegment(
           value: 'customItem',
-          label: 'Custom',
+          label: huiText('Custom'),
           icon: ArcaneIcon.boxes(size: IconSize.sm),
-          hint: huiIconTypeDescriptions['customItem'],
+          hint: huiText(huiIconTypeDescriptions['customItem']!),
         ),
         HuiSegment(
           value: 'entity',
-          label: 'Entity',
+          label: huiText('Entity'),
           icon: ArcaneIcon.user(size: IconSize.sm),
-          hint: huiIconTypeDescriptions['entity'],
+          hint: huiText(huiIconTypeDescriptions['entity']!),
         ),
         HuiSegment(
           value: 'playerHead',
-          label: 'Head',
+          label: huiText('Head'),
           icon: ArcaneIcon.circleUser(size: IconSize.sm),
-          hint: huiIconTypeDescriptions['playerHead'],
+          hint: huiText(huiIconTypeDescriptions['playerHead']!),
         ),
       ],
     ),
     HuiHelpCluster(
       huiIconTypeDocKeys[icon!.type] ?? const <String>[],
-      label: 'Fields',
+      label: huiText('Fields'),
     ),
     switch (icon!) {
       final HuiTextIcon text => dom.div(<Widget>[
@@ -273,7 +274,7 @@ class IconEditor extends StatelessWidget {
           text: text.text,
           emoji: store.workspaceEmoji,
           issues: _issuesEndingWith('.text'),
-          label: 'Text',
+          label: huiText('Text'),
           onChanged: (String label, String value) => _write(
             label,
             HuiTextIcon(value, text.style?.copy(), text.refreshTicks)
@@ -281,12 +282,18 @@ class IconEditor extends StatelessWidget {
           ),
         ),
         HuiField(
-          label: 'Dynamic text refresh',
-          help:
-              'Ticks between live function, expression and PAPI updates; '
-              '0 freezes text.',
+          label: huiText('Dynamic text refresh'),
+          help: huiText(
+            'Ticks between live function, expression and PAPI updates; '
+            '0 freezes text.',
+          ),
           trailing: const HuiFieldHelp('icon.text.refreshTicks'),
-          defaultValue: '$huiRuntimeDefaultTextRefreshTicks ticks',
+          defaultValue: huiPlural(
+            'duration.tick_count',
+            huiRuntimeDefaultTextRefreshTicks,
+            oneEnglish: '{count} tick',
+            otherEnglish: '{count} ticks',
+          ),
           onReset:
               (text.refreshTicks ?? huiRuntimeDefaultTextRefreshTicks) ==
                   huiRuntimeDefaultTextRefreshTicks
@@ -379,16 +386,21 @@ class IconEditor extends StatelessWidget {
             .toList(),
         onChanged: _writeStyle,
       ),
-    ExtrasEditor(title: 'Icon', extras: icon!.extras, onChanged: _writeExtras),
+    ExtrasEditor(
+      title: huiText('Icon'),
+      extras: icon!.extras,
+      onChanged: _writeExtras,
+    ),
   ];
 
   Widget _emptyState() => dom.div(classes: 'hui-icon-empty', <Widget>[
     HuiEmptyState(
       icon: ArcaneIcon.imageOff(size: IconSize.md),
-      title: 'No icon',
-      body:
-          'Gloss draws its magenta checker here, and a button keeps '
-          'its hitbox. Pick a type to start one.',
+      title: huiText('No icon'),
+      body: huiText(
+        'Gloss draws its magenta checker here, and a button keeps '
+        'its hitbox. Pick a type to start one.',
+      ),
       tone: HuiNoteTone.warning,
       actions: <Widget>[
         for (final String type in huiIconTypes)
@@ -406,14 +418,14 @@ class IconEditor extends StatelessWidget {
   ]);
 
   static String _typeLabel(String type) => switch (type) {
-    'text' => 'Text',
-    'textImage' => 'Image',
-    'animatedTextImage' => 'Animated',
-    'item' => 'Item',
-    'block' => 'Block',
-    'customItem' => 'Custom item',
-    'entity' => 'Entity',
-    'playerHead' => 'Player head',
+    'text' => huiText('Text'),
+    'textImage' => huiText('Image'),
+    'animatedTextImage' => huiText('Animated'),
+    'item' => huiText('Item'),
+    'block' => huiText('Block'),
+    'customItem' => huiText('Custom item'),
+    'entity' => huiText('Entity'),
+    'playerHead' => huiText('Player head'),
     _ => type,
   };
 }
@@ -435,51 +447,62 @@ class _DisplayStyleEditor extends StatelessWidget {
     return next;
   }
 
-  List<ArcaneSelectOption> _options(List<String> values, String current) =>
-      <ArcaneSelectOption>[
-        for (final String value in values)
-          ArcaneSelectOption(label: _label(value), value: value),
-        if (!values.contains(current))
-          ArcaneSelectOption(label: '$current (unknown)', value: current),
-      ];
+  List<ArcaneSelectOption> _options(
+    List<String> values,
+    String current,
+    String Function(String value) label,
+  ) => <ArcaneSelectOption>[
+    for (final String value in values)
+      ArcaneSelectOption(label: label(value), value: value),
+    if (!values.contains(current))
+      ArcaneSelectOption(
+        label: huiText("{current} (unknown)", <String, Object?>{
+          'current': current,
+        }),
+        value: current,
+      ),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final HuiIconStyle? current = style;
     if (current == null) {
       return InspectorSection(
-        title: 'Display style',
-        description: 'Uses the runtime display-entity defaults.',
+        title: huiText('Display style'),
+        description: huiText('Uses the runtime display-entity defaults.'),
         children: <Widget>[
           Button(
             variant: ButtonVariant.outline,
             size: ButtonSize.sm,
             onPressed: () =>
                 onChanged('add display style', createDefaultIconStyle()),
-            child: const Text('Customize display'),
+            child: Text(huiText('Customize display')),
           ),
         ],
       );
     }
 
     return InspectorSection(
-      title: 'Display style',
+      title: huiText('Display style'),
       sectionKey: 'icon.style',
-      description:
-          'Packet display metadata shared by text, image, item and block '
-          'icons. Entity icons reject it outright.',
+      description: huiText(
+        'Packet display metadata shared by text, image, item and block '
+        'icons. Entity icons reject it outright.',
+      ),
       trailing: Button(
         variant: ButtonVariant.ghost,
         size: ButtonSize.sm,
         onPressed: () => onChanged('remove display style', null),
-        child: const Text('Use defaults'),
+        child: Text(huiText('Use defaults')),
       ),
       children: <Widget>[
         HuiField(
-          label: 'Billboard',
-          help: 'Fixed follows the menu transform; other modes face viewers.',
+          label: huiText('Billboard'),
+          help: huiText(
+            'Fixed follows the menu transform; other modes face viewers.',
+          ),
           trailing: const HuiFieldHelp('icon.style.billboard'),
-          defaultValue: 'fixed',
+          defaultValue: _billboardLabel('fixed'),
           onReset: current.billboard == 'fixed'
               ? null
               : () => onChanged(
@@ -490,7 +513,11 @@ class _DisplayStyleEditor extends StatelessWidget {
             value: current.billboard,
             size: ComponentSize.sm,
             fullWidth: true,
-            options: _options(huiIconBillboards, current.billboard),
+            options: _options(
+              huiIconBillboards,
+              current.billboard,
+              _billboardLabel,
+            ),
             onChange: (String value) => onChanged(
               'icon billboard',
               _next((HuiIconStyle next) => next.billboard = value),
@@ -498,10 +525,11 @@ class _DisplayStyleEditor extends StatelessWidget {
           ),
         ),
         HuiField(
-          label: 'Non-uniform scale',
-          help:
-              'Multiplied by the server uiScale. X and Y also resize the '
-              'automatic click plane; Z never does.',
+          label: huiText('Non-uniform scale'),
+          help: huiText(
+            'Multiplied by the server uiScale. X and Y also resize the '
+            'automatic click plane; Z never does.',
+          ),
           defaultValue: '1, 1, 1',
           onReset:
               current.scaleX == 1 && current.scaleY == 1 && current.scaleZ == 1
@@ -519,10 +547,10 @@ class _DisplayStyleEditor extends StatelessWidget {
               value: Vec3(current.scaleX, current.scaleY, current.scaleZ),
               step: 0.05,
               decimals: 2,
-              axisHints: const <String>[
-                'x: width, and the click plane with it',
-                'y: height, which also re-spaces multi-line text',
-                'z: depth. Visible on block and item icons only',
+              axisHints: <String>[
+                huiText('x: width, and the click plane with it'),
+                huiText('y: height, which also re-spaces multi-line text'),
+                huiText('z: depth. Visible on block and item icons only'),
               ],
               onChanged: (Vec3 value) => onChanged(
                 'icon scale',
@@ -533,24 +561,26 @@ class _DisplayStyleEditor extends StatelessWidget {
                 }),
               ),
             ),
-            const HuiHelpCluster(<String>[
+            HuiHelpCluster(<String>[
               'icon.style.scaleX',
               'icon.style.scaleY',
               'icon.style.scaleZ',
-            ], label: 'Per axis'),
+            ], label: huiText('Per axis')),
           ]),
         ),
         HuiMore(
-          summary: 'Text appearance',
+          summary: huiText('Text appearance'),
           children: <Widget>[
-            const HuiNote(
-              'Text displays only. On an item, custom-item or block icon '
-              'every field in this group is silently inert — image icons do '
-              'honour them, because Gloss draws them as text.',
+            HuiNote(
+              huiText(
+                'Text displays only. On an item, custom-item or block icon '
+                'every field in this group is silently inert — image icons do '
+                'honour them, because Gloss draws them as text.',
+              ),
               tone: HuiNoteTone.info,
             ),
             HuiSwitchRow(
-              label: 'Text shadow',
+              label: huiText('Text shadow'),
               value: current.shadow,
               trailing: const HuiFieldHelp('icon.style.shadow'),
               onChanged: (bool value) => onChanged(
@@ -559,7 +589,7 @@ class _DisplayStyleEditor extends StatelessWidget {
               ),
             ),
             HuiSwitchRow(
-              label: 'See through blocks',
+              label: huiText('See through blocks'),
               value: current.seeThrough,
               trailing: const HuiFieldHelp('icon.style.seeThrough'),
               onChanged: (bool value) => onChanged(
@@ -568,9 +598,9 @@ class _DisplayStyleEditor extends StatelessWidget {
               ),
             ),
             HuiField(
-              label: 'Alignment',
+              label: huiText('Alignment'),
               trailing: const HuiFieldHelp('icon.style.textAlignment'),
-              defaultValue: 'center',
+              defaultValue: _alignmentLabel('center'),
               onReset: current.textAlignment == 'center'
                   ? null
                   : () => onChanged(
@@ -583,7 +613,11 @@ class _DisplayStyleEditor extends StatelessWidget {
                 value: current.textAlignment,
                 size: ComponentSize.sm,
                 fullWidth: true,
-                options: _options(huiIconTextAlignments, current.textAlignment),
+                options: _options(
+                  huiIconTextAlignments,
+                  current.textAlignment,
+                  _alignmentLabel,
+                ),
                 onChange: (String value) => onChanged(
                   'text alignment',
                   _next((HuiIconStyle next) => next.textAlignment = value),
@@ -591,9 +625,9 @@ class _DisplayStyleEditor extends StatelessWidget {
               ),
             ),
             HuiField(
-              label: 'Background',
+              label: huiText('Background'),
               trailing: const HuiFieldHelp('icon.style.backgroundArgb'),
-              help: 'Eight hexadecimal digits in #AARRGGBB order.',
+              help: huiText('Eight hexadecimal digits in #AARRGGBB order.'),
               defaultValue: '#00000000',
               onReset: current.backgroundArgb == '#00000000'
                   ? null
@@ -606,7 +640,7 @@ class _DisplayStyleEditor extends StatelessWidget {
                     ),
               control: HuiColorField(
                 value: current.backgroundArgb,
-                label: 'text background',
+                label: huiText('text background'),
                 placeholder: '#00000000',
                 onChanged: (String value) => onChanged(
                   'text background',
@@ -615,7 +649,7 @@ class _DisplayStyleEditor extends StatelessWidget {
               ),
             ),
             HuiField(
-              label: 'Opacity',
+              label: huiText('Opacity'),
               trailing: const HuiFieldHelp('icon.style.textOpacity'),
               defaultValue: '255',
               onReset: current.textOpacity == 255
@@ -639,8 +673,8 @@ class _DisplayStyleEditor extends StatelessWidget {
               ),
             ),
             HuiField(
-              label: 'Line width',
-              help: 'Vanilla text-display wrap width in font pixels.',
+              label: huiText('Line width'),
+              help: huiText('Vanilla text-display wrap width in font pixels.'),
               trailing: const HuiFieldHelp('icon.style.lineWidth'),
               defaultValue: '2000',
               onReset: current.lineWidth == 2000
@@ -664,14 +698,15 @@ class _DisplayStyleEditor extends StatelessWidget {
           ],
         ),
         HuiMore(
-          summary: 'Lighting, shadow and culling',
+          summary: huiText('Lighting, shadow and culling'),
           children: <Widget>[
             HuiSwitchRow(
-              label: 'Override brightness',
+              label: huiText('Override brightness'),
               value: current.hasBrightnessOverride,
-              help:
-                  'Pins the icon to a constant light level. Both channels '
-                  'travel together; one alone is rejected.',
+              help: huiText(
+                'Pins the icon to a constant light level. Both channels '
+                'travel together; one alone is rejected.',
+              ),
               trailing: const HuiFieldHelp('icon.style.blockLight'),
               onChanged: (bool value) => onChanged(
                 'brightness override',
@@ -684,10 +719,10 @@ class _DisplayStyleEditor extends StatelessWidget {
             if (current.hasBrightnessOverride)
               _numberGrid(<Widget>[
                 HuiField(
-                  label: 'Block light',
+                  label: huiText('Block light'),
                   trailing: const HuiFieldHelp('icon.style.blockLight'),
                   control: _number(
-                    'Block',
+                    huiText('Block'),
                     (current.blockLight ?? 15).toDouble(),
                     0,
                     15,
@@ -701,10 +736,10 @@ class _DisplayStyleEditor extends StatelessWidget {
                   ),
                 ),
                 HuiField(
-                  label: 'Sky light',
+                  label: huiText('Sky light'),
                   trailing: const HuiFieldHelp('icon.style.skyLight'),
                   control: _number(
-                    'Sky',
+                    huiText('Sky'),
                     (current.skyLight ?? 15).toDouble(),
                     0,
                     15,
@@ -719,8 +754,10 @@ class _DisplayStyleEditor extends StatelessWidget {
                 ),
               ]),
             HuiField(
-              label: 'Display view range',
-              help: 'A multiplier on the client cull distance, not blocks.',
+              label: huiText('Display view range'),
+              help: huiText(
+                'A multiplier on the client cull distance, not blocks.',
+              ),
               trailing: const HuiFieldHelp('icon.style.viewRange'),
               defaultValue: '1',
               onReset: current.viewRange == 1
@@ -741,10 +778,10 @@ class _DisplayStyleEditor extends StatelessWidget {
             ),
             _numberGrid(<Widget>[
               HuiField(
-                label: 'Shadow radius',
+                label: huiText('Shadow radius'),
                 trailing: const HuiFieldHelp('icon.style.shadowRadius'),
                 control: _number(
-                  'Radius',
+                  huiText('Radius'),
                   current.shadowRadius,
                   0,
                   64,
@@ -755,10 +792,10 @@ class _DisplayStyleEditor extends StatelessWidget {
                 ),
               ),
               HuiField(
-                label: 'Shadow strength',
+                label: huiText('Shadow strength'),
                 trailing: const HuiFieldHelp('icon.style.shadowStrength'),
                 control: _number(
-                  'Strength',
+                  huiText('Strength'),
                   current.shadowStrength,
                   0,
                   1,
@@ -771,10 +808,10 @@ class _DisplayStyleEditor extends StatelessWidget {
             ]),
             _numberGrid(<Widget>[
               HuiField(
-                label: 'Cull width',
+                label: huiText('Cull width'),
                 trailing: const HuiFieldHelp('icon.style.cullingWidth'),
                 control: _number(
-                  'Width',
+                  huiText('Width'),
                   current.cullingWidth,
                   0,
                   4096,
@@ -785,10 +822,10 @@ class _DisplayStyleEditor extends StatelessWidget {
                 ),
               ),
               HuiField(
-                label: 'Cull height',
+                label: huiText('Cull height'),
                 trailing: const HuiFieldHelp('icon.style.cullingHeight'),
                 control: _number(
-                  'Height',
+                  huiText('Height'),
                   current.cullingHeight,
                   0,
                   4096,
@@ -800,11 +837,12 @@ class _DisplayStyleEditor extends StatelessWidget {
               ),
             ]),
             HuiSwitchRow(
-              label: 'Glow outline',
+              label: huiText('Glow outline'),
               value: current.glowColor != null,
-              help:
-                  'Setting the colour is what turns the outline on; there is '
-                  'no separate glowing flag.',
+              help: huiText(
+                'Setting the colour is what turns the outline on; there is '
+                'no separate glowing flag.',
+              ),
               trailing: const HuiFieldHelp('icon.style.glowColor'),
               onChanged: (bool value) => onChanged(
                 'glow outline',
@@ -816,13 +854,13 @@ class _DisplayStyleEditor extends StatelessWidget {
             ),
             if (current.glowColor != null)
               HuiField(
-                label: 'Glow colour',
+                label: huiText('Glow colour'),
                 trailing: const HuiFieldHelp('icon.style.glowColor'),
-                help: 'Eight hexadecimal digits in #AARRGGBB order.',
+                help: huiText('Eight hexadecimal digits in #AARRGGBB order.'),
                 control: HuiColorField(
                   value: current.glowColor!,
-                  label: 'glow colour',
-                  placeholder: '#FFFFFFFF',
+                  label: huiText('glow colour'),
+                  placeholder: huiText('#FFFFFFFF'),
                   onChanged: (String value) => onChanged(
                     'glow color',
                     _next((HuiIconStyle next) => next.glowColor = value),
@@ -865,8 +903,20 @@ class _DisplayStyleEditor extends StatelessWidget {
     children,
   );
 
-  static String _label(String value) =>
-      value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';
+  static String _billboardLabel(String value) => switch (value) {
+    'fixed' => huiText('Fixed'),
+    'vertical' => huiText('Vertical'),
+    'horizontal' => huiText('Horizontal'),
+    'center' => huiTextKey('billboard.center', 'Center'),
+    _ => value,
+  };
+
+  static String _alignmentLabel(String value) => switch (value) {
+    'center' => huiTextKey('alignment.center', 'Center'),
+    'left' => huiText('Left'),
+    'right' => huiText('Right'),
+    _ => value,
+  };
 }
 
 class _ImageIconEditor extends StatelessWidget {
@@ -910,20 +960,21 @@ class _ImageIconEditor extends StatelessWidget {
     final StoredImage? stored = images.byPath(icon.path);
     return dom.div(classes: 'hui-icon-image', <Widget>[
       HuiField(
-        label: 'Path',
+        label: huiText('Path'),
         required: true,
         trailing: const HuiFieldHelp('icon.textImage.path'),
-        help: 'Relative to plugins/Gloss/images/.',
+        help: huiText('Relative to plugins/Gloss/images/.'),
         control: dom.div(<Widget>[
           TextInput(
             value: icon.path,
             size: ComponentSize.sm,
             fullWidth: true,
-            placeholder: 'logo.png',
+            placeholder: huiText('logo.png'),
             onInput: _setPath,
             attributes: const <String, String>{
               'autocomplete': 'off',
               'spellcheck': 'false',
+              'dir': 'ltr',
             },
           ),
           HuiInlineIssues(issues),
@@ -932,18 +983,37 @@ class _ImageIconEditor extends StatelessWidget {
       if (stored != null) ...<Widget>[
         _imagePreview(stored),
         HuiDetailRow(
-          'Source size',
-          '${stored.width}x${stored.height} px '
-              '(${stored.width} chars wide, ${stored.height} lines tall)',
+          huiText('Source size'),
+          huiText(
+            '{width}x{height} px ({characterWidth}, {lineHeight})',
+            <String, Object?>{
+              'width': stored.width,
+              'height': stored.height,
+              'characterWidth': huiPlural(
+                'image.width_characters.count',
+                stored.width,
+                oneEnglish: '{count} character wide',
+                otherEnglish: '{count} characters wide',
+              ),
+              'lineHeight': huiPlural(
+                'image.height_lines.count',
+                stored.height,
+                oneEnglish: '{count} line tall',
+                otherEnglish: '{count} lines tall',
+              ),
+            },
+          ),
         ),
         HuiDetailRow(
-          'In-game size',
-          '${_blocks(stored.width)} x ${_blocks(stored.height)} blocks '
-              'at uiScale 1',
+          huiText('In-game size'),
+          huiText('{width} x {height} blocks at uiScale 1', <String, Object?>{
+            'width': _blocks(stored.width),
+            'height': _blocks(stored.height),
+          }),
         ),
       ],
       dom.div(classes: 'hui-icon-image-library', <Widget>[
-        const HuiEyebrow('Image library'),
+        HuiEyebrow(huiText('Image library')),
         ImagePickerGrid(
           images: images,
           selected: icon.path,
@@ -952,23 +1022,27 @@ class _ImageIconEditor extends StatelessWidget {
         ImageUploadButton(
           images: images,
           inputId: inputId,
-          label: 'Upload PNG, WebP or GIF',
+          label: huiText('Upload PNG, WebP or GIF'),
           onAdded: (List<String> paths) {
             if (paths.isNotEmpty) _setPath(paths.first);
           },
         ),
       ]),
-      const HuiMore(
-        summary: 'Path rules and image cost',
+      HuiMore(
+        summary: huiText('Path rules and image cost'),
         children: <Widget>[
           HuiNote(
-            'No leading slash, no "..", no drive letters - the path is read '
-            'inside plugins/Gloss/images/ and nowhere else.',
+            huiText(
+              'No leading slash, no "..", no drive letters - the path is read '
+              'inside plugins/Gloss/images/ and nowhere else.',
+            ),
           ),
           HuiNote(
-            'Gloss draws one character per source pixel with no resizing, so '
-            'a 64x64 image becomes 64 text displays of 64 characters. Keep '
-            'images small.',
+            huiText(
+              'Gloss draws one character per source pixel. Imports are resized '
+              'to at most 16x16 because the text renderer is for compact pixel '
+              'art and larger glyph walls cause poor client performance.',
+            ),
           ),
         ],
       ),
@@ -1020,18 +1094,12 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
     if (_staged.isEmpty) return;
     final List<String> added = <String>[..._staged];
     setState(_staged.clear);
-    _emit(
-      added.length == 1 ? 'add frame' : 'add ${added.length} frames',
-      <String>[..._source, ...added],
-    );
+    _emit('frames.add:${added.length}', <String>[..._source, ...added]);
   }
 
   void _addFrames(List<String> paths) {
     if (paths.isEmpty) return;
-    _emit(
-      paths.length == 1 ? 'add frame' : 'add ${paths.length} frames',
-      <String>[..._source, ...paths],
-    );
+    _emit('frames.add:${paths.length}', <String>[..._source, ...paths]);
   }
 
   void _removeFrame(int index) =>
@@ -1072,35 +1140,38 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
     final int speed = _icon.speed;
     return dom.div(classes: 'hui-icon-animated', <Widget>[
       InspectorSection(
-        title: 'Frames',
-        description: 'Played in this order and looped.',
+        title: huiText('Frames'),
+        description: huiText('Played in this order and looped.'),
         trailing: dom.div(classes: 'hui-frame-tools', <Widget>[
           HuiIconButton(
             icon: ArcaneIcon.arrowUpDown(size: IconSize.sm),
-            label: 'Reverse frame order',
+            label: huiText('Reverse frame order'),
             disabled: _source.length < 2,
             onPressed: _reverse,
           ),
           const HuiFieldHelp('icon.animated.source'),
           dom.span(classes: 'hui-count-chip', <Widget>[
-            Text('${_source.length}'),
+            Text(
+              huiText("{length}", <String, Object?>{'length': _source.length}),
+            ),
           ]),
         ]),
         children: <Widget>[
           if (_source.isEmpty)
             HuiEmptyState(
               icon: ArcaneIcon.triangleAlert(size: IconSize.md),
-              title: 'No frames',
-              body:
-                  'An animated icon with an empty source list falls back to '
-                  'the missing-icon placeholder in game. Add at least one '
-                  'frame.',
+              title: huiText('No frames'),
+              body: huiText(
+                'An animated icon with an empty source list falls back to '
+                'the missing-icon placeholder in game. Add at least one '
+                'frame.',
+              ),
               tone: HuiNoteTone.danger,
             )
           else
             HuiReorderList(
               itemCount: _source.length,
-              handleLabel: 'Drag to reorder frames',
+              handleLabel: huiText('Drag to reorder frames'),
               classes: 'hui-frame-list',
               onReorder: _reorder,
               itemBuilder: _frameRow,
@@ -1120,11 +1191,16 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
         ),
       _library(),
       HuiField(
-        label: 'Speed',
+        label: huiText('Speed'),
         required: true,
-        help: 'Ticks per frame, at 20 ticks per second.',
+        help: huiText('Ticks per frame, at 20 ticks per second.'),
         trailing: const HuiFieldHelp('icon.animated.speed'),
-        defaultValue: '$huiDefaultAnimationSpeed ticks',
+        defaultValue: huiPlural(
+          'duration.tick_count',
+          huiDefaultAnimationSpeed,
+          oneEnglish: '{count} tick',
+          otherEnglish: '{count} ticks',
+        ),
         onReset: speed == huiDefaultAnimationSpeed
             ? null
             : () => _emit('animation speed', <String>[
@@ -1134,8 +1210,8 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
           HuiDurationField(
             value: speed.toDouble(),
             unit: HuiDurationUnit.ticks,
-            min: 1,
-            perLabel: 'per frame',
+            min: 2,
+            perLabel: huiText('per frame'),
             onChanged: (double value) =>
                 _emit('animation speed', <String>[..._source], value.round()),
           ),
@@ -1146,15 +1222,19 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
           ),
         ]),
       ),
-      const HuiMore(
-        summary: 'Frame padding and tick limits',
+      HuiMore(
+        summary: huiText('Frame padding and tick limits'),
         children: <Widget>[
           HuiNote(
-            'Every frame is padded to the tallest frame with blank rows.',
+            huiText(
+              'Every frame is padded to the tallest frame with blank rows.',
+            ),
           ),
           HuiNote(
-            '1 tick is the fastest the plugin can go; 0 or less also advances '
-            'every tick.',
+            huiText(
+              '1 tick is the fastest the plugin can go; 0 or less also advances '
+              'every tick.',
+            ),
           ),
         ],
       ),
@@ -1162,10 +1242,12 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
   }
 
   Widget _library() => dom.div(classes: 'hui-icon-animated-library', <Widget>[
-    const HuiEyebrow('Add from library'),
-    const HuiNote(
-      'Click images to line them up, then add them in one go. The same '
-      'image can be used in more than one frame.',
+    HuiEyebrow(huiText('Add from library')),
+    HuiNote(
+      huiText(
+        'Click images to line them up, then add them in one go. The same '
+        'image can be used in more than one frame.',
+      ),
     ),
     ImagePickerGrid(
       images: component.images,
@@ -1176,7 +1258,7 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
     ImageUploadButton(
       images: component.images,
       inputId: component.inputId,
-      label: 'Upload image or GIF frames',
+      label: huiText('Upload image or GIF frames'),
       onAdded: _addFrames,
     ),
   ]);
@@ -1188,11 +1270,19 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
           classes: 'hui-frame-staged-chip',
           attributes: <String, String>{
             'type': 'button',
-            'aria-label': 'Remove ${_staged[i]} from the queue',
+            'aria-label': huiText(
+              "Remove {value} from the queue",
+              <String, Object?>{'value': _staged[i]},
+            ),
           },
           events: dom.events<Null>(onClick: () => _toggleStaged(_staged[i])),
           <Widget>[
-            Text('${i + 1}. ${_staged[i]}'),
+            Text(
+              huiText("{value}. {value2}", <String, Object?>{
+                'value': i + 1,
+                'value2': _staged[i],
+              }),
+            ),
             ArcaneIcon.x(size: IconSize.sm),
           ],
         ),
@@ -1204,14 +1294,19 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
         icon: ArcaneIcon.plus(size: IconSize.sm),
         onPressed: _addStaged,
         child: Text(
-          _staged.length == 1 ? 'Add 1 frame' : 'Add ${_staged.length} frames',
+          huiPlural(
+            'icon.frames_add.count',
+            _staged.length,
+            oneEnglish: 'Add {count} frame',
+            otherEnglish: 'Add {count} frames',
+          ),
         ),
       ),
       Button(
         variant: ButtonVariant.ghost,
         size: ButtonSize.sm,
         onPressed: () => setState(_staged.clear),
-        child: const Text('Clear'),
+        child: Text(huiText('Clear')),
       ),
     ]),
   ]);
@@ -1220,7 +1315,9 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
     final String path = _source[index];
     final StoredImage? stored = component.images.byPath(path);
     return dom.div(classes: 'hui-frame-row', <Widget>[
-      dom.span(classes: 'hui-frame-index', <Widget>[Text('${index + 1}')]),
+      dom.span(classes: 'hui-frame-index', <Widget>[
+        Text(huiText("{value}", <String, Object?>{'value': index + 1})),
+      ]),
       dom.span(classes: 'hui-frame-thumb', <Widget>[
         if (stored != null)
           dom.img(
@@ -1242,12 +1339,15 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
           attributes: const <String, String>{
             'autocomplete': 'off',
             'spellcheck': 'false',
+            'dir': 'ltr',
           },
         ),
       ]),
       HuiIconButton(
         icon: ArcaneIcon.copy(size: IconSize.sm),
-        label: 'Duplicate frame ${index + 1}',
+        label: huiText("Duplicate frame {value}", <String, Object?>{
+          'value': index + 1,
+        }),
         onPressed: () => _duplicateFrame(index),
       ),
       HuiRowTools(
@@ -1256,7 +1356,9 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
             ? null
             : () => _moveFrame(index, 1),
         onRemove: () => _removeFrame(index),
-        removeLabel: 'Remove frame ${index + 1}',
+        removeLabel: huiText('Remove frame {number}', <String, Object?>{
+          'number': index + 1,
+        }),
       ),
     ]);
   }
@@ -1313,7 +1415,7 @@ class _AnimatedIconPreviewState extends State<AnimatedIconPreview> {
     _timer?.cancel();
     _timer = null;
     if (!_playing || component.frames.length < 2) return;
-    final int ticks = component.speed < 1 ? 1 : component.speed;
+    final int ticks = component.speed < 2 ? 2 : component.speed;
     _timer = Timer.periodic(Duration(milliseconds: ticks * 50), (Timer _) {
       if (!mounted) return;
       setState(() => _frame = (_frame + 1) % component.frames.length);
@@ -1351,11 +1453,16 @@ class _AnimatedIconPreviewState extends State<AnimatedIconPreview> {
           icon: _playing
               ? ArcaneIcon.pause(size: IconSize.sm)
               : ArcaneIcon.play(size: IconSize.sm),
-          label: _playing ? 'Pause preview' : 'Play preview',
+          label: _playing ? huiText('Pause preview') : huiText('Play preview'),
           onPressed: _togglePlay,
         ),
         dom.span(classes: 'hui-animated-preview-count', <Widget>[
-          Text('frame ${index + 1} of ${component.frames.length}'),
+          Text(
+            huiText("frame {value} of {length}", <String, Object?>{
+              'value': index + 1,
+              'length': component.frames.length,
+            }),
+          ),
         ]),
       ]),
     ]);

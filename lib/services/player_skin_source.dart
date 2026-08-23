@@ -18,6 +18,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../l10n/hui_localizations.dart';
 import 'image_library.dart' show huiNormalizedPngDataUriPrefix;
 
 /// Minecraft usernames: 1 to 16 of `[A-Za-z0-9_]`. Mojang enforces three
@@ -63,14 +64,16 @@ enum PlayerSkinFailure {
   tooLarge,
 }
 
+typedef PlayerSkinMessage = String Function();
+
 final class PlayerSkinFetch {
   const PlayerSkinFetch._({
     required this.username,
     this.pngDataUri,
     this.host,
     this.failure,
-    this.message,
-  });
+    PlayerSkinMessage? message,
+  }) : _message = message;
 
   const PlayerSkinFetch.success({
     required String username,
@@ -81,7 +84,7 @@ final class PlayerSkinFetch {
   const PlayerSkinFetch.failed({
     required String username,
     required PlayerSkinFailure failure,
-    required String message,
+    required PlayerSkinMessage message,
   }) : this._(username: username, failure: failure, message: message);
 
   final String username;
@@ -93,9 +96,10 @@ final class PlayerSkinFetch {
   final String? host;
 
   final PlayerSkinFailure? failure;
+  final PlayerSkinMessage? _message;
 
   /// A complete sentence for the user. Non-null exactly when [failure] is.
-  final String? message;
+  String? get message => _message?.call();
 
   bool get isSuccess => pngDataUri != null;
 }
@@ -111,7 +115,7 @@ final class PlayerSkinSource {
     if (requestTimeout <= Duration.zero ||
         maxResponseBytes <= 0 ||
         this.hosts.isEmpty) {
-      throw ArgumentError('Invalid skin source limits.');
+      throw ArgumentError(huiText('Invalid skin source limits.'));
     }
   }
 
@@ -164,14 +168,16 @@ final class PlayerSkinSource {
       return PlayerSkinFetch.failed(
         username: username,
         failure: PlayerSkinFailure.invalidName,
-        message: username.isEmpty
-            ? 'Type a Minecraft username first.'
-            : '"$username" is not a Minecraft username. Names are 1 to 16 '
-                  'characters of letters, digits and underscores.',
+        message: () => username.isEmpty
+            ? huiText('Type a Minecraft username first.')
+            : huiText(
+                '"{username}" is not a Minecraft username. Names are 1 to 16 characters of letters, digits and underscores.',
+                <String, Object?>{'username': username},
+              ),
       );
     }
 
-    final List<String> refusals = <String>[];
+    final List<PlayerSkinMessage> refusals = <PlayerSkinMessage>[];
     PlayerSkinFailure worst = PlayerSkinFailure.unreachable;
     for (final PlayerSkinHost host in hosts) {
       final _HostAnswer answer = await _fetchFrom(host, username);
@@ -183,15 +189,24 @@ final class PlayerSkinSource {
           host: host.name,
         );
       }
-      refusals.add('${host.name} ${answer.reason}');
+      refusals.add(() => '${host.name} ${answer.reason}');
       worst = _worse(worst, answer.failure!);
     }
 
+    final List<PlayerSkinMessage> capturedRefusals =
+        List<PlayerSkinMessage>.unmodifiable(refusals);
     return PlayerSkinFetch.failed(
       username: username,
       failure: worst,
-      message:
-          'Could not fetch a skin for "$username": ${refusals.join('; ')}.',
+      message: () => huiText(
+        'Could not fetch a skin for "{username}": {reasons}.',
+        <String, Object?>{
+          'username': username,
+          'reasons': capturedRefusals
+              .map((PlayerSkinMessage refusal) => refusal())
+              .join('; '),
+        },
+      ),
     );
   }
 
@@ -223,60 +238,63 @@ final class PlayerSkinSource {
 
       if (response.statusCode == 429) {
         await _drain(response);
-        return const _HostAnswer.refused(
+        return _HostAnswer.refused(
           PlayerSkinFailure.rateLimited,
-          'is rate limiting this browser',
+          () => huiText('is rate limiting this browser'),
         );
       }
       if (response.statusCode == 404 || response.statusCode == 410) {
         await _drain(response);
-        return const _HostAnswer.refused(
+        return _HostAnswer.refused(
           PlayerSkinFailure.notFound,
-          'has no skin for that name',
+          () => huiText('has no skin for that name'),
         );
       }
       if (response.statusCode != 200) {
+        final int status = response.statusCode;
         await _drain(response);
         return _HostAnswer.refused(
           PlayerSkinFailure.unreachable,
-          'returned HTTP ${response.statusCode}',
+          () => huiText('returned HTTP {status}', <String, Object?>{
+            'status': status,
+          }),
         );
       }
 
       final int? declared = response.contentLength;
       if (declared != null && declared > maxResponseBytes) {
         await _drain(response);
-        return const _HostAnswer.refused(
+        return _HostAnswer.refused(
           PlayerSkinFailure.tooLarge,
-          'returned a file far too large to be a skin',
+          () => huiText('returned a file far too large to be a skin'),
         );
       }
 
       final Uint8List? bytes = await _read(response);
       if (bytes == null) {
-        return const _HostAnswer.refused(
+        return _HostAnswer.refused(
           PlayerSkinFailure.tooLarge,
-          'returned a file far too large to be a skin',
+          () => huiText('returned a file far too large to be a skin'),
         );
       }
       if (!_isPng(bytes)) {
-        return const _HostAnswer.refused(
+        return _HostAnswer.refused(
           PlayerSkinFailure.notASkin,
-          'returned something that is not a PNG',
+          () => huiText('returned something that is not a PNG'),
         );
       }
       return _HostAnswer.ok(bytes);
     } on TimeoutException {
-      return const _HostAnswer.refused(
+      return _HostAnswer.refused(
         PlayerSkinFailure.unreachable,
-        'did not answer in time',
+        () => huiText('did not answer in time'),
       );
     } catch (_) {
       // Offline, DNS failure and a CORS rejection all arrive here identically:
       // the browser does not tell a script which one it was.
-      return const _HostAnswer.refused(
+      return _HostAnswer.refused(
         PlayerSkinFailure.unreachable,
-        'could not be reached',
+        () => huiText('could not be reached'),
       );
     }
   }
@@ -326,13 +344,14 @@ final class PlayerSkinSource {
 }
 
 final class _HostAnswer {
-  const _HostAnswer.ok(this.bytes) : failure = null, reason = '';
+  const _HostAnswer.ok(this.bytes) : failure = null, _reason = null;
 
-  const _HostAnswer.refused(this.failure, this.reason) : bytes = null;
+  const _HostAnswer.refused(this.failure, this._reason) : bytes = null;
 
   final Uint8List? bytes;
   final PlayerSkinFailure? failure;
+  final PlayerSkinMessage? _reason;
 
   /// A verb phrase that completes "minotar.net ...".
-  final String reason;
+  String get reason => _reason?.call() ?? '';
 }

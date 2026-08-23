@@ -28,6 +28,7 @@ library;
 
 import 'dart:math' as math;
 
+import '../l10n/hui_localizations.dart';
 import '../model/gloss_real_drops.dart';
 import 'preview_expr.dart';
 import 'preview_expr_functions.dart';
@@ -90,7 +91,23 @@ final RegExp _identifier = RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$');
 
 /// One reason the server would refuse the document at load.
 final class RealDropScriptIssue {
-  const RealDropScriptIssue({required this.path, required this.message});
+  const RealDropScriptIssue({
+    required this.path,
+    required String message,
+    this.messageArguments = const <String, Object?>{},
+  }) : _message = message,
+       pluralKey = null,
+       pluralCount = null,
+       oneEnglish = null;
+
+  const RealDropScriptIssue.plural({
+    required this.path,
+    required this.pluralKey,
+    required this.pluralCount,
+    required this.oneEnglish,
+    required String otherEnglish,
+    this.messageArguments = const <String, Object?>{},
+  }) : _message = otherEnglish;
 
   /// JSON path of the offending field, for inline placement in the inspector
   /// (`$.script.offset.y`).
@@ -98,7 +115,38 @@ final class RealDropScriptIssue {
 
   /// The server's own wording, minus the leading file name it prefixes every
   /// message with — `script.offset.y: unclosed paren at position 5`.
-  final String message;
+  final String _message;
+  final Map<String, Object?> messageArguments;
+  final String? pluralKey;
+  final int? pluralCount;
+  final String? oneEnglish;
+
+  String get message {
+    final String? key = pluralKey;
+    final int? count = pluralCount;
+    final String? one = oneEnglish;
+    if (key == null || count == null || one == null) {
+      return huiText(_message, messageArguments);
+    }
+    return huiPlural(
+      key,
+      count,
+      oneEnglish: one,
+      otherEnglish: _message,
+      arguments: messageArguments,
+    );
+  }
+
+  String get englishMessage => _message;
+}
+
+final class _DeferredText {
+  const _DeferredText(this.resolve);
+
+  final String Function() resolve;
+
+  @override
+  String toString() => resolve();
 }
 
 /// One evaluation of the whole script, for one display.
@@ -383,11 +431,18 @@ final class RealDropScriptPlan {
 
     if (script.vars.length > GlossRealDropScript.maxVars) {
       issues.add(
-        RealDropScriptIssue(
+        RealDropScriptIssue.plural(
           path: r'$.script.vars',
-          message:
-              'script.vars declares ${script.vars.length} variables; '
-              'the limit is ${GlossRealDropScript.maxVars}',
+          pluralKey: 'validation.real_drop_script.variable_count',
+          pluralCount: script.vars.length,
+          oneEnglish:
+              'script.vars declares {count} variable; the limit is {limit}',
+          otherEnglish:
+              'script.vars declares {count} variables; the limit is {limit}',
+          messageArguments: <String, Object?>{
+            'count': script.vars.length,
+            'limit': GlossRealDropScript.maxVars,
+          },
         ),
       );
     }
@@ -409,22 +464,25 @@ final class RealDropScriptPlan {
           RealDropScriptIssue(
             path: path,
             message:
-                'script.vars.$name is not a valid name; use letters, digits '
+                'script.vars.{name} is not a valid name; use letters, digits '
                 'and underscores starting with a letter or underscore',
+            messageArguments: <String, Object?>{'name': name},
           ),
         );
       } else if (realDropScriptVariables.contains(name)) {
         issues.add(
           RealDropScriptIssue(
             path: path,
-            message: 'script.vars.$name shadows the built-in variable $name',
+            message: 'script.vars.{name} shadows the built-in variable {name}',
+            messageArguments: <String, Object?>{'name': name},
           ),
         );
       } else if (declared.contains(name)) {
         issues.add(
           RealDropScriptIssue(
             path: path,
-            message: 'script.vars.$name is declared twice',
+            message: 'script.vars.{name} is declared twice',
+            messageArguments: <String, Object?>{'name': name},
           ),
         );
       }
@@ -630,12 +688,18 @@ final class RealDropScriptPlan {
       _add(
         issues,
         path,
-        '$field must evaluate to a number, got ${previewTypeName(result)}',
+        '{field} must evaluate to a number, got {type}',
+        <String, Object?>{
+          'field': field,
+          'type': _DeferredText(() => previewTypeName(result)),
+        },
       );
       return 0;
     }
     if (!result.isFinite) {
-      _add(issues, path, '$field result must be finite');
+      _add(issues, path, '{field} result must be finite', <String, Object?>{
+        'field': field,
+      });
       return 0;
     }
     return result;
@@ -654,7 +718,11 @@ final class RealDropScriptPlan {
     _add(
       issues,
       path,
-      '$field must evaluate to true or false, got ${previewTypeName(result)}',
+      '{field} must evaluate to true or false, got {type}',
+      <String, Object?>{
+        'field': field,
+        'type': _DeferredText(() => previewTypeName(result)),
+      },
     );
   }
 
@@ -671,8 +739,8 @@ final class RealDropScriptPlan {
     if (result == null) return;
     try {
       _colorOf(result);
-    } on FormatException catch (e) {
-      _add(issues, r'$.script.glow', e.message);
+    } on PExprException catch (e) {
+      _add(issues, r'$.script.glow', e.englishMessage, e.arguments);
     }
   }
 
@@ -688,7 +756,10 @@ final class RealDropScriptPlan {
     try {
       return evalPreviewExpr(expression, scope);
     } on PExprException catch (e) {
-      _add(issues, path, '$field: ${e.message}');
+      _add(issues, path, '{field}: {message}', <String, Object?>{
+        'field': field,
+        'message': _DeferredText(() => e.message),
+      });
       return null;
     }
   }
@@ -741,15 +812,19 @@ PExpr? _compile(
   List<RealDropScriptIssue> issues,
 ) {
   if (source.trim().isEmpty) {
-    _add(issues, path, '$field must be a non-blank expression');
-    return null;
-  }
-  if (source.length > GlossRealDropScript.maxSourceLength) {
     _add(
       issues,
       path,
-      '$field exceeds ${GlossRealDropScript.maxSourceLength} characters',
+      '{field} must be a non-blank expression',
+      <String, Object?>{'field': field},
     );
+    return null;
+  }
+  if (source.length > GlossRealDropScript.maxSourceLength) {
+    _add(issues, path, '{field} exceeds {limit} characters', <String, Object?>{
+      'field': field,
+      'limit': GlossRealDropScript.maxSourceLength,
+    });
     return null;
   }
   final PExpr expression;
@@ -760,8 +835,13 @@ PExpr? _compile(
       issues,
       path,
       e.position == previewNoPosition
-          ? '$field: ${e.message}'
-          : '$field: ${e.message} at position ${e.position}',
+          ? '{field}: {message}'
+          : '{field}: {message} at position {position}',
+      <String, Object?>{
+        'field': field,
+        'message': _DeferredText(() => e.message),
+        if (e.position != previewNoPosition) 'position': e.position,
+      },
     );
     return null;
   }
@@ -789,8 +869,12 @@ void _walk(
         _add(
           issues,
           path,
-          "$field: unknown variable '$name' at position "
-          '${math.max(0, source.indexOf(name))}',
+          "{field}: unknown variable '{name}' at position {position}",
+          <String, Object?>{
+            'field': field,
+            'name': name,
+            'position': math.max(0, source.indexOf(name)),
+          },
         );
         return;
       }
@@ -854,8 +938,12 @@ void _walk(
         _add(
           issues,
           path,
-          "$field: unknown function '$name' at position "
-          '${math.max(0, source.indexOf(name))}',
+          "{field}: unknown function '{name}' at position {position}",
+          <String, Object?>{
+            'field': field,
+            'name': name,
+            'position': math.max(0, source.indexOf(name)),
+          },
         );
         return;
       }
@@ -865,17 +953,30 @@ void _walk(
   }
 }
 
-void _add(List<RealDropScriptIssue> issues, String path, String message) {
+void _add(
+  List<RealDropScriptIssue> issues,
+  String path,
+  String message, [
+  Map<String, Object?> messageArguments = const <String, Object?>{},
+]) {
   // One message per field is what the server prints, because it refuses the
   // document at the first one. Repeating the same complaint four times over
   // the four sample contexts would only pad the validation panel.
   if (issues.any(
     (RealDropScriptIssue issue) =>
-        issue.path == path && issue.message == message,
+        issue.path == path &&
+        issue.englishMessage == message &&
+        issue.message == huiText(message, messageArguments),
   )) {
     return;
   }
-  issues.add(RealDropScriptIssue(path: path, message: message));
+  issues.add(
+    RealDropScriptIssue(
+      path: path,
+      message: message,
+      messageArguments: messageArguments,
+    ),
+  );
 }
 
 /// `RealDropScriptPlan.color`: a number is an ARGB value narrowed the way
@@ -893,15 +994,19 @@ int _colorOf(Object? result) {
         ? int.tryParse(digits, radix: 16)
         : null;
     if (value == null) {
-      throw FormatException(
-        "script.glow string must be #RRGGBB or #AARRGGBB, got '$text'",
+      throw PExprException(
+        "script.glow string must be #RRGGBB or #AARRGGBB, got '{text}'",
+        previewNoPosition,
+        <String, Object?>{'text': text},
       );
     }
     return digits.length == 6 ? value | 0xFF000000 : value;
   }
-  throw FormatException(
+  throw PExprException(
     'script.glow must evaluate to a colour number or a #RRGGBB string, '
-    'got ${previewTypeName(result)}',
+    'got {type}',
+    previewNoPosition,
+    <String, Object?>{'type': _DeferredText(() => previewTypeName(result))},
   );
 }
 
@@ -967,15 +1072,17 @@ final class _Scope implements PExprScope {
   static String _stringArgument(String name, List<Object?> args) {
     if (args.length != 1) {
       throw PExprException(
-        '$name expects 1 argument(s), got ${args.length}',
+        '{name} expects exactly one argument, got {count}',
         previewNoPosition,
+        <String, Object?>{'name': name, 'count': args.length},
       );
     }
     final Object? value = args.first;
     if (value is String) return value;
     throw PExprException(
-      '$name argument 1 must be a string',
+      '{name} argument 1 must be a string',
       previewNoPosition,
+      <String, Object?>{'name': name},
     );
   }
 }

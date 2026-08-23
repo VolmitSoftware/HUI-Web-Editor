@@ -10,6 +10,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 import 'package:gloss_editor/services/image_library.dart';
 import 'package:gloss_editor/services/player_skin_source.dart';
 import 'package:http/http.dart' as http;
@@ -62,6 +63,9 @@ PlayerSkinSource _source(_HandlerClient client, {Duration? timeout}) =>
     );
 
 void main() {
+  setUp(huiLocalizations.resetToEnglish);
+  tearDown(huiLocalizations.resetToEnglish);
+
   group('isMinecraftUsername', () {
     test('accepts what Mojang issues and nothing else', () {
       expect(isMinecraftUsername('Notch'), isTrue);
@@ -124,6 +128,35 @@ void main() {
       expect(fetched.message, contains('minotar.net'));
       expect(fetched.message, contains('mc-heads.net'));
       expect(client.requested.length, 2);
+    });
+
+    test('stored host failures resolve in the active locale', () async {
+      final _HandlerClient client = _HandlerClient(
+        (http.BaseRequest request) async => _bytesResponse(404, <int>[]),
+      );
+      final PlayerSkinFetch fetched = await _source(client).fetch('Nobody');
+
+      expect(fetched.message, contains('has no skin for that name'));
+      huiLocalizations.installSnapshot(
+        const HuiLocaleSnapshot(
+          locale: 'de_DE',
+          messages: <String, String>{
+            'Could not fetch a skin for "{username}": {reasons}.':
+                'Für "{username}" konnte kein Skin abgerufen werden: {reasons}.',
+            'has no skin for that name': 'hat keinen Skin für diesen Namen',
+          },
+          contexts: <String, String>{},
+          plurals: <String, Map<HuiPluralForm, String>>{},
+          previewMessages: <String, String>{},
+        ),
+      );
+
+      expect(
+        fetched.message,
+        'Für "Nobody" konnte kein Skin abgerufen werden: '
+        'minotar.net hat keinen Skin für diesen Namen; '
+        'mc-heads.net hat keinen Skin für diesen Namen.',
+      );
     });
 
     test('the shipped chain is minotar then mc-heads', () {

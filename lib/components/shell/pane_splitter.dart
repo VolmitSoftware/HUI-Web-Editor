@@ -9,6 +9,7 @@ library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 import 'pane_dom.dart';
 import 'pane_layout.dart';
@@ -33,8 +34,8 @@ class PaneSplitter extends StatefulWidget {
       side == PaneSide.rail ? 'hui-splitter-rail' : 'hui-splitter-inspector';
 
   String get label => side == PaneSide.rail
-      ? 'Resize the components rail'
-      : 'Resize the inspector';
+      ? huiText('Resize the components rail')
+      : huiText('Resize the inspector');
 
   @override
   State<PaneSplitter> createState() => _PaneSplitterState();
@@ -157,7 +158,9 @@ class _PaneSplitterState extends State<PaneSplitter> {
         'aria-valuemin': PaneLayout.minOf(side).round().toString(),
         'aria-valuemax': PaneLayout.maxOf(side).round().toString(),
         'aria-valuenow': width.round().toString(),
-        'aria-valuetext': '${width.round()} pixels',
+        'aria-valuetext': huiText('{width} pixels', <String, Object?>{
+          'width': width.round(),
+        }),
         'tabindex': '0',
       },
       const <Widget>[

@@ -1,0 +1,23 @@
+{
+  "name": "Edytor Gloss",
+  "short_name": "Gloss",
+  "description": "Wizualny edytor sieciowy do tworzenia i przeglądania konfiguracji menu Gloss.",
+  "lang": "pl-PL",
+  "dir": "ltr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "icons": [
+    {
+      "src": "../assets/brand/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "../assets/brand/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

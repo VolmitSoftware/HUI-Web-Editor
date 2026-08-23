@@ -6,6 +6,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import 'class_names.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class HuiField extends StatelessWidget {
   const HuiField({
@@ -160,19 +161,34 @@ class HuiField extends StatelessWidget {
     dom.span(
       classes: 'hui-default-chip',
       attributes: <String, String>{
-        'title': 'Gloss uses $defaultValue when this key is omitted',
+        'title': huiText(
+          "Gloss uses {defaultValue} when this key is omitted",
+          <String, Object?>{'defaultValue': defaultValue},
+        ),
       },
-      <Widget>[Text('default $defaultValue')],
+      <Widget>[
+        Text(
+          huiText("default {defaultValue}", <String, Object?>{
+            'defaultValue': defaultValue,
+          }),
+        ),
+      ],
     ),
     ArcaneTooltip(
-      text: 'Reset $label to $defaultValue',
+      text: huiText('Reset {label} to {defaultValue}', <String, Object?>{
+        'label': label,
+        'defaultValue': defaultValue,
+      }),
       child: Button(
         variant: ButtonVariant.ghost,
         size: ButtonSize.iconSm,
         disabled: onReset == null,
         onPressed: onReset,
         attributes: <String, String>{
-          'aria-label': 'Reset $label to $defaultValue',
+          'aria-label': huiText(
+            "Reset {label} to {defaultValue}",
+            <String, Object?>{'label': label, 'defaultValue': defaultValue},
+          ),
         },
         child: ArcaneIcon.rotateCcw(size: IconSize.sm),
       ),

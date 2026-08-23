@@ -14,6 +14,7 @@ import '../../state/workspace.dart';
 import '../common/class_names.dart';
 import 'shell_status.dart';
 import 'store_selector.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class StatusBar extends StatelessWidget {
   const StatusBar({
@@ -32,7 +33,7 @@ class StatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => dom.footer(
     classes: 'hui-status',
-    attributes: const <String, String>{'aria-label': 'Editor status'},
+    attributes: <String, String>{'aria-label': huiText('Editor status')},
     <Widget>[
       StoreSelector<String>(
         listenable: store,
@@ -54,7 +55,7 @@ class StatusBar extends StatelessWidget {
       // ignore: prefer_const_constructors
       dom.span(
         classes: 'hui-status-item hui-status-version',
-        attributes: const <String, String>{'title': 'Editor build'},
+        attributes: <String, String>{'title': huiText('Editor build')},
         // ignore: prefer_const_literals_to_create_immutables
         <Widget>[const Text(huiBuildBadge)],
       ),
@@ -76,18 +77,30 @@ class StatusBar extends StatelessWidget {
 
   Widget _issuesChip() {
     if (store.isPanelDoc) {
-      return const dom.span(classes: 'hui-status-item', <Widget>[
-        Text('Flow diagnostics shown on map'),
+      return dom.span(classes: 'hui-status-item', <Widget>[
+        Text(huiText('Flow diagnostics shown on map')),
       ]);
     }
     final int errors = store.errorCount;
     final int warnings = store.warningCount;
     final bool clean = errors == 0 && warnings == 0;
     final String label = clean
-        ? 'No issues'
+        ? huiText('No issues')
         : <String>[
-            if (errors > 0) '$errors error${errors == 1 ? '' : 's'}',
-            if (warnings > 0) '$warnings warning${warnings == 1 ? '' : 's'}',
+            if (errors > 0)
+              huiPlural(
+                'status.errors.count',
+                errors,
+                oneEnglish: '{count} error',
+                otherEnglish: '{count} errors',
+              ),
+            if (warnings > 0)
+              huiPlural(
+                'status.warnings.count',
+                warnings,
+                oneEnglish: '{count} warning',
+                otherEnglish: '{count} warnings',
+              ),
           ].join(', ');
     final Widget icon = clean
         ? ArcaneIcon.circleCheck(size: IconSize.sm)
@@ -107,8 +120,11 @@ class StatusBar extends StatelessWidget {
           onPressed: onOpenValidation,
           attributes: <String, String>{
             'aria-label': clean
-                ? 'No validation issues'
-                : '$label. Open the validation panel.',
+                ? huiText('No validation issues')
+                : huiText(
+                    '{label}. Open the validation panel.',
+                    <String, Object?>{'label': label},
+                  ),
           },
         ),
       ],
@@ -125,20 +141,39 @@ class StatusBar extends StatelessWidget {
           .where((WorkspaceDoc doc) => doc.kind == DocumentTypes.menu.kind)
           .length;
       return dom.span(classes: 'hui-status-item hui-status-selection', <Widget>[
-        Text('$menus menu${menus == 1 ? '' : 's'} in workspace'),
+        Text(
+          huiPlural(
+            'status.workspace_menu_count',
+            menus,
+            oneEnglish: '{count} menu in workspace',
+            otherEnglish: '{count} menus in workspace',
+          ),
+        ),
       ]);
     }
     if (!store.isMenuDoc && !store.isPreviewDoc) {
       return dom.span(classes: 'hui-status-item hui-status-selection', <Widget>[
-        Text('${store.docType.noun} document'),
+        Text(
+          huiText("{noun} document", <String, Object?>{
+            'noun': store.docType.noun,
+          }),
+        ),
       ]);
     }
     final int selectedCount = store.selectionIds.length;
     final int count = store.menu.components.length;
     final String text = switch (selectedCount) {
-      0 => '$count component${count == 1 ? '' : 's'}',
-      1 => 'Selected ${store.selectedId}',
-      _ => '$selectedCount of $count selected',
+      0 => huiPlural(
+        'status.component-count',
+        count,
+        oneEnglish: '{count} component',
+        otherEnglish: '{count} components',
+      ),
+      1 => huiText('Selected {id}', <String, Object?>{'id': store.selectedId}),
+      _ => huiText('{selected} of {total} selected', <String, Object?>{
+        'selected': selectedCount,
+        'total': count,
+      }),
     };
     if (selectedCount < 2) {
       return dom.span(classes: 'hui-status-item hui-status-selection', <Widget>[
@@ -163,10 +198,13 @@ class StatusBar extends StatelessWidget {
     const int shown = 12;
     final List<String> ids = <String>[
       for (final HuiComponent component in store.selectedComponents)
-        component.id.isEmpty ? '(no id)' : component.id,
+        component.id.isEmpty ? huiText('(no id)') : component.id,
     ];
     if (ids.length <= shown) return ids.join(', ');
-    return '${ids.take(shown).join(', ')} and ${ids.length - shown} more';
+    return huiText('{ids} and {count} more', <String, Object?>{
+      'ids': ids.take(shown).join(', '),
+      'count': ids.length - shown,
+    });
   }
 
   Widget _canvasReadout() {
@@ -196,7 +234,11 @@ class StatusBar extends StatelessWidget {
             ),
           ]),
           dom.span(classes: 'hui-status-item is-numeric', <Widget>[
-            Text('${(live.zoom * 100).round()}%'),
+            Text(
+              huiText("{round}%", <String, Object?>{
+                'round': (live.zoom * 100).round(),
+              }),
+            ),
           ]),
         ]);
       },
@@ -216,15 +258,15 @@ class StatusBar extends StatelessWidget {
         <Widget>[
           Text(failure),
           if (store.workspace.requiresReload)
-            const Button.ghost(
+            Button.ghost(
               size: ButtonSize.sm,
-              label: 'Reload',
+              label: huiText('Reload'),
               onPressed: reloadEditorPage,
             )
           else if (store.hasUnsavedChanges)
             Button.ghost(
               size: ButtonSize.sm,
-              label: 'Retry',
+              label: huiText('Retry'),
               onPressed: _retryAutosave,
             ),
         ],
@@ -232,10 +274,12 @@ class StatusBar extends StatelessWidget {
     }
     final DateTime? saved = store.lastSavedAt;
     final String text = store.hasUnsavedChanges
-        ? 'Saving…'
+        ? huiText('Saving…')
         : saved == null
-        ? 'Autosaved locally'
-        : 'Autosaved locally ${_clock(saved)}';
+        ? huiText('Autosaved locally')
+        : huiText('Autosaved locally {time}', <String, Object?>{
+            'time': _clock(saved),
+          });
     return dom.span(
       classes: 'hui-status-item is-muted',
       attributes: const <String, String>{
@@ -256,9 +300,9 @@ class StatusBar extends StatelessWidget {
   Future<void> _retryAutosave() async {
     final bool saved = await store.retryAutosave();
     if (saved) {
-      toast.success('Workspace saved.');
+      toast.success(huiText('Workspace saved.'));
       return;
     }
-    toast.error(store.workspace.lastError ?? 'Workspace save failed.');
+    toast.error(store.workspace.lastError ?? huiText('Workspace save failed.'));
   }
 }

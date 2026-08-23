@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart' as crypto;
 
 import '../config/defaults.dart';
+import '../l10n/hui_localizations.dart';
 import '../logic/validation.dart';
 import '../model/model.dart';
 import '../doctype/doctype.dart';
@@ -56,8 +57,8 @@ const int huiEditorSyncMaxResponseBytes =
     (huiEditorSyncMaxProjectBytes * 2) + huiEditorSyncMaxResponseEnvelopeBytes;
 const int huiEditorSyncMaxMenus = 256;
 const int huiEditorSyncMaxImages = 512;
-const int huiEditorSyncMaxImageDimension = 64;
-const int huiEditorSyncMaxImagePixels = 64 * 64;
+const int huiEditorSyncMaxImageDimension = 16;
+const int huiEditorSyncMaxImagePixels = 16 * 16;
 const int huiEditorSyncMaxAssetPixels = 262144;
 const int huiEditorSyncMaxRenderPixels = 262144;
 const int huiEditorSyncMaxRenderRows = 4096;
@@ -329,8 +330,10 @@ final class EditorSyncProject {
     }
     if (kind != _menuWireKind && kind != _panelWireKind) {
       throw FormatException(
-        "This editor build cannot sync '$kind' subjects yet. Menus and world "
-        'panels are supported; other kinds need a newer editor build.',
+        huiText(
+          "This editor build cannot sync '{kind}' subjects yet. Menus and world panels are supported; other kinds need a newer editor build.",
+          <String, Object?>{'kind': kind},
+        ),
       );
     }
     if (!isCanonicalMenuId(subjectId) ||
@@ -368,8 +371,10 @@ final class EditorSyncProject {
         panelDocument = document;
       } else {
         throw FormatException(
-          "This editor build cannot edit '${document.kind}' documents in a "
-          "'$kind' sync scope.",
+          huiText(
+            "This editor build cannot edit '{documentKind}' documents in a '{scopeKind}' sync scope.",
+            <String, Object?>{'documentKind': document.kind, 'scopeKind': kind},
+          ),
         );
       }
     }
@@ -641,7 +646,12 @@ final class _EditorSyncRasterBudget {
     }
     final StoredImageData? image = images[rawPath];
     if (image == null) {
-      throw FormatException('Gloss sync image reference is missing: $rawPath');
+      throw FormatException(
+        huiText(
+          'Gloss sync image reference is missing: {path}',
+          <String, Object?>{'path': rawPath},
+        ),
+      );
     }
     renderPixels += image.width * image.height;
     renderRows += image.height;
@@ -825,7 +835,7 @@ final class EditorSyncClient {
     if (requestTimeout <= Duration.zero ||
         maximumResponseBytes <= 0 ||
         maximumResponseBytes > huiEditorSyncMaxResponseBytes) {
-      throw ArgumentError('Invalid editor sync client limits.');
+      throw ArgumentError(huiText('Invalid editor sync client limits.'));
     }
   }
 
@@ -845,7 +855,10 @@ final class EditorSyncClient {
       throw EditorSyncGone(code == 'session_revoked');
     }
     if (response.statusCode != 200) {
-      throw EditorSyncFailure('Relay returned HTTP ${response.statusCode}.');
+      throw EditorSyncFailure(
+        'Relay returned HTTP {status}.',
+        <String, Object?>{'status': response.statusCode},
+      );
     }
     return _decodeSession(
       response.bodyBytes,
@@ -886,10 +899,19 @@ final class EditorSyncClient {
       throw EditorSyncGone(_errorCode(response.bodyBytes) == 'session_revoked');
     }
     if (response.statusCode == 409) {
-      throw EditorSyncConflict(_errorMessage(response.bodyBytes));
+      final String? relayMessage = _errorMessage(response.bodyBytes);
+      if (relayMessage != null) {
+        throw EditorSyncConflict.literal(relayMessage);
+      }
+      throw const EditorSyncConflict(
+        'The relay rejected the publication because the session changed.',
+      );
     }
     if (response.statusCode != 202) {
-      throw EditorSyncFailure('Relay returned HTTP ${response.statusCode}.');
+      throw EditorSyncFailure(
+        'Relay returned HTTP {status}.',
+        <String, Object?>{'status': response.statusCode},
+      );
     }
     _decodeAcceptedPublication(response.bodyBytes);
   }
@@ -986,12 +1008,32 @@ final class _EditorSyncHttpResponse {
 }
 
 final class EditorSyncFailure implements Exception {
-  const EditorSyncFailure(this.message);
-  final String message;
+  const EditorSyncFailure(
+    this._english, [
+    this._arguments = const <String, Object?>{},
+  ]) : _resolver = null;
+
+  const EditorSyncFailure.deferred(String Function() resolver)
+    : _english = '',
+      _arguments = const <String, Object?>{},
+      _resolver = resolver;
+
+  EditorSyncFailure.literal(String message)
+    : _english = '',
+      _arguments = const <String, Object?>{},
+      _resolver = (() => message);
+
+  final String _english;
+  final Map<String, Object?> _arguments;
+  final String Function()? _resolver;
+
+  String get message => _resolver?.call() ?? huiText(_english, _arguments);
 }
 
 final class EditorSyncConflict extends EditorSyncFailure {
-  const EditorSyncConflict(super.message);
+  const EditorSyncConflict(super._english, [super._arguments]);
+
+  EditorSyncConflict.literal(super.message) : super.literal();
 }
 
 final class EditorSyncGone extends EditorSyncFailure {
@@ -1038,7 +1080,7 @@ String? editorSyncPanelDefinitionProblem(
     _validatePanelDefinition(board, menuIds.toSet());
     return null;
   } on FormatException catch (error) {
-    return error.message.toString();
+    return huiText(error.message.toString());
   }
 }
 
@@ -1126,7 +1168,8 @@ Future<EditorSyncBinding> importEditorSyncProject({
     if (boardMatches.length > 1 ||
         (boardMatches.isNotEmpty && !replaceExisting)) {
       throw EditorSyncConflict(
-        'The local workspace already contains world panel ${project.subjectId}. Confirm replacement first.',
+        'The local workspace already contains world panel {id}. Confirm replacement first.',
+        <String, Object?>{'id': project.subjectId},
       );
     }
   }
@@ -1134,7 +1177,8 @@ Future<EditorSyncBinding> importEditorSyncProject({
     final List<WorkspaceDoc> existing = matches[menu.id] ?? <WorkspaceDoc>[];
     if (existing.length > 1 || (existing.isNotEmpty && !replaceExisting)) {
       throw EditorSyncConflict(
-        'The local workspace already contains ${menu.id}. Confirm replacement first.',
+        'The local workspace already contains {id}. Confirm replacement first.',
+        <String, Object?>{'id': menu.id},
       );
     }
   }
@@ -1144,7 +1188,8 @@ Future<EditorSyncBinding> importEditorSyncProject({
         current.dataUri != incoming.dataUri &&
         !replaceExisting) {
       throw EditorSyncConflict(
-        'The local image ${incoming.path} differs. Confirm replacement first.',
+        'The local image {path} differs. Confirm replacement first.',
+        <String, Object?>{'path': incoming.path},
       );
     }
   }
@@ -1180,7 +1225,8 @@ Future<EditorSyncBinding> importEditorSyncProject({
           folderId: targetFolderId,
         )) {
           throw EditorSyncFailure(
-            'The synced menu ${menu.id} could not be stored locally.',
+            'The synced menu {id} could not be stored locally.',
+            <String, Object?>{'id': menu.id},
           );
         }
         menuDocumentIds[menu.id] = doc.id;
@@ -1248,14 +1294,15 @@ Future<EditorSyncBinding> importEditorSyncProject({
     }
     await workspace.writesSettled;
     if (workspace.hasUnsavedChanges) {
-      throw EditorSyncFailure(
-        workspace.lastError ??
-            'The synced workspace could not be stored locally.',
+      throw EditorSyncFailure.deferred(
+        workspace.lastErrorMessage ??
+            () => huiText('The synced workspace could not be stored locally.'),
       );
     }
     if (!images.upsertAll(stagedImages)) {
-      throw EditorSyncFailure(
-        images.lastError ?? 'The synced images could not be stored locally.',
+      throw EditorSyncFailure.deferred(
+        images.lastErrorMessage ??
+            () => huiText('The synced images could not be stored locally.'),
       );
     }
     return EditorSyncBinding(
@@ -1323,7 +1370,8 @@ Future<EditorSyncBinding> refreshEditorSyncProject({
       if (doc == null) {
         if (binding.kind != _panelWireKind || binding.panelDocumentId == null) {
           throw EditorSyncConflict(
-            'The bound menu ${menu.id} is missing locally.',
+            'The bound menu {id} is missing locally.',
+            <String, Object?>{'id': menu.id},
           );
         }
         final WorkspaceDoc? boardDoc = workspace.byId(binding.panelDocumentId);
@@ -1352,7 +1400,8 @@ Future<EditorSyncBinding> refreshEditorSyncProject({
         folderId: doc.folderId,
       )) {
         throw EditorSyncFailure(
-          'The bound menu ${menu.id} could not be refreshed.',
+          'The bound menu {id} could not be refreshed.',
+          <String, Object?>{'id': menu.id},
         );
       }
       nextIds[menu.id] = doc.id;
@@ -1397,14 +1446,16 @@ Future<EditorSyncBinding> refreshEditorSyncProject({
     }
     await workspace.writesSettled;
     if (workspace.hasUnsavedChanges) {
-      throw EditorSyncFailure(
-        workspace.lastError ??
-            'The refreshed workspace could not be stored locally.',
+      throw EditorSyncFailure.deferred(
+        workspace.lastErrorMessage ??
+            () =>
+                huiText('The refreshed workspace could not be stored locally.'),
       );
     }
     if (!images.upsertAll(stored)) {
-      throw EditorSyncFailure(
-        images.lastError ?? 'The refreshed images could not be stored locally.',
+      throw EditorSyncFailure.deferred(
+        images.lastErrorMessage ??
+            () => huiText('The refreshed images could not be stored locally.'),
       );
     }
     return EditorSyncBinding(
@@ -1475,7 +1526,8 @@ EditorSyncProject collectEditorSyncProject({
     final WorkspaceDoc? doc = workspace.byId(entry.value);
     if (doc == null || doc.kind != _menuDocKind || doc.runtimeId != entry.key) {
       throw EditorSyncFailure(
-        'The bound menu ${entry.key} is missing or renamed.',
+        'The bound menu {id} is missing or renamed.',
+        <String, Object?>{'id': entry.key},
       );
     }
     scopedMenus[entry.key] = doc;
@@ -1510,7 +1562,10 @@ EditorSyncProject collectEditorSyncProject({
     try {
       menu = decodeHuiMenu(entry.value.json);
     } catch (_) {
-      throw EditorSyncFailure('The bound menu ${entry.key} is invalid JSON.');
+      throw EditorSyncFailure(
+        'The bound menu {id} is invalid JSON.',
+        <String, Object?>{'id': entry.key},
+      );
     }
     final List<HuiIssue> issues = validateHuiMenu(
       menu,
@@ -1518,7 +1573,8 @@ EditorSyncProject collectEditorSyncProject({
     );
     if (issues.any((HuiIssue issue) => issue.severity == HuiSeverity.error)) {
       throw EditorSyncFailure(
-        'The bound menu ${entry.key} has validation errors.',
+        'The bound menu {id} has validation errors.',
+        <String, Object?>{'id': entry.key},
       );
     }
     menus.add(
@@ -1548,12 +1604,16 @@ EditorSyncProject collectEditorSyncProject({
     if (!binding.constraints.imagePaths.contains(path) &&
         (imagePrefix == null || !path.startsWith(imagePrefix))) {
       throw EditorSyncFailure(
-        'Image $path is outside the allowed server scope.',
+        'Image {path} is outside the allowed server scope.',
+        <String, Object?>{'path': path},
       );
     }
     final StoredImage? image = images.byPath(path);
     if (image == null || !isValidStoredImageData(image)) {
-      throw EditorSyncFailure('The bound image $path is missing or invalid.');
+      throw EditorSyncFailure(
+        'The bound image {path} is missing or invalid.',
+        <String, Object?>{'path': path},
+      );
     }
     projectImages.add(EditorSyncImage(path: path, data: image.dataUri));
   }
@@ -1638,15 +1698,25 @@ void _addReachableBoardMenus({
     ];
     if (bound != null) distinct.insert(0, bound);
     if (distinct.length > 1) {
-      throw EditorSyncFailure('The panel menu id $id is duplicated.');
+      throw EditorSyncFailure(
+        'The panel menu id {id} is duplicated.',
+        <String, Object?>{'id': id},
+      );
     }
     if (distinct.isEmpty) continue;
     final WorkspaceDoc document = distinct.single;
+    final String? newMenuPrefix = binding.constraints.newMenuPrefix;
     if (!binding.constraints.menuIds.contains(id) &&
-        (binding.constraints.newMenuPrefix == null ||
-            !id.startsWith(binding.constraints.newMenuPrefix!))) {
+        (newMenuPrefix == null || !id.startsWith(newMenuPrefix))) {
+      if (newMenuPrefix == null) {
+        throw EditorSyncFailure(
+          'Menu {id} is outside the allowed server scope.',
+          <String, Object?>{'id': id},
+        );
+      }
       throw EditorSyncFailure(
-        'Menu $id is outside ${binding.constraints.newMenuPrefix ?? 'the allowed server scope'}.',
+        'Menu {id} is outside {prefix}.',
+        <String, Object?>{'id': id, 'prefix': newMenuPrefix},
       );
     }
     scopedMenus[id] = document;
@@ -1654,7 +1724,10 @@ void _addReachableBoardMenus({
     try {
       source = jsonDecode(document.json);
     } catch (_) {
-      throw EditorSyncFailure('The bound menu $id is invalid JSON.');
+      throw EditorSyncFailure(
+        'The bound menu {id} is invalid JSON.',
+        <String, Object?>{'id': id},
+      );
     }
     final Set<String> targets = <String>{};
     _collectMenuTargets(source, targets);
@@ -1663,7 +1736,8 @@ void _addReachableBoardMenus({
   }
   if (!scopedMenus.containsKey(rootMenuId)) {
     throw EditorSyncFailure(
-      'The panel root menu $rootMenuId is missing from its synced folder.',
+      'The panel root menu {id} is missing from its synced folder.',
+      <String, Object?>{'id': rootMenuId},
     );
   }
 }
@@ -2012,7 +2086,7 @@ String _errorCode(Uint8List bytes) {
   return '';
 }
 
-String _errorMessage(Uint8List bytes) {
+String? _errorMessage(Uint8List bytes) {
   try {
     final Object? raw = jsonDecode(utf8.decode(bytes));
     if (raw is Map && raw['error'] is Map) {
@@ -2020,7 +2094,7 @@ String _errorMessage(Uint8List bytes) {
       if (message is String && message.isNotEmpty) return message;
     }
   } catch (_) {}
-  return 'The relay rejected the publication because the session changed.';
+  return null;
 }
 
 Map<String, dynamic> _copyStringMap(Map raw) => <String, dynamic>{
@@ -2228,11 +2302,22 @@ void _validateBoardVisibility(Object? raw) {
 }
 
 Map<String, dynamic> _strictStringMap(Object? raw, String label) {
-  if (raw is! Map) throw FormatException('Invalid $label.');
+  if (raw is! Map) throw FormatException(_invalidMapMessage(label));
   final Map<String, dynamic> result = _copyStringMap(raw);
-  if (result.length != raw.length) throw FormatException('Invalid $label.');
+  if (result.length != raw.length) {
+    throw FormatException(_invalidMapMessage(label));
+  }
   return result;
 }
+
+String _invalidMapMessage(String label) => switch (label) {
+  'world panel transform' => huiText('Invalid world panel transform.'),
+  'world panel follow settings' => huiText(
+    'Invalid world panel follow settings.',
+  ),
+  'world panel visibility' => huiText('Invalid world panel visibility.'),
+  _ => throw ArgumentError.value(label, 'label'),
+};
 
 void _requireExactKeys(Map<String, dynamic> value, Set<String> keys) {
   if (value.length != keys.length || !value.keys.toSet().containsAll(keys)) {
@@ -2255,17 +2340,23 @@ bool _isSorted(Iterable<String> values) {
 }
 
 List<String> _strictStrings(Object? raw, String label) {
-  if (raw is! List) throw FormatException('Invalid sync $label list.');
+  if (raw is! List) throw FormatException(_invalidStringListMessage(label));
   final List<String> values = <String>[];
   final Set<String> seen = <String>{};
   for (final Object? value in raw) {
     if (value is! String || value.isEmpty || !seen.add(value)) {
-      throw FormatException('Invalid sync $label list.');
+      throw FormatException(_invalidStringListMessage(label));
     }
     values.add(value);
   }
   return values;
 }
+
+String _invalidStringListMessage(String label) => switch (label) {
+  'menu id' => huiText('Invalid sync menu id list.'),
+  'image path' => huiText('Invalid sync image path list.'),
+  _ => throw ArgumentError.value(label, 'label'),
+};
 
 bool _validPrefix(Object? raw, {required bool menu}) {
   if (raw == null) return true;

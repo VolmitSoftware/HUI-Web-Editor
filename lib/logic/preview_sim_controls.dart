@@ -27,6 +27,7 @@ library;
 
 import 'package:jaspr/jaspr.dart' show ChangeNotifier;
 
+import '../l10n/hui_localizations.dart';
 import '../model/preview_doc.dart';
 import 'preview_card_edit.dart'
     show previewAutoSimCategory, previewDocIsAnimated;
@@ -120,6 +121,12 @@ _varControlSpecs = <String, PreviewSimVarControl>{
     max: 1200,
     step: 20,
   ),
+  'fuelTicks': PreviewSimVarControl(
+    'fuelTicks',
+    PreviewSimControlKind.number,
+    max: 32000,
+    step: 20,
+  ),
   'fuelSeconds': PreviewSimVarControl(
     'fuelSeconds',
     PreviewSimControlKind.number,
@@ -133,6 +140,7 @@ _varControlSpecs = <String, PreviewSimVarControl>{
     decimals: 2,
   ),
   'lit': PreviewSimVarControl('lit', PreviewSimControlKind.boolean),
+  'powered': PreviewSimVarControl('powered', PreviewSimControlKind.boolean),
   'surge.active': PreviewSimVarControl(
     'surge.active',
     PreviewSimControlKind.boolean,
@@ -190,52 +198,58 @@ _varControlSpecs = <String, PreviewSimVarControl>{
 };
 
 const Map<String, String> _varLabels = <String, String>{
-  'time': 'Time (ticks)',
+  'time': 'World time (game ticks)',
   'blockType': 'Block type',
   'customName': 'Custom name',
   'inventory.size': 'Inventory size',
-  'inventory.occupied': 'Inventory occupied',
-  'cookTime': 'Cook time',
-  'cookTimeTotal': 'Cook time total',
-  'burnTime': 'Burn time',
-  'fuelSeconds': 'Fuel seconds',
-  'bankedXp': 'Banked XP',
-  'lit': 'Lit',
-  'surge.active': 'Surge active',
-  'surge.gain': 'Surge gain',
-  'brewTime': 'Brew time',
-  'brewTotal': 'Brew time total',
-  'fuelLevel': 'Fuel level',
-  'maxFuel': 'Max fuel',
-  'bees': 'Bees',
-  'maxBees': 'Max bees',
-  'honey': 'Honey',
-  'maxHoney': 'Max honey',
+  'inventory.occupied': 'Occupied inventory slots',
+  'cookTime': 'Smelting progress (game ticks)',
+  'cookTimeTotal': 'Total smelting time (game ticks)',
+  'burnTime': 'Furnace fuel remaining (game ticks)',
+  'fuelTicks': 'Minecart fuel remaining (game ticks)',
+  'fuelSeconds': 'Fuel remaining (seconds)',
+  'bankedXp': 'Stored recipe XP',
+  'lit': 'Furnace lit',
+  'powered': 'Minecart powered',
+  'surge.active': 'Speed-up active',
+  'surge.gain': 'Speed-up gain',
+  'brewTime': 'Brewing time remaining (game ticks)',
+  'brewTotal': 'Total brewing time (game ticks)',
+  'fuelLevel': 'Blaze powder charges',
+  'maxFuel': 'Maximum blaze powder charges',
+  'bees': 'Bees inside',
+  'maxBees': 'Bee capacity',
+  'honey': 'Honey level',
+  'maxHoney': 'Maximum honey level',
   'level': 'Fluid level',
-  'maxLevel': 'Max fluid level',
-  'fluid': 'Fluid',
-  'playing': 'Playing',
-  'record': 'Record',
+  'maxLevel': 'Maximum fluid level',
+  'fluid': 'Fluid type',
+  'playing': 'Music disc playing',
+  'record': 'Music disc',
 };
 
 const Map<String, String> _categoryLabels = <String, String>{
   'chest': 'Chest',
   'furnace': 'Furnace',
+  'poweredMinecart': 'Furnace minecart',
   'brewing': 'Brewing stand',
   'beehive': 'Beehive',
   'cauldron': 'Cauldron',
   'jukebox': 'Jukebox',
   'enderChest': 'Ender chest',
-  'entity': 'Entity (hopper minecart)',
+  'entity': 'Hopper minecart',
   'statics': 'No target (static)',
 };
 
 /// Friendly panel label for a published variable name.
-String previewSimVarLabel(String name) => _varLabels[name] ?? name;
+String previewSimVarLabel(String name) =>
+    _varLabels.containsKey(name) ? huiText(_varLabels[name]!) : name;
 
 /// Friendly panel label for a [previewSimCategories] entry.
 String previewSimCategoryLabel(String category) =>
-    _categoryLabels[category] ?? category;
+    _categoryLabels.containsKey(category)
+    ? huiText(_categoryLabels[category]!)
+    : category;
 
 /// The controls the panel shows for [category], in catalog order, generic
 /// per-variable controls only — `surge.*` is the dedicated surge section's.

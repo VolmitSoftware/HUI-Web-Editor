@@ -28,6 +28,7 @@ import '../../state/editor_store.dart';
 import '../common/class_names.dart';
 import 'shell_intents.dart';
 import 'shell_keys.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// What a bound row is handed when it fires.
 class HuiShortcutScope {
@@ -130,18 +131,19 @@ bool _setView(HuiShortcutScope scope, EditorView view) {
 bool _plain(ShellKey key, String lower) =>
     !key.mod && !key.alt && !key.shift && key.lower == lower;
 
-final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
+List<HuiShortcutGroup> get huiShortcutGroups => <HuiShortcutGroup>[
   HuiShortcutGroup(
-    title: 'Global',
-    note:
-        'Bound on the document, so they work wherever the pointer is. '
-        'Everything except the first two stands down while a text field has '
-        'focus.',
+    title: huiText('Global'),
+    note: huiText(
+      'Bound on the document, so they work wherever the pointer is. '
+      'Everything except the first two stands down while a text field has '
+      'focus.',
+    ),
     rows: <HuiShortcutRow>[
       HuiShortcutRow(
         id: 'shell.palette',
         spec: 'mod+K',
-        label: 'Open the command palette',
+        label: huiText('Open the command palette'),
         alwaysOn: true,
         matches: (ShellKey key) => key.mod && !key.alt && key.lower == 'k',
         run: (HuiShortcutScope scope) {
@@ -152,7 +154,7 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'file.export',
         spec: 'mod+S',
-        label: 'Export the active document JSON',
+        label: huiText('Export the active document JSON'),
         alwaysOn: true,
         matches: (ShellKey key) =>
             key.mod && !key.alt && !key.shift && key.lower == 's',
@@ -164,8 +166,8 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'help.shortcuts',
         spec: '?',
-        label: 'Show this sheet',
-        note: 'Shift and /. Stands down while you are typing.',
+        label: huiText('Show this sheet'),
+        note: huiText('Shift and /. Stands down while you are typing.'),
         matches: huiIsShortcutHelpKey,
         run: (HuiShortcutScope scope) {
           scope.toggleShortcuts?.call();
@@ -175,7 +177,7 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'edit.undo',
         spec: 'mod+Z',
-        label: 'Undo',
+        label: huiText('Undo'),
         matches: (ShellKey key) =>
             key.mod && !key.alt && !key.shift && key.lower == 'z',
         run: (HuiShortcutScope scope) {
@@ -186,8 +188,8 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'edit.redo',
         spec: 'mod+Shift+Z',
-        label: 'Redo',
-        note: 'Ctrl+Y works too.',
+        label: huiText('Redo'),
+        note: huiText('Ctrl+Y works too.'),
         matches: (ShellKey key) =>
             key.mod &&
             !key.alt &&
@@ -200,7 +202,7 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'edit.duplicate',
         spec: 'mod+D',
-        label: 'Duplicate the selection',
+        label: huiText('Duplicate the selection'),
         matches: (ShellKey key) => key.mod && !key.alt && key.lower == 'd',
         run: (HuiShortcutScope scope) {
           scope.intents.duplicateSelected();
@@ -210,7 +212,7 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'selection.all',
         spec: 'mod+A',
-        label: 'Select every component',
+        label: huiText('Select every component'),
         matches: (ShellKey key) =>
             key.mod && !key.alt && !key.shift && key.lower == 'a',
         run: (HuiShortcutScope scope) {
@@ -221,8 +223,8 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'edit.delete',
         spec: 'Delete',
-        label: 'Delete the selection',
-        note: 'Backspace too. Asks first — the artboard does not.',
+        label: huiText('Delete the selection'),
+        note: huiText('Backspace too. Asks first — the artboard does not.'),
         matches: (ShellKey key) =>
             !key.mod &&
             !key.alt &&
@@ -236,7 +238,7 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'edit.deselect',
         spec: 'Escape',
-        label: 'Deselect everything',
+        label: huiText('Deselect everything'),
         matches: (ShellKey key) => !key.mod && !key.alt && key.key == 'Escape',
         run: (HuiShortcutScope scope) {
           if (scope.intents.store.selectionIds.isEmpty) return false;
@@ -247,7 +249,10 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'edit.nudge',
         spec: 'arrows',
-        label: 'Nudge the selection by $huiNudgeStep blocks',
+        label: huiText(
+          "Nudge the selection by {huiNudgeStep} blocks",
+          <String, Object?>{'huiNudgeStep': huiNudgeStep},
+        ),
         matches: (ShellKey key) =>
             !key.mod && !key.alt && !key.shift && _isArrow(key.key),
         run: (HuiShortcutScope scope) => _nudge(scope, huiNudgeStep),
@@ -255,10 +260,13 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'edit.nudge.large',
         spec: 'Shift+arrows',
-        label: 'Nudge by $huiNudgeStepLarge blocks',
-        note:
-            'The primary is snapped and its step applied to the rest, so a '
-            'group keeps its spacing.',
+        label: huiText("Nudge by {huiNudgeStepLarge} blocks", <String, Object?>{
+          'huiNudgeStepLarge': huiNudgeStepLarge,
+        }),
+        note: huiText(
+          'The primary is snapped and its step applied to the rest, so a '
+          'group keeps its spacing.',
+        ),
         matches: (ShellKey key) =>
             !key.mod && !key.alt && key.shift && _isArrow(key.key),
         run: (HuiShortcutScope scope) => _nudge(scope, huiNudgeStepLarge),
@@ -266,139 +274,143 @@ final List<HuiShortcutGroup> huiShortcutGroups = <HuiShortcutGroup>[
       HuiShortcutRow(
         id: 'view.visual',
         spec: 'V',
-        label: 'Visual mode',
-        note: "The open kind's own editing surface.",
+        label: huiText('Visual mode'),
+        note: huiText("The open kind's own editing surface."),
         matches: (ShellKey key) => _plain(key, 'v'),
         run: (HuiShortcutScope scope) => _setView(scope, EditorView.visual),
       ),
       HuiShortcutRow(
         id: 'view.preview',
         spec: 'P',
-        label: 'Preview mode',
-        note: 'The document rendered the way the server renders it.',
+        label: huiText('Preview mode'),
+        note: huiText('The document rendered the way the server renders it.'),
         matches: (ShellKey key) => _plain(key, 'p'),
         run: (HuiShortcutScope scope) => _setView(scope, EditorView.preview),
       ),
       HuiShortcutRow(
         id: 'view.code',
         spec: 'C',
-        label: 'Code mode',
+        label: huiText('Code mode'),
         matches: (ShellKey key) => _plain(key, 'c'),
         run: (HuiShortcutScope scope) => _setView(scope, EditorView.code),
       ),
       HuiShortcutRow(
         id: 'view.split',
         spec: 'S',
-        label: 'Split mode',
-        note: 'Surface and JSON side by side.',
+        label: huiText('Split mode'),
+        note: huiText('Surface and JSON side by side.'),
         matches: (ShellKey key) => _plain(key, 's'),
         run: (HuiShortcutScope scope) => _setView(scope, EditorView.split),
       ),
     ],
   ),
-  const HuiShortcutGroup(
-    title: 'Artboard',
-    note:
-        'Bound on the canvas element, so click it once first. It consumes '
-        'the event, which is what stops the global bindings firing twice.',
+  HuiShortcutGroup(
+    title: huiText('Artboard'),
+    note: huiText(
+      'Bound on the canvas element, so click it once first. It consumes '
+      'the event, which is what stops the global bindings firing twice.',
+    ),
     rows: <HuiShortcutRow>[
       HuiShortcutRow(
         id: 'canvas.marquee',
         spec: 'Drag',
-        label: 'Marquee-select from empty space',
+        label: huiText('Marquee-select from empty space'),
       ),
       HuiShortcutRow(
         id: 'canvas.add',
         spec: 'Shift+Click',
-        label: 'Add or remove one component',
+        label: huiText('Add or remove one component'),
       ),
       HuiShortcutRow(
         id: 'canvas.duplicate',
         spec: 'Alt+Drag',
-        label: 'Duplicate the selection and drag the copies',
-        note:
-            'The copy is made on the first move, so Alt-click leaves '
-            'nothing behind.',
+        label: huiText('Duplicate the selection and drag the copies'),
+        note: huiText(
+          'The copy is made on the first move, so Alt-click leaves '
+          'nothing behind.',
+        ),
       ),
       HuiShortcutRow(
         id: 'canvas.pan',
         spec: 'Space+Drag',
-        label: 'Pan',
-        note: 'The middle mouse button pans without Space.',
+        label: huiText('Pan'),
+        note: huiText('The middle mouse button pans without Space.'),
       ),
       HuiShortcutRow(
         id: 'canvas.zoom',
         spec: 'Scroll',
-        label: 'Zoom around the pointer',
+        label: huiText('Zoom around the pointer'),
       ),
       HuiShortcutRow(
         id: 'canvas.reset',
         spec: '0',
-        label: 'Reset zoom and pan',
+        label: huiText('Reset zoom and pan'),
       ),
       HuiShortcutRow(
         id: 'canvas.fit',
         spec: 'F',
-        label: 'Fit the menu to the viewport',
+        label: huiText('Fit the menu to the viewport'),
       ),
       HuiShortcutRow(
         id: 'canvas.delete',
         spec: 'Delete',
-        label: 'Delete the selection immediately',
-        note:
-            'No confirmation here: the gesture is local and undo is one '
-            'keystroke away.',
+        label: huiText('Delete the selection immediately'),
+        note: huiText(
+          'No confirmation here: the gesture is local and undo is one '
+          'keystroke away.',
+        ),
       ),
     ],
   ),
-  const HuiShortcutGroup(
-    title: 'Preview stage',
-    note: 'Bound on the 3D stage; click it once first.',
+  HuiShortcutGroup(
+    title: huiText('Preview stage'),
+    note: huiText('Bound on the 3D stage; click it once first.'),
     rows: <HuiShortcutRow>[
       HuiShortcutRow(
         id: 'preview.orbit',
         spec: 'Drag',
-        label: 'Orbit the camera',
+        label: huiText('Orbit the camera'),
       ),
       HuiShortcutRow(
         id: 'preview.pan',
         spec: 'Space+Drag',
-        label: 'Pan the camera target',
-        note: 'Middle-drag does the same.',
+        label: huiText('Pan the camera target'),
+        note: huiText('Middle-drag does the same.'),
       ),
       HuiShortcutRow(
         id: 'preview.dolly',
         spec: 'Scroll',
-        label: 'Dolly in and out',
+        label: huiText('Dolly in and out'),
       ),
       HuiShortcutRow(
         id: 'preview.reset',
         spec: '0',
-        label: 'Reset the camera to the open position',
+        label: huiText('Reset the camera to the open position'),
       ),
     ],
   ),
-  const HuiShortcutGroup(
-    title: 'Command palette',
-    note:
-        'The palette lists only commands that can run right now, so a '
-        'command missing from it is one this document has nothing to apply '
-        'it to. This sheet is the complete list.',
+  HuiShortcutGroup(
+    title: huiText('Command palette'),
+    note: huiText(
+      'The palette lists only commands that can run right now, so a '
+      'command missing from it is one this document has nothing to apply '
+      'it to. This sheet is the complete list.',
+    ),
     rows: <HuiShortcutRow>[
       HuiShortcutRow(
         id: 'palette.move',
         spec: '↑↓',
-        label: 'Browse the results',
+        label: huiText('Browse the results'),
       ),
       HuiShortcutRow(
         id: 'palette.run',
         spec: 'Enter',
-        label: 'Run the highlighted command',
+        label: huiText('Run the highlighted command'),
       ),
       HuiShortcutRow(
         id: 'palette.close',
         spec: 'Esc',
-        label: 'Close the palette',
+        label: huiText('Close the palette'),
       ),
     ],
   ),
@@ -450,10 +462,10 @@ class ShortcutSheet extends StatelessWidget {
           'hui-keys-dialog',
           leaving ? 'hui-anim-out' : null,
         ]),
-        attributes: const <String, String>{
+        attributes: <String, String>{
           'role': 'dialog',
           'aria-modal': 'true',
-          'aria-label': 'Keyboard shortcuts',
+          'aria-label': huiText('Keyboard shortcuts'),
         },
         events: <String, EventCallback>{
           'click': (Object? event) => domStopPropagation(event),
@@ -465,8 +477,8 @@ class ShortcutSheet extends StatelessWidget {
 
   Widget _head() => dom.header(classes: 'hui-keys-head', <Widget>[
     ArcaneIcon.keyboard(size: IconSize.sm),
-    const dom.h2(classes: 'hui-keys-title', <Widget>[
-      Text('Keyboard shortcuts'),
+    dom.h2(classes: 'hui-keys-title', <Widget>[
+      Text(huiText('Keyboard shortcuts')),
     ]),
     const dom.span(classes: 'hui-keys-spacer', <Widget>[]),
     ArcaneKbd.combo(shortcutKeys('Esc', apple: apple), size: ComponentSize.sm),
@@ -474,8 +486,8 @@ class ShortcutSheet extends StatelessWidget {
       variant: ButtonVariant.ghost,
       size: ButtonSize.iconSm,
       onPressed: onClose,
-      attributes: const <String, String>{
-        'aria-label': 'Close the shortcut sheet',
+      attributes: <String, String>{
+        'aria-label': huiText('Close the shortcut sheet'),
       },
       child: ArcaneIcon.x(size: IconSize.sm),
     ),
@@ -515,9 +527,12 @@ class ShortcutSheet extends StatelessWidget {
   Widget _foot() => dom.footer(classes: 'hui-keys-foot', <Widget>[
     dom.span(<Widget>[
       Text(
-        'Press ? any time. '
-        '${shortcutLabel('mod+K', apple: apple)} runs any command by '
-        'name.',
+        huiText(
+          "Press ? any time. {shortcutLabel} runs any command by name.",
+          <String, Object?>{
+            'shortcutLabel': shortcutLabel('mod+K', apple: apple),
+          },
+        ),
       ),
     ]),
   ]);

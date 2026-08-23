@@ -60,9 +60,14 @@ int glossReadSchemaVersion(
   final int version = value is num ? value.toInt() : 0;
   if (version != expected) {
     throw HuiFormatException(
-      'Unsupported $kind schemaVersion: ${value ?? 'missing'}. This editor '
-          'speaks schemaVersion $expected.',
+      'Unsupported {kind} schemaVersion: {value}. This editor speaks '
+          'schemaVersion {expected}.',
       r'$.schemaVersion',
+      <String, Object?>{
+        'kind': kind,
+        'value': value ?? 'missing',
+        'expected': expected,
+      },
     );
   }
   return version;
@@ -89,12 +94,17 @@ HuiIssue? glossRevisionIssue(int revision) {
     severity: HuiSeverity.error,
     path: r'$.revision',
     message:
-        'Revision $revision is outside '
-        '$glossInitialRevision..$glossMaxSafeRevision, so Gloss rejects the '
-        'whole file.',
+        "Revision {revision} is outside {glossInitialRevision}..{glossMaxSafeRevision}, so Gloss rejects the whole file.",
+    messageArguments: <String, Object?>{
+      'revision': revision,
+      'glossInitialRevision': glossInitialRevision,
+      'glossMaxSafeRevision': glossMaxSafeRevision,
+    },
     fix:
-        'The revision is server-owned; leave it at the value the server '
-        'wrote, or $glossInitialRevision for a new document.',
+        "The revision is server-owned; leave it at the value the server wrote, or {glossInitialRevision} for a new document.",
+    fixArguments: <String, Object?>{
+      'glossInitialRevision': glossInitialRevision,
+    },
   );
 }
 

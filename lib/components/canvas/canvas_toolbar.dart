@@ -30,6 +30,7 @@ import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/class_names.dart';
 import '../common/hui_action_menu.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Cycle order for the backdrop button.
 const List<HuiBackdropMode> huiBackdropCycle = <HuiBackdropMode>[
@@ -46,6 +47,13 @@ const Map<HuiBackdropMode, String> huiBackdropLabels =
       HuiBackdropMode.light: 'Light',
       HuiBackdropMode.none: 'None',
     };
+
+String huiBackdropLabel(HuiBackdropMode mode) => switch (mode) {
+  HuiBackdropMode.image => huiText('Scene'),
+  HuiBackdropMode.dark => huiText('Dark'),
+  HuiBackdropMode.light => huiText('Light'),
+  HuiBackdropMode.none => huiText('None'),
+};
 
 /// Undo labels for the restack controls. Shared with the viewport so the
 /// history entry and the button say the same thing.
@@ -114,7 +122,7 @@ class CanvasToolbar extends StatelessWidget {
   List<Widget> _zoomControls() => <Widget>[
     _iconAction(
       icon: ArcaneIcon.zoomOut(size: IconSize.sm),
-      label: 'Zoom out',
+      label: huiText('Zoom out'),
       onPressed: onZoomOut,
     ),
     dom.span(id: zoomLabelId, classes: 'hui-canvas-zoom', <Widget>[
@@ -122,17 +130,17 @@ class CanvasToolbar extends StatelessWidget {
     ]),
     _iconAction(
       icon: ArcaneIcon.zoomIn(size: IconSize.sm),
-      label: 'Zoom in',
+      label: huiText('Zoom in'),
       onPressed: onZoomIn,
     ),
     _iconAction(
       icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
-      label: 'Reset view (0)',
+      label: huiText('Reset view (0)'),
       onPressed: onZoomReset,
     ),
     _iconAction(
       icon: ArcaneIcon.maximize(size: IconSize.sm),
-      label: 'Fit to components (F)',
+      label: huiText('Fit to components (F)'),
       onPressed: onFit,
     ),
   ];
@@ -140,62 +148,69 @@ class CanvasToolbar extends StatelessWidget {
   List<Widget> _viewControls() => <Widget>[
     _toggle(
       icon: ArcaneIcon.grid3x3(size: IconSize.sm),
-      label: 'Block grid',
-      tooltip: 'Block grid: the 1-block grid and the rulers',
+      label: huiText('Block grid'),
+      tooltip: huiText('Block grid: the 1-block grid and the rulers'),
       active: store.showGrid,
       onPressed: () => store.showGrid = !store.showGrid,
     ),
     _toggle(
       icon: ArcaneIcon.magnet(size: IconSize.sm),
-      label: 'Snap',
-      tooltip:
-          'Snap: dragged components land on '
-          '${_trimNumber(store.gridSize)} block steps',
+      label: huiText('Snap'),
+      tooltip: huiText(
+        "Snap: dragged components land on {trimNumber} block steps",
+        <String, Object?>{'trimNumber': _trimNumber(store.gridSize)},
+      ),
       active: store.snapToGrid,
       onPressed: () => store.snapToGrid = !store.snapToGrid,
     ),
     _toggle(
       icon: ArcaneIcon.frame(size: IconSize.sm),
-      label: 'Hitboxes',
-      tooltip:
-          'Hitboxes: draw each click plane. Solid = clickable, '
-          'dashed = decoration',
+      label: huiText('Hitboxes'),
+      tooltip: huiText(
+        'Hitboxes: draw each click plane. Solid = clickable, '
+        'dashed = decoration',
+      ),
       active: store.showHitboxes,
       onPressed: () => store.showHitboxes = !store.showHitboxes,
     ),
     _toggle(
       icon: ArcaneIcon.locateFixed(size: IconSize.sm),
-      label: 'Anchors',
-      tooltip: 'Anchors: component anchors, menu centre and component ids',
+      label: huiText('Anchors'),
+      tooltip: huiText(
+        'Anchors: component anchors, menu centre and component ids',
+      ),
       active: store.showAnchors,
       onPressed: () => store.showAnchors = !store.showAnchors,
     ),
     _toggle(
       icon: ArcaneIcon.moveVertical(size: IconSize.sm),
-      label: 'True render',
-      tooltip:
-          'True render: reproduce the in-game vertical bias. Text '
-          'draws about 0.325 x uiScale blocks BELOW the anchor and its '
-          'click plane follows it',
+      label: huiText('True render'),
+      tooltip: huiText(
+        'True render: reproduce the in-game vertical bias. Text '
+        'draws about 0.325 x uiScale blocks BELOW the anchor and its '
+        'click plane follows it',
+      ),
       active: store.trueRender,
       onPressed: () => store.trueRender = !store.trueRender,
     ),
     ArcaneTooltip(
-      text:
-          'Canvas backdrop: ${huiBackdropLabels[store.backdrop]}. '
-          'Click to cycle',
+      text: huiText(
+        'Canvas backdrop: {backdrop}. Click to cycle',
+        <String, Object?>{'backdrop': huiBackdropLabel(store.backdrop)},
+      ),
       child: Button(
         icon: ArcaneIcon.image(size: IconSize.sm),
         variant: ButtonVariant.ghost,
         size: ButtonSize.sm,
         type: ButtonType.button,
         attributes: <String, String>{
-          'aria-label':
-              'Cycle canvas backdrop, currently '
-              '${huiBackdropLabels[store.backdrop]}',
+          'aria-label': huiText(
+            "Cycle canvas backdrop, currently {value}",
+            <String, Object?>{'value': huiBackdropLabel(store.backdrop)},
+          ),
         },
         onPressed: _cycleBackdrop,
-        child: _toolLabel(huiBackdropLabels[store.backdrop] ?? 'Backdrop'),
+        child: _toolLabel(huiBackdropLabel(store.backdrop)),
       ),
     ),
   ];
@@ -205,28 +220,28 @@ class CanvasToolbar extends StatelessWidget {
   List<Widget> _orderControls() {
     if (store.selectionIds.isEmpty) return const <Widget>[];
     return <Widget>[
-      const dom.span(
+      dom.span(
         classes: 'hui-eyebrow hui-canvas-tool-label hui-canvas-order-label',
-        <Widget>[Component.text('order')],
+        <Widget>[Component.text(huiText('order'))],
       ),
       _iconAction(
         icon: ArcaneIcon.chevronUp(size: IconSize.sm),
-        label: 'Bring forward',
+        label: huiText('Bring forward'),
         onPressed: () => onZOrder(HuiZOrder.forward),
       ),
       _iconAction(
         icon: ArcaneIcon.chevronDown(size: IconSize.sm),
-        label: 'Send back',
+        label: huiText('Send back'),
         onPressed: () => onZOrder(HuiZOrder.backward),
       ),
       _iconAction(
         icon: ArcaneIcon.bringToFront(size: IconSize.sm),
-        label: 'Bring to front',
+        label: huiText('Bring to front'),
         onPressed: () => onZOrder(HuiZOrder.toFront),
       ),
       _iconAction(
         icon: ArcaneIcon.sendToBack(size: IconSize.sm),
-        label: 'Send to back',
+        label: huiText('Send to back'),
         onPressed: () => onZOrder(HuiZOrder.toBack),
       ),
       _ZScrubber(store: store),
@@ -241,8 +256,10 @@ class CanvasToolbar extends StatelessWidget {
         icon: store.animationsPlaying
             ? ArcaneIcon.pause(size: IconSize.sm)
             : ArcaneIcon.play(size: IconSize.sm),
-        label: store.animationsPlaying ? 'Pause' : 'Play',
-        tooltip: 'Animated icons advance one frame every speed x 50 ms',
+        label: store.animationsPlaying ? huiText('Pause') : huiText('Play'),
+        tooltip: huiText(
+          'Animated icons advance one frame every speed x 50 ms',
+        ),
         active: store.animationsPlaying,
         onPressed: () => store.animationsPlaying = !store.animationsPlaying,
       ),
@@ -258,34 +275,34 @@ class CanvasToolbar extends StatelessWidget {
     }
     final bool showsTrue = store.togglePreviewFor(selected.id);
     return <Widget>[
-      const dom.span(
+      dom.span(
         classes: 'hui-eyebrow hui-canvas-tool-label hui-canvas-toggle-label',
-        <Widget>[Component.text('toggle')],
+        <Widget>[Component.text(huiText('toggle'))],
       ),
       ArcaneTooltip(
-        text: 'Condition matched: shows trueIcon',
+        text: huiText('Condition matched: shows trueIcon'),
         child: Button(
-          label: 'True',
+          label: huiText('True'),
           variant: showsTrue ? ButtonVariant.secondary : ButtonVariant.ghost,
           size: ButtonSize.sm,
           type: ButtonType.button,
           attributes: <String, String>{
             'aria-pressed': '$showsTrue',
-            'aria-label': 'Preview the true icon',
+            'aria-label': huiText('Preview the true icon'),
           },
           onPressed: () => store.setTogglePreview(selected.id, true),
         ),
       ),
       ArcaneTooltip(
-        text: 'Condition not matched: shows falseIcon',
+        text: huiText('Condition not matched: shows falseIcon'),
         child: Button(
-          label: 'False',
+          label: huiText('False'),
           variant: showsTrue ? ButtonVariant.ghost : ButtonVariant.secondary,
           size: ButtonSize.sm,
           type: ButtonType.button,
           attributes: <String, String>{
             'aria-pressed': '${!showsTrue}',
-            'aria-label': 'Preview the false icon',
+            'aria-label': huiText('Preview the false icon'),
           },
           onPressed: () => store.setTogglePreview(selected.id, false),
         ),
@@ -420,16 +437,15 @@ class _CanvasCompactControlState extends State<_CanvasCompactControl> {
   }
 
   HuiActionMenuItem _toggleItem({
-    required String noun,
+    required String activeLabel,
+    required String inactiveLabel,
     required Widget icon,
     required bool active,
     required void Function() onSelect,
-    String activeVerb = 'Hide',
-    String inactiveVerb = 'Show',
     String? hint,
     bool separatorBefore = false,
   }) => HuiActionMenuItem(
-    label: '${active ? activeVerb : inactiveVerb} $noun',
+    label: active ? activeLabel : inactiveLabel,
     icon: icon,
     hint: hint,
     separatorBefore: separatorBefore,
@@ -444,136 +460,146 @@ class _CanvasCompactControlState extends State<_CanvasCompactControl> {
         : false;
     return <HuiActionMenuItem>[
       HuiActionMenuItem(
-        label: 'Reset view',
+        label: huiText('Reset view'),
         icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
-        hint: 'Reset zoom and pan',
+        hint: huiText('Reset zoom and pan'),
         onSelect: component.onZoomReset,
       ),
       HuiActionMenuItem(
-        label: 'Fit to components',
+        label: huiText('Fit to components'),
         icon: ArcaneIcon.maximize(size: IconSize.sm),
         onSelect: component.onFit,
       ),
       _toggleItem(
-        noun: 'grid',
+        activeLabel: huiText('Hide grid'),
+        inactiveLabel: huiText('Show grid'),
         icon: ArcaneIcon.grid3x3(size: IconSize.sm),
         active: _store.showGrid,
         separatorBefore: true,
         onSelect: () => _store.showGrid = !_store.showGrid,
       ),
       _toggleItem(
-        noun: 'snapping',
+        activeLabel: huiText('Disable snapping'),
+        inactiveLabel: huiText('Enable snapping'),
         icon: ArcaneIcon.magnet(size: IconSize.sm),
         active: _store.snapToGrid,
-        activeVerb: 'Disable',
-        inactiveVerb: 'Enable',
         onSelect: () => _store.snapToGrid = !_store.snapToGrid,
       ),
       _toggleItem(
-        noun: 'hitboxes',
+        activeLabel: huiText('Hide hitboxes'),
+        inactiveLabel: huiText('Show hitboxes'),
         icon: ArcaneIcon.frame(size: IconSize.sm),
         active: _store.showHitboxes,
         onSelect: () => _store.showHitboxes = !_store.showHitboxes,
       ),
       _toggleItem(
-        noun: 'anchors',
+        activeLabel: huiText('Hide anchors'),
+        inactiveLabel: huiText('Show anchors'),
         icon: ArcaneIcon.locateFixed(size: IconSize.sm),
         active: _store.showAnchors,
         onSelect: () => _store.showAnchors = !_store.showAnchors,
       ),
       _toggleItem(
-        noun: 'true render',
+        activeLabel: huiText('Disable true render'),
+        inactiveLabel: huiText('Enable true render'),
         icon: ArcaneIcon.moveVertical(size: IconSize.sm),
         active: _store.trueRender,
-        activeVerb: 'Disable',
-        inactiveVerb: 'Enable',
         onSelect: () => _store.trueRender = !_store.trueRender,
       ),
       HuiActionMenuItem(
-        label: 'Backdrop: ${huiBackdropLabels[_store.backdrop] ?? 'Backdrop'}',
+        label: huiText("Backdrop: {value}", <String, Object?>{
+          'value': huiBackdropLabel(_store.backdrop),
+        }),
         icon: ArcaneIcon.image(size: IconSize.sm),
-        hint: 'Cycle the canvas backdrop',
+        hint: huiText('Cycle the canvas backdrop'),
         onSelect: _cycleBackdrop,
       ),
       HuiActionMenuItem(
-        label: 'Decrease uiScale',
+        label: huiText('Decrease uiScale'),
         icon: ArcaneIcon.minus(size: IconSize.sm),
-        hint: '${_store.previewUiScale.toStringAsFixed(2)} · step 0.05',
+        hint: huiText("{toStringAsFixed} · step 0.05", <String, Object?>{
+          'toStringAsFixed': _store.previewUiScale.toStringAsFixed(2),
+        }),
         separatorBefore: true,
         disabled: _store.previewUiScale <= 0.25,
         onSelect: () => _changeScale(-0.05),
       ),
       HuiActionMenuItem(
-        label: 'Increase uiScale',
+        label: huiText('Increase uiScale'),
         icon: ArcaneIcon.plus(size: IconSize.sm),
-        hint: '${_store.previewUiScale.toStringAsFixed(2)} · step 0.05',
+        hint: huiText("{toStringAsFixed} · step 0.05", <String, Object?>{
+          'toStringAsFixed': _store.previewUiScale.toStringAsFixed(2),
+        }),
         disabled: _store.previewUiScale >= 4,
         onSelect: () => _changeScale(0.05),
       ),
       HuiActionMenuItem(
-        label: 'Reset uiScale to 1.00',
+        label: huiText('Reset uiScale to 1.00'),
         icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
         disabled: _store.previewUiScale == 1,
         onSelect: () => _store.previewUiScale = 1,
       ),
       if (hasSelection) ...<HuiActionMenuItem>[
         HuiActionMenuItem(
-          label: 'Bring forward',
+          label: huiText('Bring forward'),
           icon: ArcaneIcon.chevronUp(size: IconSize.sm),
           separatorBefore: true,
           onSelect: () => component.onZOrder(HuiZOrder.forward),
         ),
         HuiActionMenuItem(
-          label: 'Send back',
+          label: huiText('Send back'),
           icon: ArcaneIcon.chevronDown(size: IconSize.sm),
           onSelect: () => component.onZOrder(HuiZOrder.backward),
         ),
         HuiActionMenuItem(
-          label: 'Bring to front',
+          label: huiText('Bring to front'),
           icon: ArcaneIcon.bringToFront(size: IconSize.sm),
           onSelect: () => component.onZOrder(HuiZOrder.toFront),
         ),
         HuiActionMenuItem(
-          label: 'Send to back',
+          label: huiText('Send to back'),
           icon: ArcaneIcon.sendToBack(size: IconSize.sm),
           onSelect: () => component.onZOrder(HuiZOrder.toBack),
         ),
         HuiActionMenuItem(
-          label: 'Move nearer (-z)',
+          label: huiText('Move nearer (-z)'),
           icon: ArcaneIcon.moveLeft(size: IconSize.sm),
-          hint: 'Depth step ${huiDepthStep.toStringAsFixed(2)}',
+          hint: huiText("Depth step {toStringAsFixed}", <String, Object?>{
+            'toStringAsFixed': huiDepthStep.toStringAsFixed(2),
+          }),
           onSelect: () => _nudgeDepth(-huiDepthStep),
         ),
         HuiActionMenuItem(
-          label: 'Move deeper (+z)',
+          label: huiText('Move deeper (+z)'),
           icon: ArcaneIcon.moveRight(size: IconSize.sm),
-          hint: 'Depth step ${huiDepthStep.toStringAsFixed(2)}',
+          hint: huiText("Depth step {toStringAsFixed}", <String, Object?>{
+            'toStringAsFixed': huiDepthStep.toStringAsFixed(2),
+          }),
           onSelect: () => _nudgeDepth(huiDepthStep),
         ),
       ],
       if (component.hasAnimatedIcons)
         _toggleItem(
-          noun: 'animations',
+          activeLabel: huiText('Pause animations'),
+          inactiveLabel: huiText('Play animations'),
           icon: _store.animationsPlaying
               ? ArcaneIcon.pause(size: IconSize.sm)
               : ArcaneIcon.play(size: IconSize.sm),
           active: _store.animationsPlaying,
-          activeVerb: 'Pause',
-          inactiveVerb: 'Play',
           separatorBefore: true,
           onSelect: () => _store.animationsPlaying = !_store.animationsPlaying,
         ),
       if (selected != null &&
           selected.data is HuiToggleData) ...<HuiActionMenuItem>[
         HuiActionMenuItem(
-          label: 'Preview true icon',
+          label: huiText('Preview true icon'),
           icon: ArcaneIcon.toggleRight(size: IconSize.sm),
           separatorBefore: !component.hasAnimatedIcons,
           disabled: showsTrue,
           onSelect: () => _store.setTogglePreview(selected.id, true),
         ),
         HuiActionMenuItem(
-          label: 'Preview false icon',
+          label: huiText('Preview false icon'),
           icon: ArcaneIcon.toggleLeft(size: IconSize.sm),
           disabled: !showsTrue,
           onSelect: () => _store.setTogglePreview(selected.id, false),
@@ -586,7 +612,7 @@ class _CanvasCompactControlState extends State<_CanvasCompactControl> {
   Widget build(BuildContext context) =>
       dom.span(classes: 'hui-canvas-compact-control', <Widget>[
         ArcaneTooltip(
-          text: 'More canvas controls',
+          text: huiText('More canvas controls'),
           child: Button(
             id: _triggerId,
             key: ValueKey<bool>(_menuPoint != null),
@@ -595,7 +621,7 @@ class _CanvasCompactControlState extends State<_CanvasCompactControl> {
             size: ButtonSize.iconSm,
             type: ButtonType.button,
             attributes: <String, String>{
-              'aria-label': 'More canvas controls',
+              'aria-label': huiText('More canvas controls'),
               'aria-haspopup': 'menu',
               'aria-expanded': '${_menuPoint != null}',
               'aria-controls': _menuId,
@@ -607,7 +633,7 @@ class _CanvasCompactControlState extends State<_CanvasCompactControl> {
         if (_menuPoint != null)
           HuiActionMenu(
             id: _menuId,
-            label: 'More canvas controls',
+            label: huiText('More canvas controls'),
             point: _menuPoint!,
             items: _items(),
             onClose: _close,
@@ -760,11 +786,21 @@ class _ZScrubberState extends State<_ZScrubber> {
     final bool mixed = selected.any((HuiComponent c) => c.offset.z != value);
     return ArcaneTooltip(
       text: mixed
-          ? 'Depth of ${selected.length} components (mixed). Drag or use the '
-                'arrows to move them all; larger z paints first, so it draws '
-                'further back'
-          : 'Depth. Drag or use the arrows; larger z paints first, so it '
-                'draws further back',
+          ? huiPlural(
+              'canvas.depth.mixed_components',
+              selected.length,
+              oneEnglish:
+                  'Depth of {count} component (mixed). Drag or use the arrows '
+                  'to move it; larger z paints first, so it draws further back',
+              otherEnglish:
+                  'Depth of {count} components (mixed). Drag or use the arrows '
+                  'to move them all; larger z paints first, so it draws '
+                  'further back',
+            )
+          : huiText(
+              'Depth. Drag or use the arrows; larger z paints first, so it '
+              'draws further back',
+            ),
       child: dom.span(
         id: _uid,
         classes: classNames(<String?>[
@@ -776,8 +812,15 @@ class _ZScrubberState extends State<_ZScrubber> {
           'role': 'slider',
           'aria-valuenow': _format(value),
           'aria-label': selected.length == 1
-              ? 'Depth of ${selected.first.id}'
-              : 'Depth of ${selected.length} selected components',
+              ? huiText('Depth of {id}', <String, Object?>{
+                  'id': selected.first.id,
+                })
+              : huiPlural(
+                  'canvas.depth.selected_components',
+                  selected.length,
+                  oneEnglish: 'Depth of {count} selected component',
+                  otherEnglish: 'Depth of {count} selected components',
+                ),
         },
         events: <String, EventCallback>{
           'pointerdown': _onDown,
@@ -787,8 +830,8 @@ class _ZScrubberState extends State<_ZScrubber> {
           'keydown': _onKeyDown,
         },
         <Widget>[
-          const dom.span(classes: 'hui-canvas-zscrub-key', <Widget>[
-            Component.text('z'),
+          dom.span(classes: 'hui-canvas-zscrub-key', <Widget>[
+            Component.text(huiText('z')),
           ]),
           dom.span(classes: 'hui-canvas-zscrub-value', <Widget>[
             Component.text(mixed ? '${_format(value)}*' : _format(value)),
@@ -832,7 +875,10 @@ class _UiScaleControlState extends State<_UiScaleControl> {
         size: ButtonSize.sm,
         type: ButtonType.button,
         attributes: <String, String>{
-          'aria-label': 'Preview uiScale $value. Opens the uiScale slider',
+          'aria-label': huiText(
+            "Preview uiScale {value}. Opens the uiScale slider",
+            <String, Object?>{'value': value},
+          ),
           'aria-haspopup': 'dialog',
           'aria-expanded': _open ? 'true' : 'false',
           // Inside a floating container the trigger's next sibling IS the
@@ -843,8 +889,8 @@ class _UiScaleControlState extends State<_UiScaleControl> {
           'data-arcane-interactive': 'true',
         },
         child: dom.span(classes: 'hui-canvas-scale-trigger', <Widget>[
-          const dom.span(classes: 'hui-canvas-tool-label', <Widget>[
-            Component.text('uiScale'),
+          dom.span(classes: 'hui-canvas-tool-label', <Widget>[
+            Component.text(huiText('uiScale')),
           ]),
           dom.span(classes: 'hui-canvas-scale-value', <Widget>[
             Component.text(value),
@@ -852,13 +898,15 @@ class _UiScaleControlState extends State<_UiScaleControl> {
         ]),
       ),
       content: dom.div(classes: 'hui-scale-pop', <Widget>[
-        const dom.span(classes: 'hui-eyebrow', <Widget>[
-          Component.text('server uiScale (preview)'),
+        dom.span(classes: 'hui-eyebrow', <Widget>[
+          Component.text(huiText('server uiScale (preview)')),
         ]),
-        const dom.p(classes: 'hui-scale-pop-note', <Widget>[
+        dom.p(classes: 'hui-scale-pop-note', <Widget>[
           Component.text(
-            'Mirrors the ui-scale the server renders the menu at. Preview '
-            'only: it is never written to the layout file.',
+            huiText(
+              'Mirrors the ui-scale the server renders the menu at. Preview '
+              'only: it is never written to the layout file.',
+            ),
           ),
         ]),
         // A native range input, not ArcaneSlider: the Arcane slider renderer
@@ -877,7 +925,7 @@ class _UiScaleControlState extends State<_UiScaleControl> {
             'min': '0.25',
             'max': '4',
             'step': '0.05',
-            'aria-label': 'Preview uiScale',
+            'aria-label': huiText('Preview uiScale'),
           },
         ),
         const dom.div(classes: 'hui-scale-pop-ticks', <Widget>[
@@ -890,13 +938,13 @@ class _UiScaleControlState extends State<_UiScaleControl> {
             Component.text('${value}x'),
           ]),
           Button(
-            label: 'Reset to 1.00',
+            label: huiText('Reset to 1.00'),
             icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
             variant: ButtonVariant.outline,
             size: ButtonSize.sm,
             type: ButtonType.button,
-            attributes: const <String, String>{
-              'aria-label': 'Reset uiScale to 1.00',
+            attributes: <String, String>{
+              'aria-label': huiText('Reset uiScale to 1.00'),
             },
             onPressed: () => store.previewUiScale = 1,
           ),

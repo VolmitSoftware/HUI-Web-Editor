@@ -15,6 +15,7 @@ import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'line_list_section.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class AnimationInspector extends StatelessWidget {
   const AnimationInspector({required this.store, super.key});
@@ -38,43 +39,48 @@ class AnimationInspector extends StatelessWidget {
     ]);
   }
 
-  Widget _header(GlossAnimationDoc doc) => dom.div(
-    classes: 'hui-inspector-headgroup',
-    <Widget>[
-      dom.div(classes: 'hui-inspector-header is-animation', <Widget>[
-        const HuiEyebrow('Animation'),
-        dom.div(classes: 'hui-inspector-title-row', <Widget>[
-          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(store.menuId)]),
-          const HuiFieldHelp('animation.id'),
+  Widget _header(GlossAnimationDoc doc) =>
+      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+        dom.div(classes: 'hui-inspector-header is-animation', <Widget>[
+          HuiEyebrow(huiText('Animation')),
+          dom.div(classes: 'hui-inspector-title-row', <Widget>[
+            dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+              Text(store.menuId),
+            ]),
+            const HuiFieldHelp('animation.id'),
+          ]),
         ]),
-      ]),
-      dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text('Other documents play this through |animation.${store.menuId}|.'),
-      ]),
-      HuiRevisionRow(revision: doc.revision),
-    ],
-  );
+        dom.p(classes: 'hui-inspector-lede', <Widget>[
+          Text(
+            huiText(
+              "Other documents play this through |animation.{menuId}|.",
+              <String, Object?>{'menuId': store.menuId},
+            ),
+          ),
+        ]),
+        HuiRevisionRow(revision: doc.revision),
+      ]);
 
   Widget _playback(GlossAnimationDoc doc) => InspectorSection(
-    title: 'Playback',
+    title: huiText('Playback'),
     children: <Widget>[
       HuiField(
-        label: 'Mode',
+        label: huiText('Mode'),
         required: true,
         trailing: const HuiFieldHelp('animation.mode'),
-        help: 'How the frame index walks the list.',
+        help: huiText('How the frame index walks the list.'),
         control: dom.div(<Widget>[
           HuiSegmented(
             value: doc.normalizedMode ?? doc.mode,
-            segments: const <HuiSegment>[
-              HuiSegment(value: 'ascend', label: 'Ascend'),
-              HuiSegment(value: 'descend', label: 'Descend'),
+            segments: <HuiSegment>[
+              HuiSegment(value: 'ascend', label: huiText('Ascend')),
+              HuiSegment(value: 'descend', label: huiText('Descend')),
               HuiSegment(
                 value: 'ascend_descend',
-                label: 'Ping-pong',
-                hint: 'ascend_descend: up the list, then back down',
+                label: huiText('Ping-pong'),
+                hint: huiText('ascend_descend: up the list, then back down'),
               ),
-              HuiSegment(value: 'random', label: 'Random'),
+              HuiSegment(value: 'random', label: huiText('Random')),
             ],
             onChanged: (String value) => store.mutateAnimation(
               'animation mode',
@@ -85,18 +91,19 @@ class AnimationInspector extends StatelessWidget {
         ]),
       ),
       HuiField(
-        label: 'Frame interval',
+        label: huiText('Frame interval'),
         required: true,
         trailing: const HuiFieldHelp('animation.frameIntervalMs'),
-        help:
-            'Milliseconds per frame. Gloss silently clamps this into '
-            '1..60000.',
+        help: huiText(
+          'Milliseconds per frame. Gloss silently clamps this into '
+          '1..60000.',
+        ),
         control: dom.div(<Widget>[
           HuiDurationField(
             value: doc.frameIntervalMs.toDouble(),
             unit: HuiDurationUnit.milliseconds,
             step: 50,
-            perLabel: 'per frame',
+            perLabel: huiText('per frame'),
             onChanged: (double value) => store.mutateAnimation(
               'animation interval',
               (GlossAnimationDoc edited) =>
@@ -110,16 +117,17 @@ class AnimationInspector extends StatelessWidget {
   );
 
   Widget _frames(GlossAnimationDoc doc) => HuiLineListSection(
-    title: 'Frames',
+    title: huiText('Frames'),
     docKey: 'animation.frames',
-    addLabel: 'Add frame',
+    addLabel: huiText('Add frame'),
     itemCount: doc.frames.length,
     issues: _issuesFor(r'$.frames'),
     emptyTone: HuiNoteTone.danger,
-    emptyBody:
-        'Gloss rejects an animation with no frames, so nothing that '
-        'references this document renders either. One frame is legal and '
-        'simply holds.',
+    emptyBody: huiText(
+      'Gloss rejects an animation with no frames, so nothing that '
+      'references this document renders either. One frame is legal and '
+      'simply holds.',
+    ),
     onAdd: () => store.mutateAnimation(
       'add frame',
       (GlossAnimationDoc edited) => edited.frames.add(''),
@@ -136,8 +144,10 @@ class AnimationInspector extends StatelessWidget {
     final String frame = doc.frames[index];
     return HuiLineRow(
       value: frame,
-      placeholder: '&cFrame text',
-      removeLabel: 'Delete frame ${index + 1}',
+      placeholder: huiText('&cFrame text'),
+      removeLabel: huiText('Delete frame {number}', <String, Object?>{
+        'number': index + 1,
+      }),
       preview: GlossTextLine(
         render: renderGlossLine(frame, emoji: store.workspaceEmoji),
       ),

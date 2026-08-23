@@ -11,6 +11,7 @@ import 'dart:math' as math;
 
 import 'package:web/web.dart' as web;
 
+import '../../l10n/hui_localizations.dart';
 import '../../logic/viewport_math.dart';
 import '../../model/vec3.dart';
 import '../../state/editor_store.dart' show HuiBackdropMode;
@@ -230,7 +231,7 @@ void paintMenuCenter(
   brush.restore();
   if (labelled) {
     brush.chip(
-      'menu centre',
+      huiText('menu centre'),
       brush.sx(menuOffset.x) + 12,
       brush.sy(menuOffset.y) - 12,
       color: palette.menuCenter,

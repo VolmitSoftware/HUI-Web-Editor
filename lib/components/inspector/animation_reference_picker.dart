@@ -14,12 +14,13 @@ import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class AnimationReferencePicker extends StatefulWidget {
   const AnimationReferencePicker({
     required this.store,
     required this.onPicked,
-    this.label = 'Animations',
+    this.label,
     super.key,
   });
 
@@ -27,7 +28,7 @@ class AnimationReferencePicker extends StatefulWidget {
 
   /// Receives the raw reference token, e.g. `|animation.rainbow|`.
   final void Function(String reference) onPicked;
-  final String label;
+  final String? label;
 
   @override
   State<AnimationReferencePicker> createState() =>
@@ -39,6 +40,7 @@ class _AnimationReferencePickerState extends State<AnimationReferencePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final String label = component.label ?? huiText('Animations');
     final GlossAnimationResolver animations =
         component.store.workspaceAnimations;
     final List<String> ids = animations.ids;
@@ -51,31 +53,35 @@ class _AnimationReferencePickerState extends State<AnimationReferencePicker> {
         size: ButtonSize.sm,
         icon: ArcaneIcon.film(size: IconSize.sm),
         attributes: <String, String>{
-          'aria-label': component.label,
+          'aria-label': label,
           'aria-expanded': _open ? 'true' : 'false',
           // See placeholder_picker.dart: opts the popover out of the legacy
           // accordion binder that would fight the floating container.
           'data-arcane-interactive': 'true',
         },
-        child: Text(component.label),
+        child: Text(label),
       ),
       content: dom.div(classes: 'hui-placeholder-list', <Widget>[
-        const HuiEyebrow('Animations'),
+        HuiEyebrow(huiText('Animations')),
         if (ids.isEmpty)
-          const dom.p(classes: 'hui-placeholder-empty', <Widget>[
+          dom.p(classes: 'hui-placeholder-empty', <Widget>[
             Text(
-              'This workspace has no animation documents yet. Create one '
-              'from the library rail; its |animation.<id>| reference will '
-              'appear here.',
+              huiText(
+                'This workspace has no animation documents yet. Create one '
+                'from the library rail; its |animation.<id>| reference will '
+                'appear here.',
+              ),
             ),
           ])
         else
           for (final String id in ids) _row(id, animations.byId(id)),
-        const dom.p(classes: 'hui-placeholder-foot', <Widget>[
+        dom.p(classes: 'hui-placeholder-foot', <Widget>[
           Text(
-            'A reference plays the animation\'s current frame wherever the '
-            'line renders. Deleting or renaming the animation later leaves '
-            'the reference showing literally.',
+            huiText(
+              'A reference plays the animation\'s current frame wherever the '
+              'line renders. Deleting or renaming the animation later leaves '
+              'the reference showing literally.',
+            ),
           ),
         ]),
       ]),
@@ -86,7 +92,9 @@ class _AnimationReferencePickerState extends State<AnimationReferencePicker> {
     classes: 'hui-placeholder-row',
     attributes: <String, String>{
       'type': 'button',
-      'aria-label': 'Insert |animation.$id|',
+      'aria-label': huiText("Insert |animation.{id}|", <String, Object?>{
+        'id': id,
+      }),
     },
     events: <String, EventCallback>{
       'click': (_) {
@@ -96,16 +104,22 @@ class _AnimationReferencePickerState extends State<AnimationReferencePicker> {
     },
     <Widget>[
       dom.span(classes: 'hui-placeholder-key', <Widget>[
-        Text('|animation.$id|'),
+        Text(huiText("|animation.{id}|", <String, Object?>{'id': id})),
       ]),
       dom.span(classes: 'hui-placeholder-desc', <Widget>[
         Text(
           doc == null
-              ? 'unreadable document'
-              : '${doc.frames.length} '
-                    '${doc.frames.length == 1 ? 'frame' : 'frames'} · '
-                    '${doc.effectiveFrameIntervalMs} ms · '
-                    '${doc.normalizedMode ?? doc.mode}',
+              ? huiText('unreadable document')
+              : huiPlural(
+                  'animation.reference.frame_summary',
+                  doc.frames.length,
+                  oneEnglish: '{count} frame · {interval} ms · {mode}',
+                  otherEnglish: '{count} frames · {interval} ms · {mode}',
+                  arguments: <String, Object?>{
+                    'interval': doc.effectiveFrameIntervalMs,
+                    'mode': doc.normalizedMode ?? doc.mode,
+                  },
+                ),
         ),
       ]),
     ],

@@ -17,6 +17,7 @@ library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Where in the client's screen a surface belongs.
 enum GlossGameAnchor {
@@ -65,10 +66,15 @@ extension on GlossGameAnchor {
 /// Canned chat scrollback behind the HUD. Cosmetic — it exists so the
 /// bottom-left of the frame is not empty, and it fades out the way the
 /// client's own history does.
-const List<String> _idleChat = <String>[
-  'Cyberpwn joined the game',
-  '<SwiftSwamp> anyone seen the road out past the sawmill',
-  '<Puretie> south of spawn, through the sycamores',
+List<String> get _idleChat => <String>[
+  huiText('{player} joined the game', <String, Object?>{'player': 'Cyberpwn'}),
+  huiText(
+    '<{player}> anyone seen the road out past the sawmill',
+    <String, Object?>{'player': 'SwiftSwamp'},
+  ),
+  huiText('<{player}> south of spawn, through the sycamores', <String, Object?>{
+    'player': 'Puretie',
+  }),
 ];
 
 /// The frame with nothing anchored in it — what a surface renders under
@@ -133,7 +139,9 @@ class GlossGameScreen extends StatelessWidget {
           classes: 'hui-gloss-game-controls',
           attributes: <String, String>{
             'role': 'group',
-            'aria-label': '$label controls',
+            'aria-label': huiText("{label} controls", <String, Object?>{
+              'label': label,
+            }),
           },
           controls,
         ),

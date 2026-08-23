@@ -144,7 +144,10 @@ void main() {
       expectEvalError('1 / 0', 'division by zero');
       expectEvalError('5 % 0', 'division by zero');
       expectEvalError('mod(1, 0)', 'division by zero');
-      expectEvalError('clamp(1, 2)', 'clamp expects 3 argument(s), got 2');
+      expectEvalError(
+        'clamp(1, 2)',
+        'Required argument count for clamp: 3; received: 2',
+      );
       expectEvalError('palette(1, 2)', 'palette argument 1 must be a list');
       expectEvalError("plain(1)", 'plain argument 1 must be a string');
       expectEvalError("[1] + 1", 'expected number, got list');
@@ -330,6 +333,41 @@ void main() {
       expectEvalError(
         "palette([1,'x'], 1)",
         'palette list entries must be numbers',
+      );
+    });
+
+    test('palette and select narrow indices as signed Java longs', () {
+      const List<Object?> selected = <Object?>['A', 'B', 'C', 'D'];
+      const List<Object?> colors = <Object?>[10.0, 20.0, 30.0, 40.0];
+
+      expect(
+        previewStdFunction('select', <Object?>[selected, 7149704216.0]),
+        'A',
+      );
+      expect(
+        previewStdFunction('palette', <Object?>[colors, 7149704217.0]),
+        20.0,
+      );
+      expect(
+        previewStdFunction('select', <Object?>[selected, double.infinity]),
+        'D',
+      );
+      expect(previewStdFunction('palette', <Object?>[colors, 1e30]), 40.0);
+      expect(
+        previewStdFunction('select', <Object?>[
+          selected,
+          double.negativeInfinity,
+        ]),
+        'A',
+      );
+      expect(previewStdFunction('palette', <Object?>[colors, -1e30]), 10.0);
+      expect(
+        previewStdFunction('select', <Object?>[selected, double.nan]),
+        'A',
+      );
+      expect(
+        previewStdFunction('palette', <Object?>[colors, double.nan]),
+        10.0,
       );
     });
 

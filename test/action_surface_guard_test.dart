@@ -24,19 +24,19 @@ void main() {
   /// The four rungs, widest first, as `(tier, actions that rung folds)`.
   const Map<int, List<String>> foldedAtTier = <int, List<String>>{
     1: <String>[
-      "label: 'Templates'",
-      "label: 'Command palette'",
-      "label: 'Settings'",
-      "label: 'Help'",
-      'Light theme',
+      "label: huiText('Templates')",
+      "label: huiText('Command palette')",
+      "label: huiText('Settings')",
+      "label: huiText('Help')",
+      "huiText('Light theme')",
     ],
-    2: <String>["label: 'Images'"],
+    2: <String>["label: huiText('Images')"],
     3: <String>[
-      "label: 'Import JSON'",
-      "label: 'Export \$_documentNoun JSON'",
-      "label: 'Copy \$_documentNoun JSON'",
+      "label: huiText('Import JSON')",
+      "label: huiText('Export {document} JSON'",
+      "label: huiText('Copy {document} JSON'",
     ],
-    4: <String>["label: 'Undo'", "label: 'Redo'"],
+    4: <String>["label: huiText('Undo')", "label: huiText('Redo')"],
   };
 
   /// The menu one tier actually renders: the entry list with every region
@@ -199,6 +199,16 @@ void main() {
     expect(shellCss, contains('.hui-bar-menu-item:hover:not(:disabled),'));
   });
 
+  test('header menus expose managed keyboard and language radio semantics', () {
+    expect(barMenu, contains("if (key == 'Escape')"));
+    expect(barMenu, contains("if (key == 'Tab')"));
+    expect(barMenu, contains("'tabindex': '-1'"));
+    expect(barMenu, contains('_focusInitialItem();'));
+    expect(topBar, contains("'role': 'menuitemradio'"));
+    expect(topBar, contains("'aria-checked':"));
+    expect(topBar, contains("'data-hui-menu-initial': 'true'"));
+  });
+
   test('danger text and filled delete actions keep accessible hierarchy', () {
     final String lightTokens = _between(
       foundationsCss,
@@ -271,8 +281,8 @@ void main() {
       );
       expect(shellCss, isNot(contains('--hui-bar-side')));
       expect(shellCss, isNot(contains('button:not(.selected)')));
-      expect(topBar, contains("visibleLabel: 'Import'"));
-      expect(topBar, contains("visibleLabel: 'Export'"));
+      expect(topBar, contains("visibleLabel: huiText('Import')"));
+      expect(topBar, contains("visibleLabel: huiText('Export')"));
     },
   );
 
@@ -315,7 +325,7 @@ void main() {
       'actions: <Widget>[',
       'children: <Widget>[',
     );
-    expect(actions, contains("label: 'Close'"));
+    expect(actions, contains("label: huiText('Close')"));
     expect(actions, isNot(contains('_downloadJson')));
     expect(actions, isNot(contains("label: 'Download JSON'")));
   });

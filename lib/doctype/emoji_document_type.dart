@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -22,13 +24,13 @@ final class EmojiDocumentType extends GlossDocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.emoji;
 
   @override
-  String get noun => 'emoji';
+  String get noun => huiText('emoji');
 
   @override
-  String get createLabel => 'New emoji';
+  String get createLabel => huiText('New emoji');
 
   @override
-  String get pluralLabel => 'Emoji';
+  String get pluralLabel => huiText('Emoji');
 
   @override
   int get tabOrder => 80;
@@ -37,7 +39,7 @@ final class EmojiDocumentType extends GlossDocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.emoji;
 
   @override
-  String get surfaceLabel => 'Glyphs';
+  String get surfaceLabel => huiText('Glyphs');
 
   @override
   String? get syncWireKind => 'emoji';

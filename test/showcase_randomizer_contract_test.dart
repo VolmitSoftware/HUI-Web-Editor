@@ -299,7 +299,7 @@ void main() {
   });
 
   test(
-    'all 13 preview families exercise the complete bounded field surface',
+    'all 14 preview families exercise the complete bounded field surface',
     () {
       final Set<String> documents = <String>{};
       bool sawBareCard = false;
@@ -333,7 +333,7 @@ void main() {
         }
       }
       final String combined = documents.join('\n');
-      expect(PreviewShowcaseArchetype.values, hasLength(13));
+      expect(PreviewShowcaseArchetype.values, hasLength(14));
       expect(sawBareCard, isTrue);
       expect(sawFramedFalse, isTrue);
       expect(sawFramedExpression, isTrue);

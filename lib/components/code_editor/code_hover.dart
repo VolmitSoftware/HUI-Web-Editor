@@ -19,6 +19,7 @@
 library;
 
 import '../../config/field_docs.dart';
+import '../../l10n/hui_localizations.dart';
 import '../../logic/json_schema.dart';
 import 'json_caret.dart';
 
@@ -116,24 +117,22 @@ HuiCodeKeyDoc? huiCodeKeyDoc({
     final String? openSummary = container is GlossJsonObject
         ? container.openKeySummary
         : null;
-    return HuiCodeKeyDoc(
-      path: path,
-      title: hit.key,
-      body:
-          openSummary ??
-          'Gloss does not read a key by this name here. The editor keeps it '
-              'through every round trip rather than dropping it, so a key a '
-              'newer plugin build writes survives being edited.',
-      detail: '',
-    );
+    final String body = openSummary == null
+        ? huiText(
+            'Gloss does not read a key by this name here. The editor keeps it '
+            'through every round trip rather than dropping it, so a key a '
+            'newer plugin build writes survives being edited.',
+          )
+        : huiText(openSummary);
+    return HuiCodeKeyDoc(path: path, title: hit.key, body: body, detail: '');
   }
   final HuiFieldDoc? doc = field.docKey == null
       ? null
       : huiFieldDoc(field.docKey!);
   return HuiCodeKeyDoc(
     path: path,
-    title: doc?.title ?? field.title,
-    body: doc?.body ?? field.summary,
+    title: doc?.title ?? huiText(field.title),
+    body: doc?.body ?? huiText(field.summary),
     detail: huiCodeFieldDetail(field),
     citation: doc?.citation,
   );
@@ -141,9 +140,13 @@ HuiCodeKeyDoc? huiCodeKeyDoc({
 
 /// `boolean · default true` / `string · one of ascend, descend, …`.
 String huiCodeFieldDetail(GlossJsonField field) {
-  final List<String> parts = <String>[field.type.label];
+  final List<String> parts = <String>[huiText(field.type.label)];
   if (field.defaultLiteral != null) {
-    parts.add('default ${field.defaultLiteral}');
+    parts.add(
+      huiText('default {value}', <String, Object?>{
+        'value': field.defaultLiteral,
+      }),
+    );
   }
   if (field.values.isNotEmpty) {
     final List<String> shown = <String>[
@@ -154,7 +157,14 @@ String huiCodeFieldDetail(GlossJsonField field) {
     ];
     final int rest = field.values.length - shown.length;
     parts.add(
-      'one of ${shown.join(', ')}${rest > 0 ? ', and $rest more' : ''}',
+      rest > 0
+          ? huiText('one of {values}, and {count} more', <String, Object?>{
+              'values': shown.join(', '),
+              'count': rest,
+            })
+          : huiText('one of {values}', <String, Object?>{
+              'values': shown.join(', '),
+            }),
     );
   }
   return parts.join(' · ');

@@ -11,6 +11,7 @@ import 'package:jaspr/jaspr.dart' show ListenableBuilder;
 import '../../logic/validation.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ValidationPanel extends StatelessWidget {
   const ValidationPanel({
@@ -30,16 +31,17 @@ class ValidationPanel extends StatelessWidget {
     isOpen: isOpen,
     onClose: onClose,
     size: SheetSize.md,
-    title: 'Validation',
-    description:
-        'Checked against the plugin parser, not the shipped JSON schema.',
+    title: huiText('Validation'),
+    description: huiText(
+      'Checked against the plugin parser, not the shipped JSON schema.',
+    ),
     // The sheet chrome's own close control is JS-only: it hides the
     // surface without telling Dart, which owns isOpen, so the sheet
     // reappears on the next rebuild. The footer button below closes it
     // through Dart instead.
     showCloseButton: false,
     footer: dom.div(classes: 'hui-validation-footer', <Widget>[
-      Button.outline(label: 'Close', onPressed: onClose),
+      Button.outline(label: huiText('Close'), onPressed: onClose),
     ]),
     child: ListenableBuilder(
       listenable: store,
@@ -52,10 +54,11 @@ class ValidationPanel extends StatelessWidget {
     if (issues.isEmpty) {
       return dom.div(classes: 'hui-validation hui-validation-clean', <Widget>[
         ArcaneEmptyState(
-          title: 'No issues',
-          description:
-              'This menu matches everything the plugin expects. '
-              'Export it to plugins/Gloss/menus/${store.exportFileName}.',
+          title: huiText('No issues'),
+          description: huiText(
+            "This menu matches everything the plugin expects. Export it to plugins/Gloss/menus/{exportFileName}.",
+            <String, Object?>{'exportFileName': store.exportFileName},
+          ),
           icon: ArcaneIcon.check(size: IconSize.lg),
         ),
       ]);
@@ -77,8 +80,12 @@ class ValidationPanel extends StatelessWidget {
   Widget _summaryCell(String label, int count, String tone) => dom.div(
     classes: classNames(<String?>['hui-validation-cell', tone]),
     <Widget>[
-      dom.span(classes: 'hui-validation-cell-value', <Widget>[Text('$count')]),
-      dom.span(classes: 'hui-validation-cell-label', <Widget>[Text(label)]),
+      dom.span(classes: 'hui-validation-cell-value', <Widget>[
+        Text(huiText("{count}", <String, Object?>{'count': count})),
+      ]),
+      dom.span(classes: 'hui-validation-cell-label', <Widget>[
+        Text(huiText(label)),
+      ]),
     ],
   );
 
@@ -99,7 +106,12 @@ class ValidationPanel extends StatelessWidget {
             // A plain span, not HuiEyebrow: the primitive sets its colour
             // inline, which would beat the per-severity tint.
             dom.span(classes: 'hui-eyebrow', <Widget>[
-              Text('${_severityLabel(severity)} (${group.length})'),
+              Text(
+                huiText("{severityLabel} ({length})", <String, Object?>{
+                  'severityLabel': _severityLabel(severity),
+                  'length': group.length,
+                }),
+              ),
             ]),
           ]),
           dom.ul(classes: 'hui-validation-list', <Widget>[
@@ -117,7 +129,9 @@ class ValidationPanel extends StatelessWidget {
         dom.p(classes: 'hui-validation-message', <Widget>[Text(issue.message)]),
         if (issue.fix != null)
           dom.p(classes: 'hui-validation-fix', <Widget>[
-            Text('Fix: ${issue.fix!}'),
+            Text(
+              huiText("Fix: {value}", <String, Object?>{'value': issue.fix!}),
+            ),
           ]),
         dom.code(classes: 'hui-validation-path', <Widget>[Text(issue.path)]),
       ]),
@@ -132,7 +146,10 @@ class ValidationPanel extends StatelessWidget {
           icon: ArcaneIcon.crosshair(size: IconSize.sm),
           label: componentId,
           attributes: <String, String>{
-            'aria-label': 'Select component $componentId',
+            'aria-label': huiText(
+              "Select component {componentId}",
+              <String, Object?>{'componentId': componentId},
+            ),
           },
         ),
     ]);
@@ -145,9 +162,9 @@ class ValidationPanel extends StatelessWidget {
   };
 
   String _severityLabel(HuiSeverity severity) => switch (severity) {
-    HuiSeverity.error => 'Errors',
-    HuiSeverity.warning => 'Warnings',
-    HuiSeverity.info => 'Notes',
+    HuiSeverity.error => huiText('Errors'),
+    HuiSeverity.warning => huiText('Warnings'),
+    HuiSeverity.info => huiText('Notes'),
   };
 
   String _toneClass(HuiSeverity severity) => switch (severity) {

@@ -31,6 +31,10 @@ import 'services/page_lifecycle.dart';
 import 'services/workspace_location.dart';
 import 'state/editor_scope.dart';
 import 'doctype/doctype.dart';
+import 'l10n/hui_locale_loader.dart';
+import 'l10n/hui_locale_preferences.dart';
+import 'l10n/hui_localizations.dart';
+import 'logic/preview_sim.dart';
 import 'state/editor_store.dart';
 import 'state/workspace.dart';
 import 'state/workspace_panel.dart';
@@ -66,9 +70,14 @@ class _OfflineShadcnStylesheet extends ShadcnStylesheet {
 }
 
 class App extends StatefulWidget {
-  const App({required this.workspace, super.key});
+  const App({
+    required this.workspace,
+    required this.localeController,
+    super.key,
+  });
 
   final Workspace workspace;
+  final HuiLocaleController localeController;
 
   @override
   State<App> createState() => _AppState();
@@ -76,6 +85,9 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   Brightness _brightness = Brightness.dark;
+  late String _activeLocale;
+  bool _localeLoading = false;
+  int _localeRequest = 0;
 
   late final ImageLibrary _images;
   late final EditorStore _store;
@@ -89,8 +101,8 @@ class _AppState extends State<App> {
   EditorSyncSession? _syncImportSession;
   EditorSyncBinding? _syncImportCapability;
   Timer? _syncPollTimer;
-  String? _syncError;
-  String? _syncPersistenceWarning;
+  String Function()? _syncError;
+  String Function()? _syncPersistenceWarning;
   bool _syncLoading = false;
   bool _syncPublishing = false;
   bool _syncConflictOpen = false;
@@ -105,6 +117,8 @@ class _AppState extends State<App> {
   @override
   void initState() {
     super.initState();
+    _activeLocale = component.localeController.activeLocale;
+    stampHuiLocaleDocument(_activeLocale);
     _brightness = loadStoredBrightness();
     stampDocumentTheme(_brightness);
 
@@ -127,11 +141,47 @@ class _AppState extends State<App> {
 
     HuiCatalogs.load().then((HuiCatalogs catalogs) {
       if (!mounted) return;
+      final HuiCatalogs localized = _withActivePreviewLocale(catalogs);
       setState(() {
-        _catalogs = catalogs;
-        _store.setCatalogs(catalogs);
+        _catalogs = localized;
+        _store.setCatalogs(localized);
       });
     });
+  }
+
+  Future<void> _changeLocale(String locale) async {
+    if (locale == _activeLocale && !_localeLoading) return;
+    final int request = ++_localeRequest;
+    setState(() => _localeLoading = true);
+    final HuiLocaleInstallResult result = await component.localeController
+        .activate(locale);
+    if (!mounted || request != _localeRequest) return;
+    if (!result.applied) {
+      setState(() => _localeLoading = false);
+      ArcaneSonner.error(
+        huiText(
+          'Could not change language. The current language is still active.',
+        ),
+      );
+      return;
+    }
+    final String activeLocale = component.localeController.activeLocale;
+    persistHuiLocale(activeLocale);
+    stampHuiLocaleDocument(activeLocale);
+    final HuiCatalogs localized = _withActivePreviewLocale(_store.catalogs);
+    setState(() {
+      _activeLocale = activeLocale;
+      _localeLoading = false;
+      _catalogs = localized;
+    });
+    _store.setCatalogs(localized);
+  }
+
+  HuiCatalogs _withActivePreviewLocale(HuiCatalogs catalogs) {
+    final Map<String, String> messages =
+        huiLocalizations.snapshot.previewMessages;
+    if (messages.isEmpty) return catalogs;
+    return catalogs.withPreviewLang(PreviewLangCatalog(messages));
   }
 
   @override
@@ -242,8 +292,9 @@ class _AppState extends State<App> {
       }
       if (route.workspaceId != _store.workspace.id) {
         _reportRouteError(
-          'That link belongs to a different local workspace. Import its '
-          'workspace bundle first.',
+          huiText(
+            'That link belongs to a different local workspace. Import its workspace bundle first.',
+          ),
         );
         return;
       }
@@ -251,7 +302,9 @@ class _AppState extends State<App> {
       final bool opened = _store.openDocument(route.documentId);
       _applyingHash = false;
       if (!opened) {
-        _reportRouteError('That linked document is not in this workspace.');
+        _reportRouteError(
+          huiText('That linked document is not in this workspace.'),
+        );
       }
       return;
     }
@@ -311,7 +364,11 @@ class _AppState extends State<App> {
     );
     if (!created) return;
     setState(() => _menuHandoff = null);
-    ArcaneSonner.success('Added ${envelope.runtimeId} to the workspace.');
+    ArcaneSonner.success(
+      huiText('Added {document} to the workspace.', <String, Object?>{
+        'document': envelope.runtimeId,
+      }),
+    );
   }
 
   void _restoreSyncBinding() {
@@ -374,8 +431,8 @@ class _AppState extends State<App> {
           }
           setState(() {
             _syncError = error is EditorSyncFailure
-                ? error.message
-                : 'The relay response could not be read.';
+                ? () => error.message
+                : () => huiText('The relay response could not be read.');
             _syncLoading = false;
           });
         });
@@ -466,9 +523,13 @@ class _AppState extends State<App> {
         );
       }
       _startSyncPolling();
-      ArcaneSonner.success('Connected ${binding.subjectId}.');
+      ArcaneSonner.success(
+        huiText('Connected {subject}.', <String, Object?>{
+          'subject': binding.subjectId,
+        }),
+      );
     } on EditorSyncFailure catch (error) {
-      setState(() => _syncError = error.message);
+      setState(() => _syncError = () => error.message);
     }
   }
 
@@ -507,9 +568,9 @@ class _AppState extends State<App> {
         } else {
           setState(() {
             _syncSession = session;
-            _syncError =
-                'The server applied the publication, but this tab changed '
-                'while it was pending. Export or refresh before publishing again.';
+            _syncError = () => huiText(
+              'The server applied the publication, but this tab changed while it was pending. Export or refresh before publishing again.',
+            );
             _syncConflictOpen = true;
           });
           return;
@@ -549,7 +610,7 @@ class _AppState extends State<App> {
       }
       _syncPollTimer?.cancel();
       setState(() {
-        _syncError = null;
+        _syncError = () => error.message;
         _syncConflictOpen = false;
         _syncSession = EditorSyncSession(
           sessionId: captured.sessionId,
@@ -559,14 +620,13 @@ class _AppState extends State<App> {
           status: error.revoked
               ? EditorSyncStatus.revoked
               : EditorSyncStatus.expired,
-          message: error.message,
         );
       });
     } on EditorSyncFailure catch (error) {
       if (!mounted || !_syncPollGate.shouldApply(captured, _syncBinding)) {
         return;
       }
-      setState(() => _syncError = error.message);
+      setState(() => _syncError = () => error.message);
     } finally {
       if (_syncPollGate.complete(captured) && mounted) {
         Timer.run(_refreshSyncStatus);
@@ -607,19 +667,21 @@ class _AppState extends State<App> {
         );
       });
       _refreshSyncStatus();
-      ArcaneSonner.success('Published for server validation and apply.');
+      ArcaneSonner.success(
+        huiText('Published for server validation and apply.'),
+      );
     } on EditorSyncConflict catch (error) {
       if (!mounted) return;
       setState(() {
         _syncPublishing = false;
-        _syncError = error.message;
+        _syncError = () => error.message;
         _syncConflictOpen = true;
       });
     } on EditorSyncFailure catch (error) {
       if (!mounted) return;
       setState(() {
         _syncPublishing = false;
-        _syncError = error.message;
+        _syncError = () => error.message;
       });
       ArcaneSonner.error(error.message);
     }
@@ -636,10 +698,10 @@ class _AppState extends State<App> {
     final bool copied = await copyText(workspaceUrlForHash(hash));
     if (copied) {
       ArcaneSonner.success(
-        'Copied the capability link. Anyone with it can edit.',
+        huiText('Copied the capability link. Anyone with it can edit.'),
       );
     } else {
-      ArcaneSonner.error('The browser refused clipboard access.');
+      ArcaneSonner.error(huiText('The browser refused clipboard access.'));
     }
   }
 
@@ -661,10 +723,10 @@ class _AppState extends State<App> {
     if (persisted) {
       _syncPersistenceWarning = null;
     } else {
-      _syncPersistenceWarning =
-          'This browser blocked tab storage. The connection still works, but '
-          'reload will lose it. Copy the sync link before continuing.';
-      ArcaneSonner.error(_syncPersistenceWarning!);
+      _syncPersistenceWarning = () => huiText(
+        'This browser blocked tab storage. The connection still works, but reload will lose it. Copy the sync link before continuing.',
+      );
+      ArcaneSonner.error(_syncPersistenceWarning!());
     }
     return persisted;
   }
@@ -681,7 +743,7 @@ class _AppState extends State<App> {
       _syncConflictOpen = false;
     });
     ArcaneSonner.info(
-      'Disconnected this tab. The server session was not revoked.',
+      huiText('Disconnected this tab. The server session was not revoked.'),
     );
     _syncWorkspaceHash(replace: true);
   }
@@ -710,7 +772,9 @@ class _AppState extends State<App> {
           status: EditorSyncStatus.connected,
         );
       });
-      ArcaneSonner.success('Replaced the bound scope with the server copy.');
+      ArcaneSonner.success(
+        huiText('Replaced the bound scope with the server copy.'),
+      );
     } on EditorSyncFailure catch (error) {
       ArcaneSonner.error(error.message);
     }
@@ -722,7 +786,9 @@ class _AppState extends State<App> {
       encodeWorkspaceBundle(_store.workspace, _images),
       mime: 'application/json',
     );
-    ArcaneSonner.success('Saved the complete local workspace before refresh.');
+    ArcaneSonner.success(
+      huiText('Saved the complete local workspace before refresh.'),
+    );
   }
 
   EditorSyncProject _emptySyncProject(EditorSyncBinding binding) =>
@@ -739,9 +805,6 @@ class _AppState extends State<App> {
   Widget build(BuildContext context) => ArcaneApp(
     stylesheet: const _OfflineShadcnStylesheet(theme: ShadcnTheme.midnight),
     brightness: _brightness,
-    title: 'Gloss Editor',
-    description:
-        'Visual web editor for creating and previewing Gloss menu configurations.',
     // Stays true, and the reason is not the one the flag's name suggests.
     // `ArcaneApp` gates ONE component on it (`support/app.dart:114`) and
     // that component emits `ArcaneScripts.all` — the modern
@@ -768,6 +831,9 @@ class _AppState extends State<App> {
       child: EditorShell(
         store: _store,
         status: _status,
+        activeLocale: _activeLocale,
+        localeLoading: _localeLoading,
+        onLocaleChanged: _changeLocale,
         darkMode: _brightness == Brightness.dark,
         onToggleTheme: _toggleBrightness,
         onOpenImport: () => _openDialog(_EditorDialog.import),
@@ -786,8 +852,8 @@ class _AppState extends State<App> {
                 subjectId: _syncBinding!.subjectId,
                 busy: _syncPublishing,
                 message:
-                    _syncError ??
-                    _syncPersistenceWarning ??
+                    _syncError?.call() ??
+                    _syncPersistenceWarning?.call() ??
                     _syncSession?.message,
                 onPublish: _publishSync,
                 onCopyLink: _copySyncLink,
@@ -918,7 +984,7 @@ class _AppState extends State<App> {
           EditorSyncImportDialog(
             session: _syncImportSession,
             loading: _syncLoading,
-            error: _syncError,
+            error: _syncError?.call(),
             hasLocalConflicts: _syncImportHasConflicts,
             relayEndpoint: _syncImportCapability?.relayEndpoint,
             onConfirm: _syncImportSession == null
@@ -928,7 +994,7 @@ class _AppState extends State<App> {
           ),
           EditorSyncConflictDialog(
             isOpen: _syncConflictOpen,
-            message: _syncError ?? _syncSession?.message,
+            message: _syncError?.call() ?? _syncSession?.message,
             onRefresh: _refreshFromServer,
             onExport: _exportConflictWork,
             onClose: () => setState(() => _syncConflictOpen = false),

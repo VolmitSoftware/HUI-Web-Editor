@@ -18,6 +18,7 @@ import 'package:jaspr/jaspr.dart' show Component;
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import 'preview_pose.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class PreviewHud extends StatelessWidget {
   const PreviewHud({required this.store, required this.pose, super.key});
@@ -31,7 +32,7 @@ class PreviewHud extends StatelessWidget {
     final HuiMenu menu = store.menu;
     return dom.div(
       classes: 'hui-preview-hudbar',
-      attributes: const <String, String>{'aria-label': 'Preview readout'},
+      attributes: <String, String>{'aria-label': huiText('Preview readout')},
       <Widget>[
         _state(live),
         _hovered(live),
@@ -47,7 +48,11 @@ class PreviewHud extends StatelessWidget {
   /// for what a player saw in chat lands here.
   Widget _state(PreviewLiveState live) {
     final String? reason = live.closeReason?.wireName;
-    final String text = live.isOpen ? 'Open' : 'Closed — ${reason ?? 'CLOSED'}';
+    final String text = live.isOpen
+        ? huiTextKey('state.open', 'Open')
+        : huiText('Closed — {reason}', <String, Object?>{
+            'reason': reason ?? huiText('CLOSED'),
+          });
     return dom.div(
       classes:
           'hui-preview-hudbar-item is-state'
@@ -55,13 +60,13 @@ class PreviewHud extends StatelessWidget {
       // The one value here slow enough to announce.
       attributes: const <String, String>{'role': 'status'},
       <Widget>[
-        _label('menu'),
+        _label(huiText('menu')),
         dom.span(classes: 'hui-preview-hudbar-value', <Widget>[
           Component.text(text),
         ]),
         if (!live.isOpen)
-          const dom.span(classes: 'hui-preview-hudbar-note', <Widget>[
-            Component.text('Reopen here starts a fresh session'),
+          dom.span(classes: 'hui-preview-hudbar-note', <Widget>[
+            Component.text(huiText('Reopen here starts a fresh session')),
           ]),
       ],
     );
@@ -73,10 +78,15 @@ class PreviewHud extends StatelessWidget {
     final String? id = live.hoveredId;
     final int behind = live.hoveredIds > 1 ? live.hoveredIds - 1 : 0;
     return _item(
-      label: 'hovered',
-      value: id ?? 'nothing',
+      label: huiText('hovered'),
+      value: id ?? huiText('nothing'),
       muted: id == null,
-      note: behind == 0 ? null : '+$behind behind — only the nearest fires',
+      note: behind == 0
+          ? null
+          : huiText(
+              '+{count} behind — only the nearest fires',
+              <String, Object?>{'count': behind},
+            ),
       noteIsWarning: false,
     );
   }
@@ -84,14 +94,20 @@ class PreviewHud extends StatelessWidget {
   /// The hover displacement applied while the look ray remains in the plane.
   Widget _push(PreviewLiveState live) {
     if (live.hoveredId == null) {
-      return _item(label: 'push', value: '—', muted: true);
+      return _item(label: huiText('push'), value: '—', muted: true);
     }
     return _item(
-      label: 'push',
-      value: '${_blocks(live.hoverPushBlocks)} blocks',
-      note:
-          'tick ${live.hoverTicks} — highlightModifier '
-          '${_blocks(live.highlightModifier)}',
+      label: huiText('push'),
+      value: huiText('{value} blocks', <String, Object?>{
+        'value': _blocks(live.hoverPushBlocks),
+      }),
+      note: huiText(
+        "tick {hoverTicks} — highlightModifier {blocks}",
+        <String, Object?>{
+          'hoverTicks': live.hoverTicks,
+          'blocks': _blocks(live.highlightModifier),
+        },
+      ),
     );
   }
 
@@ -101,29 +117,36 @@ class PreviewHud extends StatelessWidget {
   Widget _distance(PreviewLiveState live, HuiMenu menu) {
     final double? max = menu.maxDistance;
     return _item(
-      label: 'distance',
+      label: huiText('distance'),
       value: max == null
-          ? '${live.distanceToCenter.toStringAsFixed(2)} blocks'
-          : '${live.distanceToCenter.toStringAsFixed(2)} / '
-                '${_blocks(max)} blocks',
+          ? huiText('{value} blocks', <String, Object?>{
+              'value': live.distanceToCenter.toStringAsFixed(2),
+            })
+          : huiText('{distance} / {maximum} blocks', <String, Object?>{
+              'distance': live.distanceToCenter.toStringAsFixed(2),
+              'maximum': _blocks(max),
+            }),
       note: max == null
-          ? 'no maxDistance — the menu never closes on range'
+          ? huiText('no maxDistance — the menu never closes on range')
           : null,
     );
   }
 
   Widget _locked() => _item(
-    label: 'movement',
-    value: 'locked',
-    note: 'lockPosition rewrites the move destination back to its origin',
+    label: huiText('movement'),
+    value: huiText('locked'),
+    note: huiText(
+      'lockPosition rewrites the move destination back to its origin',
+    ),
     noteIsWarning: true,
   );
 
   Widget _follows() => _item(
-    label: 'follow',
-    value: 'on',
-    note:
-        'followPlayer recentres and turns the menu as the player moves or looks',
+    label: huiText('follow'),
+    value: huiText('on'),
+    note: huiText(
+      'followPlayer recentres and turns the menu as the player moves or looks',
+    ),
   );
 
   Widget _item({

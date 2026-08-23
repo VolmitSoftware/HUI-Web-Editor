@@ -17,6 +17,7 @@ import '../../state/workspace_panel.dart';
 import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class PanelInspector extends StatelessWidget {
   const PanelInspector({required this.store, super.key});
@@ -49,38 +50,49 @@ class PanelInspector extends StatelessWidget {
           .length;
       return dom.div(classes: 'hui-board-inspector', <Widget>[
         HuiPanel(
-          title: 'Menu flow map',
+          title: huiText('Menu flow map'),
           children: <Widget>[
             HuiNote(
               decoded.data.runtimeBoard == null
-                  ? 'The flow layout stays in this browser workspace. Menu JSON '
-                        'exports are unchanged.'
-                  : 'The flow layout stays local. The linked world-panel JSON '
-                        'below is included only when you explicitly publish.',
+                  ? huiText(
+                      'The flow layout stays in this browser workspace. Menu JSON '
+                      'exports are unchanged.',
+                    )
+                  : huiText(
+                      'The flow layout stays local. The linked world-panel JSON '
+                      'below is included only when you explicitly publish.',
+                    ),
               tone: HuiNoteTone.info,
             ),
-            _row('Menus in scope', graph.documents.length),
-            _row('Native routes', graph.edges.length),
-            _row('Dangling or ambiguous', broken, danger: broken > 0),
-            _row('External targets', external),
-            _row('Menus in cycles', graph.cycleDocumentIds.length),
-            _row('Menus without inbound links', graph.orphanDocumentIds.length),
-            _row('Unreadable menus', graph.invalidDocumentIds.length),
+            _row(huiText('Menus in scope'), graph.documents.length),
+            _row(huiText('Native routes'), graph.edges.length),
+            _row(huiText('Dangling or ambiguous'), broken, danger: broken > 0),
+            _row(huiText('External targets'), external),
+            _row(huiText('Menus in cycles'), graph.cycleDocumentIds.length),
+            _row(
+              huiText('Menus without inbound links'),
+              graph.orphanDocumentIds.length,
+            ),
+            _row(huiText('Unreadable menus'), graph.invalidDocumentIds.length),
           ],
         ),
         if (decoded.data.runtimeBoard != null)
           _RuntimePanelEditor(store: store, panel: decoded.data),
-        const HuiPanel(
-          title: 'Reading the map',
+        HuiPanel(
+          title: huiText('Reading the map'),
           nested: true,
           children: <Widget>[
             HuiNote(
-              'External means the target exists elsewhere in this workspace '
-              'but outside the selected folder scope.',
+              huiText(
+                'External means the target exists elsewhere in this workspace '
+                'but outside the selected folder scope.',
+              ),
             ),
             HuiNote(
-              'Orphan means no menu in this map links inward. It can still '
-              'be a valid entry menu opened by command or API.',
+              huiText(
+                'Orphan means no menu in this map links inward. It can still '
+                'be a valid entry menu opened by command or API.',
+              ),
             ),
           ],
         ),
@@ -92,7 +104,9 @@ class PanelInspector extends StatelessWidget {
     classes: 'hui-board-inspector-row${danger ? ' is-danger' : ''}',
     <Widget>[
       dom.span(<Widget>[Text(label)]),
-      dom.strong(<Widget>[Text('$value')]),
+      dom.strong(<Widget>[
+        Text(huiText("{value}", <String, Object?>{'value': value})),
+      ]),
     ],
   );
 }
@@ -113,7 +127,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
   RuntimePanelDefinition? _draft;
   int _generation = 0;
   bool _typedDirty = false;
-  String? _error;
+  String Function()? _error;
 
   static final RegExp _uuidPattern = RegExp(
     r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
@@ -149,7 +163,11 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
       _error = null;
     } on FormatException catch (error) {
       _draft = null;
-      _error = 'Typed controls are unavailable: ${error.message}';
+      final String message = error.message.toString();
+      _error = () => huiText(
+        'Typed controls are unavailable: {message}',
+        <String, Object?>{'message': huiText(message)},
+      );
     }
   }
 
@@ -170,7 +188,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     if (draft == null) return;
     final String? problem = _typedProblem(draft);
     if (problem != null) {
-      setState(() => _error = problem);
+      setState(() => _error = null);
       return;
     }
     _applyPanel(draft.toJson());
@@ -181,17 +199,21 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     try {
       decoded = jsonDecode(_text);
     } catch (_) {
-      setState(() => _error = 'World-panel JSON is not valid.');
+      setState(() => _error = () => huiText('World-panel JSON is not valid.'));
       return;
     }
     if (decoded is! Map) {
-      setState(() => _error = 'World-panel JSON must be an object.');
+      setState(
+        () => _error = () => huiText('World-panel JSON must be an object.'),
+      );
       return;
     }
     final Map<String, dynamic> panel = <String, dynamic>{};
     for (final MapEntry<Object?, Object?> entry in decoded.entries) {
       if (entry.key is! String) {
-        setState(() => _error = 'World-panel keys must be strings.');
+        setState(
+          () => _error = () => huiText('World-panel keys must be strings.'),
+        );
         return;
       }
       panel[entry.key! as String] = entry.value;
@@ -208,9 +230,12 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
       'revision',
     ]) {
       if (panel[key] != original[key]) {
-        setState(
-          () => _error = '$key is owned by the server and cannot change.',
-        );
+        setState(() {
+          _error = () => huiText(
+            '{key} is owned by the server and cannot change.',
+            <String, Object?>{'key': key},
+          );
+        });
         return;
       }
     }
@@ -221,7 +246,10 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
               doc.kind == DocumentTypes.menu.kind &&
               doc.runtimeId == rootMenuId,
         )) {
-      setState(() => _error = 'rootMenuId must name a menu in this workspace.');
+      setState(() {
+        _error = () =>
+            huiText('rootMenuId must name a menu in this workspace.');
+      });
       return;
     }
     final String? panelProblem = editorSyncPanelDefinitionProblem(
@@ -232,19 +260,31 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           .whereType<String>(),
     );
     if (panelProblem != null) {
-      setState(() => _error = panelProblem);
+      final Map<String, dynamic> capturedPanel = Map<String, dynamic>.of(panel);
+      final List<String> capturedMenuIds = component.store.workspace.docs
+          .where((WorkspaceDoc doc) => doc.kind == DocumentTypes.menu.kind)
+          .map((WorkspaceDoc doc) => doc.runtimeId)
+          .whereType<String>()
+          .toList(growable: false);
+      setState(() {
+        _error = () =>
+            editorSyncPanelDefinitionProblem(capturedPanel, capturedMenuIds)!;
+      });
       return;
     }
     try {
       RuntimePanelDefinition.fromJson(panel);
     } on FormatException catch (error) {
-      setState(() => _error = error.message.toString());
+      final String message = error.message.toString();
+      setState(() => _error = () => huiText(message));
       return;
     }
     if (!component.store.updatePanel(
       component.panel.copyWith(runtimeBoard: panel),
     )) {
-      setState(() => _error = 'The linked world panel could not be saved.');
+      setState(() {
+        _error = () => huiText('The linked world panel could not be saved.');
+      });
       return;
     }
     setState(() {
@@ -254,13 +294,15 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
 
   @override
   Widget build(BuildContext context) => HuiPanel(
-    title: 'Linked world panel',
+    title: huiText('Linked world panel'),
     children: <Widget>[
-      const HuiNote(
-        'These controls edit the panel players see in the world. Apply stores '
-        'the changes in this workspace; Publish sends them to the server.',
+      HuiNote(
+        huiText(
+          'These controls edit the panel players see in the world. Apply stores '
+          'the changes in this workspace; Publish sends them to the server.',
+        ),
       ),
-      if (_error != null) HuiNote(_error!, tone: HuiNoteTone.danger),
+      if (_error != null) HuiNote(_error!(), tone: HuiNoteTone.danger),
       if (_draft != null) ..._typedControls(_draft!),
       _advancedJson(),
     ],
@@ -280,14 +322,14 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         disabled: !_typedDirty || _typedProblem(draft) != null,
         onPressed: _applyTyped,
         icon: ArcaneIcon.check(size: IconSize.sm),
-        label: 'Apply panel settings',
+        label: huiText('Apply panel settings'),
       ),
       Button(
         variant: ButtonVariant.ghost,
         size: ButtonSize.sm,
         disabled: !_typedDirty,
         onPressed: _discardTypedChanges,
-        label: 'Discard changes',
+        label: huiText('Discard changes'),
       ),
     ]),
   ];
@@ -305,14 +347,14 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
                 a.runtimeId!.compareTo(b.runtimeId!),
           );
     return InspectorSection(
-      title: 'Content',
+      title: huiText('Content'),
       sectionKey: 'panel.content',
       children: <Widget>[
         HuiField(
-          label: 'Root menu',
+          label: huiText('Root menu'),
           required: true,
           trailing: const HuiFieldHelp('panel.rootMenuId'),
-          help: 'Opens on its own as soon as the panel is in view.',
+          help: huiText('Opens on its own as soon as the panel is in view.'),
           control: ArcaneSelect(
             value: draft.rootMenuId,
             size: ComponentSize.sm,
@@ -329,14 +371,14 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           ),
         ),
         HuiMore(
-          summary: 'Server-owned identity',
+          summary: huiText('Server-owned identity'),
           children: <Widget>[
-            const HuiHelpCluster(<String>[
+            HuiHelpCluster(<String>[
               'panel.identity',
-            ], label: 'What owns these'),
-            HuiDetailRow('Panel id', draft.id),
-            HuiDetailRow('Panel UUID', draft.uuid),
-            HuiDetailRow('Revision', '${draft.revision}'),
+            ], label: huiText('What owns these')),
+            HuiDetailRow(huiText('Panel id'), draft.id),
+            HuiDetailRow(huiText('Panel UUID'), draft.uuid),
+            HuiDetailRow(huiText('Revision'), '${draft.revision}'),
           ],
         ),
       ],
@@ -347,25 +389,30 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     final RuntimePanelTransform transform = draft.transform;
     final bool following = draft.follow.mode == RuntimePanelFollowMode.player;
     return InspectorSection(
-      title: 'Placement',
+      title: huiText('Placement'),
       sectionKey: 'panel.placement',
       description: following
           // The same three numbers mean two different things, and the runtime
           // never says which — see the position help.
-          ? 'Blocks in the followed player\'s local frame; rotation in '
-                'degrees.'
-          : 'Coordinates are world-space blocks; rotation is in degrees.',
+          ? huiText(
+              'Blocks in the followed player\'s local frame; rotation is in degrees.',
+            )
+          : huiText(
+              'Coordinates are world-space blocks; rotation is in degrees.',
+            ),
       children: <Widget>[
         HuiField(
-          label: following ? 'Offset from the player' : 'Position',
+          label: following
+              ? huiText('Offset from the player')
+              : huiText('Position'),
           required: true,
           trailing: const HuiFieldHelp('panel.transform.position'),
           control: HuiVec3Field(
             value: Vec3(transform.x, transform.y, transform.z),
-            axisHints: const <String>[
-              'x: east or west in the panel world',
-              'y: height in the panel world',
-              'z: north or south in the panel world',
+            axisHints: <String>[
+              huiText('x: east or west in the panel world'),
+              huiText('y: height in the panel world'),
+              huiText('z: north or south in the panel world'),
             ],
             onChanged: (Vec3 value) => _changeDraft(
               draft.copyWith(
@@ -379,19 +426,24 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           ),
         ),
         HuiField(
-          label: 'Rotation',
+          label: huiText('Rotation'),
           required: true,
           trailing: const HuiFieldHelp('panel.transform.rotation'),
-          help:
-              'Yaw turns left/right, pitch tilts up/down, and roll banks. '
-              'The server wraps all three into -180..180.',
+          help: huiText(
+            'Yaw turns left/right, pitch tilts up/down, and roll banks. '
+            'The server wraps all three into -180..180.',
+          ),
           control: HuiVec3Field(
             value: Vec3(transform.yaw, transform.pitch, transform.roll),
-            labels: const <String>['Yaw', 'Pitch', 'Roll'],
-            axisHints: const <String>[
-              'yaw: rotation around the vertical axis',
-              'pitch: tilt around the side axis',
-              'roll: rotation around the forward axis',
+            labels: <String>[
+              huiText('Yaw'),
+              huiTextKey('field.pitch.orientation', 'Pitch'),
+              huiText('Roll'),
+            ],
+            axisHints: <String>[
+              huiText('yaw: rotation around the vertical axis'),
+              huiText('pitch: tilt around the side axis'),
+              huiText('roll: rotation around the forward axis'),
             ],
             step: 1,
             decimals: 2,
@@ -407,10 +459,12 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           ),
         ),
         HuiField(
-          label: 'Scale',
+          label: huiText('Scale'),
           required: true,
           trailing: const HuiFieldHelp('panel.transform.scale'),
-          help: '0.05 to 16. A value of 1 uses the menu at its authored size.',
+          help: huiText(
+            '0.05 to 16. A value of 1 uses the menu at its authored size.',
+          ),
           defaultValue: '1',
           onReset: transform.scale == 1
               ? null
@@ -429,16 +483,18 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           ),
         ),
         HuiMore(
-          summary: 'World binding',
+          summary: huiText('World binding'),
           children: <Widget>[
-            const HuiHelpCluster(<String>[
+            HuiHelpCluster(<String>[
               'panel.transform.world',
-            ], label: 'How it resolves'),
-            HuiDetailRow('World', transform.worldKey),
-            HuiDetailRow('World UUID', transform.worldUuid),
-            const HuiNote(
-              'The server owns the world binding. Use the in-game panel move '
-              'commands to move this panel to another world.',
+            ], label: huiText('How it resolves')),
+            HuiDetailRow(huiText('World'), transform.worldKey),
+            HuiDetailRow(huiText('World UUID'), transform.worldUuid),
+            HuiNote(
+              huiText(
+                'The server owns the world binding. Use the in-game panel move '
+                'commands to move this panel to another world.',
+              ),
             ),
           ],
         ),
@@ -452,15 +508,16 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         ? _uuidProblem(follow.targetPlayerUuid)
         : null;
     return InspectorSection(
-      title: 'Follow',
+      title: huiText('Follow'),
       sectionKey: 'panel.follow',
-      description:
-          'Attach the panel to one player or leave it fixed in the world.',
+      description: huiText(
+        'Attach the panel to one player or leave it fixed in the world.',
+      ),
       children: <Widget>[
         HuiField(
-          label: 'Follow mode',
+          label: huiText('Follow mode'),
           trailing: const HuiFieldHelp('panel.follow.mode'),
-          defaultValue: 'fixed in world',
+          defaultValue: huiText('Fixed in world'),
           onReset: follow.mode == RuntimePanelFollowMode.none
               ? null
               : () => _setFollowMode(draft, 'none'),
@@ -468,21 +525,28 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
             value: follow.mode.name,
             size: ComponentSize.sm,
             fullWidth: true,
-            options: const <ArcaneSelectOption>[
-              ArcaneSelectOption(label: 'Fixed in world', value: 'none'),
-              ArcaneSelectOption(label: 'Follow a player', value: 'player'),
+            options: <ArcaneSelectOption>[
+              ArcaneSelectOption(
+                label: huiText('Fixed in world'),
+                value: 'none',
+              ),
+              ArcaneSelectOption(
+                label: huiText('Follow a player'),
+                value: 'player',
+              ),
             ],
             onChange: (String value) => _setFollowMode(draft, value),
           ),
         ),
         if (follow.mode == RuntimePanelFollowMode.player) ...<Widget>[
           HuiField(
-            label: 'Player UUID',
+            label: huiText('Player UUID'),
             required: true,
             error: targetProblem,
             trailing: const HuiFieldHelp('panel.follow.targetPlayerUuid'),
-            help:
-                'Names are not accepted because the panel stores a stable UUID.',
+            help: huiText(
+              'Names are not accepted because the panel stores a stable UUID.',
+            ),
             control: TextInput(
               value: follow.targetPlayerUuid ?? '',
               size: ComponentSize.sm,
@@ -501,25 +565,28 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
                 'autocomplete': 'off',
                 'spellcheck': 'false',
                 'autocapitalize': 'off',
+                'dir': 'ltr',
               },
             ),
           ),
           HuiField(
-            label: 'Rotation behavior',
+            label: huiText('Rotation behavior'),
             trailing: const HuiFieldHelp('panel.follow.rotation'),
-            help: 'Yaw follows horizontal turning; Full also follows pitch.',
+            help: huiText(
+              'Yaw follows horizontal turning; Full also follows pitch.',
+            ),
             control: ArcaneSelect(
               value: follow.rotation.name,
               size: ComponentSize.sm,
               fullWidth: true,
-              options: const <ArcaneSelectOption>[
+              options: <ArcaneSelectOption>[
                 ArcaneSelectOption(
-                  label: 'Keep fixed orientation',
+                  label: huiText('Keep fixed orientation'),
                   value: 'fixed',
                 ),
-                ArcaneSelectOption(label: 'Follow yaw', value: 'yaw'),
+                ArcaneSelectOption(label: huiText('Follow yaw'), value: 'yaw'),
                 ArcaneSelectOption(
-                  label: 'Follow yaw and pitch',
+                  label: huiText('Follow yaw and pitch'),
                   value: 'full',
                 ),
               ],
@@ -541,37 +608,40 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
       visibility.interactPermission,
     );
     return InspectorSection(
-      title: 'Audience and reach',
+      title: huiText('Audience and reach'),
       sectionKey: 'panel.visibility',
-      description: 'Choose who can see the panel and how close they must be.',
+      description: huiText(
+        'Choose who can see the panel and how close they must be.',
+      ),
       children: <Widget>[
         HuiField(
-          label: 'Audience',
+          label: huiText('Audience'),
           trailing: const HuiFieldHelp('panel.visibility.mode'),
           control: ArcaneSelect(
             value: visibility.mode.name,
             size: ComponentSize.sm,
             fullWidth: true,
-            options: const <ArcaneSelectOption>[
-              ArcaneSelectOption(label: 'Public', value: 'public'),
+            options: <ArcaneSelectOption>[
+              ArcaneSelectOption(label: huiText('Public'), value: 'public'),
               ArcaneSelectOption(
-                label: 'Permission required',
+                label: huiText('Permission required'),
                 value: 'permission',
               ),
-              ArcaneSelectOption(label: 'Hidden', value: 'hidden'),
+              ArcaneSelectOption(label: huiText('Hidden'), value: 'hidden'),
             ],
             onChange: (String value) => _setVisibilityMode(draft, value),
           ),
         ),
         if (visibility.mode == RuntimePanelVisibilityMode.permission)
           HuiField(
-            label: 'View permission',
+            label: huiText('View permission'),
             required: true,
             error: viewPermissionProblem,
             trailing: const HuiFieldHelp('panel.visibility.viewPermission'),
-            help:
-                'Only players with this permission can see the panel. The '
-                'server lowercases it on load.',
+            help: huiText(
+              'Only players with this permission can see the panel. The '
+              'server lowercases it on load.',
+            ),
             control: _permissionInput(
               visibility.viewPermission,
               (String? value) => _changeDraft(
@@ -589,12 +659,13 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           ),
         if (visibility.mode != RuntimePanelVisibilityMode.hidden)
           HuiField(
-            label: 'Interaction permission',
+            label: huiText('Interaction permission'),
             error: interactPermissionProblem,
             trailing: const HuiFieldHelp('panel.visibility.interactPermission'),
-            help:
-                'Optional, and a click gate only: it never hides anything. '
-                'Empty lets every visible player interact.',
+            help: huiText(
+              'Optional, and a click gate only: it never hides anything. '
+              'Empty lets every visible player interact.',
+            ),
             control: _permissionInput(
               visibility.interactPermission,
               (String? value) => _changeDraft(
@@ -611,30 +682,30 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
             ),
           ),
         HuiField(
-          label: 'View range',
+          label: huiText('View range'),
           trailing: const HuiFieldHelp('panel.visibility.viewRange'),
-          help: 'Players farther away stop receiving this panel.',
+          help: huiText('Players farther away stop receiving this panel.'),
           control: HuiNumberField(
             value: visibility.viewRange,
             min: 0.05,
             max: 256,
             step: 1,
             decimals: 2,
-            suffix: 'blocks',
+            suffix: huiText('blocks'),
             onChanged: (double value) => _setViewRange(draft, value),
           ),
         ),
         HuiField(
-          label: 'Interaction range',
+          label: huiText('Interaction range'),
           trailing: const HuiFieldHelp('panel.visibility.interactionRange'),
-          help: 'Cannot exceed the view range or 32 blocks.',
+          help: huiText('Cannot exceed the view range or 32 blocks.'),
           control: HuiNumberField(
             value: visibility.interactionRange,
             min: 0.05,
             max: visibility.viewRange < 32 ? visibility.viewRange : 32,
             step: 0.5,
             decimals: 2,
-            suffix: 'blocks',
+            suffix: huiText('blocks'),
             onChanged: (double value) => _changeDraft(
               draft.copyWith(
                 visibility: RuntimePanelVisibility(
@@ -653,11 +724,13 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
   }
 
   Widget _advancedJson() => HuiMore(
-    summary: 'Advanced: world-panel JSON',
+    summary: huiText('Advanced: world-panel JSON'),
     children: <Widget>[
-      const HuiNote(
-        'Use this only for exact contract edits. Identity, schema and revision '
-        'are server-owned, and applying JSON replaces any unapplied controls.',
+      HuiNote(
+        huiText(
+          'Use this only for exact contract edits. Identity, schema and revision '
+          'are server-owned, and applying JSON replaces any unapplied controls.',
+        ),
       ),
       dom.textarea(
         <Widget>[Component.text(_text)],
@@ -665,13 +738,13 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         classes: 'hui-board-runtime-json',
         rows: 18,
         onInput: (String value) => _text = value,
-        attributes: const <String, String>{
+        attributes: <String, String>{
           'wrap': 'off',
           'spellcheck': 'false',
           'autocapitalize': 'off',
           'autocomplete': 'off',
           'autocorrect': 'off',
-          'aria-label': 'Advanced world-panel JSON',
+          'aria-label': huiText('Advanced world-panel JSON'),
         },
       ),
       Button(
@@ -679,7 +752,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
         size: ButtonSize.sm,
         onPressed: _applyJson,
         icon: ArcaneIcon.check(size: IconSize.sm),
-        label: 'Apply advanced JSON',
+        label: huiText('Apply advanced JSON'),
       ),
     ],
   );
@@ -774,18 +847,19 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     value: value ?? '',
     size: ComponentSize.sm,
     fullWidth: true,
-    placeholder: 'myserver.gloss.panel',
+    placeholder: huiText('myserver.gloss.panel'),
     onInput: (String raw) => onChanged(_optionalText(raw)),
     attributes: const <String, String>{
       'autocomplete': 'off',
       'spellcheck': 'false',
       'autocapitalize': 'off',
+      'dir': 'ltr',
     },
   );
 
   String? _typedProblem(RuntimePanelDefinition draft) {
     if (draft.transform.scale < 0.05 || draft.transform.scale > 16) {
-      return 'Scale must be between 0.05 and 16.';
+      return huiText('Scale must be between 0.05 and 16.');
     }
     if (draft.follow.mode == RuntimePanelFollowMode.player) {
       final String? problem = _uuidProblem(draft.follow.targetPlayerUuid);
@@ -803,28 +877,39 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     );
     if (interactionProblem != null) return interactionProblem;
     if (draft.visibility.viewRange <= 0 || draft.visibility.viewRange > 256) {
-      return 'View range must be greater than 0 and no more than 256 blocks.';
+      return huiText(
+        'View range must be greater than 0 and no more than 256 blocks.',
+      );
     }
     if (draft.visibility.interactionRange <= 0 ||
         draft.visibility.interactionRange > 32 ||
         draft.visibility.interactionRange > draft.visibility.viewRange) {
-      return 'Interaction range must fit inside the view range and be no more than 32 blocks.';
+      return huiText(
+        'Interaction range must fit inside the view range and be no more than '
+        '32 blocks.',
+      );
     }
     return null;
   }
 
   String? _uuidProblem(String? value) {
-    if (value == null || value.isEmpty) return 'Enter the player UUID.';
-    if (!_uuidPattern.hasMatch(value)) return 'Enter a valid player UUID.';
+    if (value == null || value.isEmpty) {
+      return huiText('Enter the player UUID.');
+    }
+    if (!_uuidPattern.hasMatch(value)) {
+      return huiText('Enter a valid player UUID.');
+    }
     return null;
   }
 
   String? _permissionProblem(String? value, {bool required = false}) {
     if (value == null || value.isEmpty) {
-      return required ? 'Enter a view permission.' : null;
+      return required ? huiText('Enter a view permission.') : null;
     }
     if (!_permissionPattern.hasMatch(value)) {
-      return 'Use lowercase letters, digits, dots, underscores, and hyphens.';
+      return huiText(
+        'Use lowercase letters, digits, dots, underscores, and hyphens.',
+      );
     }
     return null;
   }

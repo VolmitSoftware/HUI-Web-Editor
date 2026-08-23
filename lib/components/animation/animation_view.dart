@@ -28,6 +28,7 @@ import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_text_line.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class AnimationView extends StatefulWidget {
   const AnimationView({
@@ -109,7 +110,7 @@ class _AnimationViewState extends State<AnimationView> {
       if (component.gameContext) {
         return glossGameEmpty(
           anchor: GlossGameAnchor.world,
-          label: 'Animation frame in game',
+          label: huiText('Animation frame in game'),
         );
       }
       return const dom.div(
@@ -135,15 +136,17 @@ class _AnimationViewState extends State<AnimationView> {
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.world,
-        label: 'Animation frame in game',
+        label: huiText('Animation frame in game'),
         controls: <Widget>[
           Button(
             variant: ButtonVariant.outline,
             size: ButtonSize.iconSm,
             onPressed: () => setState(() => _player.toggle(doc, id)),
             attributes: <String, String>{
-              'aria-label': _player.playing ? 'Pause' : 'Play',
-              'title': _player.playing ? 'Pause' : 'Play',
+              'aria-label': _player.playing
+                  ? huiText('Pause')
+                  : huiText('Play'),
+              'title': _player.playing ? huiText('Pause') : huiText('Play'),
             },
             child: _player.playing
                 ? ArcaneIcon.pause(size: IconSize.sm)
@@ -160,11 +163,22 @@ class _AnimationViewState extends State<AnimationView> {
         dom.div(classes: 'hui-animation-frame-meta', <Widget>[
           Text(
             doc.frames.isEmpty
-                ? 'No frames'
-                : 'Frame ${index + 1} of ${doc.frames.length} · '
-                      '${doc.effectiveFrameIntervalMs} ms · '
-                      '${doc.normalizedMode ?? '${doc.mode} (invalid)'}'
-                      '${_player.playing ? '' : ' · paused'}',
+                ? huiText('No frames')
+                : huiText(
+                    'Frame {current} of {total} · {interval} ms · '
+                    '{mode}{paused}',
+                    <String, Object?>{
+                      'current': index + 1,
+                      'total': doc.frames.length,
+                      'interval': doc.effectiveFrameIntervalMs,
+                      'mode':
+                          doc.normalizedMode ??
+                          huiText('{mode} (invalid)', <String, Object?>{
+                            'mode': doc.mode,
+                          }),
+                      'paused': _player.playing ? '' : huiText(' · paused'),
+                    },
+                  ),
           ),
         ]),
       ]),
@@ -179,7 +193,7 @@ class _AnimationViewState extends State<AnimationView> {
           variant: ButtonVariant.outline,
           size: ButtonSize.iconSm,
           onPressed: () => setState(() => _player.step(-1, doc, id)),
-          attributes: const <String, String>{'aria-label': 'Previous frame'},
+          attributes: <String, String>{'aria-label': huiText('Previous frame')},
           child: ArcaneIcon.skipBack(size: IconSize.sm),
         ),
         Button(
@@ -187,7 +201,7 @@ class _AnimationViewState extends State<AnimationView> {
           size: ButtonSize.iconSm,
           onPressed: () => setState(() => _player.toggle(doc, id)),
           attributes: <String, String>{
-            'aria-label': _player.playing ? 'Pause' : 'Play',
+            'aria-label': _player.playing ? huiText('Pause') : huiText('Play'),
           },
           child: _player.playing
               ? ArcaneIcon.pause(size: IconSize.sm)
@@ -197,7 +211,7 @@ class _AnimationViewState extends State<AnimationView> {
           variant: ButtonVariant.outline,
           size: ButtonSize.iconSm,
           onPressed: () => setState(() => _player.step(1, doc, id)),
-          attributes: const <String, String>{'aria-label': 'Next frame'},
+          attributes: <String, String>{'aria-label': huiText('Next frame')},
           child: ArcaneIcon.skipForward(size: IconSize.sm),
         ),
         dom.input(
@@ -208,7 +222,7 @@ class _AnimationViewState extends State<AnimationView> {
             'max': '${doc.frames.isEmpty ? 0 : doc.frames.length - 1}',
             'step': '1',
             'value': '$index',
-            'aria-label': 'Scrub frames',
+            'aria-label': huiText('Scrub frames'),
           },
           events: <String, EventCallback>{
             'input': (Object? event) {
@@ -230,14 +244,16 @@ class _AnimationViewState extends State<AnimationView> {
           classes: 'hui-animation-strip-frame${i == index ? ' is-active' : ''}',
           attributes: <String, String>{
             'type': 'button',
-            'aria-label': 'Show frame ${i + 1}',
+            'aria-label': huiText("Show frame {value}", <String, Object?>{
+              'value': i + 1,
+            }),
           },
           events: <String, EventCallback>{
             'click': (Object? _) => setState(() => _player.scrubTo(i, doc)),
           },
           <Widget>[
             dom.span(classes: 'hui-animation-strip-index', <Widget>[
-              Text('${i + 1}'),
+              Text(huiText("{value}", <String, Object?>{'value': i + 1})),
             ]),
             GlossTextLine(
               render: renderGlossAnimationFramePreview(

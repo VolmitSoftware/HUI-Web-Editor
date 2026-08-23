@@ -55,6 +55,7 @@ import 'status_bar.dart';
 import 'store_selector.dart';
 import 'top_bar.dart';
 import 'tour.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class EditorShell extends StatefulWidget {
   const EditorShell({
@@ -66,6 +67,9 @@ class EditorShell extends StatefulWidget {
     required this.inspector,
     required this.codeEditor,
     required this.overlays,
+    required this.activeLocale,
+    required this.localeLoading,
+    required this.onLocaleChanged,
     this.store,
     this.status,
     this.onOpenImport,
@@ -107,6 +111,9 @@ class EditorShell extends StatefulWidget {
 
   /// Dialogs and sheets owned by other modules, mounted above the frame.
   final List<Widget> overlays;
+  final String activeLocale;
+  final bool localeLoading;
+  final ValueChanged<String> onLocaleChanged;
 
   /// Falls back to the ambient [EditorScope] when omitted.
   final EditorStore? store;
@@ -376,7 +383,9 @@ class _EditorShellState extends State<EditorShell> {
   Future<void> _acceptImages(List<Object> files) async {
     final ImageLibrary? library = _store?.images;
     if (library == null) {
-      ArcaneSonner.error('The image library is not available in this build.');
+      ArcaneSonner.error(
+        huiText('The image library is not available in this build.'),
+      );
       return;
     }
     final ImageAddOutcome outcome = await library.addFromFiles(files);
@@ -388,7 +397,14 @@ class _EditorShellState extends State<EditorShell> {
     }
     if (outcome.added.isNotEmpty) {
       final int count = outcome.added.length;
-      ArcaneSonner.success('Added $count image${count == 1 ? '' : 's'}.');
+      ArcaneSonner.success(
+        huiPlural(
+          'images.added_count',
+          count,
+          oneEnglish: 'Added {count} image.',
+          otherEnglish: 'Added {count} images.',
+        ),
+      );
     }
   }
 
@@ -418,6 +434,9 @@ class _EditorShellState extends State<EditorShell> {
         <Widget>[
           TopBar(
             intents: intents,
+            activeLocale: component.activeLocale,
+            localeLoading: component.localeLoading,
+            onLocaleChanged: component.onLocaleChanged,
             syncControls: component.syncControls,
             apple: _apple,
             darkMode: component.darkMode,
@@ -432,8 +451,8 @@ class _EditorShellState extends State<EditorShell> {
             dom.aside(
               classes:
                   'hui-pane hui-rail${_mobileRailOpen ? ' is-mobile-open' : ''}',
-              attributes: const <String, String>{
-                'aria-label': 'Library and document contents',
+              attributes: <String, String>{
+                'aria-label': huiText('Library and document contents'),
               },
               <Widget>[component.rail],
             ),
@@ -458,9 +477,9 @@ class _EditorShellState extends State<EditorShell> {
             if (_mobileRailOpen || _mobileInspectorOpen)
               dom.button(
                 classes: 'hui-pane-scrim',
-                attributes: const <String, String>{
+                attributes: <String, String>{
                   'type': 'button',
-                  'aria-label': 'Close side panel',
+                  'aria-label': huiText('Close side panel'),
                 },
                 events: dom.events<Null>(onClick: _closeMobilePanes),
                 const <Widget>[],
@@ -468,7 +487,7 @@ class _EditorShellState extends State<EditorShell> {
             dom.aside(
               classes:
                   'hui-pane hui-inspector${_mobileInspectorOpen ? ' is-mobile-open' : ''}',
-              attributes: const <String, String>{'aria-label': 'Inspector'},
+              attributes: <String, String>{'aria-label': huiText('Inspector')},
               <Widget>[component.inspector],
             ),
           ]),
@@ -546,13 +565,25 @@ class _EditorShellState extends State<EditorShell> {
     return ArcaneConfirmDialog(
       key: ValueKey<int>(_confirmSeq),
       title: many
-          ? 'Delete $count components?'
-          : 'Delete ${store.selectedId ?? 'this component'}?',
-      message: many
-          ? 'They are removed from the menu. Undo brings them back.'
-          : 'The component is removed from the menu. Undo brings it back.',
-      confirmText: 'Delete',
-      cancelText: 'Keep',
+          ? huiPlural(
+              'shell.delete_components.question',
+              count,
+              oneEnglish: 'Delete {count} component?',
+              otherEnglish: 'Delete {count} components?',
+            )
+          : huiText('Delete {id}?', <String, Object?>{
+              'id': store.selectedId ?? huiText('this component'),
+            }),
+      message: huiPlural(
+        'shell.delete_components.message',
+        count,
+        oneEnglish:
+            'The component is removed from the menu. Undo brings it back.',
+        otherEnglish:
+            'The components are removed from the menu. Undo brings them back.',
+      ),
+      confirmText: huiText('Delete'),
+      cancelText: huiText('Keep'),
       destructive: true,
       onCancel: () => setState(() => _confirmDelete = false),
       onConfirm: () {
@@ -615,10 +646,11 @@ class _CenterArea extends StatelessWidget {
                 classes: 'hui-pane hui-center is-empty-workspace',
                 <Widget>[
                   ArcaneEmptyState(
-                    title: 'Workspace is empty',
-                    description:
-                        'Create a document in the Library or start from a '
-                        'template.',
+                    title: huiText('Workspace is empty'),
+                    description: huiText(
+                      'Create a document in the Library or start from a '
+                      'template.',
+                    ),
                     icon: ArcaneIcon.filePlus(size: IconSize.lg),
                   ),
                 ],
@@ -685,8 +717,11 @@ class _CenterArea extends StatelessWidget {
   /// A slot the owner did not supply. Reachable only from a wiring mistake, so
   /// it names the missing surface instead of rendering an empty pane.
   static Widget _missing(DocumentSurface surface) => ArcaneEmptyState(
-    title: 'That surface is not in this build',
-    description: 'No widget is wired for the ${surface.name} surface.',
+    title: huiText('That surface is not in this build'),
+    description: huiText(
+      "No widget is wired for the {name} surface.",
+      <String, Object?>{'name': surface.name},
+    ),
     icon: ArcaneIcon.triangleAlert(size: IconSize.lg),
   );
 }
@@ -701,7 +736,7 @@ class _DropOverlay extends StatelessWidget {
     <Widget>[
       dom.div(classes: 'hui-dropzone-card', <Widget>[
         ArcaneIcon.upload(size: IconSize.lg),
-        const dom.p(<Widget>[Text('Drop a menu .json or PNG images')]),
+        dom.p(<Widget>[Text(huiText('Drop a menu .json or PNG images'))]),
       ]),
     ],
   );

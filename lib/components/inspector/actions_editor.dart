@@ -23,9 +23,33 @@ import 'field_help.dart';
 import 'inspector_session.dart';
 import 'inspector_widgets.dart';
 import 'registry_picker.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Which action list of a component is being edited.
 enum ActionSlot { actions, trueActions, falseActions }
+
+String _soundSourceLabel(String source) => switch (source) {
+  'master' => huiTextKey('sound_category.master', 'Master'),
+  'music' => huiTextKey('sound_category.music', 'Music'),
+  'record' => huiTextKey('sound_category.record', 'Records'),
+  'weather' => huiTextKey('sound_category.weather', 'Weather'),
+  'block' => huiTextKey('sound_category.block', 'Blocks'),
+  'hostile' => huiTextKey('sound_category.hostile', 'Hostile creatures'),
+  'neutral' => huiTextKey('sound_category.neutral', 'Neutral creatures'),
+  'player' => huiTextKey('sound_category.player', 'Players'),
+  'ambient' => huiTextKey('sound_category.ambient', 'Ambient environment'),
+  'voice' => huiTextKey('sound_category.voice', 'Voice'),
+  _ => source,
+};
+
+String _navigationModeLabel(String mode) => switch (mode) {
+  'push' => huiText('Push'),
+  'replace' => huiText('Replace'),
+  'back' => huiText('Back'),
+  'home' => huiText('Home'),
+  'close' => huiText('Close'),
+  _ => mode,
+};
 
 extension ActionSlotNames on ActionSlot {
   String get jsonKey => switch (this) {
@@ -35,9 +59,9 @@ extension ActionSlotNames on ActionSlot {
   };
 
   String get label => switch (this) {
-    ActionSlot.actions => 'Actions',
-    ActionSlot.trueActions => 'Actions on switch to TRUE',
-    ActionSlot.falseActions => 'Actions on switch to FALSE',
+    ActionSlot.actions => huiText('Actions'),
+    ActionSlot.trueActions => huiText('Actions on switch to TRUE'),
+    ActionSlot.falseActions => huiText('Actions on switch to FALSE'),
   };
 
   /// Key into `huiFieldDocs`. A button's `actions` list has no doc of its own —
@@ -148,17 +172,20 @@ class ActionsEditor extends StatelessWidget {
     description: description,
     trailing: dom.div(classes: 'hui-field-tools', <Widget>[
       if (slot.docKey != null) HuiFieldHelp(slot.docKey!),
-      dom.span(classes: 'hui-count-chip', <Widget>[Text('${actions.length}')]),
+      dom.span(classes: 'hui-count-chip', <Widget>[
+        Text(huiText("{length}", <String, Object?>{'length': actions.length})),
+      ]),
     ]),
     children: <Widget>[
       ActionPresetsRow(menuId: store.menuId, onInsert: _insert),
       if (actions.isEmpty)
         HuiEmptyState(
           icon: ArcaneIcon.listX(size: IconSize.md),
-          title: 'No actions',
-          body:
-              'The component still clicks and highlights, it just does '
-              'nothing. Start from a preset above or add one below.',
+          title: huiText('No actions'),
+          body: huiText(
+            'The component still clicks and highlights, it just does '
+            'nothing. Start from a preset above or add one below.',
+          ),
         )
       else
         for (int i = 0; i < actions.length; i++) _row(i),
@@ -168,75 +195,83 @@ class ActionsEditor extends StatelessWidget {
           size: ButtonSize.sm,
           icon: ArcaneIcon.terminal(size: IconSize.sm),
           onPressed: () => _add('command'),
-          child: const Text('Add command'),
+          child: Text(huiText('Add command')),
         ),
         Button(
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
           icon: ArcaneIcon.volume2(size: IconSize.sm),
           onPressed: () => _add('sound'),
-          child: const Text('Add sound'),
+          child: Text(huiText('Add sound')),
         ),
         Button(
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
           icon: ArcaneIcon.externalLink(size: IconSize.sm),
           onPressed: () => _add('navigate'),
-          child: const Text('Add navigation'),
+          child: Text(huiText('Add navigation')),
         ),
         Button(
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
           icon: ArcaneIcon.messageCircle(size: IconSize.sm),
           onPressed: () => _add('message'),
-          child: const Text('Add message'),
+          child: Text(huiText('Add message')),
         ),
         Button(
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
           icon: ArcaneIcon.locateFixed(size: IconSize.sm),
           onPressed: () => _add('teleport'),
-          child: const Text('Add teleport'),
+          child: Text(huiText('Add teleport')),
         ),
         Button(
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
           icon: ArcaneIcon.share2(size: IconSize.sm),
           onPressed: () => _add('connect'),
-          child: const Text('Add connect'),
+          child: Text(huiText('Add connect')),
         ),
       ]),
       if (actions.length > 1)
-        const HuiNote(
-          'Matching actions run top to bottom. Navigation stops only the '
-          'actions matching that click.',
+        HuiNote(
+          huiText(
+            'Matching actions run top to bottom. Navigation stops only the '
+            'actions matching that click.',
+          ),
         ),
       // One disclosure for the whole list rather than one per row: the
       // semantics are the same for every action in it.
-      const HuiMore(
-        summary: 'Placeholders, permissions and sound categories',
+      HuiMore(
+        summary: huiText('Placeholders, permissions and sound categories'),
         children: <Widget>[
           HuiNote(
-            'Commands are never placeholder-expanded, so %player_name% '
-            'stays literal.',
+            huiText(
+              'Commands are never placeholder-expanded, so %player_name% '
+              'stays literal.',
+            ),
           ),
           HuiNote(
-            'Run as the player, a command fails silently when they lack the '
-            'permission node. Use the console when the player must not need '
-            'the node themselves.',
+            huiText(
+              'Run as the player, a command fails silently when they lack the '
+              'permission node. Use the console when the player must not need '
+              'the node themselves.',
+            ),
           ),
           // Category, volume and pitch all have defaults now
           // (`SoundActionData.java:24-25`), so an omitted one costs the
           // author's intent rather than the click.
           HuiNote(
-            'A sound with no category plays on master, and an omitted '
-            'volume or pitch is 1. The editor writes all three anyway, so '
-            'the file never depends on a default that only the plugin '
-            'knows.',
+            huiText(
+              'A sound with no category plays on master, and an omitted '
+              'volume or pitch is 1. The editor writes all three anyway, so '
+              'the file never depends on a default that only the plugin '
+              'knows.',
+            ),
             tone: HuiNoteTone.warning,
-            title: 'Sound defaults',
+            title: huiText('Sound defaults'),
           ),
-          HuiNote('Sounds are played to the clicking player only.'),
+          HuiNote(huiText('Sounds are played to the clicking player only.')),
         ],
       ),
     ],
@@ -246,46 +281,50 @@ class ActionsEditor extends StatelessWidget {
     final HuiAction action = actions[index];
     return dom.div(classes: 'hui-action-row', <Widget>[
       dom.div(classes: 'hui-action-row-head', <Widget>[
-        dom.span(classes: 'hui-action-index', <Widget>[Text('${index + 1}')]),
+        dom.span(classes: 'hui-action-index', <Widget>[
+          Text(huiText("{value}", <String, Object?>{'value': index + 1})),
+        ]),
         HuiSegmented(
           value: action.type,
           onChanged: (String type) => _convert(index, type),
           segments: <HuiSegment>[
             HuiSegment(
               value: 'command',
-              label: 'Command',
+              label: huiText('Command'),
               icon: ArcaneIcon.terminal(size: IconSize.sm),
-              hint: 'Runs a console or player command.',
+              hint: huiText('Runs a console or player command.'),
             ),
             HuiSegment(
               value: 'sound',
-              label: 'Sound',
+              label: huiText('Sound'),
               icon: ArcaneIcon.volume2(size: IconSize.sm),
-              hint: 'Plays a sound to the clicking player only.',
+              hint: huiText('Plays a sound to the clicking player only.'),
             ),
             HuiSegment(
               value: 'navigate',
-              label: 'Navigate',
+              label: huiText('Navigate'),
               icon: ArcaneIcon.externalLink(size: IconSize.sm),
-              hint: 'Moves this viewer to another menu page.',
+              hint: huiText('Moves this viewer to another menu page.'),
             ),
             HuiSegment(
               value: 'message',
-              label: 'Message',
+              label: huiText('Message'),
               icon: ArcaneIcon.messageCircle(size: IconSize.sm),
-              hint: 'Sends MiniMessage text to the clicking player.',
+              hint: huiText('Sends MiniMessage text to the clicking player.'),
             ),
             HuiSegment(
               value: 'teleport',
-              label: 'Teleport',
+              label: huiText('Teleport'),
               icon: ArcaneIcon.locateFixed(size: IconSize.sm),
-              hint: 'Teleports the clicking player to a loaded world.',
+              hint: huiText('Teleports the clicking player to a loaded world.'),
             ),
             HuiSegment(
               value: 'connect',
-              label: 'Connect',
+              label: huiText('Connect'),
               icon: ArcaneIcon.share2(size: IconSize.sm),
-              hint: 'Moves the clicking player through the server proxy.',
+              hint: huiText(
+                'Moves the clicking player through the server proxy.',
+              ),
             ),
           ],
         ),
@@ -295,13 +334,17 @@ class ActionsEditor extends StatelessWidget {
               ? null
               : () => _move(index, 1),
           onRemove: () => _remove(index),
-          removeLabel: 'Remove action ${index + 1}',
+          removeLabel: huiText('Remove action {number}', <String, Object?>{
+            'number': index + 1,
+          }),
         ),
       ]),
       dom.div(classes: 'hui-action-row-body', <Widget>[
         HuiField(
-          label: 'Click trigger',
-          help: 'Any matches left, right, and both sneak-modified clicks.',
+          label: huiText('Click trigger'),
+          help: huiText(
+            'Any matches left, right, and both sneak-modified clicks.',
+          ),
           control: dom.div(<Widget>[
             ArcaneSelect(
               value: action.trigger,
@@ -319,7 +362,9 @@ class ActionsEditor extends StatelessWidget {
                   ),
                 if (!huiActionTriggers.contains(action.trigger))
                   ArcaneSelectOption(
-                    label: '${action.trigger} (unknown)',
+                    label: huiText("{trigger} (unknown)", <String, Object?>{
+                      'trigger': action.trigger,
+                    }),
                     value: action.trigger,
                   ),
               ],
@@ -373,7 +418,7 @@ class ActionsEditor extends StatelessWidget {
           ),
         },
         ExtrasEditor(
-          title: 'Action',
+          title: huiText('Action'),
           extras: action.extras,
           onChanged: (String label, Map<String, dynamic> next) =>
               _edit(label, (List<HuiAction> list) {
@@ -387,11 +432,11 @@ class ActionsEditor extends StatelessWidget {
   }
 
   static String _triggerLabel(String trigger) => switch (trigger) {
-    'any' => 'Any click',
-    'left_click' => 'Left click',
-    'right_click' => 'Right click',
-    'shift_left_click' => 'Sneak + left click',
-    'shift_right_click' => 'Sneak + right click',
+    'any' => huiText('Any click'),
+    'left_click' => huiText('Left click'),
+    'right_click' => huiText('Right click'),
+    'shift_left_click' => huiText('Sneak + left click'),
+    'shift_right_click' => huiText('Sneak + right click'),
     _ => trigger,
   };
 }
@@ -417,77 +462,80 @@ class _CommandActionFields extends StatelessWidget {
       issues.where((HuiIssue issue) => issue.path.endsWith(suffix)).toList();
 
   @override
-  Widget build(BuildContext context) => dom.div(
-    classes: 'hui-action-fields',
-    <Widget>[
-      HuiField(
-        label: 'Command',
-        required: true,
-        trailing: const HuiFieldHelp('action.command.command'),
-        help: 'The leading slash is optional and never expanded.',
-        control: dom.div(<Widget>[
-          TextInput(
-            value: action.command,
-            size: ComponentSize.sm,
-            fullWidth: true,
-            placeholder: 'warp shop',
-            onInput: (String value) =>
-                onChanged('command', _with(command: value)),
-            attributes: const <String, String>{
-              'autocomplete': 'off',
-              'spellcheck': 'false',
-            },
-          ),
-          HuiInlineIssues(
-            issues
-                .where((HuiIssue issue) => issue.path.endsWith('.command'))
-                .toList(),
-          ),
-        ]),
-      ),
-      HuiField(
-        label: 'Run as',
-        trailing: const HuiFieldHelp('action.command.source'),
-        help: action.source == 'server'
-            ? 'Runs from console with full privileges.'
-            : huiCommandSources.contains(action.source)
-            ? 'Runs with the player\'s own permissions.'
-            : 'Unrecognized source; Gloss uses the player default.',
-        control: dom.div(<Widget>[
-          HuiSegmented(
-            value: action.source,
-            onChanged: (String value) =>
-                onChanged('command source', _with(source: value)),
-            segments: <HuiSegment>[
-              const HuiSegment(
-                value: 'player',
-                label: 'Player',
-                hint:
-                    'player.performCommand - the player runs it with their own '
-                    'permissions.',
+  Widget build(
+    BuildContext context,
+  ) => dom.div(classes: 'hui-action-fields', <Widget>[
+    HuiField(
+      label: huiText('Command'),
+      required: true,
+      trailing: const HuiFieldHelp('action.command.command'),
+      help: huiText('The leading slash is optional and never expanded.'),
+      control: dom.div(<Widget>[
+        TextInput(
+          value: action.command,
+          size: ComponentSize.sm,
+          fullWidth: true,
+          placeholder: huiText('warp shop'),
+          onInput: (String value) =>
+              onChanged('command', _with(command: value)),
+          attributes: const <String, String>{
+            'autocomplete': 'off',
+            'spellcheck': 'false',
+            'dir': 'ltr',
+          },
+        ),
+        HuiInlineIssues(
+          issues
+              .where((HuiIssue issue) => issue.path.endsWith('.command'))
+              .toList(),
+        ),
+      ]),
+    ),
+    HuiField(
+      label: huiText('Run as'),
+      trailing: const HuiFieldHelp('action.command.source'),
+      help: action.source == 'server'
+          ? huiText('Runs from console with full privileges.')
+          : huiCommandSources.contains(action.source)
+          ? huiText('Runs with the player\'s own permissions.')
+          : huiText('Unrecognized source; Gloss uses the player default.'),
+      control: dom.div(<Widget>[
+        HuiSegmented(
+          value: action.source,
+          onChanged: (String value) =>
+              onChanged('command source', _with(source: value)),
+          segments: <HuiSegment>[
+            HuiSegment(
+              value: 'player',
+              label: huiText('Player'),
+              hint: huiText(
+                'player.performCommand - the player runs it with their own '
+                'permissions.',
               ),
-              const HuiSegment(
-                value: 'server',
-                label: 'Server console',
-                hint:
-                    'Bukkit.dispatchCommand from console - full '
-                    'privileges, no permission check against the player.',
+            ),
+            HuiSegment(
+              value: 'server',
+              label: huiText('Server console'),
+              hint: huiText(
+                'Bukkit.dispatchCommand from console - full '
+                'privileges, no permission check against the player.',
               ),
-              if (!huiCommandSources.contains(action.source))
-                HuiSegment(
-                  value: action.source,
-                  label: 'Unknown',
-                  hint:
-                      'Unrecognized source "${action.source}"; Gloss uses '
-                      'the player default.',
+            ),
+            if (!huiCommandSources.contains(action.source))
+              HuiSegment(
+                value: action.source,
+                label: huiText('Unknown'),
+                hint: huiText(
+                  "Unrecognized source \"{source}\"; Gloss uses the player default.",
+                  <String, Object?>{'source': action.source},
                 ),
-            ],
-          ),
-          HuiInlineIssues(_issuesEndingWith('.source')),
-        ]),
-      ),
-    ],
-  );
+              ),
+          ],
+        ),
+        HuiInlineIssues(_issuesEndingWith('.source')),
+      ]),
+    ),
+  ]);
 }
 
 class _SoundActionFields extends StatelessWidget {
@@ -522,105 +570,113 @@ class _SoundActionFields extends StatelessWidget {
       issues.where((HuiIssue issue) => issue.path.endsWith(suffix)).toList();
 
   @override
-  Widget build(BuildContext context) =>
-      dom.div(classes: 'hui-action-fields', <Widget>[
-        HuiField(
-          label: 'Sound',
-          required: true,
-          trailing: const HuiFieldHelp('action.sound.sound'),
-          control: dom.div(<Widget>[
-            // The browse button only exists once sounds.json lands; without
-            // a placeholder it appears under whatever the user is reading.
-            if (catalogsLoading) const HuiSkeletonRows(rows: 1),
-            RegistryPicker(
-              value: action.sound,
-              placeholder: 'ui.button.click',
-              browseLabel: 'Browse sounds',
-              searchPlaceholder: 'Search sounds',
-              showThumbnail: false,
-              catalogAvailable: catalogs.sounds.isNotEmpty,
-              search: (String query, int limit) => catalogs
-                  .searchSounds(query, limit: limit)
-                  .map(RegistryOption.new)
-                  .toList(),
-              onChanged: (String value) =>
-                  onChanged('sound', _with(sound: value)),
-            ),
-            HuiInlineIssues(_issuesEndingWith('.sound')),
-          ]),
-        ),
-        HuiField(
-          label: 'Category',
-          required: true,
-          trailing: const HuiFieldHelp('action.sound.source'),
-          help: 'Decides which client volume slider applies.',
-          control: dom.div(<Widget>[
-            ArcaneSelect(
-              value: action.source,
-              fullWidth: true,
-              size: ComponentSize.sm,
-              onChange: (String value) =>
-                  onChanged('sound category', _with(source: value)),
-              options: <ArcaneSelectOption>[
-                for (final String source in huiSoundSources)
-                  ArcaneSelectOption(label: source, value: source),
-                // Keeps an imported but unrecognised category visible instead
-                // of silently showing the first entry.
-                if (!huiSoundSources.contains(action.source))
-                  ArcaneSelectOption(
-                    label: '${action.source} (not a known category)',
-                    value: action.source,
+  Widget build(BuildContext context) => dom.div(
+    classes: 'hui-action-fields',
+    <Widget>[
+      HuiField(
+        label: huiText('Sound'),
+        required: true,
+        trailing: const HuiFieldHelp('action.sound.sound'),
+        control: dom.div(<Widget>[
+          // The browse button only exists once sounds.json lands; without
+          // a placeholder it appears under whatever the user is reading.
+          if (catalogsLoading) const HuiSkeletonRows(rows: 1),
+          RegistryPicker(
+            value: action.sound,
+            placeholder: huiText('ui.button.click'),
+            browseLabel: huiText('Browse sounds'),
+            searchPlaceholder: huiText('Search sounds'),
+            showThumbnail: false,
+            catalogAvailable: catalogs.sounds.isNotEmpty,
+            search: (String query, int limit) => catalogs
+                .searchSounds(query, limit: limit)
+                .map(RegistryOption.new)
+                .toList(),
+            onChanged: (String value) =>
+                onChanged('sound', _with(sound: value)),
+          ),
+          HuiInlineIssues(_issuesEndingWith('.sound')),
+        ]),
+      ),
+      HuiField(
+        label: huiText('Category'),
+        required: true,
+        trailing: const HuiFieldHelp('action.sound.source'),
+        help: huiText('Decides which client volume slider applies.'),
+        control: dom.div(<Widget>[
+          ArcaneSelect(
+            value: action.source,
+            fullWidth: true,
+            size: ComponentSize.sm,
+            onChange: (String value) =>
+                onChanged('sound category', _with(source: value)),
+            options: <ArcaneSelectOption>[
+              for (final String source in huiSoundSources)
+                ArcaneSelectOption(
+                  label: _soundSourceLabel(source),
+                  value: source,
+                ),
+              // Keeps an imported but unrecognised category visible instead
+              // of silently showing the first entry.
+              if (!huiSoundSources.contains(action.source))
+                ArcaneSelectOption(
+                  label: huiText(
+                    "{source} (not a known category)",
+                    <String, Object?>{'source': action.source},
                   ),
-              ],
-            ),
-            HuiInlineIssues(_issuesEndingWith('.source')),
-          ]),
-        ),
-        HuiField(
-          label: 'Volume',
-          trailing: const HuiFieldHelp('action.sound.volume'),
-          help: 'Above 1 extends the carry distance, not the loudness.',
-          control: dom.div(<Widget>[
-            HuiSliderField(
-              label: 'Volume',
-              value: action.volume,
-              min: 0,
-              max: 2,
-              step: 0.05,
-              decimals: 2,
-              numberMin: 0,
-              // Not the format default of 0 — that is silence, and the trap
-              // this editor exists to keep people out of.
-              resetTo: 1,
-              onChanged: (double value) =>
-                  onChanged('sound volume', _with(volume: value)),
-            ),
-            HuiInlineIssues(_issuesEndingWith('.volume')),
-          ]),
-        ),
-        HuiField(
-          label: 'Pitch',
-          trailing: const HuiFieldHelp('action.sound.pitch'),
-          help: 'Clamped by Minecraft to 0.5 - 2.0; 1 is as recorded.',
-          control: dom.div(<Widget>[
-            HuiSliderField(
-              label: 'Pitch',
-              value: action.pitch,
-              min: 0.5,
-              max: 2,
-              step: 0.05,
-              decimals: 2,
-              numberMin: 0,
-              // 1 is the sound as recorded; the format default of 0 clamps
-              // up to 0.5, the deepest version of it.
-              resetTo: 1,
-              onChanged: (double value) =>
-                  onChanged('sound pitch', _with(pitch: value)),
-            ),
-            HuiInlineIssues(_issuesEndingWith('.pitch')),
-          ]),
-        ),
-      ]);
+                  value: action.source,
+                ),
+            ],
+          ),
+          HuiInlineIssues(_issuesEndingWith('.source')),
+        ]),
+      ),
+      HuiField(
+        label: huiText('Volume'),
+        trailing: const HuiFieldHelp('action.sound.volume'),
+        help: huiText('Above 1 extends the carry distance, not the loudness.'),
+        control: dom.div(<Widget>[
+          HuiSliderField(
+            label: huiText('Volume'),
+            value: action.volume,
+            min: 0,
+            max: 2,
+            step: 0.05,
+            decimals: 2,
+            numberMin: 0,
+            // Not the format default of 0 — that is silence, and the trap
+            // this editor exists to keep people out of.
+            resetTo: 1,
+            onChanged: (double value) =>
+                onChanged('sound volume', _with(volume: value)),
+          ),
+          HuiInlineIssues(_issuesEndingWith('.volume')),
+        ]),
+      ),
+      HuiField(
+        label: huiTextKey('field.pitch.sound', 'Pitch'),
+        trailing: const HuiFieldHelp('action.sound.pitch'),
+        help: huiText('Clamped by Minecraft to 0.5 - 2.0; 1 is as recorded.'),
+        control: dom.div(<Widget>[
+          HuiSliderField(
+            label: huiTextKey('field.pitch.sound', 'Pitch'),
+            value: action.pitch,
+            min: 0.5,
+            max: 2,
+            step: 0.05,
+            decimals: 2,
+            numberMin: 0,
+            // 1 is the sound as recorded; the format default of 0 clamps
+            // up to 0.5, the deepest version of it.
+            resetTo: 1,
+            onChanged: (double value) =>
+                onChanged('sound pitch', _with(pitch: value)),
+          ),
+          HuiInlineIssues(_issuesEndingWith('.pitch')),
+        ]),
+      ),
+    ],
+  );
 }
 
 class _MessageActionFields extends StatelessWidget {
@@ -642,17 +698,17 @@ class _MessageActionFields extends StatelessWidget {
   Widget build(BuildContext context) =>
       dom.div(classes: 'hui-action-fields', <Widget>[
         HuiField(
-          label: 'Message',
+          label: huiText('Message'),
           required: true,
           trailing: const HuiFieldHelp('action.message.message'),
-          help: 'MiniMessage sent only to the clicking player.',
+          help: huiText('MiniMessage sent only to the clicking player.'),
           control: dom.div(<Widget>[
             TextArea(
               value: action.message,
               rows: 3,
               fullWidth: true,
               resize: TextAreaResize.vertical,
-              placeholder: '<gold>Hello %player%</gold>',
+              placeholder: huiText('<gold>Hello %player%</gold>'),
               onInput: (String value) => onChanged('message', _with(value)),
             ),
             HuiInlineIssues(
@@ -701,61 +757,66 @@ class _TeleportActionFields extends StatelessWidget {
     BuildContext context,
   ) => dom.div(classes: 'hui-action-fields', <Widget>[
     HuiField(
-      label: 'World key',
+      label: huiText('World key'),
       required: true,
       trailing: const HuiFieldHelp('action.teleport.world'),
-      help: 'Exact lowercase namespace:key of an already-loaded world.',
+      help: huiText(
+        'Exact lowercase namespace:key of an already-loaded world.',
+      ),
       control: dom.div(<Widget>[
         TextInput(
           value: action.world,
           size: ComponentSize.sm,
           fullWidth: true,
-          placeholder: 'minecraft:overworld',
+          placeholder: huiText('minecraft:overworld'),
           onInput: (String value) =>
               onChanged('teleport world', _with(world: value)),
           attributes: const <String, String>{
             'autocomplete': 'off',
             'spellcheck': 'false',
+            'dir': 'ltr',
           },
         ),
         HuiInlineIssues(_issuesEndingWith('.world')),
       ]),
     ),
     _numberField(
-      label: 'X',
+      label: huiText('X'),
       value: action.x,
       issueSuffix: '.x',
       onValue: (double value) => _with(x: value),
     ),
     _numberField(
-      label: 'Y',
+      label: huiText('Y'),
       value: action.y,
       issueSuffix: '.y',
       onValue: (double value) => _with(y: value),
     ),
     _numberField(
-      label: 'Z',
+      label: huiText('Z'),
       value: action.z,
       issueSuffix: '.z',
       onValue: (double value) => _with(z: value),
     ),
     _numberField(
-      label: 'Yaw',
+      label: huiText('Yaw'),
       value: action.yaw,
       issueSuffix: '.yaw',
       suffix: '°',
       onValue: (double value) => _with(yaw: value),
     ),
     _numberField(
-      label: 'Pitch',
+      label: huiTextKey('field.pitch.orientation', 'Pitch'),
       value: action.pitch,
       issueSuffix: '.pitch',
       suffix: '°',
       onValue: (double value) => _with(pitch: value),
     ),
-    const HuiNote(
-      'The runtime uses the player entity scheduler and asynchronous teleport; '
-      'it never loads a missing world or chunk from an action.',
+    HuiNote(
+      huiText(
+        'The runtime uses the player entity scheduler and asynchronous teleport; '
+        'it never loads a missing world or chunk from an action.',
+      ),
     ),
   ]);
 
@@ -798,39 +859,41 @@ class _ConnectActionFields extends StatelessWidget {
         ..extras = huiDeepCopyMap(action.extras);
 
   @override
-  Widget build(BuildContext context) => dom.div(
-    classes: 'hui-action-fields',
-    <Widget>[
-      HuiField(
-        label: 'Proxy server',
-        required: true,
-        trailing: const HuiFieldHelp('action.connect.server'),
-        help: 'Exact BungeeCord or Velocity configured server name.',
-        control: dom.div(<Widget>[
-          TextInput(
-            value: action.server,
-            size: ComponentSize.sm,
-            fullWidth: true,
-            placeholder: 'lobby',
-            onInput: (String value) => onChanged('proxy server', _with(value)),
-            attributes: const <String, String>{
-              'autocomplete': 'off',
-              'spellcheck': 'false',
-            },
-          ),
-          HuiInlineIssues(
-            issues
-                .where((HuiIssue issue) => issue.path.endsWith('.server'))
-                .toList(),
-          ),
-        ]),
-      ),
-      const HuiNote(
+  Widget build(
+    BuildContext context,
+  ) => dom.div(classes: 'hui-action-fields', <Widget>[
+    HuiField(
+      label: huiText('Proxy server'),
+      required: true,
+      trailing: const HuiFieldHelp('action.connect.server'),
+      help: huiText('Exact BungeeCord or Velocity configured server name.'),
+      control: dom.div(<Widget>[
+        TextInput(
+          value: action.server,
+          size: ComponentSize.sm,
+          fullWidth: true,
+          placeholder: huiText('lobby'),
+          onInput: (String value) => onChanged('proxy server', _with(value)),
+          attributes: const <String, String>{
+            'autocomplete': 'off',
+            'spellcheck': 'false',
+            'dir': 'ltr',
+          },
+        ),
+        HuiInlineIssues(
+          issues
+              .where((HuiIssue issue) => issue.path.endsWith('.server'))
+              .toList(),
+        ),
+      ]),
+    ),
+    HuiNote(
+      huiText(
         'This sends only the fixed BungeeCord Connect message. It cannot open '
         'a URL or choose an arbitrary plugin-message subchannel.',
       ),
-    ],
-  );
+    ),
+  ]);
 }
 
 class _NavigateActionFields extends StatelessWidget {
@@ -876,11 +939,13 @@ class _NavigateActionFields extends StatelessWidget {
   Widget build(BuildContext context) =>
       dom.div(classes: 'hui-action-fields', <Widget>[
         HuiField(
-          label: 'Mode',
+          label: huiText('Mode'),
           required: true,
           trailing: const HuiFieldHelp('action.navigation.mode'),
-          help: 'Push keeps a Back entry; replace swaps without adding one.',
-          defaultValue: 'push',
+          help: huiText(
+            'Push keeps a Back entry; replace swaps without adding one.',
+          ),
+          defaultValue: huiText('Push'),
           onReset: action.mode == 'push'
               ? null
               : () => onChanged('navigation mode', _with(mode: 'push')),
@@ -893,10 +958,15 @@ class _NavigateActionFields extends StatelessWidget {
                   onChanged('navigation mode', _with(mode: value)),
               options: <ArcaneSelectOption>[
                 for (final String mode in huiNavigationModes)
-                  ArcaneSelectOption(label: mode, value: mode),
+                  ArcaneSelectOption(
+                    label: _navigationModeLabel(mode),
+                    value: mode,
+                  ),
                 if (!huiNavigationModes.contains(action.mode))
                   ArcaneSelectOption(
-                    label: '${action.mode} (unknown)',
+                    label: huiText("{mode} (unknown)", <String, Object?>{
+                      'mode': action.mode,
+                    }),
                     value: action.mode,
                   ),
               ],
@@ -906,17 +976,19 @@ class _NavigateActionFields extends StatelessWidget {
         ),
         if (action.requiresTarget)
           HuiField(
-            label: 'Target menu',
+            label: huiText('Target menu'),
             required: true,
             trailing: const HuiFieldHelp('action.navigation.target'),
-            help: 'Exact runtime menu id. Folder paths use forward slashes.',
+            help: huiText(
+              'Exact runtime menu id. Folder paths use forward slashes.',
+            ),
             control: dom.div(<Widget>[
               RegistryPicker(
                 value: action.target,
-                placeholder: 'shops/confirm',
-                browseLabel: 'Choose menu',
-                searchPlaceholder: 'Search workspace menus',
-                emptyMessage: 'No matching menu in this workspace.',
+                placeholder: huiText('shops/confirm'),
+                browseLabel: huiText('Choose menu'),
+                searchPlaceholder: huiText('Search workspace menus'),
+                emptyMessage: huiText('No matching menu in this workspace.'),
                 showThumbnail: false,
                 lowercase: false,
                 catalogAvailable: store.workspace.docs.any(
@@ -929,12 +1001,14 @@ class _NavigateActionFields extends StatelessWidget {
               HuiInlineIssues(_issuesEndingWith('.target')),
             ]),
           ),
-        const HuiNote(
-          'Navigation is terminal: actions below it in this list do not run.',
+        HuiNote(
+          huiText(
+            'Navigation is terminal: actions below it in this list do not run.',
+          ),
           tone: HuiNoteTone.warning,
         ),
-        const HuiHelpCluster(<String>[
+        HuiHelpCluster(<String>[
           'action.navigation',
-        ], label: 'How the page stack works'),
+        ], label: huiText('How the page stack works')),
       ]);
 }

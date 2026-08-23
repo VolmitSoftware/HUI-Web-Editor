@@ -19,10 +19,18 @@ import 'icon_editor.dart';
 import 'inspector_session.dart';
 import 'inspector_widgets.dart';
 import 'placeholder_picker.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// DOM id of the component id input. `inspector_pane.dart` focuses it when the
 /// canvas asks the inspector to take over.
 const String huiComponentIdFieldId = 'hui-component-id-field';
+
+String _hoverEasingLabel(HuiHoverEasing easing) => switch (easing) {
+  HuiHoverEasing.linear => huiText('Linear'),
+  HuiHoverEasing.easeOutCubic => huiText('Ease out cubic'),
+  HuiHoverEasing.easeInOutCubic => huiText('Ease in/out cubic'),
+  HuiHoverEasing.backOut => huiText('Back out'),
+};
 
 class ComponentInspector extends StatelessWidget {
   const ComponentInspector({
@@ -64,13 +72,13 @@ class ComponentInspector extends StatelessWidget {
       ]);
 
   Widget _placement() => InspectorSection(
-    title: 'Offset',
+    title: huiText('Offset'),
     children: <Widget>[
       HuiField(
-        label: 'From the menu centre',
+        label: huiText('From the menu centre'),
         required: true,
         trailing: const HuiFieldHelp('component.offset'),
-        help: 'Blocks, multiplied by the server uiScale.',
+        help: huiText('Blocks, multiplied by the server uiScale.'),
         control: dom.div(<Widget>[
           HuiVec3Field(
             // Typed entry bypasses grid snapping on purpose: an exact
@@ -85,13 +93,15 @@ class ComponentInspector extends StatelessWidget {
           HuiInlineIssues(_issuesFor('.offset')),
         ]),
       ),
-      const HuiMore(
-        summary: 'What z does',
+      HuiMore(
+        summary: huiText('What z does'),
         children: <Widget>[
           HuiNote(
-            'z moves the component toward or away from the player. It is '
-            'invisible in a flat view but still changes draw order, so two '
-            'components at the same x and y stack by z.',
+            huiText(
+              'z moves the component toward or away from the player. It is '
+              'invisible in a flat view but still changes draw order, so two '
+              'components at the same x and y stack by z.',
+            ),
           ),
         ],
       ),
@@ -116,21 +126,24 @@ class ComponentInspector extends StatelessWidget {
           componentId: _id,
           slot: ActionSlot.actions,
           actions: data.actions,
-          description:
-              'Matching actions run in order for each configured click.',
+          description: huiText(
+            'Matching actions run in order for each configured click.',
+          ),
           issues: _issues,
         ),
       ];
     }
     if (data is HuiDecorationData) {
       return <Widget>[
-        const dom.div(classes: 'hui-inspector-aside', <Widget>[
+        dom.div(classes: 'hui-inspector-aside', <Widget>[
           HuiMore(
-            summary: 'How a decoration behaves',
+            summary: huiText('How a decoration behaves'),
             children: <Widget>[
               HuiNote(
-                'Draw-only: no hitbox, never receives a click and never leans '
-                'toward the player. Use a button if you need either.',
+                huiText(
+                  'Draw-only: no hitbox, never receives a click and never leans '
+                  'toward the player. Use a button if you need either.',
+                ),
               ),
             ],
           ),
@@ -152,7 +165,9 @@ class ComponentInspector extends StatelessWidget {
         componentId: _id,
         slot: ActionSlot.trueActions,
         actions: toggle.trueActions,
-        description: 'Fire on a click made while the false icon is showing.',
+        description: huiText(
+          'Fire on a click made while the false icon is showing.',
+        ),
         issues: _issues,
       ),
       ActionsEditor(
@@ -163,7 +178,9 @@ class ComponentInspector extends StatelessWidget {
         componentId: _id,
         slot: ActionSlot.falseActions,
         actions: toggle.falseActions,
-        description: 'Fire on a click made while the true icon is showing.',
+        description: huiText(
+          'Fire on a click made while the true icon is showing.',
+        ),
         issues: _issues,
       ),
     ];
@@ -186,18 +203,19 @@ class ComponentInspector extends StatelessWidget {
       HuiDecorationData() => huiRuntimeDefaultHoverEasing,
     };
     return InspectorSection(
-      title: 'Highlight',
+      title: huiText('Highlight'),
       sectionKey: 'component.highlight',
       children: <Widget>[
         HuiField(
-          label: 'Highlight modifier',
+          label: huiText('Highlight modifier'),
           trailing: const HuiFieldHelp('button.highlightModifier'),
-          help:
-              'Blocks the icon leans toward the player under the cursor. '
-              '0.05 is usual; 0 disables the lean.',
+          help: huiText(
+            'Blocks the icon leans toward the player under the cursor. '
+            '0.05 is usual; 0 disables the lean.',
+          ),
           control: dom.div(<Widget>[
             HuiSliderField(
-              label: 'Highlight modifier',
+              label: huiText('Highlight modifier'),
               value: value,
               min: 0,
               max: 1,
@@ -213,10 +231,17 @@ class ComponentInspector extends StatelessWidget {
           ]),
         ),
         HuiField(
-          label: 'Duration',
+          label: huiText('Duration'),
           trailing: const HuiFieldHelp('button.hoverDurationTicks'),
-          help: 'Ticks to enter or leave the hovered pose. 0 is instant.',
-          defaultValue: '$huiRuntimeDefaultHoverDurationTicks ticks',
+          help: huiText(
+            'Ticks to enter or leave the hovered pose. 0 is instant.',
+          ),
+          defaultValue: huiPlural(
+            'duration.tick_count',
+            huiRuntimeDefaultHoverDurationTicks,
+            oneEnglish: '{count} tick',
+            otherEnglish: '{count} ticks',
+          ),
           onReset: duration == huiRuntimeDefaultHoverDurationTicks
               ? null
               : () => _editHover(
@@ -236,10 +261,10 @@ class ComponentInspector extends StatelessWidget {
           ]),
         ),
         HuiField(
-          label: 'Easing',
+          label: huiText('Easing'),
           trailing: const HuiFieldHelp('button.hoverEasing'),
-          help: 'Curve used for both hover entry and exit.',
-          defaultValue: huiRuntimeDefaultHoverEasing.label,
+          help: huiText('Curve used for both hover entry and exit.'),
+          defaultValue: _hoverEasingLabel(huiRuntimeDefaultHoverEasing),
           onReset: easing == huiRuntimeDefaultHoverEasing
               ? null
               : () => _editHover(
@@ -252,7 +277,10 @@ class ComponentInspector extends StatelessWidget {
             size: ComponentSize.sm,
             options: <ArcaneSelectOption>[
               for (final HuiHoverEasing value in HuiHoverEasing.values)
-                ArcaneSelectOption(label: value.label, value: value.jsonValue),
+                ArcaneSelectOption(
+                  label: _hoverEasingLabel(value),
+                  value: value.jsonValue,
+                ),
             ],
             onChange: (String next) => _editHover(
               'hover easing',
@@ -293,18 +321,23 @@ class ComponentInspector extends StatelessWidget {
       HuiDecorationData() => null,
     };
     return InspectorSection(
-      title: 'Hitbox',
+      title: huiText('Hitbox'),
       sectionKey: 'component.hitbox',
-      description:
-          'The click plane stays fixed while the icon animates on hover.',
+      description: huiText(
+        'The click plane stays fixed while the icon animates on hover.',
+      ),
       children: <Widget>[
         HuiSwitchRow(
-          label: 'Move with component',
+          label: huiText('Move with component'),
           value: hitbox?.anchor != HuiHitboxAnchor.menu,
           trailing: const HuiFieldHelp('button.hitbox'),
           help: hitbox?.anchor == HuiHitboxAnchor.menu
-              ? 'Detached: drag the component and outlined plane independently.'
-              : 'Linked: moving the component carries its click plane.',
+              ? huiText(
+                  'Detached: drag the component and outlined plane independently.',
+                )
+              : huiText(
+                  'Linked: moving the component carries its click plane.',
+                ),
           onChanged: (bool linked) => store.setHitboxAnchor(
             _id,
             linked ? HuiHitboxAnchor.button : HuiHitboxAnchor.menu,
@@ -312,10 +345,10 @@ class ComponentInspector extends StatelessWidget {
         ),
         HuiField(
           label: hitbox?.anchor == HuiHitboxAnchor.menu
-              ? 'From the menu centre'
-              : 'From the component',
+              ? huiText('From the menu centre')
+              : huiText('From the component'),
           trailing: const HuiFieldHelp('button.hitbox'),
-          help: 'Right, up and forward in blocks at uiScale 1.',
+          help: huiText('Right, up and forward in blocks at uiScale 1.'),
           control: dom.div(<Widget>[
             HuiVec3Field(
               value: hitbox?.offset ?? Vec3.zero(),
@@ -325,12 +358,14 @@ class ComponentInspector extends StatelessWidget {
           ]),
         ),
         HuiSwitchRow(
-          label: 'Custom size',
+          label: huiText('Custom size'),
           value: hitbox?.hasCustomSize ?? false,
           trailing: const HuiFieldHelp('button.hitbox'),
           help: !(hitbox?.hasCustomSize ?? false)
-              ? 'Automatic: follows the rendered icon and resizes when it changes.'
-              : 'Fixed dimensions in blocks at uiScale 1.',
+              ? huiText(
+                  'Automatic: follows the rendered icon and resizes when it changes.',
+                )
+              : huiText('Fixed dimensions in blocks at uiScale 1.'),
           onChanged: (bool enabled) => store.editComponent(
             _id,
             enabled ? 'enable custom hitbox' : 'use automatic hitbox',
@@ -363,7 +398,7 @@ class ComponentInspector extends StatelessWidget {
         ),
         if (hitbox?.hasCustomSize ?? false) ...<Widget>[
           HuiField(
-            label: 'Width',
+            label: huiText('Width'),
             required: true,
             // The value "custom size" is switched on with — the plane a new
             // custom hitbox is born at, so it is the one worth getting back to.
@@ -379,7 +414,7 @@ class ComponentInspector extends StatelessWidget {
                 value: hitbox.width!,
                 min: 0.01,
                 step: 0.05,
-                suffix: 'blocks',
+                suffix: huiText('blocks'),
                 onChanged: (double value) => _editHitbox(
                   'hitbox width',
                   (HuiHitbox edited) => edited.width = value,
@@ -389,7 +424,7 @@ class ComponentInspector extends StatelessWidget {
             ]),
           ),
           HuiField(
-            label: 'Height',
+            label: huiText('Height'),
             required: true,
             defaultValue: '$huiDefaultHitboxHeight',
             onReset: hitbox.height == huiDefaultHitboxHeight
@@ -404,7 +439,7 @@ class ComponentInspector extends StatelessWidget {
                 value: hitbox.height!,
                 min: 0.01,
                 step: 0.05,
-                suffix: 'blocks',
+                suffix: huiText('blocks'),
                 onChanged: (double value) => _editHitbox(
                   'hitbox height',
                   (HuiHitbox edited) => edited.height = value,
@@ -445,11 +480,11 @@ class ComponentInspector extends StatelessWidget {
   );
 
   Widget _condition(HuiToggleData toggle) => InspectorSection(
-    title: 'Condition',
-    description: 'Decides which icon the toggle starts on.',
+    title: huiText('Condition'),
+    description: huiText('Decides which icon the toggle starts on.'),
     children: <Widget>[
       HuiField(
-        label: 'Placeholder',
+        label: huiText('Placeholder'),
         required: true,
         trailing: dom.div(classes: 'hui-field-tools', <Widget>[
           PlaceholderPicker(
@@ -465,13 +500,13 @@ class ComponentInspector extends StatelessWidget {
           ),
           const HuiFieldHelp('toggle.condition'),
         ]),
-        help: 'Expanded once, when the menu opens.',
+        help: huiText('Expanded once, when the menu opens.'),
         control: dom.div(<Widget>[
           TextInput(
             value: toggle.condition,
             size: ComponentSize.sm,
             fullWidth: true,
-            placeholder: '%essentials_fly%',
+            placeholder: huiText('%essentials_fly%'),
             onInput: (String value) => store.editComponent(
               _id,
               'toggle condition',
@@ -480,25 +515,23 @@ class ComponentInspector extends StatelessWidget {
                 if (data is HuiToggleData) data.condition = value;
               },
             ),
-            attributes: const <String, String>{
-              'autocomplete': 'off',
-              'spellcheck': 'false',
-            },
+            styles: huiTechnicalInputStyles,
+            attributes: huiTechnicalInputAttributes,
           ),
           HuiInlineIssues(_issuesFor('.condition')),
         ]),
       ),
       HuiField(
-        label: 'Expected value',
+        label: huiText('Expected value'),
         required: true,
         trailing: const HuiFieldHelp('toggle.expectedValue'),
-        help: 'Case-insensitive, so "TRUE" and "true" match.',
+        help: huiText('Case-insensitive, so "TRUE" and "true" match.'),
         control: dom.div(<Widget>[
           TextInput(
             value: toggle.expectedValue,
             size: ComponentSize.sm,
             fullWidth: true,
-            placeholder: 'true',
+            placeholder: huiText('true'),
             onInput: (String value) => store.editComponent(
               _id,
               'toggle expected value',
@@ -515,21 +548,25 @@ class ComponentInspector extends StatelessWidget {
           HuiInlineIssues(_issuesFor('.expectedValue')),
         ]),
       ),
-      const HuiMore(
-        summary: 'How the comparison works',
+      HuiMore(
+        summary: huiText('How the comparison works'),
         children: <Widget>[
           HuiNote(
-            'The condition is read once at open and never again. After that '
-            'the state only changes when a player clicks. Placeholders '
-            'outside Gloss need PlaceholderAPI installed; without it the '
-            'string is compared literally.',
+            huiText(
+              'The condition is read once at open and never again. After that '
+              'the state only changes when a player clicks. Placeholders '
+              'outside Gloss need PlaceholderAPI installed; without it the '
+              'string is compared literally.',
+            ),
             tone: HuiNoteTone.info,
-            title: 'Evaluated once',
+            title: huiText('Evaluated once'),
           ),
           HuiNote(
-            'String equality is the only comparison in the format. There '
-            'are no operators, no ranges and no visibility conditions on '
-            'other component types.',
+            huiText(
+              'String equality is the only comparison in the format. There '
+              'are no operators, no ranges and no visibility conditions on '
+              'other component types.',
+            ),
           ),
         ],
       ),
@@ -544,24 +581,25 @@ class ComponentInspector extends StatelessWidget {
     final bool showTrue = store.togglePreviewFor(_id);
     return dom.div(classes: 'hui-toggle-icons', <Widget>[
       InspectorSection(
-        title: 'Icons',
-        description:
-            'Both are built at open, so a broken one breaks the '
-            'open even if it is never shown.',
+        title: huiText('Icons'),
+        description: huiText(
+          'Both are built at open, so a broken one breaks the '
+          'open even if it is never shown.',
+        ),
         trailing: HuiSegmented(
           value: showTrue ? 'true' : 'false',
           onChanged: (String value) =>
               store.setTogglePreview(_id, value == 'true'),
-          segments: const <HuiSegment>[
+          segments: <HuiSegment>[
             HuiSegment(
               value: 'true',
-              label: 'True',
-              hint: 'Preview the true icon on the canvas.',
+              label: huiText('True'),
+              hint: huiText('Preview the true icon on the canvas.'),
             ),
             HuiSegment(
               value: 'false',
-              label: 'False',
-              hint: 'Preview the false icon on the canvas.',
+              label: huiText('False'),
+              hint: huiText('Preview the false icon on the canvas.'),
             ),
           ],
         ),
@@ -595,7 +633,7 @@ class ComponentInspector extends StatelessWidget {
       icon: ArcaneIcon.arrowDown(size: IconSize.sm),
       onPressed: () =>
           _copyIcon(from: IconSlot.trueIcon, to: IconSlot.falseIcon),
-      child: const Text('True to false'),
+      child: Text(huiText('True to false')),
     ),
     Button(
       variant: ButtonVariant.outline,
@@ -603,7 +641,7 @@ class ComponentInspector extends StatelessWidget {
       icon: ArcaneIcon.arrowUp(size: IconSize.sm),
       onPressed: () =>
           _copyIcon(from: IconSlot.falseIcon, to: IconSlot.trueIcon),
-      child: const Text('False to true'),
+      child: Text(huiText('False to true')),
     ),
   ]);
 
@@ -617,7 +655,12 @@ class ComponentInspector extends StatelessWidget {
     ) {
       writeIconSlot(edited.data, to, readIconSlot(edited.data, from)?.copy());
     });
-    ArcaneSonner.success('Copied the $fromName icon onto the $toName icon.');
+    ArcaneSonner.success(
+      huiText(
+        "Copied the {fromName} icon onto the {toName} icon.",
+        <String, Object?>{'fromName': fromName, 'toName': toName},
+      ),
+    );
   }
 
   /// Two objects carry unknown keys here, and they are not the same object: the
@@ -625,14 +668,14 @@ class ComponentInspector extends StatelessWidget {
   /// own fields. A key on the wrong one still round-trips, it just sits
   /// somewhere else in the exported JSON.
   Widget _extras() => InspectorSection(
-    title: 'Extra keys',
+    title: huiText('Extra keys'),
     // Closed until asked for: unknown keys are a round-trip guarantee, not
     // something an author edits on the way past.
     sectionKey: 'component.extras',
     initiallyOpen: false,
     children: <Widget>[
       ExtrasEditor(
-        title: 'Component',
+        title: huiText('Component'),
         extras: target.extras,
         onChanged: (String label, Map<String, dynamic> next) =>
             store.editComponent(
@@ -642,7 +685,9 @@ class ComponentInspector extends StatelessWidget {
             ),
       ),
       ExtrasEditor(
-        title: '${target.data.type} data',
+        title: huiText("{type} data", <String, Object?>{
+          'type': huiText(target.data.type),
+        }),
         extras: target.data.extras,
         onChanged: (String label, Map<String, dynamic> next) =>
             store.editComponent(
@@ -714,9 +759,9 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
   }
 
   String get _typeLabel => switch (component.target.data) {
-    HuiButtonData() => 'Button',
-    HuiDecorationData() => 'Decoration',
-    HuiToggleData() => 'Toggle',
+    HuiButtonData() => huiText('Button'),
+    HuiDecorationData() => huiText('Decoration'),
+    HuiToggleData() => huiText('Toggle'),
   };
 
   @override
@@ -743,18 +788,19 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
                 value: _draft,
                 size: ComponentSize.sm,
                 fullWidth: true,
-                placeholder: 'component-id',
-                prefix: const Text('id', color: TextColor.muted),
+                placeholder: huiText('component-id'),
+                prefix: Text(huiText('id'), color: TextColor.muted),
                 onInput: (String value) => setState(() => _draft = value),
                 onBlur: _commit,
                 onSubmit: (String _) => _commit(),
                 // Fixed id: a canvas double-click pulls focus here through
                 // `hui-inspector-focus`, which can only address the DOM.
-                attributes: const <String, String>{
+                attributes: <String, String>{
                   'id': huiComponentIdFieldId,
-                  'aria-label': 'Component id',
+                  'aria-label': huiText('Component id'),
                   'autocomplete': 'off',
                   'spellcheck': 'false',
+                  'dir': 'ltr',
                 },
               ),
             ],
@@ -763,12 +809,12 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
             const HuiFieldHelp('component.id'),
             HuiIconButton(
               icon: ArcaneIcon.copy(size: IconSize.sm),
-              label: 'Duplicate component',
+              label: huiText('Duplicate component'),
               onPressed: () => component.store.duplicateComponent(_currentId),
             ),
             HuiArmedButton(
-              label: 'Delete component',
-              armedLabel: 'Delete',
+              label: huiText('Delete component'),
+              armedLabel: huiText('Delete'),
               icon: ArcaneIcon.trash2(size: IconSize.sm),
               iconOnly: true,
               variant: ButtonVariant.ghost,
@@ -777,24 +823,28 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
           ]),
         ]),
         if (_isDuplicate)
-          const dom.p(classes: 'hui-inspector-header-error', <Widget>[
+          dom.p(classes: 'hui-inspector-header-error', <Widget>[
             Text(
-              'Another component already uses this id. Both still render, '
-              'but only the first can be addressed by the API.',
+              huiText(
+                'Another component already uses this id. Both still render, '
+                'but only the first can be addressed by the API.',
+              ),
             ),
           ]),
       ]),
       dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text(huiComponentTypeDescriptions[type] ?? ''),
+        Text(huiText(huiComponentTypeDescriptions[type] ?? '')),
       ]),
-      const dom.div(classes: 'hui-inspector-aside', <Widget>[
+      dom.div(classes: 'hui-inspector-aside', <Widget>[
         HuiMore(
-          summary: 'About the id',
+          summary: huiText('About the id'),
           children: <Widget>[
             HuiNote(
-              'How the Java API addresses this component, and what shows up '
-              'in server logs. Allowed characters: letters, digits, dot, '
-              'dash and underscore.',
+              huiText(
+                'How the Java API addresses this component, and what shows up '
+                'in server logs. Allowed characters: letters, digits, dot, '
+                'dash and underscore.',
+              ),
             ),
           ],
         ),

@@ -85,6 +85,7 @@ import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_text_line.dart';
 import 'drop_stage_camera.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Pixels one block spans on the stage. Presentation scale only — every
 /// distance the document states is in blocks and is converted here.
@@ -427,7 +428,7 @@ class _RealDropsViewState extends State<RealDropsView> {
       if (component.gameContext) {
         return glossGameEmpty(
           anchor: GlossGameAnchor.world,
-          label: 'Real drops in game',
+          label: huiText('Real drops in game'),
         );
       }
       return const dom.div(
@@ -449,7 +450,7 @@ class _RealDropsViewState extends State<RealDropsView> {
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.world,
-        label: 'Real drops in game',
+        label: huiText('Real drops in game'),
         // No water button in the frame: that frame stands in for the client's
         // own view, and its ground is a photograph with no water plane to
         // raise. The editor stage is where the environment is simulated.
@@ -470,10 +471,12 @@ class _RealDropsViewState extends State<RealDropsView> {
         dom.span(classes: 'hui-real-drops-readout-inline', <Widget>[
           Text(_readout(doc, drop, timeline, frame)),
         ]),
-        const dom.span(classes: 'hui-real-drops-hint', <Widget>[
+        dom.span(classes: 'hui-real-drops-hint', <Widget>[
           Text(
-            'Click the stage: drag orbits, WASD walks, space and shift lift, '
-            'wheel dollies',
+            huiText(
+              'Click the stage: drag orbits, WASD walks, space and shift lift, '
+              'wheel dollies',
+            ),
           ),
         ]),
       ]),
@@ -485,8 +488,8 @@ class _RealDropsViewState extends State<RealDropsView> {
     size: ButtonSize.iconSm,
     onPressed: _togglePlaying,
     attributes: <String, String>{
-      'aria-label': _playing ? 'Pause' : 'Play',
-      'title': _playing ? 'Pause' : 'Play',
+      'aria-label': _playing ? huiText('Pause') : huiText('Play'),
+      'title': _playing ? huiText('Pause') : huiText('Play'),
     },
     child: _playing
         ? ArcaneIcon.pause(size: IconSize.sm)
@@ -498,11 +501,16 @@ class _RealDropsViewState extends State<RealDropsView> {
     size: ButtonSize.iconSm,
     onPressed: _nextSample,
     attributes: <String, String>{
-      'aria-label': 'Next sample stack',
+      'aria-label': huiText('Next sample stack'),
       'title': _pinned == null
-          ? 'Drop something else — the stage is rotating through the three '
-                'model families (${drop.displayName})'
-          : 'Drop something else (${drop.displayName})',
+          ? huiText(
+              'Drop something else — the stage is rotating through the three '
+              'model families ({name})',
+              <String, Object?>{'name': huiText(drop.displayName)},
+            )
+          : huiText('Drop something else ({name})', <String, Object?>{
+              'name': huiText(drop.displayName),
+            }),
     },
     child: ArcaneIcon.shuffle(size: IconSize.sm),
   );
@@ -514,11 +522,16 @@ class _RealDropsViewState extends State<RealDropsView> {
     size: ButtonSize.iconSm,
     onPressed: () => setState(() => _water = !_water),
     attributes: <String, String>{
-      'aria-label': _water ? 'Drain the stage' : 'Flood the stage',
+      'aria-label': _water
+          ? huiText('Drain the stage')
+          : huiText('Flood the stage'),
       'title': _water
-          ? 'Drain the stage — inWater goes back to false'
-          : 'Flood the stage to $dropStageWaterLevel blocks, so inWater, '
-                'waterBuoyancy and waterDrag have something to act on',
+          ? huiText('Drain the stage — inWater goes back to false')
+          : huiText(
+              'Flood the stage to {level} blocks, so inWater, waterBuoyancy '
+              'and waterDrag have something to act on',
+              <String, Object?>{'level': dropStageWaterLevel},
+            ),
     },
     child: ArcaneIcon.droplet(size: IconSize.sm),
   );
@@ -531,13 +544,17 @@ class _RealDropsViewState extends State<RealDropsView> {
     onPressed: () => setState(() => _itemDisplayNames = !_itemDisplayNames),
     attributes: <String, String>{
       'aria-label': _itemDisplayNames
-          ? 'Use material names in labels'
-          : 'Use renamed item names in labels',
+          ? huiText('Use material names in labels')
+          : huiText('Use renamed item names in labels'),
       'title': _itemDisplayNames
-          ? 'Preview [drops] useItemDisplayNames = true; click for the '
-                'default material-name labels'
-          : 'Preview renamed item labels; [drops] useItemDisplayNames is '
-                'false by default',
+          ? huiText(
+              'Preview [drops] useItemDisplayNames = true; click for the '
+              'default material-name labels',
+            )
+          : huiText(
+              'Preview renamed item labels; [drops] useItemDisplayNames is '
+              'false by default',
+            ),
     },
     child: ArcaneIcon.typeIcon(size: IconSize.sm),
   );
@@ -546,9 +563,9 @@ class _RealDropsViewState extends State<RealDropsView> {
     variant: ButtonVariant.outline,
     size: ButtonSize.iconSm,
     onPressed: _resetCamera,
-    attributes: const <String, String>{
-      'aria-label': 'Reset view',
-      'title': 'Reset view',
+    attributes: <String, String>{
+      'aria-label': huiText('Reset view'),
+      'title': huiText('Reset view'),
     },
     child: ArcaneIcon.maximize(size: IconSize.sm),
   );
@@ -562,7 +579,7 @@ class _RealDropsViewState extends State<RealDropsView> {
     return dom.div(classes: 'hui-real-drops-timeline', <Widget>[
       dom.span(
         classes: 'hui-real-drops-phase is-${frame.phase.label}',
-        <Widget>[Text(frame.phase.label)],
+        <Widget>[Text(_phaseLabel(frame.phase))],
       ),
       dom.input<num>(
         type: dom.InputType.range,
@@ -573,13 +590,15 @@ class _RealDropsViewState extends State<RealDropsView> {
           'min': '0',
           'max': '${math.max(0, timeline.cycleMs - 1)}',
           'step': '25',
-          'aria-label': 'Scrub the dropped item animation timeline',
+          'aria-label': huiText('Scrub the dropped item animation timeline'),
         },
       ),
       dom.span(classes: 'hui-real-drops-time', <Widget>[
         Text(
-          '${(localMs / 1000).toStringAsFixed(2)} / '
-          '${(timeline.cycleMs / 1000).toStringAsFixed(2)}s',
+          huiText("{toStringAsFixed} / {toStringAsFixed2}s", <String, Object?>{
+            'toStringAsFixed': (localMs / 1000).toStringAsFixed(2),
+            'toStringAsFixed2': (timeline.cycleMs / 1000).toStringAsFixed(2),
+          }),
         ),
       ]),
     ]);
@@ -620,12 +639,13 @@ class _RealDropsViewState extends State<RealDropsView> {
       id: free ? _sceneId : null,
       classes: 'hui-real-drops-scene',
       attributes: free
-          ? const <String, String>{
+          ? <String, String>{
               'tabindex': '0',
               'role': 'application',
-              'aria-label':
-                  'Drop stage. Drag to orbit, W A S D to walk, space and '
-                  'shift to change height, scroll to dolly.',
+              'aria-label': huiText(
+                'Drop stage. Drag to orbit, W A S D to walk, space and '
+                'shift to change height, scroll to dolly.',
+              ),
             }
           : null,
       events: free
@@ -1013,9 +1033,9 @@ class _RealDropsViewState extends State<RealDropsView> {
     DropStageFrame frame,
   ) {
     final String kind = switch (frame.modelKind) {
-      DropModelKind.block => 'cube',
-      DropModelKind.flat => 'flat',
-      DropModelKind.thin => 'thin',
+      DropModelKind.block => huiText('cube'),
+      DropModelKind.flat => huiText('flat'),
+      DropModelKind.thin => huiText('thin'),
     };
     final GlossRealDropPhysics? physics = doc.physics;
     final bool physical = physics != null && physics.enabled;
@@ -1023,39 +1043,79 @@ class _RealDropsViewState extends State<RealDropsView> {
         .where((DropStageVisual visual) => !visual.visible)
         .length;
     return <String>[
-      '${drop.amount}x ${timeline.displayType}',
-      '$kind model at ${frame.modelScale.toStringAsFixed(2)}',
-      '${timeline.visualCount} of ${doc.limits.maxVisualsPerStack} displays',
-      '${frame.phase.label} for '
-          '${frame.phaseTimeTicks.toStringAsFixed(1)} ticks',
+      huiText('{amount}x {type}', <String, Object?>{
+        'amount': drop.amount,
+        'type': _displayType(timeline),
+      }),
+      huiText('{kind} model at {scale}', <String, Object?>{
+        'kind': kind,
+        'scale': frame.modelScale.toStringAsFixed(2),
+      }),
+      huiText('{visible} of {maximum} displays', <String, Object?>{
+        'visible': timeline.visualCount,
+        'maximum': doc.limits.maxVisualsPerStack,
+      }),
+      huiText('{phase} for {ticks} ticks', <String, Object?>{
+        'phase': _phaseLabel(frame.phase),
+        'ticks': frame.phaseTimeTicks.toStringAsFixed(1),
+      }),
       frame.settled
-          ? '${doc.landing.mode.toLowerCase()} landing, '
-                '${doc.landing.transitionTicks}-tick ease'
+          ? huiText('{mode} landing, {ticks}-tick ease', <String, Object?>{
+              'mode': doc.landing.mode.toLowerCase(),
+              'ticks': doc.landing.transitionTicks,
+            })
           : doc.motion.tumble
-          ? 'tumbling ${doc.motion.speedMultiplier.toStringAsFixed(2)}x, '
-                'bounce ${frame.bounceRevision}'
-          : 'no tumble',
-      '${doc.limits.updateIntervalTicks}-tick updates',
+          ? huiText('tumbling {speed}x, bounce {bounce}', <String, Object?>{
+              'speed': doc.motion.speedMultiplier.toStringAsFixed(2),
+              'bounce': frame.bounceRevision,
+            })
+          : huiText('no tumble'),
+      huiText('{ticks}-tick updates', <String, Object?>{
+        'ticks': doc.limits.updateIntervalTicks,
+      }),
       doc.labels.enabled
-          ? 'label ${doc.labels.billboard.toLowerCase()}'
-          : 'no label',
+          ? huiText('label {billboard}', <String, Object?>{
+              'billboard': doc.labels.billboard.toLowerCase(),
+            })
+          : huiText('no label'),
       if (physical)
-        'physics on: gravity '
-            '${physics.gravityMultiplier.toStringAsFixed(2)}x, bounce '
-            '${physics.bounce.toStringAsFixed(2)} — on the stage\'s arc, not '
-            'the server\'s',
+        huiText(
+          'physics on: gravity {gravity}x, bounce {bounce} — on the stage\'s '
+          'arc, not the server\'s',
+          <String, Object?>{
+            'gravity': physics.gravityMultiplier.toStringAsFixed(2),
+            'bounce': physics.bounce.toStringAsFixed(2),
+          },
+        ),
       if (timeline.scriptActive) _scriptReadout(frame),
       if (frame.animationProfileId.isNotEmpty)
-        'animation ${frame.animationProfileId}: '
-            '${frame.animationPhysics ? 'physics' : 'physics held'}, '
-            'light ${frame.animationLightLevel}',
+        huiText('animation {id}: {physics}, light {light}', <String, Object?>{
+          'id': frame.animationProfileId,
+          'physics': frame.animationPhysics
+              ? huiText('physics')
+              : huiText('physics held'),
+          'light': frame.animationLightLevel,
+        }),
       _water
-          ? 'stage flooded to $dropStageWaterLevel blocks: inWater is '
-                'simulated, and so are inLava, blockLight and skyLight'
-          : 'no water on the stage: inWater, inLava, blockLight and skyLight '
-                'are simulated, not observed',
-      if (hidden > 0) '$hidden hidden by visible, still pickupable in game',
-      'stage toss and GUI-render sides',
+          ? huiText(
+              'stage flooded to {level} blocks: inWater is simulated, and so '
+              'are inLava, blockLight and skyLight',
+              <String, Object?>{'level': dropStageWaterLevel},
+            )
+          : huiText(
+              'no water on the stage: inWater, inLava, blockLight and '
+              'skyLight are simulated, not observed',
+            ),
+      if (hidden > 0)
+        huiPlural(
+          'real-drops.readout.hidden',
+          hidden,
+          oneEnglish:
+              '{count} display hidden by visible, still pickupable in game',
+          otherEnglish:
+              '{count} displays hidden by visible, still pickupable in game',
+        ),
+      huiText('stage toss and GUI-render sides'),
     ].join(' · ');
   }
 
@@ -1064,10 +1124,26 @@ class _RealDropsViewState extends State<RealDropsView> {
   String _scriptReadout(DropStageFrame frame) {
     if (frame.scriptFailures.isNotEmpty) {
       final List<String> failed = frame.scriptFailures.toList()..sort();
-      return 'script running, ${failed.join(', ')} fell back';
+      return huiText('script running, {fields} fell back', <String, Object?>{
+        'fields': failed.join(', '),
+      });
     }
-    return 'script running on the displays only, not the item';
+    return huiText('script running on the displays only, not the item');
   }
+
+  String _displayType(DropStageTimeline timeline) =>
+      timeline.environment.useItemDisplayNames
+      ? huiText(timeline.drop.displayName)
+      : timeline.displayType;
+
+  String _phaseLabel(DropAnimationPhase phase) => switch (phase) {
+    DropAnimationPhase.airborne => huiText('airborne'),
+    DropAnimationPhase.rebounding => huiText('rebounding'),
+    DropAnimationPhase.rolling => huiText('rolling'),
+    DropAnimationPhase.settling => huiText('settling'),
+    DropAnimationPhase.settled => huiText('settled'),
+    DropAnimationPhase.submerged => huiText('submerged'),
+  };
 }
 
 double _eventDouble(Object? event, String property) {

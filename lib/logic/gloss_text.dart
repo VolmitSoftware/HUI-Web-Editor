@@ -40,6 +40,7 @@
 /// deterministic under an injected clock.
 library;
 
+import '../l10n/hui_localizations.dart';
 import '../model/gloss_animation.dart';
 import 'gloss_animation_playback.dart';
 import 'mc_text.dart' show McSpan, mcDefaultTextColor, mcLegacyColors;
@@ -818,7 +819,12 @@ String _applyTextExpressions(
       replaced = true;
       cursor = close + 2;
     } on PExprException catch (failure) {
-      errors.add('${failure.message} at ${failure.position}');
+      errors.add(
+        huiText('{message} at {position}', <String, Object?>{
+          'message': failure.message,
+          'position': failure.position,
+        }),
+      );
     }
     open = input.indexOf('{{', close + 2);
   }
@@ -887,8 +893,9 @@ final class GlossTextExpressionScope extends PExprScope {
         if (value != null) return value;
         if (fallback != null) return fallback;
         throw PExprException(
-          'unknown metric: ${args.first as String}',
+          'unknown metric: {key}',
           previewNoPosition,
+          <String, Object?>{'key': args.first as String},
         );
       default:
         return previewStdFunction(name, args);
@@ -897,8 +904,14 @@ final class GlossTextExpressionScope extends PExprScope {
 
   Object _papi(List<Object?> args, bool numeric) {
     if ((args.length != 1 && args.length != 2) || args.first is! String) {
-      throw PExprException(
-        '${numeric ? 'papiNumber' : 'papi'} expects a key and optional fallback',
+      if (numeric) {
+        throw const PExprException(
+          'papiNumber expects a key and optional fallback',
+          previewNoPosition,
+        );
+      }
+      throw const PExprException(
+        'papi expects a key and optional fallback',
         previewNoPosition,
       );
     }

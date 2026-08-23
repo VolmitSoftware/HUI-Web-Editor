@@ -12,6 +12,7 @@ import '../../model/model.dart';
 import '../../state/editor_scope.dart';
 import '../../state/workspace.dart';
 import '../common/class_names.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ActionPresetsRow extends StatelessWidget {
   const ActionPresetsRow({
@@ -72,95 +73,107 @@ class ActionPresetsRow extends StatelessWidget {
           ),
           <Widget>[
             _preset(
-              label: 'Open menu',
+              label: huiText('Open menu'),
               icon: ArcaneIcon.externalLink(size: IconSize.sm),
-              hint:
-                  'Pushes $menuId onto this viewer\'s native page stack. The '
-                  'viewer needs gloss.open.$menuId.',
+              hint: huiText(
+                "Pushes {menuId} onto this viewer's native page stack. The viewer needs gloss.open.{menuId2}.",
+                <String, Object?>{'menuId': menuId, 'menuId2': menuId},
+              ),
               build: () => HuiNavigateAction(menuId, 'push'),
             ),
             for (final HuiNavigateAction navigation in workspacePresets)
               _preset(
-                label: 'Open ${navigation.target.split('/').last}',
+                label: huiText("Open {last}", <String, Object?>{
+                  'last': navigation.target.split('/').last,
+                }),
                 icon: ArcaneIcon.folderInput(size: IconSize.sm),
-                hint:
-                    'Opens ${navigation.target} and pushes this page onto the '
-                    'viewer\'s native menu stack.',
+                hint: huiText(
+                  "Opens {target} and pushes this page onto the viewer's native menu stack.",
+                  <String, Object?>{'target': navigation.target},
+                ),
                 build: () => HuiNavigateAction(navigation.target, 'push'),
               ),
             _preset(
-              label: 'Back',
+              label: huiText('Back'),
               icon: ArcaneIcon.undo(size: IconSize.sm),
-              hint:
-                  'Pops the viewer\'s native page stack without dispatching a '
-                  'command.',
+              hint: huiText(
+                'Pops the viewer\'s native page stack without dispatching a '
+                'command.',
+              ),
               build: () => HuiNavigateAction('', 'back'),
             ),
             _preset(
-              label: 'Close',
+              label: huiText('Close'),
               icon: ArcaneIcon.x(size: IconSize.sm),
-              hint:
-                  'Closes the viewer\'s current menu flow without dispatching a '
-                  'command.',
+              hint: huiText(
+                'Closes the viewer\'s current menu flow without dispatching a '
+                'command.',
+              ),
               build: () => HuiNavigateAction('', 'close'),
             ),
             _preset(
-              label: 'Move here',
+              label: huiText('Move here'),
               icon: ArcaneIcon.move(size: IconSize.sm),
-              hint:
-                  'gloss menu move, as the player. Reanchors the open menu '
-                  'from their current position using its configured offset. '
-                  'The player needs gloss.menus.move.',
+              hint: huiText(
+                'gloss menu move, as the player. Reanchors the open menu '
+                'from their current position using its configured offset. '
+                'The player needs gloss.menus.move.',
+              ),
               build: () => HuiCommandAction('gloss menu move', 'player'),
             ),
             _preset(
-              label: 'Tell player',
+              label: huiText('Tell player'),
               icon: ArcaneIcon.messageCircle(size: IconSize.sm),
-              hint:
-                  'Sends MiniMessage text to the clicking player. %player% and '
-                  'PlaceholderAPI placeholders resolve for that player.',
+              hint: huiText(
+                'Sends MiniMessage text to the clicking player. %player% and '
+                'PlaceholderAPI placeholders resolve for that player.',
+              ),
               build: () => HuiMessageAction(
                 '<gold>Hello <white>%player%</white></gold>',
               ),
             ),
             _preset(
-              label: 'Teleport',
+              label: huiText('Teleport'),
               icon: ArcaneIcon.locateFixed(size: IconSize.sm),
-              hint:
-                  'Asynchronously teleports the clicking player to coordinates '
-                  'in an already-loaded namespaced world.',
+              hint: huiText(
+                'Asynchronously teleports the clicking player to coordinates '
+                'in an already-loaded namespaced world.',
+              ),
               build: () =>
                   HuiTeleportAction('minecraft:overworld', 0, 64, 0, 0, 0),
             ),
             _preset(
-              label: 'Connect server',
+              label: huiText('Connect server'),
               icon: ArcaneIcon.share2(size: IconSize.sm),
-              hint:
-                  'Requests the proxy server named lobby through the fixed '
-                  'BungeeCord Connect channel.',
+              hint: huiText(
+                'Requests the proxy server named lobby through the fixed '
+                'BungeeCord Connect channel.',
+              ),
               build: () => HuiConnectAction('lobby'),
             ),
             _preset(
-              label: 'Run as player',
+              label: huiText('Run as player'),
               icon: ArcaneIcon.mousePointerClick(size: IconSize.sm),
-              hint:
-                  'An empty command run as the clicking player, with their '
-                  'own permissions.',
+              hint: huiText(
+                'An empty command run as the clicking player, with their '
+                'own permissions.',
+              ),
               build: () => HuiCommandAction('', 'player'),
             ),
             _preset(
-              label: 'Run as console',
+              label: huiText('Run as console'),
               icon: ArcaneIcon.terminal(size: IconSize.sm),
-              hint:
-                  'An empty command run from the server console, with full '
-                  'privileges and no permission check against the player.',
+              hint: huiText(
+                'An empty command run from the server console, with full '
+                'privileges and no permission check against the player.',
+              ),
               build: () => HuiCommandAction('', 'server'),
             ),
           ],
         ),
-        const dom.p(
+        dom.p(
           classes: 'hui-action-presets-note',
-          styles: dom.Styles(
+          styles: const dom.Styles(
             raw: <String, String>{
               'margin': '0',
               'font-size': '0.72rem',
@@ -170,11 +183,13 @@ class ActionPresetsRow extends StatelessWidget {
           ),
           <Widget>[
             Text(
-              'Command presets always write source: a command that leaves it out runs '
-              'as the player, but the file reads better when it says so. '
-              'Navigation is native and per viewer. Move still runs as the '
-              'player because the console is not in a menu. Presets start on '
-              'Any click; each inserted row can use a different trigger.',
+              huiText(
+                'Command presets always write source: a command that leaves it out runs '
+                'as the player, but the file reads better when it says so. '
+                'Navigation is native and per viewer. Move still runs as the '
+                'player because the console is not in a menu. Presets start on '
+                'Any click; each inserted row can use a different trigger.',
+              ),
             ),
           ],
         ),
@@ -194,7 +209,11 @@ class ActionPresetsRow extends StatelessWidget {
       size: ButtonSize.sm,
       icon: icon,
       onPressed: () => onInsert(build()),
-      attributes: <String, String>{'aria-label': 'Add action: $label'},
+      attributes: <String, String>{
+        'aria-label': huiText("Add action: {label}", <String, Object?>{
+          'label': label,
+        }),
+      },
       child: Text(label),
     ),
   );

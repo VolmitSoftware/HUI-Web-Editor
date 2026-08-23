@@ -37,9 +37,8 @@ List<HuiIssue> validateEmojiDoc(GlossEmojiDoc doc) {
         severity: HuiSeverity.warning,
         path: r'$.emoji',
         message:
-            'Not every U+ escape names a code point; Gloss loads the file '
-            'but serves "${doc.resolvedGlyph}" — a bad terminated escape '
-            'renders as ? and a bad unterminated one stays literal.',
+            "Not every U+ escape names a code point; Gloss loads the file but serves \"{resolvedGlyph}\" — a bad terminated escape renders as ? and a bad unterminated one stays literal.",
+        messageArguments: <String, Object?>{'resolvedGlyph': doc.resolvedGlyph},
         fix:
             'Use U+ followed by hex and a closing semicolon, e.g. U+2764; '
             'for a heart.',

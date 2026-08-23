@@ -9,6 +9,7 @@
 library;
 
 import '../config/defaults.dart' show sanitizeMenuId;
+import '../l10n/hui_localizations.dart';
 import '../model/model.dart';
 import '../state/editor_store.dart';
 import '../state/workspace.dart';
@@ -70,17 +71,13 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
       return AdoptedDocument(
         editorId: editorId,
         model: newBlank(),
-        failure:
-            'The saved document "${doc.title}" was unreadable '
-            '(${e.message}) and was replaced with a blank $noun.',
+        failureResolver: _unreadableFailure(doc.title, () => e.message),
       );
     } catch (_) {
       return AdoptedDocument(
         editorId: editorId,
         model: newBlank(),
-        failure:
-            'The saved document "${doc.title}" was unreadable and was '
-            'replaced with a blank $noun.',
+        failureResolver: _unreadableFailure(doc.title, null),
       );
     }
   }
@@ -103,4 +100,95 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
     String previous,
     String next,
   ) => MenuRenameRewrite.none;
+
+  String Function() _unreadableFailure(
+    String title,
+    String Function()? error,
+  ) => () {
+    final String? resolvedError = error?.call();
+    final Map<String, Object?> arguments = <String, Object?>{
+      'title': title,
+      'error': ?resolvedError,
+    };
+    if (resolvedError != null) {
+      return switch (kind) {
+        WorkspaceDocKind.hologram => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank hologram.',
+          arguments,
+        ),
+        WorkspaceDocKind.animation => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank animation.',
+          arguments,
+        ),
+        WorkspaceDocKind.scoreboard => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank scoreboard.',
+          arguments,
+        ),
+        WorkspaceDocKind.motd => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank MOTD.',
+          arguments,
+        ),
+        WorkspaceDocKind.emoji => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank emoji.',
+          arguments,
+        ),
+        WorkspaceDocKind.bubbleStyle => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank bubble style.',
+          arguments,
+        ),
+        WorkspaceDocKind.tablist => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank tablist.',
+          arguments,
+        ),
+        WorkspaceDocKind.realDrops => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with blank real-drop settings.',
+          arguments,
+        ),
+        WorkspaceDocKind.menu ||
+        WorkspaceDocKind.containerPreview ||
+        WorkspaceDocKind.panel => throw StateError(
+          huiText('Unsupported Gloss document kind.'),
+        ),
+      };
+    }
+    return switch (kind) {
+      WorkspaceDocKind.hologram => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank hologram.',
+        arguments,
+      ),
+      WorkspaceDocKind.animation => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank animation.',
+        arguments,
+      ),
+      WorkspaceDocKind.scoreboard => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank scoreboard.',
+        arguments,
+      ),
+      WorkspaceDocKind.motd => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank MOTD.',
+        arguments,
+      ),
+      WorkspaceDocKind.emoji => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank emoji.',
+        arguments,
+      ),
+      WorkspaceDocKind.bubbleStyle => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank bubble style.',
+        arguments,
+      ),
+      WorkspaceDocKind.tablist => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank tablist.',
+        arguments,
+      ),
+      WorkspaceDocKind.realDrops => huiText(
+        'The saved document "{title}" was unreadable and was replaced with blank real-drop settings.',
+        arguments,
+      ),
+      WorkspaceDocKind.menu ||
+      WorkspaceDocKind.containerPreview ||
+      WorkspaceDocKind.panel => throw StateError(
+        huiText('Unsupported Gloss document kind.'),
+      ),
+    };
+  };
 }

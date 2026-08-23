@@ -41,6 +41,7 @@ import '../common/common.dart';
 import 'backdrop.dart';
 import 'canvas_painter.dart';
 import 'canvas_toolbar.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 part 'canvas_interactions.dart';
 
@@ -165,6 +166,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
 
   web.HTMLCanvasElement? _canvas;
   web.HTMLElement? _stage;
+  String _renderedAriaLocale = '';
   web.ResizeObserver? _resizeObserver;
   final Map<String, JSFunction> _stageListeners = <String, JSFunction>{};
   JSFunction? _windowResizeListener;
@@ -259,6 +261,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
       oldComponent.images.removeListener(_onImagesChanged);
       component.images.addListener(_onImagesChanged);
     }
+    _statusDirty = true;
     _markDirty();
   }
 
@@ -287,13 +290,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
   late final Widget _stageTree = dom.div(
     id: _stageId,
     classes: 'hui-canvas-stage',
-    attributes: const <String, String>{
-      'tabindex': '0',
-      'role': 'application',
-      'aria-label':
-          'Gloss menu layout canvas. Drag empty canvas to pan on touch, use '
-          'the zoom controls or scroll to zoom, and drag a component to move it.',
-    },
+    attributes: <String, String>{'tabindex': '0', 'role': 'application'},
     <Widget>[
       Component.element(
         tag: 'canvas',
@@ -331,39 +328,43 @@ class _CanvasViewportState extends State<CanvasViewport> {
       // One line, never two: the separators are drawn by CSS between the
       // items, and the trailing note is dropped by CSS before anything is
       // allowed to wrap. See `.hui-canvas-hint` in web/styles/03-canvas.css.
-      const dom.div(classes: 'hui-canvas-hint hui-canvas-hint-desktop', <
-        Widget
-      >[
+      dom.div(classes: 'hui-canvas-hint hui-canvas-hint-desktop', <Widget>[
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
           // Left-drag on empty space is the marquee now; panning is Space-drag
           // or the middle button, which is why the pan verb moved up front.
           Component.text(
-            'Space or middle-drag pans - scroll zooms - 0 resets '
-            '- F fits',
+            huiText(
+              'Space or middle-drag pans - scroll zooms - 0 resets '
+              '- F fits',
+            ),
           ),
         ]),
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
           Component.text(
-            'Drag empty space to marquee - Shift-click adds - '
-            'Alt-drag copies - right-click creates',
+            huiText(
+              'Drag empty space to marquee - Shift-click adds - '
+              'Alt-drag copies - right-click creates',
+            ),
           ),
         ]),
         dom.span(classes: 'hui-canvas-hint-item hui-canvas-hint-note', <Widget>[
           Component.text(
-            'The 3D preview applies each icon\'s billboard mode '
-            'and keeps its click plane aligned.',
+            huiText(
+              'The 3D preview applies each icon\'s billboard mode '
+              'and keeps its click plane aligned.',
+            ),
           ),
         ]),
       ]),
-      const dom.div(classes: 'hui-canvas-hint hui-canvas-hint-touch', <Widget>[
+      dom.div(classes: 'hui-canvas-hint hui-canvas-hint-touch', <Widget>[
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
-          Component.text('Drag empty canvas to pan'),
+          Component.text(huiText('Drag empty canvas to pan')),
         ]),
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
-          Component.text('Use the zoom controls'),
+          Component.text(huiText('Use the zoom controls')),
         ]),
         dom.span(classes: 'hui-canvas-hint-item', <Widget>[
-          Component.text('Drag components to move'),
+          Component.text(huiText('Drag components to move')),
         ]),
       ]),
     ]);
@@ -371,59 +372,62 @@ class _CanvasViewportState extends State<CanvasViewport> {
 
   // --- frame loop -----------------------------------------------------------
 
-  void _onStoreChanged() => _markDirty();
+  void _onStoreChanged() {
+    _statusDirty = true;
+    _markDirty();
+  }
 
   Widget _creationMenu() {
     final Vec3 offset = _creationOffset!.copy();
     final String? documentId = _creationDocumentId;
     return HuiActionMenu(
       id: '$_uid-create-menu',
-      label: 'Add component at canvas position',
+      label: huiText('Add component at canvas position'),
       point: _creationMenuPoint!,
       onClose: _closeCreationMenu,
       items: <HuiActionMenuItem>[
         HuiActionMenuItem(
-          label: 'Text decoration',
+          label: huiText('Text decoration'),
           icon: ArcaneIcon.baseline(size: IconSize.sm),
           onSelect: () =>
               _addIconAt(createDefaultIcon('text'), offset, documentId),
         ),
         HuiActionMenuItem(
-          label: 'Image or GIF',
+          label: huiText('Image or GIF'),
           icon: ArcaneIcon.image(size: IconSize.sm),
           onSelect: () => _addMediaAt(offset, documentId),
         ),
         HuiActionMenuItem(
-          label: 'Pixelated player head',
+          label: huiText('Pixelated player head'),
           icon: ArcaneIcon.user(size: IconSize.sm),
           onSelect: () => _addPlayerHeadAt(offset, documentId),
         ),
         HuiActionMenuItem(
-          label: 'Living entity',
+          label: huiText('Living entity'),
           icon: ArcaneIcon.userRound(size: IconSize.sm),
           onSelect: () =>
               _addIconAt(createDefaultIcon('entity'), offset, documentId),
         ),
         HuiActionMenuItem(
-          label: 'Item',
+          label: huiText('Item'),
           icon: ArcaneIcon.package(size: IconSize.sm),
           onSelect: () =>
               _addIconAt(createDefaultIcon('item'), offset, documentId),
         ),
         HuiActionMenuItem(
-          label: 'Block',
+          label: huiText('Block'),
           icon: ArcaneIcon.boxes(size: IconSize.sm),
           onSelect: () =>
               _addIconAt(createDefaultIcon('block'), offset, documentId),
         ),
         HuiActionMenuItem(
-          label: 'Interactive button',
+          label: huiText('Interactive button'),
           icon: ArcaneIcon.mousePointerClick(size: IconSize.sm),
           separatorBefore: true,
           onSelect: () => _addDefaultAt('button', offset, documentId),
         ),
         HuiActionMenuItem(
-          label: 'Conditional toggle',
+          label: huiText('Conditional toggle'),
           icon: ArcaneIcon.toggleRight(size: IconSize.sm),
           onSelect: () => _addDefaultAt('toggle', offset, documentId),
         ),
@@ -603,9 +607,9 @@ class _CanvasViewportState extends State<CanvasViewport> {
     status.setZoom(_viewport.zoom);
     status.setPointer(_pendingPointerX, _pendingPointerY);
     status.setHint(switch (_dragMode) {
-      _DragMode.component => huiDragHint,
-      _DragMode.hitbox => huiHitboxDragHint,
-      _DragMode.marquee => huiMarqueeHint,
+      _DragMode.component => huiText(huiDragHint),
+      _DragMode.hitbox => huiText(huiHitboxDragHint),
+      _DragMode.marquee => huiText(huiMarqueeHint),
       _DragMode.pan || _DragMode.none => null,
     });
   }
@@ -617,6 +621,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
       _postFramePending = false;
       if (_disposed) return;
       _attachToDom();
+      _syncStageAriaLabel();
       _restoreDomState();
       _syncCanvasSize();
       _markDirty();
@@ -640,6 +645,19 @@ class _CanvasViewportState extends State<CanvasViewport> {
     _attachListeners(stage);
     _observeResize(stage);
     _ensureMinecraftFont();
+  }
+
+  void _syncStageAriaLabel() {
+    final web.HTMLElement? stage = _stage;
+    final String locale = huiLocalizations.activeLocale;
+    if (stage == null || _renderedAriaLocale == locale) return;
+    _renderedAriaLocale = locale;
+    stage.setAttribute(
+      'aria-label',
+      huiText(
+        'Gloss menu layout canvas. Drag empty canvas to pan on touch, use the zoom controls or scroll to zoom, and drag a component to move it.',
+      ),
+    );
   }
 
   void _attachListeners(web.HTMLElement stage) {

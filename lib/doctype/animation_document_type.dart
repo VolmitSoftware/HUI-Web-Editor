@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -21,13 +23,13 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.animation;
 
   @override
-  String get noun => 'animation';
+  String get noun => huiText('animation');
 
   @override
-  String get createLabel => 'New animation';
+  String get createLabel => huiText('New animation');
 
   @override
-  String get pluralLabel => 'Animations';
+  String get pluralLabel => huiText('Animations');
 
   @override
   int get tabOrder => 50;
@@ -36,7 +38,7 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.animation;
 
   @override
-  String get surfaceLabel => 'Player';
+  String get surfaceLabel => huiTextKey('surface.animation_player', 'Player');
 
   @override
   String? get syncWireKind => 'animation';

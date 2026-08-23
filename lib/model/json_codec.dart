@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../l10n/hui_localizations.dart';
 import 'hui_menu.dart';
 
 /// Raised for the errors that would make Gloss's Gson pipeline reject the
@@ -7,13 +8,20 @@ import 'hui_menu.dart';
 /// discriminator. Everything else is imported leniently and surfaced by
 /// `validateHuiMenu` instead.
 class HuiFormatException implements Exception {
-  final String message;
+  final String _message;
+  final Map<String, Object?> arguments;
 
   /// Dotted path of the offending node, e.g. `components[2].data.icon`.
   /// The document root is `$`.
   final String path;
 
-  const HuiFormatException(this.message, this.path);
+  const HuiFormatException(
+    String message,
+    this.path, [
+    this.arguments = const <String, Object?>{},
+  ]) : _message = message;
+
+  String get message => huiText(_message, arguments);
 
   @override
   String toString() => 'HuiFormatException: $message (at $path)';
@@ -24,7 +32,9 @@ HuiMenu decodeHuiMenu(String json) {
   try {
     raw = jsonDecode(json);
   } on FormatException catch (e) {
-    throw HuiFormatException('Invalid JSON: ${e.message}', r'$');
+    throw HuiFormatException('Invalid JSON: {error}', r'$', <String, Object?>{
+      'error': e.message,
+    });
   }
   return HuiMenu.fromJson(raw);
 }
@@ -68,9 +78,10 @@ String huiReadTypeTag(Map<String, dynamic> raw, String path) {
 /// null-typed constants out of its map before reading (`MenuIconType.java:31`,
 /// `EnumType.java:38-39,82-85`).
 Never huiUnknownType(String type, String path) => throw HuiFormatException(
-  'Unknown type: $type. Gloss rejects the whole menu file when a '
+  'Unknown type: {type}. Gloss rejects the whole menu file when a '
   'component, icon or action type is not one it knows',
   path,
+  <String, Object?>{'type': type},
 );
 
 String huiReadString(

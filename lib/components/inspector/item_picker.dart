@@ -10,6 +10,7 @@ import '../../services/catalogs.dart';
 import '../common/common.dart';
 import 'inspector_widgets.dart';
 import 'registry_picker.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ItemIconEditor extends StatelessWidget {
   const ItemIconEditor({
@@ -43,15 +44,17 @@ class ItemIconEditor extends StatelessWidget {
     ),
     <Widget>[
       HuiField(
-        label: 'Material',
+        label: huiText('Material'),
         required: true,
-        help: 'Lowercase registry key. An unknown one blocks the open.',
+        help: huiText(
+          'Lowercase registry key. An unknown one blocks the open.',
+        ),
         control: dom.div(<Widget>[
           RegistryPicker(
             value: icon.item,
-            placeholder: 'diamond_sword',
-            browseLabel: 'Browse items',
-            searchPlaceholder: 'Search 1691 materials',
+            placeholder: huiText('diamond_sword'),
+            browseLabel: huiText('Browse items'),
+            searchPlaceholder: huiText('Search 1691 materials'),
             catalogAvailable: catalogs.materials.isNotEmpty,
             textureFor: catalogs.textureFor,
             search: (String query, int limit) => catalogs
@@ -86,7 +89,7 @@ class ItemIconEditor extends StatelessWidget {
         ),
         <Widget>[
           HuiField(
-            label: 'Count',
+            label: huiText('Count'),
             control: HuiNumberField(
               value: icon.count.toDouble(),
               min: 1,
@@ -105,7 +108,7 @@ class ItemIconEditor extends StatelessWidget {
             ),
           ),
           HuiField(
-            label: 'Model value',
+            label: huiText('Model value'),
             control: HuiNumberField(
               value: icon.customModelValue.toDouble(),
               min: 0,
@@ -124,22 +127,28 @@ class ItemIconEditor extends StatelessWidget {
           ),
         ],
       ),
-      const HuiMore(
-        summary: 'Count, model value and item size',
+      HuiMore(
+        summary: huiText('Count, model value and item size'),
         children: <Widget>[
           HuiNote(
-            'A count above 1 adds a bold white number under the item and '
-            'lifts the item slightly.',
+            huiText(
+              'A count above 1 adds a bold white number under the item and '
+              'lifts the item slightly.',
+            ),
           ),
           HuiNote(
-            'The model value is exported as customModelValue. The old '
-            'editor wrote customModelData, which the plugin ignores; '
-            'importing such a file moves the value over.',
+            huiText(
+              'The model value is exported as customModelValue. The old '
+              'editor wrote customModelData, which the plugin ignores; '
+              'importing such a file moves the value over.',
+            ),
           ),
           HuiNote(
-            'Items render at roughly 0.75 blocks square and are the only '
-            'icon type with a fixed size: uiScale is the only thing that '
-            'changes it.',
+            huiText(
+              'Items render at roughly 0.75 blocks square and are the only '
+              'icon type with a fixed size: uiScale is the only thing that '
+              'changes it.',
+            ),
           ),
         ],
       ),

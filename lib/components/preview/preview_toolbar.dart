@@ -26,6 +26,7 @@ import '../../preview/preview_types.dart';
 import '../../state/editor_store.dart';
 import '../inspector/field_help.dart';
 import 'preview_pose.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// One of the six overlay flags W0 put on the store, with the runtime truth it
 /// exists to show. Kept as data so the menu, the count chip and the accessible
@@ -154,12 +155,12 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
   @override
   Widget build(BuildContext context) => dom.div(
     classes: 'hui-preview-toolbar',
-    attributes: const <String, String>{
+    attributes: <String, String>{
       'role': 'toolbar',
-      'aria-label': 'Preview controls',
+      'aria-label': huiText('Preview controls'),
     },
     <Widget>[
-      _group('icon facing', <Widget>[_billboardHelp()]),
+      _group(huiText('Icon facing'), <Widget>[_billboardHelp()]),
       _group(null, _cameraControls()),
       _group(null, <Widget>[_playPauseControl()]),
       _group(null, <Widget>[_scaleControl()]),
@@ -177,51 +178,56 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
         ...children,
       ]);
 
-  Widget _billboardHelp() => const HuiHelpPopover(
-    title: 'Runtime billboard facing',
-    body:
-        'Fixed icons use the menu yaw, pitch and roll. Vertical icons yaw '
-        'toward the viewer while keeping world up. Horizontal icons keep the '
-        'menu-right axis and pitch toward the viewer. Center icons fully face '
-        'the viewer. Click planes use the same rule. A static menu keeps its '
-        'open pose; followPlayer updates its position and yaw as the player '
-        'moves or looks.',
-    triggerLabel: 'How runtime billboard facing works',
+  Widget _billboardHelp() => HuiHelpPopover(
+    title: huiText('Runtime billboard facing'),
+    body: huiText(
+      'Fixed icons use the menu yaw, pitch and roll. Vertical icons yaw '
+      'toward the viewer while keeping world up. Horizontal icons keep the '
+      'menu-right axis and pitch toward the viewer. Center icons fully face '
+      'the viewer. Click planes use the same rule. A static menu keeps its '
+      'open pose; followPlayer updates its position and yaw as the player '
+      'moves or looks.',
+    ),
+    triggerLabel: huiText('How runtime billboard facing works'),
     align: HuiFieldHelpAlign.start,
   );
 
   List<Widget> _cameraControls() => <Widget>[
     _modeButton(
       mode: PreviewCameraMode.orbit,
-      label: 'Orbit',
+      label: huiText('Orbit'),
       icon: ArcaneIcon.orbit(size: IconSize.sm),
-      tooltip:
-          'Orbit camera: drag to turn around the menu, scroll to '
-          'dolly, space-drag to pan',
+      tooltip: huiText(
+        'Orbit camera: drag to turn around the menu, scroll to '
+        'dolly, space-drag to pan',
+      ),
     ),
     _modeButton(
       mode: PreviewCameraMode.player,
-      label: 'Player',
+      label: huiText('Player'),
       icon: ArcaneIcon.user(size: IconSize.sm),
-      tooltip:
-          'Player camera: the view from eye height, 1.62 blocks above '
-          'the feet the menu is anchored to',
+      tooltip: huiText(
+        'Player camera: the view from eye height, 1.62 blocks above '
+        'the feet the menu is anchored to',
+      ),
     ),
     _action(
       icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
-      label: 'Reset view',
-      tooltip:
-          'Reset to the open position - where the player was standing '
-          'and looking when the menu opened (0)',
+      label: huiText('Reset view'),
+      tooltip: huiText(
+        'Reset to the open position - where the player was standing '
+        'and looking when the menu opened (0)',
+      ),
       onPressed: () => _pose.controller?.resetCamera(),
     ),
     _action(
       icon: ArcaneIcon.rotate3d(size: IconSize.sm),
-      label: 'Reopen here',
-      tooltip:
-          'Open a fresh session from where the camera is now. The new '
-          'yaw becomes the menu\'s open facing, and the log starts over. '
-          'A followPlayer menu can turn with the player after opening',
+      label: huiText('Reopen here'),
+      tooltip: huiText(
+        'Open a fresh session from where the camera is now. The new '
+        'yaw becomes the menu\'s open facing, and the log starts over. '
+        'A followPlayer menu can turn with the player after opening',
+      ),
       onPressed: () => _pose.controller?.reopenHere(),
     ),
   ];
@@ -243,7 +249,10 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
         type: ButtonType.button,
         attributes: <String, String>{
           'aria-pressed': '$active',
-          'aria-label': '$label camera. $tooltip',
+          'aria-label': huiText("{label} camera. {tooltip}", <String, Object?>{
+            'label': label,
+            'tooltip': tooltip,
+          }),
         },
         onPressed: () => _store.previewCameraMode = mode,
         child: _toolLabel(label),
@@ -260,8 +269,8 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
   Widget _scaleControl() {
     final String value = _store.previewUiScale.toStringAsFixed(2);
     return dom.div(classes: 'hui-preview-scale', <Widget>[
-      const dom.span(classes: 'hui-eyebrow hui-preview-tool-label', <Widget>[
-        Component.text('uiScale'),
+      dom.span(classes: 'hui-eyebrow hui-preview-tool-label', <Widget>[
+        Component.text(huiText('uiScale')),
       ]),
       dom.input<num>(
         type: dom.InputType.range,
@@ -271,13 +280,14 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
         // wraps this strip rebuilds it, exactly as the canvas toolbar does.
         onInput: (num next) =>
             _store.previewUiScale = (next.toDouble() * 100).round() / 100,
-        attributes: const <String, String>{
+        attributes: <String, String>{
           'min': '0.25',
           'max': '4',
           'step': '0.05',
-          'aria-label':
-              'Server uiScale. Multiplies every component offset '
-              'and every icon size, but never the menu offset',
+          'aria-label': huiText(
+            'Server uiScale. Multiplies every component offset '
+            'and every icon size, but never the menu offset',
+          ),
         },
       ),
       dom.span(classes: 'hui-preview-scale-value', <Widget>[
@@ -299,11 +309,12 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
       icon: playing
           ? ArcaneIcon.pause(size: IconSize.sm)
           : ArcaneIcon.play(size: IconSize.sm),
-      label: playing ? 'Pause' : 'Play',
-      tooltip:
-          'Preview clock (K): animated frames advance and obfuscated '
-          'glyphs scramble every 50 ms. Paused, the stage schedules nothing; '
-          'hover and clicks still run',
+      label: playing ? huiText('Pause') : huiText('Play'),
+      tooltip: huiText(
+        'Preview clock (K): animated frames advance and obfuscated '
+        'glyphs scramble every 50 ms. Paused, the stage schedules nothing; '
+        'hover and clicks still run',
+      ),
       active: playing,
       onPressed: () => _pose.paused = playing,
     );
@@ -333,9 +344,9 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
           : null,
       <Widget>[
         ArcaneTooltip(
-          text:
-              'Overlays: what the runtime measures against, drawn in the '
-              'scene',
+          text: huiText(
+            'Overlays: what the runtime measures against, drawn in the scene',
+          ),
           child: Button(
             id: _triggerId,
             key: ValueKey<String>('overlays-$_overlaysOpen-$on'),
@@ -350,7 +361,10 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
               'aria-expanded': _overlaysOpen ? 'true' : 'false',
               // Never the word "Menu" with a capital M: the mobile-menu binder
               // claims `[aria-label*="Menu"]` (`mobile_menu_scripts.dart:7`).
-              'aria-label': 'Overlays, $on of ${_overlays.length} shown',
+              'aria-label': huiText(
+                "Overlays, {on} of {length} shown",
+                <String, Object?>{'on': on, 'length': _overlays.length},
+              ),
               // The legacy accordion binder claims every `button[aria-expanded]`
               // in a one-shot scan 100 ms after boot and then writes
               // `display: none|block` onto the button's next sibling. This is
@@ -360,7 +374,7 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
             },
             onPressed: () => _setOverlaysOpen(!_overlaysOpen),
             child: dom.span(classes: 'hui-preview-overlays-trigger', <Widget>[
-              _toolLabel('Overlays'),
+              _toolLabel(huiText('Overlays')),
               if (on > 0)
                 dom.span(classes: 'hui-count-chip', <Widget>[
                   Component.text('$on'),
@@ -388,9 +402,9 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
     dom.div(
       id: _menuId,
       classes: 'hui-preview-overlaymenu hui-anim-in',
-      attributes: const <String, String>{
+      attributes: <String, String>{
         'role': 'menu',
-        'aria-label': 'Preview overlays',
+        'aria-label': huiText('Preview overlays'),
         // Focused on open; see [_setOverlaysOpen]. Never reachable by Tab,
         // which is what -1 buys over 0.
         'tabindex': '-1',
@@ -424,10 +438,10 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
         ),
         dom.span(classes: 'hui-preview-overlaymenu-text', <Widget>[
           dom.span(classes: 'hui-preview-overlaymenu-label', <Widget>[
-            Component.text(overlay.label),
+            Component.text(huiText(overlay.label)),
           ]),
           dom.span(classes: 'hui-preview-overlaymenu-hint', <Widget>[
-            Component.text(overlay.hint),
+            Component.text(huiText(overlay.hint)),
           ]),
         ]),
       ],
@@ -437,22 +451,22 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
   List<Widget> _logControls() => <Widget>[
     _toggle(
       icon: ArcaneIcon.terminal(size: IconSize.sm),
-      label: 'Log',
-      tooltip: 'Action log: what each simulated click would have run',
+      label: huiText('Log'),
+      tooltip: huiText('Action log: what each simulated click would have run'),
       active: _store.previewLogOpen,
       onPressed: () => _store.previewLogOpen = !_store.previewLogOpen,
     ),
     ArcaneTooltip(
-      text: 'Clear the action log',
+      text: huiText('Clear the action log'),
       child: Button(
         icon: ArcaneIcon.trash2(size: IconSize.sm),
         variant: ButtonVariant.ghost,
         size: ButtonSize.sm,
         type: ButtonType.button,
         disabled: _pose.log.isEmpty,
-        attributes: const <String, String>{'aria-label': 'Clear log'},
+        attributes: <String, String>{'aria-label': huiText('Clear log')},
         onPressed: _pose.log.clear,
-        child: _toolLabel('Clear log'),
+        child: _toolLabel(huiText('Clear log')),
       ),
     ),
   ];

@@ -9,6 +9,7 @@ library;
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
+import '../../l10n/hui_localizations.dart';
 import '../common/common.dart';
 
 class HuiTwoStepButton extends StatefulWidget {
@@ -16,8 +17,8 @@ class HuiTwoStepButton extends StatefulWidget {
     required this.label,
     required this.icon,
     required this.onConfirm,
-    this.confirmLabel = 'Confirm',
-    this.cancelLabel = 'Cancel',
+    this.confirmLabel,
+    this.cancelLabel,
     this.iconOnly = false,
     this.size = ButtonSize.small,
     this.disabled = false,
@@ -29,8 +30,8 @@ class HuiTwoStepButton extends StatefulWidget {
   final String label;
   final Widget icon;
   final void Function() onConfirm;
-  final String confirmLabel;
-  final String cancelLabel;
+  final String? confirmLabel;
+  final String? cancelLabel;
   final bool iconOnly;
   final ButtonSize size;
   final bool disabled;
@@ -54,6 +55,8 @@ class _HuiTwoStepButtonState extends State<HuiTwoStepButton> {
 
   @override
   Widget build(BuildContext context) {
+    final String confirmLabel = component.confirmLabel ?? huiText('Confirm');
+    final String cancelLabel = component.cancelLabel ?? huiText('Cancel');
     if (!_armed) {
       return dom.div(
         classes: classNames(<String?>['hui-two-step', component.classes]),
@@ -101,17 +104,17 @@ class _HuiTwoStepButtonState extends State<HuiTwoStepButton> {
           variant: ButtonVariant.destructive,
           size: component.size,
           onPressed: _confirm,
-          attributes: <String, String>{'aria-label': component.confirmLabel},
+          attributes: <String, String>{'aria-label': confirmLabel},
           icon: ArcaneIcon.check(size: IconSize.sm),
-          label: component.iconOnly ? null : component.confirmLabel,
+          label: component.iconOnly ? null : confirmLabel,
         ),
         ArcaneTooltip(
-          text: component.cancelLabel,
+          text: cancelLabel,
           child: Button(
             variant: ButtonVariant.ghost,
             size: component.size,
             onPressed: _cancel,
-            attributes: <String, String>{'aria-label': component.cancelLabel},
+            attributes: <String, String>{'aria-label': cancelLabel},
             child: ArcaneIcon.x(size: IconSize.sm),
           ),
         ),

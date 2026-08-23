@@ -1,0 +1,23 @@
+{
+  "name": "Gloss 편집기",
+  "short_name": "Gloss",
+  "description": "Gloss 메뉴 구성 설정을 생성하고 미리보기하는 시각 웹 편집기.",
+  "lang": "ko-KR",
+  "dir": "ltr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "icons": [
+    {
+      "src": "../assets/brand/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "../assets/brand/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

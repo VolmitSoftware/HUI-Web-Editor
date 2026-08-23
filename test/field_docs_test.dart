@@ -293,7 +293,10 @@ void main() {
 
   group('huiFieldDoc', () {
     test('resolves a known key', () {
-      expect(huiFieldDoc('menu.offset'), same(huiFieldDocs['menu.offset']));
+      _expectDocSource(
+        huiFieldDoc('menu.offset'),
+        huiFieldDocs['menu.offset']!,
+      );
     });
 
     test('returns null for a key with no doc', () {
@@ -304,17 +307,17 @@ void main() {
       // Both maps carry `icon.item.count`; the hand-written body is the one
       // that knows 0 becomes 1, which is the whole reason it exists.
       expect(huiGeneratedFieldDocs.containsKey('icon.item.count'), isTrue);
-      expect(
+      _expectDocSource(
         huiFieldDoc('icon.item.count'),
-        same(huiFieldDocs['icon.item.count']),
+        huiFieldDocs['icon.item.count']!,
       );
     });
 
     test('falls back to the generated doc when nothing is hand-written', () {
       expect(huiFieldDocs.containsKey('preview.element.wellColor'), isFalse);
-      expect(
+      _expectDocSource(
         huiFieldDoc('preview.element.wellColor'),
-        same(huiGeneratedFieldDocs['preview.element.wellColor']),
+        huiGeneratedFieldDocs['preview.element.wellColor']!,
       );
     });
 
@@ -457,4 +460,11 @@ void main() {
       expect(body('panel.visibility.viewRange'), contains('every player'));
     });
   });
+}
+
+void _expectDocSource(HuiFieldDoc? actual, HuiFieldDoc source) {
+  expect(actual, isNotNull);
+  expect(actual!.title, source.title);
+  expect(actual.body, source.body);
+  expect(actual.citation, source.citation);
 }

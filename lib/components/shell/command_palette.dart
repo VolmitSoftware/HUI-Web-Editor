@@ -17,6 +17,7 @@ import 'package:web/web.dart' as web;
 import '../common/class_names.dart';
 import 'shell_actions.dart';
 import 'shell_keys.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ShellCommandPalette extends StatefulWidget {
   const ShellCommandPalette({
@@ -126,10 +127,10 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
       <Widget>[
         dom.div(
           classes: 'hui-cmd-dialog',
-          attributes: const <String, String>{
+          attributes: <String, String>{
             'role': 'dialog',
             'aria-modal': 'true',
-            'aria-label': 'Command palette',
+            'aria-label': huiText('Command palette'),
           },
           events: <String, EventCallback>{
             'click': (Object? event) => domStopPropagation(event),
@@ -146,9 +147,9 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
       type: dom.InputType.text,
       id: _inputId,
       classes: 'hui-cmd-input',
-      attributes: const <String, String>{
-        'placeholder': 'Search commands',
-        'aria-label': 'Search commands',
+      attributes: <String, String>{
+        'placeholder': huiText('Search commands'),
+        'aria-label': huiText('Search commands'),
         'autofocus': '',
         'autocomplete': 'off',
         'spellcheck': 'false',
@@ -169,7 +170,11 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
     if (matches.isEmpty) {
       return dom.div(classes: 'hui-cmd-list', <Widget>[
         dom.p(classes: 'hui-cmd-empty', <Widget>[
-          Text('No commands match "${_query.trim()}".'),
+          Text(
+            huiText("No commands match \"{trim}\".", <String, Object?>{
+              'trim': _query.trim(),
+            }),
+          ),
         ]),
       ]);
     }
@@ -179,7 +184,11 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
       final ShellAction action = matches[i];
       if (action.group != group) {
         group = action.group;
-        rows.add(dom.div(classes: 'hui-cmd-heading', <Widget>[Text(group)]));
+        rows.add(
+          dom.div(classes: 'hui-cmd-heading', <Widget>[
+            Text(shellGroupLabel(group)),
+          ]),
+        );
       }
       rows.add(_row(action, i == selected));
     }
@@ -217,9 +226,9 @@ class _ShellCommandPaletteState extends State<ShellCommandPalette> {
     );
   }
 
-  Widget _footer() => const dom.div(classes: 'hui-cmd-footer', <Widget>[
-    dom.span(<Widget>[Text('Up / Down to browse')]),
-    dom.span(<Widget>[Text('Enter to run')]),
-    dom.span(<Widget>[Text('Esc to close')]),
+  Widget _footer() => dom.div(classes: 'hui-cmd-footer', <Widget>[
+    dom.span(<Widget>[Text(huiText('Up / Down to browse'))]),
+    dom.span(<Widget>[Text(huiText('Enter to run'))]),
+    dom.span(<Widget>[Text(huiText('Esc to close'))]),
   ]);
 }

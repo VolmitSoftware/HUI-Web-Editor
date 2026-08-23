@@ -12,6 +12,7 @@ import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class EmojiInspector extends StatefulWidget {
   const EmojiInspector({required this.store, super.key});
@@ -42,42 +43,46 @@ class _EmojiInspectorState extends State<EmojiInspector> {
     ]);
   }
 
-  Widget _header(GlossEmojiDoc doc) => dom.div(
-    classes: 'hui-inspector-headgroup',
-    <Widget>[
-      dom.div(classes: 'hui-inspector-header is-emoji', <Widget>[
-        const HuiEyebrow('Emoji'),
-        dom.div(classes: 'hui-inspector-title-row', <Widget>[
-          dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
-          const HuiFieldHelp('emoji.id'),
+  Widget _header(
+    GlossEmojiDoc doc,
+  ) => dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+    dom.div(classes: 'hui-inspector-header is-emoji', <Widget>[
+      HuiEyebrow(huiText('Emoji')),
+      dom.div(classes: 'hui-inspector-title-row', <Widget>[
+        dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+          Text(_store.menuId),
         ]),
+        const HuiFieldHelp('emoji.id'),
       ]),
-      dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text(
-          'Chat token :${_store.menuId}: — the document id names it, so '
-          'renaming the document renames the token.',
+    ]),
+    dom.p(classes: 'hui-inspector-lede', <Widget>[
+      Text(
+        huiText(
+          "Chat token :{menuId}: — the document id names it, so renaming the document renames the token.",
+          <String, Object?>{'menuId': _store.menuId},
         ),
-      ]),
-      HuiRevisionRow(revision: doc.revision),
-    ],
-  );
+      ),
+    ]),
+    HuiRevisionRow(revision: doc.revision),
+  ]);
 
   Widget _value(GlossEmojiDoc doc) => InspectorSection(
-    title: 'Glyph',
+    title: huiText('Glyph'),
     children: <Widget>[
       HuiField(
-        label: 'Emoji',
+        label: huiText('Emoji'),
         required: true,
         trailing: const HuiFieldHelp('emoji.emoji'),
-        help:
-            'A literal glyph, or U+XXXX; escapes (e.g. U+2764; for a heart). '
-            'Escapes resolve once at load.',
+        help: huiText(
+          'A literal glyph, or U+XXXX; escapes (e.g. U+2764; for a heart). '
+          'Escapes resolve once at load.',
+        ),
         control: dom.div(<Widget>[
           TextInput(
             value: doc.emoji,
             size: ComponentSize.sm,
             fullWidth: true,
-            placeholder: 'U+2764;',
+            placeholder: huiText('U+2764;'),
             onInput: (String value) => _store.mutateEmoji(
               'emoji value',
               (GlossEmojiDoc edited) => edited.emoji = value,
@@ -85,14 +90,15 @@ class _EmojiInspectorState extends State<EmojiInspector> {
             attributes: const <String, String>{
               'autocomplete': 'off',
               'spellcheck': 'false',
+              'dir': 'ltr',
             },
           ),
           dom.div(classes: 'hui-emoji-resolved', <Widget>[
             dom.span(classes: 'hui-emoji-resolved-glyph', <Widget>[
               Text(doc.resolvedGlyph.isEmpty ? '·' : doc.resolvedGlyph),
             ]),
-            const dom.span(classes: 'hui-emoji-resolved-note', <Widget>[
-              Text('resolved (browser font, not the MC font)'),
+            dom.span(classes: 'hui-emoji-resolved-note', <Widget>[
+              Text(huiText('resolved (browser font, not the MC font)')),
             ]),
           ]),
           HuiInlineIssues(_issuesFor(r'$.emoji')),
@@ -102,14 +108,15 @@ class _EmojiInspectorState extends State<EmojiInspector> {
   );
 
   Widget _behavior(GlossEmojiDoc doc) => InspectorSection(
-    title: 'Chat behavior',
+    title: huiText('Chat behavior'),
     children: <Widget>[
       HuiField(
-        label: 'Trigger',
+        label: huiText('Trigger'),
         trailing: const HuiFieldHelp('emoji.trigger'),
-        help:
-            'Optional second spelling replaced in chat, e.g. <3. Empty means '
-            'only the :token: substitutes.',
+        help: huiText(
+          'Optional second spelling replaced in chat, e.g. <3. Empty means '
+          'only the :token: substitutes.',
+        ),
         control: dom.div(<Widget>[
           TextInput(
             value: doc.trigger,
@@ -123,16 +130,18 @@ class _EmojiInspectorState extends State<EmojiInspector> {
             attributes: const <String, String>{
               'autocomplete': 'off',
               'spellcheck': 'false',
+              'dir': 'ltr',
             },
           ),
           HuiInlineIssues(_issuesFor(r'$.trigger')),
         ]),
       ),
       HuiSwitchRow(
-        label: 'Enabled',
-        help:
-            'Disabled emoji stay listed but never substitute — the replacer '
-            'skips them.',
+        label: huiText('Enabled'),
+        help: huiText(
+          'Disabled emoji stay listed but never substitute — the replacer '
+          'skips them.',
+        ),
         trailing: const HuiFieldHelp('emoji.enabled'),
         value: doc.enabled,
         onChanged: (bool value) => _store.mutateEmoji(

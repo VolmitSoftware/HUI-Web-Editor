@@ -17,6 +17,7 @@ import '../../config/editing.dart';
 import '../../services/file_transfer.dart';
 import '../../state/editor_store.dart';
 import '../../state/workspace.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ShellIntents {
   ShellIntents({
@@ -59,22 +60,30 @@ class ShellIntents {
 
   void undo() {
     if (!store.canUndo) {
-      ArcaneSonner.info('Nothing to undo.');
+      ArcaneSonner.info(huiText('Nothing to undo.'));
       return;
     }
     final String? label = store.undoLabel;
     store.performUndo();
-    ArcaneSonner.info(label == null ? 'Undone.' : 'Undid $label.');
+    ArcaneSonner.info(
+      label == null
+          ? huiText('Undone.')
+          : huiText('Undid {action}.', <String, Object?>{'action': label}),
+    );
   }
 
   void redo() {
     if (!store.canRedo) {
-      ArcaneSonner.info('Nothing to redo.');
+      ArcaneSonner.info(huiText('Nothing to redo.'));
       return;
     }
     final String? label = store.redoLabel;
     store.performRedo();
-    ArcaneSonner.info(label == null ? 'Redone.' : 'Redid $label.');
+    ArcaneSonner.info(
+      label == null
+          ? huiText('Redone.')
+          : huiText('Redid {action}.', <String, Object?>{'action': label}),
+    );
   }
 
   // --- transfer -------------------------------------------------------------
@@ -82,17 +91,24 @@ class ShellIntents {
   Future<void> copyJson() async {
     if (!store.canTransferDocument) {
       ArcaneSonner.info(
-        'Menu flow maps are editor-only and are not runtime JSON.',
+        huiText('Menu flow maps are editor-only and are not runtime JSON.'),
       );
       return;
     }
     final bool copied = await copyText(store.exportJson());
     if (copied) {
-      ArcaneSonner.success('$_documentLabel JSON copied to the clipboard.');
+      ArcaneSonner.success(
+        huiText(
+          "{documentLabel} JSON copied to the clipboard.",
+          <String, Object?>{'documentLabel': _documentLabel},
+        ),
+      );
     } else {
       ArcaneSonner.error(
-        'The browser refused clipboard access. Use Export to download the '
-        'file instead.',
+        huiText(
+          'The browser refused clipboard access. Use Export to download the '
+          'file instead.',
+        ),
       );
     }
   }
@@ -100,7 +116,7 @@ class ShellIntents {
   Future<void> importMenu() async {
     if (!store.canTransferDocument) {
       ArcaneSonner.info(
-        'Open a runtime document before importing replacement JSON.',
+        huiText('Open a runtime document before importing replacement JSON.'),
       );
       return;
     }
@@ -116,7 +132,9 @@ class ShellIntents {
 
   void exportMenu() {
     if (!store.canTransferDocument) {
-      ArcaneSonner.info('Menu flow maps are editor-only and are not exported.');
+      ArcaneSonner.info(
+        huiText('Menu flow maps are editor-only and are not exported.'),
+      );
       return;
     }
     final void Function()? dialog = onOpenExport;
@@ -125,12 +143,16 @@ class ShellIntents {
       return;
     }
     downloadText(store.exportFileName, store.exportJson());
-    ArcaneSonner.success('Saved ${store.exportFileName}.');
+    ArcaneSonner.success(
+      huiText("Saved {exportFileName}.", <String, Object?>{
+        'exportFileName': store.exportFileName,
+      }),
+    );
   }
 
   String get _documentLabel {
     final String noun = store.docType.noun;
-    if (noun.isEmpty) return 'Document';
+    if (noun.isEmpty) return huiText('Document');
     return '${noun.substring(0, 1).toUpperCase()}${noun.substring(1)}';
   }
 
@@ -138,13 +160,13 @@ class ShellIntents {
 
   void newDocument() {
     if (store.newDocument()) {
-      ArcaneSonner.success('Started a new menu.');
+      ArcaneSonner.success(huiText('Started a new menu.'));
     }
   }
 
   void openDocument(String docId) {
     if (!store.openDocument(docId)) {
-      ArcaneSonner.error('That document is no longer available.');
+      ArcaneSonner.error(huiText('That document is no longer available.'));
     }
   }
 
@@ -153,7 +175,9 @@ class ShellIntents {
     if (active == null) return;
     final String name = active.title;
     if (store.deleteDocument(active.id)) {
-      ArcaneSonner.success('Deleted $name.');
+      ArcaneSonner.success(
+        huiText("Deleted {name}.", <String, Object?>{'name': name}),
+      );
     }
   }
 
@@ -161,13 +185,15 @@ class ShellIntents {
 
   void addComponent(String type) {
     final String? id = store.addComponent(type);
-    if (id != null) ArcaneSonner.success('Added $id.');
+    if (id != null) {
+      ArcaneSonner.success(huiText("Added {id}.", <String, Object?>{'id': id}));
+    }
   }
 
   void duplicateSelected() {
     final List<String> ids = _selectedIds();
     if (ids.isEmpty) {
-      ArcaneSonner.info('Select a component first.');
+      ArcaneSonner.info(huiText('Select a component first.'));
       return;
     }
     if (ids.length == 1) {
@@ -181,14 +207,19 @@ class ShellIntents {
     final List<String> created = store.duplicateSelection();
     if (created.isEmpty) return;
     ArcaneSonner.success(
-      'Duplicated ${created.length} components on top of the originals.',
+      huiPlural(
+        'toast.duplicated_components',
+        created.length,
+        oneEnglish: 'Duplicated {count} component on top of the original.',
+        otherEnglish: 'Duplicated {count} components on top of the originals.',
+      ),
     );
   }
 
   /// Arms the confirm dialog; the actual delete runs in [deleteSelectedNow].
   void deleteSelected() {
     if (store.selectionIds.isEmpty) {
-      ArcaneSonner.info('Select a component first.');
+      ArcaneSonner.info(huiText('Select a component first.'));
       return;
     }
     requestDeleteSelected();
@@ -203,8 +234,13 @@ class ShellIntents {
     store.deleteComponents(ids);
     ArcaneSonner.success(
       ids.length == 1
-          ? 'Deleted ${ids.first}.'
-          : 'Deleted ${ids.length} components.',
+          ? huiText('Deleted {id}.', <String, Object?>{'id': ids.first})
+          : huiPlural(
+              'toast.deleted_components',
+              ids.length,
+              oneEnglish: 'Deleted {count} component.',
+              otherEnglish: 'Deleted {count} components.',
+            ),
     );
   }
 
@@ -212,7 +248,7 @@ class ShellIntents {
 
   void selectAll() {
     if (store.components.isEmpty) {
-      ArcaneSonner.info('This menu has no components yet.');
+      ArcaneSonner.info(huiText('This menu has no components yet.'));
       return;
     }
     store.selectAll();
@@ -257,7 +293,9 @@ class ShellIntents {
   void alignSelection(HuiAlign align) {
     final List<String> ids = _selectedIds();
     if (ids.length < 2) {
-      ArcaneSonner.info('Select at least two components to align them.');
+      ArcaneSonner.info(
+        huiText('Select at least two components to align them.'),
+      );
       return;
     }
     final Map<String, Vec3> offsets = alignOffsets(
@@ -266,9 +304,15 @@ class ShellIntents {
       align: align,
     );
     if (offsets.isEmpty) return;
-    store.setOffsets('align ${_alignLabel(align)}', offsets);
+    store.setOffsets(_alignHistoryLabel(align), offsets);
     ArcaneSonner.success(
-      'Aligned ${offsets.length} components ${_alignLabel(align)}.',
+      huiPlural(
+        'toast.aligned_components',
+        offsets.length,
+        oneEnglish: 'Aligned {count} component {alignment}.',
+        otherEnglish: 'Aligned {count} components {alignment}.',
+        arguments: <String, Object?>{'alignment': _alignLabel(align)},
+      ),
     );
   }
 
@@ -277,7 +321,9 @@ class ShellIntents {
   void distributeSelection(HuiAxis axis) {
     final List<String> ids = _selectedIds();
     if (ids.length < 3) {
-      ArcaneSonner.info('Select at least three components to distribute them.');
+      ArcaneSonner.info(
+        huiText('Select at least three components to distribute them.'),
+      );
       return;
     }
     final Map<String, Vec3> offsets = distributeOffsets(
@@ -287,11 +333,22 @@ class ShellIntents {
     );
     if (offsets.isEmpty) return;
     final String direction = axis == HuiAxis.horizontal
-        ? 'horizontally'
-        : 'vertically';
-    store.setOffsets('distribute $direction', offsets);
+        ? huiText('horizontally')
+        : huiText('vertically');
+    store.setOffsets(
+      axis == HuiAxis.horizontal
+          ? 'distribute horizontally'
+          : 'distribute vertically',
+      offsets,
+    );
     ArcaneSonner.success(
-      'Spaced ${offsets.length} components evenly $direction.',
+      huiPlural(
+        'toast.spaced_components',
+        offsets.length,
+        oneEnglish: 'Spaced {count} component evenly {direction}.',
+        otherEnglish: 'Spaced {count} components evenly {direction}.',
+        arguments: <String, Object?>{'direction': direction},
+      ),
     );
   }
 
@@ -301,7 +358,7 @@ class ShellIntents {
   void reorderDepth(HuiZOrder op) {
     final Set<String> ids = store.selectionIds;
     if (ids.isEmpty) {
-      ArcaneSonner.info('Select a component first.');
+      ArcaneSonner.info(huiText('Select a component first.'));
       return;
     }
     final Map<String, Vec3> offsets = zOrderOffsets(
@@ -313,14 +370,16 @@ class ShellIntents {
     if (offsets.isEmpty) {
       ArcaneSonner.info(
         ids.length >= store.components.length
-            ? 'Every component is selected, so there is nothing to move past.'
-            : 'Nothing to restack.',
+            ? huiText(
+                'Every component is selected, so there is nothing to move past.',
+              )
+            : huiText('Nothing to restack.'),
       );
       return;
     }
     // One label per operation, so a run of presses coalesces into one undo
     // step the way a run of nudges does.
-    store.setOffsets(_depthLabel(op), offsets);
+    store.setOffsets(_depthHistoryLabel(op), offsets);
   }
 
   /// Document order, which is what align, distribute and delete all want: the
@@ -351,15 +410,24 @@ class ShellIntents {
       !value.isFinite ? 0 : (value * 10000).roundToDouble() / 10000;
 
   String _alignLabel(HuiAlign align) => switch (align) {
-    HuiAlign.left => 'left',
-    HuiAlign.centerX => 'centred',
-    HuiAlign.right => 'right',
-    HuiAlign.top => 'top',
-    HuiAlign.middleY => 'middle',
-    HuiAlign.bottom => 'bottom',
+    HuiAlign.left => huiText('left'),
+    HuiAlign.centerX => huiText('centred'),
+    HuiAlign.right => huiText('right'),
+    HuiAlign.top => huiText('top'),
+    HuiAlign.middleY => huiText('middle'),
+    HuiAlign.bottom => huiText('bottom'),
   };
 
-  String _depthLabel(HuiZOrder op) => switch (op) {
+  String _alignHistoryLabel(HuiAlign align) => switch (align) {
+    HuiAlign.left => 'align left',
+    HuiAlign.centerX => 'align centred',
+    HuiAlign.right => 'align right',
+    HuiAlign.top => 'align top',
+    HuiAlign.middleY => 'align middle',
+    HuiAlign.bottom => 'align bottom',
+  };
+
+  String _depthHistoryLabel(HuiZOrder op) => switch (op) {
     HuiZOrder.forward => 'bring forward',
     HuiZOrder.backward => 'send back',
     HuiZOrder.toFront => 'bring to front',
@@ -404,23 +472,26 @@ class ShellIntents {
   void openValidation() {
     final void Function()? panel = onOpenValidation;
     if (panel == null) {
-      ArcaneSonner.info('The validation panel is not available yet.');
+      ArcaneSonner.info(huiText('The validation panel is not available yet.'));
       return;
     }
     panel();
   }
 
-  void openImages() => _openOr(onOpenImages, 'The image manager');
+  void openImages() =>
+      _openOr(onOpenImages, huiText('The image manager is not available yet.'));
 
-  void openTemplates() => _openOr(onOpenTemplates, 'Templates');
+  void openTemplates() =>
+      _openOr(onOpenTemplates, huiText('Templates are not available yet.'));
 
-  void openHelp() => _openOr(onOpenHelp, 'Help');
+  void openHelp() => _openOr(onOpenHelp, huiText('Help is not available yet.'));
 
-  void openSettings() => _openOr(onOpenSettings, 'Settings');
+  void openSettings() =>
+      _openOr(onOpenSettings, huiText('Settings are not available yet.'));
 
-  void _openOr(void Function()? open, String what) {
+  void _openOr(void Function()? open, String unavailableMessage) {
     if (open == null) {
-      ArcaneSonner.info('$what is not available yet.');
+      ArcaneSonner.info(unavailableMessage);
       return;
     }
     open();

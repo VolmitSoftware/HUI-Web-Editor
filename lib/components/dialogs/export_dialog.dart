@@ -14,6 +14,7 @@ import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'dialog_parts.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ExportDialog extends StatefulWidget {
   const ExportDialog({
@@ -95,7 +96,9 @@ class _ExportDialogState extends State<ExportDialog> {
   void _downloadJson() {
     _commitName();
     downloadText(_fileName, _store.exportJson());
-    toast.success('Saved $_fileName');
+    toast.success(
+      huiText("Saved {fileName}", <String, Object?>{'fileName': _fileName}),
+    );
   }
 
   Future<void> _copyJson() async {
@@ -103,10 +106,14 @@ class _ExportDialogState extends State<ExportDialog> {
     final bool copied = await copyText(_store.exportJson());
     if (!mounted) return;
     if (copied) {
-      toast.success('${_store.docType.noun} JSON copied to the clipboard');
+      toast.success(
+        huiText("{noun} JSON copied to the clipboard", <String, Object?>{
+          'noun': _store.docType.noun,
+        }),
+      );
     } else {
       toast.error(
-        'The browser refused clipboard access. Use Download instead.',
+        huiText('The browser refused clipboard access. Use Download instead.'),
       );
     }
   }
@@ -119,7 +126,11 @@ class _ExportDialogState extends State<ExportDialog> {
     if (!mounted) return;
     setState(() => _zipping = false);
     downloadBytes('images.zip', bytes, mime: 'application/zip');
-    toast.success('Saved images.zip (${huiFormatBytes(bytes.length)})');
+    toast.success(
+      huiText("Saved images.zip ({huiFormatBytes})", <String, Object?>{
+        'huiFormatBytes': huiFormatBytes(bytes.length),
+      }),
+    );
   }
 
   @override
@@ -129,13 +140,15 @@ class _ExportDialogState extends State<ExportDialog> {
       id: 'hui-export-dialog',
       isOpen: component.isOpen,
       onClose: component.onClose,
-      title: 'Export ${_store.docType.noun}',
+      title: huiText("Export {noun}", <String, Object?>{
+        'noun': _store.docType.noun,
+      }),
       maxWidth: 720,
       actions: <Widget>[
         Button(
           variant: ButtonVariant.outline,
           onPressed: component.onClose,
-          label: 'Close',
+          label: huiText('Close'),
         ),
       ],
       children: <Widget>[
@@ -165,24 +178,30 @@ class _ExportDialogState extends State<ExportDialog> {
     return dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
       if (_store.hasErrors)
         ArcaneAlert.error(
-          title:
-              '${_store.errorCount} error'
-              '${_store.errorCount == 1 ? '' : 's'} in this menu',
-          message:
-              'The file will still export, but Gloss may refuse to open '
-              'it. Check the validation panel before you ship it.',
+          title: huiPlural(
+            'export.menu_error_count',
+            _store.errorCount,
+            oneEnglish: '{count} error in this menu',
+            otherEnglish: '{count} errors in this menu',
+          ),
+          message: huiText(
+            'The file will still export, but Gloss may refuse to open '
+            'it. Check the validation panel before you ship it.',
+          ),
         ),
       HuiDialogSection(
-        title: 'File name',
-        description:
-            'The name becomes the menu id, the open command and the '
-            'permission node.',
+        title: huiText('File name'),
+        description: huiText(
+          'The name becomes the menu id, the open command and the '
+          'permission node.',
+        ),
         children: <Widget>[
           HuiField(
-            label: 'Menu id',
-            help:
-                'Lowercase letters, digits, underscore and hyphen. '
-                'Anything else is replaced.',
+            label: huiText('Menu id'),
+            help: huiText(
+              'Lowercase letters, digits, underscore and hyphen. '
+              'Anything else is replaced.',
+            ),
             control: TextInput(
               value: _name,
               size: ComponentSize.sm,
@@ -190,10 +209,11 @@ class _ExportDialogState extends State<ExportDialog> {
               placeholder: huiDefaultMenuId,
               onInput: (String value) => setState(() => _name = value),
               onBlur: _commitName,
-              attributes: const <String, String>{
-                'aria-label': 'Menu id',
+              attributes: <String, String>{
+                'aria-label': huiText('Menu id'),
                 'autocomplete': 'off',
                 'spellcheck': 'false',
+                'dir': 'ltr',
               },
             ),
           ),
@@ -201,8 +221,10 @@ class _ExportDialogState extends State<ExportDialog> {
         ],
       ),
       HuiDialogSection(
-        title: 'Download',
-        description: 'Everything the server needs, in the layout it expects.',
+        title: huiText('Download'),
+        description: huiText(
+          'Everything the server needs, in the layout it expects.',
+        ),
         children: <Widget>[
           dom.div(classes: 'hui-dialog-actions', <Widget>[
             Button(
@@ -210,14 +232,16 @@ class _ExportDialogState extends State<ExportDialog> {
               size: ButtonSize.small,
               onPressed: _downloadJson,
               icon: ArcaneIcon.download(size: IconSize.sm),
-              label: 'Download $_fileName',
+              label: huiText("Download {fileName}", <String, Object?>{
+                'fileName': _fileName,
+              }),
             ),
             Button(
               variant: ButtonVariant.outline,
               size: ButtonSize.small,
               onPressed: _copyJson,
               icon: ArcaneIcon.clipboardCopy(size: IconSize.sm),
-              label: 'Copy JSON',
+              label: huiText('Copy JSON'),
             ),
             if (used.isNotEmpty)
               Button(
@@ -227,61 +251,107 @@ class _ExportDialogState extends State<ExportDialog> {
                 disabled: library == null || library.images.isEmpty,
                 onPressed: _downloadImages,
                 icon: ArcaneIcon.fileArchive(size: IconSize.sm),
-                label: 'Download images.zip',
+                label: huiText('Download images.zip'),
               ),
           ]),
           if (used.isNotEmpty)
             dom.p(classes: 'hui-dialog-note', <Widget>[
               Text(
-                'This menu uses ${used.length} image'
-                '${used.length == 1 ? '' : 's'}. Unzip images.zip into '
-                '$huiImageFolder keeping the folder structure.',
+                huiPlural(
+                  'export.menu_image_count',
+                  used.length,
+                  oneEnglish:
+                      'This menu uses {count} image. Unzip images.zip into '
+                      '{folder}, keeping the folder structure.',
+                  otherEnglish:
+                      'This menu uses {count} images. Unzip images.zip into '
+                      '{folder}, keeping the folder structure.',
+                  arguments: <String, Object?>{'folder': huiImageFolder},
+                ),
               ),
             ]),
           if (missing > 0)
             ArcaneAlert.warning(
-              message:
-                  '$missing referenced image'
-                  '${missing == 1 ? ' is' : 's are'} not in the local library, '
-                  'so ${missing == 1 ? 'it' : 'they'} will not be in the zip. '
-                  'Upload the file${missing == 1 ? '' : 's'} or copy '
-                  '${missing == 1 ? 'it' : 'them'} to the server by hand.',
+              message: huiPlural(
+                'export.missing_image_count',
+                missing,
+                oneEnglish:
+                    '{count} referenced image is not in the local library, '
+                    'so it will not be in the zip. Upload the file or copy it '
+                    'to the server by hand.',
+                otherEnglish:
+                    '{count} referenced images are not in the local library, '
+                    'so they will not be in the zip. Upload the files or copy '
+                    'them to the server by hand.',
+              ),
             ),
         ],
       ),
       HuiDialogSection(
-        title: 'Install on your server',
-        description: 'Gloss watches the folder, so no restart is needed.',
+        title: huiText('Install on your server'),
+        description: huiText(
+          'Gloss watches the folder, so no restart is needed.',
+        ),
         children: <Widget>[
           HuiSteps(
             steps: <String>[
-              'Drop $_fileName under $huiMenuFolder. Slash-separated menu '
-                  'ids use matching subfolders and stay part of the runtime id.',
+              huiText(
+                'Drop {fileName} under {menuFolder}. Slash-separated menu '
+                'ids use matching subfolders and stay part of the runtime id.',
+                <String, Object?>{
+                  'fileName': _fileName,
+                  'menuFolder': huiMenuFolder,
+                },
+              ),
               if (used.isNotEmpty)
-                'Unzip images.zip into $huiImageFolder so every icon path '
-                    'resolves.',
-              'Changed menus re-register within about 5 ticks and any open '
-                  'session of that id is closed with DEFINITION_RELOADED. '
-                  'New and deleted files are noticed within about 20 ticks.',
-              'Grant gloss.menus.open, gloss.menus.move and '
-                  'gloss.open.$_documentId — the '
-                  'per-menu node is not declared in plugin.yml, so it has '
-                  'to be granted explicitly.',
-              'Test it with /gloss menu open $_documentId '
-                  '(aliases: gl, glo, gg).',
-              'To re-anchor the open session, stand at its new origin and '
-                  'run /gloss menu move. This keeps the configured offset and '
-                  'does not rewrite $_fileName.',
+                huiText(
+                  'Unzip images.zip into {imageFolder} so every icon path '
+                  'resolves.',
+                  <String, Object?>{'imageFolder': huiImageFolder},
+                ),
+              huiText(
+                'Changed menus re-register within about 5 ticks and any open '
+                'session of that id is closed with DEFINITION_RELOADED. '
+                'New and deleted files are noticed within about 20 ticks.',
+              ),
+              huiText(
+                'Grant gloss.menus.open, gloss.menus.move and '
+                'gloss.open.{documentId} — the per-menu node is not declared '
+                'in plugin.yml, so it has to be granted explicitly.',
+                <String, Object?>{'documentId': _documentId},
+              ),
+              huiText(
+                'Test it with /gloss menu open {documentId} '
+                '(aliases: gl, glo, gg).',
+                <String, Object?>{'documentId': _documentId},
+              ),
+              huiText(
+                'To re-anchor the open session, stand at its new origin and '
+                'run /gloss menu move. This keeps the configured offset and '
+                'does not rewrite {fileName}.',
+                <String, Object?>{'fileName': _fileName},
+              ),
             ],
           ),
           HuiCodeBlock(text: '/gloss menu open $_documentId\n/gloss menu move'),
         ],
       ),
       HuiDialogSection(
-        title: 'Preview',
-        description:
-            '${json.length} characters, '
-            '${_store.menu.components.length} components.',
+        title: huiText('Preview'),
+        description: huiText('{characters}, {components}.', <String, Object?>{
+          'characters': huiPlural(
+            'export.character_count',
+            json.length,
+            oneEnglish: '{count} character',
+            otherEnglish: '{count} characters',
+          ),
+          'components': huiPlural(
+            'export.component_count',
+            _store.menu.components.length,
+            oneEnglish: '{count} component',
+            otherEnglish: '{count} components',
+          ),
+        }),
         children: <Widget>[HuiCodeBlock(text: json, scroll: true)],
       ),
     ]);
@@ -293,17 +363,19 @@ class _ExportDialogState extends State<ExportDialog> {
 
     return dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
       HuiDialogSection(
-        title: 'File name',
-        description:
-            'Only used to name the file on disk and in error logs '
-            '— unlike a menu, a container-preview document carries no id of '
-            'its own.',
+        title: huiText('File name'),
+        description: huiText(
+          'Only used to name the file on disk and in error logs '
+          '— unlike a menu, a container-preview document carries no id of '
+          'its own.',
+        ),
         children: <Widget>[
           HuiField(
-            label: 'File name',
-            help:
-                'Lowercase letters, digits, underscore and hyphen. '
-                'Anything else is replaced.',
+            label: huiText('File name'),
+            help: huiText(
+              'Lowercase letters, digits, underscore and hyphen. '
+              'Anything else is replaced.',
+            ),
             control: TextInput(
               value: _name,
               size: ComponentSize.sm,
@@ -311,10 +383,10 @@ class _ExportDialogState extends State<ExportDialog> {
               placeholder: huiDefaultMenuId,
               onInput: (String value) => setState(() => _name = value),
               onBlur: _commitName,
-              attributes: const <String, String>{
-                'aria-label': 'File name',
-                'autocomplete': 'off',
-                'spellcheck': 'false',
+              styles: huiTechnicalInputStyles,
+              attributes: <String, String>{
+                ...huiTechnicalInputAttributes,
+                'aria-label': huiText('File name'),
               },
             ),
           ),
@@ -322,10 +394,11 @@ class _ExportDialogState extends State<ExportDialog> {
         ],
       ),
       HuiDialogSection(
-        title: 'Download',
-        description:
-            'The document, ready to drop into $huiPreviewFolder. '
-            'There is no images zip: the preview format has no image icons.',
+        title: huiText('Download'),
+        description: huiText(
+          "The document, ready to drop into {huiPreviewFolder}. There is no images zip: the preview format has no image icons.",
+          <String, Object?>{'huiPreviewFolder': huiPreviewFolder},
+        ),
         children: <Widget>[
           dom.div(classes: 'hui-dialog-actions', <Widget>[
             Button(
@@ -333,44 +406,70 @@ class _ExportDialogState extends State<ExportDialog> {
               size: ButtonSize.small,
               onPressed: _downloadJson,
               icon: ArcaneIcon.download(size: IconSize.sm),
-              label: 'Download $_fileName',
+              label: huiText("Download {fileName}", <String, Object?>{
+                'fileName': _fileName,
+              }),
             ),
             Button(
               variant: ButtonVariant.outline,
               size: ButtonSize.small,
               onPressed: _copyJson,
               icon: ArcaneIcon.clipboardCopy(size: IconSize.sm),
-              label: 'Copy JSON',
+              label: huiText('Copy JSON'),
             ),
           ]),
         ],
       ),
       HuiDialogSection(
-        title: 'Install on your server',
-        description:
-            'Previews are not menus: they draw automatically, with '
-            'no open command.',
+        title: huiText('Install on your server'),
+        description: huiText(
+          'Previews are not menus: they draw automatically, with '
+          'no open command.',
+        ),
         children: <Widget>[
           HuiSteps(
             steps: <String>[
-              'Drop $_fileName into $huiPreviewFolder — the folder is flat, '
-                  'files in subfolders are never registered.',
-              'Editing, adding or deleting a file there takes effect within '
-                  'a few ticks: no reload command and no restart.',
-              'Grant gloss.preview to whoever should see it (operators '
-                  'have it by default); a viewer without it sees the locked '
-                  'document instead.',
-              'It draws automatically over any block or entity its `match` '
-                  'names — there is no open command for a preview.',
+              huiText(
+                'Drop {fileName} into {previewFolder} — the folder is flat, '
+                'files in subfolders are never registered.',
+                <String, Object?>{
+                  'fileName': _fileName,
+                  'previewFolder': huiPreviewFolder,
+                },
+              ),
+              huiText(
+                'Editing, adding or deleting a file there takes effect within '
+                'a few ticks: no reload command and no restart.',
+              ),
+              huiText(
+                'Grant gloss.preview to whoever should see it (operators '
+                'have it by default); a viewer without it sees the locked '
+                'document instead.',
+              ),
+              huiText(
+                'It draws automatically over any block or entity its `match` '
+                'names — there is no open command for a preview.',
+              ),
             ],
           ),
         ],
       ),
       HuiDialogSection(
-        title: 'Preview',
-        description:
-            '${json.length} characters, $elementCount element'
-            '${elementCount == 1 ? '' : 's'}.',
+        title: huiText('Preview'),
+        description: huiText('{characters}; {elements}.', <String, Object?>{
+          'characters': huiPlural(
+            'export.character_count',
+            json.length,
+            oneEnglish: '{count} character',
+            otherEnglish: '{count} characters',
+          ),
+          'elements': huiPlural(
+            'export.element_count',
+            elementCount,
+            oneEnglish: '{count} element',
+            otherEnglish: '{count} elements',
+          ),
+        }),
         children: <Widget>[HuiCodeBlock(text: json, scroll: true)],
       ),
     ]);
@@ -383,36 +482,44 @@ class _ExportDialogState extends State<ExportDialog> {
     return dom.div(classes: 'hui-dialog-body hui-stagger', <Widget>[
       if (_store.hasErrors)
         ArcaneAlert.error(
-          title:
-              '${_store.errorCount} error'
-              '${_store.errorCount == 1 ? '' : 's'} in this $noun',
-          message:
-              'The file will still export, but Gloss may refuse to load it. '
-              'Check the validation panel before installing it.',
+          title: huiPlural(
+            'export.document_error_count',
+            _store.errorCount,
+            oneEnglish: '{count} error in this {document}',
+            otherEnglish: '{count} errors in this {document}',
+            arguments: <String, Object?>{'document': noun},
+          ),
+          message: huiText(
+            'The file will still export, but Gloss may refuse to load it. '
+            'Check the validation panel before installing it.',
+          ),
         ),
       HuiDialogSection(
-        title: _fixedFileName ? 'Runtime file' : 'File name',
+        title: _fixedFileName ? huiText('Runtime file') : huiText('File name'),
         description: _fixedFileName
-            ? 'Gloss has exactly one $noun document, so its runtime file name '
-                  'is fixed.'
-            : 'The file name becomes this $noun document\'s runtime id.',
+            ? huiText(
+                'Gloss uses a fixed runtime file name for this document type.',
+              )
+            : huiText('The file name becomes this document\'s runtime id.'),
         children: <Widget>[
           if (!_fixedFileName)
             HuiField(
-              label: 'Document id',
-              help:
-                  'Lowercase letters, digits, underscore, hyphen and nested '
-                  'path segments. Anything else is replaced.',
+              label: huiText('Document id'),
+              help: huiText(
+                'Lowercase letters, digits, underscore, hyphen and nested '
+                'path segments. Anything else is replaced.',
+              ),
               control: TextInput(
                 value: _name,
                 size: ComponentSize.sm,
                 fullWidth: true,
                 onInput: (String value) => setState(() => _name = value),
                 onBlur: _commitName,
-                attributes: const <String, String>{
-                  'aria-label': 'Document id',
+                attributes: <String, String>{
+                  'aria-label': huiText('Document id'),
                   'autocomplete': 'off',
                   'spellcheck': 'false',
+                  'dir': 'ltr',
                 },
               ),
             ),
@@ -420,8 +527,8 @@ class _ExportDialogState extends State<ExportDialog> {
         ],
       ),
       HuiDialogSection(
-        title: 'Download',
-        description: 'Canonical JSON ready for the Gloss runtime.',
+        title: huiText('Download'),
+        description: huiText('Canonical JSON ready for the Gloss runtime.'),
         children: <Widget>[
           dom.div(classes: 'hui-dialog-actions', <Widget>[
             Button(
@@ -429,36 +536,52 @@ class _ExportDialogState extends State<ExportDialog> {
               size: ButtonSize.small,
               onPressed: _downloadJson,
               icon: ArcaneIcon.download(size: IconSize.sm),
-              label: 'Download $_fileName',
+              label: huiText("Download {fileName}", <String, Object?>{
+                'fileName': _fileName,
+              }),
             ),
             Button(
               variant: ButtonVariant.outline,
               size: ButtonSize.small,
               onPressed: _copyJson,
               icon: ArcaneIcon.clipboardCopy(size: IconSize.sm),
-              label: 'Copy JSON',
+              label: huiText('Copy JSON'),
             ),
           ]),
         ],
       ),
       HuiDialogSection(
-        title: 'Install on your server',
-        description: 'Gloss watches runtime JSON and applies valid changes.',
+        title: huiText('Install on your server'),
+        description: huiText(
+          'Gloss watches runtime JSON and applies valid changes.',
+        ),
         children: <Widget>[
           HuiSteps(
             steps: <String>[
-              'Drop $_fileName at $_installPath.',
-              'Keep the schema version and server-owned revision valid; the '
-                  'validation panel reports anything Gloss will reject.',
-              'Check the server console after replacing the file. A parse '
-                  'failure leaves the last working $noun active.',
+              huiText('Drop {fileName} at {installPath}.', <String, Object?>{
+                'fileName': _fileName,
+                'installPath': _installPath,
+              }),
+              huiText(
+                'Keep the schema version and server-owned revision valid; the validation panel reports anything Gloss will reject.',
+              ),
+              huiText(
+                'Check the server console after replacing the file. A parse failure leaves the last working {document} active.',
+                <String, Object?>{'document': noun},
+              ),
             ],
           ),
         ],
       ),
       HuiDialogSection(
-        title: 'Preview',
-        description: '${json.length} characters in the exported $noun JSON.',
+        title: huiText('Preview'),
+        description: huiPlural(
+          'export.json_character_count',
+          json.length,
+          oneEnglish: '{count} character in the exported {noun} JSON.',
+          otherEnglish: '{count} characters in the exported {noun} JSON.',
+          arguments: <String, Object?>{'noun': noun},
+        ),
         children: <Widget>[HuiCodeBlock(text: json, scroll: true)],
       ),
     ]);

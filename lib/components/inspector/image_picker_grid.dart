@@ -13,6 +13,7 @@ import '../../services/image_library.dart';
 import '../common/common.dart';
 import 'dom_bridge.dart';
 import 'inspector_widgets.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// A `<label>`-wrapped file input: clicking the label opens the picker without
 /// any JavaScript, which a `Button` cannot do.
@@ -20,7 +21,7 @@ class ImageUploadButton extends StatefulWidget {
   const ImageUploadButton({
     required this.images,
     required this.inputId,
-    this.label = 'Upload images',
+    this.label,
     this.onAdded,
     super.key,
   });
@@ -30,7 +31,7 @@ class ImageUploadButton extends StatefulWidget {
   /// Must be unique in the document: the change handler reads the files back
   /// out of the DOM by id.
   final String inputId;
-  final String label;
+  final String? label;
 
   /// Called with the paths that were stored, so the caller can select one.
   final void Function(List<String> paths)? onAdded;
@@ -41,7 +42,7 @@ class ImageUploadButton extends StatefulWidget {
 
 class _ImageUploadButtonState extends State<ImageUploadButton> {
   bool _busy = false;
-  String? _message;
+  ImageLocalizedMessage? _message;
 
   Future<void> _handleFiles() async {
     final List<Object> files = readInputFiles(component.inputId);
@@ -58,48 +59,50 @@ class _ImageUploadButtonState extends State<ImageUploadButton> {
     if (paths.isNotEmpty) component.onAdded?.call(paths);
     setState(() {
       _busy = false;
-      _message = outcome.errors.isNotEmpty
-          ? outcome.errors.first
-          : (outcome.warnings.isNotEmpty ? outcome.warnings.first : null);
+      _message = outcome.hasErrors
+          ? outcome.errorMessages.first
+          : (outcome.hasWarnings ? outcome.warningMessages.first : null);
     });
   }
 
   @override
-  Widget build(BuildContext context) =>
-      dom.div(classes: 'hui-image-upload', <Widget>[
-        dom.label(
-          classes: classNames(<String?>[
-            'hui-image-upload-button',
-            _busy ? 'is-busy' : null,
-          ]),
-          attributes: <String, String>{'for': component.inputId},
-          <Widget>[
-            ArcaneIcon.upload(size: IconSize.sm),
-            dom.span(<Widget>[Text(_busy ? 'Storing...' : component.label)]),
-          ],
-        ),
-        Component.element(
-          tag: 'input',
-          id: component.inputId,
-          classes: 'hui-visually-hidden-input',
-          attributes: <String, String>{
-            'type': 'file',
-            'accept': 'image/*',
-            'multiple': 'multiple',
+  Widget build(BuildContext context) {
+    final String label = component.label ?? huiText('Upload images');
+    return dom.div(classes: 'hui-image-upload', <Widget>[
+      dom.label(
+        classes: classNames(<String?>[
+          'hui-image-upload-button',
+          _busy ? 'is-busy' : null,
+        ]),
+        attributes: <String, String>{'for': component.inputId},
+        <Widget>[
+          ArcaneIcon.upload(size: IconSize.sm),
+          dom.span(<Widget>[Text(_busy ? huiText('Storing...') : label)]),
+        ],
+      ),
+      Component.element(
+        tag: 'input',
+        id: component.inputId,
+        classes: 'hui-visually-hidden-input',
+        attributes: <String, String>{
+          'type': 'file',
+          'accept': 'image/*',
+          'multiple': 'multiple',
+        },
+        styles: const dom.Styles(
+          raw: <String, String>{
+            'position': 'absolute',
+            'width': '1px',
+            'height': '1px',
+            'opacity': '0',
+            'pointer-events': 'none',
           },
-          styles: const dom.Styles(
-            raw: <String, String>{
-              'position': 'absolute',
-              'width': '1px',
-              'height': '1px',
-              'opacity': '0',
-              'pointer-events': 'none',
-            },
-          ),
-          events: <String, EventCallback>{'change': (_) => _handleFiles()},
         ),
-        if (_message != null) HuiNote(_message!, tone: HuiNoteTone.warning),
-      ]);
+        events: <String, EventCallback>{'change': (_) => _handleFiles()},
+      ),
+      if (_message != null) HuiNote(_message!(), tone: HuiNoteTone.warning),
+    ]);
+  }
 }
 
 /// Selectable grid of stored images. [selected] highlights the current path.
@@ -108,23 +111,27 @@ class ImagePickerGrid extends StatelessWidget {
     required this.images,
     required this.onPicked,
     this.selected,
-    this.emptyMessage =
-        'No images stored yet. Upload PNGs sized like the pixels you want: '
-        'Gloss draws one character per pixel, so 8x8 to 32x32 is the '
-        'practical range.',
+    this.emptyMessage,
     super.key,
   });
 
   final ImageLibrary images;
   final String? selected;
   final void Function(String path) onPicked;
-  final String emptyMessage;
+  final String? emptyMessage;
 
   @override
   Widget build(BuildContext context) {
     final List<StoredImage> stored = images.images;
     if (stored.isEmpty) {
-      return HuiNote(emptyMessage);
+      return HuiNote(
+        emptyMessage ??
+            huiText(
+              'No images stored yet. Upload PNGs sized like the pixels you want: '
+              'Gloss draws one character per pixel, so image icons are limited '
+              'to compact pixel art up to 16x16.',
+            ),
+      );
     }
     return dom.div(classes: 'hui-image-grid', <Widget>[
       for (final StoredImage image in stored) _tile(image),
@@ -140,7 +147,11 @@ class ImagePickerGrid extends StatelessWidget {
       ]),
       attributes: <String, String>{
         'type': 'button',
-        'aria-label': '${image.path} (${image.width}x${image.height})',
+        'aria-label': huiText("{path} ({width}x{height})", <String, Object?>{
+          'path': image.path,
+          'width': image.width,
+          'height': image.height,
+        }),
         if (isSelected) 'aria-current': 'true',
       },
       events: <String, EventCallback>{'click': (_) => onPicked(image.path)},
@@ -157,7 +168,12 @@ class ImagePickerGrid extends StatelessWidget {
         ]),
         dom.span(classes: 'hui-image-tile-path', <Widget>[Text(image.path)]),
         dom.span(classes: 'hui-image-tile-size', <Widget>[
-          Text('${image.width}x${image.height}'),
+          Text(
+            huiText("{width}x{height}", <String, Object?>{
+              'width': image.width,
+              'height': image.height,
+            }),
+          ),
         ]),
       ],
     );

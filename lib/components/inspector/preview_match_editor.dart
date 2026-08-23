@@ -23,12 +23,20 @@ import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'preview_color_swatch.dart';
 import 'preview_expr_field.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 const List<String> _specialValues = <String>[
   'enderChest',
   'locked',
   'anyInventoryHolder',
 ];
+
+String _specialValueLabel(String value) => switch (value) {
+  'enderChest' => huiText('Ender chest'),
+  'locked' => huiText('Locked'),
+  'anyInventoryHolder' => huiText('Any inventory holder'),
+  _ => value,
+};
 
 final RegExp _identifierPattern = RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$');
 
@@ -63,42 +71,49 @@ class PreviewMatchEditor extends StatelessWidget {
 
   Widget _header() => dom.div(classes: 'hui-inspector-headgroup', <Widget>[
     dom.div(classes: 'hui-inspector-header is-menu', <Widget>[
-      const HuiEyebrow('Container preview'),
-      dom.h2(classes: 'hui-inspector-title', <Widget>[Text(store.menuId)]),
+      HuiEyebrow(huiText('Container preview')),
+      dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+        Text(store.menuId),
+      ]),
     ]),
-    const dom.p(classes: 'hui-inspector-lede', <Widget>[
+    dom.p(classes: 'hui-inspector-lede', <Widget>[
       Text(
-        'Nothing is selected, so these are the document-wide '
-        'settings: which blocks and entities draw this card, its '
-        'variants, and the chrome around it. Pick an element in the '
-        'list to edit it.',
+        huiText(
+          'Nothing is selected, so these are the document-wide '
+          'settings: which blocks and entities draw this card, its '
+          'variants, and the chrome around it. Pick an element in the '
+          'list to edit it.',
+        ),
       ),
     ]),
   ]);
 
   Widget _matchSection() => InspectorSection(
-    title: 'Match',
+    title: huiText('Match'),
     sectionKey: 'preview.match',
     trailing: const HuiFieldHelp('preview.match'),
-    description:
-        'Which blocks, entities or special targets this '
-        'document draws over. The highest-priority document naming a '
-        'target wins.',
+    description: huiText(
+      'Which blocks, entities or special targets this '
+      'document draws over. The highest-priority document naming a '
+      'target wins.',
+    ),
     children: <Widget>[
       _PreviewNameChips(
-        label: 'Blocks',
+        label: huiText('Blocks'),
         docKey: 'preview.match.blocks',
         values: _doc.match.blocks,
-        help: '"*" is the only wildcard, e.g. "OAK_*" or "*_SHULKER_BOX".',
+        help: huiText(
+          '"*" is the only wildcard, e.g. "OAK_*" or "*_SHULKER_BOX".',
+        ),
         onChanged: (List<String> next) =>
             _mutate('match blocks', (HuiPreviewDoc d) => d.match.blocks = next),
       ),
       HuiInlineIssues(_issuesFor('match.blocks')),
       _PreviewNameChips(
-        label: 'Entities',
+        label: huiText('Entities'),
         docKey: 'preview.match.entities',
         values: _doc.match.entities,
-        help: 'Same glob rule as blocks.',
+        help: huiText('Same glob rule as blocks.'),
         onChanged: (List<String> next) => _mutate(
           'match entities',
           (HuiPreviewDoc d) => d.match.entities = next,
@@ -107,11 +122,12 @@ class PreviewMatchEditor extends StatelessWidget {
       HuiInlineIssues(_issuesFor('match.entities')),
       _specialField(),
       HuiField(
-        label: 'Priority',
+        label: huiText('Priority'),
         trailing: const HuiFieldHelp('preview.match.priority'),
-        help:
-            'Highest priority wins. Shipped documents use 10, so a user '
-            'document at 20 overrides one.',
+        help: huiText(
+          'Highest priority wins. Shipped documents use 10, so a user '
+          'document at 20 overrides one.',
+        ),
         defaultValue: '0',
         onReset: (_doc.match.priority ?? 0) == 0
             ? null
@@ -132,7 +148,7 @@ class PreviewMatchEditor extends StatelessWidget {
       ),
       const HuiDivider(),
       _PreviewVarsRows(
-        title: 'vars',
+        title: huiText('vars'),
         docKey: 'preview.vars',
         vars: _doc.match.vars,
         onChanged: (Map<String, dynamic> next) =>
@@ -140,7 +156,7 @@ class PreviewMatchEditor extends StatelessWidget {
       ),
       HuiInlineIssues(_issuesFor('match.vars')),
       ExtrasEditor(
-        title: 'Match',
+        title: huiText('Match'),
         extras: _doc.match.extras,
         onChanged: (String label, Map<String, dynamic> next) =>
             _mutate(label, (HuiPreviewDoc d) => d.match.extras = next),
@@ -152,18 +168,19 @@ class PreviewMatchEditor extends StatelessWidget {
   Widget _specialField() {
     final String? special = _doc.match.special;
     return HuiField(
-      label: 'Special',
+      label: huiText('Special'),
       trailing: const HuiFieldHelp('preview.match.special'),
-      help:
-          'enderChest draws from the viewer\'s own ender chest, locked is '
-          'the access-denied card, anyInventoryHolder is the entity fallback.',
+      help: huiText(
+        'enderChest draws from the viewer\'s own ender chest, locked is '
+        'the access-denied card, anyInventoryHolder is the entity fallback.',
+      ),
       control: dom.div(<Widget>[
         HuiSegmented(
           value: special ?? 'none',
           segments: <HuiSegment>[
-            const HuiSegment(value: 'none', label: 'None'),
+            HuiSegment(value: 'none', label: huiText('None')),
             for (final String value in _specialValues)
-              HuiSegment(value: value, label: value),
+              HuiSegment(value: value, label: _specialValueLabel(value)),
           ],
           onChanged: (String value) => _mutate(
             'match special',
@@ -177,12 +194,13 @@ class PreviewMatchEditor extends StatelessWidget {
   }
 
   Widget _variantsSection() => InspectorSection(
-    title: 'Variants',
+    title: huiText('Variants'),
     sectionKey: 'preview.variants',
-    description:
-        'Extra vars (and optionally extra blocks/entities) for a '
-        'subset of targets, tried in order — the first one whose blocks '
-        'or entities match wins.',
+    description: huiText(
+      'Extra vars (and optionally extra blocks/entities) for a '
+      'subset of targets, tried in order — the first one whose blocks '
+      'or entities match wins.',
+    ),
     trailing: Button(
       variant: ButtonVariant.outline,
       size: ButtonSize.sm,
@@ -191,12 +209,12 @@ class PreviewMatchEditor extends StatelessWidget {
         'add variant',
         (HuiPreviewDoc d) => d.variants.add(HuiPreviewVariant()),
       ),
-      child: const Text('Add'),
+      child: Text(huiText('Add')),
     ),
     children: <Widget>[
       if (_doc.variants.isEmpty)
-        const HuiNote(
-          'No variants. Every target uses the document\'s own vars.',
+        HuiNote(
+          huiText('No variants. Every target uses the document\'s own vars.'),
         )
       else
         for (int i = 0; i < _doc.variants.length; i++) _variantCard(i),
@@ -226,7 +244,9 @@ class PreviewMatchEditor extends StatelessWidget {
             },
           ),
           <Widget>[
-            HuiEyebrow('Variant ${index + 1}'),
+            HuiEyebrow(
+              huiText("Variant {value}", <String, Object?>{'value': index + 1}),
+            ),
             HuiRowTools(
               onMoveUp: index == 0
                   ? null
@@ -244,12 +264,14 @@ class PreviewMatchEditor extends StatelessWidget {
                 'remove variant',
                 (HuiPreviewDoc d) => d.variants.removeAt(index),
               ),
-              removeLabel: 'Delete variant ${index + 1}',
+              removeLabel: huiText('Delete variant {number}', <String, Object?>{
+                'number': index + 1,
+              }),
             ),
           ],
         ),
         _PreviewNameChips(
-          label: 'Blocks',
+          label: huiText('Blocks'),
           docKey: 'preview.variant.blocks',
           values: variant.blocks,
           onChanged: (List<String> next) => _mutate(
@@ -259,7 +281,7 @@ class PreviewMatchEditor extends StatelessWidget {
         ),
         HuiInlineIssues(_issuesFor('$path.blocks')),
         _PreviewNameChips(
-          label: 'Entities',
+          label: huiText('Entities'),
           docKey: 'preview.variant.entities',
           values: variant.entities,
           onChanged: (List<String> next) => _mutate(
@@ -270,8 +292,10 @@ class PreviewMatchEditor extends StatelessWidget {
         HuiInlineIssues(_issuesFor('$path.entities')),
         _variantSpecialField(index, variant, path),
         HuiField(
-          label: 'Priority',
-          help: 'Overrides the document priority when this variant matches.',
+          label: huiText('Priority'),
+          help: huiText(
+            'Overrides the document priority when this variant matches.',
+          ),
           control: HuiNumberField(
             value: (variant.priority ?? 0).toDouble(),
             integer: true,
@@ -284,7 +308,7 @@ class PreviewMatchEditor extends StatelessWidget {
           ),
         ),
         _PreviewVarsRows(
-          title: 'vars',
+          title: huiText('vars'),
           docKey: 'preview.variant.vars',
           vars: variant.vars,
           onChanged: (Map<String, dynamic> next) => _mutate(
@@ -294,7 +318,7 @@ class PreviewMatchEditor extends StatelessWidget {
         ),
         HuiInlineIssues(_issuesFor('$path.vars')),
         ExtrasEditor(
-          title: 'Variant',
+          title: huiText('Variant'),
           extras: variant.extras,
           onChanged: (String label, Map<String, dynamic> next) => _mutate(
             label,
@@ -310,16 +334,17 @@ class PreviewMatchEditor extends StatelessWidget {
     HuiPreviewVariant variant,
     String path,
   ) => HuiField(
-    label: 'Special',
-    help:
-        'Optionally limits this variant to an ender chest, locked target or '
-        'inventory-holder fallback.',
+    label: huiText('Special'),
+    help: huiText(
+      'Optionally limits this variant to an ender chest, locked target or '
+      'inventory-holder fallback.',
+    ),
     control: HuiSegmented(
       value: variant.special ?? 'none',
       segments: <HuiSegment>[
-        const HuiSegment(value: 'none', label: 'None'),
+        HuiSegment(value: 'none', label: huiText('None')),
         for (final String value in _specialValues)
-          HuiSegment(value: value, label: value),
+          HuiSegment(value: value, label: _specialValueLabel(value)),
       ],
       onChanged: (String value) => _mutate(
         'variant special',
@@ -333,15 +358,16 @@ class PreviewMatchEditor extends StatelessWidget {
   Widget _cardSection() {
     final HuiPreviewCard? card = _doc.card;
     return InspectorSection(
-      title: 'Card',
+      title: huiText('Card'),
       sectionKey: 'preview.card',
       trailing: const HuiFieldHelp('preview.card'),
-      description:
-          'The chrome drawn around the elements. Omit it entirely '
-          'for bare content with no frame.',
+      description: huiText(
+        'The chrome drawn around the elements. Omit it entirely '
+        'for bare content with no frame.',
+      ),
       children: <Widget>[
         HuiSwitchRow(
-          label: 'Draw card chrome',
+          label: huiText('Draw card chrome'),
           value: card != null,
           onChanged: (bool value) => _mutate(
             value ? 'add card' : 'remove card',
@@ -356,20 +382,20 @@ class PreviewMatchEditor extends StatelessWidget {
 
   List<Widget> _cardFields(HuiPreviewCard card) => <Widget>[
     PreviewExprField(
-      label: 'Framed',
+      label: huiText('Framed'),
       raw: card.framed,
       kind: PreviewExprKind.boolean,
-      placeholder: 'true',
+      placeholder: huiText('true'),
       trailing: const HuiFieldHelp('preview.card.framed'),
       issues: _issuesFor('card.framed'),
       onChanged: (Object? v) =>
           _mutate('card framed', (HuiPreviewDoc d) => d.card?.framed = v),
     ),
     PreviewExprField(
-      label: 'Title',
+      label: huiText('Title'),
       raw: card.title,
       kind: PreviewExprKind.string,
-      placeholder: "'Furnace'",
+      placeholder: huiText("'Furnace'"),
       trailing: const HuiFieldHelp('preview.card.title'),
       issues: _issuesFor('card.title'),
       onChanged: (Object? v) => _mutate(
@@ -378,14 +404,14 @@ class PreviewMatchEditor extends StatelessWidget {
       ),
     ),
     PreviewExprField(
-      label: 'Accent',
+      label: huiText('Accent'),
       raw: card.accent,
       kind: PreviewExprKind.string,
-      placeholder: '#FF808080',
+      placeholder: huiText('#FF808080'),
       trailing: dom.div(classes: 'hui-field-tools', <Widget>[
         ?previewColorPicker(
           card.accent,
-          label: 'card accent',
+          label: huiText('card accent'),
           onPicked: (String hex) =>
               _mutate('card accent', (HuiPreviewDoc d) => d.card?.accent = hex),
         ),
@@ -398,11 +424,12 @@ class PreviewMatchEditor extends StatelessWidget {
       ),
     ),
     HuiField(
-      label: 'Min half width',
+      label: huiText('Min half width'),
       trailing: const HuiFieldHelp('preview.card.minHalfWidth'),
-      help:
-          'Minimum panel half-width in pixels, so a narrow card does not '
-          'collapse around a short title.',
+      help: huiText(
+        'Minimum panel half-width in pixels, so a narrow card does not '
+        'collapse around a short title.',
+      ),
       defaultValue: '82',
       onReset: (card.minHalfWidth ?? 82) == 82
           ? null
@@ -422,7 +449,7 @@ class PreviewMatchEditor extends StatelessWidget {
       ),
     ),
     ExtrasEditor(
-      title: 'Card',
+      title: huiText('Card'),
       extras: card.extras,
       onChanged: (String label, Map<String, dynamic> next) =>
           _mutate(label, (HuiPreviewDoc d) => d.card?.extras = next),
@@ -430,20 +457,23 @@ class PreviewMatchEditor extends StatelessWidget {
   ];
 
   Widget _install() => InspectorSection(
-    title: 'Install on the server',
+    title: huiText('Install on the server'),
     children: <Widget>[
-      HuiDetailRow('Preview file', '$huiPreviewFolder${store.menuId}.json'),
-      const HuiDetailRow('Permission', 'gloss.preview'),
+      HuiDetailRow(
+        huiText('Preview file'),
+        '$huiPreviewFolder${store.menuId}.json',
+      ),
+      HuiDetailRow(huiText('Permission'), 'gloss.preview'),
     ],
   );
 
   Widget _extras() => InspectorSection(
-    title: 'Extra keys',
+    title: huiText('Extra keys'),
     sectionKey: 'previewDoc.extras',
     initiallyOpen: false,
     children: <Widget>[
       ExtrasEditor(
-        title: 'Document',
+        title: huiText('Document'),
         extras: _doc.extras,
         onChanged: (String label, Map<String, dynamic> next) =>
             _mutate(label, (HuiPreviewDoc d) => d.extras = next),
@@ -523,19 +553,17 @@ class _PreviewNameChipsState extends State<_PreviewNameChips> {
               value: _draft,
               size: ComponentSize.sm,
               fullWidth: true,
-              placeholder: 'CHEST or OAK_*',
+              placeholder: huiText('CHEST or OAK_*'),
               onInput: (String value) => setState(() => _draft = value),
-              attributes: const <String, String>{
-                'autocomplete': 'off',
-                'spellcheck': 'false',
-              },
+              styles: huiTechnicalInputStyles,
+              attributes: huiTechnicalInputAttributes,
             ),
             Button(
               variant: ButtonVariant.outline,
               size: ButtonSize.sm,
               icon: ArcaneIcon.plus(size: IconSize.sm),
               onPressed: _add,
-              child: const Text('Add'),
+              child: Text(huiText('Add')),
             ),
           ],
         ),
@@ -568,7 +596,9 @@ class _PreviewNameChipsState extends State<_PreviewNameChips> {
         ),
         attributes: <String, String>{
           'type': 'button',
-          'aria-label': 'Remove $value',
+          'aria-label': huiText("Remove {value}", <String, Object?>{
+            'value': value,
+          }),
         },
         events: <String, void Function(Object)>{
           'click': (Object _) => _remove(value),
@@ -606,7 +636,7 @@ class _PreviewVarsRows extends StatefulWidget {
 class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
   final Map<String, String> _drafts = <String, String>{};
   String _newKey = '';
-  String? _newKeyError;
+  String Function()? _newKeyError;
 
   @override
   void didUpdateComponent(_PreviewVarsRows oldComponent) {
@@ -667,15 +697,22 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
   void _add() {
     final String key = _newKey.trim();
     if (key.isEmpty) {
-      setState(() => _newKeyError = 'Give the var a name.');
+      setState(() => _newKeyError = () => huiText('Give the var a name.'));
       return;
     }
     if (!_identifierPattern.hasMatch(key)) {
-      setState(() => _newKeyError = 'Letters, digits and underscore only.');
+      setState(
+        () =>
+            _newKeyError = () =>
+                huiText('Letters, digits and underscore only.'),
+      );
       return;
     }
     if (component.vars.containsKey(key)) {
-      setState(() => _newKeyError = '$key is already here.');
+      setState(
+        () => _newKeyError = () =>
+            huiText('{key} is already here.', <String, Object?>{'key': key}),
+      );
       return;
     }
     setState(() {
@@ -721,7 +758,7 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
     final Widget? swatch = value is String && value.startsWith('#')
         ? previewColorPicker(
             value,
-            label: '$key colour',
+            label: huiText("{key} colour", <String, Object?>{'key': key}),
             onPicked: (String hex) => _editValue(key, hex),
           )
         : null;
@@ -731,13 +768,16 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
         variant: ButtonVariant.ghost,
         size: ButtonSize.iconSm,
         onPressed: () => _remove(key),
-        attributes: <String, String>{'aria-label': 'Remove $key'},
+        attributes: <String, String>{
+          'aria-label': huiText("Remove {key}", <String, Object?>{'key': key}),
+        },
         child: ArcaneIcon.trash2(size: IconSize.sm),
       ),
-      help:
-          'A leading "#" is read as a colour literal (#RGB, #RRGGBB or '
-          '#AARRGGBB); anything else is a plain string, never parsed as an '
-          'expression.',
+      help: huiText(
+        'A leading "#" is read as a colour literal (#RGB, #RRGGBB or '
+        '#AARRGGBB); anything else is a plain string, never parsed as an '
+        'expression.',
+      ),
       control: dom.div(
         styles: const dom.Styles(
           raw: <String, String>{
@@ -758,7 +798,7 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
                 value: _valueText(key),
                 size: ComponentSize.sm,
                 fullWidth: true,
-                placeholder: 'value or #RRGGBB',
+                placeholder: huiText('value or #RRGGBB'),
                 onInput: (String value) => _editValue(key, value),
                 attributes: const <String, String>{
                   'autocomplete': 'off',
@@ -773,8 +813,8 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
   }
 
   Widget _addRow() => HuiField(
-    label: 'Add a var',
-    error: _newKeyError,
+    label: huiText('Add a var'),
+    error: _newKeyError?.call(),
     control: dom.div(
       styles: const dom.Styles(
         raw: <String, String>{
@@ -790,22 +830,20 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
           value: _newKey,
           size: ComponentSize.sm,
           fullWidth: true,
-          placeholder: 'accent',
+          placeholder: huiText('accent'),
           onInput: (String value) {
             _newKey = value;
             if (_newKeyError != null) setState(() => _newKeyError = null);
           },
-          attributes: const <String, String>{
-            'autocomplete': 'off',
-            'spellcheck': 'false',
-          },
+          styles: huiTechnicalInputStyles,
+          attributes: huiTechnicalInputAttributes,
         ),
         Button(
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
           icon: ArcaneIcon.plus(size: IconSize.sm),
           onPressed: _add,
-          child: const Text('Add'),
+          child: Text(huiText('Add')),
         ),
       ],
     ),

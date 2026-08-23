@@ -12,6 +12,7 @@ import 'inspector_widgets.dart';
 import 'real_drop_expr_field.dart';
 import 'real_drop_animation_inspector.dart';
 import 'reorder_list.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class RealDropInspector extends StatefulWidget {
   const RealDropInspector({required this.store, super.key});
@@ -49,27 +50,32 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     ]);
   }
 
-  Widget _header(GlossRealDropSettingsDoc doc) => dom.div(
-    classes: 'hui-inspector-headgroup',
-    <Widget>[
-      dom.div(classes: 'hui-inspector-header is-real-drops', <Widget>[
-        const HuiEyebrow('Real drops'),
-        dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
-      ]),
-      const dom.p(classes: 'hui-inspector-lede', <Widget>[
-        Text('Native item models, motion, landing, labels, and render limits.'),
-      ]),
-      HuiRevisionRow(revision: doc.revision),
-    ],
-  );
+  Widget _header(GlossRealDropSettingsDoc doc) =>
+      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+        dom.div(classes: 'hui-inspector-header is-real-drops', <Widget>[
+          HuiEyebrow(huiText('Real drops')),
+          dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+            Text(_store.menuId),
+          ]),
+        ]),
+        dom.p(classes: 'hui-inspector-lede', <Widget>[
+          Text(
+            huiText(
+              'Native item models, motion, landing, labels, and render limits.',
+            ),
+          ),
+        ]),
+        HuiRevisionRow(revision: doc.revision),
+      ]);
 
   Widget _limits(GlossRealDropSettingsDoc doc) => InspectorSection(
-    title: 'Performance and density',
+    title: huiText('Performance and density'),
     children: <Widget>[
       _integer(
-        label: 'Moving update interval',
-        help:
-            'Ticks between interpolated targets while an item is moving. 1..20.',
+        label: huiText('Moving update interval'),
+        help: huiText(
+          'Ticks between interpolated targets while an item is moving. 1..20.',
+        ),
         path: r'$.limits.updateIntervalTicks',
         value: doc.limits.updateIntervalTicks,
         onChanged: (int value) => _mutate(
@@ -79,9 +85,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _integer(
-        label: 'Settled poll interval',
-        help:
-            'Ticks between checks after the item is stable; landing slides retain the moving cadence. 2..200.',
+        label: huiText('Settled poll interval'),
+        help: huiText(
+          'Ticks between checks after the item is stable; landing slides retain the moving cadence. 2..200.',
+        ),
         path: r'$.limits.settledPollIntervalTicks',
         value: doc.limits.settledPollIntervalTicks,
         onChanged: (int value) => _mutate(
@@ -91,8 +98,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _integer(
-        label: 'Models per stack',
-        help: 'Maximum visible item models for one dropped stack. 1..5.',
+        label: huiText('Models per stack'),
+        help: huiText(
+          'Maximum visible item models for one dropped stack. 1..5.',
+        ),
         path: r'$.limits.maxVisualsPerStack',
         value: doc.limits.maxVisualsPerStack,
         onChanged: (int value) => _mutate(
@@ -102,8 +111,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _integer(
-        label: 'Models per chunk',
-        help: 'Hard chunk budget across all dropped stacks. 8..1024.',
+        label: huiText('Models per chunk'),
+        help: huiText('Hard chunk budget across all dropped stacks. 8..1024.'),
         path: r'$.limits.maxVisualsPerChunk',
         value: doc.limits.maxVisualsPerChunk,
         onChanged: (int value) => _mutate(
@@ -113,8 +122,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Model view range',
-        help: 'Client tracking range for drop models in blocks. 4..128.',
+        label: huiText('Model view range'),
+        help: huiText(
+          'Client tracking range for drop models in blocks. 4..128.',
+        ),
         path: r'$.limits.viewRange',
         value: doc.limits.viewRange,
         step: 1,
@@ -124,8 +135,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Stack spread',
-        help: 'Horizontal separation between models in one stack. 0..1.',
+        label: huiText('Stack spread'),
+        help: huiText(
+          'Horizontal separation between models in one stack. 0..1.',
+        ),
         path: r'$.limits.spread',
         value: doc.limits.spread,
         onChanged: (double value) => _mutate(
@@ -137,11 +150,13 @@ class _RealDropInspectorState extends State<RealDropInspector> {
   );
 
   Widget _scales(GlossRealDropSettingsDoc doc) => InspectorSection(
-    title: 'Model scale',
+    title: huiText('Model scale'),
     children: <Widget>[
       _decimal(
-        label: 'Default items',
-        help: 'Scale for ordinary three-dimensional block models. 0.05..2.',
+        label: huiText('Default items'),
+        help: huiText(
+          'Scale for ordinary three-dimensional block models. 0.05..2.',
+        ),
         path: r'$.scale.defaultScale',
         value: doc.scale.defaultScale,
         onChanged: (double value) => _mutate(
@@ -151,9 +166,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Flat items',
-        help:
-            'Scale for non-block items rendered by ItemDisplay. Every block material uses true BlockDisplay geometry. 0.05..2.',
+        label: huiText('Flat items'),
+        help: huiText(
+          'Scale for non-block items rendered by ItemDisplay. Every block material uses true BlockDisplay geometry. 0.05..2.',
+        ),
         path: r'$.scale.flatItems',
         value: doc.scale.flatItems,
         onChanged: (double value) => _mutate(
@@ -162,9 +178,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Thin blocks',
-        help:
-            'Scale for slabs, carpets, pressure plates, and snow layers. 0.05..2.',
+        label: huiText('Thin blocks'),
+        help: huiText(
+          'Scale for slabs, carpets, pressure plates, and snow layers. 0.05..2.',
+        ),
         path: r'$.scale.thinBlocks',
         value: doc.scale.thinBlocks,
         onChanged: (double value) => _mutate(
@@ -176,10 +193,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
   );
 
   Widget _motion(GlossRealDropSettingsDoc doc) => InspectorSection(
-    title: 'Tumble',
+    title: huiText('Tumble'),
     children: <Widget>[
       HuiSwitchRow(
-        label: 'Tumble while moving',
+        label: huiText('Tumble while moving'),
         value: doc.motion.tumble,
         onChanged: (bool value) => _mutate(
           'drop tumble',
@@ -187,8 +204,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Animation speed',
-        help: 'Multiplier applied to every tumble axis. 0.1..4.',
+        label: huiText('Animation speed'),
+        help: huiText('Multiplier applied to every tumble axis. 0.1..4.'),
         path: r'$.motion.speedMultiplier',
         value: doc.motion.speedMultiplier,
         onChanged: (double value) => _mutate(
@@ -198,8 +215,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'X rotation',
-        help: 'Base X-axis degrees per second. -1440..1440.',
+        label: huiText('X rotation'),
+        help: huiText('Base X-axis degrees per second. -1440..1440.'),
         path: r'$.motion.degreesPerSecondX',
         value: doc.motion.degreesPerSecondX,
         step: 5,
@@ -210,8 +227,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Y rotation',
-        help: 'Base Y-axis degrees per second. -1440..1440.',
+        label: huiText('Y rotation'),
+        help: huiText('Base Y-axis degrees per second. -1440..1440.'),
         path: r'$.motion.degreesPerSecondY',
         value: doc.motion.degreesPerSecondY,
         step: 5,
@@ -222,8 +239,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Z rotation',
-        help: 'Base Z-axis degrees per second. -1440..1440.',
+        label: huiText('Z rotation'),
+        help: huiText('Base Z-axis degrees per second. -1440..1440.'),
         path: r'$.motion.degreesPerSecondZ',
         value: doc.motion.degreesPerSecondZ,
         step: 5,
@@ -234,8 +251,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Per-item variance',
-        help: 'Deterministic variation around the base axes. 0..1.',
+        label: huiText('Per-item variance'),
+        help: huiText('Deterministic variation around the base axes. 0..1.'),
         path: r'$.motion.variance',
         value: doc.motion.variance,
         onChanged: (double value) => _mutate(
@@ -244,7 +261,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       HuiSwitchRow(
-        label: 'Change tumble on bounce',
+        label: huiText('Change tumble on bounce'),
         value: doc.motion.changeOnBounce,
         onChanged: (bool value) => _mutate(
           'bounce tumble change',
@@ -253,9 +270,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Throw momentum',
-        help:
-            'How strongly real movement speed increases tumble speed. 0 ignores throw momentum; higher values tumble harder throws faster. 0..4.',
+        label: huiText('Throw momentum'),
+        help: huiText(
+          'How strongly real movement speed increases tumble speed. 0 ignores throw momentum; higher values tumble harder throws faster. 0..4.',
+        ),
         path: r'$.motion.velocityInfluence',
         value: doc.motion.velocityInfluence,
         onChanged: (double value) => _mutate(
@@ -265,9 +283,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Submerged spin',
-        help:
-            'Angular-speed multiplier while the item is in water. 0 stops rotation; 1 preserves airborne spin. 0..1.',
+        label: huiText('Submerged spin'),
+        help: huiText(
+          'Angular-speed multiplier while the item is in water. 0 stops rotation; 1 preserves airborne spin. 0..1.',
+        ),
         path: r'$.motion.submergedSpinMultiplier',
         value: doc.motion.submergedSpinMultiplier,
         onChanged: (double value) => _mutate(
@@ -277,9 +296,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Ground roll',
-        help:
-            'Rotation produced by real distance travelled on a surface. 0 slides without rolling; 1 uses the model radius. 0..4.',
+        label: huiText('Ground roll'),
+        help: huiText(
+          'Rotation produced by real distance travelled on a surface. 0 slides without rolling; 1 uses the model radius. 0..4.',
+        ),
         path: r'$.motion.groundRollMultiplier',
         value: doc.motion.groundRollMultiplier,
         onChanged: (double value) => _mutate(
@@ -292,20 +312,21 @@ class _RealDropInspectorState extends State<RealDropInspector> {
   );
 
   Widget _landing(GlossRealDropSettingsDoc doc) => InspectorSection(
-    title: 'Landing',
+    title: huiText('Landing'),
     children: <Widget>[
       HuiField(
-        label: 'Landing mode',
-        help:
-            'Natural lets block models settle on any of six faces; Flat lays every model down; Upright removes pitch and roll.',
+        label: huiText('Landing mode'),
+        help: huiText(
+          'Natural lets block models settle on any of six faces; Flat lays every model down; Upright removes pitch and roll.',
+        ),
         control: ArcaneSelect(
           value: doc.landing.mode,
           size: ComponentSize.sm,
           fullWidth: true,
-          options: const <ArcaneSelectOption>[
-            ArcaneSelectOption(label: 'Natural', value: 'NATURAL'),
-            ArcaneSelectOption(label: 'Flat', value: 'FLAT'),
-            ArcaneSelectOption(label: 'Upright', value: 'UPRIGHT'),
+          options: <ArcaneSelectOption>[
+            ArcaneSelectOption(label: huiText('Natural'), value: 'NATURAL'),
+            ArcaneSelectOption(label: huiText('Flat'), value: 'FLAT'),
+            ArcaneSelectOption(label: huiText('Upright'), value: 'UPRIGHT'),
           ],
           onChange: (String value) => _mutate(
             'drop landing mode',
@@ -314,9 +335,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Natural face rotation',
-        help:
-            'Maximum in-face variation for stationary or rebuilt natural blocks; momentum landings preserve their physical heading. 0..45.',
+        label: huiText('Natural face rotation'),
+        help: huiText(
+          'Maximum in-face variation for stationary or rebuilt natural blocks; momentum landings preserve their physical heading. 0..45.',
+        ),
         path: r'$.landing.tiltDegrees',
         value: doc.landing.tiltDegrees,
         step: 1,
@@ -327,7 +349,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       HuiSwitchRow(
-        label: 'Random landing yaw',
+        label: huiText('Random landing yaw'),
         value: doc.landing.randomYaw,
         onChanged: (bool value) => _mutate(
           'drop landing yaw',
@@ -335,9 +357,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _integer(
-        label: 'Landing transition',
-        help:
-            'Client interpolation ticks between continuous pose samples. 0..20.',
+        label: huiText('Landing transition'),
+        help: huiText(
+          'Client interpolation ticks between continuous pose samples. 0..20.',
+        ),
         path: r'$.landing.transitionTicks',
         value: doc.landing.transitionTicks,
         onChanged: (int value) => _mutate(
@@ -347,9 +370,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Resting face pull',
-        help:
-            'How strongly gravity pulls a nearly still item toward its nearest stable face each sample. 0..1.',
+        label: huiText('Resting face pull'),
+        help: huiText(
+          'How strongly gravity pulls a nearly still item toward its nearest stable face each sample. 0..1.',
+        ),
         path: r'$.landing.faceAttraction',
         value: doc.landing.faceAttraction,
         onChanged: (double value) => _mutate(
@@ -359,9 +383,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Moving face pull',
-        help:
-            'Face attraction retained while the item is still rolling. Lower values preserve momentum longer. 0..1.',
+        label: huiText('Moving face pull'),
+        help: huiText(
+          'Face attraction retained while the item is still rolling. Lower values preserve momentum longer. 0..1.',
+        ),
         path: r'$.landing.movingFaceAttraction',
         value: doc.landing.movingFaceAttraction,
         onChanged: (double value) => _mutate(
@@ -371,9 +396,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Face snap tolerance',
-        help:
-            'Final subvisual angle where settling may become exactly flush. 0.05..10 degrees.',
+        label: huiText('Face snap tolerance'),
+        help: huiText(
+          'Final subvisual angle where settling may become exactly flush. 0.05..10 degrees.',
+        ),
         path: r'$.landing.alignmentDegrees',
         value: doc.landing.alignmentDegrees,
         onChanged: (double value) => _mutate(
@@ -383,9 +409,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _integer(
-        label: 'Stable delay',
-        help:
-            'Ticks the item must remain aligned and motionless before sparse settled polling. 0..100.',
+        label: huiText('Stable delay'),
+        help: huiText(
+          'Ticks the item must remain aligned and motionless before sparse settled polling. 0..100.',
+        ),
         path: r'$.landing.settleDelayTicks',
         value: doc.landing.settleDelayTicks,
         onChanged: (int value) => _mutate(
@@ -398,10 +425,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
   );
 
   Widget _labels(GlossRealDropSettingsDoc doc) => InspectorSection(
-    title: 'Nametag',
+    title: huiText('Nametag'),
     children: <Widget>[
       HuiSwitchRow(
-        label: 'Show item labels',
+        label: huiText('Show item labels'),
         value: doc.labels.enabled,
         onChanged: (bool value) => _mutate(
           'drop labels',
@@ -409,8 +436,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Height',
-        help: 'Blocks above the dropped item. 0..4.',
+        label: huiText('Height'),
+        help: huiText('Blocks above the dropped item. 0..4.'),
         path: r'$.labels.yOffset',
         value: doc.labels.yOffset,
         onChanged: (double value) => _mutate(
@@ -419,8 +446,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Text scale',
-        help: 'TextDisplay scale. 0.1..4.',
+        label: huiText('Text scale'),
+        help: huiText('TextDisplay scale. 0.1..4.'),
         path: r'$.labels.scale',
         value: doc.labels.scale,
         onChanged: (double value) => _mutate(
@@ -429,8 +456,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _decimal(
-        label: 'Label view range',
-        help: 'Client tracking range for item labels. 4..128.',
+        label: huiText('Label view range'),
+        help: huiText('Client tracking range for item labels. 4..128.'),
         path: r'$.labels.viewRange',
         value: doc.labels.viewRange,
         step: 1,
@@ -440,17 +467,23 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       HuiField(
-        label: 'Billboard',
-        help: 'How the text rotates toward the viewer.',
+        label: huiText('Billboard'),
+        help: huiText('How the text rotates toward the viewer.'),
         control: ArcaneSelect(
           value: doc.labels.billboard,
           size: ComponentSize.sm,
           fullWidth: true,
-          options: const <ArcaneSelectOption>[
-            ArcaneSelectOption(label: 'Center', value: 'CENTER'),
-            ArcaneSelectOption(label: 'Fixed', value: 'FIXED'),
-            ArcaneSelectOption(label: 'Horizontal', value: 'HORIZONTAL'),
-            ArcaneSelectOption(label: 'Vertical', value: 'VERTICAL'),
+          options: <ArcaneSelectOption>[
+            ArcaneSelectOption(
+              label: huiTextKey('billboard.center', 'Center'),
+              value: 'CENTER',
+            ),
+            ArcaneSelectOption(label: huiText('Fixed'), value: 'FIXED'),
+            ArcaneSelectOption(
+              label: huiText('Horizontal'),
+              value: 'HORIZONTAL',
+            ),
+            ArcaneSelectOption(label: huiText('Vertical'), value: 'VERTICAL'),
           ],
           onChange: (String value) => _mutate(
             'drop label billboard',
@@ -460,7 +493,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       HuiSwitchRow(
-        label: 'See through blocks',
+        label: huiText('See through blocks'),
         value: doc.labels.seeThrough,
         onChanged: (bool value) => _mutate(
           'drop label visibility',
@@ -468,7 +501,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       HuiSwitchRow(
-        label: 'Text shadow',
+        label: huiText('Text shadow'),
         value: doc.labels.shadow,
         onChanged: (bool value) => _mutate(
           'drop label shadow',
@@ -476,7 +509,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       HuiSwitchRow(
-        label: 'Background',
+        label: huiText('Background'),
         value: doc.labels.background,
         onChanged: (bool value) => _mutate(
           'drop label background',
@@ -484,8 +517,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _integer(
-        label: 'Background red',
-        help: 'Red channel. 0..255.',
+        label: huiText('Background red'),
+        help: huiText('Red channel. 0..255.'),
         path: r'$.labels.backgroundRed',
         value: doc.labels.backgroundRed,
         onChanged: (int value) => _mutate(
@@ -495,8 +528,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _integer(
-        label: 'Background green',
-        help: 'Green channel. 0..255.',
+        label: huiText('Background green'),
+        help: huiText('Green channel. 0..255.'),
         path: r'$.labels.backgroundGreen',
         value: doc.labels.backgroundGreen,
         onChanged: (int value) => _mutate(
@@ -506,8 +539,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _integer(
-        label: 'Background blue',
-        help: 'Blue channel. 0..255.',
+        label: huiText('Background blue'),
+        help: huiText('Blue channel. 0..255.'),
         path: r'$.labels.backgroundBlue',
         value: doc.labels.backgroundBlue,
         onChanged: (int value) => _mutate(
@@ -517,8 +550,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _integer(
-        label: 'Background alpha',
-        help: 'Background opacity. 0..255.',
+        label: huiText('Background alpha'),
+        help: huiText('Background opacity. 0..255.'),
         path: r'$.labels.backgroundAlpha',
         value: doc.labels.backgroundAlpha,
         onChanged: (int value) => _mutate(
@@ -531,10 +564,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
   );
 
   Widget _filters(GlossRealDropSettingsDoc doc) => InspectorSection(
-    title: 'Filters',
+    title: huiText('Filters'),
     children: <Widget>[
       HuiSwitchRow(
-        label: 'Only player-thrown drops',
+        label: huiText('Only player-thrown drops'),
         value: doc.filters.onlyPlayerDrops,
         onChanged: (bool value) => _mutate(
           'drop source filter',
@@ -543,8 +576,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _list(
-        label: 'Disabled worlds',
-        help: 'Comma-separated world names that keep vanilla item rendering.',
+        label: huiText('Disabled worlds'),
+        help: huiText(
+          'Comma-separated world names that keep vanilla item rendering.',
+        ),
         value: doc.filters.disabledWorlds,
         onChanged: (List<String> value) => _mutate(
           'disabled drop worlds',
@@ -553,8 +588,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       _list(
-        label: 'Material blacklist',
-        help: 'Comma-separated Bukkit material names kept vanilla.',
+        label: huiText('Material blacklist'),
+        help: huiText('Comma-separated Bukkit material names kept vanilla.'),
         value: doc.filters.materialBlacklist,
         onChanged: (List<String> value) => _mutate(
           'drop material blacklist',
@@ -577,16 +612,17 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     final GlossRealDropPhysics? physics = doc.physics;
     final bool enabled = physics?.enabled ?? false;
     return InspectorSection(
-      title: 'Item physics',
+      title: huiText('Item physics'),
       sectionKey: 'realDrops.physics',
-      description:
-          'Real changes to how the dropped item moves. These write to the '
-          'entity, so its position, its collision and its pickup radius all '
-          'follow.',
+      description: huiText(
+        'Real changes to how the dropped item moves. These write to the '
+        'entity, so its position, its collision and its pickup radius all '
+        'follow.',
+      ),
       trailing: const HuiFieldHelp('realDrops.physics'),
       children: <Widget>[
         HuiSwitchRow(
-          label: 'Move the item entity',
+          label: huiText('Move the item entity'),
           value: enabled,
           trailing: const HuiFieldHelp('realDrops.physics.enabled'),
           onChanged: (bool value) => _mutatePhysics(
@@ -595,7 +631,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
           ),
         ),
         _physicsNumber(
-          label: 'Gravity multiplier',
+          label: huiText('Gravity multiplier'),
           docKey: 'realDrops.physics.gravityMultiplier',
           path: r'$.physics.gravityMultiplier',
           value: physics?.gravityMultiplier ?? 1,
@@ -606,7 +642,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
           ),
         ),
         _physicsNumber(
-          label: 'Bounce',
+          label: huiText('Bounce'),
           docKey: 'realDrops.physics.bounce',
           path: r'$.physics.bounce',
           value: physics?.bounce ?? 0,
@@ -617,7 +653,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
           ),
         ),
         _physicsNumber(
-          label: 'Water buoyancy',
+          label: huiText('Water buoyancy'),
           docKey: 'realDrops.physics.waterBuoyancy',
           path: r'$.physics.waterBuoyancy',
           value: physics?.waterBuoyancy ?? 0,
@@ -628,7 +664,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
           ),
         ),
         _physicsNumber(
-          label: 'Water drag',
+          label: huiText('Water drag'),
           docKey: 'realDrops.physics.waterDrag',
           path: r'$.physics.waterDrag',
           value: physics?.waterDrag ?? 0,
@@ -677,17 +713,18 @@ class _RealDropInspectorState extends State<RealDropInspector> {
   Widget _script(GlossRealDropSettingsDoc doc) {
     final GlossRealDropScript? script = doc.script;
     return InspectorSection(
-      title: 'Script',
+      title: huiText('Script'),
       sectionKey: 'realDrops.script',
-      description:
-          'Expressions are compiled once; stack-shared and settled-static '
-          'results are reused when their inputs do not change. They move the '
-          'displays only: the item, its collision and its pickup radius stay '
-          'where Minecraft put them.',
+      description: huiText(
+        'Expressions are compiled once; stack-shared and settled-static '
+        'results are reused when their inputs do not change. They move the '
+        'displays only: the item, its collision and its pickup radius stay '
+        'where Minecraft put them.',
+      ),
       trailing: const HuiFieldHelp('realDrops.script'),
       children: <Widget>[
         HuiSwitchRow(
-          label: 'Run the script',
+          label: huiText('Run the script'),
           value: script?.enabled ?? false,
           trailing: const HuiFieldHelp('realDrops.script.enabled'),
           onChanged: (bool value) => _mutateScript(
@@ -697,31 +734,31 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
         _vars(script),
         _axis(
-          title: 'Offset',
+          title: huiText('Offset'),
           docKey: 'realDrops.script.offset',
           field: 'offset',
           axis: script?.offset,
           neutral: '0',
         ),
         _axis(
-          title: 'Rotation',
+          title: huiText('Rotation'),
           docKey: 'realDrops.script.rotation',
           field: 'rotation',
           axis: script?.rotation,
           neutral: '0',
         ),
         _axis(
-          title: 'Scale',
+          title: huiText('Scale'),
           docKey: 'realDrops.script.scale',
           field: 'scale',
           axis: script?.scale,
           neutral: '1',
         ),
         RealDropExprField(
-          label: 'Glow',
+          label: huiText('Glow'),
           docKey: 'realDrops.script.glow',
           value: script?.glow ?? '',
-          placeholder: "materialIs('torch') ? #FFAA55 : 0",
+          placeholder: huiText("materialIs('torch') ? #FFAA55 : 0"),
           issues: _exact(r'$.script.glow'),
           onChanged: (String value) => _mutateScript(
             'drop script glow',
@@ -729,7 +766,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
           ),
         ),
         RealDropExprField(
-          label: 'Visible',
+          label: huiText('Visible'),
           docKey: 'realDrops.script.visible',
           value: script?.visible ?? 'true',
           neutral: 'true',
@@ -799,22 +836,26 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     final List<GlossRealDropScriptVar> vars =
         script?.vars ?? const <GlossRealDropScriptVar>[];
     return dom.div(classes: 'hui-drop-subgroup', <Widget>[
-      const dom.div(classes: 'hui-drop-subhead', <Widget>[
-        Text('Variables'),
-        HuiFieldHelp('realDrops.script.vars'),
+      dom.div(classes: 'hui-drop-subhead', <Widget>[
+        Text(huiText('Variables')),
+        const HuiFieldHelp('realDrops.script.vars'),
       ]),
       HuiInlineIssues(_issuesFor(r'$.script.vars')),
       if (vars.isEmpty)
-        const dom.p(classes: 'hui-drop-empty', <Widget>[
+        dom.p(classes: 'hui-drop-empty', <Widget>[
           Text(
-            'No variables. Name a condition once here and every expression '
-            'after it can read it.',
+            huiText(
+              'No variables. Name a condition once here and every expression '
+              'after it can read it.',
+            ),
           ),
         ])
       else
         HuiReorderList(
           itemCount: vars.length,
-          handleLabel: 'Drag to reorder — order decides what each one can read',
+          handleLabel: huiText(
+            'Drag to reorder — order decides what each one can read',
+          ),
           onReorder: (int from, int to) => _mutateScript(
             'reorder drop script variables',
             (GlossRealDropScript edited) =>
@@ -836,7 +877,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
                   ),
                 ),
               ),
-        child: const Text('Add variable'),
+        child: Text(huiText('Add variable')),
       ),
     ]);
   }
@@ -848,11 +889,11 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         value: variable.name,
         size: ComponentSize.sm,
         fullWidth: true,
-        placeholder: 'name',
-        attributes: const <String, String>{
-          'autocomplete': 'off',
-          'spellcheck': 'false',
-          'aria-label': 'Variable name',
+        placeholder: huiText('name'),
+        styles: huiTechnicalInputStyles,
+        attributes: <String, String>{
+          ...huiTechnicalInputAttributes,
+          'aria-label': huiText('Variable name'),
         },
         onInput: (String value) => _mutateScript(
           'rename drop script variable',
@@ -861,10 +902,10 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         ),
       ),
       RealDropExprField(
-        label: 'Expression',
+        label: huiText('Expression'),
         bare: true,
         value: variable.expression,
-        placeholder: 'expression',
+        placeholder: huiText('expression'),
         issues: _exact('\$.script.vars.\${variable.name}'),
         onChanged: (String value) => _mutateScript(
           'edit drop script variable',
@@ -873,19 +914,19 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       ),
       dom.div(classes: 'hui-drop-rowactions', <Widget>[
         _rowButton(
-          label: 'Move up',
+          label: huiText('Move up'),
           icon: ArcaneIcon.chevronUp(size: IconSize.sm),
           onPressed: index == 0 ? null : () => _moveVar(index, index - 1),
         ),
         _rowButton(
-          label: 'Move down',
+          label: huiText('Move down'),
           icon: ArcaneIcon.chevronDown(size: IconSize.sm),
           onPressed: index >= vars.length - 1
               ? null
               : () => _moveVar(index, index + 1),
         ),
         _rowButton(
-          label: 'Remove variable',
+          label: huiText('Remove variable'),
           icon: ArcaneIcon.trash2(size: IconSize.sm),
           onPressed: () => _mutateScript(
             'remove drop script variable',
@@ -985,6 +1026,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       value: value.join(', '),
       size: ComponentSize.sm,
       fullWidth: true,
+      styles: huiTechnicalInputStyles,
       onInput: (String raw) => onChanged(
         raw
             .split(',')
@@ -992,6 +1034,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
             .where((String entry) => entry.isNotEmpty)
             .toList(),
       ),
+      attributes: huiTechnicalInputAttributes,
     ),
   );
 

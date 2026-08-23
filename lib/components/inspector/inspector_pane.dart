@@ -17,6 +17,7 @@ import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
 import 'component_inspector.dart' show huiComponentIdFieldId;
 import 'inspector_session.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Dispatched by the canvas on a double click (`canvas_interactions.dart:274`).
 const String huiInspectorFocusEvent = 'hui-inspector-focus';
@@ -131,8 +132,10 @@ class _InspectorPaneState extends State<InspectorPane> {
     if (!component.store.hasActiveDocument) {
       return dom.div(classes: 'hui-inspector-pane', <Widget>[
         ArcaneEmptyState(
-          title: 'No document selected',
-          description: 'Create or open a document to inspect its settings.',
+          title: huiText('No document selected'),
+          description: huiText(
+            'Create or open a document to inspect its settings.',
+          ),
           icon: ArcaneIcon.panelRight(size: IconSize.lg),
         ),
       ]);

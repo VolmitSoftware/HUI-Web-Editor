@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -22,13 +24,13 @@ final class BubbleStyleDocumentType extends GlossDocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.bubbleStyle;
 
   @override
-  String get noun => 'bubble style';
+  String get noun => huiText('bubble style');
 
   @override
-  String get createLabel => 'New bubble style';
+  String get createLabel => huiText('New bubble style');
 
   @override
-  String get pluralLabel => 'Bubble styles';
+  String get pluralLabel => huiText('Bubble styles');
 
   @override
   int get tabOrder => 90;
@@ -37,7 +39,7 @@ final class BubbleStyleDocumentType extends GlossDocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.bubble;
 
   @override
-  String get surfaceLabel => 'Bubbles';
+  String get surfaceLabel => huiText('Bubbles');
 
   @override
   String? get syncWireKind => 'bubble-style';

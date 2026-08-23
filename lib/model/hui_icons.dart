@@ -398,12 +398,12 @@ class HuiTextImageIcon extends HuiIcon {
 class HuiAnimatedImageIcon extends HuiIcon {
   List<String> source;
 
-  /// Ticks per frame (20 ticks = 1 s). Anything below 1 advances every tick.
+  /// Ticks per frame (20 ticks = 1 s). The runtime accepts 2 through 1200.
   int speed;
 
   HuiAnimatedImageIcon([
     List<String>? source,
-    this.speed = 1,
+    this.speed = 2,
     HuiIconStyle? style,
   ]) : source = source ?? <String>[] {
     this.style = style;

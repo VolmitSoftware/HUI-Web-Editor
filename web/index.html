@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en-US" dir="ltr" class="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
@@ -11,7 +11,7 @@
   <meta property="og:image" content="assets/brand/icon-512x512.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@VolmitSoftware">
-  <link rel="manifest" href="manifest.webmanifest">
+  <link id="hui-manifest" rel="manifest">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/brand/apple-touch-icon.png">
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32x32.png">
@@ -22,14 +22,64 @@
     // no light/dark flash before boot. Allowlist, never blocklist.
     (function () {
       var mode = 'dark';
+      var locale = 'en_US';
+      var localeTags = {
+        en_US: 'en-US', de_DE: 'de-DE', es_ES: 'es-ES', fi_FI: 'fi-FI',
+        fr_FR: 'fr-FR', he_IL: 'he-IL', it_IT: 'it-IT', 'ja-JP': 'ja-JP',
+        ko_KR: 'ko-KR', lt_LT: 'lt-LT', nl_NL: 'nl-NL', pl_PL: 'pl-PL',
+        pt_PT: 'pt-PT', ru_RU: 'ru-RU', tr_TR: 'tr-TR', vi_VI: 'vi-VN',
+        zh_CN: 'zh-CN', zh_TW: 'zh-TW'
+      };
+      var localeLanguages = {
+        en: 'en_US', de: 'de_DE', es: 'es_ES', fi: 'fi_FI', fr: 'fr_FR',
+        he: 'he_IL', it: 'it_IT', ja: 'ja-JP', ko: 'ko_KR', lt: 'lt_LT',
+        nl: 'nl_NL', pl: 'pl_PL', pt: 'pt_PT', ru: 'ru_RU', tr: 'tr_TR',
+        vi: 'vi_VI', zh: 'zh_CN'
+      };
+      var resolveLocale = function (candidate) {
+        var normalized = (candidate || '').replace('_', '-').toLowerCase();
+        for (var code in localeTags) {
+          if (code.replace('_', '-').toLowerCase() === normalized ||
+              localeTags[code].toLowerCase() === normalized) { return code; }
+        }
+        var parts = normalized.split('-');
+        if (parts[0] === 'zh' &&
+            (parts.indexOf('tw') >= 0 || parts.indexOf('hk') >= 0 ||
+             parts.indexOf('mo') >= 0 || parts.indexOf('hant') >= 0)) {
+          return 'zh_TW';
+        }
+        return localeLanguages[normalized.split('-')[0]] || null;
+      };
+      var storedLocale = null;
       try {
         var stored = window.localStorage.getItem('gloss.theme')
           || window.localStorage.getItem('holoui.theme');
         if (stored === 'light' || stored === 'dark') { mode = stored; }
+        storedLocale = window.localStorage.getItem('gloss.locale');
       } catch (e) { /* private mode */ }
+      var resolvedStoredLocale = resolveLocale(storedLocale);
+      locale = resolvedStoredLocale || locale;
+      if (!resolvedStoredLocale) {
+        var preferredLocales = window.navigator.languages &&
+          window.navigator.languages.length > 0
+          ? window.navigator.languages
+          : [window.navigator.language];
+        for (var index = 0; index < preferredLocales.length; index++) {
+          var preferredLocale = resolveLocale(preferredLocales[index]);
+          if (preferredLocale) {
+            locale = preferredLocale;
+            break;
+          }
+        }
+      }
       var root = document.documentElement;
       root.classList.remove('light', 'dark');
       root.classList.add(mode);
+      root.lang = localeTags[locale];
+      root.dir = locale === 'he_IL' ? 'rtl' : 'ltr';
+      document.getElementById('hui-manifest').setAttribute(
+        'href', '/manifests/' + locale + '.webmanifest'
+      );
     })();
   </script>
 

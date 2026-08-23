@@ -108,6 +108,7 @@ import 'code_drafts.dart';
 import 'code_hover.dart';
 import 'json_caret.dart';
 import 'json_highlight.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class CodeEditorView extends StatefulWidget {
   const CodeEditorView({required this.store, this.drafts, super.key});
@@ -158,10 +159,10 @@ class _CodeEditorViewState extends State<CodeEditorView> {
 
   /// Loud, and only ever set by an action the user took: a refused Save, or a
   /// Format that could not parse.
-  String? _actionError;
+  String Function()? _actionError;
 
   /// Quiet, recomputed as the user types. Never blocks anything.
-  String? _syntaxHint;
+  String Function()? _syntaxHint;
 
   bool _saved = false;
 
@@ -177,6 +178,7 @@ class _CodeEditorViewState extends State<CodeEditorView> {
 
   Timer? _adoptTimer;
   DateTime? _lastExternalAt;
+  late String _renderedLocale;
 
   // --- completion ---
   bool _completionOpen = false;
@@ -214,6 +216,7 @@ class _CodeEditorViewState extends State<CodeEditorView> {
   @override
   void initState() {
     super.initState();
+    _renderedLocale = huiLocalizations.activeLocale;
     _bindDocument();
     _store.addListener(_onStoreChanged);
   }
@@ -221,6 +224,12 @@ class _CodeEditorViewState extends State<CodeEditorView> {
   @override
   void didUpdateComponent(CodeEditorView oldComponent) {
     super.didUpdateComponent(oldComponent);
+    final String locale = huiLocalizations.activeLocale;
+    if (_renderedLocale != locale) {
+      _renderedLocale = locale;
+      _closeCompletion();
+      _clearHover();
+    }
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);
@@ -363,14 +372,14 @@ class _CodeEditorViewState extends State<CodeEditorView> {
   /// says nothing useful about a buffer the user is still halfway through
   /// typing. The loud strip a refused Save raises still carries the real
   /// message, because by then the user has asked for it.
-  String? _hintFor(String text) {
+  String Function()? _hintFor(String text) {
     if (text.length > huiCodeHintLimit) return null;
-    if (text.trim().isEmpty) return 'Empty buffer';
+    if (text.trim().isEmpty) return () => huiText('Empty buffer');
     try {
       jsonDecode(text);
       return null;
     } on FormatException catch (_) {
-      return 'Not valid JSON yet';
+      return () => huiText('Not valid JSON yet');
     }
   }
 
@@ -392,7 +401,8 @@ class _CodeEditorViewState extends State<CodeEditorView> {
         if (_documentId.isNotEmpty) _drafts.drop(_documentId);
       } else {
         _saved = false;
-        _actionError = _store.codeError ?? 'That is not valid JSON.';
+        _actionError = () =>
+            _store.codeError ?? huiText('That is not valid JSON.');
       }
     });
   }
@@ -410,8 +420,12 @@ class _CodeEditorViewState extends State<CodeEditorView> {
     final Object? decoded;
     try {
       decoded = jsonDecode(_text);
-    } on FormatException catch (e) {
-      setState(() => _actionError = 'Cannot format: ${e.message}');
+    } on FormatException catch (_) {
+      setState(
+        () =>
+            _actionError = () =>
+                huiText('Cannot format: the buffer is not valid JSON.'),
+      );
       return;
     }
     final String formatted = huiWriteJson(decoded);
@@ -444,9 +458,8 @@ class _CodeEditorViewState extends State<CodeEditorView> {
   /// same thing.
   void _onKeyDown(Object? event) {
     final String key = domEventKey(event);
-    final ({bool ctrl, bool meta, bool shift, bool alt}) mods = huiCodeModifiers(
-      event,
-    );
+    final ({bool ctrl, bool meta, bool shift, bool alt}) mods =
+        huiCodeModifiers(event);
     final bool mod = mods.ctrl || mods.meta;
 
     if (_completionOpen) {
@@ -494,7 +507,9 @@ class _CodeEditorViewState extends State<CodeEditorView> {
       // The container-preview kind is the only editable one with no model.
       // A quiet line, not the red strip: the user asked for help and there is
       // none, which is not an error they made.
-      setState(() => _syntaxHint = 'No completion model for this kind');
+      setState(
+        () => _syntaxHint = () => huiText('No completion model for this kind'),
+      );
       return;
     }
     final (int, int)? selection = readTextSelection(_areaId);
@@ -507,7 +522,7 @@ class _CodeEditorViewState extends State<CodeEditorView> {
     if (items.isEmpty) {
       setState(() {
         _closeCompletion();
-        _syntaxHint = 'Nothing to complete here';
+        _syntaxHint = () => huiText('Nothing to complete here');
       });
       return;
     }
@@ -705,7 +720,7 @@ class _CodeEditorViewState extends State<CodeEditorView> {
     events: <String, EventCallback>{'keydown': _onKeyDown},
     <Widget>[
       _toolbar(),
-      if (_actionError != null) HuiCodeErrorStrip(_actionError!),
+      if (_actionError != null) HuiCodeErrorStrip(_actionError!()),
       if (_pendingExternal != null) _externalNotice(),
       if (_restoredDraft) _draftNotice(),
       _editor(),
@@ -737,9 +752,28 @@ class _CodeEditorViewState extends State<CodeEditorView> {
       dom.div(classes: 'hui-code-toolbar-info', <Widget>[
         // Every kind shares this view now, so the eyebrow names the open one
         // rather than claiming a scoreboard's JSON is a menu's.
-        HuiEyebrow('${_store.docType.noun} json'),
+        HuiEyebrow(
+          huiText("{noun} JSON", <String, Object?>{
+            'noun': _store.docType.noun,
+          }),
+        ),
         dom.span(classes: 'hui-code-stat', <Widget>[
-          Text('$_lineCount lines · ${_text.length} chars'),
+          Text(
+            huiText('{lines} · {characters}', <String, Object?>{
+              'lines': huiPlural(
+                'code_editor.line_count',
+                _lineCount,
+                oneEnglish: '{count} line',
+                otherEnglish: '{count} lines',
+              ),
+              'characters': huiPlural(
+                'code_editor.character_count',
+                _text.length,
+                oneEnglish: '{count} character',
+                otherEnglish: '{count} characters',
+              ),
+            }),
+          ),
         ]),
         HuiCodeStateChip(dirty: _dirty, saved: _saved),
       ]),
@@ -748,32 +782,34 @@ class _CodeEditorViewState extends State<CodeEditorView> {
           dom.span(
             classes: 'hui-code-syntax-hint',
             attributes: const <String, String>{'aria-live': 'polite'},
-            <Widget>[Text(_syntaxHint!)],
+            <Widget>[Text(_syntaxHint!())],
           ),
         if (_dirty)
           ArcaneTooltip(
-            text: 'Throw the unsaved text away and re-read the document',
+            text: huiText(
+              'Throw the unsaved text away and re-read the document',
+            ),
             child: Button(
               variant: ButtonVariant.ghost,
               size: ButtonSize.small,
               onPressed: _revert,
               icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
-              label: 'Revert',
-              attributes: const <String, String>{
-                'aria-label': 'Discard the unsaved code edits',
+              label: huiText('Revert'),
+              attributes: <String, String>{
+                'aria-label': huiText('Discard the unsaved code edits'),
               },
             ),
           ),
         ArcaneTooltip(
-          text: 'Re-indent this buffer',
+          text: huiText('Re-indent this buffer'),
           child: Button(
             variant: ButtonVariant.ghost,
             size: ButtonSize.small,
             onPressed: _reformat,
             icon: ArcaneIcon.wandSparkles(size: IconSize.sm),
-            label: 'Format',
-            attributes: const <String, String>{
-              'aria-label': 'Reformat the JSON in the buffer',
+            label: huiText('Format'),
+            attributes: <String, String>{
+              'aria-label': huiText('Reformat the JSON in the buffer'),
             },
           ),
         ),
@@ -785,12 +821,15 @@ class _CodeEditorViewState extends State<CodeEditorView> {
           <Widget>[
             ArcaneTooltip(
               text: _dirty
-                  ? 'Commit this buffer to the document ($saveKeys)'
-                  : 'Nothing to save ($saveKeys)',
+                  ? huiText(
+                      'Commit this buffer to the document ({keys})',
+                      <String, Object?>{'keys': saveKeys},
+                    )
+                  : huiText('Nothing to save ({keys})', <String, Object?>{
+                      'keys': saveKeys,
+                    }),
               child: Button(
-                variant: _dirty
-                    ? ButtonVariant.primary
-                    : ButtonVariant.ghost,
+                variant: _dirty ? ButtonVariant.primary : ButtonVariant.ghost,
                 size: ButtonSize.small,
                 // Disabled rather than a no-op: a live control that reports
                 // "Saved" without saving anything is a lie about what just
@@ -798,9 +837,9 @@ class _CodeEditorViewState extends State<CodeEditorView> {
                 disabled: !_dirty,
                 onPressed: _save,
                 icon: ArcaneIcon.save(size: IconSize.sm),
-                label: 'Save',
-                attributes: const <String, String>{
-                  'aria-label': 'Save the JSON to the document',
+                label: huiText('Save'),
+                attributes: <String, String>{
+                  'aria-label': huiText('Save the JSON to the document'),
                 },
               ),
             ),
@@ -812,35 +851,37 @@ class _CodeEditorViewState extends State<CodeEditorView> {
 
   Widget _externalNotice() => HuiCodeNotice(
     warning: true,
-    message:
-        'The document changed somewhere else while this buffer had unsaved '
-        'edits. Your text is still here; saving it overwrites that change.',
+    message: huiText(
+      'The document changed somewhere else while this buffer had unsaved '
+      'edits. Your text is still here; saving it overwrites that change.',
+    ),
     actions: <Widget>[
       Button(
         variant: ButtonVariant.ghost,
         size: ButtonSize.small,
         onPressed: () => setState(() => _pendingExternal = null),
-        label: 'Keep editing',
+        label: huiText('Keep editing'),
       ),
       Button(
         variant: ButtonVariant.ghost,
         size: ButtonSize.small,
         onPressed: _revert,
-        label: 'Discard mine and reload',
+        label: huiText('Discard mine and reload'),
       ),
     ],
   );
 
   Widget _draftNotice() => HuiCodeNotice(
-    message:
-        'Unsaved code edits restored. They were kept when this pane closed '
-        'and have not reached the document yet.',
+    message: huiText(
+      'Unsaved code edits restored. They were kept when this pane closed '
+      'and have not reached the document yet.',
+    ),
     actions: <Widget>[
       Button(
         variant: ButtonVariant.ghost,
         size: ButtonSize.small,
         onPressed: () => setState(() => _restoredDraft = false),
-        label: 'Got it',
+        label: huiText('Got it'),
       ),
     ],
   );
@@ -854,7 +895,9 @@ class _CodeEditorViewState extends State<CodeEditorView> {
         attributes: const <String, String>{'aria-hidden': 'true'},
         <Widget>[
           for (int line = 1; line <= _lineCount; line++)
-            dom.span(classes: 'hui-code-line', <Widget>[Text('$line')]),
+            dom.span(classes: 'hui-code-line', <Widget>[
+              Text(huiText("{line}", <String, Object?>{'line': line})),
+            ]),
         ],
       ),
       // The pre inside the wrapper is in normal flow and therefore what
@@ -895,7 +938,9 @@ class _CodeEditorViewState extends State<CodeEditorView> {
               'autocapitalize': 'off',
               'autocomplete': 'off',
               'autocorrect': 'off',
-              'aria-label': '${_store.docType.noun} JSON',
+              'aria-label': huiText("{noun} JSON", <String, Object?>{
+                'noun': _store.docType.noun,
+              }),
             },
           ),
         ],

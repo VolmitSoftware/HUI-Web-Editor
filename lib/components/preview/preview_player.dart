@@ -31,6 +31,7 @@ import 'dart:math' as math;
 
 import 'package:web/web.dart' as web;
 
+import '../../l10n/hui_localizations.dart';
 import '../../model/hui_menu.dart' show huiMaxDistanceCeiling;
 import '../../preview/preview_scene.dart';
 import '../../preview/preview_types.dart';
@@ -652,15 +653,26 @@ double huiPreviewEffectiveRange(PreviewSimulation sim) {
 String huiPreviewRangeSummary(PreviewSimulation sim) {
   final double bare = huiPreviewBareRange(sim);
   if (bare >= huiMaxDistanceCeiling) {
-    return 'unbounded - maxDistance absent (ring clamped to '
-        '${huiPreviewMaxRangeBlocks.toStringAsFixed(0)})';
+    return huiText(
+      'unbounded - maxDistance absent (ring clamped to {blocks})',
+      <String, Object?>{'blocks': huiPreviewMaxRangeBlocks.toStringAsFixed(0)},
+    );
   }
   final double effective = huiPreviewEffectiveRange(sim);
   final String text = effective > bare + 5e-3
-      ? '${bare.toStringAsFixed(2)} -> ${effective.toStringAsFixed(2)} '
-            'effective (+ menu offset)'
-      : '${bare.toStringAsFixed(2)} blocks';
-  return effective > huiPreviewMaxRangeBlocks ? '$text - ring clamped' : text;
+      ? huiText(
+          '{bare} -> {effective} effective (+ menu offset)',
+          <String, Object?>{
+            'bare': bare.toStringAsFixed(2),
+            'effective': effective.toStringAsFixed(2),
+          },
+        )
+      : huiText('{blocks} blocks', <String, Object?>{
+          'blocks': bare.toStringAsFixed(2),
+        });
+  return effective > huiPreviewMaxRangeBlocks
+      ? huiText('{summary} - ring clamped', <String, Object?>{'summary': text})
+      : text;
 }
 
 // ---------------------------------------------------------------------------

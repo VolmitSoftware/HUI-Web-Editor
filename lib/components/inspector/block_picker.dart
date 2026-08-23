@@ -10,6 +10,7 @@ import '../../services/catalogs.dart';
 import '../common/common.dart';
 import 'inspector_widgets.dart';
 import 'registry_picker.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class BlockIconEditor extends StatelessWidget {
   const BlockIconEditor({
@@ -30,15 +31,15 @@ class BlockIconEditor extends StatelessWidget {
     BuildContext context,
   ) => dom.div(classes: 'hui-icon-block', <Widget>[
     HuiField(
-      label: 'Block',
+      label: huiText('Block'),
       required: true,
-      help: 'Lowercase namespaced block material. Items are rejected.',
+      help: huiText('Lowercase namespaced block material. Items are rejected.'),
       control: dom.div(<Widget>[
         RegistryPicker(
           value: icon.block,
-          placeholder: 'minecraft:stone',
-          browseLabel: 'Browse blocks',
-          searchPlaceholder: 'Search block materials',
+          placeholder: huiText('minecraft:stone'),
+          browseLabel: huiText('Browse blocks'),
+          searchPlaceholder: huiText('Search block materials'),
           catalogAvailable: catalogs.materials.isNotEmpty,
           textureFor: (String key) => catalogs.textureFor(
             key.startsWith('minecraft:')
@@ -71,9 +72,11 @@ class BlockIconEditor extends StatelessWidget {
         ),
       ]),
     ),
-    const HuiNote(
-      'The runtime uses the material\'s default block state in a packet-only '
-      'block display. Directional state properties are not authored here.',
+    HuiNote(
+      huiText(
+        'The runtime uses the material\'s default block state in a packet-only '
+        'block display. Directional state properties are not authored here.',
+      ),
     ),
   ]);
 }

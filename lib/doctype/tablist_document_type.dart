@@ -1,5 +1,7 @@
 library;
 
+import 'package:gloss_editor/l10n/hui_localizations.dart';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneIcon, IconSize, Widget;
 
@@ -21,13 +23,13 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
   WorkspaceDocKind get kind => WorkspaceDocKind.tablist;
 
   @override
-  String get noun => 'tablist';
+  String get noun => huiText('tablist');
 
   @override
-  String get createLabel => 'New tablist';
+  String get createLabel => huiText('New tablist');
 
   @override
-  String get pluralLabel => 'Tab lists';
+  String get pluralLabel => huiText('Tab lists');
 
   @override
   int get tabOrder => 100;
@@ -36,7 +38,7 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
   DocumentSurface get surface => DocumentSurface.tablist;
 
   @override
-  String get surfaceLabel => 'Tab screen';
+  String get surfaceLabel => huiText('Tab screen');
 
   @override
   String? get syncWireKind => 'tablist';

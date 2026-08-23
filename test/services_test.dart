@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 import 'package:gloss_editor/services/catalogs.dart';
 import 'package:gloss_editor/services/image_library.dart';
 import 'package:gloss_editor/services/storage_service.dart';
@@ -31,6 +32,8 @@ const String _catalogBody = '''
 
 void main() {
   setUp(StorageService.clearAll);
+  setUp(huiLocalizations.resetToEnglish);
+  tearDown(huiLocalizations.resetToEnglish);
 
   group('sanitizeImagePath', () {
     test('rewrites separators and strips traversal', () {
@@ -176,6 +179,49 @@ void main() {
 
       final ImageLibrary reloaded = ImageLibrary();
       expect(reloaded.paths, <String>{'sub/c.png', 'b.png'});
+    });
+
+    test('stored image errors follow the active locale', () {
+      final ImageLibrary library = ImageLibrary(
+        autoLoad: false,
+        writer: (String _, String _) => true,
+      );
+      final ImageAddOutcome outcome = library.addPlayerHeadFromSkin(
+        username: 'Notch',
+        skinPngDataUri: validPng,
+      );
+      expect(outcome.errors.single, contains('not a valid'));
+      expect(library.rename('missing.png', 'next.png'), isFalse);
+      expect(library.lastError, 'No image stored at "missing.png".');
+
+      final HuiLocaleInstallResult installed = huiLocalizations.installJson(
+        'de_DE',
+        jsonEncode(<String, Object?>{
+          'locale': 'de_DE',
+          'messages': <String, String>{
+            'The skin returned for "{username}" is not a valid 64x32, 64x64, or high-resolution Minecraft skin.':
+                'Der Skin für "{username}" ist kein gültiger Minecraft-Skin.',
+            'No image stored at "{path}".':
+                'Unter "{path}" ist kein Bild gespeichert.',
+            'Image path must not be empty.':
+                'Der Bildpfad darf nicht leer sein.',
+          },
+          'contexts': <String, String>{},
+          'plurals': <String, Object?>{},
+          'previewMessages': <String, String>{},
+        }),
+      );
+
+      expect(installed.applied, isTrue);
+      expect(
+        outcome.errors.single,
+        'Der Skin für "Notch" ist kein gültiger Minecraft-Skin.',
+      );
+      expect(
+        library.lastError,
+        'Unter "missing.png" ist kein Bild gespeichert.',
+      );
+      expect(validateImagePath(''), 'Der Bildpfad darf nicht leer sein.');
     });
 
     test('rename forces the png extension used by the stored bytes', () {

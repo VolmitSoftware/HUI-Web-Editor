@@ -30,6 +30,7 @@ import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 import 'scoreboard_selection_simulator.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Animation repaint period, matching the hologram stage.
 const Duration _tickPeriod = Duration(milliseconds: 100);
@@ -124,7 +125,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
       if (component.gameContext) {
         return glossGameEmpty(
           anchor: GlossGameAnchor.sidebar,
-          label: 'Scoreboard in game',
+          label: huiText('Scoreboard in game'),
         );
       }
       return const dom.div(
@@ -172,7 +173,11 @@ class _ScoreboardViewState extends State<ScoreboardView> {
           ]),
           if (!doc.hideNumbers)
             dom.span(classes: 'hui-scoreboard-score', <Widget>[
-              Text('${glossBoardScoreForRow(index)}'),
+              Text(
+                huiText("{glossBoardScoreForRow}", <String, Object?>{
+                  'glossBoardScoreForRow': glossBoardScoreForRow(index),
+                }),
+              ),
             ]),
         ]),
     ]);
@@ -180,7 +185,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.sidebar,
-        label: 'Scoreboard in game',
+        label: huiText('Scoreboard in game'),
         controls: <Widget>[_playPause()],
         child: sidebar,
       );
@@ -191,7 +196,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
         classes: 'hui-scoreboard-sky${_sceneBackdrop ? ' is-scene' : ''}',
         <Widget>[
           GlossPreviewZoom(
-            label: 'Scoreboard preview',
+            label: huiText('Scoreboard preview'),
             alignment: _sceneBackdrop
                 ? GlossPreviewAlignment.end
                 : GlossPreviewAlignment.center,
@@ -199,9 +204,9 @@ class _ScoreboardViewState extends State<ScoreboardView> {
           ),
           dom.div(
             classes: 'hui-scoreboard-view-controls',
-            attributes: const <String, String>{
+            attributes: <String, String>{
               'role': 'group',
-              'aria-label': 'Scoreboard preview controls',
+              'aria-label': huiText('Scoreboard preview controls'),
             },
             <Widget>[
               _playPause(),
@@ -211,7 +216,9 @@ class _ScoreboardViewState extends State<ScoreboardView> {
                 onPressed: () =>
                     setState(() => _sceneBackdrop = !_sceneBackdrop),
                 icon: ArcaneIcon.image(size: IconSize.sm),
-                label: _sceneBackdrop ? 'Centered stage' : 'Right-side scene',
+                label: _sceneBackdrop
+                    ? huiText('Centered stage')
+                    : huiText('Right-side scene'),
               ),
             ],
           ),
@@ -233,11 +240,11 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     onPressed: () => _store.animationsPlaying = !_store.animationsPlaying,
     attributes: <String, String>{
       'aria-label': _store.animationsPlaying
-          ? 'Pause animations'
-          : 'Play animations',
+          ? huiText('Pause animations')
+          : huiText('Play animations'),
       'title': _store.animationsPlaying
-          ? 'Pause animations'
-          : 'Play animations',
+          ? huiText('Pause animations')
+          : huiText('Play animations'),
     },
     child: _store.animationsPlaying
         ? ArcaneIcon.pause(size: IconSize.sm)
@@ -251,20 +258,32 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     bool titleFellBack,
   ) {
     final List<String> parts = <String>[
-      doc.primary ? 'primary' : 'not primary',
+      doc.primary ? huiText('primary') : huiText('not primary'),
       doc.hideNumbers
-          ? 'score numbers hidden — 1.20.3 and newer only; older servers '
-                'still draw the red column'
-          : 'score numbers visible',
+          ? huiText(
+              'score numbers hidden — 1.20.3 and newer only; older servers '
+              'still draw the red column',
+            )
+          : huiText('score numbers visible'),
       doc.permissionGated
-          ? 'needs $glossBoardPermissionNodePrefix${doc.effectivePermission}'
-          : 'everyone',
+          ? huiText('needs {permission}', <String, Object?>{
+              'permission':
+                  '$glossBoardPermissionNodePrefix${doc.effectivePermission}',
+            })
+          : huiText('everyone'),
       if (doc.effectiveGroups.isNotEmpty)
-        'groups: ${doc.effectiveGroups.join(', ')}',
-      if (titleFellBack) 'blank title falls back to the board id',
+        huiText('groups: {groups}', <String, Object?>{
+          'groups': doc.effectiveGroups.join(', '),
+        }),
+      if (titleFellBack) huiText('blank title falls back to the board id'),
       if (clipped > 0)
-        '$clipped line${clipped == 1 ? '' : 's'} past the 15-line render cap',
-      if (titleTruncated) 'title exceeds the 32-unit in-game cap',
+        huiPlural(
+          'scoreboard.readout.clipped-lines',
+          clipped,
+          oneEnglish: '{count} line past the 15-line render cap',
+          otherEnglish: '{count} lines past the 15-line render cap',
+        ),
+      if (titleTruncated) huiText('title exceeds the 32-unit in-game cap'),
     ];
     return parts.join(' · ');
   }
