@@ -431,6 +431,81 @@ GlossAnimationDoc buildRainbowGlossAnimation() =>
 GlossAnimationDoc buildBlankGlossAnimation() =>
     decodeGlossAnimationDoc(kGlossAnimationBlankJson);
 
+GlossAnimationDoc buildMarqueeGlossAnimation() => GlossAnimationDoc(
+  frameIntervalMs: 1000,
+  frames: <String>[
+    "&b{{ marquee('GLOSS REALMS', 12, floor(time.seconds / 2)) }}",
+  ],
+);
+
+GlossAnimationDoc buildTimelineGlossAnimation() => GlossAnimationDoc(
+  frameIntervalMs: 1000,
+  frames: <String>[
+    "{{ timeline([['&b' + marquee('WELCOME', 10, floor(time.seconds / 2)), 4], [flash('&a&lBOOSTED', '&7BOOSTED', floor(time.seconds / 2)), 4], ['&bEVENT LIVE', 4]], time.seconds) }}",
+  ],
+);
+
+GlossAnimationDoc buildTypewriterGlossAnimation() => GlossAnimationDoc(
+  frameIntervalMs: 1000,
+  frames: <String>[
+    "&f{{ typewriter('WELCOME', floor(time.seconds / 2) + 7, 1) }}",
+  ],
+);
+
+GlossAnimationDoc buildFlashGlossAnimation() => GlossAnimationDoc(
+  frameIntervalMs: 1000,
+  frames: <String>[
+    "{{ flash('&a&lBOOSTED', '&7BOOSTED', floor(time.seconds / 2)) }}",
+  ],
+);
+
+GlossAnimationDoc buildWipeGlossAnimation() => GlossAnimationDoc(
+  frameIntervalMs: 1000,
+  frames: <String>["&d{{ wipe('WELCOME', floor(time.seconds / 2) + 7) }}"],
+);
+
+GlossAnimationDoc buildScannerGlossAnimation() => GlossAnimationDoc(
+  frameIntervalMs: 1000,
+  frames: <String>[
+    "{{ scanner('BOOSTED', '&7', '&a', floor(time.seconds / 2)) }}",
+  ],
+);
+
+GlossAnimationDoc buildDecodeGlossAnimation() => GlossAnimationDoc(
+  frameIntervalMs: 1000,
+  frames: <String>["&d{{ scramble('GHOSTWOOD', floor(time.seconds / 2)) }}"],
+);
+
+GlossAnimationDoc buildOdometerGlossAnimation() => GlossAnimationDoc(
+  frameIntervalMs: 1000,
+  frames: <String>[
+    r'&6${{ odometer(0, 9999, mod(time.seconds, 20) / 20, 4) }}',
+  ],
+);
+
+GlossAnimationDoc buildWaveGlossAnimation() => GlossAnimationDoc(
+  frameIntervalMs: 1000,
+  frames: <String>[
+    "{{ wave('GLOSS', ['&a', '&7'], floor(time.seconds / 2)) }}",
+  ],
+);
+
+final Map<String, GlossAnimationDoc Function()> shippedGlossAnimationBuilders =
+    Map<String, GlossAnimationDoc Function()>.unmodifiable(
+      <String, GlossAnimationDoc Function()>{
+        'rainbow': buildRainbowGlossAnimation,
+        'marquee': buildMarqueeGlossAnimation,
+        'timeline': buildTimelineGlossAnimation,
+        'typewriter': buildTypewriterGlossAnimation,
+        'flash': buildFlashGlossAnimation,
+        'wipe': buildWipeGlossAnimation,
+        'scanner': buildScannerGlossAnimation,
+        'decode': buildDecodeGlossAnimation,
+        'odometer': buildOdometerGlossAnimation,
+        'wave': buildWaveGlossAnimation,
+      },
+    );
+
 /// `Gloss/src/main/resources/defaults/boards/default.json`, byte for byte —
 /// the sidebar the plugin extracts into `plugins/Gloss/boards/` on first run
 /// (deliberately `primary: false`, so nothing forces a sidebar on players).

@@ -83,14 +83,19 @@ class _AnimationViewState extends State<AnimationView> {
   /// millisecond timer — frames faster than the screen can show still land
   /// on the right index every repaint because the index is clock-derived.
   void _syncTicker(GlossAnimationDoc doc) {
+    final bool expressionDriven = doc.frames.any(glossMenuTextNeedsRefresh);
     final bool wanted =
-        _player.playing && _store.animationsPlaying && doc.frames.length > 1;
+        _player.playing &&
+        _store.animationsPlaying &&
+        (doc.frames.length > 1 || expressionDriven);
     if (!wanted) {
       _ticker?.cancel();
       _ticker = null;
       return;
     }
-    final int period = doc.effectiveFrameIntervalMs.clamp(33, 1000);
+    final int period = expressionDriven
+        ? 100
+        : doc.effectiveFrameIntervalMs.clamp(33, 1000);
     if (_ticker != null && _tickerPeriodMs == period) return;
     _ticker?.cancel();
     _tickerPeriodMs = period;
@@ -120,8 +125,10 @@ class _AnimationViewState extends State<AnimationView> {
     }
     _syncTicker(doc);
     final String id = _store.menuId;
-    final int index = _player.frameIndex(doc, id);
-    final String frame = _player.frameText(doc, id);
+    final ({int nowMs, int frameIndex, String frameText}) sample = _player
+        .sample(doc, id);
+    final int index = sample.frameIndex;
+    final String frame = sample.frameText;
 
     final Widget currentFrame = dom
         .div(classes: 'hui-animation-frame-large', <Widget>[
@@ -129,6 +136,7 @@ class _AnimationViewState extends State<AnimationView> {
             render: renderGlossAnimationFramePreview(
               frame,
               emoji: _store.workspaceEmoji,
+              nowMs: sample.nowMs,
             ),
           ),
         ]);
@@ -183,7 +191,7 @@ class _AnimationViewState extends State<AnimationView> {
         ]),
       ]),
       _transport(doc, id, index),
-      _strip(doc, id, index),
+      _strip(doc, id, index, sample.nowMs),
     ]);
   }
 
@@ -236,35 +244,35 @@ class _AnimationViewState extends State<AnimationView> {
         ),
       ]);
 
-  Widget _strip(GlossAnimationDoc doc, String id, int index) => dom.div(
-    classes: 'hui-animation-strip',
-    <Widget>[
-      for (int i = 0; i < doc.frames.length; i++)
-        dom.button(
-          classes: 'hui-animation-strip-frame${i == index ? ' is-active' : ''}',
-          attributes: <String, String>{
-            'type': 'button',
-            'aria-label': huiText("Show frame {value}", <String, Object?>{
-              'value': i + 1,
-            }),
-          },
-          events: <String, EventCallback>{
-            'click': (Object? _) => setState(() => _player.scrubTo(i, doc)),
-          },
-          <Widget>[
-            dom.span(classes: 'hui-animation-strip-index', <Widget>[
-              Text(huiText("{value}", <String, Object?>{'value': i + 1})),
-            ]),
-            GlossTextLine(
-              render: renderGlossAnimationFramePreview(
-                doc.frames[i],
-                emoji: _store.workspaceEmoji,
+  Widget _strip(GlossAnimationDoc doc, String id, int index, int nowMs) =>
+      dom.div(classes: 'hui-animation-strip', <Widget>[
+        for (int i = 0; i < doc.frames.length; i++)
+          dom.button(
+            classes:
+                'hui-animation-strip-frame${i == index ? ' is-active' : ''}',
+            attributes: <String, String>{
+              'type': 'button',
+              'aria-label': huiText("Show frame {value}", <String, Object?>{
+                'value': i + 1,
+              }),
+            },
+            events: <String, EventCallback>{
+              'click': (Object? _) => setState(() => _player.scrubTo(i, doc)),
+            },
+            <Widget>[
+              dom.span(classes: 'hui-animation-strip-index', <Widget>[
+                Text(huiText("{value}", <String, Object?>{'value': i + 1})),
+              ]),
+              GlossTextLine(
+                render: renderGlossAnimationFramePreview(
+                  doc.frames[i],
+                  emoji: _store.workspaceEmoji,
+                  nowMs: nowMs,
+                ),
               ),
-            ),
-          ],
-        ),
-    ],
-  );
+            ],
+          ),
+      ]);
 
   /// The range input's value, off `event.target.value`.
   static String? _rangeValue(Object? event) {

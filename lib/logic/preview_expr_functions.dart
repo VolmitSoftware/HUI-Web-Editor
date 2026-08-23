@@ -52,6 +52,15 @@ const List<String> previewStandardFunctionNames = <String>[
   'fixed',
   'plain',
   'readable',
+  'marquee',
+  'timeline',
+  'typewriter',
+  'flash',
+  'wipe',
+  'scanner',
+  'scramble',
+  'odometer',
+  'wave',
 ];
 
 Object? previewStdFunction(String name, List<Object?> args) {
@@ -159,6 +168,24 @@ Object? previewStdFunction(String name, List<Object?> args) {
     case 'readable':
       _requireCount(name, args, 1);
       return previewReadable(_strArg(name, args, 0));
+    case 'marquee':
+      return _marquee(name, args);
+    case 'timeline':
+      return _timeline(name, args);
+    case 'typewriter':
+      return _typewriter(name, args);
+    case 'flash':
+      return _flash(name, args);
+    case 'wipe':
+      return _wipe(name, args);
+    case 'scanner':
+      return _scanner(name, args);
+    case 'scramble':
+      return _scramble(name, args);
+    case 'odometer':
+      return _odometer(name, args);
+    case 'wave':
+      return _wave(name, args);
     default:
       return null;
   }
@@ -274,6 +301,359 @@ Object? _select(String name, List<Object?> args) {
   final int index = _floorModSignedLong(_numArg(name, args, 1), listArg.length);
   return listArg[index];
 }
+
+const int _animationMaxTextCharacters = 256;
+const int _animationMaxStyledCharacters = 64;
+const int _animationMaxWindowWidth = 64;
+const int _animationMaxTimelineSteps = 64;
+const int _animationMaxStyles = 16;
+const double _animationMaxTimelineSeconds = 3600;
+const double _animationMaxSafeWholeNumber = 9007199254740991;
+final List<int> _scrambleGlyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#\$?'
+    .runes
+    .toList(growable: false);
+final RegExp _animationFormattingToken = RegExp(
+  r'(?:&[0-9A-Fa-fK-Ok-oRr]|§[0-9A-Fa-fK-Ok-oRr]|\[[0-9A-Fa-f]{6}\]|%[^%\s]+%)',
+);
+final RegExp _animationStyle = RegExp(
+  r'^(?:&[0-9A-Fa-fRr]|\[[0-9A-Fa-f]{6}\])(?:&[0-9A-Fa-fK-Ok-oRr]|\[[0-9A-Fa-f]{6}\])?$',
+);
+
+String _marquee(String name, List<Object?> args) {
+  _requireCount(name, args, 3);
+  final List<int> text = _animationPlainCodePoints(
+    name,
+    _strArg(name, args, 0),
+    _animationMaxTextCharacters,
+  );
+  final int width = _animationWholeArg(
+    name,
+    args,
+    1,
+    1,
+    _animationMaxWindowWidth,
+  );
+  final int cycle = text.length + width;
+  final int start = _animationStep(name, _numArg(name, args, 2), cycle);
+  final StringBuffer out = StringBuffer();
+  for (int index = 0; index < width; index++) {
+    final int source = (start + index) % cycle;
+    out.writeCharCode(source < text.length ? text[source] : 32);
+  }
+  return out.toString();
+}
+
+String _timeline(String name, List<Object?> args) {
+  _requireCount(name, args, 2);
+  final Object? stepsArg = args[0];
+  if (stepsArg is! List<Object?>) {
+    throw _animationError('$name argument 1 must be a list');
+  }
+  if (stepsArg.isEmpty || stepsArg.length > _animationMaxTimelineSteps) {
+    throw _animationError(
+      '$name argument 1 must contain between 1 and $_animationMaxTimelineSteps steps',
+    );
+  }
+  final List<String> texts = <String>[];
+  final List<double> durations = <double>[];
+  double total = 0;
+  for (int index = 0; index < stepsArg.length; index++) {
+    final Object? rawStep = stepsArg[index];
+    if (rawStep is! List<Object?> ||
+        rawStep.length != 2 ||
+        rawStep[0] is! String ||
+        rawStep[1] is! double ||
+        !(rawStep[1]! as double).isFinite ||
+        (rawStep[1]! as double) <= 0) {
+      throw _animationError(
+        '$name step ${index + 1} must be [text, positiveSeconds]',
+      );
+    }
+    final String text = rawStep[0]! as String;
+    final double duration = rawStep[1]! as double;
+    _animationCodePoints(name, text, _animationMaxTextCharacters);
+    texts.add(text);
+    durations.add(duration);
+    total += duration;
+    if (total > _animationMaxTimelineSeconds) {
+      throw _animationError(
+        '$name total duration must not exceed ${_animationMaxTimelineSeconds.toInt()} seconds',
+      );
+    }
+  }
+  final double elapsed = _numArg(name, args, 1);
+  if (!elapsed.isFinite) {
+    throw _animationError('$name argument 2 must be finite');
+  }
+  double position = elapsed % total;
+  if (position < 0) position += total;
+  for (int index = 0; index < durations.length; index++) {
+    if (position < durations[index]) return texts[index];
+    position -= durations[index];
+  }
+  return texts.last;
+}
+
+String _typewriter(String name, List<Object?> args) {
+  _requireCount(name, args, 3);
+  final List<int> text = _animationPlainCodePoints(
+    name,
+    _strArg(name, args, 0),
+    _animationMaxTextCharacters,
+  );
+  if (text.isEmpty) return '';
+  final int hold = _animationWholeArg(name, args, 2, 0, 1200);
+  final int phase = _animationStep(
+    name,
+    _numArg(name, args, 1),
+    text.length * 2 + hold,
+  );
+  final int visible = phase <= text.length
+      ? phase
+      : phase < text.length + hold
+      ? text.length
+      : text.length * 2 + hold - phase;
+  return _animationPrefix(text, visible, false);
+}
+
+String _flash(String name, List<Object?> args) {
+  _requireCount(name, args, 3);
+  final String first = _strArg(name, args, 0);
+  final String second = _strArg(name, args, 1);
+  _animationCodePoints(name, first, _animationMaxTextCharacters);
+  _animationCodePoints(name, second, _animationMaxTextCharacters);
+  return _animationStep(name, _numArg(name, args, 2), 2) == 0 ? first : second;
+}
+
+String _wipe(String name, List<Object?> args) {
+  _requireCount(name, args, 2);
+  final List<int> text = _animationPlainCodePoints(
+    name,
+    _strArg(name, args, 0),
+    _animationMaxTextCharacters,
+  );
+  if (text.isEmpty) return '';
+  final int phase = _animationStep(
+    name,
+    _numArg(name, args, 1),
+    text.length * 2,
+  );
+  final int visible = phase <= text.length ? phase : text.length * 2 - phase;
+  return _animationPrefix(text, visible, true);
+}
+
+String _scanner(String name, List<Object?> args) {
+  _requireCount(name, args, 4);
+  final List<int> text = _animationPlainCodePoints(
+    name,
+    _strArg(name, args, 0),
+    _animationMaxStyledCharacters,
+  );
+  if (text.isEmpty) return '';
+  final String base = _strArg(name, args, 1);
+  final String highlight = _strArg(name, args, 2);
+  _animationRequireStyle(name, base);
+  _animationRequireStyle(name, highlight);
+  final int active = _animationStep(name, _numArg(name, args, 3), text.length);
+  final StringBuffer out = StringBuffer();
+  for (int index = 0; index < text.length; index++) {
+    out.write(index == active ? highlight : base);
+    out.writeCharCode(text[index]);
+  }
+  out.write(base);
+  return out.toString();
+}
+
+String _scramble(String name, List<Object?> args) {
+  _requireCount(name, args, 2);
+  final List<int> text = _animationPlainCodePoints(
+    name,
+    _strArg(name, args, 0),
+    _animationMaxTextCharacters,
+  );
+  if (text.isEmpty) return '';
+  final int phase = _animationStep(
+    name,
+    _numArg(name, args, 1),
+    text.length + 2,
+  );
+  final int resolved = math.min(phase, text.length);
+  final StringBuffer out = StringBuffer();
+  for (int index = 0; index < text.length; index++) {
+    final int codePoint = text[index];
+    if (index < resolved || _animationIsWhitespace(codePoint)) {
+      out.writeCharCode(codePoint);
+    } else {
+      final int mixed = phase * 31 + index * 17 + codePoint;
+      out.writeCharCode(_scrambleGlyphs[mixed % _scrambleGlyphs.length]);
+    }
+  }
+  return out.toString();
+}
+
+String _odometer(String name, List<Object?> args) {
+  _requireCount(name, args, 4);
+  final double from = _numArg(name, args, 0);
+  final double to = _numArg(name, args, 1);
+  final double progress = _numArg(name, args, 2);
+  if (!from.isFinite || !to.isFinite || !progress.isFinite) {
+    throw _animationError('$name numeric arguments must be finite');
+  }
+  if (from.abs() > _animationMaxSafeWholeNumber ||
+      to.abs() > _animationMaxSafeWholeNumber) {
+    throw _animationError(
+      '$name endpoints must stay within the safe whole-number range',
+    );
+  }
+  if (from != from.roundToDouble() || to != to.roundToDouble()) {
+    throw _animationError('$name endpoints must be whole numbers');
+  }
+  final int digits = _animationWholeArg(name, args, 3, 1, 16);
+  final double interpolated =
+      from + (to - from) * math.max(0.0, math.min(1.0, progress));
+  if (!interpolated.isFinite) {
+    throw _animationError('$name result must be finite');
+  }
+  final int value = previewRound(interpolated).toInt();
+  final String raw = value.toString();
+  final bool negative = raw.startsWith('-');
+  final String magnitude = negative ? raw.substring(1) : raw;
+  final String padded = magnitude.padLeft(digits, '0');
+  return negative ? '-$padded' : padded;
+}
+
+String _wave(String name, List<Object?> args) {
+  _requireCount(name, args, 3);
+  final List<int> text = _animationPlainCodePoints(
+    name,
+    _strArg(name, args, 0),
+    _animationMaxStyledCharacters,
+  );
+  if (text.isEmpty) return '';
+  final Object? stylesArg = args[1];
+  if (stylesArg is! List<Object?> ||
+      stylesArg.isEmpty ||
+      stylesArg.length > _animationMaxStyles) {
+    throw _animationError(
+      '$name argument 2 must contain between 1 and $_animationMaxStyles styles',
+    );
+  }
+  final List<String> styles = <String>[];
+  for (final Object? rawStyle in stylesArg) {
+    if (rawStyle is! String) {
+      throw _animationError('$name argument 2 entries must be strings');
+    }
+    _animationRequireStyle(name, rawStyle);
+    styles.add(rawStyle);
+  }
+  final int start = _animationStep(name, _numArg(name, args, 2), styles.length);
+  final StringBuffer out = StringBuffer();
+  for (int index = 0; index < text.length; index++) {
+    out.write(styles[(start + index) % styles.length]);
+    out.writeCharCode(text[index]);
+  }
+  out.write(styles.first);
+  return out.toString();
+}
+
+List<int> _animationCodePoints(String name, String text, int maximum) {
+  _animationSingleLine(name, text);
+  final List<int> codePoints = text.runes.toList(growable: false);
+  if (codePoints.length > maximum) {
+    throw _animationError('$name text must not exceed $maximum characters');
+  }
+  return codePoints;
+}
+
+List<int> _animationPlainCodePoints(String name, String text, int maximum) {
+  if (_animationFormattingToken.hasMatch(text)) {
+    throw _animationError(
+      '$name text must be plain; put formatting outside the text argument',
+    );
+  }
+  final List<int> codePoints = _animationCodePoints(name, text, maximum);
+  for (final int codePoint in codePoints) {
+    if (_animationIsComplexGraphemePart(codePoint)) {
+      throw _animationError(
+        '$name text must use standalone characters, not combined emoji or marks',
+      );
+    }
+  }
+  return codePoints;
+}
+
+bool _animationIsComplexGraphemePart(int codePoint) =>
+    codePoint == 0x200D ||
+    codePoint >= 0x0300 && codePoint <= 0x036F ||
+    codePoint >= 0x1AB0 && codePoint <= 0x1AFF ||
+    codePoint >= 0x1DC0 && codePoint <= 0x1DFF ||
+    codePoint >= 0x20D0 && codePoint <= 0x20FF ||
+    codePoint >= 0xFE00 && codePoint <= 0xFE0F ||
+    codePoint >= 0xFE20 && codePoint <= 0xFE2F ||
+    codePoint >= 0x1F1E6 && codePoint <= 0x1F1FF ||
+    codePoint >= 0x1F3FB && codePoint <= 0x1F3FF ||
+    codePoint >= 0xE0020 && codePoint <= 0xE007F ||
+    codePoint >= 0xE0100 && codePoint <= 0xE01EF;
+
+bool _animationIsWhitespace(int codePoint) =>
+    codePoint == 0x09 ||
+    codePoint == 0x0B ||
+    codePoint == 0x0C ||
+    codePoint == 0x20;
+
+void _animationRequireStyle(String name, String value) {
+  _animationSingleLine(name, value);
+  if (!_animationStyle.hasMatch(value)) {
+    throw _animationError(
+      '$name styles must start with a color or reset and contain at most two formatting codes',
+    );
+  }
+}
+
+void _animationSingleLine(String name, String value) {
+  if (value.contains('\n') ||
+      value.contains('\r') ||
+      value.contains('\u0085') ||
+      value.contains('\u2028') ||
+      value.contains('\u2029')) {
+    throw _animationError('$name text must stay on one line');
+  }
+}
+
+String _animationPrefix(List<int> text, int visible, bool pad) {
+  final StringBuffer out = StringBuffer();
+  for (int index = 0; index < visible; index++) {
+    out.writeCharCode(text[index]);
+  }
+  if (pad) out.write(' ' * (text.length - visible));
+  return out.toString();
+}
+
+int _animationStep(String name, double value, int divisor) {
+  if (!value.isFinite) {
+    throw _animationError('animation step must be finite');
+  }
+  return _floorModSignedLong(value, divisor);
+}
+
+int _animationWholeArg(
+  String name,
+  List<Object?> args,
+  int index,
+  int minimum,
+  int maximum,
+) {
+  final double value = _numArg(name, args, index);
+  if (value != value.roundToDouble() || value < minimum || value > maximum) {
+    throw _animationError(
+      '$name argument ${index + 1} must be a whole number in [$minimum, $maximum]',
+    );
+  }
+  return value.toInt();
+}
+
+PExprException _animationError(String message) =>
+    PExprException(message, previewNoPosition);
 
 int _floorModSignedLong(double value, int divisor) {
   if (value.isNaN) return 0;

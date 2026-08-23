@@ -1363,7 +1363,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     final Map<String, GlossAnimationDoc?>? cached = _animationCache;
     if (cached != null) return cached;
     final Map<String, GlossAnimationDoc?> built = <String, GlossAnimationDoc?>{
-      'rainbow': buildRainbowGlossAnimation(),
+      for (final MapEntry<String, GlossAnimationDoc Function()> entry
+          in shippedGlossAnimationBuilders.entries)
+        entry.key: entry.value(),
     };
     final WorkspaceDocKind? kind = DocumentTypeRegistry.byWireKind(
       'animation',

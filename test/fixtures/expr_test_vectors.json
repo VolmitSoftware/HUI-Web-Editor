@@ -97,6 +97,25 @@
     { "expr": "cos(3.14159265)", "expect": -1 },
     { "expr": "sin(1.5707963)", "expect": 0.9999999999999997 },
 
+    { "expr": "marquee('GLOSS', 5, 1)", "expect": "LOSS " },
+    { "expr": "marquee('GLOSS', 5, 6)", "expect": "    G" },
+    { "expr": "timeline([['WELCOME', 2], ['BOOSTED', 0.5]], 1.99)", "expect": "WELCOME" },
+    { "expr": "timeline([['WELCOME', 2], ['BOOSTED', 0.5]], 2)", "expect": "BOOSTED" },
+    { "expr": "timeline([['WELCOME', 2], ['BOOSTED', 0.5]], -0.1)", "expect": "BOOSTED" },
+    { "expr": "typewriter('GLOSS', 3, 2)", "expect": "GLO" },
+    { "expr": "typewriter('GLOSS', 6, 2)", "expect": "GLOSS" },
+    { "expr": "flash('&6&lBOOSTED', '&fBOOSTED', 0)", "expect": "&6&lBOOSTED" },
+    { "expr": "flash('&6&lBOOSTED', '&fBOOSTED', 1)", "expect": "&fBOOSTED" },
+    { "expr": "wipe('GLOSS', 3)", "expect": "GLO  " },
+    { "expr": "wipe('GLOSS', 7)", "expect": "GLO  " },
+    { "expr": "scanner('AB', '&7', '&f', 1)", "expect": "&7A&fB&7" },
+    { "expr": "scramble('GLOSS', 5)", "expect": "GLOSS" },
+    { "expr": "odometer(0, 999, 0.5, 4)", "expect": "0500" },
+    { "expr": "odometer(10, 20, 2, 2)", "expect": "20" },
+    { "expr": "wave('ABC', ['&a', '&b'], 1)", "expect": "&bA&aB&bC&a" },
+    { "expr": "wipe('A😀B', 2)", "expect": "A😀 " },
+    { "expr": "marquee('A😀B', 3, 1)", "expect": "😀B " },
+
     { "expr": "1 / 0", "error": true },
     { "expr": "5 % 0", "error": true },
     { "expr": "missing + 1", "error": true },
@@ -118,6 +137,16 @@
     { "expr": "smoothstep(0, 1)", "error": true },
     { "expr": "fixed(1, -1)", "error": true },
     { "expr": "fixed(1, 21)", "error": true },
-    { "expr": "fixed(1, 2.5)", "error": true }
+    { "expr": "fixed(1, 2.5)", "error": true },
+    { "expr": "marquee('x', 0, 0)", "error": true },
+    { "expr": "timeline([], 0)", "error": true },
+    { "expr": "timeline([['x', 0]], 0)", "error": true },
+    { "expr": "wave('x', [], 0)", "error": true },
+    { "expr": "odometer(0, 1, 0.5, 17)", "error": true },
+    { "expr": "odometer(0.5, 1, 0.5, 2)", "error": true },
+    { "expr": "marquee('&aText', 8, 0)", "error": true },
+    { "expr": "wipe('👍🏽X', 1)", "error": true },
+    { "expr": "marquee('left right', 8, 0)", "error": true },
+    { "expr": "wave('Text', ['not-a-style'], 0)", "error": true }
   ]
 }

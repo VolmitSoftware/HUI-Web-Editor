@@ -176,22 +176,33 @@ ShowcaseEffect showcaseWave(math.Random random, String text) {
   return ShowcaseEffect('wave', out.toString());
 }
 
-/// Frames for a generated animation document.
-///
-/// Four shapes: the smooth hue ring the shipped rainbow walks, a two-colour
-/// ping-pong in the mood, a hard flicker, and a marquee that slides a glyph
-/// through the word.
+const List<String> showcaseAnimationEffectIds = <String>[
+  'rainbow',
+  'marquee',
+  'timeline',
+  'typewriter',
+  'flash',
+  'wipe',
+  'scanner',
+  'decode',
+  'odometer',
+  'wave',
+];
+
 ({String mode, int intervalMs, List<String> frames}) showcaseAnimationFrames(
   math.Random random,
   ShowcaseMood mood,
   String word,
 ) {
-  final int shape = random.nextInt(4);
+  final String effectId = showcasePick(random, showcaseAnimationEffectIds);
   final String glyph = showcasePick(random, mood.glyphs);
   final String mode =
       glossAnimationModes[random.nextInt(glossAnimationModes.length)];
-  switch (shape) {
-    case 0:
+  final int rate = 1 + random.nextInt(4);
+  final String primary = _stripHash(mood.primary);
+  final String secondary = _stripHash(mood.secondary);
+  switch (effectId) {
+    case 'rainbow':
       final int count = 48 + random.nextInt(13);
       final int startHue = random.nextInt(360);
       return (
@@ -202,51 +213,85 @@ ShowcaseEffect showcaseWave(math.Random random, String text) {
             '[${showcaseHueHex(startHue + ((360 * index) ~/ count))}]$word',
         ],
       );
-    case 1:
-      final int count = 24 + random.nextInt(17);
+    case 'marquee':
+      final int width = math.min(word.length, 12);
       return (
         mode: mode,
-        intervalMs: 60,
+        intervalMs: 1000,
         frames: <String>[
-          for (int index = 0; index < count; index++)
-            '[${showcaseMixHex(mood.primary, mood.secondary, index / (count - 1))}]'
-                '$word',
-          for (int index = count - 2; index > 0; index--)
-            '[${showcaseMixHex(mood.primary, mood.secondary, index / (count - 1))}]'
-                '$word',
+          "${mood.legacy}{{ marquee('$word', $width, floor(time.seconds * $rate)) }}",
         ],
       );
-    case 2:
-      // A failing lamp: bright, lit, dim, nearly out, on a four-beat cycle.
-      final List<String> tones = <String>[
-        _stripHash(mood.secondary),
-        _stripHash(mood.primary),
-        showcaseMixHex(mood.primary, '#101014', 0.55),
-        '221F26',
-      ];
-      final int count = (4 * (3 + random.nextInt(4))).toInt();
+    case 'timeline':
       return (
         mode: mode,
-        intervalMs: 80,
+        intervalMs: 1000,
         frames: <String>[
-          for (int index = 0; index < count; index++)
-            '[${tones[index % tones.length]}]$word',
+          "{{ timeline([['${mood.legacy}$word', 3], ['&f$glyph $word', 2], "
+              "['[$secondary]$word', 3]], time.seconds) }}",
+        ],
+      );
+    case 'typewriter':
+      return (
+        mode: mode,
+        intervalMs: 1000,
+        frames: <String>[
+          "${mood.legacy}{{ typewriter('$word', floor(time.seconds * $rate), 2) }}",
+        ],
+      );
+    case 'flash':
+      return (
+        mode: mode,
+        intervalMs: 1000,
+        frames: <String>[
+          "{{ flash('${mood.legacy}&l$word', '&7$word', floor(time.seconds * $rate)) }}",
+        ],
+      );
+    case 'wipe':
+      return (
+        mode: mode,
+        intervalMs: 1000,
+        frames: <String>[
+          "${mood.legacy}{{ wipe('$word', floor(time.seconds * $rate)) }}",
+        ],
+      );
+    case 'scanner':
+      return (
+        mode: mode,
+        intervalMs: 1000,
+        frames: <String>[
+          "{{ scanner('$word', '${mood.legacy}', '[$secondary]', floor(time.seconds * $rate)) }}",
+        ],
+      );
+    case 'decode':
+      return (
+        mode: mode,
+        intervalMs: 1000,
+        frames: <String>[
+          "${mood.legacy}{{ scramble('$word', floor(time.seconds * $rate)) }}",
+        ],
+      );
+    case 'odometer':
+      final int digits = 3 + random.nextInt(4);
+      final int target = random.nextInt(math.pow(10, digits).toInt() - 1) + 1;
+      final int duration = 5 + random.nextInt(16);
+      return (
+        mode: mode,
+        intervalMs: 1000,
+        frames: <String>[
+          "${mood.legacy}{{ odometer(0, $target, mod(time.seconds, $duration) / $duration, $digits) }}",
+        ],
+      );
+    case 'wave':
+      return (
+        mode: mode,
+        intervalMs: 1000,
+        frames: <String>[
+          "{{ wave('$word', ['${mood.legacy}', '[$primary]', '[$secondary]'], floor(time.seconds * $rate)) }}",
         ],
       );
     default:
-      final List<String> letters = word.split('');
-      return (
-        mode: mode,
-        intervalMs: 70,
-        frames: <String>[
-          for (int slot = 0; slot <= letters.length; slot++)
-            '[${_stripHash(mood.primary)}]'
-                '${letters.sublist(0, slot).join()}'
-                '[${_stripHash(mood.secondary)}]$glyph'
-                '[${_stripHash(mood.primary)}]'
-                '${letters.sublist(slot).join()}',
-        ],
-      );
+      throw StateError('Unknown animation effect: $effectId');
   }
 }
 

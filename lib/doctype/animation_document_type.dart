@@ -80,9 +80,10 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
   @override
   String get templatesNote =>
       'An animation is a frame list other documents play through '
-      '|animation.<id>| — the id is this document\'s file path. Rainbow is '
-      'byte-identical to the default the plugin ships. Every template opens '
-      'as a new document, so your current one is untouched.';
+      '|animation.<id>| — the id is this document\'s file path. The ten '
+      'effect templates match the plugin\'s shipped animation set and accept '
+      'editable content through their expression helpers. Every template '
+      'opens as a new document, so your current one is untouched.';
 
   @override
   List<DocumentTemplateSection>
@@ -94,7 +95,7 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
           name: 'Rainbow',
           description:
               'The shipped default: a 60-step RGB hue gradient advancing '
-              'once per tick. Prefix text with |animation.rainbow| to '
+              'every 53 ms. Prefix text with |animation.rainbow| to '
               'colour it without inserting another word.',
           highlights: const <String>['Shipped default', 'Smooth RGB'],
           create: (EditorStore store) => store.newGlossDocument(
@@ -103,6 +104,26 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
             from: buildRainbowGlossAnimation(),
           ),
         ),
+        for (final ({
+              String id,
+              String name,
+              String description,
+              List<String> highlights,
+              GlossAnimationDoc Function() build,
+            })
+            preset
+            in _effectTemplates)
+          DocumentTemplate(
+            id: 'animation-${preset.id}',
+            name: preset.name,
+            description: preset.description,
+            highlights: preset.highlights,
+            create: (EditorStore store) => store.newGlossDocument(
+              this,
+              name: preset.id,
+              from: preset.build(),
+            ),
+          ),
         DocumentTemplate(
           id: 'animation-blank',
           name: 'Blank animation',
@@ -151,3 +172,88 @@ final class AnimationDocumentType extends GlossDocumentTypeAdapter {
     ),
   ];
 }
+
+final List<
+  ({
+    String id,
+    String name,
+    String description,
+    List<String> highlights,
+    GlossAnimationDoc Function() build,
+  })
+>
+_effectTemplates =
+    <
+      ({
+        String id,
+        String name,
+        String description,
+        List<String> highlights,
+        GlossAnimationDoc Function() build,
+      })
+    >[
+      (
+        id: 'marquee',
+        name: 'Marquee',
+        description: 'Scrolls editable text left through a fixed-width window.',
+        highlights: <String>['Scrolling', 'Fixed width'],
+        build: buildMarqueeGlossAnimation,
+      ),
+      (
+        id: 'timeline',
+        name: 'Timeline',
+        description:
+            'Composes timed scrolling, flashing, and replacement scenes in one loop.',
+        highlights: <String>['Multi-scene', 'Composable'],
+        build: buildTimelineGlossAnimation,
+      ),
+      (
+        id: 'typewriter',
+        name: 'Typewriter',
+        description: 'Types, holds, and erases editable text.',
+        highlights: <String>['Reveal', 'Erase'],
+        build: buildTypewriterGlossAnimation,
+      ),
+      (
+        id: 'flash',
+        name: 'Flash / pulse',
+        description: 'Alternates between two complete text snippets.',
+        highlights: <String>['Two states', 'Emphasis'],
+        build: buildFlashGlossAnimation,
+      ),
+      (
+        id: 'wipe',
+        name: 'Wipe',
+        description: 'Reveals and hides text while preserving its width.',
+        highlights: <String>['Reveal', 'Stable width'],
+        build: buildWipeGlossAnimation,
+      ),
+      (
+        id: 'scanner',
+        name: 'Scanner',
+        description: 'Moves a bright formatting band across text.',
+        highlights: <String>['Highlight', 'Scoreboard-safe sample'],
+        build: buildScannerGlossAnimation,
+      ),
+      (
+        id: 'decode',
+        name: 'Scramble / decode',
+        description: 'Resolves deterministic randomized glyphs into text.',
+        highlights: <String>['Decode', 'Deterministic'],
+        build: buildDecodeGlossAnimation,
+      ),
+      (
+        id: 'odometer',
+        name: 'Odometer',
+        description: 'Rolls between numeric endpoints with zero padding.',
+        highlights: <String>['Numbers', 'Progress'],
+        build: buildOdometerGlossAnimation,
+      ),
+      (
+        id: 'wave',
+        name: 'Wave / chase',
+        description: 'Chases formatting styles across each character.',
+        highlights: <String>['Per-character', 'Color chase'],
+        build: buildWaveGlossAnimation,
+      ),
+    ];

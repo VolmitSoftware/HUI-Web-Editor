@@ -950,8 +950,11 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'The texts the animation cycles through, each one run through the '
         'same pipeline as the line that embeds it — colours, expressions and '
-        'placeholders in a frame work exactly as they would inline. An empty '
-        'list is rejected; one frame is legal and simply holds.',
+        'placeholders in a frame work exactly as they would inline. A '
+        'one-frame document can still move when its expression uses time; '
+        'marquee, timeline, typewriter, flash, wipe, scanner, scramble, '
+        'odometer and wave provide reusable effects. An empty list is '
+        'rejected.',
     citation: 'AnimationDoc.java:45-55',
   ),
 

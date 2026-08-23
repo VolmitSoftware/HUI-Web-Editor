@@ -16,6 +16,7 @@ import 'package:gloss_editor/logic/real_drop_stage.dart';
 import 'package:gloss_editor/logic/real_drop_validation.dart';
 import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
+import 'package:gloss_editor/services/showcase_effects.dart';
 import 'package:gloss_editor/services/showcase_randomizer.dart';
 import 'package:gloss_editor/state/editor_store.dart';
 import 'package:gloss_editor/state/workspace.dart';
@@ -237,51 +238,57 @@ void main() {
     );
   });
 
-  test('random animations are authored colour, in several shapes', () {
-    final Set<int> lengths = <int>{};
-    final Set<int> intervals = <int>{};
-    final Set<String> modes = <String>{};
-    for (int seed = 0; seed < 64; seed++) {
-      final GlossAnimationDoc animation = buildRandomAnimationShowcase(
-        GlossAnimationDoc(revision: 9),
-        math.Random(seed),
-      );
-      expect(animation.revision, 9, reason: 'seed $seed');
+  test(
+    'random animations cover every shipped effect with valid authored expressions',
+    () {
+      final Set<int> lengths = <int>{};
+      final Set<int> intervals = <int>{};
+      final Set<String> modes = <String>{};
+      final Set<String> effects = <String>{};
+      for (int seed = 0; seed < 512; seed++) {
+        final GlossAnimationDoc animation = buildRandomAnimationShowcase(
+          GlossAnimationDoc(revision: 9),
+          math.Random(seed),
+        );
+        expect(animation.revision, 9, reason: 'seed $seed');
+        expect(
+          glossAnimationModes,
+          contains(animation.mode),
+          reason: 'seed $seed',
+        );
+        expect(
+          animation.frameIntervalMs,
+          inInclusiveRange(glossMinFrameIntervalMs, glossMaxFrameIntervalMs),
+          reason: 'seed $seed',
+        );
+        expect(animation.frames, isNotEmpty);
+        expect(animation.frames.length, lessThanOrEqualTo(80));
+        expect(
+          animation.frames,
+          everyElement(isNotEmpty),
+          reason: 'seed $seed',
+        );
+        expect(validateAnimationDoc(animation), isEmpty, reason: 'seed $seed');
+        lengths.add(animation.frames.length);
+        intervals.add(animation.frameIntervalMs);
+        modes.add(animation.mode);
+        effects.add(_randomAnimationEffectId(animation));
+      }
       expect(
-        glossAnimationModes,
-        contains(animation.mode),
-        reason: 'seed $seed',
+        showcaseAnimationEffectIds.toSet(),
+        shippedGlossAnimationBuilders.keys.toSet(),
       );
+      expect(effects, shippedGlossAnimationBuilders.keys.toSet());
       expect(
-        animation.frameIntervalMs,
-        inInclusiveRange(glossMinFrameIntervalMs, glossMaxFrameIntervalMs),
-        reason: 'seed $seed',
+        intervals.length,
+        greaterThan(1),
+        reason: 'the pool holds more than one animation shape',
       );
-      expect(animation.frames.length, greaterThanOrEqualTo(5));
-      expect(animation.frames.length, lessThanOrEqualTo(80));
-      expect(
-        animation.frames,
-        everyElement(matches(RegExp(r'^\[[0-9A-F]{6}\]'))),
-        reason: 'seed $seed',
-      );
-      expect(
-        animation.frames.toSet().length,
-        greaterThan(3),
-        reason: 'seed $seed',
-      );
-      expect(validateAnimationDoc(animation), isEmpty, reason: 'seed $seed');
-      lengths.add(animation.frames.length);
-      intervals.add(animation.frameIntervalMs);
-      modes.add(animation.mode);
-    }
-    expect(
-      intervals.length,
-      greaterThan(1),
-      reason: 'the pool holds more than one animation shape',
-    );
-    expect(lengths.length, greaterThan(4));
-    expect(modes, glossAnimationModes.toSet());
-  });
+      expect(lengths, contains(1));
+      expect(lengths.any((int length) => length > 1), isTrue);
+      expect(modes, glossAnimationModes.toSet());
+    },
+  );
 
   test('random MOTD and scoreboard are complete fake server examples', () {
     final GlossMotdDoc motd = buildRandomMotdShowcase(
@@ -859,4 +866,24 @@ void main() {
       contains('all-elements'),
     );
   });
+}
+
+String _randomAnimationEffectId(GlossAnimationDoc animation) {
+  if (animation.frames.length > 1) return 'rainbow';
+  final String frame = animation.frames.single;
+  const Map<String, String> helpers = <String, String>{
+    'marquee': 'marquee(',
+    'timeline': 'timeline(',
+    'typewriter': 'typewriter(',
+    'flash': 'flash(',
+    'wipe': 'wipe(',
+    'scanner': 'scanner(',
+    'decode': 'scramble(',
+    'odometer': 'odometer(',
+    'wave': 'wave(',
+  };
+  for (final MapEntry<String, String> helper in helpers.entries) {
+    if (frame.contains(helper.value)) return helper.key;
+  }
+  throw StateError('Unknown randomized animation frame: $frame');
 }

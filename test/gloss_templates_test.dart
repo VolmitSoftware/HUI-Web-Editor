@@ -11,6 +11,7 @@ import 'package:gloss_editor/logic/bubble_validation.dart';
 import 'package:gloss_editor/logic/emoji_validation.dart';
 import 'package:gloss_editor/logic/hologram_validation.dart';
 import 'package:gloss_editor/logic/gloss_text.dart';
+import 'package:gloss_editor/logic/mc_text.dart';
 import 'package:gloss_editor/logic/motd_validation.dart';
 import 'package:gloss_editor/logic/scoreboard_validation.dart';
 import 'package:gloss_editor/logic/tablist_validation.dart';
@@ -118,6 +119,39 @@ void main() {
       }
       expect(validateAnimationDoc(first), isEmpty);
     });
+  });
+
+  test('effect animation templates match every shipped plugin document', () {
+    for (final MapEntry<String, GlossAnimationDoc Function()> entry
+        in shippedGlossAnimationBuilders.entries.where(
+          (MapEntry<String, GlossAnimationDoc Function()> entry) =>
+              entry.key != 'rainbow',
+        )) {
+      final File plugin = File(
+        glossRepositoryFilePath(
+          'src/main/resources/defaults/animations/${entry.key}.json',
+        ),
+      );
+      expect(plugin.existsSync(), isTrue, reason: entry.key);
+      final GlossAnimationDoc shipped = decodeGlossAnimationDoc(
+        plugin.readAsStringSync(),
+      );
+      final GlossAnimationDoc built = entry.value();
+      expect(built.toJson(), shipped.toJson(), reason: entry.key);
+      expect(validateAnimationDoc(built), isEmpty, reason: entry.key);
+      final List<GlossLineRender> renders = <GlossLineRender>[
+        for (final int nowMs in <int>[0, 2000, 4000])
+          renderGlossAnimationFramePreview(built.frames.single, nowMs: nowMs),
+      ];
+      for (final GlossLineRender render in renders) {
+        expect(render.plainText, isNot(contains('{{')), reason: entry.key);
+      }
+      expect(
+        renders.map(_renderSignature).toSet(),
+        hasLength(greaterThan(1)),
+        reason: entry.key,
+      );
+    }
   });
 
   test('the blank animation is the smallest file Gloss accepts', () {
@@ -424,3 +458,14 @@ void main() {
     }
   });
 }
+
+String _renderSignature(GlossLineRender render) => <String>[
+  for (final GlossTextPiece piece in render.pieces)
+    switch (piece) {
+      GlossTextRun(:final McSpan span) =>
+        '${span.text}:${span.color}:${span.bold}:${span.italic}:'
+            '${span.underlined}:${span.strikethrough}:${span.obfuscated}',
+      GlossPlaceholderChip(:final String token) => token,
+      GlossMetricChip(:final String token) => token,
+    },
+].join('|');

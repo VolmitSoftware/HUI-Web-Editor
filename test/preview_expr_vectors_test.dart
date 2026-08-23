@@ -18,7 +18,7 @@ const double delta = 1e-9;
 /// nothing to check. `ExprVectorsTest.MINIMUM_VECTOR_COUNT` is 40; this floor
 /// is the shipped table's full size, so silently losing vectors in a refresh
 /// fails here instead of quietly shrinking the contract.
-const int minimumVectorCount = 106;
+const int minimumVectorCount = 134;
 
 /// Scope over a literal variable map, falling back to the standard library —
 /// the Dart twin of the Java harness's `MapScope`.

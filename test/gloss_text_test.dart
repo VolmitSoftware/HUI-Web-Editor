@@ -41,6 +41,13 @@ void main() {
     expect(run.span.bold, isTrue);
   });
 
+  test('an expression that currently renders blank stays blank', () {
+    final GlossLineRender rendered = renderGlossAnimationFramePreview(
+      "{{ typewriter('GLOSS', 0, 2) }}",
+    );
+    expect(rendered.plainText, '');
+  });
+
   group('function substitution (TextPipeline.applyFunctions)', () {
     test('a known animation reference plays its frame at nowMs', () {
       final _Animations animations = _Animations(<String, GlossAnimationDoc>{

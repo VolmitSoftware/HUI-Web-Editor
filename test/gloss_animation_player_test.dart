@@ -29,14 +29,30 @@ void main() {
     expect(player.frameText(doc, 'a'), doc.frames[player.frameIndex(doc, 'a')]);
   });
 
+  test('sample uses one clock reading for frame and expression time', () {
+    int now = 99;
+    final GlossAnimationPlayer player = GlossAnimationPlayer(
+      clock: () => now++,
+    );
+    final GlossAnimationDoc doc = _doc();
+    final ({int nowMs, int frameIndex, String frameText}) sample = player
+        .sample(doc, 'a');
+    expect(sample.nowMs, 99);
+    expect(sample.frameIndex, glossAnimationFrameIndexAt(doc, 'a', 99));
+    expect(sample.frameText, doc.frames[sample.frameIndex]);
+    expect(now, 100, reason: 'the clock was read exactly once');
+  });
+
   test('pause freezes the frame that was showing', () {
     int now = 250;
     final GlossAnimationPlayer player = GlossAnimationPlayer(clock: () => now);
     final GlossAnimationDoc doc = _doc();
     player.pause(doc, 'a');
     expect(player.playing, isFalse);
+    expect(player.nowMs, 250);
     now = 999999;
     expect(player.frameIndex(doc, 'a'), 2, reason: 'held at the pause frame');
+    expect(player.nowMs, 250, reason: 'expression time freezes with the frame');
   });
 
   test('play rejoins the live timeline, not the held frame', () {

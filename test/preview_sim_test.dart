@@ -38,6 +38,25 @@ const Map<String, List<Object?>> functionSampleArgs = <String, List<Object?>>{
   'metric': <Object?>['react.tps'],
   'plain': <Object?>['&aHi'],
   'readable': <Object?>['IRON_ORE'],
+  'marquee': <Object?>['GLOSS', 5.0, 1.0],
+  'timeline': <Object?>[
+    <Object?>[
+      <Object?>['WELCOME', 2.0],
+      <Object?>['BOOSTED', 1.0],
+    ],
+    2.0,
+  ],
+  'typewriter': <Object?>['GLOSS', 3.0, 2.0],
+  'flash': <Object?>['&aON', '&7OFF', 1.0],
+  'wipe': <Object?>['GLOSS', 3.0],
+  'scanner': <Object?>['GLOSS', '&7', '&a', 2.0],
+  'scramble': <Object?>['GLOSS', 2.0],
+  'odometer': <Object?>[0.0, 999.0, 0.5, 4.0],
+  'wave': <Object?>[
+    'GLOSS',
+    <Object?>['&a', '&7'],
+    1.0,
+  ],
 };
 
 String readAsset(String path) {

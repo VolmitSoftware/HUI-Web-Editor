@@ -69,6 +69,15 @@
     "papiNumber": { "args": ["key: string", "fallback?: number"], "returns": "number", "description": "Resolves a numeric PlaceholderAPI value with Gloss native player and server fallbacks where available." },
     "metric": { "args": ["key: string", "fallback?: number"], "returns": "number", "description": "Reads a numeric integration metric, using the optional fallback while unavailable." },
     "plain": { "args": ["text: string"], "returns": "string", "description": "Strips legacy '&' color and format codes from text, leaving everything else untouched." },
-    "readable": { "args": ["id: string"], "returns": "string", "description": "Converts an ENUM_STYLE id into Title Case display text, e.g. IRON_ORE becomes Iron Ore." }
+    "readable": { "args": ["id: string"], "returns": "string", "description": "Converts an ENUM_STYLE id into Title Case display text, e.g. IRON_ORE becomes Iron Ore." },
+    "marquee": { "args": ["text: string", "width: number", "step: number"], "returns": "string", "description": "Scrolls plain single-line text left through a fixed-width window." },
+    "timeline": { "args": ["steps: [[text, seconds], ...]", "elapsedSeconds: number"], "returns": "string", "description": "Loops through text scenes with an independent positive duration for each scene." },
+    "typewriter": { "args": ["text: string", "step: number", "holdSteps: number"], "returns": "string", "description": "Types, holds, and erases plain single-line text." },
+    "flash": { "args": ["first: string", "second: string", "step: number"], "returns": "string", "description": "Alternates between two complete text snippets." },
+    "wipe": { "args": ["text: string", "step: number"], "returns": "string", "description": "Reveals and hides plain single-line text while preserving its width." },
+    "scanner": { "args": ["text: string", "baseStyle: string", "highlightStyle: string", "step: number"], "returns": "string", "description": "Moves one formatting highlight across plain single-line text." },
+    "scramble": { "args": ["text: string", "step: number"], "returns": "string", "description": "Deterministically resolves randomized glyphs into plain single-line text." },
+    "odometer": { "args": ["from: number", "to: number", "progress: number", "digits: number"], "returns": "string", "description": "Interpolates between two safe whole-number endpoints and zero-pads the result." },
+    "wave": { "args": ["text: string", "styles: [string, ...]", "step: number"], "returns": "string", "description": "Chases a bounded list of formatting styles across plain single-line text." }
   }
 }

@@ -12,6 +12,7 @@ import '../model/gloss_bubble_style.dart';
 import '../model/gloss_doc.dart';
 import 'bubble_motion.dart';
 import 'preview_expr.dart';
+import 'preview_expr_functions.dart';
 import 'validation.dart';
 
 List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
@@ -260,34 +261,7 @@ List<HuiIssue> _validateShimmer(GlossBubbleStyleDoc doc) {
   return issues;
 }
 
-const Set<String> _motionFunctions = <String>{
-  'clamp',
-  'lerp',
-  'min',
-  'max',
-  'floor',
-  'ceil',
-  'round',
-  'abs',
-  'mod',
-  'sin',
-  'cos',
-  'pow',
-  'smoothstep',
-  'rgb',
-  'argb',
-  'alpha',
-  'mix',
-  'palette',
-  'select',
-  'number',
-  'bar',
-  'hex',
-  'str',
-  'fixed',
-  'plain',
-  'readable',
-};
+final Set<String> _motionFunctions = previewStandardFunctionNames.toSet();
 
 List<HuiIssue> _validateMotion(GlossBubbleMotion motion) {
   final List<HuiIssue> issues = <HuiIssue>[];
