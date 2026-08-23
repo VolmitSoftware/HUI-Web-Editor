@@ -142,14 +142,25 @@ void main() {
       );
     });
 
-    test('reports placeholders in commands as info', () {
+    test('accepts the two clicking-player command tokens', () {
+      expect(
+        validateHuiMenu(
+          _withAction(
+            HuiCommandAction('/pay %player_name% %player%', 'server'),
+          ),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('reports unsupported command placeholders as info', () {
       expect(
         _has(
           validateHuiMenu(
-            _withAction(HuiCommandAction('/pay %player_name%', 'player')),
+            _withAction(HuiCommandAction('/pay %vault_balance%', 'player')),
           ),
           HuiSeverity.info,
-          'not expanded in commands',
+          'all other command tokens stay literal',
         ),
         isTrue,
       );

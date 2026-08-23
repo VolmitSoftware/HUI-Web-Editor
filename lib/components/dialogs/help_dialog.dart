@@ -435,7 +435,7 @@ const List<String> _nonFeatureList = <String>[
       'contains.',
   'Text placeholders refresh every 10 ticks by default. Set refreshTicks to 0 '
       'when a text icon should stay frozen after its initial render.',
-  'No placeholders in commands. The command string is dispatched verbatim.',
+  "%player% and %player_name% become the clicking player's name; all other command tokens stay literal.",
   'Only three component types (button, decoration, toggle), eight icon types '
       '(text, textImage, animatedTextImage, item, block, customItem, entity, '
       'playerHead) and six action '

@@ -125,6 +125,23 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
                 from: buildShowcaseGlossScoreboard(),
               ),
             ),
+            DocumentTemplate(
+              id: 'scoreboard-animation-showcase',
+              name: 'Animation showcase',
+              description:
+                  'One scoreboard line for each shipped text-animation '
+                  'effect, ready to preview and edit.',
+              highlights: const <String>[
+                'Animations',
+                'Authored code',
+                'Live preview',
+              ],
+              create: (EditorStore store) => store.newGlossDocument(
+                this,
+                name: 'animation-showcase',
+                from: buildAnimationShowcaseGlossScoreboard(),
+              ),
+            ),
           ],
         ),
       ];

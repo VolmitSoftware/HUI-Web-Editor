@@ -45,7 +45,7 @@ import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Animation playback repaint period. Fine enough for the 1 ms floor to look
 /// continuous without running a menu-preview-grade frame loop.
-const Duration _tickPeriod = Duration(milliseconds: 100);
+const Duration _tickPeriod = Duration(milliseconds: 50);
 
 class HologramView extends StatefulWidget {
   const HologramView({

@@ -1892,54 +1892,280 @@ GlossBubbleMotion _randomBubbleMotion(math.Random random) {
   };
 }
 
+enum TablistShowcaseArchetype {
+  compact,
+  welcome,
+  status,
+  event,
+  community,
+  staff,
+}
+
+final class _TablistProfile {
+  const _TablistProfile({
+    required this.archetype,
+    required this.headerLines,
+    required this.footerLines,
+    required this.formats,
+  });
+
+  final TablistShowcaseArchetype archetype;
+  final (int, int) headerLines;
+  final (int, int) footerLines;
+  final (int, int) formats;
+}
+
+const List<_TablistProfile> _tablistProfiles = <_TablistProfile>[
+  _TablistProfile(
+    archetype: TablistShowcaseArchetype.compact,
+    headerLines: (1, 2),
+    footerLines: (1, 2),
+    formats: (1, 2),
+  ),
+  _TablistProfile(
+    archetype: TablistShowcaseArchetype.welcome,
+    headerLines: (2, 4),
+    footerLines: (2, 4),
+    formats: (2, 4),
+  ),
+  _TablistProfile(
+    archetype: TablistShowcaseArchetype.status,
+    headerLines: (4, 5),
+    footerLines: (2, 4),
+    formats: (2, 4),
+  ),
+  _TablistProfile(
+    archetype: TablistShowcaseArchetype.event,
+    headerLines: (2, 4),
+    footerLines: (4, 5),
+    formats: (2, 5),
+  ),
+  _TablistProfile(
+    archetype: TablistShowcaseArchetype.community,
+    headerLines: (3, 5),
+    footerLines: (3, 5),
+    formats: (4, 6),
+  ),
+  _TablistProfile(
+    archetype: TablistShowcaseArchetype.staff,
+    headerLines: (3, 5),
+    footerLines: (2, 5),
+    formats: (7, 7),
+  ),
+];
+
 GlossTablistDoc buildRandomTablistShowcase(
   GlossTablistDoc current,
-  math.Random random,
-) {
+  math.Random random, {
+  TablistShowcaseArchetype? archetype,
+}) {
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
   final String server = showcasePick(random, showcaseServerNames);
-  final String easterEgg = showcaseEasterEgg(random);
-  final int formatShape = (random.nextInt(4) + 3) % 4;
-  final Map<String, String> nameFormats = switch (formatShape) {
-    0 => <String, String>{'default': r'&7$player'},
-    1 => <String, String>{
-      'default': r'&7[Townsfolk] &f$player',
-      '_op': '${showcaseColorEffect(random, mood).text}&l[Founder] &f\$player',
-    },
-    2 => <String, String>{
-      'default': r'&7[Townsfolk] &f$player',
-      'owner': '${mood.legacy}&l[Lodge Keeper] &f\$player',
-      'vip': '${mood.legacy}[\$group] &f\$player',
-    },
-    _ => <String, String>{
-      'default': r'&7[Townsfolk] &f$player',
-      '_op': '${showcaseColorEffect(random, mood).text}&l[Founder] &f\$player',
-      'owner': '${mood.legacy}&l[Lodge Keeper] &f\$player',
-      'developer': r'&b[Bookhouse] &f$player',
-      'moderator': r'&a[Deputy] &f$player',
-      'vip': '${mood.legacy}[\$group] &f\$player',
-    },
+  final _TablistProfile profile = archetype == null
+      ? showcasePick(random, _tablistProfiles)
+      : _tablistProfiles.firstWhere(
+          (_TablistProfile candidate) => candidate.archetype == archetype,
+        );
+  final ShowcaseEffect brand = showcaseColorEffect(random, mood);
+  final ShowcaseEffect animation = showcaseTablistAnimation(random, mood);
+  final ShowcaseEffect scanline = showcaseScanline(
+    random,
+    mood,
+    cells: 4 + random.nextInt(4),
+  );
+  final String event = showcasePick(random, showcaseEvents);
+  final String headline = showcasePick(random, showcaseHeadlines);
+  final List<String> headerCandidates = switch (profile.archetype) {
+    TablistShowcaseArchetype.compact => <String>[
+      '&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }}',
+      '&7$event',
+    ],
+    TablistShowcaseArchetype.welcome => <String>[
+      '&7Welcome &f{{ player.name }}',
+      "&7Rank {{ papi('vault_prefix', '&7Member') }} &8• "
+          "{{ player.ping < 100 ? '&a' : '&e' }}{{ player.ping }}ms",
+      '&7$headline',
+      '&7Level &f{{ player.level }} &8• &7Health &c'
+          '{{ fixed(player.health, 1) }}',
+    ],
+    TablistShowcaseArchetype.status => <String>[
+      '&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }} '
+          '&8• &7TPS &a{{ fixed(server.tps, 1) }}',
+      '&7Ping {{ player.ping < 80 ? \'&a\' : player.ping < 160 ? \'&e\' : \'&c\' }}'
+          '{{ player.ping }}ms',
+      '&7Level &f{{ player.level }} &8• &7Health &c'
+          '{{ fixed(player.health, 1) }}',
+      '&7Tick &f{{ fixed(metric(\'react.tick-ms\', '
+          '1000 / server.tps), 1) }}ms',
+      '${scanline.text} ${mood.legacy}${mood.name}',
+    ],
+    TablistShowcaseArchetype.event => <String>[
+      '&f$event',
+      '&7$headline',
+      '&7Online now &a{{ server.online }}',
+      '${scanline.text} &f${showcasePick(random, showcaseStatusWords)}',
+    ],
+    TablistShowcaseArchetype.community => <String>[
+      '&7Welcome back, &f{{ player.name }}',
+      "&7Rank {{ papi('vault_prefix', '&7Member') }} &8• "
+          '&7Level &f{{ player.level }}',
+      '&7$event',
+      '&7Population &a{{ server.online }}&8/&a{{ server.maxPlayers }}',
+      '${scanline.text} &f${mood.name}',
+    ],
+    TablistShowcaseArchetype.staff => <String>[
+      '&7Staff channel &8• &f{{ player.name }}',
+      '&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }} '
+          '&8• &7TPS &a{{ fixed(server.tps, 1) }}',
+      '&7Ping &f{{ player.ping }}ms &8• &7Level &f{{ player.level }}',
+      "&7Prefix {{ papi('vault_prefix', '&7Staff') }}",
+      '${scanline.text} &fSystems nominal',
+    ],
   };
-  return GlossTablistDoc(
+  final List<String> footerCandidates = <String>[
+    showcaseEasterEgg(random),
+    '&8$headline',
+    '${mood.legacy}$event',
+    '&b${showcasePick(random, showcaseDomains)}',
+    '${scanline.text} &7${mood.name}',
+    '&7Players &f{{ server.online }} &8• &7TPS &f'
+        '{{ fixed(server.tps, 1) }}',
+  ];
+  final List<String> headerLines = _randomTablistLines(
+    random,
+    '${brand.text}&l$server',
+    headerCandidates,
+    _randomTablistCount(random, profile.headerLines),
+  );
+  final List<String> footerLines = _randomTablistLines(
+    random,
+    animation.text,
+    footerCandidates,
+    _randomTablistCount(random, profile.footerLines),
+    shuffle: true,
+  );
+  final Map<String, String> nameFormats = _randomTablistNameFormats(
+    random,
+    mood,
+    _randomTablistCount(random, profile.formats),
+  );
+  final GlossTablistDoc generated = GlossTablistDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
-    useHeaderFooter: random.nextInt(5) != 0,
-    header:
-        '${showcaseColorEffect(random, mood).text}&l$server\n'
-        "&7Welcome &f{{ player.name }} &8• "
-        "{{ papi('vault_prefix', '&7Member') }} &8• "
-        "{{ player.ping < 100 ? '&a' : '&e' }}{{ player.ping }}ms\n"
-        '&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }} '
-        '&8• &7TPS &a{{ fixed(server.tps, 1) }}',
-    footer:
-        '$easterEgg\n'
-        '&8${showcasePick(random, showcaseHeadlines)}\n'
-        '${showcaseTickPrefix(random, mood, framesPerSecond: 0.5).text}'
-        '&7${showcasePick(random, showcaseEvents)} &8• &b'
-        '${showcasePick(random, showcaseDomains)}',
-    groupListNames: random.nextInt(5) != 0,
+    useHeaderFooter: true,
+    header: headerLines.join('\n'),
+    footer: footerLines.join('\n'),
+    groupListNames: true,
     nameFormats: nameFormats,
   );
+  if (encodeGlossTablistDoc(generated) == encodeGlossTablistDoc(current)) {
+    final String fallback = generated.nameFormats['default']!;
+    generated.nameFormats['default'] = fallback.startsWith('&f')
+        ? '${mood.legacy}\$player'
+        : '&f\$player';
+  }
+  return generated;
+}
+
+int _randomTablistCount(math.Random random, (int, int) range) =>
+    range.$1 + random.nextInt(range.$2 - range.$1 + 1);
+
+List<String> _randomTablistLines(
+  math.Random random,
+  String required,
+  List<String> candidates,
+  int count, {
+  bool shuffle = false,
+}) {
+  final List<String> available = List<String>.of(candidates)..shuffle(random);
+  final List<String> lines = <String>[required, ...available.take(count - 1)];
+  if (shuffle) lines.shuffle(random);
+  return lines;
+}
+
+Map<String, String> _randomTablistNameFormats(
+  math.Random random,
+  ShowcaseMood mood,
+  int count,
+) {
+  const List<({String key, String color, List<String> labels})> roles =
+      <({String key, String color, List<String> labels})>[
+        (
+          key: '_op',
+          color: '&6',
+          labels: <String>['Founder', 'Keeper', 'Fireman'],
+        ),
+        (
+          key: 'owner',
+          color: '&c',
+          labels: <String>['Owner', 'Lodge Keeper', 'Mayor'],
+        ),
+        (
+          key: 'developer',
+          color: '&b',
+          labels: <String>['Engineer', 'Bookhouse', 'Architect'],
+        ),
+        (
+          key: 'moderator',
+          color: '&a',
+          labels: <String>['Deputy', 'Ranger', 'Sheriff'],
+        ),
+        (
+          key: 'vip',
+          color: '&d',
+          labels: <String>['VIP', 'Blue Rose', 'Roadhouse'],
+        ),
+        (
+          key: 'builder',
+          color: '&e',
+          labels: <String>['Builder', 'Mill Crew', 'Dreamer'],
+        ),
+      ];
+  final List<({String key, String color, List<String> labels})> shuffled =
+      List<({String key, String color, List<String> labels})>.of(roles)
+        ..shuffle(random);
+  final Map<String, String> formats = <String, String>{
+    'default': _randomTablistNameFormat(random, mood, '&7', const <String>[
+      'Townsfolk',
+      'Guest',
+      'Resident',
+      'Traveler',
+    ], allowGroup: true),
+  };
+  for (final ({String key, String color, List<String> labels}) role
+      in shuffled.take(count - 1)) {
+    formats[role.key] = _randomTablistNameFormat(
+      random,
+      mood,
+      role.color,
+      role.labels,
+      allowGroup: role.key == 'vip',
+    );
+  }
+  return formats;
+}
+
+String _randomTablistNameFormat(
+  math.Random random,
+  ShowcaseMood mood,
+  String color,
+  List<String> labels, {
+  required bool allowGroup,
+}) {
+  final String label = showcasePick(random, labels);
+  return switch (random.nextInt(6)) {
+    0 => '$color[$label] &f\$player',
+    1 => '&f\$player $color[$label]',
+    2 =>
+      '${mood.legacy}${showcasePick(random, mood.glyphs)} '
+          '&f\$player &8• $color$label',
+    3 => '${showcaseColorEffect(random, mood).text}&l$label &f\$player',
+    4 when allowGroup => '${mood.legacy}[\$group] &f\$player',
+    4 => '|animation.rainbow|$label &f\$player',
+    _ =>
+      "{{ player.ping < 100 ? '&a' : player.ping < 180 ? '&e' : '&c' }}"
+          '● &f\$player',
+  };
 }
 
 /// A coherent character for the drop settings, so one press gives a look

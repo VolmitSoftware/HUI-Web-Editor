@@ -18,7 +18,10 @@ import 'field_docs.dart';
 const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   'action.command.command': HuiFieldDoc(
     title: 'Command',
-    body: 'Defines the command run by this action.',
+    body:
+        'Defines the command run by this action. %player% and '
+        '%player_name% become the clicking player\'s name before player or '
+        'server dispatch.',
     citation: 'gloss.schema.json#/\$defs/commandAction/properties/command',
   ),
   'action.command.source': HuiFieldDoc(

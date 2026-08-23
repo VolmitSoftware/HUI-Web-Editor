@@ -58,6 +58,58 @@ const String glossAnimationFunctionPrefix = 'animation.';
 /// full pipeline and therefore resolve these.
 const String glossMetricFunctionPrefix = 'metric.';
 
+bool glossTextRequiresFastRefresh(String raw) {
+  int open = raw.indexOf('|');
+  while (open >= 0) {
+    final int close = raw.indexOf('|', open + 1);
+    if (close < 0) break;
+    final String name = raw.substring(open + 1, close);
+    if (name.startsWith(glossAnimationFunctionPrefix) &&
+        name.length > glossAnimationFunctionPrefix.length) {
+      return true;
+    }
+    open = raw.indexOf('|', close + 1);
+  }
+
+  open = raw.indexOf('{{');
+  while (open >= 0) {
+    final int close = raw.indexOf('}}', open + 2);
+    if (close < 0) return false;
+    final String source = raw.substring(open + 2, close).trim();
+    if (source.isNotEmpty) {
+      final PExpr? expression = _tryParseGlossRefreshExpression(source);
+      if (expression != null && _glossExpressionDependsOnTime(expression)) {
+        return true;
+      }
+    }
+    open = raw.indexOf('{{', close + 2);
+  }
+  return false;
+}
+
+PExpr? _tryParseGlossRefreshExpression(String source) {
+  try {
+    return parsePreviewExpr(source);
+  } on PExprException {
+    return null;
+  }
+}
+
+bool _glossExpressionDependsOnTime(PExpr expression) => switch (expression) {
+  PVar(:final String name) =>
+    name == 'time.ms' || name == 'time.seconds' || name == 'time.ticks',
+  PList(:final List<PExpr> items) => items.any(_glossExpressionDependsOnTime),
+  PUnary(:final PExpr operand) => _glossExpressionDependsOnTime(operand),
+  PBinary(:final PExpr left, :final PExpr right) =>
+    _glossExpressionDependsOnTime(left) || _glossExpressionDependsOnTime(right),
+  PTernary(:final PExpr condition, :final PExpr ifTrue, :final PExpr ifFalse) =>
+    _glossExpressionDependsOnTime(condition) ||
+        _glossExpressionDependsOnTime(ifTrue) ||
+        _glossExpressionDependsOnTime(ifFalse),
+  PCall(:final List<PExpr> args) => args.any(_glossExpressionDependsOnTime),
+  _ => false,
+};
+
 /// Resolves the workspace's animation documents for text rendering. The
 /// editor's stand-in for `TextPipeline`'s registered-function map.
 abstract interface class GlossAnimationResolver {

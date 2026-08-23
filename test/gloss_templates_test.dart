@@ -22,13 +22,17 @@ import 'package:test/test.dart';
 import 'support/gloss_repository.dart';
 
 final class _Animations implements GlossAnimationResolver {
-  final GlossAnimationDoc rainbow = buildRainbowGlossAnimation();
+  final Map<String, GlossAnimationDoc> animations = <String, GlossAnimationDoc>{
+    for (final MapEntry<String, GlossAnimationDoc Function()> entry
+        in shippedGlossAnimationBuilders.entries)
+      entry.key: entry.value(),
+  };
 
   @override
-  List<String> get ids => <String>['rainbow'];
+  List<String> get ids => animations.keys.toList(growable: false);
 
   @override
-  GlossAnimationDoc? byId(String id) => id == 'rainbow' ? rainbow : null;
+  GlossAnimationDoc? byId(String id) => animations[id];
 }
 
 void main() {
@@ -140,7 +144,7 @@ void main() {
       expect(built.toJson(), shipped.toJson(), reason: entry.key);
       expect(validateAnimationDoc(built), isEmpty, reason: entry.key);
       final List<GlossLineRender> renders = <GlossLineRender>[
-        for (final int nowMs in <int>[0, 2000, 4000])
+        for (final int nowMs in <int>[0, 250, 500])
           renderGlossAnimationFramePreview(built.frames.single, nowMs: nowMs),
       ];
       for (final GlossLineRender render in renders) {
@@ -214,6 +218,55 @@ void main() {
           measureGlossScoreboardLine(line, _Animations()).truncated,
           isFalse,
           reason: line,
+        );
+      }
+    });
+  });
+
+  group('animation showcase scoreboard stays shipped and bounded', () {
+    test('embedded copy matches the plugin resource', () {
+      final File plugin = File(
+        glossRepositoryFilePath(
+          'src/main/resources/defaults/boards/animation-showcase.json',
+        ),
+      );
+      expect(plugin.existsSync(), isTrue);
+      expect(kGlossScoreboardAnimationShowcaseJson, plugin.readAsStringSync());
+    });
+
+    test('every row demonstrates one changing effect without truncation', () {
+      final GlossScoreboardDoc doc = buildAnimationShowcaseGlossScoreboard();
+      final _Animations animations = _Animations();
+      expect(doc.title, '&d&lANIMATION LAB');
+      expect(doc.lines, hasLength(10));
+      expect(doc.primary, isFalse);
+      expect(doc.hideNumbers, isTrue);
+      expect(doc.permissionGated, isFalse);
+      expect(validateScoreboardDoc(doc, animations: animations), isEmpty);
+      for (int index = 0; index < doc.lines.length; index++) {
+        final String line = doc.lines[index];
+        final GlossScoreboardLineMeasure measure = measureGlossScoreboardLine(
+          line,
+          animations,
+        );
+        expect(measure.truncated, isFalse, reason: 'line $index: $line');
+        final GlossLineRender first = renderGlossScoreboardLine(
+          line,
+          animations: animations,
+          nowMs: 0,
+        );
+        final GlossLineRender second = renderGlossScoreboardLine(
+          line,
+          animations: animations,
+          nowMs: 2250,
+        );
+        expect(first.expressionErrors, isEmpty, reason: 'line $index: $line');
+        expect(second.expressionErrors, isEmpty, reason: 'line $index: $line');
+        expect(first.plainText, isNot(contains('{{')), reason: line);
+        expect(
+          _renderSignature(first),
+          isNot(_renderSignature(second)),
+          reason: 'line $index did not animate: $line',
         );
       }
     });

@@ -1432,12 +1432,14 @@ class _Validator {
         'Command is empty; the plugin logs the invalid action and drops it',
         fix: 'Enter a command, for example /warp shop',
       );
-    } else if (action.command.contains('%')) {
+    } else if (action.command
+        .replaceAll('%player_name%', '')
+        .replaceAll('%player%', '')
+        .contains('%')) {
       _add(
         HuiSeverity.info,
         '$path.command',
-        'Placeholders are not expanded in commands: the string is dispatched '
-            'verbatim',
+        "%player% and %player_name% become the clicking player's name; all other command tokens stay literal.",
       );
     }
     // The merged plugin has no /holoui root: the command still dispatches,

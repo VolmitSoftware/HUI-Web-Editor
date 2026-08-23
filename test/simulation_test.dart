@@ -894,6 +894,26 @@ void main() {
       );
     });
 
+    test('clicking-player tokens resolve before dispatch', () {
+      final LoggedCommand command = LoggedCommand(
+        command: '/give %player% stone 1; tell %player_name% ready',
+        source: 'server',
+        clickerName: 'Builder',
+      );
+
+      expect(command.command, 'give Builder stone 1; tell Builder ready');
+    });
+
+    test('other percent tokens remain literal', () {
+      final LoggedCommand command = LoggedCommand(
+        command: 'tell %player_uuid% %vault_balance%',
+        source: 'server',
+        clickerName: 'Builder',
+      );
+
+      expect(command.command, 'tell %player_uuid% %vault_balance%');
+    });
+
     test('invalid command actions are dropped from the runtime log', () {
       final List<LoggedAction> logged = loggedActionsFrom(<HuiAction>[
         HuiCommandAction('', 'player'),
@@ -904,6 +924,26 @@ void main() {
 
       expect(logged.length, 1);
       expect((logged.single as LoggedCommand).command, 'heal');
+    });
+
+    test('the simulation uses its configured clicker identity', () {
+      final PreviewSimulation sim = PreviewSimulation(
+        menu: _menu(<HuiComponent>[
+          _button(
+            'give',
+            actions: <HuiAction>[
+              HuiCommandAction('give %player_name% obsidian 1', 'server'),
+            ],
+          ),
+        ]),
+        openFeet: PVec3.zero,
+        clickerName: 'Builder',
+      );
+      sim.tick(hoveredClickableIds: <String>{'give'}, playerFeet: PVec3.zero);
+
+      final LoggedCommand command =
+          sim.click().single.actions.single as LoggedCommand;
+      expect(command.command, 'give Builder obsidian 1');
     });
 
     test('converting a model action preserves the raw source spelling', () {

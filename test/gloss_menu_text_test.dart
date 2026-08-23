@@ -281,5 +281,16 @@ void main() {
       expect(before.isDynamicText, isTrue);
       expect(before.isAnimated, isTrue);
     });
+
+    test('fast refresh demand mirrors the runtime clock dependency', () {
+      expect(glossTextRequiresFastRefresh('{{ player.ping }}'), isFalse);
+      expect(glossTextRequiresFastRefresh("{{ 'time.seconds' }}"), isFalse);
+      expect(
+        glossTextRequiresFastRefresh('{{ floor(time.ticks / 2) }}'),
+        isTrue,
+      );
+      expect(glossTextRequiresFastRefresh('|animation.rainbow|'), isTrue);
+      expect(glossTextRequiresFastRefresh('|animation.rainbow'), isFalse);
+    });
   });
 }

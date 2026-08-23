@@ -373,9 +373,10 @@ void main() {
     final Set<bool> emojiTriggerPresent = <bool>{};
     final Set<bool> bubbleSelectPresent = <bool>{};
     final Set<String> shimmerPasses = <String>{};
-    final Set<bool> headerFooter = <bool>{};
-    final Set<bool> groupNames = <bool>{};
+    final Set<int> headerLineCounts = <int>{};
+    final Set<int> footerLineCounts = <int>{};
     final Set<int> formatCounts = <int>{};
+    final Set<String> tablists = <String>{};
     for (int seed = 0; seed < 256; seed++) {
       final GlossHologramDoc hologram = buildRandomHologramShowcase(
         GlossHologramDoc(),
@@ -409,9 +410,12 @@ void main() {
         GlossTablistDoc(),
         math.Random(seed),
       );
-      headerFooter.add(tablist.useHeaderFooter);
-      groupNames.add(tablist.groupListNames);
+      expect(tablist.useHeaderFooter, isTrue);
+      expect(tablist.groupListNames, isTrue);
+      headerLineCounts.add(tablist.header.split('\n').length);
+      footerLineCounts.add(tablist.footer.split('\n').length);
       formatCounts.add(tablist.nameFormats.length);
+      tablists.add(encodeGlossTablistDoc(tablist));
     }
     expect(billboards, glossHologramBillboards.toSet());
     expect(seeThrough, <bool>{true, false});
@@ -420,9 +424,10 @@ void main() {
     expect(emojiTriggerPresent, <bool>{true, false});
     expect(bubbleSelectPresent, <bool>{true, false});
     expect(shimmerPasses, <String>{'true:true', 'false:true', 'true:false'});
-    expect(headerFooter, <bool>{true, false});
-    expect(groupNames, <bool>{true, false});
-    expect(formatCounts, <int>{1, 2, 3, 6});
+    expect(headerLineCounts, <int>{1, 2, 3, 4, 5});
+    expect(footerLineCounts, <int>{1, 2, 3, 4, 5});
+    expect(formatCounts, <int>{1, 2, 3, 4, 5, 6, 7});
+    expect(tablists.length, greaterThanOrEqualTo(248));
   });
 
   test('all menu component kinds randomize within their action budgets', () {

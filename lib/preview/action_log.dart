@@ -14,6 +14,8 @@ import '../l10n/hui_localizations.dart';
 
 import '../model/hui_actions.dart';
 
+const String huiPreviewClickerName = 'Steve';
+
 /// One thing the runtime does when a component is clicked.
 sealed class LoggedAction {
   const LoggedAction();
@@ -21,15 +23,24 @@ sealed class LoggedAction {
 
 /// A `command` action as `CommandMenuAction.execute` would run it.
 class LoggedCommand extends LoggedAction {
-  LoggedCommand({required String command, required String? source})
-    : command = _stripOneLeadingSlash(command),
-      rawSource = source ?? '';
+  LoggedCommand({
+    required String command,
+    required String? source,
+    String clickerName = huiPreviewClickerName,
+  }) : command = _resolveCommand(command, clickerName),
+       rawSource = source ?? '';
 
-  factory LoggedCommand.from(HuiCommandAction action) =>
-      LoggedCommand(command: action.command, source: action.source);
+  factory LoggedCommand.from(
+    HuiCommandAction action, {
+    String clickerName = huiPreviewClickerName,
+  }) => LoggedCommand(
+    command: action.command,
+    source: action.source,
+    clickerName: clickerName,
+  );
 
-  /// The command as dispatched — `CommandMenuAction.java:35` strips exactly one
-  /// leading `/`, so `//me` reaches the dispatcher as `/me`.
+  /// The command as dispatched — player tokens resolved and exactly one
+  /// leading `/` stripped, so `//me` reaches the dispatcher as `/me`.
   final String command;
 
   /// The authored spelling, kept verbatim so the log can quote what is wrong.
@@ -54,6 +65,13 @@ class LoggedCommand extends LoggedAction {
     final String trimmed = raw.trim();
     return trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
   }
+
+  static String _resolveCommand(String raw, String clickerName) =>
+      _stripOneLeadingSlash(
+        raw
+            .replaceAll('%player_name%', clickerName)
+            .replaceAll('%player%', clickerName),
+      );
 }
 
 /// A `sound` action as `SoundMenuAction.execute` would play it.
@@ -186,8 +204,11 @@ class ActionLogEntry {
   final List<LoggedAction> actions;
 }
 
-LoggedAction loggedActionFrom(HuiAction action) => switch (action) {
-  HuiCommandAction() => LoggedCommand.from(action),
+LoggedAction loggedActionFrom(
+  HuiAction action, {
+  String clickerName = huiPreviewClickerName,
+}) => switch (action) {
+  HuiCommandAction() => LoggedCommand.from(action, clickerName: clickerName),
   HuiSoundAction() => LoggedSound.from(action),
   HuiMessageAction() => LoggedMessage.from(action),
   HuiTeleportAction() => LoggedTeleport.from(action),
@@ -198,6 +219,7 @@ LoggedAction loggedActionFrom(HuiAction action) => switch (action) {
 List<LoggedAction> loggedActionsFrom(
   Iterable<HuiAction> actions, {
   String clickTrigger = 'left_click',
+  String clickerName = huiPreviewClickerName,
 }) {
   final List<LoggedAction> logged = <LoggedAction>[];
   for (final HuiAction action in actions) {
@@ -214,7 +236,7 @@ List<LoggedAction> loggedActionsFrom(
     if (action is HuiConnectAction && !_hasUsableServer(action.server)) {
       continue;
     }
-    logged.add(loggedActionFrom(action));
+    logged.add(loggedActionFrom(action, clickerName: clickerName));
     if (action is HuiNavigateAction) break;
   }
   return List<LoggedAction>.unmodifiable(logged);

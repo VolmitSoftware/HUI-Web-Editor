@@ -247,8 +247,7 @@ class ActionsEditor extends StatelessWidget {
         children: <Widget>[
           HuiNote(
             huiText(
-              'Commands are never placeholder-expanded, so %player_name% '
-              'stays literal.',
+              "%player% and %player_name% become the clicking player's name; all other command tokens stay literal.",
             ),
           ),
           HuiNote(
@@ -469,7 +468,9 @@ class _CommandActionFields extends StatelessWidget {
       label: huiText('Command'),
       required: true,
       trailing: const HuiFieldHelp('action.command.command'),
-      help: huiText('The leading slash is optional and never expanded.'),
+      help: huiText(
+        "%player% and %player_name% become the clicking player's name; all other command tokens stay literal.",
+      ),
       control: dom.div(<Widget>[
         TextInput(
           value: action.command,

@@ -36,7 +36,7 @@ import '../gloss/gloss_text_line.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Animation repaint period, matching the hologram stage.
-const Duration _tickPeriod = Duration(milliseconds: 100);
+const Duration _tickPeriod = Duration(milliseconds: 50);
 
 /// One mock player row.
 typedef _MockPlayer = ({String name, String? group, bool op, int pingBars});

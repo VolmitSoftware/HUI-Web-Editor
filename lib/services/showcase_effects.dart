@@ -154,6 +154,74 @@ ShowcaseEffect showcaseTypewriter(math.Random random, String text) {
   );
 }
 
+ShowcaseEffect showcaseTablistAnimation(math.Random random, ShowcaseMood mood) {
+  final int rate = 1 + random.nextInt(4);
+  final String word = showcasePick(random, showcaseStatusWords);
+  final String glyph = showcasePick(random, mood.glyphs);
+  final String primary = _stripHash(mood.primary);
+  final String secondary = _stripHash(mood.secondary);
+  switch (random.nextInt(showcaseAnimationEffectIds.length)) {
+    case 0:
+      return ShowcaseEffect('rainbow', '|animation.rainbow|&l$word');
+    case 1:
+      final int width = math.min(word.length, 14);
+      return ShowcaseEffect(
+        'marquee',
+        "${mood.legacy}{{ marquee('$word', $width, floor(time.seconds * $rate)) }}",
+      );
+    case 2:
+      return ShowcaseEffect(
+        'timeline',
+        "{{ timeline([['${mood.legacy}&l$word', 2], "
+            "['&f$glyph $word', 1], ['[$secondary]&l$word', 2]], "
+            'time.seconds) }}',
+      );
+    case 3:
+      return ShowcaseEffect(
+        'typewriter',
+        "${mood.legacy}{{ typewriter('$word', "
+            'floor(time.seconds * $rate), 2) }}',
+      );
+    case 4:
+      return ShowcaseEffect(
+        'flash',
+        "{{ flash('${mood.legacy}&l$word', '&7$word', "
+            'floor(time.seconds * $rate)) }}',
+      );
+    case 5:
+      return ShowcaseEffect(
+        'wipe',
+        "${mood.legacy}{{ wipe('$word', floor(time.seconds * $rate)) }}",
+      );
+    case 6:
+      return ShowcaseEffect(
+        'scanner',
+        "{{ scanner('$word', '&7', '[$secondary]', "
+            'floor(time.seconds * $rate)) }}',
+      );
+    case 7:
+      return ShowcaseEffect(
+        'decode',
+        "${mood.legacy}{{ scramble('$word', floor(time.seconds * $rate)) }}",
+      );
+    case 8:
+      final int digits = 3 + random.nextInt(3);
+      final int target = random.nextInt(math.pow(10, digits).toInt() - 1) + 1;
+      final int duration = 5 + random.nextInt(16);
+      return ShowcaseEffect(
+        'odometer',
+        '${mood.legacy}&lONLINE &f{{ odometer(0, $target, '
+            'mod(time.seconds, $duration) / $duration, $digits) }}',
+      );
+    default:
+      return ShowcaseEffect(
+        'wave',
+        "{{ wave('$word', ['${mood.legacy}', '[$primary]', "
+            "'[$secondary]'], floor(time.seconds * $rate)) }}",
+      );
+  }
+}
+
 /// [text] with a hue travelling along it, one bracket-hex colour per
 /// character. Static per frame and long, so it belongs on the animation and
 /// hologram surfaces where the whole document is the subject.

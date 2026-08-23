@@ -434,46 +434,46 @@ GlossAnimationDoc buildBlankGlossAnimation() =>
 GlossAnimationDoc buildMarqueeGlossAnimation() => GlossAnimationDoc(
   frameIntervalMs: 1000,
   frames: <String>[
-    "&b{{ marquee('GLOSS REALMS', 12, floor(time.seconds / 2)) }}",
+    "&b{{ marquee('GLOSS REALMS', 12, floor(time.seconds * 4)) }}",
   ],
 );
 
 GlossAnimationDoc buildTimelineGlossAnimation() => GlossAnimationDoc(
   frameIntervalMs: 1000,
   frames: <String>[
-    "{{ timeline([['&b' + marquee('WELCOME', 10, floor(time.seconds / 2)), 4], [flash('&a&lBOOSTED', '&7BOOSTED', floor(time.seconds / 2)), 4], ['&bEVENT LIVE', 4]], time.seconds) }}",
+    "{{ timeline([['&b' + marquee('WELCOME', 10, floor(time.seconds * 4)), 4], [flash('&a&lBOOSTED', '&7BOOSTED', floor(time.seconds * 4)), 4], ['&bEVENT LIVE', 4]], time.seconds) }}",
   ],
 );
 
 GlossAnimationDoc buildTypewriterGlossAnimation() => GlossAnimationDoc(
   frameIntervalMs: 1000,
   frames: <String>[
-    "&f{{ typewriter('WELCOME', floor(time.seconds / 2) + 7, 1) }}",
+    "&f{{ typewriter('WELCOME', floor(time.seconds * 4) + 7, 1) }}",
   ],
 );
 
 GlossAnimationDoc buildFlashGlossAnimation() => GlossAnimationDoc(
   frameIntervalMs: 1000,
   frames: <String>[
-    "{{ flash('&a&lBOOSTED', '&7BOOSTED', floor(time.seconds / 2)) }}",
+    "{{ flash('&a&lBOOSTED', '&7BOOSTED', floor(time.seconds * 4)) }}",
   ],
 );
 
 GlossAnimationDoc buildWipeGlossAnimation() => GlossAnimationDoc(
   frameIntervalMs: 1000,
-  frames: <String>["&d{{ wipe('WELCOME', floor(time.seconds / 2) + 7) }}"],
+  frames: <String>["&d{{ wipe('WELCOME', floor(time.seconds * 4) + 7) }}"],
 );
 
 GlossAnimationDoc buildScannerGlossAnimation() => GlossAnimationDoc(
   frameIntervalMs: 1000,
   frames: <String>[
-    "{{ scanner('BOOSTED', '&7', '&a', floor(time.seconds / 2)) }}",
+    "{{ scanner('BOOSTED', '&7', '&a', floor(time.seconds * 4)) }}",
   ],
 );
 
 GlossAnimationDoc buildDecodeGlossAnimation() => GlossAnimationDoc(
   frameIntervalMs: 1000,
-  frames: <String>["&d{{ scramble('GHOSTWOOD', floor(time.seconds / 2)) }}"],
+  frames: <String>["&d{{ scramble('GHOSTWOOD', floor(time.seconds * 4)) }}"],
 );
 
 GlossAnimationDoc buildOdometerGlossAnimation() => GlossAnimationDoc(
@@ -486,7 +486,7 @@ GlossAnimationDoc buildOdometerGlossAnimation() => GlossAnimationDoc(
 GlossAnimationDoc buildWaveGlossAnimation() => GlossAnimationDoc(
   frameIntervalMs: 1000,
   frames: <String>[
-    "{{ wave('GLOSS', ['&a', '&7'], floor(time.seconds / 2)) }}",
+    "{{ wave('GLOSS', ['&a', '&7'], floor(time.seconds * 4)) }}",
   ],
 );
 
@@ -554,11 +554,38 @@ const String kGlossScoreboardShowcaseJson = r'''
 }
 ''';
 
+const String kGlossScoreboardAnimationShowcaseJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "title": "&d&lANIMATION LAB",
+  "lines": [
+    "{{ select(['&c', '&6', '&e', '&a', '&b', '&d'], floor(time.seconds * 4)) }}&lRAINBOW",
+    "&b{{ marquee('MARQUEE', 7, floor(time.seconds * 4)) }}",
+    "{{ timeline([['&aTIMELINE', 2], ['&eNEXT SCENE', 2]], time.seconds) }}",
+    "&f{{ typewriter('TYPEWRITER', floor(time.seconds * 4) + 9, 1) }}",
+    "{{ flash('&d&lFLASH', '&7FLASH', floor(time.seconds * 4)) }}",
+    "&d{{ wipe('WIPE', floor(time.seconds * 4) + 4) }}",
+    "{{ scanner('SCANNER', '&7', '&a', floor(time.seconds * 4)) }}",
+    "&5{{ scramble('DECODE', floor(time.seconds * 4)) }}",
+    "&6ODO {{ odometer(0, 999, mod(time.seconds, 10) / 10, 3) }}",
+    "{{ wave('WAVE', ['&a', '&7'], floor(time.seconds * 4)) }}"
+  ],
+  "primary": false,
+  "hideNumbers": true,
+  "permission": "default",
+  "groups": []
+}
+''';
+
 GlossScoreboardDoc buildDefaultGlossScoreboard() =>
     decodeGlossScoreboardDoc(kGlossScoreboardDefaultJson);
 
 GlossScoreboardDoc buildShowcaseGlossScoreboard() =>
     decodeGlossScoreboardDoc(kGlossScoreboardShowcaseJson);
+
+GlossScoreboardDoc buildAnimationShowcaseGlossScoreboard() =>
+    decodeGlossScoreboardDoc(kGlossScoreboardAnimationShowcaseJson);
 
 /// `Gloss/src/main/resources/defaults/motd/motd.json`, byte for byte — the
 /// MOTD the plugin extracts to `plugins/Gloss/motd.json` on first run.
@@ -585,7 +612,7 @@ const String kGlossMotdShowcaseJson = r'''
   "entries": [
     {
       "lines": [
-        "{{ select(['&d', '&b', '&6'], floor(time.seconds / 2)) }}&lMy Server",
+        "{{ select(['&d', '&b', '&6'], floor(time.seconds * 4)) }}&lMy Server",
         "&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }}"
       ]
     },

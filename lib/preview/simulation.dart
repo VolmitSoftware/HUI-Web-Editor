@@ -105,6 +105,7 @@ class PreviewSimulation {
     required HuiMenu menu,
     required this.openFeet,
     this.openYawDeg = 0,
+    this.clickerName = huiPreviewClickerName,
     bool Function(String componentId)? initialToggleState,
   }) : menuOffset = PVec3(menu.offset.x, menu.offset.y, menu.offset.z),
        maxDistance = menu.maxDistance,
@@ -129,6 +130,7 @@ class PreviewSimulation {
 
   final PVec3 openFeet;
   final double openYawDeg;
+  final String clickerName;
 
   /// Menu offset in the authoring frame; its squared length loosens the range
   /// test (`MenuSession.java:57-80`).
@@ -273,6 +275,7 @@ class PreviewSimulation {
               actions: loggedActionsFrom(
                 clickable.actions,
                 clickTrigger: trigger,
+                clickerName: clickerName,
               ),
             ),
           ];
@@ -283,6 +286,7 @@ class PreviewSimulation {
           final List<LoggedAction> actions = loggedActionsFrom(
             next ? clickable.trueActions : clickable.falseActions,
             clickTrigger: trigger,
+            clickerName: clickerName,
           );
           if (actions.isEmpty || actions.last is! LoggedNavigation) {
             _toggleStates[i] = next;

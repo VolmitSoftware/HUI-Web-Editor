@@ -36,6 +36,7 @@ import 'package:web/web.dart' as web;
 
 import '../../logic/canvas_scene.dart';
 import '../../logic/hui_geometry.dart';
+import '../../logic/gloss_text.dart';
 import '../../logic/icon_content.dart';
 import '../../logic/mc_text.dart';
 import '../../logic/viewport_math.dart';
@@ -1221,7 +1222,8 @@ class _PreviewStageState extends State<PreviewStage>
     final String tokens = found
         .map((RegExpMatch match) => match.group(0)!)
         .join(' ');
-    final int refreshTicks = icon.refreshTicks ?? 10;
+    final int refreshTicks =
+        icon.refreshTicks ?? (glossTextRequiresFastRefresh(icon.text) ? 1 : 10);
     return refreshTicks == 0
         ? huiText(
             '{tokens}: placeholder text resolves initially on the server, then stays frozen because refreshTicks is 0. The editor has no PlaceholderAPI, so it is drawn verbatim.',

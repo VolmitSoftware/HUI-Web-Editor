@@ -446,7 +446,8 @@ final GlossJsonObject glossActionNode = GlossJsonObject(
         key: 'command',
         type: GlossJsonType.string,
         title: 'Command',
-        summary: 'Run without the leading slash. Never placeholder-expanded.',
+        summary:
+            "%player% and %player_name% become the clicking player's name; all other command tokens stay literal.",
         docKey: 'action.command.command',
         defaultLiteral: '""',
       ),

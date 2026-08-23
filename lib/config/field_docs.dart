@@ -744,10 +744,11 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'action.command.command': HuiFieldDoc(
     title: 'Command',
     body:
-        'The leading slash is optional - the plugin strips it. Commands are '
-        'never placeholder-expanded, so %player_name% arrives at the command '
-        'handler literally. A missing, blank or just-slash command is logged '
-        'and dropped when the menu is compiled.',
+        'The leading slash is optional - the plugin strips it. %player% and '
+        '%player_name% become the clicking player name before player or '
+        'console dispatch. Other placeholders arrive at the command handler '
+        'literally. A missing, blank or just-slash command is logged and '
+        'dropped when the menu is compiled.',
     citation: 'CommandMenuAction.java:34-40',
   ),
   'action.command.source': HuiFieldDoc(

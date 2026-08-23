@@ -12,6 +12,7 @@ import 'package:jaspr/dom.dart' as dom;
 
 import '../../config/defaults.dart';
 import '../../logic/hui_geometry.dart';
+import '../../logic/gloss_text.dart';
 import '../../logic/validation.dart';
 import '../../model/model.dart';
 import '../../services/catalogs.dart';
@@ -290,26 +291,27 @@ class IconEditor extends StatelessWidget {
           trailing: const HuiFieldHelp('icon.text.refreshTicks'),
           defaultValue: huiPlural(
             'duration.tick_count',
-            huiRuntimeDefaultTextRefreshTicks,
+            glossTextRequiresFastRefresh(text.text)
+                ? 1
+                : huiRuntimeDefaultTextRefreshTicks,
             oneEnglish: '{count} tick',
             otherEnglish: '{count} ticks',
           ),
-          onReset:
-              (text.refreshTicks ?? huiRuntimeDefaultTextRefreshTicks) ==
-                  huiRuntimeDefaultTextRefreshTicks
+          onReset: text.refreshTicks == null
               ? null
               : () => _write(
                   'dynamic text refresh',
-                  HuiTextIcon(
-                    text.text,
-                    text.style?.copy(),
-                    huiRuntimeDefaultTextRefreshTicks,
-                  )..extras = huiDeepCopyMap(text.extras),
+                  HuiTextIcon(text.text, text.style?.copy(), null)
+                    ..extras = huiDeepCopyMap(text.extras),
                 ),
           control: dom.div(<Widget>[
             HuiDurationField(
-              value: (text.refreshTicks ?? huiRuntimeDefaultTextRefreshTicks)
-                  .toDouble(),
+              value:
+                  (text.refreshTicks ??
+                          (glossTextRequiresFastRefresh(text.text)
+                              ? 1
+                              : huiRuntimeDefaultTextRefreshTicks))
+                      .toDouble(),
               unit: HuiDurationUnit.ticks,
               min: 0,
               max: 1200,

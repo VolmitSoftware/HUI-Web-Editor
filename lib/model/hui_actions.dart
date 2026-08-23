@@ -100,7 +100,8 @@ sealed class HuiAction {
 }
 
 class HuiCommandAction extends HuiAction {
-  /// A leading `/` is optional; the plugin strips it. Never placeholder-expanded.
+  /// A leading `/` is optional. `%player%` and `%player_name%` resolve to the
+  /// clicker.
   String command;
   String source;
 

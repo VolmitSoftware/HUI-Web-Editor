@@ -1,5 +1,6 @@
 library;
 
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:gloss_editor/config/gloss_templates.dart';
@@ -14,6 +15,7 @@ import 'package:gloss_editor/logic/preview_sim.dart';
 import 'package:gloss_editor/logic/preview_variant_resolver.dart';
 import 'package:gloss_editor/logic/real_drop_stage.dart';
 import 'package:gloss_editor/logic/real_drop_validation.dart';
+import 'package:gloss_editor/logic/tablist_validation.dart';
 import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:gloss_editor/services/showcase_effects.dart';
@@ -404,18 +406,34 @@ void main() {
     final GlossTablistDoc tablist = buildRandomTablistShowcase(
       GlossTablistDoc(revision: 6),
       math.Random(4),
+      archetype: TablistShowcaseArchetype.staff,
     );
-    expect(tablist.header, contains('{{ player.name }}'));
-    expect(tablist.header, contains('server.tps'));
-    expect(tablist.header, contains("papi('vault_prefix',"));
-    expect(renderGlossLine(tablist.footer).isAnimated, isTrue);
+    expect(tablist.useHeaderFooter, isTrue);
+    expect(tablist.groupListNames, isTrue);
+    expect(tablist.header.split('\n').length, inInclusiveRange(3, 5));
+    expect(tablist.footer.split('\n').length, inInclusiveRange(2, 5));
+    expect(
+      renderGlossLine(
+        '${tablist.header}\n${tablist.footer}',
+        animations: _store().workspaceAnimations,
+      ).isAnimated,
+      isTrue,
+    );
     expect(
       tablist.effectiveNameFormats.keys,
-      containsAll(<String>['_op', 'owner', 'developer', 'moderator', 'vip']),
+      containsAll(<String>[
+        'default',
+        '_op',
+        'owner',
+        'developer',
+        'moderator',
+        'vip',
+        'builder',
+      ]),
     );
   });
 
-  test('generated ticker rates match the default surface refreshes', () {
+  test('generated scoreboard ticker matches its default surface refresh', () {
     const int epochMs = 1787426000000;
     final GlossScoreboardDoc scoreboard = buildRandomScoreboardShowcase(
       GlossScoreboardDoc(),
@@ -434,24 +452,108 @@ void main() {
         ),
       ),
     );
-
-    final GlossTablistDoc tablist = buildRandomTablistShowcase(
-      GlossTablistDoc(),
-      math.Random(4),
-    );
-    final String tablistTicker = tablist.footer
-        .split('\n')
-        .singleWhere((String line) => line.contains('select(['));
-    expect(tablistTicker, contains('floor(time.seconds * 0.5)'));
-    expect(
-      _glossLineSignature(renderGlossLine(tablistTicker, nowMs: epochMs)),
-      isNot(
-        _glossLineSignature(
-          renderGlossLine(tablistTicker, nowMs: epochMs + 2000),
-        ),
-      ),
-    );
   });
+
+  test('tablist animation recipes cover every shipped effect safely', () {
+    final Set<String> effectIds = <String>{};
+    for (int seed = 0; seed < 512; seed++) {
+      final ShowcaseEffect effect = showcaseTablistAnimation(
+        math.Random(seed),
+        showcaseMoods[seed % showcaseMoods.length],
+      );
+      effectIds.add(effect.id);
+      expect(
+        renderGlossLine(
+          effect.text,
+          animations: _store().workspaceAnimations,
+        ).expressionErrors,
+        isEmpty,
+        reason: 'seed $seed, ${effect.id}: ${effect.text}',
+      );
+    }
+    expect(effectIds, showcaseAnimationEffectIds.toSet());
+  });
+
+  test(
+    'tablist archetypes are distinct, bounded, valid and always visible',
+    () {
+      final Set<String> fingerprints = <String>{};
+      for (final TablistShowcaseArchetype archetype
+          in TablistShowcaseArchetype.values) {
+        final GlossTablistDoc tablist = buildRandomTablistShowcase(
+          GlossTablistDoc(revision: 9),
+          math.Random(73),
+          archetype: archetype,
+        );
+        fingerprints.add(
+          '${tablist.header.split('\n').length}:'
+          '${tablist.footer.split('\n').length}:'
+          '${tablist.nameFormats.length}:'
+          '${tablist.header}:${tablist.footer}',
+        );
+        expect(tablist.revision, 9);
+        expect(tablist.useHeaderFooter, isTrue);
+        expect(tablist.groupListNames, isTrue);
+        expect(tablist.header.split('\n').length, inInclusiveRange(1, 5));
+        expect(tablist.footer.split('\n').length, inInclusiveRange(1, 5));
+        expect(tablist.nameFormats.length, inInclusiveRange(1, 7));
+        expect(tablist.nameFormats, contains('default'));
+        expect(
+          tablist.nameFormats.values.every(
+            (String format) => format.contains(r'$player'),
+          ),
+          isTrue,
+        );
+        expect(
+          validateTablistDoc(
+            tablist,
+            animations: _store().workspaceAnimations,
+          ).where((HuiIssue issue) => issue.severity != HuiSeverity.info),
+          isEmpty,
+          reason: archetype.name,
+        );
+        expect(
+          utf8.encode(encodeGlossTablistDoc(tablist)).length,
+          lessThan(64 * 1024),
+        );
+        expect(
+          encodeGlossTablistDoc(
+            decodeGlossTablistDoc(encodeGlossTablistDoc(tablist)),
+          ),
+          encodeGlossTablistDoc(tablist),
+        );
+      }
+      expect(fingerprints, hasLength(TablistShowcaseArchetype.values.length));
+    },
+  );
+
+  test(
+    'tablist randomization is highly varied and never repeats its input',
+    () {
+      final Set<String> documents = <String>{};
+      for (int seed = 0; seed < 128; seed++) {
+        final GlossTablistDoc tablist = buildRandomTablistShowcase(
+          GlossTablistDoc(),
+          math.Random(seed),
+        );
+        documents.add(encodeGlossTablistDoc(tablist));
+      }
+      expect(documents.length, greaterThanOrEqualTo(124));
+
+      final GlossTablistDoc first = buildRandomTablistShowcase(
+        GlossTablistDoc(),
+        math.Random(44),
+      );
+      final GlossTablistDoc second = buildRandomTablistShowcase(
+        first,
+        math.Random(44),
+      );
+      expect(
+        encodeGlossTablistDoc(second),
+        isNot(encodeGlossTablistDoc(first)),
+      );
+    },
+  );
 
   test('random bubbles demonstrate diverse procedural motion safely', () {
     final Set<String> expressions = <String>{};
