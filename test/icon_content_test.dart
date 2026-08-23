@@ -144,15 +144,15 @@ void main() {
         'a',
         Vec3(0, 0, 0),
         HuiDecorationData(
-          HuiAnimatedImageIcon(<String>['one.png', 'two.png'], 1),
+          HuiAnimatedImageIcon(<String>['one.png', 'two.png'], 2),
         ),
       );
       String at(int ticks) => _key(
         _scene(<HuiComponent>[build()], animationTicks: ticks, images: images),
         'a',
       );
-      expect(at(0), isNot(at(1)));
-      expect(at(0), at(2));
+      expect(at(0), isNot(at(2)));
+      expect(at(0), at(4));
     });
 
     test('a repeated frame path reuses its sprite', () {
@@ -161,15 +161,32 @@ void main() {
         'a',
         Vec3(0, 0, 0),
         HuiDecorationData(
-          HuiAnimatedImageIcon(<String>['one.png', 'two.png', 'one.png'], 1),
+          HuiAnimatedImageIcon(<String>['one.png', 'two.png', 'one.png'], 2),
         ),
       );
       String at(int ticks) => _key(
         _scene(<HuiComponent>[build()], animationTicks: ticks, images: images),
         'a',
       );
-      expect(at(0), at(2));
-      expect(at(0), isNot(at(1)));
+      expect(at(0), at(4));
+      expect(at(0), isNot(at(2)));
+    });
+
+    test('a sub-minimum speed previews at the runtime minimum', () {
+      final ImageLibrary images = _frames();
+      HuiComponent build() => HuiComponent(
+        'a',
+        Vec3(0, 0, 0),
+        HuiDecorationData(
+          HuiAnimatedImageIcon(<String>['one.png', 'two.png'], 1),
+        ),
+      );
+      String at(int ticks) => _key(
+        _scene(<HuiComponent>[build()], animationTicks: ticks, images: images),
+        'a',
+      );
+      expect(at(0), at(1));
+      expect(at(0), isNot(at(2)));
     });
 
     test('separates the two sides of a toggle', () {
