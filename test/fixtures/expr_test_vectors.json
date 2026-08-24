@@ -109,6 +109,7 @@
     { "expr": "wipe('GLOSS', 3)", "expect": "GLO  " },
     { "expr": "wipe('GLOSS', 7)", "expect": "GLO  " },
     { "expr": "scanner('AB', '&7', '&f', 1)", "expect": "&7A&fB&7" },
+    { "expr": "scanner('GLOSS SCOREBOARD', '&7', '&a', 0)", "expect": "&aG&7LOSS SCOREBOARD" },
     { "expr": "scramble('GLOSS', 5)", "expect": "GLOSS" },
     { "expr": "odometer(0, 999, 0.5, 4)", "expect": "0500" },
     { "expr": "odometer(10, 20, 2, 2)", "expect": "20" },

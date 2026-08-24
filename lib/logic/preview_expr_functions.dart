@@ -456,11 +456,15 @@ String _scanner(String name, List<Object?> args) {
   _animationRequireStyle(name, highlight);
   final int active = _animationStep(name, _numArg(name, args, 3), text.length);
   final StringBuffer out = StringBuffer();
+  out.write(active == 0 ? highlight : base);
   for (int index = 0; index < text.length; index++) {
-    out.write(index == active ? highlight : base);
     out.writeCharCode(text[index]);
+    if (index == active) {
+      out.write(base);
+    } else if (index + 1 == active) {
+      out.write(highlight);
+    }
   }
-  out.write(base);
   return out.toString();
 }
 
