@@ -73,7 +73,8 @@ const String kGlossHologramBaselineJson = r'''
   "lines": [
     "&dNew hologram"
   ],
-  "seeThrough": true
+  "seeThrough": true,
+  "scale": 1.0
 }
 ''';
 
