@@ -155,7 +155,7 @@ GlossRealDropSettingsDoc buildDefaultGlossRealDrops() =>
 /// ship with the plugin.
 ///
 /// Slow, upright and legible: loot you are meant to read from across the room.
-const String kGlossRealDropsRedRoomJson = r"""
+const String kGlossRealDropsPalmerHouseJson = r"""
 {
   "schemaVersion": 1,
   "revision": 1,
@@ -328,8 +328,8 @@ const String kGlossRealDropsQuietJson = r"""
 }
 """;
 
-GlossRealDropSettingsDoc buildRedRoomGlossRealDrops() =>
-    decodeGlossRealDropSettingsDoc(kGlossRealDropsRedRoomJson);
+GlossRealDropSettingsDoc buildPalmerHouseGlossRealDrops() =>
+    decodeGlossRealDropSettingsDoc(kGlossRealDropsPalmerHouseJson);
 
 GlossRealDropSettingsDoc buildSawmillGlossRealDrops() =>
     decodeGlossRealDropSettingsDoc(kGlossRealDropsSawmillJson);

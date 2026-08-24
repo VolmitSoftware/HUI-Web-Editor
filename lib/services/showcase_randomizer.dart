@@ -681,7 +681,7 @@ HuiPreviewDoc _buildRandomStoragePreview(
       HuiPreviewVariant(
         blocks: <String>['TRAPPED_CHEST'],
         vars: <String, dynamic>{
-          'title': 'Red Room Lockbox',
+          'title': 'Palmer House Lockbox',
           'accent': '#FF5577',
           'fill': '#FFFF3355',
           'pulse': '#FFFFB3C4',
@@ -3772,7 +3772,7 @@ const List<_PreviewFurnaceTheme> _previewFurnaceThemes = <_PreviewFurnaceTheme>[
     surgeColor: '<#B9FFD2>',
     accent: '#55E68A',
   ),
-  // Red Room: lacquered black panel, curtain reds.
+  // Palmer House: lacquered black panel, curtain reds.
   _PreviewFurnaceTheme(
     panelColor: '#E0140A0E',
     wellColor: '#FF190C12',

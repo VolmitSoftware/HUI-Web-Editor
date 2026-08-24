@@ -35,7 +35,7 @@ const List<String> showcaseServerNames = <String>[
   'Packard Mill',
   'One Eyed Jacks',
   'Blue Pine SMP',
-  'Red Room Realms',
+  'Palmer House Realms',
   'Sycamore Circle',
   'Pearl Lakes',
   'Blue Rose Network',
@@ -138,7 +138,7 @@ const List<String> showcaseStatusWords = <String>[
   'DAMN FINE',
   'COFFEE HOT',
   'PIE READY',
-  'RED ROOM',
+  'PALMER HOUSE',
   'WIDE AWAKE',
   'FIRE WALK',
   'BLUE ROSE',
@@ -155,7 +155,7 @@ const List<String> showcaseAnimationWords = <String>[
   'THE OWLS ARE WATCHING',
   'BLACK LODGE',
   'WHITE LODGE',
-  'RED ROOM',
+  'PALMER HOUSE',
   'CHERRY PIE',
   'LET US ROCK',
   'WRAPPED IN PLASTIC',
@@ -290,7 +290,7 @@ final class ShowcaseMood {
 
 const List<ShowcaseMood> showcaseMoods = <ShowcaseMood>[
   ShowcaseMood(
-    name: 'Red Room',
+    name: 'Palmer House',
     primary: '#FF2D4E',
     secondary: '#FFB3C4',
     legacy: '&c',
@@ -421,7 +421,7 @@ const List<ShowcaseDrop> showcaseDrops = <ShowcaseDrop>[
   ),
   ShowcaseDrop(
     material: 'red_carpet',
-    displayName: 'Red Room Carpet',
+    displayName: 'Palmer House Carpet',
     amount: 1,
     block: true,
   ),

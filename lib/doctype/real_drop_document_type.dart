@@ -102,8 +102,8 @@ final class RealDropDocumentType extends GlossDocumentTypeAdapter {
               ),
             ),
             DocumentTemplate(
-              id: 'real-drops-red-room',
-              name: 'Red Room drift',
+              id: 'real-drops-palmer-house',
+              name: 'Palmer House drift',
               description:
                   'Slow, upright and legible: loot you are meant to read '
                   'from across the room.',
@@ -114,8 +114,8 @@ final class RealDropDocumentType extends GlossDocumentTypeAdapter {
               ],
               create: (EditorStore store) => store.newGlossDocument(
                 this,
-                name: 'red-room',
-                from: buildRedRoomGlossRealDrops(),
+                name: 'palmer-house',
+                from: buildPalmerHouseGlossRealDrops(),
               ),
             ),
             DocumentTemplate(
