@@ -15,6 +15,7 @@ import 'package:gloss_editor/config/gloss_menu_json_schema.dart';
 import 'package:gloss_editor/logic/json_schema.dart';
 import 'package:gloss_editor/model/gloss_animation.dart';
 import 'package:gloss_editor/model/gloss_bubble_style.dart';
+import 'package:gloss_editor/model/gloss_damage_indicators.dart';
 import 'package:gloss_editor/model/gloss_emoji.dart';
 import 'package:gloss_editor/model/gloss_hologram.dart';
 import 'package:gloss_editor/model/gloss_motd.dart';
@@ -204,7 +205,7 @@ void main() {
       expect(_walk(glossMenuJsonSchema, _fullMenu().toJson(), r'$'), isEmpty);
     });
 
-    test('the eight non-menu models resolve every key they write', () {
+    test('the nine non-menu models resolve every key they write', () {
       final Map<String, Map<String, dynamic>> documents =
           <String, Map<String, dynamic>>{
             'hologram': decodeGlossHologramDoc(_hologram).toJson(),
@@ -215,6 +216,7 @@ void main() {
             'bubbleStyle': decodeGlossBubbleStyleDoc(_bubble).toJson(),
             'tablist': decodeGlossTablistDoc(_tablist).toJson(),
             'realDrops': GlossRealDropSettingsDoc().toJson(),
+            'damageIndicators': GlossDamageIndicatorsDoc().toJson(),
           };
       for (final MapEntry<String, Map<String, dynamic>> entry
           in documents.entries) {
@@ -247,7 +249,7 @@ void main() {
     });
 
     test('every editable kind has a model and the editor-only ones do not', () {
-      expect(glossJsonSchemas.keys, hasLength(9));
+      expect(glossJsonSchemas.keys, hasLength(10));
       for (final String kind in <String>[
         'menu',
         'hologram',
@@ -258,6 +260,7 @@ void main() {
         'bubbleStyle',
         'tablist',
         'realDrops',
+        'damageIndicators',
       ]) {
         expect(glossJsonSchemaFor(kind), isNotNull, reason: kind);
       }

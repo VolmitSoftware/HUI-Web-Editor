@@ -20,6 +20,13 @@ void main() {
         'schemaVersion': 1,
         'nameFormats': <String, Object>{},
       },
+      'damage-indicators': <String, Object>{
+        'schemaVersion': 1,
+        'limits': <String, Object>{},
+        'damage': <String, Object>{},
+        'healing': <String, Object>{},
+        'filters': <String, Object>{},
+      },
     };
 
     for (final MapEntry<String, Object> sample in samples.entries) {

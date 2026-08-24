@@ -346,6 +346,11 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     return doc is GlossBubbleStyleDoc ? doc : null;
   }
 
+  GlossDamageIndicatorsDoc? get damageIndicatorsDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossDamageIndicatorsDoc ? doc : null;
+  }
+
   /// The active tablist, or null while another kind is open.
   GlossTablistDoc? get tablistDoc {
     final GlossDoc? doc = _glossDoc;
@@ -1258,6 +1263,15 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     void Function(GlossBubbleStyleDoc doc) fn,
   ) {
     final GlossBubbleStyleDoc? doc = bubbleStyleDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  void mutateDamageIndicators(
+    String label,
+    void Function(GlossDamageIndicatorsDoc doc) fn,
+  ) {
+    final GlossDamageIndicatorsDoc? doc = damageIndicatorsDoc;
     if (doc == null) return;
     mutateGloss(label, (GlossDoc _) => fn(doc));
   }

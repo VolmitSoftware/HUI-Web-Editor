@@ -155,6 +155,7 @@ enum DocumentSurface {
   motd,
   emoji,
   bubble,
+  damageIndicators,
   tablist,
   realDrops,
 }

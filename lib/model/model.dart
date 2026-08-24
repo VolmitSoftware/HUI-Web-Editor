@@ -1,5 +1,6 @@
 export 'gloss_animation.dart';
 export 'gloss_bubble_style.dart';
+export 'gloss_damage_indicators.dart';
 export 'gloss_doc.dart';
 export 'gloss_emoji.dart';
 export 'gloss_hologram.dart';

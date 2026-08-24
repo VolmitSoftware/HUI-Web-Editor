@@ -120,6 +120,22 @@ void main() {
       expect(labels, <String>['default', '_op']);
     });
 
+    test('offers damage-indicator trajectory and presentation keys', () {
+      expect(
+        _labels(_offer('damageIndicators', '{"damage":{"motion":{|}}}')),
+        <String>[
+          'horizontalSpeed',
+          'verticalSpeed',
+          'verticalAcceleration',
+          'spinDegreesPerSecond',
+        ],
+      );
+      expect(
+        _labels(_offer('damageIndicators', '{"healing":{"presentation":{|}}}')),
+        <String>['startScale', 'endScale', 'fadeStartFraction'],
+      );
+    });
+
     test('carries the type and the summary of every key it offers', () {
       final HuiCompletion item = _offer(
         'hologram',

@@ -9,6 +9,7 @@ import 'components/code_editor/code_editor_view.dart';
 import 'components/dialogs/dialogs.dart';
 import 'components/animation/animation_view.dart';
 import 'components/bubble/bubble_view.dart';
+import 'components/damage_indicators/damage_indicator_view.dart';
 import 'components/emoji/emoji_view.dart';
 import 'components/motd/motd_view.dart';
 import 'components/scoreboard/scoreboard_view.dart';
@@ -866,6 +867,7 @@ class _AppState extends State<App> {
           DocumentSurface.motd: MotdView(store: _store),
           DocumentSurface.emoji: EmojiView(store: _store),
           DocumentSurface.bubble: BubbleView(store: _store),
+          DocumentSurface.damageIndicators: DamageIndicatorView(store: _store),
           DocumentSurface.tablist: TablistView(store: _store),
           DocumentSurface.realDrops: RealDropsView(store: _store),
         },
@@ -902,6 +904,10 @@ class _AppState extends State<App> {
           DocumentSurface.motd: MotdView(store: _store, gameContext: true),
           DocumentSurface.emoji: EmojiView(store: _store, gameContext: true),
           DocumentSurface.bubble: BubbleView(store: _store, gameContext: true),
+          DocumentSurface.damageIndicators: DamageIndicatorView(
+            store: _store,
+            gameContext: true,
+          ),
           DocumentSurface.tablist: TablistView(
             store: _store,
             gameContext: true,

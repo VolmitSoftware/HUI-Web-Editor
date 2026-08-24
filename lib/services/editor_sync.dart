@@ -564,6 +564,7 @@ bool _validDocumentId(String kind, String id) {
   if (kind == 'motd') return id == 'motd';
   if (kind == 'tablist') return id == 'tablist';
   if (kind == 'real-drops') return id == 'default';
+  if (kind == 'damage-indicators') return id == 'default';
   return !id.contains('/');
 }
 

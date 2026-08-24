@@ -66,12 +66,14 @@ class _ExportDialogState extends State<ExportDialog> {
   bool get _fixedFileName =>
       _wireKind == 'motd' ||
       _wireKind == 'tablist' ||
-      _wireKind == 'real-drops';
+      _wireKind == 'real-drops' ||
+      _wireKind == 'damage-indicators';
 
   String get _fileName => switch (_wireKind) {
     'motd' => 'motd.json',
     'tablist' => 'tablist.json',
     'real-drops' => 'default.json',
+    'damage-indicators' => 'default.json',
     _ => '$_documentId.json',
   };
 
@@ -85,6 +87,7 @@ class _ExportDialogState extends State<ExportDialog> {
     'bubble-style' => '$huiBubbleFolder$_fileName',
     'tablist' => huiTablistFile,
     'real-drops' => huiRealDropsFile,
+    'damage-indicators' => huiDamageIndicatorsFile,
     _ => '$huiPreviewFolder$_fileName',
   };
 

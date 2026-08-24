@@ -191,7 +191,7 @@ void main() {
 
   test('seeded runtime documents round trip cleanly within safety budgets', () {
     for (final DocumentTypeAdapter type in DocumentTypeRegistry.all) {
-      if (type is PanelDocumentType) continue;
+      if (!canRandomizeShowcase(type)) continue;
       for (int seed = 0; seed < 32; seed++) {
         final EditorStore store = _store();
         type.createNew(store);
@@ -233,7 +233,7 @@ void main() {
 
   test('same seeds produce byte-identical runtime documents', () {
     for (final DocumentTypeAdapter type in DocumentTypeRegistry.all) {
-      if (type is PanelDocumentType) continue;
+      if (!canRandomizeShowcase(type)) continue;
       for (final int seed in <int>[0, 7, 31, 127]) {
         expect(
           _randomized(type, seed),

@@ -10,6 +10,7 @@
         "animation",
         "bubble-style",
         "container-preview",
+        "damage-indicators",
         "emoji",
         "hologram",
         "menu",
@@ -23,6 +24,7 @@
         "animation",
         "bubble-style",
         "container-preview",
+        "damage-indicators",
         "emoji",
         "hologram",
         "menu",
@@ -37,7 +39,7 @@
     "documents": [],
     "images": [],
     "warnings": [],
-    "baseRevision": "sha256:2385d7a78bd1d85df5f4ca2dae063a99efbead0d950d8a1d6122e7bab640d9fd"
+    "baseRevision": "sha256:d6e4724fbb74b84be116ff499472222bb20dfbf141e3f44d41a7a30e038b3127"
   },
-  "canonicalWithoutBaseRevision": "{\"constraints\":{\"allowDeletes\":true,\"createDocumentKinds\":[\"animation\",\"bubble-style\",\"container-preview\",\"emoji\",\"hologram\",\"menu\",\"motd\",\"panel\",\"real-drops\",\"scoreboard\",\"tablist\"],\"documentKinds\":[\"animation\",\"bubble-style\",\"container-preview\",\"emoji\",\"hologram\",\"menu\",\"motd\",\"panel\",\"real-drops\",\"scoreboard\",\"tablist\"],\"subjectId\":\"workspace\"},\"documents\":[],\"format\":\"gloss-sync-project\",\"images\":[],\"kind\":\"workspace\",\"subjectId\":\"workspace\",\"version\":3,\"warnings\":[]}"
+  "canonicalWithoutBaseRevision": "{\"constraints\":{\"allowDeletes\":true,\"createDocumentKinds\":[\"animation\",\"bubble-style\",\"container-preview\",\"damage-indicators\",\"emoji\",\"hologram\",\"menu\",\"motd\",\"panel\",\"real-drops\",\"scoreboard\",\"tablist\"],\"documentKinds\":[\"animation\",\"bubble-style\",\"container-preview\",\"damage-indicators\",\"emoji\",\"hologram\",\"menu\",\"motd\",\"panel\",\"real-drops\",\"scoreboard\",\"tablist\"],\"subjectId\":\"workspace\"},\"documents\":[],\"format\":\"gloss-sync-project\",\"images\":[],\"kind\":\"workspace\",\"subjectId\":\"workspace\",\"version\":3,\"warnings\":[]}"
 }

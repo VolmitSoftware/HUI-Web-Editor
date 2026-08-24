@@ -13,6 +13,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart' show ValueKey, Widget;
 import '../components/inspector/animation_inspector.dart';
 import '../components/inspector/bubble_inspector.dart';
 import '../components/inspector/component_inspector.dart';
+import '../components/inspector/damage_indicator_inspector.dart';
 import '../components/inspector/emoji_inspector.dart';
 import '../components/inspector/hologram_inspector.dart';
 import '../components/inspector/inspector_session.dart';
@@ -67,6 +68,7 @@ final Map<WorkspaceDocKind, DocumentInspectorBuilder> _builders =
       DocumentTypes.motd.kind: _motdBody,
       DocumentTypes.emoji.kind: _emojiBody,
       DocumentTypes.bubbleStyle.kind: _bubbleBody,
+      DocumentTypes.damageIndicators.kind: _damageIndicatorsBody,
       DocumentTypes.tablist.kind: _tablistBody,
       DocumentTypes.realDrops.kind: _realDropBody,
     };
@@ -107,6 +109,10 @@ List<Widget> _emojiBody(DocumentInspectorScope scope) => <Widget>[
 
 List<Widget> _bubbleBody(DocumentInspectorScope scope) => <Widget>[
   BubbleInspector(store: scope.store),
+];
+
+List<Widget> _damageIndicatorsBody(DocumentInspectorScope scope) => <Widget>[
+  DamageIndicatorInspector(store: scope.store),
 ];
 
 List<Widget> _tablistBody(DocumentInspectorScope scope) => <Widget>[

@@ -60,6 +60,7 @@ void main() {
       'animation',
       'bubble-style',
       'container-preview',
+      'damage-indicators',
       'emoji',
       'hologram',
       'menu',

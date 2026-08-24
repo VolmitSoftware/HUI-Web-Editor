@@ -468,7 +468,8 @@
 .hui-center > .hui-split-cell.is-motd,
 .hui-center > .hui-split-cell.is-emoji,
 .hui-center > .hui-split-cell.is-bubble,
-.hui-center > .hui-split-cell.is-tablist { display: block; border-left: 0; }
+.hui-center > .hui-split-cell.is-tablist,
+.hui-center > .hui-split-cell.is-damage-indicators { display: block; border-left: 0; }
 
 .hui-board {
   display: flex;

@@ -24,7 +24,7 @@ import 'catalogs.dart';
 import 'showcase_effects.dart';
 
 bool canRandomizeShowcase(DocumentTypeAdapter type) =>
-    type is! PanelDocumentType;
+    type is! PanelDocumentType && type is! DamageIndicatorsDocumentType;
 
 bool randomizeShowcaseDocument(
   EditorStore store,
@@ -85,6 +85,8 @@ bool randomizeShowcaseDocument(
         'Randomize real drops',
         buildRandomRealDropShowcase(store.realDropSettingsDoc!, source),
       );
+    case DamageIndicatorsDocumentType():
+      return false;
     case PanelDocumentType():
       return false;
   }

@@ -73,7 +73,8 @@
     .hui-scoreboard-view-controls,
     .hui-tablist-view-controls,
     .hui-motd-controls,
-    .hui-bubble-controls
+    .hui-bubble-controls,
+    .hui-damage-indicator-controls
   ) .arcane-button {
   height: 28px !important;
   min-height: 28px;
@@ -90,7 +91,8 @@
     .hui-scoreboard-view-controls,
     .hui-tablist-view-controls,
     .hui-motd-controls,
-    .hui-bubble-controls
+    .hui-bubble-controls,
+    .hui-damage-indicator-controls
   ) .arcane-button:hover:not(:disabled),
 :where(
     .hui-gloss-preview-controls,
@@ -99,7 +101,8 @@
     .hui-scoreboard-view-controls,
     .hui-tablist-view-controls,
     .hui-motd-controls,
-    .hui-bubble-controls
+    .hui-bubble-controls,
+    .hui-damage-indicator-controls
   ) .arcane-button:focus-visible {
   background: var(--hui-panel-soft) !important;
 }
@@ -111,7 +114,8 @@
     .hui-scoreboard-view-controls,
     .hui-tablist-view-controls,
     .hui-motd-controls,
-    .hui-bubble-controls
+    .hui-bubble-controls,
+    .hui-damage-indicator-controls
   ) .arcane-button[aria-pressed="true"] {
   background: var(--hui-panel-soft) !important;
   box-shadow: inset 0 -2px 0 var(--hui-accent) !important;
@@ -855,6 +859,216 @@
   color: var(--color-muted-foreground);
 }
 
+/* --- damage indicators ---------------------------------------------------- */
+
+.hui-damage-indicator-stage {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-background);
+}
+
+.hui-damage-indicator-sky {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 240px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 72% 16%, rgba(255, 244, 188, .18), transparent 9%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary) 16%, #172536) 0%,
+      color-mix(in srgb, var(--color-primary) 7%, #304857) 56%,
+      #26352f 56%,
+      #18231d 100%);
+}
+
+.hui-damage-indicator-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  overflow: hidden;
+  perspective: 780px;
+  transform-style: preserve-3d;
+}
+
+.hui-damage-indicator-horizon {
+  position: absolute;
+  inset: 41% 0 auto;
+  height: 22%;
+  background:
+    linear-gradient(158deg, transparent 48%, rgba(9, 18, 17, .42) 49% 56%, transparent 57%) 0 0 / 32% 100%,
+    linear-gradient(202deg, transparent 46%, rgba(9, 18, 17, .34) 47% 55%, transparent 56%) 20% 0 / 38% 100%;
+  opacity: .7;
+}
+
+.hui-damage-indicator-ground {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -22%;
+  height: 68%;
+  transform: rotateX(63deg);
+  transform-origin: 50% 100%;
+  background:
+    linear-gradient(rgba(255, 255, 255, .055) 1px, transparent 1px) 0 0 / 42px 42px,
+    linear-gradient(90deg, rgba(255, 255, 255, .055) 1px, transparent 1px) 0 0 / 42px 42px,
+    linear-gradient(180deg, rgba(39, 64, 48, .96), rgba(21, 34, 27, .98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.hui-damage-indicator-entity {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  width: 58px;
+  height: 112px;
+  transform: translateX(-50%);
+}
+
+.hui-damage-indicator-entity-head,
+.hui-damage-indicator-entity-body,
+.hui-damage-indicator-entity-arms {
+  position: absolute;
+  left: 50%;
+  border: 1px solid rgba(0, 0, 0, .42);
+  transform: translateX(-50%);
+  box-shadow: inset -7px -5px 0 rgba(0, 0, 0, .13);
+}
+
+.hui-damage-indicator-entity-head {
+  top: 0;
+  width: 42px;
+  height: 42px;
+  background: #92704c;
+}
+
+.hui-damage-indicator-entity-body {
+  top: 42px;
+  width: 42px;
+  height: 62px;
+  background: color-mix(in srgb, var(--color-primary) 44%, #263c52);
+}
+
+.hui-damage-indicator-entity-arms {
+  top: 47px;
+  width: 62px;
+  height: 15px;
+  background: color-mix(in srgb, var(--color-primary) 38%, #263c52);
+}
+
+.hui-damage-indicator-entity-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 76px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .34);
+  filter: blur(3px);
+  transform: translateX(-50%);
+}
+
+.hui-damage-indicator-number {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: calc(18% + 68px);
+  color: #fff;
+  font-family: var(--hui-mc-font);
+  font-size: 22px;
+  line-height: 1;
+  white-space: nowrap;
+  transform:
+    translate(-50%, 50%)
+    translate3d(var(--hui-indicator-x), calc(-1 * var(--hui-indicator-y)), var(--hui-indicator-z))
+    rotate(var(--hui-indicator-roll))
+    scale(var(--hui-indicator-scale));
+  transform-origin: center;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, .72);
+  will-change: transform, opacity;
+}
+
+.hui-damage-indicator-origin {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: calc(18% + 62px);
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(255, 255, 255, .5);
+  background: rgba(0, 0, 0, .4);
+  transform: translate(-50%, 50%) rotate(45deg);
+}
+
+.hui-damage-indicator-origin span {
+  position: absolute;
+  left: 11px;
+  top: -4px;
+  color: rgba(255, 255, 255, .56);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .04em;
+  transform: rotate(-45deg);
+  white-space: nowrap;
+}
+
+.hui-damage-indicator-controls {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-card) 94%, transparent);
+}
+
+.hui-damage-indicator-kind { display: flex; gap: 0; }
+
+.hui-damage-indicator-kind .arcane-button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px var(--hui-accent) !important;
+}
+
+.hui-damage-indicator-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+}
+
+.hui-damage-indicator-amount-field { width: 82px; }
+
+.hui-damage-indicator-readout {
+  flex: 1 1 100%;
+  color: var(--color-muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hui-damage-indicator-format-preview {
+  min-height: 32px;
+  margin-top: 6px;
+  padding: 7px 9px;
+  border: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, .72);
+  color: #fff;
+  font-family: var(--hui-mc-font);
+  text-shadow: 1px 1px 0 #000;
+}
+
+.hui-damage-indicator-world-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* --- tab-screen mock ------------------------------------------------------- */
 
 .hui-tablist-stage {
@@ -1364,7 +1578,8 @@
       .hui-scoreboard-view-controls,
       .hui-tablist-view-controls,
       .hui-motd-controls,
-      .hui-bubble-controls
+      .hui-bubble-controls,
+      .hui-damage-indicator-controls
     ) .arcane-button {
     min-width: 40px;
     height: 40px !important;
@@ -1384,6 +1599,7 @@
   .hui-scoreboard-readout,
   .hui-motd-readout,
   .hui-bubble-controls,
+  .hui-damage-indicator-controls,
   .hui-tablist-readout { max-height: 62px; overflow-y: auto; }
 
   .hui-animation-player,

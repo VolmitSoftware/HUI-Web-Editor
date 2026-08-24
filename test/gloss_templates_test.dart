@@ -3,11 +3,13 @@
 /// thirteen preview cards to), and every template builds clean.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:gloss_editor/config/gloss_templates.dart';
 import 'package:gloss_editor/logic/animation_validation.dart';
 import 'package:gloss_editor/logic/bubble_validation.dart';
+import 'package:gloss_editor/logic/damage_indicator_validation.dart';
 import 'package:gloss_editor/logic/emoji_validation.dart';
 import 'package:gloss_editor/logic/hologram_validation.dart';
 import 'package:gloss_editor/logic/gloss_text.dart';
@@ -36,6 +38,74 @@ final class _Animations implements GlossAnimationResolver {
 }
 
 void main() {
+  group('damage indicators stay the shipped default', () {
+    test('embedded copy matches the plugin resource byte for byte', () {
+      final File plugin = File(
+        glossRepositoryFilePath(
+          'src/main/resources/defaults/damage-indicators/default.json',
+        ),
+      );
+      expect(plugin.existsSync(), isTrue);
+      expect(kGlossDamageIndicatorsDefaultJson, plugin.readAsStringSync());
+    });
+
+    test('builds a fresh model each time and validates clean', () {
+      final GlossDamageIndicatorsDoc first =
+          buildDefaultGlossDamageIndicators();
+      final GlossDamageIndicatorsDoc second =
+          buildDefaultGlossDamageIndicators();
+      expect(identical(first, second), isFalse);
+      expect(first.limits.maxPerSecond, 40);
+      expect(first.damage.format, '&c&l{amount}');
+      expect(first.healing.offset, Vec3(0, -0.1, 0));
+      expect(validateDamageIndicatorsDoc(first), isEmpty);
+    });
+
+    test('editor ranges match the plugin JSON schema', () {
+      final Map<String, dynamic> schema =
+          jsonDecode(
+                File(
+                  glossRepositoryFilePath(
+                    'schema/gloss-damage-indicators.schema.json',
+                  ),
+                ).readAsStringSync(),
+              )
+              as Map<String, dynamic>;
+      final Map<String, dynamic> definitions =
+          schema[r'$defs']! as Map<String, dynamic>;
+      Map<String, dynamic> properties(String name) =>
+          (definitions[name]! as Map<String, dynamic>)['properties']!
+              as Map<String, dynamic>;
+      void expectRange(String definition, String field, num min, num max) {
+        final Map<String, dynamic> value =
+            properties(definition)[field]! as Map<String, dynamic>;
+        expect(value['minimum'], min, reason: '$definition.$field minimum');
+        expect(value['maximum'], max, reason: '$definition.$field maximum');
+      }
+
+      expectRange('limits', 'maxPerSecond', 1, 1000);
+      expectRange('limits', 'lifetimeMs', 250, 30000);
+      expectRange('limits', 'minimumDelta', 0, 1000);
+      expectRange('limits', 'decimals', 0, 4);
+      expectRange('motion', 'horizontalSpeed', 0, 16);
+      expectRange('motion', 'verticalSpeed', -16, 16);
+      expectRange('motion', 'verticalAcceleration', -32, 32);
+      expectRange('motion', 'spinDegreesPerSecond', -1440, 1440);
+      expectRange('presentation', 'startScale', 0, 16);
+      expectRange('presentation', 'endScale', 0, 16);
+      expectRange('presentation', 'fadeStartFraction', 0, 1);
+
+      final Map<String, dynamic> offset =
+          properties('style')['offset']! as Map<String, dynamic>;
+      final List<Object?> axes = offset['prefixItems']! as List<Object?>;
+      for (final Object? axis in axes) {
+        final Map<String, dynamic> range = axis! as Map<String, dynamic>;
+        expect(range['minimum'], -32);
+        expect(range['maximum'], 32);
+      }
+    });
+  });
+
   group('hologram blank stays the plugin baseline', () {
     test('embedded copy matches the fixture and the plugin resource', () {
       final String fixture = File(

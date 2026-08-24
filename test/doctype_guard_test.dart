@@ -90,6 +90,10 @@ void main() {
       DocumentTypes.realDrops,
     );
     expect(
+      DocumentTypeRegistry.byWireKind('damage-indicators'),
+      DocumentTypes.damageIndicators,
+    );
+    expect(
       DocumentTypes.containerPreview.syncWireKind,
       'container-preview',
     );
@@ -229,6 +233,10 @@ void main() {
     expect(DocumentTypes.bubbleStyle.transferable, isTrue);
     expect(DocumentTypes.bubbleStyle.undoable, isTrue);
     expect(DocumentTypes.bubbleStyle.sourcePreserving, isFalse);
+    expect(DocumentTypes.damageIndicators.hasRuntimeId, isTrue);
+    expect(DocumentTypes.damageIndicators.transferable, isTrue);
+    expect(DocumentTypes.damageIndicators.undoable, isTrue);
+    expect(DocumentTypes.damageIndicators.sourcePreserving, isFalse);
     expect(DocumentTypes.tablist.hasRuntimeId, isTrue);
     expect(DocumentTypes.tablist.transferable, isTrue);
     expect(DocumentTypes.tablist.undoable, isTrue);

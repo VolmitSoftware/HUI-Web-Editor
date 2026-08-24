@@ -132,7 +132,8 @@ class HelpDialog extends StatelessWidget {
         message: huiText(
           'A capability link from /gloss web workspace connects menus, '
           'container previews, panels, holograms, animations, scoreboards, '
-          'MOTDs, emoji, bubble styles, tablists, real-drops settings, and '
+          'MOTDs, emoji, bubble styles, tablists, real-drops settings, '
+          'damage indicators, and '
           'image assets as one server workspace. Review it before import. Local '
           'autosave never contacts the server: use Publish to Server, then '
           'wait for Applied. Pending, rejected, expired and revision-conflict '

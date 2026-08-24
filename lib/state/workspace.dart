@@ -30,6 +30,7 @@ enum WorkspaceDocKind {
   motd,
   emoji,
   bubbleStyle,
+  damageIndicators,
   tablist,
   realDrops;
 

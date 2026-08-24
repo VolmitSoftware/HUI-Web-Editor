@@ -20,6 +20,7 @@ library;
 import '../logic/json_schema.dart';
 import '../model/gloss_animation.dart';
 import '../model/gloss_bubble_style.dart';
+import '../model/gloss_damage_indicators.dart';
 import '../model/gloss_motd.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_scoreboard.dart';
@@ -1353,6 +1354,183 @@ final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
   ],
 );
 
+// --- damage indicators -----------------------------------------------------
+
+const GlossJsonObject _damageIndicatorLimitsNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'maxPerSecond',
+      type: GlossJsonType.integer,
+      title: 'Maximum per second',
+      summary: 'Global indicator spawn cap. Gloss accepts 1..1000.',
+      defaultLiteral: '40',
+    ),
+    GlossJsonField(
+      key: 'lifetimeMs',
+      type: GlossJsonType.integer,
+      title: 'Lifetime',
+      summary: 'Visible lifetime in milliseconds. Gloss accepts 250..30000.',
+      defaultLiteral: '3000',
+    ),
+    GlossJsonField(
+      key: 'minimumDelta',
+      type: GlossJsonType.number,
+      title: 'Minimum delta',
+      summary: 'Smallest health change that spawns a number. Range 0..1000.',
+      defaultLiteral: '0.009',
+    ),
+    GlossJsonField(
+      key: 'decimals',
+      type: GlossJsonType.integer,
+      title: 'Decimals',
+      summary: 'Digits after the decimal point. Gloss accepts 0..4.',
+      defaultLiteral: '0',
+    ),
+  ],
+);
+
+const GlossJsonObject _damageIndicatorMotionNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'horizontalSpeed',
+      type: GlossJsonType.number,
+      title: 'Horizontal speed',
+      summary: 'Outward speed in blocks per second. Range 0..16.',
+    ),
+    GlossJsonField(
+      key: 'verticalSpeed',
+      type: GlossJsonType.number,
+      title: 'Vertical speed',
+      summary: 'Initial vertical speed in blocks per second. Range -16..16.',
+    ),
+    GlossJsonField(
+      key: 'verticalAcceleration',
+      type: GlossJsonType.number,
+      title: 'Vertical acceleration',
+      summary:
+          'Vertical acceleration in blocks per second squared. Range -32..32.',
+    ),
+    GlossJsonField(
+      key: 'spinDegreesPerSecond',
+      type: GlossJsonType.number,
+      title: 'Spin',
+      summary: 'Screen-plane roll in degrees per second. Range -1440..1440.',
+      defaultLiteral: '0.0',
+    ),
+  ],
+);
+
+const GlossJsonObject _damageIndicatorPresentationNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'startScale',
+      type: GlossJsonType.number,
+      title: 'Start scale',
+      summary: 'Text-display scale at spawn. Range 0..16.',
+    ),
+    GlossJsonField(
+      key: 'endScale',
+      type: GlossJsonType.number,
+      title: 'End scale',
+      summary: 'Text-display scale at expiry. Range 0..16.',
+    ),
+    GlossJsonField(
+      key: 'fadeStartFraction',
+      type: GlossJsonType.number,
+      title: 'Fade start',
+      summary: 'Lifetime fraction where fading begins. Range 0..1.',
+    ),
+  ],
+);
+
+const GlossJsonObject _damageIndicatorStyleNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Enabled',
+      summary: 'Whether this health-change type spawns indicators.',
+      defaultLiteral: 'true',
+    ),
+    GlossJsonField(
+      key: 'format',
+      type: GlossJsonType.string,
+      title: 'Format',
+      summary:
+          'Minecraft text. Must contain {amount} or Gloss rejects the file.',
+    ),
+    GlossJsonField(
+      key: 'offset',
+      type: GlossJsonType.array,
+      title: 'Offset',
+      summary: 'Spawn offset from the entity as [x, y, z] blocks.',
+      node: glossVector3Node,
+    ),
+    GlossJsonField(
+      key: 'motion',
+      type: GlossJsonType.object,
+      title: 'Motion',
+      summary: 'Closed-form trajectory and roll.',
+      node: _damageIndicatorMotionNode,
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Presentation',
+      summary: 'Scale interpolation and fade timing.',
+      node: _damageIndicatorPresentationNode,
+    ),
+  ],
+);
+
+const GlossJsonObject _damageIndicatorFiltersNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'disabledWorlds',
+      type: GlossJsonType.array,
+      title: 'Disabled worlds',
+      summary:
+          'Exact, case-sensitive world folder names where numbers do not spawn.',
+      node: _plainStringsNode,
+    ),
+  ],
+);
+
+final GlossJsonObject glossDamageIndicatorsJsonSchema = GlossJsonObject(
+  fields: <GlossJsonField>[
+    _schemaVersionField(glossDamageIndicatorsCurrentSchemaVersion),
+    _revisionField,
+    const GlossJsonField(
+      key: 'limits',
+      type: GlossJsonType.object,
+      title: 'Limits',
+      summary: 'Spawn admission, lifetime and number formatting.',
+      node: _damageIndicatorLimitsNode,
+    ),
+    const GlossJsonField(
+      key: 'damage',
+      type: GlossJsonType.object,
+      title: 'Damage',
+      summary: 'Text and trajectory for health loss.',
+      node: _damageIndicatorStyleNode,
+    ),
+    const GlossJsonField(
+      key: 'healing',
+      type: GlossJsonType.object,
+      title: 'Healing',
+      summary: 'Text and trajectory for health gain.',
+      node: _damageIndicatorStyleNode,
+    ),
+    const GlossJsonField(
+      key: 'filters',
+      type: GlossJsonType.object,
+      title: 'Filters',
+      summary: 'Worlds where the service remains inactive.',
+      node: _damageIndicatorFiltersNode,
+    ),
+  ],
+);
+
 // --- registry ---------------------------------------------------------------
 
 /// Every kind this model covers, keyed by the workspace kind enum's `name`.
@@ -1370,6 +1548,7 @@ final Map<String, GlossJsonObject> glossJsonSchemas = <String, GlossJsonObject>{
   'bubbleStyle': glossBubbleStyleJsonSchema,
   'tablist': glossTablistJsonSchema,
   'realDrops': glossRealDropsJsonSchema,
+  'damageIndicators': glossDamageIndicatorsJsonSchema,
 };
 
 /// The model for [kindName], or null when this build has none for that kind.

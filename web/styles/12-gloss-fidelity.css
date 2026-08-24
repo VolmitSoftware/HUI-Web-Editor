@@ -162,6 +162,15 @@
   background: transparent;
 }
 
+.hui-gloss-game.is-world .hui-damage-indicator-scene {
+  background: transparent;
+}
+
+.hui-gloss-game.is-world .hui-damage-indicator-horizon,
+.hui-gloss-game.is-world .hui-damage-indicator-ground {
+  display: none;
+}
+
 /* GUI screen: the server list, centred. */
 .hui-gloss-game.is-screen .hui-gloss-game-anchor {
   inset: 0;

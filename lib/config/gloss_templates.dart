@@ -8,6 +8,57 @@ library;
 
 import '../model/model.dart';
 
+const String kGlossDamageIndicatorsDefaultJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "limits": {
+    "maxPerSecond": 40,
+    "lifetimeMs": 3000,
+    "minimumDelta": 0.009,
+    "decimals": 0
+  },
+  "damage": {
+    "enabled": true,
+    "format": "&c&l{amount}",
+    "offset": [0.0, 0.7, 0.0],
+    "motion": {
+      "horizontalSpeed": 0.8,
+      "verticalSpeed": 1.3,
+      "verticalAcceleration": -0.93,
+      "spinDegreesPerSecond": 0.0
+    },
+    "presentation": {
+      "startScale": 1.0,
+      "endScale": 0.82,
+      "fadeStartFraction": 0.68
+    }
+  },
+  "healing": {
+    "enabled": true,
+    "format": "&a&l{amount}",
+    "offset": [0.0, -0.1, 0.0],
+    "motion": {
+      "horizontalSpeed": 0.45,
+      "verticalSpeed": 0.65,
+      "verticalAcceleration": 0.05,
+      "spinDegreesPerSecond": 0.0
+    },
+    "presentation": {
+      "startScale": 1.0,
+      "endScale": 1.1,
+      "fadeStartFraction": 0.62
+    }
+  },
+  "filters": {
+    "disabledWorlds": []
+  }
+}
+''';
+
+GlossDamageIndicatorsDoc buildDefaultGlossDamageIndicators() =>
+    decodeGlossDamageIndicatorsDoc(kGlossDamageIndicatorsDefaultJson);
+
 /// `Gloss/src/main/resources/baselines/hologram.json`, byte for byte — what
 /// `/gloss hologram create` starts a file from, and therefore what a blank
 /// hologram document is here.

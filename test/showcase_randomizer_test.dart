@@ -69,7 +69,7 @@ String _glossLineSignature(GlossLineRender render) => render.pieces
 void main() {
   test('every runtime document kind randomizes in place without errors', () {
     for (final DocumentTypeAdapter type in DocumentTypeRegistry.all) {
-      if (type.kind == WorkspaceDocKind.panel) continue;
+      if (!canRandomizeShowcase(type)) continue;
       final EditorStore store = _store();
       type.createNew(store);
       final WorkspaceDoc before = store.workspace.active!;
@@ -93,6 +93,20 @@ void main() {
       );
       expect(store.canUndo, isTrue, reason: type.noun);
     }
+  });
+
+  test('damage indicators do not advertise unsupported randomization', () {
+    final EditorStore store = _store();
+    DocumentTypes.damageIndicators.createNew(store);
+    final WorkspaceDoc before = store.workspace.active!;
+    final String json = before.json;
+    expect(canRandomizeShowcase(DocumentTypes.damageIndicators), isFalse);
+    expect(
+      randomizeShowcaseDocument(store, before.id, random: math.Random(31)),
+      isFalse,
+    );
+    expect(store.workspace.active!.json, json);
+    expect(store.canUndo, isFalse);
   });
 
   test('seeded showcase builders are deterministic and visibly vary', () {

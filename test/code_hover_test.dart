@@ -88,6 +88,22 @@ void main() {
       expect(doc.path, r'$.limits.spread');
     });
 
+    test('documents nested damage-indicator motion fields', () {
+      final GlossJsonObject indicators = glossJsonSchemaFor(
+        'damageIndicators',
+      )!;
+      const String source =
+          '{"damage":{"motion":{"verticalAcceleration":-0.93}}}';
+      final HuiCodeKeyDoc? doc = huiCodeKeyDoc(
+        root: indicators,
+        source: source,
+        offset: source.indexOf('"verticalAcceleration"') + 1,
+      );
+      expect(doc!.title, 'Vertical acceleration');
+      expect(doc.body, contains('-32..32'));
+      expect(doc.path, r'$.damage.motion.verticalAcceleration');
+    });
+
     test('names the path through a list and a variant', () {
       const String source =
           '{"components": [{"data": {"type": "button", "hitbox": '

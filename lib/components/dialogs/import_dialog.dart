@@ -438,6 +438,14 @@ class _ImportDialogState extends State<ImportDialog> {
         otherEnglish: '{count} models per stack',
       ),
     ],
+    final GlossDamageIndicatorsDoc indicators => <String>[
+      huiText('{rate}/s global cap', <String, Object?>{
+        'rate': indicators.limits.maxPerSecond,
+      }),
+      huiText('{duration} ms lifetime', <String, Object?>{
+        'duration': indicators.limits.lifetimeMs,
+      }),
+    ],
     _ => const <String>[],
   };
 
@@ -450,6 +458,7 @@ class _ImportDialogState extends State<ImportDialog> {
     GlossBubbleStyleDoc() => huiText('bubble-style document'),
     GlossTablistDoc() => huiText('tablist document'),
     GlossRealDropSettingsDoc() => huiText('real-drop settings document'),
+    GlossDamageIndicatorsDoc() => huiText('damage-indicator settings document'),
     _ => huiText('runtime document'),
   };
 

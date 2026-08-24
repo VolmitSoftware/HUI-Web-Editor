@@ -21,6 +21,8 @@ const String huiBubbleFolder = '${huiPluginFolder}bubbles/';
 const String huiMotdFile = '${huiPluginFolder}motd.json';
 const String huiTablistFile = '${huiPluginFolder}tablist.json';
 const String huiRealDropsFile = '${huiPluginFolder}real-drops/default.json';
+const String huiDamageIndicatorsFile =
+    '${huiPluginFolder}damage-indicators/default.json';
 
 /// One external destination in the help dialog's link grid.
 class HuiLink {

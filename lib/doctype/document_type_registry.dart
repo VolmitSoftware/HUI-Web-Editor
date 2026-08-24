@@ -5,6 +5,7 @@ import '../state/workspace.dart';
 import 'animation_document_type.dart';
 import 'bubble_style_document_type.dart';
 import 'container_preview_document_type.dart';
+import 'damage_indicators_document_type.dart';
 import 'document_type.dart';
 import 'emoji_document_type.dart';
 import 'gloss_document_type.dart';
@@ -28,6 +29,8 @@ abstract final class DocumentTypes {
   static const MotdDocumentType motd = MotdDocumentType();
   static const EmojiDocumentType emoji = EmojiDocumentType();
   static const BubbleStyleDocumentType bubbleStyle = BubbleStyleDocumentType();
+  static const DamageIndicatorsDocumentType damageIndicators =
+      DamageIndicatorsDocumentType();
   static const TablistDocumentType tablist = TablistDocumentType();
   static const RealDropDocumentType realDrops = RealDropDocumentType();
 }
@@ -47,6 +50,7 @@ abstract final class DocumentTypeRegistry {
         WorkspaceDocKind.motd: DocumentTypes.motd,
         WorkspaceDocKind.emoji: DocumentTypes.emoji,
         WorkspaceDocKind.bubbleStyle: DocumentTypes.bubbleStyle,
+        WorkspaceDocKind.damageIndicators: DocumentTypes.damageIndicators,
         WorkspaceDocKind.tablist: DocumentTypes.tablist,
         WorkspaceDocKind.realDrops: DocumentTypes.realDrops,
       };
@@ -62,6 +66,7 @@ abstract final class DocumentTypeRegistry {
     DocumentTypes.motd,
     DocumentTypes.emoji,
     DocumentTypes.bubbleStyle,
+    DocumentTypes.damageIndicators,
     DocumentTypes.tablist,
     DocumentTypes.realDrops,
   ];

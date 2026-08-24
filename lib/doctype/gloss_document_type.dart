@@ -136,6 +136,10 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
           'The saved document "{title}" was unreadable ({error}) and was replaced with a blank bubble style.',
           arguments,
         ),
+        WorkspaceDocKind.damageIndicators => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with default damage-indicator settings.',
+          arguments,
+        ),
         WorkspaceDocKind.tablist => huiText(
           'The saved document "{title}" was unreadable ({error}) and was replaced with a blank tablist.',
           arguments,
@@ -174,6 +178,10 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
       ),
       WorkspaceDocKind.bubbleStyle => huiText(
         'The saved document "{title}" was unreadable and was replaced with a blank bubble style.',
+        arguments,
+      ),
+      WorkspaceDocKind.damageIndicators => huiText(
+        'The saved document "{title}" was unreadable and was replaced with default damage-indicator settings.',
         arguments,
       ),
       WorkspaceDocKind.tablist => huiText(
