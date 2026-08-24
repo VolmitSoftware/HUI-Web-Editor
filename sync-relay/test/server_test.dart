@@ -27,36 +27,6 @@ void main() {
 
   tearDown(() => relay.close());
 
-  test('v2-only: protocol 1 requests fail with a clear error', () async {
-    final Response response = await _jsonRequest(
-      relay,
-      'POST',
-      '/v2/sessions',
-      <String, Object?>{
-        'protocol': 1,
-        'expiresInSeconds': 3600,
-        'snapshot': _project('a'),
-      },
-    );
-    expect(response.statusCode, 400);
-    expect(await _errorCode(response), 'unsupported_protocol');
-  });
-
-  test('v2-only: holoui-sync-project snapshots fail with a clear error', () async {
-    final Map<String, Object?> legacy = _project('a');
-    legacy['format'] = 'holoui-sync-project';
-    legacy['version'] = 1;
-    final Response response = await _createResponse(relay, legacy);
-    expect(response.statusCode, 400);
-    expect(await _errorCode(response), 'unsupported_project_format');
-
-    final Map<String, Object?> wrongFormat = _project('a');
-    wrongFormat['format'] = 'something-else';
-    final Response other = await _createResponse(relay, wrongFormat);
-    expect(other.statusCode, 400);
-    expect(await _errorCode(other), 'unsupported_project_format');
-  });
-
   test('kind slugs are validated but never interpreted', () async {
     // A future kind must work against this relay with no redeploy: only the
     // slug grammar and transport bounds are checked.
@@ -139,11 +109,11 @@ void main() {
       expect(_capabilityBytes(server), hasLength(32));
       expect(<String>{id, editor, server}, hasLength(3));
 
-      expect((await _get(relay, '/v2/sessions/$id', server)).statusCode, 401);
+      expect((await _get(relay, '/v3/sessions/$id', server)).statusCode, 401);
       expect(
         (await _get(
           relay,
-          '/v2/sessions/$id/publication?after=0',
+          '/v3/sessions/$id/publication?after=0',
           editor,
         )).statusCode,
         401,
@@ -153,9 +123,9 @@ void main() {
       final Response published = await _jsonRequest(
         relay,
         'PUT',
-        '/v2/sessions/$id/publication',
+        '/v3/sessions/$id/publication',
         <String, Object?>{
-          'protocol': 2,
+          'protocol': 3,
           'baseRevision': _revisionA,
           'snapshot': edited,
         },
@@ -163,7 +133,7 @@ void main() {
       );
       expect(published.statusCode, 202);
       final Map<String, Object?> pending = await _responseJson(
-        await _get(relay, '/v2/sessions/$id/publication?after=0', server),
+        await _get(relay, '/v3/sessions/$id/publication?after=0', server),
       );
       final Map<String, Object?> publication =
           pending['publication']! as Map<String, Object?>;
@@ -175,9 +145,9 @@ void main() {
       final Response ack = await _jsonRequest(
         relay,
         'POST',
-        '/v2/sessions/$id/publication/1/ack',
+        '/v3/sessions/$id/publication/1/ack',
         <String, Object?>{
-          'protocol': 2,
+          'protocol': 3,
           'status': 'applied',
           'message': 'Applied safely.',
           'serverRevision': _revisionServer,
@@ -189,13 +159,13 @@ void main() {
       expect(
         (await _get(
           relay,
-          '/v2/sessions/$id/publication?after=0',
+          '/v3/sessions/$id/publication?after=0',
           server,
         )).statusCode,
         204,
       );
       final Map<String, Object?> fetched = await _responseJson(
-        await _get(relay, '/v2/sessions/$id', editor),
+        await _get(relay, '/v3/sessions/$id', editor),
       );
       expect(fetched['status'], 'applied');
       expect(fetched['baseRevision'], _revisionServer);
@@ -210,9 +180,9 @@ void main() {
     final Response stale = await _jsonRequest(
       relay,
       'PUT',
-      '/v2/sessions/$id/publication',
+      '/v3/sessions/$id/publication',
       <String, Object?>{
-        'protocol': 2,
+        'protocol': 3,
         'baseRevision': _revisionB,
         'snapshot': _project('b'),
       },
@@ -230,7 +200,7 @@ void main() {
     expect(
       (await _get(
         relay,
-        '/v2/sessions/$id/publication',
+        '/v3/sessions/$id/publication',
         created['serverToken']! as String,
       )).statusCode,
       400,
@@ -238,7 +208,7 @@ void main() {
     expect(
       (await _get(
         relay,
-        '/v2/sessions/$id/publication?after=0&after=1',
+        '/v3/sessions/$id/publication?after=0&after=1',
         created['serverToken']! as String,
       )).statusCode,
       400,
@@ -249,13 +219,13 @@ void main() {
     final Map<String, Object?> revoked = await _create(relay, _project('a'));
     final Response revoke = await _delete(
       relay,
-      '/v2/sessions/${revoked['sessionId']}',
+      '/v3/sessions/${revoked['sessionId']}',
       revoked['serverToken']! as String,
     );
     expect(revoke.statusCode, 204);
     final Response gone = await _get(
       relay,
-      '/v2/sessions/${revoked['sessionId']}',
+      '/v3/sessions/${revoked['sessionId']}',
       revoked['editorToken']! as String,
     );
     expect(gone.statusCode, 410);
@@ -265,7 +235,7 @@ void main() {
     now = now.add(const Duration(hours: 2));
     final Response timeout = await _get(
       relay,
-      '/v2/sessions/${expired['sessionId']}',
+      '/v3/sessions/${expired['sessionId']}',
       expired['editorToken']! as String,
     );
     expect(timeout.statusCode, 410);
@@ -336,7 +306,7 @@ void main() {
       expect(
         (await _delete(
           relay,
-          '/v2/sessions/${created['sessionId']}',
+          '/v3/sessions/${created['sessionId']}',
           created['serverToken']! as String,
         )).statusCode,
         204,
@@ -351,7 +321,7 @@ void main() {
       final Response wrongType = await relay.handler(
         Request(
           'POST',
-          Uri.parse('http://relay.test/v2/sessions'),
+          Uri.parse('http://relay.test/v3/sessions'),
           headers: const <String, String>{'content-type': 'text/plain'},
           body: '{}',
         ),
@@ -374,7 +344,7 @@ void main() {
       final Response streamedOversize = await boundedRelay.handler(
         Request(
           'POST',
-          Uri.parse('http://relay.test/v2/sessions'),
+          Uri.parse('http://relay.test/v3/sessions'),
           headers: const <String, String>{'content-type': 'application/json'},
           body: Stream<List<int>>.fromIterable(<List<int>>[
             utf8.encode('{"padding":"'),
@@ -385,8 +355,8 @@ void main() {
       );
       expect(streamedOversize.statusCode, 413);
       final Response extra =
-          await _jsonRequest(relay, 'POST', '/v2/sessions', <String, Object?>{
-            'protocol': 2,
+          await _jsonRequest(relay, 'POST', '/v3/sessions', <String, Object?>{
+            'protocol': 3,
             'expiresInSeconds': 3600,
             'snapshot': _project('a'),
             'unexpected': true,
@@ -395,7 +365,7 @@ void main() {
       final Response preflight = await relay.handler(
         Request(
           'OPTIONS',
-          Uri.parse('http://relay.test/v2/sessions/x'),
+          Uri.parse('http://relay.test/v3/sessions/x'),
           headers: const <String, String>{'origin': 'https://editor.test'},
         ),
       );
@@ -409,7 +379,7 @@ void main() {
       final Response unsafePreflight = await relay.handler(
         Request(
           'OPTIONS',
-          Uri.parse('http://relay.test/v2/sessions/x'),
+          Uri.parse('http://relay.test/v3/sessions/x'),
           headers: const <String, String>{
             'origin': 'https://editor.test',
             'access-control-request-method': 'TRACE',
@@ -420,7 +390,7 @@ void main() {
       final Response blockedOrigin = await relay.handler(
         Request(
           'GET',
-          Uri.parse('http://relay.test/v2/health'),
+          Uri.parse('http://relay.test/v3/health'),
           headers: const <String, String>{'origin': 'https://attacker.test'},
         ),
       );
@@ -560,7 +530,7 @@ void main() {
       final Response missing = await relay.handler(
         Request(
           'POST',
-          Uri.parse('http://relay.test/v2/sessions'),
+          Uri.parse('http://relay.test/v3/sessions'),
           headers: const <String, String>{'content-type': 'text/plain'},
           body: 'not json',
         ),
@@ -609,12 +579,12 @@ void main() {
       );
 
       final Response health = await relay.handler(
-        Request('GET', Uri.parse('http://relay.test/v2/health')),
+        Request('GET', Uri.parse('http://relay.test/v3/health')),
       );
       expect(health.statusCode, 200);
       expect(await _responseJson(health), <String, Object?>{
         'status': 'ok',
-        'protocol': 2,
+        'protocol': 3,
       });
     },
   );
@@ -669,7 +639,7 @@ void main() {
       expect(
         (await _delete(
           relay,
-          '/v2/sessions/${first['sessionId']}',
+          '/v3/sessions/${first['sessionId']}',
           first['serverToken']! as String,
         )).statusCode,
         204,
@@ -680,7 +650,7 @@ void main() {
       expect(
         (await _delete(
           relay,
-          '/v2/sessions/${replacement['sessionId']}',
+          '/v3/sessions/${replacement['sessionId']}',
           replacement['serverToken']! as String,
         )).statusCode,
         204,
@@ -706,7 +676,7 @@ void main() {
               (RelaySession session) =>
                   session.createPrincipalHash ==
                   tokenHash(
-                    'gloss-create-principal-v2:${tokenHash(_createToken)}',
+                    'gloss-create-principal-v3:${tokenHash(_createToken)}',
                   ),
             )
             .length,
@@ -770,7 +740,7 @@ void main() {
     expect(
       (await _delete(
         relay,
-        '/v2/sessions/${first['sessionId']}',
+        '/v3/sessions/${first['sessionId']}',
         first['serverToken']! as String,
       )).statusCode,
       204,
@@ -975,7 +945,7 @@ void main() {
     );
     expect((accepted['publication']! as Map)['revision'], 2);
     final Map<String, Object?> polled = await _responseJson(
-      await _get(relay, '/v2/sessions/$id/publication?after=1', server),
+      await _get(relay, '/v3/sessions/$id/publication?after=1', server),
     );
     expect((polled['publication']! as Map)['revision'], 2);
   });
@@ -994,7 +964,7 @@ void main() {
     expect(acknowledgement['status'], 'rejected');
     expect(acknowledgement['serverRevision'], isNull);
     final Map<String, Object?> session = await _responseJson(
-      await _get(relay, '/v2/sessions/$id', editor),
+      await _get(relay, '/v3/sessions/$id', editor),
     );
     expect(session['baseRevision'], _revisionA);
     expect(
@@ -1040,7 +1010,7 @@ void main() {
       expect(
         (await _get(
           relay,
-          '/v2/sessions/${created['sessionId']}',
+          '/v3/sessions/${created['sessionId']}',
           'not-the-editor-token',
         )).statusCode,
         401,
@@ -1057,7 +1027,7 @@ void main() {
       final Response encodedSlash = await relay.handler(
         Request(
           'GET',
-          Uri.parse('http://relay.test/v2/sessions/$id%2Fpublication'),
+          Uri.parse('http://relay.test/v3/sessions/$id%2Fpublication'),
           headers: <String, String>{'authorization': 'Bearer $editor'},
         ),
       );
@@ -1065,7 +1035,7 @@ void main() {
       final Response encodedDot = await relay.handler(
         Request(
           'GET',
-          Uri.parse('http://relay.test/v2/sessions/%2e%2e'),
+          Uri.parse('http://relay.test/v3/sessions/%2e%2e'),
           headers: <String, String>{'authorization': 'Bearer $editor'},
         ),
       );
@@ -1078,8 +1048,8 @@ Future<Response> _createResponse(
   GlossSyncRelay relay,
   Map<String, Object?> project, {
   Map<String, String> headers = const <String, String>{},
-}) => _jsonRequest(relay, 'POST', '/v2/sessions', <String, Object?>{
-  'protocol': 2,
+}) => _jsonRequest(relay, 'POST', '/v3/sessions', <String, Object?>{
+  'protocol': 3,
   'expiresInSeconds': 3600,
   'snapshot': project,
 }, headers: headers);
@@ -1108,7 +1078,7 @@ const String _secondCreateToken = 'second_create_token_0123456789';
 
 Map<String, Object?> _project(String value) => <String, Object?>{
   'format': 'gloss-sync-project',
-  'version': 2,
+  'version': 3,
   'kind': 'menu',
   'subjectId': 'main',
   'baseRevision': switch (value) {
@@ -1118,13 +1088,17 @@ Map<String, Object?> _project(String value) => <String, Object?>{
     _ => _revisionServer,
   },
   'documents': <Object?>[
-    <String, Object?>{'kind': 'menu', 'id': 'main', 'json': '{"value":"$value"}'},
+    <String, Object?>{
+      'kind': 'menu',
+      'id': 'main',
+      'json': '{"value":"$value"}',
+    },
   ],
   'images': <Object?>[],
   'constraints': <String, Object?>{
     'subjectId': 'main',
-    'menuIds': <String>['main'],
-    'imagePaths': <String>[],
+    'documentKinds': <String>['menu'],
+    'createDocumentKinds': <String>[],
     'newImagePrefix': 'sync/menus/main/',
     'allowDeletes': false,
   },
@@ -1135,8 +1109,8 @@ Future<Map<String, Object?>> _create(
   GlossSyncRelay relay,
   Map<String, Object?> project,
 ) async => _responseJson(
-  await _jsonRequest(relay, 'POST', '/v2/sessions', <String, Object?>{
-    'protocol': 2,
+  await _jsonRequest(relay, 'POST', '/v3/sessions', <String, Object?>{
+    'protocol': 3,
     'expiresInSeconds': 3600,
     'snapshot': project,
   }),
@@ -1151,8 +1125,8 @@ Future<Response> _publish(
 ) => _jsonRequest(
   relay,
   'PUT',
-  '/v2/sessions/$id/publication',
-  <String, Object?>{'protocol': 2, 'baseRevision': base, 'snapshot': project},
+  '/v3/sessions/$id/publication',
+  <String, Object?>{'protocol': 3, 'baseRevision': base, 'snapshot': project},
   token: token,
 );
 
@@ -1167,7 +1141,7 @@ Future<Response> _ack(
   Map<String, Object?>? snapshot,
 }) {
   final Map<String, Object?> body = <String, Object?>{
-    'protocol': 2,
+    'protocol': 3,
     'status': status,
     'message': message,
   };
@@ -1176,7 +1150,7 @@ Future<Response> _ack(
   return _jsonRequest(
     relay,
     'POST',
-    '/v2/sessions/$id/publication/$revision/ack',
+    '/v3/sessions/$id/publication/$revision/ack',
     body,
     token: token,
   );

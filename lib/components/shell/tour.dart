@@ -114,7 +114,7 @@ const List<HuiTourStep> huiTourSteps = <HuiTourStep>[
     body:
         'This page never writes your Minecraft server. Download the JSON, '
         'drop it into plugins/Gloss/menus/, then /gloss menu open <id>. Live '
-        'sync only exists when /gloss menu edit <id> gave you a capability link.',
+        'sync only exists when /gloss web edit or /gloss web workspace gave you a capability link.',
     selectors: <String>['.hui-bar'],
     hint:
         'File → Export, or the command palette. Images unzip into '

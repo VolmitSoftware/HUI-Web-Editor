@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sync.gloss.volmitsoftware.com/schema/http-v2.schema.json",
-  "title": "Gloss editor sync HTTP envelopes v2",
+  "$id": "https://sync.gloss.volmitsoftware.com/schema/http-v3.schema.json",
+  "title": "Gloss editor sync HTTP envelopes v3",
   "oneOf": [
     {"$ref": "#/$defs/createRequest"},
     {"$ref": "#/$defs/createResponse"},
@@ -14,11 +14,11 @@
     {"$ref": "#/$defs/errorResponse"}
   ],
   "$defs": {
-    "protocol": {"const": 2},
+    "protocol": {"const": 3},
     "revision": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "capability": {"type": "string", "pattern": "^[A-Za-z0-9_-]{22,128}$"},
     "timestamp": {"type": "string", "format": "date-time"},
-    "project": {"$ref": "project-v2.schema.json"},
+    "project": {"$ref": "project-v3.schema.json"},
     "ack": {
       "type": "object",
       "additionalProperties": false,

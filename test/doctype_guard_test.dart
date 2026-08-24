@@ -63,12 +63,7 @@ void main() {
     expect(DocumentTypeRegistry.all.length, WorkspaceDocKind.values.length);
   });
 
-  test('sync wire kinds stay on the protocol-v2 slugs', () {
-    // Protocol v2 keeps kinds open on the wire, but the slugs this build has
-    // codecs for are pinned: menus sync as `menu`, world panels sync as
-    // `panel` (the v1 slug `board` died at the v2 cutover), and the Gloss
-    // kinds sync under their own names. Renaming a workspace kind must never
-    // leak into the wire vocabulary.
+  test('sync wire kinds stay on the protocol-v3 slugs', () {
     expect(DocumentTypeRegistry.byWireKind('menu'), DocumentTypes.menu);
     expect(DocumentTypeRegistry.byWireKind('panel'), DocumentTypes.panel);
     expect(DocumentTypeRegistry.byWireKind('board'), isNull);
@@ -94,7 +89,10 @@ void main() {
       DocumentTypeRegistry.byWireKind('real-drops'),
       DocumentTypes.realDrops,
     );
-    expect(DocumentTypes.containerPreview.syncWireKind, isNull);
+    expect(
+      DocumentTypes.containerPreview.syncWireKind,
+      'container-preview',
+    );
   });
 
   test('every kind offers the four modes, or says why not', () {

@@ -4,9 +4,6 @@
 /// stored path IS the JSON value and IS the zip entry name — keeping those three
 /// identical is the whole point of this class. Browser uploads are normalized
 /// to PNG; server-sync imports preserve supported source formats losslessly.
-/// Data URIs are persisted at [ImageLibrary.storageKey]; writes that exceed the
-/// browser quota are rolled back instead of silently dropping the library, which
-/// is how the previous editor lost documents.
 library;
 
 import 'dart:async';
@@ -19,9 +16,9 @@ import 'package:image/image.dart' as img;
 import 'package:jaspr/jaspr.dart';
 
 import '../l10n/hui_localizations.dart';
+import '../state/workspace_repository.dart';
 import 'image_library_stub.dart'
     if (dart.library.js_interop) 'image_library_web.dart';
-import 'storage_service.dart';
 
 /// Gloss reads paths with `new File(imagesFolder, path)`; anything longer than
 /// this is rejected by common filesystems.
@@ -32,20 +29,17 @@ const int huiMaxImagePathLength = 256;
 /// or inexpensive general-purpose image surface.
 const int huiRecommendedMaxImageDimension = 16;
 
-/// Hard ceiling for a single stored image. localStorage gives the whole origin
-/// roughly 5 MB, so a single oversized upload must never be allowed to consume
-/// it. Gloss images are a couple of KB.
 const int huiMaxStoredImageBytes = 512 * 1024;
-const int huiMaxDecodedImagePixels = 2048 * 2048;
+const int huiMaxDecodedImageDimension = 4096;
+const int huiMaxDecodedImagePixels = 4096 * 4096;
 const int huiMaxImportedAnimationFrames = maxDecodedAnimationFrames;
 const String huiNormalizedPngDataUriPrefix = 'data:image/png;base64,';
 final RegExp _animationFramePathPattern = RegExp(r'^(.*)/frame-\d{3}\.png$');
 
-typedef ImageStorageWriter = bool Function(String key, String value);
+typedef ImageStorageWriter = FutureOr<bool> Function(String key, String value);
 typedef ImageLocalizedMessage = String Function();
 
-bool _writeImageStorage(String key, String value) =>
-    StorageService.write(key, value);
+FutureOr<bool> _acceptImageStorage(String key, String value) => true;
 
 final class StoredPngData {
   const StoredPngData({
@@ -222,7 +216,6 @@ class StoredImage {
       width > huiRecommendedMaxImageDimension ||
       height > huiRecommendedMaxImageDimension;
 
-  /// Approximate localStorage cost of this entry (UTF-16, key included).
   int get approximateBytes => (dataUri.length + path.length + 48) * 2;
 
   StoredImage copyWith({
@@ -492,7 +485,11 @@ StoredPngData? decodeNormalizedPngData(String dataUri) {
   if (!_hasValidPngChunks(bytes)) return null;
   final int width = _pngUint32(bytes, 16);
   final int height = _pngUint32(bytes, 20);
-  if (width <= 0 || height <= 0 || width * height > huiMaxDecodedImagePixels) {
+  if (width <= 0 ||
+      height <= 0 ||
+      width > huiMaxDecodedImageDimension ||
+      height > huiMaxDecodedImageDimension ||
+      width * height > huiMaxDecodedImagePixels) {
     return null;
   }
   return StoredPngData(bytes: bytes, width: width, height: height);
@@ -698,15 +695,30 @@ bool _hasValidPngChunks(Uint8List bytes) {
 
 class ImageLibrary extends ChangeNotifier {
   ImageLibrary({
-    bool autoLoad = true,
-    ImageStorageWriter writer = _writeImageStorage,
-  }) : _writer = writer {
-    if (autoLoad) {
-      load();
-    }
-  }
+    bool autoLoad = false,
+    ImageStorageWriter writer = _acceptImageStorage,
+    String workspaceId = 'memory',
+    bool queueWrites = false,
+  }) : _writer = writer,
+       _workspaceId = workspaceId,
+       _queueWrites = queueWrites;
 
-  static const String storageKey = 'gloss.images.v1';
+  static const String storageKeyPrefix = 'gloss.workspace.images.v3';
+
+  static Future<ImageLibrary> open({
+    required String workspaceId,
+    required WorkspaceRepository repository,
+  }) async {
+    final ImageLibrary library = ImageLibrary(
+      workspaceId: workspaceId,
+      writer: repository.write,
+      queueWrites: true,
+    );
+    final String key = '$storageKeyPrefix.$workspaceId';
+    final String? raw = await Future<String?>.value(repository.read(key));
+    library._loadPayload(raw);
+    return library;
+  }
 
   final List<StoredImage> _images = <StoredImage>[];
   late final List<StoredImage> _imagesView = UnmodifiableListView<StoredImage>(
@@ -718,6 +730,11 @@ class ImageLibrary extends ChangeNotifier {
   final Map<String, Future<ImagePixels?>> _pending =
       <String, Future<ImagePixels?>>{};
   final ImageStorageWriter _writer;
+  String _workspaceId;
+  final bool _queueWrites;
+  Future<void>? _writeTail;
+  int _saveRevision = 0;
+  int _persistedRevision = 0;
   bool _quotaExceeded = false;
   ImageLocalizedMessage? _lastError;
 
@@ -729,6 +746,19 @@ class ImageLibrary extends ChangeNotifier {
   bool get isEmpty => _images.isEmpty;
 
   bool get quotaExceeded => _quotaExceeded;
+
+  String get workspaceId => _workspaceId;
+
+  String get _storageKey => '$storageKeyPrefix.$_workspaceId';
+
+  bool get hasUnsavedChanges => _persistedRevision < _saveRevision;
+
+  Future<void> get writesSettled => _writeTail ?? Future<void>.value();
+
+  Future<void> useWorkspace(String workspaceId) async {
+    await writesSettled;
+    _workspaceId = workspaceId;
+  }
 
   String? get lastError => _lastError?.call();
 
@@ -768,10 +798,8 @@ class ImageLibrary extends ChangeNotifier {
     return List<StoredImage>.unmodifiable(frames);
   }
 
-  /// Re-reads the persisted library, discarding caches.
-  void load() {
+  void _loadPayload(String? raw) {
     _images.clear();
-    final String? raw = StorageService.read(storageKey);
     if (raw != null && raw.isNotEmpty) {
       try {
         final Object? decoded = jsonDecode(raw);
@@ -1330,9 +1358,8 @@ class ImageLibrary extends ChangeNotifier {
     return ZipEncoder().encodeBytes(archive);
   }
 
-  /// Approximate localStorage cost of the library alone.
   int estimateUsageBytes() {
-    int total = storageKey.length * 2;
+    int total = _storageKey.length * 2;
     for (final StoredImage image in _images) {
       total += image.approximateBytes;
     }
@@ -1345,8 +1372,6 @@ class ImageLibrary extends ChangeNotifier {
         <String, Object?>{'maximum': huiRecommendedMaxImageDimension},
       );
 
-  /// Runs [mutation], persists, and restores the previous list when the browser
-  /// refuses the write so memory never drifts from storage.
   bool _commit(void Function() mutation) {
     final List<StoredImage> snapshot = List<StoredImage>.of(_images);
     mutation();
@@ -1355,20 +1380,57 @@ class ImageLibrary extends ChangeNotifier {
           .map((StoredImage image) => image.toJson())
           .toList(growable: false),
     );
-    final bool stored = _writer(storageKey, payload);
-    if (!stored) {
+    final int revision = ++_saveRevision;
+    if (_queueWrites) {
+      final Future<void> previous = _writeTail ?? Future<void>.value();
+      _writeTail = previous.then((_) async {
+        final bool stored = await _writer(_storageKey, payload);
+        if (stored) {
+          _persistedRevision = revision;
+          _quotaExceeded = false;
+          _lastError = null;
+        } else {
+          _quotaExceeded = true;
+          _lastError = _quotaMessage;
+        }
+        notifyListeners();
+      });
+      _quotaExceeded = false;
+      _lastError = null;
+      _reindex();
+      notifyListeners();
+      return true;
+    }
+    final FutureOr<bool> write = _writer(_storageKey, payload);
+    if (write is bool && !write) {
       _images
         ..clear()
         ..addAll(snapshot);
+      _saveRevision--;
       _quotaExceeded = true;
       _lastError = _quotaMessage;
     } else {
       _quotaExceeded = false;
       _lastError = null;
+      if (write is bool) {
+        _persistedRevision = revision;
+      } else {
+        final Future<void> previous = _writeTail ?? Future<void>.value();
+        _writeTail = previous.then((_) async {
+          final bool stored = await write;
+          if (stored) {
+            _persistedRevision = revision;
+          } else {
+            _quotaExceeded = true;
+            _lastError = _quotaMessage;
+            notifyListeners();
+          }
+        });
+      }
     }
     _reindex();
     notifyListeners();
-    return stored;
+    return write is! bool || write;
   }
 
   void _reindex() {

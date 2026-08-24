@@ -11,7 +11,7 @@ void main() {
       ...Directory('schema').listSync(followLinks: false).whereType<File>(),
       ...Directory('fixtures').listSync(followLinks: false).whereType<File>(),
     ]..sort((File left, File right) => left.path.compareTo(right.path));
-    expect(files, hasLength(16));
+    expect(files, hasLength(17));
     for (final File file in files) {
       expect(
         jsonDecode(file.readAsStringSync()),
@@ -23,9 +23,10 @@ void main() {
 
   test('golden project revisions follow the canonical root hash contract', () {
     for (final String name in <String>[
-      'project-menu-v2.json',
-      'project-menu-edited-v2.json',
-      'project-panel-canonical-v2.json',
+      'project-menu-v3.json',
+      'project-menu-edited-v3.json',
+      'project-panel-canonical-v3.json',
+      'project-workspace-empty-v3.json',
     ]) {
       final Map<String, Object?> project = _object(
         jsonDecode(File('fixtures/$name').readAsStringSync()),
@@ -40,15 +41,16 @@ void main() {
   });
 
   test('request fixtures embed the authoritative project goldens', () {
-    final Map<String, Object?> initial = _fixture('project-menu-v2.json');
-    final Map<String, Object?> edited = _fixture('project-menu-edited-v2.json');
-    expect(_fixture('create-request-v2.json')['snapshot'], initial);
-    expect(_fixture('publish-request-v2.json')['snapshot'], edited);
-    expect(_fixture('publication-response-v2.json'), contains('publication'));
-    expect(_fixture('session-pending-response-v2.json')['status'], 'pending');
-    expect(_fixture('project-panel-canonical-v2.json')['kind'], 'panel');
+    final Map<String, Object?> initial = _fixture('project-menu-v3.json');
+    final Map<String, Object?> edited = _fixture('project-menu-edited-v3.json');
+    expect(_fixture('create-request-v3.json')['snapshot'], initial);
+    expect(_fixture('publish-request-v3.json')['snapshot'], edited);
+    expect(_fixture('publication-response-v3.json'), contains('publication'));
+    expect(_fixture('session-pending-response-v3.json')['status'], 'pending');
+    expect(_fixture('project-panel-canonical-v3.json')['kind'], 'panel');
+    expect(_fixture('project-workspace-empty-v3.json')['documents'], isEmpty);
     expect(
-      ((_fixture('ack-rejected-response-v2.json')['publication']! as Map)['ack']
+      ((_fixture('ack-rejected-response-v3.json')['publication']! as Map)['ack']
           as Map)['serverRevision'],
       isNull,
     );
@@ -56,20 +58,25 @@ void main() {
 
   test('fixture document kinds are open slugs the relay never interprets', () {
     for (final String name in <String>[
-      'project-menu-v2.json',
-      'project-menu-edited-v2.json',
-      'project-panel-canonical-v2.json',
+      'project-menu-v3.json',
+      'project-menu-edited-v3.json',
+      'project-panel-canonical-v3.json',
+      'project-workspace-empty-v3.json',
     ]) {
       final Map<String, Object?> project = _fixture(name);
       expect(project['format'], 'gloss-sync-project', reason: name);
-      expect(project['version'], 2, reason: name);
+      expect(project['version'], 3, reason: name);
       expect(
         relayKindSlug.hasMatch(project['kind']! as String),
         isTrue,
         reason: name,
       );
       final List<Object?> documents = project['documents']! as List<Object?>;
-      expect(documents, isNotEmpty, reason: name);
+      if (project['kind'] == 'workspace') {
+        expect(documents, isEmpty, reason: name);
+      } else {
+        expect(documents, isNotEmpty, reason: name);
+      }
       for (final Object? document in documents) {
         expect(
           relayKindSlug.hasMatch((document! as Map)['kind']! as String),
@@ -86,7 +93,7 @@ void main() {
     // ECMAScript number spelling (1e20 in decimal, -0.0 as 0, 1e-7 in
     // lowercase exponent form).
     final Map<String, Object?> project = _fixture(
-      'project-panel-canonical-v2.json',
+      'project-panel-canonical-v3.json',
     );
     final List<Object?> documents = project['documents']! as List<Object?>;
     final Map<String, Object?> panelDocument = _object(

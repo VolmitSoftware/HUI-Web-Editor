@@ -1,5 +1,5 @@
 {
-  "protocol": 2,
+  "protocol": 3,
   "error": {
     "code": "base_revision_conflict",
     "message": "base revision conflict"

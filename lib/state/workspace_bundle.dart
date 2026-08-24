@@ -12,10 +12,6 @@ final class WorkspaceBundle {
   static const int version = 1;
   static const String format = 'gloss-editor-workspace';
 
-  /// The pre-rebrand format string. Bundles exported by the HoloUI-branded
-  /// editor keep importing forever: read-old, write-new.
-  static const String legacyFormat = 'holoui-editor-workspace';
-
   final Map<String, dynamic> workspaceState;
   final List<StoredImage> images;
 
@@ -104,8 +100,7 @@ WorkspaceBundleDecodeResult decodeWorkspaceBundle(
     );
   }
   if (decoded is! Map ||
-      (decoded['format'] != WorkspaceBundle.format &&
-          decoded['format'] != WorkspaceBundle.legacyFormat) ||
+      decoded['format'] != WorkspaceBundle.format ||
       decoded['version'] != WorkspaceBundle.version) {
     return const WorkspaceBundleDecodeResult(
       error: 'That is not a supported Gloss editor workspace bundle.',
@@ -159,10 +154,31 @@ Future<WorkspaceBundleImportResult> importWorkspaceBundle(
   final List<StoredImage>? previousImages = images == null
       ? null
       : List<StoredImage>.of(images.images);
+  final String? previousImageWorkspaceId = images?.workspaceId;
+  final Object? targetWorkspaceId = bundle.workspaceState['workspaceId'];
+  if (images != null && targetWorkspaceId is String) {
+    await images.useWorkspace(targetWorkspaceId);
+  }
   if (images != null && !images.replaceAll(bundle.images)) {
+    if (previousImageWorkspaceId != null) {
+      await images.useWorkspace(previousImageWorkspaceId);
+    }
     return WorkspaceBundleImportResult.failureResolved(
       () =>
           images.lastError ?? huiText('The bundled images could not be saved.'),
+    );
+  }
+  await images?.writesSettled;
+  if (images?.hasUnsavedChanges ?? false) {
+    if (images != null && previousImageWorkspaceId != null) {
+      await images.useWorkspace(previousImageWorkspaceId);
+      if (previousImages != null) images.replaceAll(previousImages);
+      await images.writesSettled;
+    }
+    return WorkspaceBundleImportResult.failureResolved(
+      () =>
+          images?.lastError ??
+          huiText('The bundled images could not be saved.'),
     );
   }
   if (await workspace.replacePortableState(bundle.workspaceState)) {
@@ -172,8 +188,12 @@ Future<WorkspaceBundleImportResult> importWorkspaceBundle(
       workspace.lastError ??
       huiText('The bundled workspace could not be saved.');
   if (images != null && previousImages != null) {
+    if (previousImageWorkspaceId != null) {
+      await images.useWorkspace(previousImageWorkspaceId);
+    }
     final bool restored = images.replaceAll(previousImages);
-    if (!restored) {
+    await images.writesSettled;
+    if (!restored || images.hasUnsavedChanges) {
       return WorkspaceBundleImportResult.failureResolved(
         () => huiText(
           '{workspaceFailure} The previous image library also could not be restored; export this tab before closing it.',

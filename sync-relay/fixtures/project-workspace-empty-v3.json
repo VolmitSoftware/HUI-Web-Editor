@@ -1,0 +1,41 @@
+{
+  "format": "gloss-sync-project",
+  "version": 3,
+  "kind": "workspace",
+  "subjectId": "workspace",
+  "documents": [],
+  "images": [],
+  "constraints": {
+    "subjectId": "workspace",
+    "documentKinds": [
+      "animation",
+      "bubble-style",
+      "container-preview",
+      "emoji",
+      "hologram",
+      "menu",
+      "motd",
+      "panel",
+      "real-drops",
+      "scoreboard",
+      "tablist"
+    ],
+    "createDocumentKinds": [
+      "animation",
+      "bubble-style",
+      "container-preview",
+      "emoji",
+      "hologram",
+      "menu",
+      "motd",
+      "panel",
+      "real-drops",
+      "scoreboard",
+      "tablist"
+    ],
+    "allowDeletes": true
+  },
+  "warnings": [],
+  "baseRevision": "sha256:2385d7a78bd1d85df5f4ca2dae063a99efbead0d950d8a1d6122e7bab640d9fd"
+}
+

@@ -255,11 +255,6 @@ abstract class DocumentTypeAdapter {
   /// semantic edit.
   bool get sourcePreserving;
 
-  /// The editor-sync wire kind slug this document syncs as, or null when the
-  /// kind cannot be a sync subject. Protocol v2 keeps kinds open on the wire
-  /// (`^[a-z][a-z0-9-]{0,31}$`); the slugs registered here are the ones this
-  /// editor build has a codec for, and they are deliberately independent of
-  /// [WorkspaceDocKind] names.
   String? get syncWireKind;
 
   /// Library-rail document icon.

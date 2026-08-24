@@ -78,6 +78,11 @@ class _EditorRailState extends State<EditorRail> {
   String? get _syncScopeHint {
     final EditorSyncBinding? binding = component.syncBinding;
     if (binding == null) return null;
+    if (binding.kind == 'workspace') {
+      return huiText(
+        'Connected workspace: Publish to Server mirrors every supported runtime document and image asset.',
+      );
+    }
     final String imagePrefix =
         binding.constraints.newImagePrefix ?? huiText('none');
     if (binding.kind == 'menu') {
@@ -945,8 +950,7 @@ class _EditorRailState extends State<EditorRail> {
       ];
 
   List<HuiActionMenuItem> _documentMenuItems(WorkspaceDoc doc) {
-    final bool bound =
-        component.syncBinding?.menuDocumentIds.containsValue(doc.id) ?? false;
+    final bool bound = component.syncBinding?.isDocumentBound(doc) ?? false;
     return <HuiActionMenuItem>[
       HuiActionMenuItem(
         label: huiTextKey('action.open', 'Open'),
@@ -1092,7 +1096,9 @@ class _EditorRailState extends State<EditorRail> {
   void _renameRuntimeId(WorkspaceDoc doc, String value) {
     final EditorSyncBinding? binding = component.syncBinding;
     final String canonical = sanitizeMenuId(value);
-    if (binding != null && binding.menuDocumentIds.containsKey(doc.runtimeId)) {
+    if (binding != null &&
+        binding.kind != 'workspace' &&
+        binding.isDocumentBound(doc)) {
       if (canonical != doc.runtimeId) {
         ArcaneSonner.error(
           huiText('A bound server menu id cannot be renamed.'),
@@ -1134,7 +1140,7 @@ class _EditorRailState extends State<EditorRail> {
     if (runtimeId == null) return false;
     final EditorSyncBinding? binding = component.syncBinding;
     if (binding == null || binding.kind != 'panel') return true;
-    if (binding.menuDocumentIds.containsKey(runtimeId)) return true;
+    if (binding.documentId('menu', runtimeId) != null) return true;
     final String? prefix = binding.constraints.newMenuPrefix;
     return prefix != null && runtimeId.startsWith(prefix);
   }

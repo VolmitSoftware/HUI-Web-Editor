@@ -19,7 +19,7 @@ final class RelayConfig {
     required this.dataDirectory,
     this.bindAddress = '127.0.0.1',
     this.port = 8080,
-    this.apiPrefix = '/v2',
+    this.apiPrefix = '/v3',
     this.maximumSnapshotBytes = defaultMaximumSnapshotBytes,
     int? maximumRequestBytes,
     int? maximumResponseBytes,
@@ -183,7 +183,7 @@ final class RelayConfig {
       ),
       bindAddress: environment['GLOSS_RELAY_BIND'] ?? '127.0.0.1',
       port: _integer(environment, 'PORT', 8080, 1, 65535),
-      apiPrefix: _prefix(environment['GLOSS_RELAY_API_PREFIX'] ?? '/v2'),
+      apiPrefix: _prefix(environment['GLOSS_RELAY_API_PREFIX'] ?? '/v3'),
       maximumSnapshotBytes: maximumSnapshotBytes,
       maximumStoredBytes: maximumStoredBytes,
       maximumActiveSessions: maximumActiveSessions,
@@ -262,7 +262,7 @@ final class RelayConfig {
     if (!RegExp(
       r'^/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+$',
     ).hasMatch(normalized)) {
-      return '/v2';
+      return '/v3';
     }
     return normalized;
   }

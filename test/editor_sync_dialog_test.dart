@@ -9,7 +9,7 @@ void main() {
     () {
       expect(
         editorSyncImportDialogShouldOpen(
-          relayEndpoint: Uri.parse('https://relay.example/v2'),
+          relayEndpoint: Uri.parse('https://relay.example/v3'),
           loading: false,
           error: null,
           session: null,

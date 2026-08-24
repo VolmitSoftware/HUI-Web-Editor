@@ -84,7 +84,8 @@ class HelpDialog extends StatelessWidget {
             'This editor does not push files to a default server. Export, '
             'drop the JSON into {menuFolder}, then run '
             '/gloss menu open {menuId}. Live sync needs a capability '
-            'link from /gloss menu edit {menuId}.',
+            'link from /gloss web edit menu <id>, or connect the complete '
+            'server workspace with /gloss web workspace.',
             <String, Object?>{
               'menuFolder': huiMenuFolder,
               'menuId': store.menuId,
@@ -129,8 +130,10 @@ class HelpDialog extends StatelessWidget {
       ArcaneAlert.info(
         title: huiText('Server sync is always explicit'),
         message: huiText(
-          'A capability link from /gloss edit can connect one menu or a '
-          'persistent world-panel project. Review it before import. Local '
+          'A capability link from /gloss web workspace connects menus, '
+          'container previews, panels, holograms, animations, scoreboards, '
+          'MOTDs, emoji, bubble styles, tablists, real-drops settings, and '
+          'image assets as one server workspace. Review it before import. Local '
           'autosave never contacts the server: use Publish to Server, then '
           'wait for Applied. Pending, rejected, expired and revision-conflict '
           'states remain visible. Fix a rejected publication and publish it '
@@ -143,11 +146,10 @@ class HelpDialog extends StatelessWidget {
       dom.p(classes: 'hui-dialog-note', <Widget>[
         Text(
           huiText(
-            'The connection shows the only allowed prefixes for new panel menus '
-            'and image assets. New panel menus publish only when navigation from '
-            'the panel root reaches them; unrelated folder documents stay local. '
-            'Sync v1 retains captured resources instead of deleting them. '
-            'Text-image assets are capped at 16 by 16 pixels, with bounded stored '
+            'Workspace publication is an exact server mirror: it creates, '
+            'updates, and deletes runtime documents and assets to match this '
+            'workspace. Unlinked flow maps remain browser-only. Text-image '
+            'assets are capped at 16 by 16 pixels, with bounded stored '
             'pixels and repeated image-frame render work across the project. '
             'Projects are capped at 32 MiB by the editor; the '
             'configured relay may use a lower limit. If tab storage is blocked, '

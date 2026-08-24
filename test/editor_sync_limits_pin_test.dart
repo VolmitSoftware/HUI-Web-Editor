@@ -1,4 +1,4 @@
-/// Pins the sync-v2 wire limits that exist in four places at once.
+/// Pins the sync-v3 wire limits that exist in four places at once.
 ///
 /// The protocol numbers live in Gloss (`EditorSyncDocuments`,
 /// `EditorSyncSnapshotBuilder`, `EditorSyncKind`, `EditorSyncProject`,
@@ -23,7 +23,7 @@ import 'support/java_source.dart';
 const String _syncPackage = 'src/main/java/art/arcane/gloss/editor/sync';
 const String _relayModel = 'sync-relay/lib/src/model.dart';
 const String _relayConfig = 'sync-relay/lib/src/config.dart';
-const String _relaySchema = 'sync-relay/schema/project-v2.schema.json';
+const String _relaySchema = 'sync-relay/schema/project-v3.schema.json';
 
 String _readLocal(String path) {
   final File file = File(path);
@@ -177,11 +177,27 @@ void main() {
         reason: drift('huiEditorSyncMaxImagePixels', 'MAX_IMAGE_PIXELS'),
       );
       expect(
+        huiEditorSyncMaxAssetDimension,
+        constantInt(snapshots, 'MAX_WORKSPACE_IMAGE_DIMENSION'),
+        reason: drift(
+          'huiEditorSyncMaxAssetDimension',
+          'MAX_WORKSPACE_IMAGE_DIMENSION',
+        ),
+      );
+      expect(
+        huiEditorSyncMaxAssetImagePixels,
+        constantInt(snapshots, 'MAX_WORKSPACE_IMAGE_PIXELS'),
+        reason: drift(
+          'huiEditorSyncMaxAssetImagePixels',
+          'MAX_WORKSPACE_IMAGE_PIXELS',
+        ),
+      );
+      expect(
         huiEditorSyncMaxAssetPixels,
-        constantInt(snapshots, 'MAX_PROJECT_IMAGE_PIXELS'),
+        constantInt(snapshots, 'MAX_WORKSPACE_PROJECT_IMAGE_PIXELS'),
         reason: drift(
           'huiEditorSyncMaxAssetPixels',
-          'MAX_PROJECT_IMAGE_PIXELS',
+          'MAX_WORKSPACE_PROJECT_IMAGE_PIXELS',
         ),
       );
       expect(
@@ -247,7 +263,7 @@ void main() {
     ]);
 
     String drift(String pointer) =>
-        '$pointer in $_relaySchema drifted from the shared sync-v2 limit';
+        '$pointer in $_relaySchema drifted from the shared sync-v3 limit';
 
     test('documents[] bounds match', () {
       final Map<String, Object?> documents = _schemaNode(properties, <String>[

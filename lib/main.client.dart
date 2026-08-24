@@ -10,6 +10,7 @@ import 'l10n/hui_locale_loader.dart';
 import 'l10n/hui_locale_preferences.dart';
 import 'l10n/hui_localizations.dart';
 import 'main.client.options.dart';
+import 'services/image_library.dart';
 import 'state/workspace.dart';
 import 'state/workspace_repository.dart';
 
@@ -33,8 +34,13 @@ Future<void> main() async {
     final Workspace workspace = await Workspace.open(
       repository: createDefaultWorkspaceRepository(),
     );
+    final ImageLibrary images = await ImageLibrary.open(
+      workspaceId: workspace.id,
+      repository: workspace.repository,
+    );
     final App app = App(
       workspace: workspace,
+      images: images,
       localeController: localeController,
     );
     runApp(app);

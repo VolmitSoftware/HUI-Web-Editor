@@ -5,7 +5,7 @@ server and the static web editor. It never connects to Minecraft: the plugin
 creates and polls sessions through outbound HTTP. Browser autosave remains
 local and publishing is always an explicit action.
 
-The official relay base is `https://sync.gloss.volmitsoftware.com/v2`.
+The official relay base is `https://sync.gloss.volmitsoftware.com/v3`.
 Any operator can run this same protocol at another HTTPS URL and set
 `editorSyncEndpoint` accordingly. HTTP is intended only for localhost tests.
 
@@ -44,14 +44,14 @@ service. Per-address, per-principal, active-session, retained-session, and
 storage capacity bounds remain active in either mode. Public deployments also
 need a trusted edge for connection/request-rate DDoS controls; the application
 limits do not replace one. The unauthenticated health response stays limited
-to `{"status":"ok","protocol":2}` and does not disclose admission
+to `{"status":"ok","protocol":3}` and does not disclose admission
 configuration.
 
 Environment variables:
 
 - `PORT=8080`, `GLOSS_RELAY_BIND=127.0.0.1`, and
   `GLOSS_RELAY_DATA=/data/gloss-sync` select the listener and durable volume.
-- `GLOSS_RELAY_API_PREFIX=/v2` selects the internal API mount.
+- `GLOSS_RELAY_API_PREFIX=/v3` selects the internal API mount.
 - `GLOSS_RELAY_CREATE_TOKENS` accepts up to 4096 comma-separated, deduplicated
   URL-safe 22–128 character operator capabilities. It is mandatory for the
   official and any other public deployment. `GLOSS_RELAY_CREATE_TOKEN` is a
@@ -97,6 +97,6 @@ owner-only `077` umask; non-container launches should do the same. Capability
 URLs should be treated as secrets. See
 [`protocol.md`](protocol.md) for the wire contract.
 The machine-readable project envelope is
-[`schema/project-v2.schema.json`](schema/project-v2.schema.json), HTTP
-envelopes are in [`schema/http-v2.schema.json`](schema/http-v2.schema.json),
+[`schema/project-v3.schema.json`](schema/project-v3.schema.json), HTTP
+envelopes are in [`schema/http-v3.schema.json`](schema/http-v3.schema.json),
 and [`fixtures/`](fixtures) contains golden payloads for other clients.

@@ -27,7 +27,9 @@ Future<LocalDataResetResult> resetAllLocalEditorData(
           huiText('Browser storage refused the reset.'),
     );
   }
+  await store.images?.useWorkspace(store.workspace.id);
   final bool imagesCleared = store.images?.clear() ?? true;
+  await store.images?.writesSettled;
   final bool localStorageCleared = StorageService.clearAll();
   final bool themeSaved = StorageService.write(
     _themeStorageKey,
@@ -37,7 +39,6 @@ Future<LocalDataResetResult> resetAllLocalEditorData(
     huiLocaleStorageKey,
     huiLocalizations.activeLocale,
   );
-  store.images?.load();
   store.resetLocalPreferences();
   store.adoptEmptyWorkspace();
   await store.workspace.writesSettled;
@@ -49,6 +50,7 @@ Future<LocalDataResetResult> resetAllLocalEditorData(
       localStorageCleared &&
       themeSaved &&
       localeSaved &&
+      !(store.images?.hasUnsavedChanges ?? false) &&
       workspaceReady) {
     return LocalDataResetResult(
       success: true,

@@ -95,7 +95,7 @@ final class GlossSyncRelay {
         : '/${request.url.path}';
     final String prefix = config.apiPrefix;
     if (path == '$prefix/health' && request.method == 'GET') {
-      return _json(200, <String, Object?>{'status': 'ok', 'protocol': 2});
+      return _json(200, <String, Object?>{'status': 'ok', 'protocol': 3});
     }
     if (path == '$prefix/sessions' && request.method == 'POST') {
       final String address = _clientAddress(request);
@@ -165,7 +165,7 @@ final class GlossSyncRelay {
   String _authorizeCreate(Request request, String address) {
     final Set<String> expectedHashes = config.createTokenHashes;
     if (expectedHashes.isEmpty) {
-      return tokenHash('gloss-anonymous-create-principal-v2:$address');
+      return tokenHash('gloss-anonymous-create-principal-v3:$address');
     }
     final String? authorization = request.headers['authorization'];
     if (authorization == null || !authorization.startsWith('Bearer ')) {
@@ -182,7 +182,7 @@ final class GlossSyncRelay {
     if (!validShape || !matches || matchedHash == null) {
       throw const RelayProblem(401, 'unauthorized');
     }
-    return tokenHash('gloss-create-principal-v2:$matchedHash');
+    return tokenHash('gloss-create-principal-v3:$matchedHash');
   }
 
   Future<Response> _createSession({
@@ -259,7 +259,7 @@ final class GlossSyncRelay {
     );
     await store.create(session);
     return _json(201, <String, Object?>{
-      'protocol': 2,
+      'protocol': 3,
       'sessionId': id,
       'editorToken': editorToken,
       'serverToken': serverToken,
@@ -323,7 +323,7 @@ final class GlossSyncRelay {
       return current.publish(publication);
     });
     return _json(202, <String, Object?>{
-      'protocol': 2,
+      'protocol': 3,
       'publication': <String, Object?>{
         'revision': publication.revision,
         'state': publication.state.name,
@@ -352,7 +352,7 @@ final class GlossSyncRelay {
       return Response(204);
     }
     return _json(200, <String, Object?>{
-      'protocol': 2,
+      'protocol': 3,
       'sessionId': id,
       'publication': <String, Object?>{
         'revision': publication.revision,
@@ -446,7 +446,7 @@ final class GlossSyncRelay {
       );
     });
     return _json(200, <String, Object?>{
-      'protocol': 2,
+      'protocol': 3,
       'baseRevision': updated.baseRevision,
       'publication': <String, Object?>{
         'revision': updated.publication!.revision,
@@ -560,22 +560,15 @@ final class GlossSyncRelay {
   }
 
   void _protocol(Map<String, Object?> body) {
-    if (body['protocol'] != 2) {
+    if (body['protocol'] != 3) {
       throw const RelayProblem(400, 'unsupported_protocol');
     }
   }
 
-  /// Transport-shape validation for protocol-v2 snapshots. The relay checks
-  /// ONLY the format identity, the open kind-slug grammar, and bounded sizes.
-  /// It never interprets kinds — a new document kind must work against this
-  /// relay without a redeploy.
   void _snapshotShape(Map<String, Object?> snapshot) {
     final Object? format = snapshot['format'];
     final Object? version = snapshot['version'];
-    if (format == 'holoui-sync-project' || version == 1) {
-      throw const RelayProblem(400, 'unsupported_project_format');
-    }
-    if (format != 'gloss-sync-project' || version != 2) {
+    if (format != 'gloss-sync-project' || version != 3) {
       throw const RelayProblem(400, 'unsupported_project_format');
     }
     final Object? kind = snapshot['kind'];
@@ -583,9 +576,7 @@ final class GlossSyncRelay {
       throw const RelayProblem(400, 'invalid_project_kind');
     }
     final Object? documents = snapshot['documents'];
-    if (documents is! List ||
-        documents.isEmpty ||
-        documents.length > relayMaximumDocuments) {
+    if (documents is! List || documents.length > relayMaximumDocuments) {
       throw const RelayProblem(400, 'invalid_project_documents');
     }
     for (final Object? entry in documents) {
@@ -720,7 +711,7 @@ final class GlossSyncRelay {
 
   Map<String, Object?> _sessionEnvelope(RelaySession session) =>
       <String, Object?>{
-        'protocol': 2,
+        'protocol': 3,
         'sessionId': session.id,
         'status': session.status,
         'expiresAt': session.expiresAt.toIso8601String(),
@@ -795,7 +786,7 @@ final class GlossSyncRelay {
       return Response(
         500,
         body: jsonEncode(<String, Object?>{
-          'protocol': 2,
+          'protocol': 3,
           'error': <String, Object?>{
             'code': 'response_too_large',
             'message': 'response too large',
@@ -816,7 +807,7 @@ final class GlossSyncRelay {
   }
 
   Response _error(int status, String code) => _json(status, <String, Object?>{
-    'protocol': 2,
+    'protocol': 3,
     'error': <String, Object?>{
       'code': code,
       'message': code.replaceAll('_', ' '),

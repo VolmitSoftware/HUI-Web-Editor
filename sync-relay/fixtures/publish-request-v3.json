@@ -1,29 +1,29 @@
 {
-  "protocol": 2,
-  "expiresInSeconds": 3600,
+  "protocol": 3,
+  "baseRevision": "sha256:6d7f76b8c8b0cc2eac71dcec9f497e73e5a5719e7bc6a68d2337611dcf18e0dd",
   "snapshot": {
     "format": "gloss-sync-project",
-    "version": 2,
+    "version": 3,
     "kind": "menu",
     "subjectId": "main",
     "documents": [
       {
         "kind": "menu",
         "id": "main",
-        "json": "{\"components\":[]}"
+        "json": "{\"components\":[],\"followPlayer\":true}"
       }
     ],
     "images": [],
     "constraints": {
       "subjectId": "main",
-      "menuIds": [
-        "main"
+      "documentKinds": [
+        "menu"
       ],
-      "imagePaths": [],
+      "createDocumentKinds": [],
       "newImagePrefix": "sync/menus/main/",
       "allowDeletes": false
     },
     "warnings": [],
-    "baseRevision": "sha256:6d7f76b8c8b0cc2eac71dcec9f497e73e5a5719e7bc6a68d2337611dcf18e0dd"
+    "baseRevision": "sha256:662f3e7590d1321a57a0b592bd0531e271deef6710f724114302b3d45951f7bf"
   }
 }

@@ -13,23 +13,16 @@ import '../logic/validation.dart';
 import '../model/model.dart';
 import '../doctype/doctype.dart';
 import '../state/workspace.dart';
+import '../state/workspace_bundle.dart';
 import '../state/workspace_panel.dart';
 import 'editor_sync_binding_storage.dart';
 import 'image_library.dart';
 
-/// Protocol v2: the HTTP envelope `protocol` number AND the project `version`.
-/// The two move together; v2 is the first Gloss generation and the editor is
-/// v2-only — protocol-1 sessions and `holoui-sync-project` payloads are
-/// rejected with a clear error.
-const int huiEditorSyncProtocol = 2;
+const int huiEditorSyncProtocol = 3;
 
-/// Project wire format identifier ('holoui-sync-project' was protocol v1).
 const String huiEditorSyncFormat = 'gloss-sync-project';
 
-/// The wire kind slugs this editor build can sync as a session subject. Kinds
-/// are OPEN on the wire (any slug matching [editorSyncKindPattern]); these two
-/// are simply the ones this build has a codec for. Menus kept their v1 slug;
-/// world panels sync as 'panel' in v2 (the v1 slug was 'board').
+const String _workspaceWireKind = 'workspace';
 const String _menuWireKind = 'menu';
 const String _panelWireKind = 'panel';
 
@@ -59,10 +52,17 @@ const int huiEditorSyncMaxMenus = 256;
 const int huiEditorSyncMaxImages = 512;
 const int huiEditorSyncMaxImageDimension = 16;
 const int huiEditorSyncMaxImagePixels = 16 * 16;
-const int huiEditorSyncMaxAssetPixels = 262144;
+const int huiEditorSyncMaxAssetDimension = 4096;
+const int huiEditorSyncMaxAssetImagePixels = 16777216;
+const int huiEditorSyncMaxAssetPixels = 67108864;
 const int huiEditorSyncMaxRenderPixels = 262144;
 const int huiEditorSyncMaxRenderRows = 4096;
 const int huiEditorSyncMaxSafeInteger = 9007199254740991;
+
+final List<String> huiEditorSyncDocumentKinds = <String>[
+  for (final DocumentTypeAdapter adapter in DocumentTypeRegistry.all)
+    adapter.syncWireKind!,
+]..sort();
 
 enum EditorSyncStatus {
   connected,
@@ -122,10 +122,6 @@ final class EditorSyncPollGate {
   }
 }
 
-/// One entry of the protocol-v2 `documents` array: an open kind slug, the
-/// document id, and the document's JSON source text. [revision] is optional
-/// server-owned metadata for kinds that track one outside the document text;
-/// the editor treats it as opaque and never emits it in publications.
 final class EditorSyncDocument {
   const EditorSyncDocument({
     required this.kind,
@@ -162,25 +158,27 @@ final class EditorSyncImage {
 final class EditorSyncConstraints {
   const EditorSyncConstraints({
     required this.subjectId,
-    required this.menuIds,
-    required this.imagePaths,
+    required this.documentKinds,
+    required this.createDocumentKinds,
+    required this.allowDeletes,
     this.newMenuPrefix,
     this.newImagePrefix,
   });
 
   final String subjectId;
-  final List<String> menuIds;
-  final List<String> imagePaths;
+  final List<String> documentKinds;
+  final List<String> createDocumentKinds;
+  final bool allowDeletes;
   final String? newMenuPrefix;
   final String? newImagePrefix;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'subjectId': subjectId,
-    'menuIds': menuIds,
-    'imagePaths': imagePaths,
+    'documentKinds': documentKinds,
+    'createDocumentKinds': createDocumentKinds,
+    'allowDeletes': allowDeletes,
     if (newMenuPrefix != null) 'newMenuPrefix': newMenuPrefix,
     if (newImagePrefix != null) 'newImagePrefix': newImagePrefix,
-    'allowDeletes': false,
   };
 
   static EditorSyncConstraints decode(Object? raw) {
@@ -190,8 +188,8 @@ final class EditorSyncConstraints {
               key is! String ||
               !const <String>{
                 'subjectId',
-                'menuIds',
-                'imagePaths',
+                'documentKinds',
+                'createDocumentKinds',
                 'newMenuPrefix',
                 'newImagePrefix',
                 'allowDeletes',
@@ -199,33 +197,40 @@ final class EditorSyncConstraints {
         ) ||
         raw['subjectId'] is! String ||
         (raw['subjectId'] as String).isEmpty ||
-        raw['menuIds'] is! List ||
-        raw['imagePaths'] is! List ||
-        raw['allowDeletes'] != false) {
+        raw['documentKinds'] is! List ||
+        raw['createDocumentKinds'] is! List ||
+        raw['allowDeletes'] is! bool) {
       throw const FormatException('Sync constraints are missing.');
     }
-    final List<String> menuIds = _strictStrings(raw['menuIds'], 'menu id');
-    final List<String> imagePaths = _strictStrings(
-      raw['imagePaths'],
-      'image path',
+    final List<String> documentKinds = _strictStrings(
+      raw['documentKinds'],
+      'document kind',
     );
-    if (menuIds.any((String id) => !isCanonicalMenuId(id)) ||
-        imagePaths.any((String path) => !_validSyncImagePath(path)) ||
-        !_isSorted(menuIds) ||
-        !_isSorted(imagePaths)) {
-      throw const FormatException('Sync constraints contain invalid paths.');
+    final List<String> createDocumentKinds = _strictStrings(
+      raw['createDocumentKinds'],
+      'document kind',
+    );
+    if (documentKinds.any(
+          (String kind) => DocumentTypeRegistry.byWireKind(kind) == null,
+        ) ||
+        createDocumentKinds.any(
+          (String kind) => !documentKinds.contains(kind),
+        ) ||
+        !_isSorted(documentKinds) ||
+        !_isSorted(createDocumentKinds)) {
+      throw const FormatException('Sync constraints contain invalid kinds.');
     }
     final Object? newMenuPrefix = raw['newMenuPrefix'];
     final Object? newImagePrefix = raw['newImagePrefix'];
-    if (newImagePrefix is! String ||
-        !_validPrefix(newMenuPrefix, menu: true) ||
+    if (!_validPrefix(newMenuPrefix, menu: true) ||
         !_validPrefix(newImagePrefix, menu: false)) {
       throw const FormatException('Sync constraints contain invalid prefixes.');
     }
     return EditorSyncConstraints(
       subjectId: raw['subjectId'] as String,
-      menuIds: List<String>.unmodifiable(menuIds),
-      imagePaths: List<String>.unmodifiable(imagePaths),
+      documentKinds: List<String>.unmodifiable(documentKinds),
+      createDocumentKinds: List<String>.unmodifiable(createDocumentKinds),
+      allowDeletes: raw['allowDeletes'] as bool,
       newMenuPrefix: newMenuPrefix as String?,
       newImagePrefix: newImagePrefix as String?,
     );
@@ -248,9 +253,6 @@ final class EditorSyncProject {
   final String subjectId;
   final String baseRevision;
 
-  /// The uniform protocol-v2 document collection, sorted by kind then id.
-  /// A future kind is one more entry here — the enclosing project shape never
-  /// changes again; only an editor-side codec is needed.
   final List<EditorSyncDocument> documents;
   final List<EditorSyncImage> images;
   final EditorSyncConstraints constraints;
@@ -289,29 +291,10 @@ final class EditorSyncProject {
   };
 
   static EditorSyncProject decode(Object? raw) {
-    if (raw is! Map) {
-      throw const FormatException('Unsupported Gloss sync project.');
-    }
-    if (raw['format'] == 'holoui-sync-project' || raw['version'] == 1) {
-      throw const FormatException(
-        'This is a HoloUI protocol-v1 sync project. The Gloss editor is '
-        'v2-only; update the plugin and open a fresh session link.',
-      );
-    }
-    if (raw['format'] != huiEditorSyncFormat ||
+    if (raw is! Map ||
+        raw['format'] != huiEditorSyncFormat ||
         raw['version'] != huiEditorSyncProtocol) {
       throw const FormatException('Unsupported Gloss sync project.');
-    }
-    final Object? kind = raw['kind'];
-    final Object? subjectId = raw['subjectId'];
-    final Object? baseRevision = raw['baseRevision'];
-    if (kind is! String ||
-        !editorSyncKindPattern.hasMatch(kind) ||
-        subjectId is! String ||
-        subjectId.isEmpty ||
-        baseRevision is! String ||
-        !editorSyncRevisionPattern.hasMatch(baseRevision)) {
-      throw const FormatException('Invalid Gloss sync project identity.');
     }
     const Set<String> projectKeys = <String>{
       'format',
@@ -324,32 +307,91 @@ final class EditorSyncProject {
       'constraints',
       'warnings',
     };
-    if (raw.length != projectKeys.length ||
-        raw.keys.any((Object? key) => !projectKeys.contains(key))) {
+    if (!_hasExactKeys(raw, projectKeys)) {
       throw const FormatException('Sync project fields are invalid.');
     }
-    if (kind != _menuWireKind && kind != _panelWireKind) {
-      throw FormatException(
-        huiText(
-          "This editor build cannot sync '{kind}' subjects yet. Menus and world panels are supported; other kinds need a newer editor build.",
-          <String, Object?>{'kind': kind},
-        ),
-      );
-    }
-    if (!isCanonicalMenuId(subjectId) ||
-        (kind == _panelWireKind && subjectId != subjectId.toLowerCase())) {
+    final Object? kind = raw['kind'];
+    final Object? subjectId = raw['subjectId'];
+    final Object? baseRevision = raw['baseRevision'];
+    if (kind is! String ||
+        (kind != _workspaceWireKind &&
+            DocumentTypeRegistry.byWireKind(kind) == null) ||
+        subjectId is! String ||
+        subjectId.isEmpty ||
+        baseRevision is! String ||
+        !editorSyncRevisionPattern.hasMatch(baseRevision)) {
       throw const FormatException('Invalid Gloss sync project identity.');
     }
+    final EditorSyncConstraints constraints = EditorSyncConstraints.decode(
+      raw['constraints'],
+    );
+    _validateConstraintShape(kind, subjectId, constraints);
+
     final Object? rawDocuments = raw['documents'];
     if (rawDocuments is! List ||
-        rawDocuments.isEmpty ||
-        rawDocuments.length > huiEditorSyncMaxDocuments) {
+        rawDocuments.length > huiEditorSyncMaxDocuments ||
+        (kind != _workspaceWireKind && rawDocuments.isEmpty)) {
       throw const FormatException('Invalid Gloss sync document collection.');
     }
     final List<EditorSyncDocument> documents = <EditorSyncDocument>[];
     final Set<String> documentKeys = <String>{};
+    final Set<String> menuIds = <String>{};
+    final List<EditorSyncDocument> panels = <EditorSyncDocument>[];
     for (final Object? entry in rawDocuments) {
-      documents.add(_decodeDocumentEntry(entry, documentKeys));
+      final EditorSyncDocument document = _decodeDocumentEntry(
+        entry,
+        documentKeys,
+      );
+      if (!constraints.documentKinds.contains(document.kind)) {
+        throw const FormatException(
+          'Sync document kind is outside the session constraints.',
+        );
+      }
+      final DocumentTypeAdapter adapter = DocumentTypeRegistry.byWireKind(
+        document.kind,
+      )!;
+      if (!_validDocumentId(document.kind, document.id)) {
+        throw const FormatException('Invalid Gloss sync document id.');
+      }
+      if (document.kind == _panelWireKind) {
+        final Object? decoded;
+        try {
+          decoded = jsonDecode(document.json);
+        } catch (_) {
+          throw const FormatException('The world panel is not valid JSON.');
+        }
+        if (decoded is! Map || document.json != _canonicalJson(decoded)) {
+          throw const FormatException(
+            'The world panel document must be canonical JSON text.',
+          );
+        }
+        panels.add(document);
+      } else {
+        try {
+          adapter.decodeSnapshot(document.json);
+        } catch (_) {
+          throw FormatException(
+            huiText("The synced {kind} document is invalid.", <String, Object?>{
+              'kind': document.kind,
+            }),
+          );
+        }
+      }
+      if (_requiresDocumentRevision(document.kind)) {
+        final Object? decoded = jsonDecode(document.json);
+        final Object? jsonRevision = decoded is Map
+            ? decoded['revision']
+            : null;
+        if (jsonRevision is! num ||
+            jsonRevision.toInt() != jsonRevision ||
+            jsonRevision.toInt() != document.revision) {
+          throw const FormatException(
+            'Sync document revision does not match its JSON.',
+          );
+        }
+      }
+      if (document.kind == _menuWireKind) menuIds.add(document.id);
+      documents.add(document);
     }
     if (!_isSorted(
       documents.map(
@@ -360,83 +402,37 @@ final class EditorSyncProject {
         'Sync documents must be sorted by kind and id.',
       );
     }
-    final List<EditorSyncDocument> menus = <EditorSyncDocument>[];
-    EditorSyncDocument? panelDocument;
-    for (final EditorSyncDocument document in documents) {
-      if (document.kind == _menuWireKind) {
-        menus.add(document);
-      } else if (document.kind == _panelWireKind &&
-          kind == _panelWireKind &&
-          panelDocument == null) {
-        panelDocument = document;
-      } else {
-        throw FormatException(
-          huiText(
-            "This editor build cannot edit '{documentKind}' documents in a '{scopeKind}' sync scope.",
-            <String, Object?>{'documentKind': document.kind, 'scopeKind': kind},
-          ),
-        );
-      }
-    }
-    if (menus.isEmpty || menus.length > huiEditorSyncMaxMenus) {
-      throw const FormatException('Invalid Gloss sync menu collection.');
-    }
-    final Set<String> menuIds = <String>{};
-    for (final EditorSyncDocument menu in menus) {
-      if (!isCanonicalMenuId(menu.id) || !menuIds.add(menu.id)) {
-        throw const FormatException('Invalid Gloss sync menu entry.');
-      }
-      decodeHuiMenu(menu.json);
-    }
-    if (kind == _menuWireKind &&
-        (menus.length != 1 || menus.first.id != subjectId)) {
-      throw const FormatException(
-        'Menu sync scope does not match its subject.',
+    for (final EditorSyncDocument panel in panels) {
+      final Map<String, dynamic> definition = _copyStringMap(
+        jsonDecode(panel.json) as Map,
       );
-    }
-    Map<String, dynamic>? board;
-    if (kind == _panelWireKind) {
-      if (panelDocument == null || panelDocument.id != subjectId) {
-        throw const FormatException(
-          'Panel sync is missing its panel definition.',
-        );
-      }
-      final Object? parsedPanel;
-      try {
-        parsedPanel = jsonDecode(panelDocument.json);
-      } catch (_) {
-        throw const FormatException(
-          'The world panel document is not valid JSON.',
-        );
-      }
-      if (parsedPanel is! Map ||
-          panelDocument.json != _canonicalJson(parsedPanel)) {
-        throw const FormatException(
-          'The world panel document must be canonical JSON text.',
-        );
-      }
-      board = _copyStringMap(parsedPanel);
-      final String? panelProblem = editorSyncPanelDefinitionProblem(
-        board,
-        menuIds,
-      );
-      if (panelProblem != null || board['id'] != subjectId) {
+      if (definition['id'] != panel.id ||
+          editorSyncPanelDefinitionProblem(definition, menuIds) != null) {
         throw const FormatException('The world panel identity is invalid.');
       }
     }
+    if (kind != _workspaceWireKind &&
+        !documents.any(
+          (EditorSyncDocument document) =>
+              document.kind == kind && document.id == subjectId,
+        )) {
+      throw const FormatException(
+        'The sync subject document is missing from the snapshot.',
+      );
+    }
+
     final Object? rawImages = raw['images'];
+    if (rawImages is! List || rawImages.length > huiEditorSyncMaxImages) {
+      throw const FormatException('Invalid Gloss sync image collection.');
+    }
     final List<EditorSyncImage> images = <EditorSyncImage>[];
     final Set<String> imagePaths = <String>{};
     final Map<String, StoredImageData> decodedImages =
         <String, StoredImageData>{};
     int assetPixels = 0;
-    if (rawImages is! List || rawImages.length > huiEditorSyncMaxImages) {
-      throw const FormatException('Invalid Gloss sync image collection.');
-    }
     for (final Object? entry in rawImages) {
       if (entry is! Map ||
-          entry.length != 2 ||
-          entry.keys.any((Object? key) => key != 'path' && key != 'data')) {
+          !_hasExactKeys(entry, const <String>{'path', 'data'})) {
         throw const FormatException('Invalid Gloss sync image entry.');
       }
       final Object? path = entry['path'];
@@ -451,9 +447,9 @@ final class EditorSyncProject {
       final StoredImageData? decoded = decodeSupportedImageData(data);
       if (decoded == null ||
           decoded.bytes.length > huiMaxStoredImageBytes ||
-          decoded.width > huiEditorSyncMaxImageDimension ||
-          decoded.height > huiEditorSyncMaxImageDimension ||
-          decoded.width * decoded.height > huiEditorSyncMaxImagePixels) {
+          decoded.width > huiEditorSyncMaxAssetDimension ||
+          decoded.height > huiEditorSyncMaxAssetDimension ||
+          decoded.width * decoded.height > huiEditorSyncMaxAssetImagePixels) {
         throw const FormatException('Gloss sync image has invalid bytes.');
       }
       assetPixels += decoded.width * decoded.height;
@@ -468,58 +464,7 @@ final class EditorSyncProject {
     if (!_isSorted(images.map((EditorSyncImage image) => image.path))) {
       throw const FormatException('Sync images must be sorted by path.');
     }
-    final EditorSyncConstraints constraints = EditorSyncConstraints.decode(
-      raw['constraints'],
-    );
-    if (constraints.subjectId != subjectId) {
-      throw const FormatException('Sync constraints do not match the subject.');
-    }
-    if ((kind == _panelWireKind && constraints.newMenuPrefix == null) ||
-        (kind == _menuWireKind && constraints.newMenuPrefix != null) ||
-        constraints.newImagePrefix !=
-            (kind == _panelWireKind
-                ? 'sync/$subjectId/'
-                : 'sync/menus/$subjectId/')) {
-      throw const FormatException('Sync menu creation scope is invalid.');
-    }
-    if (kind == _menuWireKind &&
-        (constraints.menuIds.length != 1 ||
-            constraints.menuIds.single != subjectId)) {
-      throw const FormatException('Menu sync constraints are invalid.');
-    }
-    if (kind == _panelWireKind) {
-      final String rootMenuId = board!['rootMenuId']! as String;
-      final int separator = rootMenuId.lastIndexOf('/');
-      final String expectedPrefix = separator >= 0
-          ? rootMenuId.substring(0, separator + 1)
-          : '$rootMenuId/';
-      if (constraints.newMenuPrefix != expectedPrefix ||
-          !constraints.menuIds.contains(rootMenuId)) {
-        throw const FormatException('Panel sync constraints are invalid.');
-      }
-    }
-    if (menuIds.any(
-          (String id) =>
-              !constraints.menuIds.contains(id) &&
-              (constraints.newMenuPrefix == null ||
-                  !id.startsWith(constraints.newMenuPrefix!)),
-        ) ||
-        imagePaths.any(
-          (String path) =>
-              !constraints.imagePaths.contains(path) &&
-              (constraints.newImagePrefix == null ||
-                  !path.startsWith(constraints.newImagePrefix!)),
-        )) {
-      throw const FormatException('Sync snapshot exceeds its constraints.');
-    }
-    if (constraints.menuIds.any((String id) => !menuIds.contains(id)) ||
-        constraints.imagePaths.any(
-          (String path) => !imagePaths.contains(path),
-        )) {
-      throw const FormatException(
-        'Sync snapshots cannot delete captured menus or images.',
-      );
-    }
+
     final Object? rawWarnings = raw['warnings'];
     if (rawWarnings is! List || rawWarnings.length > 256) {
       throw const FormatException('Sync project warnings are invalid.');
@@ -528,13 +473,24 @@ final class EditorSyncProject {
       for (final Object? warning in rawWarnings)
         if (warning is String && warning.length <= 512) warning,
     ];
-    if (warnings.length != rawWarnings.length) {
+    if (warnings.length != rawWarnings.length || !_isSorted(warnings)) {
       throw const FormatException('Sync project warnings are invalid.');
     }
-    if (!_isSorted(warnings)) {
-      throw const FormatException('Sync project warnings must be sorted.');
+    final Set<String> referencedImagePaths = _validateSyncRasterBudget(
+      documents.where(
+        (EditorSyncDocument document) => document.kind == _menuWireKind,
+      ),
+      decodedImages,
+    );
+    if (kind != _workspaceWireKind &&
+        (referencedImagePaths.length != decodedImages.length ||
+            decodedImages.keys.any(
+              (String path) => !referencedImagePaths.contains(path),
+            ))) {
+      throw const FormatException(
+        'Focused sync projects may contain only referenced menu images.',
+      );
     }
-    _validateSyncRasterBudget(menus, decodedImages);
     if (_projectRevision(raw) != baseRevision) {
       throw const FormatException(
         'Sync project revision does not match its content.',
@@ -575,7 +531,7 @@ final class EditorSyncProject {
     final Object? json = entry['json'];
     final Object? revision = entry['revision'];
     if (kind is! String ||
-        !editorSyncKindPattern.hasMatch(kind) ||
+        DocumentTypeRegistry.byWireKind(kind) == null ||
         id is! String ||
         id.isEmpty ||
         id.length > huiEditorSyncMaxDocumentIdChars ||
@@ -586,7 +542,8 @@ final class EditorSyncProject {
         (revision != null &&
             (revision is! int ||
                 revision < 1 ||
-                revision > huiEditorSyncMaxSafeInteger))) {
+                revision > huiEditorSyncMaxSafeInteger)) ||
+        (_requiresDocumentRevision(kind) != (revision != null))) {
       throw const FormatException('Invalid Gloss sync document entry.');
     }
     return EditorSyncDocument(
@@ -598,7 +555,85 @@ final class EditorSyncProject {
   }
 }
 
-void _validateSyncRasterBudget(
+bool _requiresDocumentRevision(String kind) =>
+    kind != _menuWireKind && kind != 'container-preview';
+
+bool _validDocumentId(String kind, String id) {
+  if (!isCanonicalMenuId(id)) return false;
+  if (kind == _menuWireKind || kind == _panelWireKind) return true;
+  if (kind == 'motd') return id == 'motd';
+  if (kind == 'tablist') return id == 'tablist';
+  if (kind == 'real-drops') return id == 'default';
+  return !id.contains('/');
+}
+
+void _validateConstraintShape(
+  String kind,
+  String subjectId,
+  EditorSyncConstraints constraints,
+) {
+  if (constraints.subjectId != subjectId) {
+    throw const FormatException('Sync constraints do not match the subject.');
+  }
+  if (kind == _workspaceWireKind) {
+    if (subjectId != _workspaceWireKind ||
+        !_sameStrings(constraints.documentKinds, huiEditorSyncDocumentKinds) ||
+        !_sameStrings(
+          constraints.createDocumentKinds,
+          huiEditorSyncDocumentKinds,
+        ) ||
+        !constraints.allowDeletes ||
+        constraints.newMenuPrefix != null ||
+        constraints.newImagePrefix != null) {
+      throw const FormatException('Workspace sync constraints are invalid.');
+    }
+    return;
+  }
+  if (kind == _menuWireKind) {
+    if (!_sameStrings(constraints.documentKinds, const <String>[
+          _menuWireKind,
+        ]) ||
+        constraints.createDocumentKinds.isNotEmpty ||
+        constraints.allowDeletes ||
+        constraints.newMenuPrefix != null ||
+        constraints.newImagePrefix == null) {
+      throw const FormatException('Menu sync constraints are invalid.');
+    }
+    return;
+  }
+  if (kind == _panelWireKind) {
+    if (!_sameStrings(constraints.documentKinds, const <String>[
+          _menuWireKind,
+          _panelWireKind,
+        ]) ||
+        !_sameStrings(constraints.createDocumentKinds, const <String>[
+          _menuWireKind,
+        ]) ||
+        constraints.allowDeletes ||
+        constraints.newMenuPrefix == null ||
+        constraints.newImagePrefix == null) {
+      throw const FormatException('Panel sync constraints are invalid.');
+    }
+    return;
+  }
+  if (!_sameStrings(constraints.documentKinds, <String>[kind]) ||
+      constraints.createDocumentKinds.isNotEmpty ||
+      constraints.allowDeletes ||
+      constraints.newMenuPrefix != null ||
+      constraints.newImagePrefix != null) {
+    throw const FormatException('Document sync constraints are invalid.');
+  }
+}
+
+bool _sameStrings(List<String> first, List<String> second) {
+  if (first.length != second.length) return false;
+  for (int index = 0; index < first.length; index++) {
+    if (first[index] != second[index]) return false;
+  }
+  return true;
+}
+
+Set<String> _validateSyncRasterBudget(
   Iterable<EditorSyncDocument> menus,
   Map<String, StoredImageData> images,
 ) {
@@ -606,12 +641,14 @@ void _validateSyncRasterBudget(
   for (final EditorSyncDocument menu in menus) {
     budget.visit(jsonDecode(menu.json));
   }
+  return Set<String>.unmodifiable(budget.referencedPaths);
 }
 
 final class _EditorSyncRasterBudget {
   _EditorSyncRasterBudget(this.images);
 
   final Map<String, StoredImageData> images;
+  final Set<String> referencedPaths = <String>{};
   int renderPixels = 0;
   int renderRows = 0;
 
@@ -649,6 +686,17 @@ final class _EditorSyncRasterBudget {
       throw FormatException(
         huiText(
           'Gloss sync image reference is missing: {path}',
+          <String, Object?>{'path': rawPath},
+        ),
+      );
+    }
+    referencedPaths.add(rawPath);
+    if (image.width > huiEditorSyncMaxImageDimension ||
+        image.height > huiEditorSyncMaxImageDimension ||
+        image.width * image.height > huiEditorSyncMaxImagePixels) {
+      throw FormatException(
+        huiText(
+          'Gloss menu image exceeds the text-image limit: {path}',
           <String, Object?>{'path': rawPath},
         ),
       );
@@ -692,11 +740,10 @@ final class EditorSyncBinding {
     required this.kind,
     required this.subjectId,
     required this.baseRevision,
-    required this.menuDocumentIds,
+    required this.documentIds,
     required this.imagePaths,
     required this.constraints,
     required this.warnings,
-    this.panelDocumentId,
     this.pendingContentRevision,
   });
 
@@ -706,15 +753,40 @@ final class EditorSyncBinding {
   final String kind;
   final String subjectId;
   final String baseRevision;
-  final Map<String, String> menuDocumentIds;
+  final Map<String, String> documentIds;
   final List<String> imagePaths;
   final EditorSyncConstraints constraints;
   final List<String> warnings;
-  final String? panelDocumentId;
   final String? pendingContentRevision;
+
+  String? documentId(String kind, String id) =>
+      documentIds[_documentKey(kind, id)];
+
+  bool isDocumentBound(WorkspaceDoc doc) {
+    if (doc.kind == _panelDocKind) {
+      final WorkspacePanelData data = decodeWorkspacePanel(doc.json).data;
+      final String? id = data.runtimeBoardId;
+      return id != null && documentId(_panelWireKind, id) == doc.id;
+    }
+    final String? wireKind = DocumentTypeRegistry.of(doc.kind).syncWireKind;
+    final String? id = doc.runtimeId;
+    return wireKind != null && id != null && documentId(wireKind, id) == doc.id;
+  }
+
+  String? get firstDocumentId => documentIds.values.firstOrNull;
+
+  String? get panelDocumentId {
+    for (final MapEntry<String, String> entry in documentIds.entries) {
+      if (entry.key.startsWith('$_panelWireKind\u0000')) return entry.value;
+    }
+    return null;
+  }
 
   EditorSyncBinding copyWith({
     String? baseRevision,
+    Map<String, String>? documentIds,
+    List<String>? imagePaths,
+    List<String>? warnings,
     String? pendingContentRevision,
     bool clearPendingContentRevision = false,
   }) => EditorSyncBinding(
@@ -724,45 +796,59 @@ final class EditorSyncBinding {
     kind: kind,
     subjectId: subjectId,
     baseRevision: baseRevision ?? this.baseRevision,
-    menuDocumentIds: menuDocumentIds,
-    imagePaths: imagePaths,
+    documentIds: documentIds ?? this.documentIds,
+    imagePaths: imagePaths ?? this.imagePaths,
     constraints: constraints,
-    warnings: warnings,
-    panelDocumentId: panelDocumentId,
+    warnings: warnings ?? this.warnings,
     pendingContentRevision: clearPendingContentRevision
         ? null
         : pendingContentRevision ?? this.pendingContentRevision,
   );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-    'version': 2,
+    'version': huiEditorSyncProtocol,
     'sessionId': sessionId,
     'editorToken': editorToken,
     'relayEndpoint': relayEndpoint.toString(),
     'kind': kind,
     'subjectId': subjectId,
     'baseRevision': baseRevision,
-    'menuDocumentIds': menuDocumentIds,
+    'documentIds': documentIds,
     'imagePaths': imagePaths,
     'constraints': constraints.toJson(),
     'warnings': warnings,
-    'panelDocumentId': panelDocumentId,
     'pendingContentRevision': pendingContentRevision,
   };
 
   static EditorSyncBinding? decode(String raw) {
     try {
       final Object? decoded = jsonDecode(raw);
-      if (decoded is! Map || decoded['version'] != 2) return null;
+      if (decoded is! Map ||
+          decoded['version'] != huiEditorSyncProtocol ||
+          !_hasExactKeys(decoded, const <String>{
+            'version',
+            'sessionId',
+            'editorToken',
+            'relayEndpoint',
+            'kind',
+            'subjectId',
+            'baseRevision',
+            'documentIds',
+            'imagePaths',
+            'constraints',
+            'warnings',
+            'pendingContentRevision',
+          })) {
+        return null;
+      }
       final Object? sessionId = decoded['sessionId'];
       final Object? editorToken = decoded['editorToken'];
       final Uri? relay = _parseRelay(decoded['relayEndpoint']);
       final Object? kind = decoded['kind'];
       final Object? subjectId = decoded['subjectId'];
       final Object? baseRevision = decoded['baseRevision'];
-      final Object? rawMap = decoded['menuDocumentIds'];
+      final Object? rawIds = decoded['documentIds'];
       final Object? rawPaths = decoded['imagePaths'];
-      final Object? panelDocumentId = decoded['panelDocumentId'];
       final Object? rawWarnings = decoded['warnings'];
       final Object? pendingContentRevision = decoded['pendingContentRevision'];
       final EditorSyncConstraints constraints = EditorSyncConstraints.decode(
@@ -773,51 +859,41 @@ final class EditorSyncBinding {
           editorToken is! String ||
           !_capabilityPattern.hasMatch(editorToken) ||
           relay == null ||
-          (kind != _menuWireKind && kind != _panelWireKind) ||
+          kind is! String ||
+          (kind != _workspaceWireKind &&
+              DocumentTypeRegistry.byWireKind(kind) == null) ||
           subjectId is! String ||
           baseRevision is! String ||
           !editorSyncRevisionPattern.hasMatch(baseRevision) ||
-          rawMap is! Map ||
+          rawIds is! Map ||
           rawPaths is! List ||
           rawWarnings is! List ||
           (pendingContentRevision != null &&
               (pendingContentRevision is! String ||
                   !editorSyncRevisionPattern.hasMatch(
                     pendingContentRevision,
-                  ))) ||
-          (panelDocumentId != null && panelDocumentId is! String)) {
+                  )))) {
         return null;
       }
-      if (constraints.subjectId != subjectId ||
-          (kind == _panelWireKind && constraints.newMenuPrefix == null) ||
-          (kind == _menuWireKind && constraints.newMenuPrefix != null)) {
-        return null;
-      }
-      final Map<String, String> menuDocumentIds = <String, String>{};
-      rawMap.forEach((Object? key, Object? value) {
-        if (key is String && value is String) menuDocumentIds[key] = value;
+      _validateConstraintShape(kind, subjectId, constraints);
+      final Map<String, String> documentIds = <String, String>{};
+      rawIds.forEach((Object? key, Object? value) {
+        if (key is String && value is String) documentIds[key] = value;
       });
-      final List<String> imagePaths = <String>[
-        for (final Object? path in rawPaths)
-          if (path is String) path,
-      ];
-      final List<String> warnings = <String>[
-        for (final Object? warning in rawWarnings)
-          if (warning is String) warning,
-      ];
-      if (warnings.length != rawWarnings.length) return null;
+      if (documentIds.length != rawIds.length) return null;
+      final List<String> imagePaths = _strictStrings(rawPaths, 'image path');
+      final List<String> warnings = _strictStrings(rawWarnings, 'warning');
       return EditorSyncBinding(
         sessionId: sessionId,
         editorToken: editorToken,
         relayEndpoint: relay,
-        kind: kind as String,
+        kind: kind,
         subjectId: subjectId,
         baseRevision: baseRevision,
-        menuDocumentIds: Map<String, String>.unmodifiable(menuDocumentIds),
+        documentIds: Map<String, String>.unmodifiable(documentIds),
         imagePaths: List<String>.unmodifiable(imagePaths),
         constraints: constraints,
         warnings: List<String>.unmodifiable(warnings),
-        panelDocumentId: panelDocumentId as String?,
         pendingContentRevision: pendingContentRevision as String?,
       );
     } catch (_) {
@@ -825,6 +901,8 @@ final class EditorSyncBinding {
     }
   }
 }
+
+String _documentKey(String kind, String id) => '$kind\u0000$id';
 
 final class EditorSyncClient {
   EditorSyncClient({
@@ -1142,192 +1220,25 @@ Future<EditorSyncBinding> importEditorSyncProject({
   required EditorSyncProject project,
   required Workspace workspace,
   required ImageLibrary images,
-  bool replaceExisting = false,
 }) async {
   if (!workspace.canWrite) {
     throw const EditorSyncFailure('The local workspace is not writable.');
   }
-  final Map<String, List<WorkspaceDoc>> matches =
-      <String, List<WorkspaceDoc>>{};
-  final List<WorkspaceDoc> boardMatches = <WorkspaceDoc>[];
-  final List<EditorSyncDocument> projectMenus = project.menus;
-  final Map<String, dynamic>? panelDefinition = project.panelDefinition();
-  final List<StoredImage> stagedImages = _storedImages(project.images);
-  for (final WorkspaceDoc doc in workspace.docs) {
-    if (doc.kind != _menuDocKind || doc.runtimeId == null) continue;
-    matches.putIfAbsent(doc.runtimeId!, () => <WorkspaceDoc>[]).add(doc);
-  }
-  if (project.kind == _panelWireKind) {
-    for (final WorkspaceDoc doc in workspace.docs) {
-      if (doc.kind != _panelDocKind) continue;
-      if (decodeWorkspacePanel(doc.json).data.runtimeBoardId ==
-          project.subjectId) {
-        boardMatches.add(doc);
-      }
-    }
-    if (boardMatches.length > 1 ||
-        (boardMatches.isNotEmpty && !replaceExisting)) {
-      throw EditorSyncConflict(
-        'The local workspace already contains world panel {id}. Confirm replacement first.',
-        <String, Object?>{'id': project.subjectId},
-      );
-    }
-  }
-  for (final EditorSyncDocument menu in projectMenus) {
-    final List<WorkspaceDoc> existing = matches[menu.id] ?? <WorkspaceDoc>[];
-    if (existing.length > 1 || (existing.isNotEmpty && !replaceExisting)) {
-      throw EditorSyncConflict(
-        'The local workspace already contains {id}. Confirm replacement first.',
-        <String, Object?>{'id': menu.id},
-      );
-    }
-  }
-  for (final StoredImage incoming in stagedImages) {
-    final StoredImage? current = images.byPath(incoming.path);
-    if (current != null &&
-        current.dataUri != incoming.dataUri &&
-        !replaceExisting) {
-      throw EditorSyncConflict(
-        'The local image {path} differs. Confirm replacement first.',
-        <String, Object?>{'path': incoming.path},
-      );
-    }
-  }
-
-  final String workspaceRollback = workspace.createRollbackSnapshot();
-  try {
-    final String? folderId;
-    if (project.kind == _panelWireKind) {
-      folderId = boardMatches.isNotEmpty
-          ? boardMatches.single.folderId ??
-                workspace.createFolder(title: project.subjectId).id
-          : workspace.createFolder(title: project.subjectId).id;
-    } else {
-      folderId = null;
-    }
-    final Map<String, String> menuDocumentIds = <String, String>{};
-    for (final EditorSyncDocument menu in projectMenus) {
-      final List<WorkspaceDoc> existing = matches[menu.id] ?? <WorkspaceDoc>[];
-      if (existing.isNotEmpty) {
-        final WorkspaceDoc doc = existing.single;
-        final String? targetFolderId = project.kind == _menuWireKind
-            ? doc.folderId
-            : folderId;
-        final String targetTitle = project.kind == _menuWireKind
-            ? doc.title
-            : menu.id.split('/').last;
-        if (!workspace.replaceDocument(
-          id: doc.id,
-          title: targetTitle,
-          runtimeId: menu.id,
-          json: menu.json,
-          kind: _menuDocKind,
-          folderId: targetFolderId,
-        )) {
-          throw EditorSyncFailure(
-            'The synced menu {id} could not be stored locally.',
-            <String, Object?>{'id': menu.id},
-          );
-        }
-        menuDocumentIds[menu.id] = doc.id;
-      } else {
-        final WorkspaceDoc doc = workspace.create(
-          title: menu.id.split('/').last,
-          runtimeId: menu.id,
-          json: menu.json,
-          kind: _menuDocKind,
-          folderId: folderId,
-        );
-        menuDocumentIds[menu.id] = doc.id;
-      }
-    }
-    String? panelDocumentId;
-    if (project.kind == _panelWireKind) {
-      final WorkspaceDoc? existingBoard = boardMatches.firstOrNull;
-      final WorkspacePanelData current = existingBoard == null
-          ? const WorkspacePanelData()
-          : decodeWorkspacePanel(existingBoard.json).data;
-      final WorkspacePanelData board = current.copyWith(
-        scopeFolderId: folderId,
-        runtimeBoardId: project.subjectId,
-        runtimeBoard: panelDefinition,
-        syncMenuIds: projectMenus
-            .map((EditorSyncDocument menu) => menu.id)
-            .toList(growable: false),
-        syncImagePaths: project.images
-            .map((EditorSyncImage image) => image.path)
-            .toList(growable: false),
-      );
-      if (existingBoard == null) {
-        final WorkspaceDoc doc = workspace.create(
-          title: project.subjectId,
-          runtimeId: null,
-          json: encodeWorkspacePanel(board),
-          kind: _panelDocKind,
-          folderId: folderId,
-        );
-        panelDocumentId = doc.id;
-      } else {
-        if (!workspace.replaceDocument(
-          id: existingBoard.id,
-          title: existingBoard.title,
-          json: encodeWorkspacePanel(board),
-          kind: _panelDocKind,
-          folderId: folderId,
-        )) {
-          throw const EditorSyncFailure(
-            'The synced world panel could not be stored locally.',
-          );
-        }
-        panelDocumentId = existingBoard.id;
-      }
-    }
-    if (menuDocumentIds.isEmpty) {
-      throw const EditorSyncFailure(
-        'The synced project contained no documents.',
-      );
-    }
-    if (!workspace.save()) {
-      throw const EditorSyncFailure(
-        'The synced workspace could not be stored locally.',
-      );
-    }
-    await workspace.writesSettled;
-    if (workspace.hasUnsavedChanges) {
-      throw EditorSyncFailure.deferred(
-        workspace.lastErrorMessage ??
-            () => huiText('The synced workspace could not be stored locally.'),
-      );
-    }
-    if (!images.upsertAll(stagedImages)) {
-      throw EditorSyncFailure.deferred(
-        images.lastErrorMessage ??
-            () => huiText('The synced images could not be stored locally.'),
-      );
-    }
-    return EditorSyncBinding(
-      sessionId: capability.sessionId,
-      editorToken: capability.editorToken,
-      relayEndpoint: capability.relayEndpoint,
-      kind: project.kind,
-      subjectId: project.subjectId,
-      baseRevision: project.baseRevision,
-      menuDocumentIds: Map<String, String>.unmodifiable(menuDocumentIds),
-      imagePaths: List<String>.unmodifiable(
-        project.images.map((EditorSyncImage image) => image.path),
-      ),
-      constraints: project.constraints,
-      warnings: project.warnings,
-      panelDocumentId: panelDocumentId,
-      pendingContentRevision: null,
-    );
-  } catch (error) {
-    await _restoreWorkspaceAfterSyncFailure(workspace, workspaceRollback);
-    if (error is EditorSyncFailure) rethrow;
-    throw const EditorSyncFailure(
-      'The synced project could not be stored locally.',
+  if (project.kind == _workspaceWireKind) {
+    return _replaceWorkspaceProject(
+      capability: capability,
+      project: project,
+      workspace: workspace,
+      images: images,
+      preserveUnlinkedPanels: false,
     );
   }
+  return _mergeSyncProject(
+    capability: capability,
+    project: project,
+    workspace: workspace,
+    images: images,
+  );
 }
 
 Future<EditorSyncBinding> refreshEditorSyncProject({
@@ -1347,140 +1258,283 @@ Future<EditorSyncBinding> refreshEditorSyncProject({
       'The refreshed server scope changed constraints.',
     );
   }
-  final List<EditorSyncDocument> projectMenus = project.menus;
-  final Set<String> refreshedMenuIds = projectMenus
-      .map((EditorSyncDocument menu) => menu.id)
-      .toSet();
-  final Set<String> refreshedImagePaths = project.images
-      .map((EditorSyncImage image) => image.path)
-      .toSet();
-  if (!refreshedMenuIds.containsAll(binding.menuDocumentIds.keys) ||
-      !refreshedImagePaths.containsAll(binding.imagePaths)) {
+  if (project.kind == _workspaceWireKind) {
+    return _replaceWorkspaceProject(
+      capability: binding,
+      project: project,
+      workspace: workspace,
+      images: images,
+      preserveUnlinkedPanels: true,
+    );
+  }
+  final Set<String> refreshedKeys = <String>{
+    for (final EditorSyncDocument document in project.documents)
+      _documentKey(document.kind, document.id),
+  };
+  if (!project.constraints.allowDeletes &&
+      !refreshedKeys.containsAll(binding.documentIds.keys)) {
     throw const EditorSyncConflict(
       'The refreshed server scope removed bound resources.',
     );
   }
-  final List<StoredImage> stored = _storedImages(project.images);
-  final String workspaceRollback = workspace.createRollbackSnapshot();
-  try {
-    final Map<String, String> nextIds = <String, String>{};
-    for (final EditorSyncDocument menu in projectMenus) {
-      final String? documentId = binding.menuDocumentIds[menu.id];
-      final WorkspaceDoc? doc = workspace.byId(documentId);
-      if (doc == null) {
-        if (binding.kind != _panelWireKind || binding.panelDocumentId == null) {
-          throw EditorSyncConflict(
-            'The bound menu {id} is missing locally.',
-            <String, Object?>{'id': menu.id},
-          );
-        }
-        final WorkspaceDoc? boardDoc = workspace.byId(binding.panelDocumentId);
-        final String? folderId = boardDoc == null
-            ? null
-            : decodeWorkspacePanel(boardDoc.json).data.scopeFolderId;
-        if (folderId == null) {
-          throw const EditorSyncConflict('The bound panel folder is missing.');
-        }
-        final WorkspaceDoc created = workspace.create(
-          title: menu.id.split('/').last,
-          runtimeId: menu.id,
-          json: menu.json,
-          kind: _menuDocKind,
-          folderId: folderId,
-        );
-        nextIds[menu.id] = created.id;
+  return _mergeSyncProject(
+    capability: binding,
+    project: project,
+    workspace: workspace,
+    images: images,
+  );
+}
+
+Future<EditorSyncBinding> _replaceWorkspaceProject({
+  required EditorSyncBinding capability,
+  required EditorSyncProject project,
+  required Workspace workspace,
+  required ImageLibrary images,
+  required bool preserveUnlinkedPanels,
+}) async {
+  final Map<String, dynamic> state = _workspaceStateForProject(
+    project,
+    workspace,
+    preserveUnlinkedPanels: preserveUnlinkedPanels,
+  );
+  final WorkspaceBundle bundle = WorkspaceBundle(
+    workspaceState: state,
+    images: _storedImages(project.images),
+  );
+  final WorkspaceBundleImportResult result = await importWorkspaceBundle(
+    bundle,
+    workspace,
+    images,
+  );
+  if (!result.isSuccess) {
+    throw EditorSyncFailure.literal(
+      result.error ?? huiText('The server workspace could not be stored.'),
+    );
+  }
+  return _bindingForProject(capability, project, workspace);
+}
+
+Map<String, dynamic> _workspaceStateForProject(
+  EditorSyncProject project,
+  Workspace workspace, {
+  required bool preserveUnlinkedPanels,
+}) {
+  final int now = DateTime.now().millisecondsSinceEpoch;
+  final Map<String, String> folderIds = <String, String>{};
+  final List<Map<String, dynamic>> folders = <Map<String, dynamic>>[];
+  final List<Map<String, dynamic>> documents = <Map<String, dynamic>>[];
+  for (final EditorSyncDocument document in project.documents) {
+    final DocumentTypeAdapter adapter = DocumentTypeRegistry.byWireKind(
+      document.kind,
+    )!;
+    final String folderId = folderIds.putIfAbsent(document.kind, () {
+      final String id = newWorkspaceUuid();
+      folders.add(<String, dynamic>{
+        'id': id,
+        'title': adapter.pluralLabel,
+        'parentId': null,
+        'updatedAt': now,
+      });
+      return id;
+    });
+    final String workspaceDocumentId = newWorkspaceUuid();
+    final String json = document.kind == _panelWireKind
+        ? encodeWorkspacePanel(
+            WorkspacePanelData(
+              scopeFolderId: folderId,
+              runtimeBoardId: document.id,
+              runtimeBoard: _copyStringMap(jsonDecode(document.json) as Map),
+              syncMenuIds: project.menus
+                  .map((EditorSyncDocument menu) => menu.id)
+                  .toList(growable: false),
+              syncImagePaths: project.images
+                  .map((EditorSyncImage image) => image.path)
+                  .toList(growable: false),
+            ),
+          )
+        : document.json;
+    documents.add(<String, dynamic>{
+      'id': workspaceDocumentId,
+      'title': document.id.split('/').last,
+      'runtimeId': document.kind == _panelWireKind ? null : document.id,
+      'json': json,
+      'updatedAt': now,
+      'kind': adapter.kind.name,
+      'folderId': folderId,
+    });
+  }
+  if (preserveUnlinkedPanels) {
+    for (final WorkspaceDoc doc in workspace.docs) {
+      if (doc.kind != _panelDocKind ||
+          decodeWorkspacePanel(doc.json).data.runtimeBoard != null) {
         continue;
       }
-      if (!workspace.replaceDocument(
-        id: doc.id,
-        title: menu.id.split('/').last,
-        runtimeId: menu.id,
-        json: menu.json,
-        kind: _menuDocKind,
-        folderId: doc.folderId,
+      documents.add(<String, dynamic>{...doc.toJson(), 'folderId': null});
+    }
+  }
+  return <String, dynamic>{
+    'schemaVersion': Workspace.schemaVersion,
+    'workspaceId': workspace.id,
+    'folders': folders,
+    'documents': documents,
+    'activeDocumentId': documents.isEmpty ? null : documents.first['id'],
+  };
+}
+
+Future<EditorSyncBinding> _mergeSyncProject({
+  required EditorSyncBinding capability,
+  required EditorSyncProject project,
+  required Workspace workspace,
+  required ImageLibrary images,
+}) async {
+  final String workspaceRollback = workspace.createRollbackSnapshot();
+  final List<StoredImage> imageRollback = List<StoredImage>.of(images.images);
+  try {
+    for (final EditorSyncDocument document in project.documents) {
+      final DocumentTypeAdapter adapter = DocumentTypeRegistry.byWireKind(
+        document.kind,
+      )!;
+      final WorkspaceDoc? existing = _findRuntimeDocument(
+        workspace,
+        document.kind,
+        document.id,
+      );
+      final String json = document.kind == _panelWireKind
+          ? encodeWorkspacePanel(
+              (existing == null
+                      ? const WorkspacePanelData()
+                      : decodeWorkspacePanel(existing.json).data)
+                  .copyWith(
+                    runtimeBoardId: document.id,
+                    runtimeBoard: _copyStringMap(
+                      jsonDecode(document.json) as Map,
+                    ),
+                    syncMenuIds: project.menus
+                        .map((EditorSyncDocument menu) => menu.id)
+                        .toList(growable: false),
+                    syncImagePaths: project.images
+                        .map((EditorSyncImage image) => image.path)
+                        .toList(growable: false),
+                  ),
+            )
+          : document.json;
+      if (existing == null) {
+        workspace.create(
+          title: document.id.split('/').last,
+          runtimeId: document.kind == _panelWireKind ? null : document.id,
+          json: json,
+          kind: adapter.kind,
+        );
+      } else if (!workspace.replaceDocument(
+        id: existing.id,
+        title: existing.title,
+        runtimeId: document.kind == _panelWireKind ? null : document.id,
+        json: json,
+        kind: adapter.kind,
+        folderId: existing.folderId,
       )) {
         throw EditorSyncFailure(
-          'The bound menu {id} could not be refreshed.',
-          <String, Object?>{'id': menu.id},
-        );
-      }
-      nextIds[menu.id] = doc.id;
-    }
-    final String? panelDocumentId = binding.panelDocumentId;
-    if (binding.kind == _panelWireKind) {
-      final WorkspaceDoc? boardDoc = workspace.byId(panelDocumentId);
-      if (boardDoc == null) {
-        throw const EditorSyncConflict(
-          'The bound world panel is missing locally.',
-        );
-      }
-      final WorkspacePanelData current = decodeWorkspacePanel(
-        boardDoc.json,
-      ).data;
-      final WorkspacePanelData refreshed = current.copyWith(
-        runtimeBoardId: project.subjectId,
-        runtimeBoard: project.panelDefinition(),
-        syncMenuIds: projectMenus
-            .map((EditorSyncDocument menu) => menu.id)
-            .toList(growable: false),
-        syncImagePaths: project.images
-            .map((EditorSyncImage image) => image.path)
-            .toList(growable: false),
-      );
-      if (!workspace.replaceDocument(
-        id: boardDoc.id,
-        title: boardDoc.title,
-        json: encodeWorkspacePanel(refreshed),
-        kind: _panelDocKind,
-        folderId: boardDoc.folderId,
-      )) {
-        throw const EditorSyncFailure(
-          'The world panel could not be refreshed.',
+          'The synced document {id} could not be stored locally.',
+          <String, Object?>{'id': document.id},
         );
       }
     }
     if (!workspace.save()) {
       throw const EditorSyncFailure(
-        'The refreshed workspace could not be stored locally.',
+        'The synced workspace could not be stored locally.',
       );
     }
     await workspace.writesSettled;
     if (workspace.hasUnsavedChanges) {
       throw EditorSyncFailure.deferred(
         workspace.lastErrorMessage ??
-            () =>
-                huiText('The refreshed workspace could not be stored locally.'),
+            () => huiText('The synced workspace could not be stored locally.'),
       );
     }
-    if (!images.upsertAll(stored)) {
+    if (!images.upsertAll(_storedImages(project.images))) {
       throw EditorSyncFailure.deferred(
         images.lastErrorMessage ??
-            () => huiText('The refreshed images could not be stored locally.'),
+            () => huiText('The synced images could not be stored locally.'),
       );
     }
-    return EditorSyncBinding(
-      sessionId: binding.sessionId,
-      editorToken: binding.editorToken,
-      relayEndpoint: binding.relayEndpoint,
-      kind: binding.kind,
-      subjectId: binding.subjectId,
-      baseRevision: project.baseRevision,
-      menuDocumentIds: Map<String, String>.unmodifiable(nextIds),
-      imagePaths: List<String>.unmodifiable(
-        project.images.map((EditorSyncImage image) => image.path),
-      ),
-      constraints: binding.constraints,
-      warnings: project.warnings,
-      panelDocumentId: panelDocumentId,
-      pendingContentRevision: null,
-    );
+    await images.writesSettled;
+    if (images.hasUnsavedChanges) {
+      throw EditorSyncFailure.deferred(
+        images.lastErrorMessage ??
+            () => huiText('The synced images could not be stored locally.'),
+      );
+    }
+    return _bindingForProject(capability, project, workspace);
   } catch (error) {
     await _restoreWorkspaceAfterSyncFailure(workspace, workspaceRollback);
+    images.replaceAll(imageRollback);
+    await images.writesSettled;
     if (error is EditorSyncFailure) rethrow;
     throw const EditorSyncFailure(
-      'The refreshed project could not be stored locally.',
+      'The synced project could not be stored locally.',
     );
   }
+}
+
+EditorSyncBinding _bindingForProject(
+  EditorSyncBinding capability,
+  EditorSyncProject project,
+  Workspace workspace,
+) {
+  final Map<String, String> documentIds = <String, String>{};
+  for (final EditorSyncDocument document in project.documents) {
+    final WorkspaceDoc? local = _findRuntimeDocument(
+      workspace,
+      document.kind,
+      document.id,
+    );
+    if (local == null) {
+      throw const EditorSyncFailure(
+        'A synced document was not retained in the workspace.',
+      );
+    }
+    documentIds[_documentKey(document.kind, document.id)] = local.id;
+  }
+  return EditorSyncBinding(
+    sessionId: capability.sessionId,
+    editorToken: capability.editorToken,
+    relayEndpoint: capability.relayEndpoint,
+    kind: project.kind,
+    subjectId: project.subjectId,
+    baseRevision: project.baseRevision,
+    documentIds: Map<String, String>.unmodifiable(documentIds),
+    imagePaths: List<String>.unmodifiable(
+      project.images.map((EditorSyncImage image) => image.path),
+    ),
+    constraints: project.constraints,
+    warnings: project.warnings,
+  );
+}
+
+WorkspaceDoc? _findRuntimeDocument(
+  Workspace workspace,
+  String wireKind,
+  String runtimeId,
+) {
+  final DocumentTypeAdapter adapter = DocumentTypeRegistry.byWireKind(
+    wireKind,
+  )!;
+  WorkspaceDoc? match;
+  for (final WorkspaceDoc doc in workspace.docs) {
+    if (doc.kind != adapter.kind) continue;
+    final bool matches = wireKind == _panelWireKind
+        ? decodeWorkspacePanel(doc.json).data.runtimeBoardId == runtimeId
+        : doc.runtimeId == runtimeId;
+    if (!matches) continue;
+    if (match != null) {
+      throw EditorSyncConflict(
+        'The local workspace contains duplicate runtime id {id}.',
+        <String, Object?>{'id': runtimeId},
+      );
+    }
+    match = doc;
+  }
+  return match;
 }
 
 Future<void> _restoreWorkspaceAfterSyncFailure(
@@ -1520,94 +1574,105 @@ EditorSyncProject collectEditorSyncProject({
   required Workspace workspace,
   required ImageLibrary images,
 }) {
-  final Map<String, WorkspaceDoc> scopedMenus = <String, WorkspaceDoc>{};
-  for (final MapEntry<String, String> entry
-      in binding.menuDocumentIds.entries) {
-    final WorkspaceDoc? doc = workspace.byId(entry.value);
-    if (doc == null || doc.kind != _menuDocKind || doc.runtimeId != entry.key) {
-      throw EditorSyncFailure(
-        'The bound menu {id} is missing or renamed.',
-        <String, Object?>{'id': entry.key},
-      );
+  final List<WorkspaceDoc> scoped = <WorkspaceDoc>[];
+  if (binding.kind == _workspaceWireKind) {
+    scoped.addAll(workspace.docs);
+  } else {
+    for (final String documentId in binding.documentIds.values) {
+      final WorkspaceDoc? doc = workspace.byId(documentId);
+      if (doc == null) {
+        throw const EditorSyncFailure(
+          'A bound server document is missing locally.',
+        );
+      }
+      scoped.add(doc);
     }
-    scopedMenus[entry.key] = doc;
+    if (binding.kind == _panelWireKind &&
+        binding.constraints.newMenuPrefix != null) {
+      _addReachablePanelMenus(binding, workspace, scoped);
+    }
   }
-  Map<String, dynamic>? board;
-  if (binding.kind == _panelWireKind) {
-    final WorkspaceDoc? doc = workspace.byId(binding.panelDocumentId);
-    if (doc == null || doc.kind != _panelDocKind) {
-      throw const EditorSyncFailure('The bound world panel is missing.');
+
+  final List<EditorSyncDocument> documents = <EditorSyncDocument>[];
+  final Set<String> keys = <String>{};
+  for (final WorkspaceDoc doc in scoped) {
+    final DocumentTypeAdapter adapter = DocumentTypeRegistry.of(doc.kind);
+    final String? wireKind = adapter.syncWireKind;
+    if (wireKind == null) continue;
+    String? runtimeId = doc.runtimeId;
+    String json = doc.json;
+    if (wireKind == _panelWireKind) {
+      final WorkspacePanelDecodeResult decoded = decodeWorkspacePanel(doc.json);
+      if (decoded.warning != null) {
+        throw const EditorSyncFailure('A linked world panel is unreadable.');
+      }
+      runtimeId = decoded.data.runtimeBoardId;
+      final Map<String, dynamic>? runtimeBoard = decoded.data.runtimeBoard;
+      if (runtimeId == null || runtimeBoard == null) {
+        continue;
+      }
+      json = _canonicalJson(runtimeBoard);
+    } else {
+      if (runtimeId == null) {
+        throw const EditorSyncFailure('A runtime document is missing its id.');
+      }
+      try {
+        adapter.decodeSnapshot(json);
+      } catch (_) {
+        throw EditorSyncFailure(
+          'The local {kind} document {id} is invalid.',
+          <String, Object?>{'kind': wireKind, 'id': runtimeId},
+        );
+      }
+      if (wireKind == _menuWireKind) {
+        final HuiMenu menu = decodeHuiMenu(json);
+        final List<HuiIssue> issues = validateHuiMenu(
+          menu,
+          knownImagePaths: images.paths,
+        );
+        if (issues.any(
+          (HuiIssue issue) => issue.severity == HuiSeverity.error,
+        )) {
+          throw EditorSyncFailure(
+            'The menu {id} has validation errors.',
+            <String, Object?>{'id': runtimeId},
+          );
+        }
+      }
     }
-    final WorkspacePanelDecodeResult decoded = decodeWorkspacePanel(doc.json);
-    if (decoded.data.runtimeBoardId != binding.subjectId ||
-        decoded.data.runtimeBoard == null) {
-      throw const EditorSyncFailure('The bound world panel scope has changed.');
-    }
-    board = decoded.data.runtimeBoard;
-    final String? folderId = decoded.data.scopeFolderId;
-    if (folderId == null) {
-      throw const EditorSyncFailure('The bound world panel folder is missing.');
-    }
-    _addReachableBoardMenus(
-      binding: binding,
-      workspace: workspace,
-      folderId: folderId,
-      board: board!,
-      scopedMenus: scopedMenus,
-    );
-  }
-  final List<EditorSyncDocument> menus = <EditorSyncDocument>[];
-  for (final MapEntry<String, WorkspaceDoc> entry in scopedMenus.entries) {
-    final HuiMenu menu;
-    try {
-      menu = decodeHuiMenu(entry.value.json);
-    } catch (_) {
+    final String key = _documentKey(wireKind, runtimeId);
+    if (!keys.add(key)) {
       throw EditorSyncFailure(
-        'The bound menu {id} is invalid JSON.',
-        <String, Object?>{'id': entry.key},
+        'The workspace contains duplicate runtime id {id}.',
+        <String, Object?>{'id': runtimeId},
       );
     }
-    final List<HuiIssue> issues = validateHuiMenu(
-      menu,
-      knownImagePaths: images.paths,
-    );
-    if (issues.any((HuiIssue issue) => issue.severity == HuiSeverity.error)) {
-      throw EditorSyncFailure(
-        'The bound menu {id} has validation errors.',
-        <String, Object?>{'id': entry.key},
-      );
-    }
-    menus.add(
+    documents.add(
       EditorSyncDocument(
-        kind: _menuWireKind,
-        id: entry.key,
-        json: entry.value.json,
+        kind: wireKind,
+        id: runtimeId,
+        json: json,
+        revision: _documentJsonRevision(wireKind, json),
       ),
     );
   }
-  menus.sort(
-    (EditorSyncDocument a, EditorSyncDocument b) => a.id.compareTo(b.id),
-  );
-  if (binding.kind != _panelWireKind &&
-      (menus.length != 1 || menus.first.id != binding.subjectId)) {
-    throw const EditorSyncFailure('The bound menu scope has changed.');
-  }
-  final Set<String> referencedImagePaths = <String>{};
-  for (final EditorSyncDocument menu in menus) {
-    _collectImagePaths(jsonDecode(menu.json), referencedImagePaths);
-  }
-  referencedImagePaths.addAll(binding.imagePaths);
-  final List<EditorSyncImage> projectImages = <EditorSyncImage>[];
-  final String? imagePrefix = binding.constraints.newImagePrefix;
-  final List<String> orderedImagePaths = referencedImagePaths.toList()..sort();
-  for (final String path in orderedImagePaths) {
-    if (!binding.constraints.imagePaths.contains(path) &&
-        (imagePrefix == null || !path.startsWith(imagePrefix))) {
-      throw EditorSyncFailure(
-        'Image {path} is outside the allowed server scope.',
-        <String, Object?>{'path': path},
-      );
+  documents.sort((EditorSyncDocument first, EditorSyncDocument second) {
+    final int kind = first.kind.compareTo(second.kind);
+    return kind == 0 ? first.id.compareTo(second.id) : kind;
+  });
+
+  final Set<String> imagePaths = <String>{};
+  if (binding.kind == _workspaceWireKind) {
+    imagePaths.addAll(images.paths);
+  } else {
+    imagePaths.addAll(binding.imagePaths);
+    for (final EditorSyncDocument document in documents) {
+      _collectImagePaths(jsonDecode(document.json), imagePaths);
     }
+  }
+  final List<String> orderedPaths = imagePaths.toList()..sort();
+  final List<EditorSyncImage> projectImages = <EditorSyncImage>[];
+  for (final String path in orderedPaths) {
     final StoredImage? image = images.byPath(path);
     if (image == null || !isValidStoredImageData(image)) {
       throw EditorSyncFailure(
@@ -1615,17 +1680,18 @@ EditorSyncProject collectEditorSyncProject({
         <String, Object?>{'path': path},
       );
     }
+    final String? prefix = binding.constraints.newImagePrefix;
+    if (binding.kind != _workspaceWireKind &&
+        !binding.imagePaths.contains(path) &&
+        (prefix == null || !path.startsWith(prefix))) {
+      throw EditorSyncFailure(
+        'Image {path} is outside the allowed server scope.',
+        <String, Object?>{'path': path},
+      );
+    }
     projectImages.add(EditorSyncImage(path: path, data: image.dataUri));
   }
-  final List<EditorSyncDocument> documents = <EditorSyncDocument>[
-    ...menus,
-    if (board != null)
-      EditorSyncDocument(
-        kind: _panelWireKind,
-        id: binding.subjectId,
-        json: _canonicalJson(board),
-      ),
-  ];
+
   final EditorSyncProject provisional = EditorSyncProject(
     kind: binding.kind,
     subjectId: binding.subjectId,
@@ -1647,97 +1713,75 @@ EditorSyncProject collectEditorSyncProject({
   return EditorSyncProject.decode(collected.toJson());
 }
 
-void _addReachableBoardMenus({
-  required EditorSyncBinding binding,
-  required Workspace workspace,
-  required String folderId,
-  required Map<String, dynamic> board,
-  required Map<String, WorkspaceDoc> scopedMenus,
-}) {
-  final Set<String> folderIds = <String>{folderId};
-  bool addedFolder = true;
-  while (addedFolder) {
-    addedFolder = false;
-    for (final WorkspaceFolder folder in workspace.folders) {
-      if (folder.parentId != null &&
-          folderIds.contains(folder.parentId) &&
-          folderIds.add(folder.id)) {
-        addedFolder = true;
-      }
-    }
+int? _documentJsonRevision(String kind, String json) {
+  if (!_requiresDocumentRevision(kind)) return null;
+  final Object? decoded = jsonDecode(json);
+  final Object? revision = decoded is Map ? decoded['revision'] : null;
+  if (revision is! num || revision.toInt() != revision) {
+    throw const EditorSyncFailure(
+      'A versioned runtime document is missing its revision.',
+    );
   }
+  return revision.toInt();
+}
+
+void _addReachablePanelMenus(
+  EditorSyncBinding binding,
+  Workspace workspace,
+  List<WorkspaceDoc> scoped,
+) {
+  final WorkspaceDoc? panel = workspace.byId(binding.panelDocumentId);
+  if (panel == null) {
+    throw const EditorSyncFailure('The bound world panel is missing.');
+  }
+  final WorkspacePanelData data = decodeWorkspacePanel(panel.json).data;
+  final Object? root = data.runtimeBoard?['rootMenuId'];
+  if (root is! String) {
+    throw const EditorSyncFailure('The bound world panel root is missing.');
+  }
+  final String prefix = binding.constraints.newMenuPrefix!;
   final Map<String, List<WorkspaceDoc>> candidates =
       <String, List<WorkspaceDoc>>{};
   for (final WorkspaceDoc doc in workspace.docs) {
     final String? id = doc.runtimeId;
-    if (doc.kind != _menuDocKind ||
-        id == null ||
-        !folderIds.contains(doc.folderId)) {
-      continue;
+    if (doc.kind != _menuDocKind || id == null) continue;
+    if (binding.documentId(_menuWireKind, id) == doc.id ||
+        id.startsWith(prefix)) {
+      candidates.putIfAbsent(id, () => <WorkspaceDoc>[]).add(doc);
     }
-    candidates.putIfAbsent(id, () => <WorkspaceDoc>[]).add(doc);
   }
-
-  final String rootMenuId = board['rootMenuId']! as String;
-  final List<String> pending = <String>[rootMenuId];
+  final List<String> pending = <String>[root];
   final Set<String> visited = <String>{};
-  int cursor = 0;
-  while (cursor < pending.length) {
-    final String id = pending[cursor++];
+  for (int cursor = 0; cursor < pending.length; cursor++) {
+    final String id = pending[cursor];
     if (!visited.add(id)) continue;
     if (visited.length > huiEditorSyncMaxMenus) {
       throw const EditorSyncFailure(
         'The world panel navigation graph exceeds 256 menus.',
       );
     }
-    final WorkspaceDoc? bound = scopedMenus[id];
     final List<WorkspaceDoc> matches = candidates[id] ?? <WorkspaceDoc>[];
-    final List<WorkspaceDoc> distinct = <WorkspaceDoc>[
-      for (final WorkspaceDoc match in matches)
-        if (bound == null || match.id != bound.id) match,
-    ];
-    if (bound != null) distinct.insert(0, bound);
-    if (distinct.length > 1) {
+    if (matches.length > 1) {
       throw EditorSyncFailure(
         'The panel menu id {id} is duplicated.',
         <String, Object?>{'id': id},
       );
     }
-    if (distinct.isEmpty) continue;
-    final WorkspaceDoc document = distinct.single;
-    final String? newMenuPrefix = binding.constraints.newMenuPrefix;
-    if (!binding.constraints.menuIds.contains(id) &&
-        (newMenuPrefix == null || !id.startsWith(newMenuPrefix))) {
-      if (newMenuPrefix == null) {
-        throw EditorSyncFailure(
-          'Menu {id} is outside the allowed server scope.',
-          <String, Object?>{'id': id},
-        );
-      }
-      throw EditorSyncFailure(
-        'Menu {id} is outside {prefix}.',
-        <String, Object?>{'id': id, 'prefix': newMenuPrefix},
-      );
+    if (matches.isEmpty) continue;
+    final WorkspaceDoc document = matches.single;
+    if (!scoped.any((WorkspaceDoc current) => current.id == document.id)) {
+      scoped.add(document);
     }
-    scopedMenus[id] = document;
-    final Object? source;
-    try {
-      source = jsonDecode(document.json);
-    } catch (_) {
-      throw EditorSyncFailure(
-        'The bound menu {id} is invalid JSON.',
-        <String, Object?>{'id': id},
-      );
-    }
+    final Object? source = jsonDecode(document.json);
     final Set<String> targets = <String>{};
     _collectMenuTargets(source, targets);
     final List<String> ordered = targets.toList()..sort();
     pending.addAll(ordered);
   }
-  if (!scopedMenus.containsKey(rootMenuId)) {
+  if (!visited.contains(root) || !candidates.containsKey(root)) {
     throw EditorSyncFailure(
-      'The panel root menu {id} is missing from its synced folder.',
-      <String, Object?>{'id': rootMenuId},
+      'The panel root menu {id} is missing.',
+      <String, Object?>{'id': root},
     );
   }
 }
@@ -2063,7 +2107,7 @@ Uri? _parseRelay(Object? raw) {
       relay.userInfo.isNotEmpty ||
       relay.query.isNotEmpty ||
       relay.fragment.isNotEmpty ||
-      !relay.path.endsWith('/v2')) {
+      !relay.path.endsWith('/v3')) {
     return null;
   }
   final bool local =
@@ -2355,6 +2399,8 @@ List<String> _strictStrings(Object? raw, String label) {
 String _invalidStringListMessage(String label) => switch (label) {
   'menu id' => huiText('Invalid sync menu id list.'),
   'image path' => huiText('Invalid sync image path list.'),
+  'document kind' => huiText('Invalid sync document kind list.'),
+  'warning' => huiText('Invalid sync warning list.'),
   _ => throw ArgumentError.value(label, 'label'),
 };
 
@@ -2380,18 +2426,12 @@ bool _validSyncImagePath(String path) {
 /// relay: a lowercase SHA-256 of the canonical project content.
 final RegExp editorSyncRevisionPattern = RegExp(r'^sha256:[0-9a-f]{64}$');
 
-/// The open protocol-v2 kind slug grammar. The relay validates ONLY this
-/// pattern and size limits; it never interprets kinds, so a new kind needs
-/// no relay change — just an editor-side codec.
 final RegExp editorSyncKindPattern = RegExp(r'^[a-z][a-z0-9-]{0,31}$');
 final RegExp _capabilityPattern = RegExp(r'^[A-Za-z0-9_-]{22,128}$');
-
-/// Matches player open-menu commands for panel reachability collection.
-/// Accepts both the Gloss command tree and the retired HoloUi spellings,
-/// because imported legacy menus still carry the old command strings.
 final RegExp _playerOpenCommandPattern = RegExp(
-  r'^\s*/?(?:gloss|holoui|holo|hui|holou|hu)\s+(?:menu\s+)?open\s+(?:menu=)?([^\s]+)\s*$',
+  r'^\s*/?gloss\s+(?:menu\s+)?open\s+(?:menu=)?([^\s]+)\s*$',
 );
+
 final RegExp _uuidPattern = RegExp(
   r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
 );

@@ -26,7 +26,9 @@ void main() {
       final DocumentTypeAdapter type = DocumentTypeRegistry.detectTransferable(
         sample.value,
       );
-      final String? expected = sample.key == 'preview' ? null : sample.key;
+      final String expected = sample.key == 'preview'
+          ? 'container-preview'
+          : sample.key;
       expect(type.syncWireKind, expected, reason: sample.key);
     }
   });

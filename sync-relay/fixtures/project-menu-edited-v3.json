@@ -1,6 +1,6 @@
 {
   "format": "gloss-sync-project",
-  "version": 2,
+  "version": 3,
   "kind": "menu",
   "subjectId": "main",
   "documents": [
@@ -13,13 +13,13 @@
   "images": [],
   "constraints": {
     "subjectId": "main",
-    "menuIds": [
-      "main"
+    "documentKinds": [
+      "menu"
     ],
-    "imagePaths": [],
+    "createDocumentKinds": [],
     "newImagePrefix": "sync/menus/main/",
     "allowDeletes": false
   },
   "warnings": [],
-  "baseRevision": "sha256:78afcaf40bb43e61baf39872f21410eca7abe59cf21ea8dcc3c7768e9ab4313a"
+  "baseRevision": "sha256:662f3e7590d1321a57a0b592bd0531e271deef6710f724114302b3d45951f7bf"
 }

@@ -6,13 +6,10 @@
 /// that is the whole point of the cache.
 library;
 
-import 'dart:convert';
-
 import 'package:gloss_editor/logic/canvas_scene.dart';
 import 'package:gloss_editor/logic/icon_content.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:gloss_editor/services/image_library.dart';
-import 'package:gloss_editor/services/storage_service.dart';
 import 'package:test/test.dart';
 
 CanvasScene _scene(
@@ -32,20 +29,18 @@ CanvasScene _scene(
 /// Two 4x4 frames the scene builder will accept. Pixel grids stay undecoded on
 /// the VM, which is fine: the key is keyed on the path, not the bitmap.
 ImageLibrary _frames() {
-  StorageService.write(
-    ImageLibrary.storageKey,
-    jsonEncode(<Map<String, Object>>[
-      for (final String path in <String>['one.png', 'two.png'])
-        <String, Object>{
-          'path': path,
-          'dataUri':
-              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
-          'width': 1,
-          'height': 1,
-        },
-    ]),
-  );
-  return ImageLibrary();
+  final ImageLibrary library = ImageLibrary();
+  library.replaceAll(<StoredImage>[
+    for (final String path in <String>['one.png', 'two.png'])
+      StoredImage(
+        path: path,
+        dataUri:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
+        width: 1,
+        height: 1,
+      ),
+  ]);
+  return library;
 }
 
 HuiComponent _text(String id, String text) =>

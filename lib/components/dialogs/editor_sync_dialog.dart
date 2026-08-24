@@ -21,6 +21,7 @@ class EditorSyncImportDialog extends StatelessWidget {
     required this.error,
     required this.hasLocalConflicts,
     required this.relayEndpoint,
+    required this.onExportBackup,
     required this.onConfirm,
     required this.onCancel,
     super.key,
@@ -31,6 +32,7 @@ class EditorSyncImportDialog extends StatelessWidget {
   final String? error;
   final bool hasLocalConflicts;
   final Uri? relayEndpoint;
+  final VoidCallback onExportBackup;
   final VoidCallback? onConfirm;
   final VoidCallback onCancel;
 
@@ -46,9 +48,15 @@ class EditorSyncImportDialog extends StatelessWidget {
         session: session,
       ),
       onClose: onCancel,
-      title: huiText('Connect server project'),
+      title: huiText('Connect server workspace'),
       maxWidth: 720,
       actions: <Widget>[
+        Button(
+          variant: ButtonVariant.outline,
+          onPressed: onExportBackup,
+          icon: ArcaneIcon.download(size: IconSize.sm),
+          label: huiText('Export backup'),
+        ),
         Button(
           variant: ButtonVariant.outline,
           onPressed: onCancel,
@@ -60,9 +68,7 @@ class EditorSyncImportDialog extends StatelessWidget {
           onPressed: onConfirm,
           icon: ArcaneIcon.link(size: IconSize.sm),
           label: project != null
-              ? hasLocalConflicts
-                    ? huiText('Replace matching resources')
-                    : huiText('Connect project')
+              ? huiText('Replace workspace & connect')
               : error != null
               ? huiText('Retry relay')
               : huiText('Read from relay'),
@@ -89,22 +95,19 @@ class EditorSyncImportDialog extends StatelessWidget {
           if (project != null) ...<Widget>[
             ArcaneAlert.warning(
               message: huiText(
-                'Review this server-owned scope before importing it. Local autosave never publishes; only Publish to Server does.',
+                'Connecting replaces the local server-backed workspace. Export a backup first if needed. Local autosave never publishes; only Publish to Server does.',
               ),
             ),
             if (hasLocalConflicts)
               ArcaneAlert.error(
                 message: huiText(
-                  'Matching runtime ids or asset paths already exist locally. Continuing replaces only those matching resources after this confirmation.',
+                  'This local workspace contains documents or images. Continuing replaces its server-backed contents after this confirmation.',
                 ),
               ),
             HuiDialogSection(
-              title: project.kind == 'panel'
-                  ? huiText('World panel')
-                  : huiText('Menu'),
+              title: huiText('Server workspace'),
               description: huiText(
-                'Exact menu source is retained. World panels use the strict '
-                'runtime panel contract.',
+                'All supported runtime document kinds and image assets round-trip as one project.',
               ),
               children: <Widget>[
                 dom.dl(classes: 'hui-handoff-details', <Widget>[
@@ -112,11 +115,11 @@ class EditorSyncImportDialog extends StatelessWidget {
                   dom.dd(<Widget>[
                     dom.code(<Widget>[Text(project.subjectId)]),
                   ]),
-                  dom.dt(<Widget>[Text(huiText('Menus'))]),
+                  dom.dt(<Widget>[Text(huiText('Documents'))]),
                   dom.dd(<Widget>[
                     Text(
                       huiText("{length}", <String, Object?>{
-                        'length': project.menus.length,
+                        'length': project.documents.length,
                       }),
                     ),
                   ]),
@@ -128,21 +131,19 @@ class EditorSyncImportDialog extends StatelessWidget {
                       }),
                     ),
                   ]),
-                  dom.dt(<Widget>[Text(huiText('New menu ids'))]),
+                  dom.dt(<Widget>[Text(huiText('Document kinds'))]),
                   dom.dd(<Widget>[
                     dom.code(<Widget>[
-                      Text(
-                        project.constraints.newMenuPrefix ??
-                            huiText('not permitted'),
-                      ),
+                      Text(project.constraints.documentKinds.join(', ')),
                     ]),
                   ]),
-                  dom.dt(<Widget>[Text(huiText('New image paths'))]),
+                  dom.dt(<Widget>[Text(huiText('Deletes'))]),
                   dom.dd(<Widget>[
                     dom.code(<Widget>[
                       Text(
-                        project.constraints.newImagePrefix ??
-                            huiText('not permitted'),
+                        project.constraints.allowDeletes
+                            ? huiText('permitted')
+                            : huiText('not permitted'),
                       ),
                     ]),
                   ]),

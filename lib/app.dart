@@ -37,7 +37,6 @@ import 'l10n/hui_localizations.dart';
 import 'logic/preview_sim.dart';
 import 'state/editor_store.dart';
 import 'state/workspace.dart';
-import 'state/workspace_panel.dart';
 import 'state/workspace_bundle.dart';
 import 'state/workspace_route.dart';
 import 'theme/theme_state.dart';
@@ -72,11 +71,13 @@ class _OfflineShadcnStylesheet extends ShadcnStylesheet {
 class App extends StatefulWidget {
   const App({
     required this.workspace,
+    required this.images,
     required this.localeController,
     super.key,
   });
 
   final Workspace workspace;
+  final ImageLibrary images;
   final HuiLocaleController localeController;
 
   @override
@@ -122,7 +123,7 @@ class _AppState extends State<App> {
     _brightness = loadStoredBrightness();
     stampDocumentTheme(_brightness);
 
-    _images = ImageLibrary();
+    _images = component.images;
     _store = EditorStore(workspace: component.workspace, images: _images);
     _stopPageExitListener = listenForPageExit(
       () => _store.flushAutosave(notify: false),
@@ -385,15 +386,16 @@ class _AppState extends State<App> {
       sessionId: route.sessionId,
       editorToken: route.editorToken,
       relayEndpoint: route.relayEndpoint,
-      kind: 'menu',
-      subjectId: 'pending',
+      kind: 'workspace',
+      subjectId: 'workspace',
       baseRevision: 'sha256:${List<String>.filled(64, '0').join()}',
-      menuDocumentIds: const <String, String>{},
+      documentIds: const <String, String>{},
       imagePaths: const <String>[],
-      constraints: const EditorSyncConstraints(
-        subjectId: 'pending',
-        menuIds: <String>[],
-        imagePaths: <String>[],
+      constraints: EditorSyncConstraints(
+        subjectId: 'workspace',
+        documentKinds: huiEditorSyncDocumentKinds,
+        createDocumentKinds: huiEditorSyncDocumentKinds,
+        allowDeletes: true,
       ),
       warnings: const <String>[],
     );
@@ -441,26 +443,7 @@ class _AppState extends State<App> {
   bool get _syncImportHasConflicts {
     final EditorSyncProject? project = _syncImportSession?.project;
     if (project == null) return false;
-    final Set<String> ids = project.menus
-        .map((EditorSyncDocument menu) => menu.id)
-        .toSet();
-    final bool documentConflict = _store.workspace.docs.any(
-      (WorkspaceDoc doc) =>
-          doc.kind == DocumentTypes.menu.kind && ids.contains(doc.runtimeId),
-    );
-    final bool imageConflict = project.images.any((EditorSyncImage incoming) {
-      final StoredImage? local = _images.byPath(incoming.path);
-      return local != null && local.dataUri != incoming.data;
-    });
-    final bool boardConflict =
-        project.kind == 'panel' &&
-        _store.workspace.docs.any(
-          (WorkspaceDoc doc) =>
-              doc.kind == DocumentTypes.panel.kind &&
-              decodeWorkspacePanel(doc.json).data.runtimeBoardId ==
-                  project.subjectId,
-        );
-    return documentConflict || imageConflict || boardConflict;
+    return _store.workspace.docs.isNotEmpty || _images.images.isNotEmpty;
   }
 
   EditorSyncStatus get _visibleSyncStatus {
@@ -498,7 +481,6 @@ class _AppState extends State<App> {
         project: session.project,
         workspace: _store.workspace,
         images: _images,
-        replaceExisting: _syncImportHasConflicts,
       );
       final bool durable = _persistSyncBinding(binding);
       setState(() {
@@ -508,7 +490,7 @@ class _AppState extends State<App> {
         _syncImportSession = null;
         _syncError = null;
       });
-      final String? first = binding.menuDocumentIds.values.firstOrNull;
+      final String? first = binding.firstDocumentId;
       if (first != null) _store.openDocument(first);
       if (durable) {
         _syncWorkspaceHash(replace: true);
@@ -786,9 +768,7 @@ class _AppState extends State<App> {
       encodeWorkspaceBundle(_store.workspace, _images),
       mime: 'application/json',
     );
-    ArcaneSonner.success(
-      huiText('Saved the complete local workspace before refresh.'),
-    );
+    ArcaneSonner.success(huiText('Saved a complete local workspace backup.'));
   }
 
   EditorSyncProject _emptySyncProject(EditorSyncBinding binding) =>
@@ -987,6 +967,7 @@ class _AppState extends State<App> {
             error: _syncError?.call(),
             hasLocalConflicts: _syncImportHasConflicts,
             relayEndpoint: _syncImportCapability?.relayEndpoint,
+            onExportBackup: _exportConflictWork,
             onConfirm: _syncImportSession == null
                 ? _loadSyncImport
                 : _confirmSyncImport,

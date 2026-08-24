@@ -58,7 +58,7 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
   bool get sourcePreserving => false;
 
   @override
-  String? get syncWireKind => null;
+  String? get syncWireKind => 'container-preview';
 
   @override
   Widget railIcon() => ArcaneIcon.layoutGrid(size: IconSize.sm);

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sync.gloss.volmitsoftware.com/schema/project-v2.schema.json",
-  "title": "Gloss editor sync project v2",
+  "$id": "https://sync.gloss.volmitsoftware.com/schema/project-v3.schema.json",
+  "title": "Gloss editor sync project v3",
   "description": "Kinds are OPEN slugs: the relay and this transport schema validate only the slug grammar and size bounds. Per-kind document semantics (subject scoping, menu/panel identities, canonical panel text, document sorting by kind then id) are enforced by the plugin and the editor codecs, never by the relay. A new document kind requires no schema or relay change.",
   "type": "object",
   "additionalProperties": false,
@@ -18,13 +18,13 @@
   ],
   "properties": {
     "format": { "const": "gloss-sync-project" },
-    "version": { "const": 2 },
+    "version": { "const": 3 },
     "kind": { "$ref": "#/$defs/kindSlug" },
     "subjectId": { "type": "string", "minLength": 1, "maxLength": 256 },
     "baseRevision": { "$ref": "#/$defs/revision" },
     "documents": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "maxItems": 512,
       "items": {
         "type": "object",
@@ -64,26 +64,25 @@
       "additionalProperties": false,
       "required": [
         "subjectId",
-        "menuIds",
-        "imagePaths",
-        "newImagePrefix",
+        "documentKinds",
+        "createDocumentKinds",
         "allowDeletes"
       ],
       "properties": {
         "subjectId": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "menuIds": {
+        "documentKinds": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+          "items": { "$ref": "#/$defs/kindSlug" }
         },
-        "imagePaths": {
+        "createDocumentKinds": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+          "items": { "$ref": "#/$defs/kindSlug" }
         },
         "newMenuPrefix": { "type": "string", "minLength": 2, "maxLength": 256 },
         "newImagePrefix": { "type": "string", "minLength": 2, "maxLength": 256 },
-        "allowDeletes": { "const": false }
+        "allowDeletes": { "type": "boolean" }
       }
     },
     "warnings": {

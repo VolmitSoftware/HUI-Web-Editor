@@ -51,18 +51,11 @@ const List<MirroredFixture> mirroredFixtures = <MirroredFixture>[
         'preview_expr_vectors_test.dart here and ExprVectorsTest there',
   ),
   MirroredFixture(
-    editorPath: 'test/fixtures/editor-sync-canonical-v1.json',
-    glossPath: 'src/test/resources/editor-sync-canonical-v1.json',
+    editorPath: 'test/fixtures/editor-sync-canonical-v3.json',
+    glossPath: 'src/test/resources/editor-sync-canonical-v3.json',
     guards:
-        'the canonical-JSON revision algorithm duplicated between '
-        'EditorSyncJson.canonical and editor_sync.dart',
-  ),
-  MirroredFixture(
-    editorPath: 'test/fixtures/editor-sync-canonical-v2.json',
-    glossPath: 'src/test/resources/editor-sync-canonical-v2.json',
-    guards:
-        'the canonical-JSON revision algorithm duplicated between '
-        'EditorSyncJson.canonical and editor_sync.dart',
+        'the v3 canonical-JSON revision algorithm shared by the Gloss '
+        'runtime, editor, and sync relay',
   ),
   MirroredFixture(
     editorPath: 'web/assets/catalog/preview-variables.json',

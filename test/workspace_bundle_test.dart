@@ -160,10 +160,10 @@ void main() {
     },
   );
 
-  test('accepts pre-rebrand HoloUI bundles but writes the new format', () {
+  test('accepts only the canonical workspace bundle format', () {
     final Workspace workspace = _workspace(_MemoryWorkspace());
     final Map<String, dynamic> bundle = <String, dynamic>{
-      'format': WorkspaceBundle.legacyFormat,
+      'format': 'unrelated-format',
       'version': WorkspaceBundle.version,
       'workspace': workspace.exportPortableState(),
       'images': <Object?>[],
@@ -173,21 +173,17 @@ void main() {
       jsonEncode(bundle),
       workspace,
     );
-    expect(decoded.error, isNull);
-    expect(decoded.bundle, isNotNull);
+    expect(decoded.error, contains('not a supported'));
+    expect(decoded.bundle, isNull);
 
     expect(WorkspaceBundle.format, 'gloss-editor-workspace');
-    expect(WorkspaceBundle.legacyFormat, 'holoui-editor-workspace');
     expect(
       encodeWorkspaceBundle(workspace, null),
       contains('"format": "gloss-editor-workspace"'),
     );
 
-    bundle['format'] = 'unrelated-format';
-    expect(
-      decodeWorkspaceBundle(jsonEncode(bundle), workspace).error,
-      contains('not a supported'),
-    );
+    bundle['format'] = WorkspaceBundle.format;
+    expect(decodeWorkspaceBundle(jsonEncode(bundle), workspace).error, isNull);
   });
 
   test('image replacement validates the whole set before mutation', () {

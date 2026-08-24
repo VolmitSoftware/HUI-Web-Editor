@@ -129,8 +129,32 @@ void main() {
 
     String dataUri(List<int> _) => validPng;
 
+    List<StoredImage> persisted = <StoredImage>[];
+
+    setUp(() {
+      persisted = <StoredImage>[];
+    });
+
     void seed(List<Map<String, Object>> entries) {
-      StorageService.write(ImageLibrary.storageKey, jsonEncode(entries));
+      persisted = <StoredImage>[
+        for (final Map<String, Object> entry in entries)
+          StoredImage.fromJson(entry)!,
+      ];
+    }
+
+    ImageLibrary seededLibrary() {
+      final ImageLibrary result = ImageLibrary(
+        writer: (String key, String value) {
+          final Object? decoded = jsonDecode(value);
+          persisted = <StoredImage>[
+            for (final Object? entry in decoded! as List<Object?>)
+              StoredImage.fromJson(entry)!,
+          ];
+          return true;
+        },
+      );
+      result.replaceAll(persisted);
+      return result;
     }
 
     test('loads persisted entries', () {
@@ -142,18 +166,11 @@ void main() {
           'height': 1,
         },
       ]);
-      final ImageLibrary library = ImageLibrary();
+      final ImageLibrary library = seededLibrary();
       expect(library.images.length, 1);
       expect(library.paths, <String>{'icons/shop.png'});
       expect(library.byPath('icons/shop.png')!.width, 1);
       expect(library.contains('nope.png'), isFalse);
-    });
-
-    test('survives a corrupt payload', () {
-      StorageService.write(ImageLibrary.storageKey, '{not json');
-      final ImageLibrary library = ImageLibrary();
-      expect(library.images, isEmpty);
-      expect(library.lastError, isNotNull);
     });
 
     test('rename validates, de-duplicates and persists', () {
@@ -171,13 +188,13 @@ void main() {
           'height': 1,
         },
       ]);
-      final ImageLibrary library = ImageLibrary();
+      final ImageLibrary library = seededLibrary();
       expect(library.rename('a.png', 'b.png'), isFalse);
       expect(library.rename('missing.png', 'c.png'), isFalse);
       expect(library.rename('a.png', r'/sub\c.png'), isTrue);
       expect(library.paths.contains('sub/c.png'), isTrue);
 
-      final ImageLibrary reloaded = ImageLibrary();
+      final ImageLibrary reloaded = seededLibrary();
       expect(reloaded.paths, <String>{'sub/c.png', 'b.png'});
     });
 
@@ -233,7 +250,7 @@ void main() {
           'height': 1,
         },
       ]);
-      final ImageLibrary library = ImageLibrary();
+      final ImageLibrary library = seededLibrary();
       expect(library.rename('a.png', 'logo.jpg'), isTrue);
       expect(library.paths, <String>{'logo.png'});
     });
@@ -253,11 +270,11 @@ void main() {
           'height': 1,
         },
       ]);
-      final ImageLibrary library = ImageLibrary();
+      final ImageLibrary library = seededLibrary();
       library.remove('a.png');
-      expect(ImageLibrary().paths, <String>{'b.png'});
+      expect(seededLibrary().paths, <String>{'b.png'});
       library.clear();
-      expect(ImageLibrary().images, isEmpty);
+      expect(seededLibrary().images, isEmpty);
     });
 
     test('notifies listeners on mutation', () {
@@ -269,7 +286,7 @@ void main() {
           'height': 1,
         },
       ]);
-      final ImageLibrary library = ImageLibrary();
+      final ImageLibrary library = seededLibrary();
       int notifications = 0;
       library.addListener(() => notifications++);
       library.remove('a.png');
@@ -291,7 +308,7 @@ void main() {
           'height': 1,
         },
       ]);
-      final ImageLibrary library = ImageLibrary();
+      final ImageLibrary library = seededLibrary();
       final List<int> zip = await library.exportZipBytes();
       final Archive archive = ZipDecoder().decodeBytes(Uint8List.fromList(zip));
       expect(archive.map((ArchiveFile f) => f.name).toList(), <String>[
@@ -313,14 +330,14 @@ void main() {
           'height': 1,
         },
       ]);
-      final ImageLibrary library = ImageLibrary();
+      final ImageLibrary library = seededLibrary();
       expect(await library.decode('a.png'), isNull);
       expect(await library.decode('missing.png'), isNull);
       expect(library.pixelsFor('a.png'), isNull);
     });
 
     test('usage estimate grows with the library', () {
-      final ImageLibrary empty = ImageLibrary();
+      final ImageLibrary empty = seededLibrary();
       final int base = empty.estimateUsageBytes();
       seed(<Map<String, Object>>[
         <String, Object>{
@@ -330,31 +347,36 @@ void main() {
           'height': 1,
         },
       ]);
-      expect(ImageLibrary().estimateUsageBytes(), greaterThan(base));
+      expect(seededLibrary().estimateUsageBytes(), greaterThan(base));
     });
 
     test('clear reports a refused write and preserves the live library', () {
-      seed(<Map<String, Object>>[
-        <String, Object>{
-          'path': 'a.png',
-          'dataUri': validPng,
-          'width': 1,
-          'height': 1,
-        },
-      ]);
-      final ImageLibrary library = ImageLibrary(
-        writer: (String key, String value) => false,
+      bool accept = true;
+      final ImageLibrary imageLibrary = ImageLibrary(
+        writer: (String key, String value) => accept,
       );
+      expect(
+        imageLibrary.replaceAll(<StoredImage>[
+          const StoredImage(
+            path: 'a.png',
+            dataUri: validPng,
+            width: 1,
+            height: 1,
+          ),
+        ]),
+        isTrue,
+      );
+      accept = false;
 
-      expect(library.clear(), isFalse);
-      expect(library.paths, <String>{'a.png'});
-      expect(library.lastError, isNotNull);
+      expect(imageLibrary.clear(), isFalse);
+      expect(imageLibrary.paths, <String>{'a.png'});
+      expect(imageLibrary.lastError, isNotNull);
     });
 
     test(
       'addFromFiles reports failure off-web without touching storage',
       () async {
-        final ImageLibrary library = ImageLibrary();
+        final ImageLibrary library = seededLibrary();
         final ImageAddOutcome outcome = await library.addFromFiles(<Object>[
           Object(),
         ]);
