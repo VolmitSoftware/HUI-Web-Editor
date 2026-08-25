@@ -671,6 +671,7 @@
     "Create the animation document or select an existing one.": "Sukurkite animacijos dokumentą arba pasirinkite esamą.",
     "Created \"{id}\" from the {name} template": "Sukurta „{id}“ iš {name} šablono",
     "Created {title}.": "Sukurta {title}.",
+    "Critical hit": "Kritinis smūgis",
     "Ctrl+Y works too.": "Ctrl+Y taip pat veikia.",
     "Cull height": "Atvaizdavimo ribos aukštis",
     "Cull width": "Atvaizdavimo ribos plotis",

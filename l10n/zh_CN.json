@@ -671,6 +671,7 @@
     "Create the animation document or select an existing one.": "创建动画文档或选择现有文档。",
     "Created \"{id}\" from the {name} template": "从 {id} 模板创建了“{name}”",
     "Created {title}.": "创建了{title}。",
+    "Critical hit": "暴击",
     "Ctrl+Y works too.": "Ctrl+Y 也有效。",
     "Cull height": "剔除高度",
     "Cull width": "剔除宽度",

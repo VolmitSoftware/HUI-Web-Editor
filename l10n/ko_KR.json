@@ -671,6 +671,7 @@
     "Create the animation document or select an existing one.": "애니메이션 문서를 만들거나 기존 문서를 선택하십시오.",
     "Created \"{id}\" from the {name} template": "{id} 템플릿에서 \"{name}\"을(를) 생성했습니다.",
     "Created {title}.": "{title}을(를) 만들었습니다.",
+    "Critical hit": "치명타",
     "Ctrl+Y works too.": "Ctrl+Y도 작동합니다.",
     "Cull height": "컬링 높이",
     "Cull width": "컬링 너비",

@@ -7,6 +7,135 @@ import '../model/gloss_damage_indicators.dart';
 
 enum DamageIndicatorPreviewKind { damage, healing }
 
+GlossConditionContext buildDamageIndicatorPreviewConditionContext({
+  required DamageIndicatorPreviewKind kind,
+  required double amount,
+  bool critical = false,
+  bool includeViewer = false,
+}) {
+  final bool damage = kind == DamageIndicatorPreviewKind.damage;
+  final Map<String, Object?> variables = <String, Object?>{
+    'event.type': damage ? 'damage' : 'healing',
+    'event.cause': damage ? 'entity_attack' : 'magic',
+    'event.amount': amount,
+    'event.reportedAmount': amount,
+    'event.damage': damage,
+    'event.healing': !damage,
+    'event.directSourceType': damage ? 'player' : '',
+    'event.critical': damage && critical,
+    'event.criticalKnown': true,
+    'world.name': 'world',
+    'world.environment': 'normal',
+    'world.difficulty': 'normal',
+    'world.time': 6000.0,
+    'world.fullTime': 6000.0,
+    'world.storm': false,
+    'world.thundering': false,
+    'world.pvp': true,
+    'world.players': 12.0,
+    'server.online': 12.0,
+    'server.maxPlayers': 100.0,
+    'server.tps': 20.0,
+  };
+  _putPreviewEntity(
+    variables,
+    'subject.',
+    name: 'Training Dummy',
+    type: 'armor_stand',
+    health: 12,
+    player: false,
+  );
+  _putPreviewEntity(
+    variables,
+    'source.',
+    name: damage ? 'Cyberpwn' : '',
+    type: damage ? 'player' : '',
+    health: damage ? 20 : 0,
+    player: damage,
+    present: damage,
+  );
+  if (includeViewer) {
+    _putPreviewEntity(
+      variables,
+      'viewer.',
+      name: 'Cyberpwn',
+      type: 'player',
+      health: 20,
+      player: true,
+    );
+    for (final MapEntry<String, Object?> entry in variables.entries.toList()) {
+      if (entry.key.startsWith('viewer.')) {
+        variables['player.${entry.key.substring('viewer.'.length)}'] =
+            entry.value;
+      }
+    }
+  }
+  return GlossConditionContext(
+    variables: variables,
+    permissions: <String>{'gloss.indicators.show'},
+    groups: <String>{'player'},
+    metrics: <String, double>{'react.tick-ms': 50},
+  );
+}
+
+void _putPreviewEntity(
+  Map<String, Object?> variables,
+  String prefix, {
+  required String name,
+  required String type,
+  required double health,
+  required bool player,
+  bool present = true,
+}) {
+  final double maxHealth = health > 0 ? 20 : 0;
+  variables.addAll(<String, Object?>{
+    '${prefix}present': present,
+    '${prefix}uuid': present ? '00000000-0000-0000-0000-000000000001' : '',
+    '${prefix}name': name,
+    '${prefix}type': type,
+    '${prefix}world': present ? 'world' : '',
+    '${prefix}x': 0.0,
+    '${prefix}y': 64.0,
+    '${prefix}z': 0.0,
+    '${prefix}blockX': 0.0,
+    '${prefix}blockY': 64.0,
+    '${prefix}blockZ': 0.0,
+    '${prefix}yaw': 0.0,
+    '${prefix}pitch': 0.0,
+    '${prefix}dead': false,
+    '${prefix}onGround': true,
+    '${prefix}inWater': false,
+    '${prefix}fireTicks': 0.0,
+    '${prefix}freezeTicks': 0.0,
+    '${prefix}ticksLived': 1200.0,
+    '${prefix}health': health,
+    '${prefix}maxHealth': maxHealth,
+    '${prefix}healthPercent': maxHealth == 0 ? 0.0 : health * 100 / maxHealth,
+    '${prefix}absorption': 0.0,
+    '${prefix}ai': true,
+    '${prefix}gliding': false,
+    '${prefix}swimming': false,
+    '${prefix}invisible': false,
+    '${prefix}player': player,
+    '${prefix}op': false,
+    '${prefix}online': player,
+    '${prefix}food': player ? 20.0 : 0.0,
+    '${prefix}saturation': player ? 5.0 : 0.0,
+    '${prefix}level': player ? 12.0 : 0.0,
+    '${prefix}experience': player ? 0.5 : 0.0,
+    '${prefix}totalExperience': player ? 320.0 : 0.0,
+    '${prefix}ping': player ? 42.0 : 0.0,
+    '${prefix}clientViewDistance': player ? 12.0 : 0.0,
+    '${prefix}gameMode': player ? 'survival' : '',
+    '${prefix}locale': player ? 'en_us' : '',
+    '${prefix}sneaking': false,
+    '${prefix}sprinting': false,
+    '${prefix}flying': false,
+    '${prefix}allowFlight': false,
+    '${prefix}group': player ? 'player' : '',
+  });
+}
+
 final class DamageIndicatorPreviewCycle {
   const DamageIndicatorPreviewCycle({
     required this.elapsedMs,

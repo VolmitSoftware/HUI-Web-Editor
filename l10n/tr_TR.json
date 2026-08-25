@@ -671,6 +671,7 @@
     "Create the animation document or select an existing one.": "Animasyon belgesi oluşturun veya mevcut bir belgeyi seçin.",
     "Created \"{id}\" from the {name} template": "{id} şablonundan \"{name}\" oluşturuldu",
     "Created {title}.": "{title} oluşturuldu.",
+    "Critical hit": "Kritik vuruş",
     "Ctrl+Y works too.": "Ctrl+Y de çalışıyor.",
     "Cull height": "Kırpma yüksekliği",
     "Cull width": "Kırpma genişliği",

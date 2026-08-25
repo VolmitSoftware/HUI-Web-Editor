@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:gloss_editor/config/gloss_templates.dart';
+import 'package:gloss_editor/components/scoreboard/scoreboard_selection.dart';
+import 'package:gloss_editor/logic/damage_indicator_preview.dart';
 import 'package:gloss_editor/logic/damage_indicator_validation.dart';
 import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
@@ -58,6 +60,16 @@ void main() {
       _expectSafeStyle(doc.damage, healing: false, seed: seed);
       _expectSafeStyle(doc.healing, healing: true, seed: seed);
       expect(doc.audience.when, isNotEmpty);
+      final ({bool matches, String? error}) audience = glossConditionMatches(
+        doc.audience.when,
+        buildDamageIndicatorPreviewConditionContext(
+          kind: DamageIndicatorPreviewKind.damage,
+          amount: 7,
+          includeViewer: true,
+        ),
+      );
+      expect(audience.error, isNull, reason: 'seed $seed');
+      expect(audience.matches, isTrue, reason: 'seed $seed');
     }
   });
 
@@ -123,7 +135,11 @@ void _expectSafeStyle(
   required int seed,
 }) {
   final GlossDamageIndicatorPresentation presentation = style.presentation;
-  expect(style.when, 'true', reason: 'seed $seed');
+  expect(
+    style.when,
+    healing ? 'event.healing' : 'event.damage',
+    reason: 'seed $seed',
+  );
   expect(
     presentation.format,
     contains(glossDamageAmountToken),
@@ -153,5 +169,37 @@ void _expectSafeStyle(
   expect(
     presentation.transform.fadeStartFraction,
     inInclusiveRange(0.42, 0.86),
+  );
+  expect(style.variants, hasLength(1), reason: 'seed $seed');
+  final GlossDamageIndicatorVariant variant = style.variants.single;
+  expect(variant.id, healing ? 'large-heal' : 'critical-hit');
+  expect(
+    variant.when,
+    healing ? 'event.amount >= 8' : 'event.criticalKnown && event.critical',
+  );
+  expect(variant.presentation.format, contains(glossDamageAmountToken));
+  expect(variant.presentation.offset.x, inInclusiveRange(-0.45, 0.45));
+  expect(variant.presentation.offset.y, inInclusiveRange(-0.13, 1.52));
+  expect(variant.presentation.offset.z, inInclusiveRange(-0.45, 0.45));
+  expect(
+    variant.presentation.motion.horizontalSpeed,
+    inInclusiveRange(0.18, 2.88),
+  );
+  expect(
+    variant.presentation.motion.verticalSpeed,
+    inInclusiveRange(0.29, 3.91),
+  );
+  expect(
+    variant.presentation.motion.spinDegreesPerSecond,
+    anyOf(-360, -240, 240, 360),
+  );
+  expect(
+    variant.presentation.transform.startScale,
+    inInclusiveRange(0.81, 2.25),
+  );
+  expect(variant.presentation.transform.endScale, inInclusiveRange(0.46, 2.8));
+  expect(
+    variant.presentation.transform.fadeStartFraction,
+    inInclusiveRange(0.5, 0.86),
   );
 }

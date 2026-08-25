@@ -208,73 +208,220 @@ void main() {
   });
 
   test('menu showcase stays validation-clean across random seeds', () {
-    for (int seed = 0; seed < 128; seed++) {
-      final EditorStore store = _store()..newDocument();
-      store.replaceMenu(
-        'Randomize menu',
-        buildRandomMenuShowcase(store, math.Random(seed)),
-      );
-      expect(
-        store.issues.where(
-          (HuiIssue issue) => issue.severity != HuiSeverity.info,
-        ),
-        isEmpty,
-        reason: 'seed $seed',
-      );
+    for (final MenuShowcaseArchetype archetype
+        in MenuShowcaseArchetype.values) {
+      for (int seed = 0; seed < 32; seed++) {
+        final EditorStore store = _store()..newDocument();
+        store.replaceMenu(
+          'Randomize menu',
+          buildRandomMenuShowcase(
+            store,
+            math.Random(seed),
+            archetype: archetype,
+          ),
+        );
+        expect(
+          store.issues.where(
+            (HuiIssue issue) => issue.severity != HuiSeverity.info,
+          ),
+          isEmpty,
+          reason: '${archetype.name} seed $seed',
+        );
+      }
     }
   });
 
-  test('menu showcase contains every component and action type', () {
+  test('menu archetypes keep their labels, actions and layout coherent', () {
     final EditorStore store = _store()..newDocument();
-    final HuiMenu menu = buildRandomMenuShowcase(store, math.Random(5));
-    final Set<String> componentTypes = <String>{
-      for (final HuiComponent component in menu.components) component.data.type,
-    };
+    final Set<String> componentTypes = <String>{};
     final Set<String> actionTypes = <String>{};
-    for (final HuiComponent component in menu.components) {
-      switch (component.data) {
-        case final HuiButtonData button:
-          actionTypes.addAll(
-            button.actions.map((HuiAction action) => action.type),
+    for (final MenuShowcaseArchetype archetype
+        in MenuShowcaseArchetype.values) {
+      final HuiMenu menu = buildRandomMenuShowcase(
+        store,
+        math.Random(50 + archetype.index),
+        archetype: archetype,
+      );
+      expect(menu.lockPosition, isFalse, reason: archetype.name);
+      expect(menu.followPlayer, isTrue, reason: archetype.name);
+      expect(menu.closeOnDeath, isTrue, reason: archetype.name);
+      expect(menu.closeOnTeleport, isTrue, reason: archetype.name);
+      expect(
+        menu.components.map((HuiComponent component) => component.id).toSet(),
+        hasLength(menu.components.length),
+        reason: archetype.name,
+      );
+      expect(
+        menu.components
+            .map((HuiComponent component) => component.offset)
+            .toSet(),
+        hasLength(menu.components.length),
+        reason: archetype.name,
+      );
+
+      final List<HuiComponent> clickables = menu.components
+          .where(
+            (HuiComponent component) =>
+                component.data is HuiButtonData ||
+                component.data is HuiToggleData,
+          )
+          .toList();
+      for (int first = 0; first < clickables.length; first++) {
+        for (int second = first + 1; second < clickables.length; second++) {
+          final Vec3 a = clickables[first].offset;
+          final Vec3 b = clickables[second].offset;
+          final double distance = math.sqrt(
+            math.pow(a.x - b.x, 2) + math.pow(a.y - b.y, 2),
           );
-        case final HuiToggleData toggle:
-          actionTypes.addAll(
-            <HuiAction>[
-              ...toggle.trueActions,
-              ...toggle.falseActions,
-            ].map((HuiAction action) => action.type),
+          expect(distance, greaterThanOrEqualTo(0.75), reason: archetype.name);
+        }
+      }
+
+      final Set<String> backgrounds = <String>{};
+      for (final HuiComponent component in menu.components) {
+        componentTypes.add(component.data.type);
+        final List<HuiIcon> icons = switch (component.data) {
+          final HuiButtonData button => <HuiIcon>[?button.icon],
+          final HuiDecorationData decoration => <HuiIcon>[?decoration.icon],
+          final HuiToggleData toggle => <HuiIcon>[
+            ?toggle.trueIcon,
+            ?toggle.falseIcon,
+          ],
+        };
+        for (final HuiIcon icon in icons) {
+          expect(
+            icon.style,
+            isNotNull,
+            reason: '${archetype.name}:${component.id}',
           );
-        case HuiDecorationData():
-          break;
+          expect(icon.style!.billboard, 'fixed');
+          backgrounds.add(icon.style!.backgroundArgb);
+        }
+        final List<HuiAction> actions = switch (component.data) {
+          final HuiButtonData button => button.actions,
+          final HuiToggleData toggle => <HuiAction>[
+            ...toggle.trueActions,
+            ...toggle.falseActions,
+          ],
+          HuiDecorationData() => const <HuiAction>[],
+        };
+        actionTypes.addAll(actions.map((HuiAction action) => action.type));
+        expect(
+          actions.every((HuiAction action) => action.trigger == 'any'),
+          isTrue,
+          reason: '${archetype.name}:${component.id}',
+        );
+        expect(
+          actions.whereType<HuiSoundAction>().every(
+            (HuiSoundAction action) => action.source == 'player',
+          ),
+          isTrue,
+          reason: '${archetype.name}:${component.id}',
+        );
+      }
+      expect(backgrounds, hasLength(1), reason: archetype.name);
+      for (final HuiComponent component in clickables) {
+        final HuiHitbox? hitbox = switch (component.data) {
+          final HuiButtonData button => button.hitbox,
+          final HuiToggleData toggle => toggle.hitbox,
+          HuiDecorationData() => null,
+        };
+        expect(hitbox, isNotNull, reason: '${archetype.name}:${component.id}');
+        expect(hitbox!.anchor, HuiHitboxAnchor.button);
+      }
+
+      switch (archetype) {
+        case MenuShowcaseArchetype.networkHub:
+          const Map<String, String> servers = <String, String>{
+            'connect-lobby': 'lobby',
+            'connect-survival-1': 'survival-1',
+            'connect-creative': 'creative',
+            'connect-events': 'events',
+          };
+          for (final MapEntry<String, String> server in servers.entries) {
+            final HuiButtonData button =
+                menu.componentById(server.key)!.data as HuiButtonData;
+            expect(
+              button.actions.whereType<HuiConnectAction>().single.server,
+              server.value,
+            );
+            expect(
+              (button.icon! as HuiTextIcon).text.toLowerCase(),
+              contains(server.key.split('-')[1]),
+            );
+          }
+        case MenuShowcaseArchetype.wayfinder:
+          const Map<String, String> worlds = <String, String>{
+            'travel-spawn': 'minecraft:overworld',
+            'travel-ghostwood': 'minecraft:overworld',
+            'travel-nether-hub': 'minecraft:the_nether',
+            'travel-end-gateway': 'minecraft:the_end',
+          };
+          for (final MapEntry<String, String> destination in worlds.entries) {
+            final HuiButtonData button =
+                menu.componentById(destination.key)!.data as HuiButtonData;
+            expect(
+              button.actions.whereType<HuiTeleportAction>().single.world,
+              destination.value,
+            );
+          }
+        case MenuShowcaseArchetype.playerTools:
+          final HuiButtonData spawn =
+              menu.componentById('command-spawn')!.data as HuiButtonData;
+          final HuiButtonData help =
+              menu.componentById('command-help')!.data as HuiButtonData;
+          final HuiButtonData daylight =
+              menu.componentById('command-daylight')!.data as HuiButtonData;
+          expect(
+            spawn.actions.whereType<HuiCommandAction>().single.command,
+            '/spawn',
+          );
+          expect(
+            help.actions.whereType<HuiCommandAction>().single.command,
+            '/help',
+          );
+          expect(
+            daylight.actions.whereType<HuiCommandAction>().single.source,
+            'server',
+          );
+          final HuiToggleData status = menu.components
+              .map((HuiComponent component) => component.data)
+              .whereType<HuiToggleData>()
+              .single;
+          const Map<String, (String, String)> labels =
+              <String, (String, String)>{
+                '%player_is_op%': ('Staff access', 'Player access'),
+                '%player_world%': ('Overworld', 'Other world'),
+                '%player_has_permission_gloss.vip%': (
+                  'VIP access',
+                  'Standard access',
+                ),
+              };
+          expect(
+            (status.trueIcon! as HuiTextIcon).text,
+            contains(labels[status.condition]!.$1),
+          );
+          expect(
+            (status.falseIcon! as HuiTextIcon).text,
+            contains(labels[status.condition]!.$2),
+          );
+        case MenuShowcaseArchetype.menuNavigator:
+          final Set<String> modes = menu.components
+              .map((HuiComponent component) => component.data)
+              .whereType<HuiButtonData>()
+              .expand((HuiButtonData button) => button.actions)
+              .whereType<HuiNavigateAction>()
+              .map((HuiNavigateAction action) => action.mode)
+              .toSet();
+          expect(modes, contains('back'));
+          expect(
+            modes.every(<String>{'push', 'home', 'back', 'close'}.contains),
+            isTrue,
+          );
       }
     }
-    expect(componentTypes, containsAll(huiComponentTypes));
-    expect(actionTypes, containsAll(huiActionTypes));
-    final List<HuiComponentData> clickables = menu.components
-        .map((HuiComponent component) => component.data)
-        .where(
-          (HuiComponentData data) =>
-              data is HuiButtonData || data is HuiToggleData,
-        )
-        .toList();
-    expect(
-      clickables.any(
-        (HuiComponentData data) => switch (data) {
-          HuiButtonData() =>
-            data.hoverDurationTicks != huiRuntimeDefaultHoverDurationTicks,
-          HuiToggleData() =>
-            data.hoverDurationTicks != huiRuntimeDefaultHoverDurationTicks,
-          HuiDecorationData() => false,
-        },
-      ),
-      isTrue,
-    );
-    expect(
-      clickables.whereType<HuiToggleData>().every(
-        (HuiToggleData data) => data.hitbox != null,
-      ),
-      isTrue,
-    );
+    expect(componentTypes, huiComponentTypes.toSet());
+    expect(actionTypes, huiActionTypes.toSet());
   });
 
   test(

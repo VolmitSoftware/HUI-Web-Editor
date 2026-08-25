@@ -671,6 +671,7 @@
     "Create the animation document or select an existing one.": "Cree el documento de animación o seleccione uno existente.",
     "Created \"{id}\" from the {name} template": "Creó \"{id}\" a partir de la plantilla {name}",
     "Created {title}.": "Creado {title}.",
+    "Critical hit": "Golpe crítico",
     "Ctrl+Y works too.": "Ctrl+Y también funciona.",
     "Cull height": "Altura de recorte",
     "Cull width": "Anchura de recorte",

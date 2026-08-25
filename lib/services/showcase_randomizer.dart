@@ -196,166 +196,611 @@ HuiPreviewElement _randomPreviewElement(String type, math.Random random) {
   };
 }
 
-HuiMenu buildRandomMenuShowcase(EditorStore store, math.Random random) {
+enum MenuShowcaseArchetype { networkHub, wayfinder, playerTools, menuNavigator }
+
+final class _MenuShowcaseContext {
+  _MenuShowcaseContext({
+    required this.store,
+    required this.random,
+    required this.mood,
+    required this.server,
+    required this.glyph,
+    required this.backgroundArgb,
+    required this.soundPitch,
+  });
+
+  final EditorStore store;
+  final math.Random random;
+  final ShowcaseMood mood;
+  final String server;
+  final String glyph;
+  final String backgroundArgb;
+  final double soundPitch;
+}
+
+final class _MenuDestination {
+  const _MenuDestination({
+    required this.id,
+    required this.label,
+    required this.detail,
+    required this.world,
+    required this.x,
+    required this.y,
+    required this.z,
+  });
+
+  final String id;
+  final String label;
+  final String detail;
+  final String world;
+  final double x;
+  final double y;
+  final double z;
+}
+
+final class _MenuStatusRecipe {
+  const _MenuStatusRecipe({
+    required this.id,
+    required this.condition,
+    required this.expectedValue,
+    required this.trueLabel,
+    required this.falseLabel,
+    required this.trueMessage,
+    required this.falseMessage,
+  });
+
+  final String id;
+  final String condition;
+  final String expectedValue;
+  final String trueLabel;
+  final String falseLabel;
+  final String trueMessage;
+  final String falseMessage;
+}
+
+const List<_MenuDestination> _menuDestinations = <_MenuDestination>[
+  _MenuDestination(
+    id: 'spawn',
+    label: 'Spawn',
+    detail: 'Overworld plaza',
+    world: 'minecraft:overworld',
+    x: 0,
+    y: 80,
+    z: 0,
+  ),
+  _MenuDestination(
+    id: 'ghostwood',
+    label: 'Ghostwood',
+    detail: 'Forest outpost',
+    world: 'minecraft:overworld',
+    x: 128,
+    y: 72,
+    z: -96,
+  ),
+  _MenuDestination(
+    id: 'nether-hub',
+    label: 'Nether Hub',
+    detail: 'Nether concourse',
+    world: 'minecraft:the_nether',
+    x: 0,
+    y: 80,
+    z: 0,
+  ),
+  _MenuDestination(
+    id: 'end-gateway',
+    label: 'End Gateway',
+    detail: 'Outer-island route',
+    world: 'minecraft:the_end',
+    x: 100,
+    y: 64,
+    z: 100,
+  ),
+];
+
+const List<_MenuStatusRecipe> _menuStatusRecipes = <_MenuStatusRecipe>[
+  _MenuStatusRecipe(
+    id: 'staff-access',
+    condition: '%player_is_op%',
+    expectedValue: 'yes',
+    trueLabel: 'Staff access',
+    falseLabel: 'Player access',
+    trueMessage: '<green>Staff tools are available.</green>',
+    falseMessage: '<gray>Standard player tools are available.</gray>',
+  ),
+  _MenuStatusRecipe(
+    id: 'world-status',
+    condition: '%player_world%',
+    expectedValue: 'world',
+    trueLabel: 'Overworld',
+    falseLabel: 'Other world',
+    trueMessage: '<green>You opened this in the Overworld.</green>',
+    falseMessage: '<gray>You opened this outside the Overworld.</gray>',
+  ),
+  _MenuStatusRecipe(
+    id: 'vip-access',
+    condition: '%player_has_permission_gloss.vip%',
+    expectedValue: 'true',
+    trueLabel: 'VIP access',
+    falseLabel: 'Standard access',
+    trueMessage: '<gold>VIP access is active.</gold>',
+    falseMessage: '<gray>Standard access is active.</gray>',
+  ),
+];
+
+HuiMenu buildRandomMenuShowcase(
+  EditorStore store,
+  math.Random random, {
+  MenuShowcaseArchetype? archetype,
+}) {
+  final MenuShowcaseArchetype selectedArchetype =
+      archetype ??
+      MenuShowcaseArchetype.values[random.nextInt(
+        MenuShowcaseArchetype.values.length,
+      )];
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
-  final String server = showcasePick(random, showcaseServerNames);
-  final int topology = random.nextInt(4);
-  final List<Vec3> positions = _menuTopologyPositions(topology);
-  final HuiIconStyle titleStyle = _randomStyle(random, mood)
-    ..lineWidth = 180
-    ..scaleX = 0.68
-    ..scaleY = 0.68
-    ..scaleZ = 0.68;
-  final List<HuiComponent> components = <HuiComponent>[
-    HuiComponent(
-      'showcase-title',
-      positions[0],
-      HuiDecorationData(
-        HuiTextIcon(
-          '${mood.legacy}&l$server\n'
-          "&7{{ player.name }} &8• &f{{ fixed(server.tps, 1) }} TPS\n"
-          '&8${showcasePick(random, showcaseStatusWords)} :star:',
-          titleStyle,
-          5 + random.nextInt(16),
-        ),
-      ),
-    ),
-    HuiComponent(
-      'viewer-head',
-      positions[1],
-      HuiDecorationData(
-        HuiPlayerHeadIcon(
-          random.nextBool() ? '%player_name%' : '{{player.name}}',
-          _randomStyle(random, mood),
-          random.nextBool() ? null : 20,
-        ),
-      ),
-    ),
-    HuiComponent(
-      'command-action',
-      positions[2],
-      _menuButtonRecipe(store, random, 0, positions[2]),
-    ),
-    HuiComponent(
-      'travel-action',
-      positions[3],
-      _menuButtonRecipe(store, random, 1, positions[3]),
-    ),
-    HuiComponent(
-      'network-action',
-      positions[4],
-      _menuButtonRecipe(store, random, 2, positions[4]),
-    ),
-    HuiComponent(
-      'navigation-action',
-      positions[5],
-      _menuButtonRecipe(store, random, 3, positions[5]),
-    ),
-    HuiComponent(
-      'styled-block',
-      positions[6],
-      HuiDecorationData(
-        HuiBlockIcon(_blockMaterial(random), _randomStyle(random, mood)),
-      ),
-    ),
-    HuiComponent(
-      'living-entity',
-      positions[7],
-      HuiDecorationData(
-        HuiEntityIcon(
-          huiSpawnableLivingEntityTypes[random.nextInt(
-            huiSpawnableLivingEntityTypes.length,
-          )],
-          0.55 + random.nextDouble() * 0.35,
-          0.55 + random.nextDouble() * 0.35,
-        ),
-      ),
-    ),
-    HuiComponent('live-toggle', positions[8], _randomToggleData(store, random)),
+  final _MenuShowcaseContext context = _MenuShowcaseContext(
+    store: store,
+    random: random,
+    mood: mood,
+    server: showcasePick(random, showcaseServerNames),
+    glyph: showcasePick(random, mood.glyphs),
+    backgroundArgb: random.nextBool()
+        ? '#B3000000'
+        : '#66${mood.primary.substring(1)}',
+    soundPitch: _round2(0.9 + random.nextDouble() * 0.2),
+  );
+  return switch (selectedArchetype) {
+    MenuShowcaseArchetype.networkHub => _buildNetworkHubMenu(context),
+    MenuShowcaseArchetype.wayfinder => _buildWayfinderMenu(context),
+    MenuShowcaseArchetype.playerTools => _buildPlayerToolsMenu(context),
+    MenuShowcaseArchetype.menuNavigator => _buildMenuNavigator(context),
+  };
+}
+
+HuiMenu _buildNetworkHubMenu(_MenuShowcaseContext context) {
+  const List<(String, String, String)> realms = <(String, String, String)>[
+    ('lobby', 'Lobby', 'Network welcome'),
+    ('survival-1', 'Survival', 'Main survival realm'),
+    ('creative', 'Creative', 'Creative plots'),
+    ('events', 'Events', 'Live event server'),
   ];
-  final List<HuiIcon> assetIcons = _availableAssetIcons(store, random, mood);
-  for (int index = 0; index < assetIcons.length && index < 3; index++) {
+  final List<HuiComponent> components = <HuiComponent>[
+    _menuTitle(context, context.server, 'Choose a server'),
+    _menuOrnament(context, Vec3(-2.15, 1.35, 0)),
+    _menuStatus(
+      context,
+      'network-status',
+      Vec3(2.15, 1.35, 0),
+      '&a● &fNETWORK ONLINE',
+    ),
+  ];
+  for (int index = 0; index < realms.length; index++) {
+    final (String, String, String) realm = realms[index];
     components.add(
-      HuiComponent(
-        'local-asset-${index + 1}',
-        positions[9 + index],
-        HuiDecorationData(assetIcons[index]),
+      _menuButton(
+        context,
+        id: 'connect-${realm.$1}',
+        offset: _menuGridOffset(index, realms.length),
+        label: realm.$2,
+        detail: realm.$3,
+        actions: <HuiAction>[HuiConnectAction(realm.$1)],
       ),
     );
   }
-  return HuiMenu(
-    offset: Vec3(
-      _round(random.nextDouble() - 0.5),
-      _round(1.4 + random.nextDouble() * 0.8),
-      _round(2.2 + random.nextDouble()),
+  components.add(
+    _menuNavigationButton(
+      context,
+      id: 'close-menu',
+      offset: Vec3(0, -1.15, 0),
+      label: 'Close',
+      detail: 'Return to the game',
+      mode: 'close',
     ),
-    lockPosition: topology == 2 || random.nextBool(),
-    followPlayer: topology != 3 && random.nextBool(),
-    maxDistance: 8 + random.nextInt(25).toDouble(),
-    closeOnDeath: random.nextInt(5) != 0,
-    closeOnTeleport: random.nextInt(4) != 0,
-    components: components,
+  );
+  return _menuDocument(context, components, maxDistance: 24);
+}
+
+HuiMenu _buildWayfinderMenu(_MenuShowcaseContext context) {
+  final List<HuiComponent> components = <HuiComponent>[
+    _menuTitle(context, '${context.server} Wayfinder', 'Choose a destination'),
+    _menuOrnament(context, Vec3(-2.15, 1.35, 0)),
+    _menuStatus(
+      context,
+      'route-count',
+      Vec3(2.15, 1.35, 0),
+      '&f${_menuDestinations.length} &7DESTINATIONS',
+    ),
+  ];
+  for (int index = 0; index < _menuDestinations.length; index++) {
+    final _MenuDestination destination = _menuDestinations[index];
+    components.add(
+      _menuButton(
+        context,
+        id: 'travel-${destination.id}',
+        offset: _menuGridOffset(index, _menuDestinations.length),
+        label: destination.label,
+        detail: destination.detail,
+        actions: <HuiAction>[
+          HuiTeleportAction(
+            destination.world,
+            destination.x,
+            destination.y,
+            destination.z,
+            0,
+            0,
+          ),
+        ],
+      ),
+    );
+  }
+  components.add(
+    _menuNavigationButton(
+      context,
+      id: 'back-menu',
+      offset: Vec3(0, -1.15, 0),
+      label: 'Back',
+      detail: 'Previous menu',
+      mode: 'back',
+    ),
+  );
+  return _menuDocument(context, components, maxDistance: 24);
+}
+
+HuiMenu _buildPlayerToolsMenu(_MenuShowcaseContext context) {
+  final _MenuStatusRecipe status = showcasePick(
+    context.random,
+    _menuStatusRecipes,
+  );
+  return _menuDocument(context, <HuiComponent>[
+    _menuTitle(context, '${context.server} Tools', 'Player utilities'),
+    HuiComponent(
+      'viewer-head',
+      Vec3(-2.15, 1.35, 0),
+      HuiDecorationData(
+        HuiPlayerHeadIcon(
+          '%player_name%',
+          _menuIconStyle(context, ornament: true),
+          20,
+        ),
+      ),
+    ),
+    _menuOrnament(context, Vec3(2.15, 1.35, 0)),
+    _menuButton(
+      context,
+      id: 'command-spawn',
+      offset: Vec3(-1.15, 0.5, 0),
+      label: 'Spawn',
+      detail: 'Run /spawn',
+      actions: <HuiAction>[HuiCommandAction('/spawn', 'player')],
+    ),
+    _menuButton(
+      context,
+      id: 'command-help',
+      offset: Vec3(1.15, 0.5, 0),
+      label: 'Help',
+      detail: 'Run /help',
+      actions: <HuiAction>[HuiCommandAction('/help', 'player')],
+    ),
+    _menuButton(
+      context,
+      id: 'command-daylight',
+      offset: Vec3(-1.15, -0.3, 0),
+      label: 'Daylight',
+      detail: 'Query server time',
+      actions: <HuiAction>[
+        HuiMessageAction('<gray>Checking the server daylight time.</gray>'),
+        HuiCommandAction('time query daytime', 'server'),
+      ],
+    ),
+    HuiComponent(
+      status.id,
+      Vec3(1.15, -0.3, 0),
+      _menuStatusToggle(context, status),
+    ),
+    _menuNavigationButton(
+      context,
+      id: 'close-menu',
+      offset: Vec3(0, -1.15, 0),
+      label: 'Close',
+      detail: 'Return to the game',
+      mode: 'close',
+    ),
+  ], maxDistance: 16);
+}
+
+HuiMenu _buildMenuNavigator(_MenuShowcaseContext context) {
+  final List<String> targets = <String>[
+    for (final WorkspaceDoc document in context.store.workspace.docs)
+      if (DocumentTypeRegistry.of(document.kind) is MenuDocumentType &&
+          document.runtimeId != null &&
+          document.id != context.store.workspace.activeId)
+        document.runtimeId!,
+  ]..sort();
+  final List<
+    ({String id, String label, String detail, HuiNavigateAction action})
+  >
+  routes =
+      <({String id, String label, String detail, HuiNavigateAction action})>[
+        for (final (int, String) entry in targets.take(4).indexed)
+          (
+            id: 'open-${entry.$1 + 1}-${_menuComponentSlug(entry.$2)}',
+            label: _menuTargetLabel(entry.$2),
+            detail: entry.$2,
+            action: HuiNavigateAction(entry.$2, 'push'),
+          ),
+      ];
+  if (routes.isEmpty) {
+    routes.addAll(
+      <({String id, String label, String detail, HuiNavigateAction action})>[
+        (
+          id: 'home-menu',
+          label: 'Home',
+          detail: 'Root menu',
+          action: HuiNavigateAction('', 'home'),
+        ),
+        (
+          id: 'back-menu',
+          label: 'Back',
+          detail: 'Previous menu',
+          action: HuiNavigateAction('', 'back'),
+        ),
+        (
+          id: 'close-menu',
+          label: 'Close',
+          detail: 'Return to the game',
+          action: HuiNavigateAction('', 'close'),
+        ),
+      ],
+    );
+  } else {
+    routes.add((
+      id: 'back-menu',
+      label: 'Back',
+      detail: 'Previous menu',
+      action: HuiNavigateAction('', 'back'),
+    ));
+  }
+  final List<HuiComponent> components = <HuiComponent>[
+    _menuTitle(context, '${context.server} Menus', 'Choose a page'),
+    _menuOrnament(context, Vec3(-2.15, 1.35, 0)),
+    _menuStatus(
+      context,
+      'route-count',
+      Vec3(2.15, 1.35, 0),
+      '&f${routes.length} &7ROUTES',
+    ),
+  ];
+  for (int index = 0; index < routes.length; index++) {
+    final ({String id, String label, String detail, HuiNavigateAction action})
+    route = routes[index];
+    components.add(
+      _menuButton(
+        context,
+        id: route.id,
+        offset: _menuGridOffset(index, routes.length),
+        label: route.label,
+        detail: route.detail,
+        actions: <HuiAction>[route.action],
+      ),
+    );
+  }
+  return _menuDocument(context, components, maxDistance: 16);
+}
+
+HuiMenu _menuDocument(
+  _MenuShowcaseContext context,
+  List<HuiComponent> components, {
+  required double maxDistance,
+}) => HuiMenu(
+  offset: Vec3(
+    0,
+    _round2(1.6 + context.random.nextDouble() * 0.2),
+    _round2(2.5 + context.random.nextDouble() * 0.3),
+  ),
+  lockPosition: false,
+  followPlayer: true,
+  maxDistance: maxDistance,
+  closeOnDeath: true,
+  closeOnTeleport: true,
+  components: components,
+);
+
+HuiComponent _menuTitle(
+  _MenuShowcaseContext context,
+  String title,
+  String subtitle,
+) => HuiComponent(
+  'showcase-title',
+  Vec3(0, 1.45, 0),
+  HuiDecorationData(
+    HuiTextIcon(
+      '${context.mood.legacy}&l$title\n&7$subtitle',
+      _menuIconStyle(context, title: true),
+      10,
+    ),
+  ),
+);
+
+HuiComponent _menuStatus(
+  _MenuShowcaseContext context,
+  String id,
+  Vec3 offset,
+  String text,
+) => HuiComponent(
+  id,
+  offset,
+  HuiDecorationData(HuiTextIcon(text, _menuIconStyle(context, ornament: true))),
+);
+
+HuiComponent _menuOrnament(_MenuShowcaseContext context, Vec3 offset) =>
+    HuiComponent(
+      'brand-ornament',
+      offset,
+      HuiDecorationData(_menuOrnamentIcon(context)),
+    );
+
+HuiIcon _menuOrnamentIcon(_MenuShowcaseContext context) {
+  final List<String> images =
+      context.store.images?.paths.toList() ?? <String>[];
+  images.sort();
+  final List<CustomItemEntry> customItems =
+      context.store.catalogs.customItems.items;
+  final List<String> available = <String>[
+    if (images.isNotEmpty) 'textImage',
+    if (images.length >= 2) 'animatedTextImage',
+    if (customItems.isNotEmpty) 'customItem',
+  ];
+  if (available.isEmpty) {
+    return HuiTextIcon(
+      '${context.mood.legacy}&l${context.glyph}',
+      _menuIconStyle(context, ornament: true),
+    );
+  }
+  return switch (showcasePick(context.random, available)) {
+    'textImage' => HuiTextImageIcon(
+      showcasePick(context.random, images),
+      _menuIconStyle(context, ornament: true),
+    ),
+    'animatedTextImage' => HuiAnimatedImageIcon(
+      images.take(math.min(4, images.length)).toList(),
+      6,
+      _menuIconStyle(context, ornament: true),
+    ),
+    _ => _menuCustomItemIcon(context, customItems),
+  };
+}
+
+HuiCustomItemIcon _menuCustomItemIcon(
+  _MenuShowcaseContext context,
+  List<CustomItemEntry> customItems,
+) {
+  final CustomItemEntry item = showcasePick(context.random, customItems);
+  return HuiCustomItemIcon(
+    item.provider,
+    item.id,
+    1,
+    _menuIconStyle(context, ornament: true),
   );
 }
 
-List<Vec3> _menuTopologyPositions(int topology) => switch (topology) {
-  0 => <Vec3>[
-    Vec3(0, 1.35, 0),
-    Vec3(-2.7, 1.15, 0),
-    Vec3(-2.1, 0.35, 0),
-    Vec3(-0.7, 0.35, 0),
-    Vec3(0.7, 0.35, 0),
-    Vec3(2.1, 0.35, 0),
-    Vec3(-1.5, -0.55, 0),
-    Vec3(0, -0.55, 0),
-    Vec3(1.5, -0.55, 0),
-    Vec3(-1.5, -1.35, 0),
-    Vec3(0, -1.35, 0),
-    Vec3(1.5, -1.35, 0),
-  ],
-  1 => <Vec3>[
-    Vec3(-1.5, 1.35, 0),
-    Vec3(1.7, 1.25, 0),
-    Vec3(-1.8, 0.55, 0),
-    Vec3(-0.6, 0.55, 0),
-    Vec3(0.6, 0.55, 0),
-    Vec3(1.8, 0.55, 0),
-    Vec3(-1.4, -0.35, 0),
-    Vec3(0, -0.35, 0),
-    Vec3(1.4, -0.35, 0),
-    Vec3(-1.4, -1.15, 0),
-    Vec3(0, -1.15, 0),
-    Vec3(1.4, -1.15, 0),
-  ],
-  2 => <Vec3>[
-    Vec3(0, 1.55, 0),
-    Vec3(0, 0.95, 0),
-    Vec3(-2.25, 0.55, 0),
-    Vec3(2.25, 0.55, 0),
-    Vec3(-2.25, -0.25, 0),
-    Vec3(2.25, -0.25, 0),
-    Vec3(-1.35, -0.85, 0),
-    Vec3(0, -1.05, 0),
-    Vec3(1.35, -0.85, 0),
-    Vec3(-1.3, -1.65, 0),
-    Vec3(0, -1.75, 0),
-    Vec3(1.3, -1.65, 0),
-  ],
-  _ => <Vec3>[
-    Vec3(-2.3, 1.4, 0),
-    Vec3(2.25, 1.35, 0),
-    Vec3(-2.1, 0.65, 0),
-    Vec3(-0.7, 0.65, 0),
-    Vec3(0.7, 0.65, 0),
-    Vec3(2.1, 0.65, 0),
-    Vec3(-1.4, -0.25, 0),
-    Vec3(0, -0.25, 0),
-    Vec3(1.4, -0.25, 0),
-    Vec3(-1.4, -1.1, 0),
-    Vec3(0, -1.1, 0),
-    Vec3(1.4, -1.1, 0),
-  ],
-};
+HuiComponent _menuButton(
+  _MenuShowcaseContext context, {
+  required String id,
+  required Vec3 offset,
+  required String label,
+  required String detail,
+  required List<HuiAction> actions,
+}) => HuiComponent(
+  id,
+  offset,
+  HuiButtonData(
+    0.08,
+    <HuiAction>[_menuFeedback(context), ...actions],
+    HuiTextIcon(
+      '${context.mood.legacy}&l$label\n&7$detail',
+      _menuIconStyle(context),
+    ),
+    HuiHitbox(0.95, 0.32, Vec3(0, 0, 0.02), HuiHitboxAnchor.button),
+    huiRuntimeDefaultHoverDurationTicks,
+    HuiHoverEasing.easeOutCubic,
+  ),
+);
+
+HuiComponent _menuNavigationButton(
+  _MenuShowcaseContext context, {
+  required String id,
+  required Vec3 offset,
+  required String label,
+  required String detail,
+  required String mode,
+}) => _menuButton(
+  context,
+  id: id,
+  offset: offset,
+  label: label,
+  detail: detail,
+  actions: <HuiAction>[HuiNavigateAction('', mode)],
+);
+
+HuiToggleData _menuStatusToggle(
+  _MenuShowcaseContext context,
+  _MenuStatusRecipe status,
+) => HuiToggleData(
+  0.08,
+  status.condition,
+  status.expectedValue,
+  <HuiAction>[_menuFeedback(context), HuiMessageAction(status.trueMessage)],
+  <HuiAction>[_menuFeedback(context), HuiMessageAction(status.falseMessage)],
+  HuiTextIcon(
+    '&a&l${status.trueLabel}\n&7Detected at open',
+    _menuIconStyle(context),
+  ),
+  HuiTextIcon(
+    '&7&l${status.falseLabel}\n&fDetected at open',
+    _menuIconStyle(context),
+  ),
+  HuiHitbox(0.95, 0.32, Vec3(0, 0, 0.02), HuiHitboxAnchor.button),
+  huiRuntimeDefaultHoverDurationTicks,
+  HuiHoverEasing.easeOutCubic,
+);
+
+HuiSoundAction _menuFeedback(_MenuShowcaseContext context) =>
+    HuiSoundAction('ui.button.click', 'player', 0.8, context.soundPitch);
+
+Vec3 _menuGridOffset(int index, int count) {
+  final int row = index ~/ 2;
+  final bool centered = count.isOdd && index == count - 1;
+  return Vec3(centered ? 0 : (index.isEven ? -1.15 : 1.15), 0.5 - row * 0.8, 0);
+}
+
+String _menuTargetLabel(String target) {
+  final String leaf = target.split('/').last;
+  final List<String> words = leaf
+      .replaceAll(RegExp('[-_]+'), ' ')
+      .split(' ')
+      .where((String word) => word.isNotEmpty)
+      .toList();
+  if (words.isEmpty) return 'Menu';
+  return words
+      .map(
+        (String word) =>
+            '${word.substring(0, 1).toUpperCase()}${word.substring(1)}',
+      )
+      .join(' ');
+}
+
+String _menuComponentSlug(String target) => target
+    .toLowerCase()
+    .replaceAll(RegExp('[^a-z0-9]+'), '-')
+    .replaceAll(RegExp(r'^-+|-+$'), '');
+
+HuiIconStyle _menuIconStyle(
+  _MenuShowcaseContext context, {
+  bool title = false,
+  bool ornament = false,
+}) {
+  final double scale = title ? 0.72 : (ornament ? 0.76 : 0.82);
+  return HuiIconStyle(
+    billboard: 'fixed',
+    shadow: true,
+    seeThrough: false,
+    textAlignment: 'center',
+    backgroundArgb: context.backgroundArgb,
+    textOpacity: 255,
+    lineWidth: title ? 260 : 180,
+    blockLight: 15,
+    skyLight: 15,
+    viewRange: 1.5,
+    shadowRadius: 0.18,
+    shadowStrength: 0.7,
+    cullingWidth: title ? 5 : 3,
+    cullingHeight: title ? 1.5 : 1,
+    glowColor: title ? '#FF${context.mood.primary.substring(1)}' : null,
+    scaleX: scale,
+    scaleY: scale,
+    scaleZ: scale,
+  );
+}
 
 enum PreviewShowcaseArchetype {
   beehive,
@@ -2440,7 +2885,8 @@ GlossDamageIndicatorsDoc buildRandomDamageIndicatorsShowcase(
     audience: GlossDamageIndicatorAudience(
       when: showcasePick(random, <String>[
         'true',
-        "viewer.world != '${showcasePick(random, showcaseWorlds)}'",
+        "viewer.world == 'world'",
+        "viewer.world != '${showcasePick(random, const <String>['world_nether', 'world_the_end'])}'",
         "hasPermission('viewer', 'gloss.indicators.show')",
       ]),
     ),
@@ -2453,51 +2899,112 @@ GlossDamageIndicatorStyle _randomDamageIndicatorStyle(
 }) {
   final double startScale = _band(random, (0.65, 1.8), 2);
   final double endScaleFactor = _band(random, (0.62, 1.38), 2);
-  return GlossDamageIndicatorStyle(
-    when: 'true',
-    presentation: GlossDamageIndicatorPresentation(
-      format: showcasePick(
-        random,
-        healing
-            ? const <String>[
-                '&a&l+{amount}',
-                '&2&l{amount}',
-                '&b+{amount} &aHP',
-                '&a[{amount}]',
-                '&e&l+{amount}',
-                '&f{amount} &aHEAL',
-              ]
-            : const <String>[
-                '&c&l{amount}',
-                '&4&l-{amount}',
-                '&6{amount} &cDMG',
-                '&c[{amount}]',
-                '&5&l{amount}&d!',
-                '&e-{amount} &6HP',
-              ],
-      ),
-      offset: Vec3(
-        _band(random, (-0.45, 0.45), 2),
-        _band(random, healing ? (-0.25, 0.9) : (0.35, 1.4), 2),
-        _band(random, (-0.45, 0.45), 2),
-      ),
-      motion: GlossDamageIndicatorMotion(
-        horizontalSpeed: _band(random, healing ? (0.15, 1.8) : (0.35, 2.4), 2),
-        verticalSpeed: _band(random, healing ? (0.25, 2.4) : (0.7, 3.4), 2),
-        verticalAcceleration: _band(
+  final GlossDamageIndicatorPresentation presentation =
+      GlossDamageIndicatorPresentation(
+        format: showcasePick(
           random,
-          healing ? (-1.5, 1.0) : (-4.0, -0.25),
-          2,
+          healing
+              ? const <String>[
+                  '&a&l+{amount}',
+                  '&2&l{amount}',
+                  '&b+{amount} &aHP',
+                  '&a[{amount}]',
+                  '&e&l+{amount}',
+                  '&f{amount} &aHEAL',
+                ]
+              : const <String>[
+                  '&c&l{amount}',
+                  '&4&l-{amount}',
+                  '&6{amount} &cDMG',
+                  '&c[{amount}]',
+                  '&5&l{amount}&d!',
+                  '&e-{amount} &6HP',
+                ],
         ),
-        spinDegreesPerSecond: _band(random, (-360, 360), 0),
+        offset: Vec3(
+          _band(random, (-0.45, 0.45), 2),
+          _band(random, healing ? (-0.25, 0.9) : (0.35, 1.4), 2),
+          _band(random, (-0.45, 0.45), 2),
+        ),
+        motion: GlossDamageIndicatorMotion(
+          horizontalSpeed: _band(
+            random,
+            healing ? (0.15, 1.8) : (0.35, 2.4),
+            2,
+          ),
+          verticalSpeed: _band(random, healing ? (0.25, 2.4) : (0.7, 3.4), 2),
+          verticalAcceleration: _band(
+            random,
+            healing ? (-1.5, 1.0) : (-4.0, -0.25),
+            2,
+          ),
+          spinDegreesPerSecond: _band(random, (-360, 360), 0),
+        ),
+        transform: GlossDamageIndicatorTransform(
+          startScale: startScale,
+          endScale: _round2(startScale * endScaleFactor),
+          fadeStartFraction: _band(random, (0.42, 0.86), 2),
+        ),
+      );
+  return GlossDamageIndicatorStyle(
+    when: healing ? 'event.healing' : 'event.damage',
+    presentation: presentation,
+    variants: <GlossDamageIndicatorVariant>[
+      GlossDamageIndicatorVariant(
+        id: healing ? 'large-heal' : 'critical-hit',
+        priority: healing ? 60 : 100,
+        when: healing
+            ? 'event.amount >= 8'
+            : 'event.criticalKnown && event.critical',
+        presentation: _randomDamageIndicatorVariantPresentation(
+          presentation,
+          random,
+          healing: healing,
+        ),
       ),
-      transform: GlossDamageIndicatorTransform(
-        startScale: startScale,
-        endScale: _round2(startScale * endScaleFactor),
-        fadeStartFraction: _band(random, (0.42, 0.86), 2),
-      ),
-    ),
+    ],
   );
+}
+
+GlossDamageIndicatorPresentation _randomDamageIndicatorVariantPresentation(
+  GlossDamageIndicatorPresentation base,
+  math.Random random, {
+  required bool healing,
+}) {
+  final GlossDamageIndicatorPresentation presentation = base.copy();
+  presentation.format = healing
+      ? showcasePick(random, const <String>[
+          '&a&l+{amount} &2BURST',
+          '&b&l+{amount} &3HEAL',
+          '&f&l{amount} &aRESTORED',
+        ])
+      : showcasePick(random, const <String>[
+          '&6&lCRIT &e-{amount}',
+          '&e&l-{amount} &6CRITICAL',
+          '&f&l{amount} &6CRIT',
+        ]);
+  presentation.offset.y = _round2(base.offset.y + 0.12);
+  presentation.motion.horizontalSpeed = _round2(
+    math.min(3.2, base.motion.horizontalSpeed * 1.2),
+  );
+  presentation.motion.verticalSpeed = _round2(
+    math.min(4.0, base.motion.verticalSpeed * 1.15),
+  );
+  presentation.motion.spinDegreesPerSecond = showcasePick(
+    random,
+    const <double>[-360, -240, 240, 360],
+  );
+  presentation.transform.startScale = _round2(
+    math.min(2.4, base.transform.startScale * 1.25),
+  );
+  presentation.transform.endScale = _round2(
+    math.min(2.8, base.transform.endScale * 1.15),
+  );
+  presentation.transform.fadeStartFraction = math.max(
+    0.5,
+    base.transform.fadeStartFraction,
+  );
+  return presentation;
 }
 
 void _applyDropArchetype(
@@ -3408,34 +3915,14 @@ HuiButtonData _randomButtonData(
   EditorStore store,
   math.Random random, {
   required Vec3 componentOffset,
-}) => _buttonDataForRecipe(
-  store,
-  random,
-  random.nextInt(6),
-  componentOffset,
-  requireHitbox: false,
-);
-
-HuiButtonData _menuButtonRecipe(
-  EditorStore store,
-  math.Random random,
-  int recipe,
-  Vec3 componentOffset,
-) => _buttonDataForRecipe(
-  store,
-  random,
-  recipe,
-  componentOffset,
-  requireHitbox: true,
-);
+}) => _buttonDataForRecipe(store, random, random.nextInt(6), componentOffset);
 
 HuiButtonData _buttonDataForRecipe(
   EditorStore store,
   math.Random random,
   int recipe,
-  Vec3 componentOffset, {
-  required bool requireHitbox,
-}) {
+  Vec3 componentOffset,
+) {
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
   final bool menuAnchored = random.nextBool();
   final Vec3 hitboxOffset = menuAnchored
@@ -3524,7 +4011,7 @@ HuiButtonData _buttonDataForRecipe(
       random,
       preferredType: iconTypes[recipe % iconTypes.length],
     ),
-    requireHitbox || random.nextInt(4) != 0
+    random.nextInt(4) != 0
         ? HuiHitbox(
             0.45 + random.nextDouble() * 0.1,
             0.18 + random.nextDouble() * 0.08,

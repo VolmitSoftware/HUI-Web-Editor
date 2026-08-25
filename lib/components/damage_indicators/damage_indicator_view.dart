@@ -40,6 +40,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
   int _heldMs = 0;
   int _seed = 1;
   double _amount = 7;
+  bool _critical = false;
   DamageIndicatorPreviewKind _kind = DamageIndicatorPreviewKind.damage;
 
   EditorStore get _store => component.store;
@@ -127,7 +128,17 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
 
   void _selectKind(DamageIndicatorPreviewKind kind) {
     _kind = kind;
+    if (kind == DamageIndicatorPreviewKind.healing) _critical = false;
     _replay();
+  }
+
+  void _toggleCritical() {
+    setState(() {
+      _critical = !_critical;
+      _heldMs = 0;
+      _clockOffsetMs = DateTime.now().millisecondsSinceEpoch;
+      _playing = true;
+    });
   }
 
   @override
@@ -151,27 +162,25 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
     _syncTicker();
     final GlossDamageIndicatorStyle style =
         _kind == DamageIndicatorPreviewKind.damage ? doc.damage : doc.healing;
-    final GlossConditionContext conditionContext = GlossConditionContext(
-      variables: <String, Object?>{
-        'event.type': _kind == DamageIndicatorPreviewKind.damage
-            ? 'damage'
-            : 'healing',
-        'event.amount': _amount,
-        'event.damage': _kind == DamageIndicatorPreviewKind.damage,
-        'event.healing': _kind == DamageIndicatorPreviewKind.healing,
-        'subject.health': 12.0,
-        'subject.maxHealth': 20.0,
-        'subject.healthPercent': 60.0,
-        'subject.world': 'world',
-      },
-      permissions: <String>{'gloss.indicators.show'},
-    );
+    final GlossConditionContext styleContext =
+        buildDamageIndicatorPreviewConditionContext(
+          kind: _kind,
+          amount: _amount,
+          critical: _critical,
+        );
+    final GlossConditionContext audienceContext =
+        buildDamageIndicatorPreviewConditionContext(
+          kind: _kind,
+          amount: _amount,
+          critical: _critical,
+          includeViewer: true,
+        );
     final GlossDamageIndicatorPresentation? presentation =
-        resolveDamageIndicatorPresentation(style, conditionContext);
-    final bool audienceVisible = glossConditionMatches(
+        resolveDamageIndicatorPresentation(style, styleContext);
+    final ({bool matches, String? error}) audience = glossConditionMatches(
       doc.audience.when,
-      conditionContext,
-    ).matches;
+      audienceContext,
+    );
     final DamageIndicatorPreviewCycle cycle =
         resolveDamageIndicatorPreviewCycle(
           lifetimeMs: doc.limits.lifetimeMs,
@@ -189,14 +198,18 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
       _amount,
       doc.limits.decimals,
     );
-    final Widget scene = presentation == null || !audienceVisible
-        ? const dom.div(classes: 'hui-damage-indicator-empty-state', <Widget>[])
+    final Widget scene = presentation == null || !audience.matches
+        ? _conditionFalseScene()
         : _scene(frame, formatted, cycle.elapsedMs);
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.world,
         label: huiText('Damage indicators in game'),
-        controls: <Widget>[_playPauseButton(), _replayButton()],
+        controls: <Widget>[
+          _playPauseButton(),
+          _replayButton(),
+          if (_kind == DamageIndicatorPreviewKind.damage) _criticalButton(),
+        ],
         child: scene,
       );
     }
@@ -252,6 +265,11 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
     ]),
   ]);
 
+  Widget _conditionFalseScene() =>
+      dom.div(classes: 'hui-damage-indicator-empty-state', <Widget>[
+        dom.span(<Widget>[Text(huiText('condition false'))]),
+      ]);
+
   Widget _controls(
     GlossDamageIndicatorsDoc doc,
     DamageIndicatorPreviewCycle cycle,
@@ -269,6 +287,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
     ),
     _playPauseButton(),
     _replayButton(),
+    if (_kind == DamageIndicatorPreviewKind.damage) _criticalButton(),
     Button(
       variant: ButtonVariant.outline,
       size: ButtonSize.iconSm,
@@ -343,5 +362,16 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
       'title': huiText('Replay'),
     },
     child: ArcaneIcon.refreshCcw(size: IconSize.sm),
+  );
+
+  Widget _criticalButton() => Button(
+    variant: ButtonVariant.outline,
+    size: ButtonSize.sm,
+    onPressed: _toggleCritical,
+    attributes: <String, String>{
+      'aria-pressed': _critical.toString(),
+      'title': huiText('Critical hit'),
+    },
+    child: Text(huiText('Critical hit')),
   );
 }

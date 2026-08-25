@@ -247,10 +247,141 @@ void main() {
     }
   });
 
-  test('menu generation reaches every icon, action and interaction enum', () {
+  test(
+    'menu navigator uses real targets and one coherent branded ornament',
+    () {
+      final EditorStore store = _resourceStore();
+      store.newDocument();
+      store.newDocument();
+      final WorkspaceDoc slugTarget = store.workspace.docs.firstWhere(
+        (WorkspaceDoc document) => document.id != store.workspace.activeId,
+      );
+      slugTarget.runtimeId = 'folder/alpha---';
+      final Set<String> targets = <String>{
+        for (final WorkspaceDoc document in store.workspace.docs)
+          if (document.id != store.workspace.activeId &&
+              document.runtimeId != null)
+            document.runtimeId!,
+      };
+      final Set<String> ornamentTypes = <String>{};
+      for (int seed = 0; seed < 128; seed++) {
+        final HuiMenu menu = buildRandomMenuShowcase(
+          store,
+          math.Random(seed),
+          archetype: MenuShowcaseArchetype.menuNavigator,
+        );
+        final HuiComponent ornament = menu.componentById('brand-ornament')!;
+        ornamentTypes.add((ornament.data as HuiDecorationData).icon!.type);
+        expect(
+          menu.components.where(
+            (HuiComponent component) => component.id == 'brand-ornament',
+          ),
+          hasLength(1),
+        );
+        final List<HuiNavigateAction> actions = menu.components
+            .map((HuiComponent component) => component.data)
+            .whereType<HuiButtonData>()
+            .expand((HuiButtonData button) => button.actions)
+            .whereType<HuiNavigateAction>()
+            .toList();
+        expect(
+          actions.where((HuiNavigateAction action) => action.requiresTarget),
+          isNotEmpty,
+        );
+        expect(
+          actions
+              .where((HuiNavigateAction action) => action.requiresTarget)
+              .every(
+                (HuiNavigateAction action) => targets.contains(action.target),
+              ),
+          isTrue,
+        );
+        expect(
+          menu.components
+              .map((HuiComponent component) => component.id)
+              .where((String id) => id.startsWith('open-')),
+          anyElement(endsWith('-folder-alpha')),
+        );
+        expect(menu.lockPosition && menu.followPlayer, isFalse);
+        _expectMenuBudget(menu, 'navigator seed $seed');
+      }
+      expect(ornamentTypes, <String>{
+        'textImage',
+        'animatedTextImage',
+        'customItem',
+      });
+
+      final EditorStore fallbackStore = _store()..newDocument();
+      for (final WorkspaceDoc document in fallbackStore.workspace.docs) {
+        if (document.id != fallbackStore.workspace.activeId) {
+          document.kind = WorkspaceDocKind.scoreboard;
+        }
+      }
+      final HuiMenu fallback = buildRandomMenuShowcase(
+        fallbackStore,
+        math.Random(901),
+        archetype: MenuShowcaseArchetype.menuNavigator,
+      );
+      final List<HuiNavigateAction> fallbackActions = fallback.components
+          .map((HuiComponent component) => component.data)
+          .whereType<HuiButtonData>()
+          .expand((HuiButtonData button) => button.actions)
+          .whereType<HuiNavigateAction>()
+          .toList();
+      expect(
+        fallbackActions.map((HuiNavigateAction action) => action.mode).toSet(),
+        <String>{'home', 'back', 'close'},
+      );
+      expect(
+        fallbackActions.every(
+          (HuiNavigateAction action) => action.target.isEmpty,
+        ),
+        isTrue,
+      );
+      fallbackStore.replaceMenu('Install fallback navigator', fallback);
+      expect(
+        fallbackStore.issues.where(
+          (HuiIssue issue) => issue.severity != HuiSeverity.info,
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  test('component randomization reaches every field-surface enum', () {
     final EditorStore store = _resourceStore();
     store.newDocument();
     store.newDocument();
+    store.replaceMenu(
+      'Install component coverage fixtures',
+      HuiMenu(
+        components: <HuiComponent>[
+          HuiComponent(
+            'button',
+            Vec3(-1, 0, 0),
+            HuiButtonData(0.05, <HuiAction>[], HuiTextIcon('Button')),
+          ),
+          HuiComponent(
+            'decoration',
+            Vec3(0, 0, 0),
+            HuiDecorationData(HuiTextIcon('Decoration')),
+          ),
+          HuiComponent(
+            'toggle',
+            Vec3(1, 0, 0),
+            HuiToggleData(
+              0.05,
+              '%player_is_op%',
+              'yes',
+              <HuiAction>[],
+              <HuiAction>[],
+              HuiTextIcon('On'),
+              HuiTextIcon('Off'),
+            ),
+          ),
+        ],
+      ),
+    );
     final Set<String> iconTypes = <String>{};
     final Set<String> actionTypes = <String>{};
     final Set<String> triggers = <String>{};
@@ -259,10 +390,29 @@ void main() {
     final Set<String> navigationModes = <String>{};
     final Set<HuiHoverEasing> easings = <HuiHoverEasing>{};
     final Set<HuiHitboxAnchor> anchors = <HuiHitboxAnchor>{};
-    for (int seed = 0; seed < 256; seed++) {
-      final HuiMenu menu = buildRandomMenuShowcase(store, math.Random(seed));
-      iconTypes.addAll(_menuIcons(menu).map((HuiIcon icon) => icon.type));
-      for (final HuiComponent component in menu.components) {
+    for (int seed = 0; seed < 512; seed++) {
+      expect(
+        randomizeMenuComponent(store, 'button', random: math.Random(seed * 3)),
+        isTrue,
+      );
+      expect(
+        randomizeMenuComponent(
+          store,
+          'decoration',
+          random: math.Random(seed * 3 + 1),
+        ),
+        isTrue,
+      );
+      expect(
+        randomizeMenuComponent(
+          store,
+          'toggle',
+          random: math.Random(seed * 3 + 2),
+        ),
+        isTrue,
+      );
+      iconTypes.addAll(_menuIcons(store.menu).map((HuiIcon icon) => icon.type));
+      for (final HuiComponent component in store.menu.components) {
         final List<HuiAction> actions = switch (component.data) {
           final HuiButtonData button => button.actions,
           final HuiToggleData toggle => <HuiAction>[
@@ -289,7 +439,7 @@ void main() {
             break;
         }
       }
-      _expectMenuBudget(menu, 'menu seed $seed');
+      _expectMenuBudget(store.menu, 'component seed $seed');
     }
     expect(iconTypes, huiIconTypes.toSet());
     expect(actionTypes, huiActionTypes.toSet());

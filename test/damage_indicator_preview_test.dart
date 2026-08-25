@@ -2,6 +2,7 @@ library;
 
 import 'package:gloss_editor/config/gloss_templates.dart';
 import 'package:gloss_editor/logic/damage_indicator_preview.dart';
+import 'package:gloss_editor/components/scoreboard/scoreboard_selection.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
@@ -129,5 +130,100 @@ void main() {
     expect(cycle.elapsedMs, 0);
     expect(cycle.cycleIndex, 0);
     expect(cycle.seed, 3);
+  });
+
+  test('preview context resolves the complete indicator role surface', () {
+    final GlossConditionContext context =
+        buildDamageIndicatorPreviewConditionContext(
+          kind: DamageIndicatorPreviewKind.damage,
+          amount: 7,
+          critical: true,
+          includeViewer: true,
+        );
+    const ({String source, bool matches}) checks = (
+      source:
+          "event.cause == 'entity_attack' && event.reportedAmount == 7 && "
+          "event.criticalKnown && event.critical && source.present && "
+          "subject.world == viewer.world && player.world == 'world' && "
+          "hasPermission('viewer', 'gloss.indicators.show')",
+      matches: true,
+    );
+    final ({bool matches, String? error}) result = glossConditionMatches(
+      checks.source,
+      context,
+    );
+
+    expect(result.error, isNull);
+    expect(result.matches, checks.matches);
+  });
+
+  test(
+    'supplied world exclusion is valid and intentionally hides the sample',
+    () {
+      final GlossConditionContext context =
+          buildDamageIndicatorPreviewConditionContext(
+            kind: DamageIndicatorPreviewKind.damage,
+            amount: 7,
+            includeViewer: true,
+          );
+      final ({bool matches, String? error}) result = glossConditionMatches(
+        "viewer.world != 'world'",
+        context,
+      );
+
+      expect(result.error, isNull);
+      expect(result.matches, isFalse);
+    },
+  );
+
+  test('viewer values remain exclusive to the audience surface', () {
+    final GlossConditionContext styleContext =
+        buildDamageIndicatorPreviewConditionContext(
+          kind: DamageIndicatorPreviewKind.damage,
+          amount: 7,
+        );
+    final ({bool matches, String? error}) result = glossConditionMatches(
+      "viewer.world == 'world'",
+      styleContext,
+    );
+
+    expect(result.matches, isFalse);
+    expect(result.error, isNotNull);
+  });
+
+  test('critical preview state selects a critical variant', () {
+    final GlossDamageIndicatorsDoc doc = buildDefaultGlossDamageIndicators();
+    final GlossDamageIndicatorPresentation criticalPresentation =
+        doc.damage.presentation.copy()..format = '&6CRIT {amount}';
+    doc.damage.variants = <GlossDamageIndicatorVariant>[
+      GlossDamageIndicatorVariant(
+        id: 'critical-hit',
+        priority: 100,
+        when: 'event.criticalKnown && event.critical',
+        presentation: criticalPresentation,
+      ),
+    ];
+
+    expect(
+      resolveDamageIndicatorPresentation(
+        doc.damage,
+        buildDamageIndicatorPreviewConditionContext(
+          kind: DamageIndicatorPreviewKind.damage,
+          amount: 7,
+        ),
+      )?.format,
+      doc.damage.presentation.format,
+    );
+    expect(
+      resolveDamageIndicatorPresentation(
+        doc.damage,
+        buildDamageIndicatorPreviewConditionContext(
+          kind: DamageIndicatorPreviewKind.damage,
+          amount: 7,
+          critical: true,
+        ),
+      )?.format,
+      '&6CRIT {amount}',
+    );
   });
 }

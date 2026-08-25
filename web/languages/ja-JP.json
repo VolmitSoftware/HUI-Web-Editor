@@ -671,6 +671,7 @@
     "Create the animation document or select an existing one.": "アニメーション ドキュメントを作成するか、既存のドキュメントを選択します。",
     "Created \"{id}\" from the {name} template": "{id} テンプレートから「{name}」を作成しました",
     "Created {title}.": "{title}を作成しました。",
+    "Critical hit": "クリティカルヒット",
     "Ctrl+Y works too.": "Ctrl+Y も機能します。",
     "Cull height": "カリング高さ",
     "Cull width": "カリング幅",
