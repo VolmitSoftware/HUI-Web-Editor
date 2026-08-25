@@ -59,7 +59,7 @@ final class DamageIndicatorsDocumentType extends GlossDocumentTypeAdapter {
   @override
   String get codeShapeError =>
       'That is not a damage-indicators document: it needs "schemaVersion", '
-      '"limits", "damage", "healing", and "filters".';
+      '"limits", "damage", "healing", and "audience".';
 
   @override
   String get defaultDocumentName => glossDamageIndicatorsDefaultId;
@@ -77,7 +77,7 @@ final class DamageIndicatorsDocumentType extends GlossDocumentTypeAdapter {
   @override
   String get templatesNote => huiText(
     'The singleton damage-indicators/default.json file controls combat '
-    'number admission, text, trajectories, presentation, and world filters.',
+    'number admission, conditional presentations, and viewer audience.',
   );
 
   @override

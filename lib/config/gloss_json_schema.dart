@@ -23,6 +23,7 @@ import '../model/gloss_bubble_style.dart';
 import '../model/gloss_damage_indicators.dart';
 import '../model/gloss_motd.dart';
 import '../model/gloss_real_drop_animation.dart';
+import '../model/gloss_real_drops.dart';
 import '../model/gloss_scoreboard.dart';
 import '../model/gloss_tablist.dart';
 import 'gloss_menu_json_schema.dart';
@@ -155,64 +156,121 @@ final GlossJsonObject glossAnimationJsonSchema = GlossJsonObject(
 
 // --- scoreboard -------------------------------------------------------------
 
-final GlossJsonObject glossScoreboardJsonSchema = GlossJsonObject(
+const GlossJsonObject _conditionSelectNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    _schemaVersionField(1),
-    _revisionField,
-    const GlossJsonField(
+    GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Highest matching priority wins; ids break ties.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Typed boolean expression evaluated against the viewer context.',
+      docKey: 'condition.when',
+      defaultLiteral: '"true"',
+    ),
+  ],
+);
+
+const GlossJsonObject _scoreboardPresentationNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
       key: 'title',
       type: GlossJsonType.string,
       title: 'Title',
       summary:
           'Sidebar header. Empty falls back to the board id; '
           '$glossBoardMaxTitleLength rendered characters is the cap.',
-      docKey: 'scoreboard.title',
+      docKey: 'scoreboard.presentation.title',
       defaultLiteral: '""',
     ),
-    const GlossJsonField(
+    GlossJsonField(
       key: 'lines',
       type: GlossJsonType.array,
       title: 'Lines',
       summary:
           'Sidebar rows, top first. Past $glossBoardMaxLines never reaches '
           'the client.',
-      docKey: 'scoreboard.lines',
+      docKey: 'scoreboard.presentation.lines',
       node: _textLinesNode,
     ),
-    const GlossJsonField(
-      key: 'primary',
-      type: GlossJsonType.boolean,
-      title: 'Primary',
-      summary: 'Volunteers as the default board for unsteered players.',
-      docKey: 'scoreboard.primary',
-      defaultLiteral: 'false',
-    ),
-    const GlossJsonField(
+    GlossJsonField(
       key: 'hideNumbers',
       type: GlossJsonType.boolean,
       title: 'Hide numbers',
       summary: 'Uses the blank score format on 1.20.3 and newer clients.',
-      docKey: 'scoreboard.hideNumbers',
+      docKey: 'scoreboard.presentation.hideNumbers',
       defaultLiteral: 'false',
     ),
-    const GlossJsonField(
-      key: 'permission',
+  ],
+);
+
+const GlossJsonObject _scoreboardVariantNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'id',
       type: GlossJsonType.string,
-      title: 'Permission',
-      summary:
-          'Trimmed and lowercased; "$glossBoardUnrestrictedPermission" or '
-          'empty is unrestricted, anything else gates on '
-          '$glossBoardPermissionNodePrefix<value>.',
-      docKey: 'scoreboard.permission',
-      defaultLiteral: '"$glossBoardUnrestrictedPermission"',
+      title: 'Variant id',
+      summary: 'Stable unique id; the smaller id wins a priority tie.',
+    ),
+    GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Highest matching variant priority wins.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Typed boolean expression evaluated for this viewer.',
+      docKey: 'condition.when',
+      defaultLiteral: '"false"',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Presentation',
+      summary: 'Complete sidebar layout used when this variant wins.',
+      node: _scoreboardPresentationNode,
+    ),
+  ],
+);
+
+final GlossJsonObject glossScoreboardJsonSchema = GlossJsonObject(
+  fields: <GlossJsonField>[
+    _schemaVersionField(glossScoreboardCurrentSchemaVersion),
+    _revisionField,
+    const GlossJsonField(
+      key: 'select',
+      type: GlossJsonType.object,
+      title: 'Selection',
+      summary: 'Board-level priority and eligibility condition.',
+      node: _conditionSelectNode,
     ),
     const GlossJsonField(
-      key: 'groups',
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Default presentation',
+      summary: 'Complete fallback sidebar layout.',
+      node: _scoreboardPresentationNode,
+    ),
+    const GlossJsonField(
+      key: 'variants',
       type: GlossJsonType.array,
-      title: 'Groups',
-      summary: 'Vault groups this board serves; trimmed, lowercased, deduped.',
-      docKey: 'scoreboard.groups',
-      node: _plainStringsNode,
+      title: 'Conditional variants',
+      summary:
+          'Complete alternative layouts selected by condition and priority.',
+      node: GlossJsonArray(
+        item: _scoreboardVariantNode,
+        itemTitle: 'Variant',
+        itemSummary: 'One condition and complete sidebar presentation.',
+      ),
     ),
   ],
 );
@@ -410,34 +468,11 @@ const GlossJsonObject _bubbleShimmerNode = GlossJsonObject(
           '0..$glossBubbleMaxShimmerOffsetMs.',
       defaultLiteral: '$glossBubbleShimmerDefaultFlyAwayLeadMs',
     ),
-    GlossJsonField(
-      key: 'edgeColor',
-      type: GlossJsonType.any,
-      title: 'Edge colour (retired)',
-      summary: 'The two-tone band is gone; the key is read and dropped.',
-      legacy: true,
-    ),
   ],
 );
 
 const GlossJsonObject _bubbleSelectNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    GlossJsonField(
-      key: 'worlds',
-      type: GlossJsonType.array,
-      title: 'Worlds',
-      summary: 'World-name globs with * and ?. Trimmed, case kept.',
-      docKey: 'bubble.select.worlds',
-      node: _plainStringsNode,
-    ),
-    GlossJsonField(
-      key: 'groups',
-      type: GlossJsonType.array,
-      title: 'Groups',
-      summary: 'Vault groups. Trimmed, blanks dropped, lowercased.',
-      docKey: 'bubble.select.groups',
-      node: _plainStringsNode,
-    ),
     GlossJsonField(
       key: 'priority',
       type: GlossJsonType.integer,
@@ -445,6 +480,14 @@ const GlossJsonObject _bubbleSelectNode = GlossJsonObject(
       summary: 'Highest match wins; ties break to the smaller style id.',
       docKey: 'bubble.select.priority',
       defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Typed per-player condition. Errors fail closed.',
+      docKey: 'condition.when',
+      defaultLiteral: '"false"',
     ),
   ],
 );
@@ -533,73 +576,177 @@ final GlossJsonObject glossBubbleStyleJsonSchema = GlossJsonObject(
 
 // --- tablist ----------------------------------------------------------------
 
-const GlossJsonObject _tablistNameFormatsNode = GlossJsonObject(
-  openKeyType: GlossJsonType.string,
-  openKeyTitle: 'Group format',
-  openKeySummary: 'Vault group name; keys are trimmed and lowercased on load.',
+const GlossJsonObject _tablistHeaderFooterPresentationNode = GlossJsonObject(
   fields: <GlossJsonField>[
     GlossJsonField(
-      key: glossTablistDefaultGroupKey,
+      key: 'header',
       type: GlossJsonType.string,
-      title: 'Default format',
-      summary: 'The fallback list-name format for everyone else.',
-      defaultLiteral: '"$glossTablistFallbackFormat"',
+      title: 'Header',
+      summary: 'Rendered above the player grid per viewer.',
+      docKey: 'tablist.headerFooter.presentation.header',
+      defaultLiteral: '""',
     ),
     GlossJsonField(
-      key: glossTablistOpGroupKey,
+      key: 'footer',
       type: GlossJsonType.string,
-      title: 'Operator format',
-      summary: 'The format operators get first, before any group match.',
+      title: 'Footer',
+      summary: 'Rendered below the player grid per viewer.',
+      docKey: 'tablist.headerFooter.presentation.footer',
+      defaultLiteral: '""',
+    ),
+  ],
+);
+
+const GlossJsonObject _tablistListNamePresentationNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'format',
+      type: GlossJsonType.string,
+      title: 'Format',
+      summary: r'List name with $player and $group tokens.',
+      docKey: 'tablist.listNames.presentation.format',
       defaultLiteral: '"$glossTablistFallbackFormat"',
+    ),
+  ],
+);
+
+const GlossJsonObject _tablistHeaderFooterVariantNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Variant id',
+      summary: 'Stable unique id; smaller ids win priority ties.',
+    ),
+    GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Highest matching priority wins.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Typed boolean viewer condition.',
+      docKey: 'condition.when',
+      defaultLiteral: '"false"',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Presentation',
+      summary: 'Complete header/footer pair.',
+      node: _tablistHeaderFooterPresentationNode,
+    ),
+  ],
+);
+
+const GlossJsonObject _tablistListNameVariantNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Variant id',
+      summary: 'Stable unique id; smaller ids win priority ties.',
+    ),
+    GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Highest matching priority wins.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Typed viewer/subject condition.',
+      docKey: 'condition.when',
+      defaultLiteral: '"false"',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Presentation',
+      summary: 'Complete list-name format.',
+      node: _tablistListNamePresentationNode,
+    ),
+  ],
+);
+
+const GlossJsonObject _tablistHeaderFooterNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Enabled',
+      summary: 'Off leaves the vanilla top and bottom untouched.',
+      docKey: 'tablist.headerFooter.enabled',
+      defaultLiteral: 'false',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Default presentation',
+      summary: 'Fallback header and footer.',
+      node: _tablistHeaderFooterPresentationNode,
+    ),
+    GlossJsonField(
+      key: 'variants',
+      type: GlossJsonType.array,
+      title: 'Variants',
+      summary: 'Conditional complete header/footer alternatives.',
+      node: GlossJsonArray(item: _tablistHeaderFooterVariantNode),
+    ),
+  ],
+);
+
+const GlossJsonObject _tablistListNamesNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Enabled',
+      summary: 'Off resets all list names to vanilla.',
+      docKey: 'tablist.listNames.enabled',
+      defaultLiteral: 'false',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Default presentation',
+      summary: 'Fallback list-name format.',
+      node: _tablistListNamePresentationNode,
+    ),
+    GlossJsonField(
+      key: 'variants',
+      type: GlossJsonType.array,
+      title: 'Variants',
+      summary: 'Conditional complete list-name alternatives.',
+      node: GlossJsonArray(item: _tablistListNameVariantNode),
     ),
   ],
 );
 
 final GlossJsonObject glossTablistJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
-    _schemaVersionField(1),
+    _schemaVersionField(glossTablistCurrentSchemaVersion),
     _revisionField,
     const GlossJsonField(
-      key: 'useHeaderFooter',
-      type: GlossJsonType.boolean,
-      title: 'Use header and footer',
-      summary: 'Off clears anything Gloss applied and leaves the tab alone.',
-      docKey: 'tablist.useHeaderFooter',
-      defaultLiteral: 'false',
-    ),
-    const GlossJsonField(
-      key: 'header',
-      type: GlossJsonType.string,
-      title: 'Header',
-      summary: 'Rendered per viewer, per update tick.',
-      docKey: 'tablist.header',
-      defaultLiteral: '""',
-    ),
-    const GlossJsonField(
-      key: 'footer',
-      type: GlossJsonType.string,
-      title: 'Footer',
-      summary: 'Rendered per viewer, per update tick.',
-      docKey: 'tablist.footer',
-      defaultLiteral: '""',
-    ),
-    const GlossJsonField(
-      key: 'groupListNames',
-      type: GlossJsonType.boolean,
-      title: 'Group list names',
-      summary: 'Off resets list names to vanilla and ignores nameFormats.',
-      docKey: 'tablist.groupListNames',
-      defaultLiteral: 'false',
-    ),
-    const GlossJsonField(
-      key: 'nameFormats',
+      key: 'headerFooter',
       type: GlossJsonType.object,
-      title: 'Name formats',
-      summary:
-          'Group key to list-name format. $glossTablistFallbackFormat is '
-          'the player name.',
-      docKey: 'tablist.nameFormats',
-      node: _tablistNameFormatsNode,
+      title: 'Header and footer',
+      summary: 'Conditional header/footer configuration.',
+      node: _tablistHeaderFooterNode,
+    ),
+    const GlossJsonField(
+      key: 'listNames',
+      type: GlossJsonType.object,
+      title: 'List names',
+      summary: 'Conditional listed-player name configuration.',
+      node: _tablistListNamesNode,
     ),
   ],
 );
@@ -1283,10 +1430,8 @@ final GlossJsonObject _realDropAnimationNode = GlossJsonObject(
   ],
 );
 
-final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
+final GlossJsonObject _realDropPresentationNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    _schemaVersionField(1),
-    _revisionField,
     const GlossJsonField(
       key: 'limits',
       type: GlossJsonType.object,
@@ -1350,6 +1495,84 @@ final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
       summary: 'Material profiles with event clips and typed scalar tracks.',
       docKey: 'realDrops.animation',
       node: _realDropAnimationNode,
+    ),
+  ],
+);
+
+final GlossJsonObject _realDropVariantNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Variant id',
+      summary: 'Stable unique id; smaller ids win priority ties.',
+    ),
+    const GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Highest matching priority wins. Clamped to -10000..10000.',
+      defaultLiteral: '0',
+    ),
+    const GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Typed condition evaluated against the immutable drop.',
+      docKey: 'condition.when',
+      defaultLiteral: '"false"',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Presentation',
+      summary: 'Complete independent real-drop presentation.',
+      node: _realDropPresentationNode,
+    ),
+  ],
+);
+
+const GlossJsonObject _realDropAudienceNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Viewer condition',
+      summary: 'A matching viewer receives Gloss displays instead of vanilla.',
+      docKey: 'condition.when',
+      defaultLiteral: '"true"',
+    ),
+  ],
+);
+
+final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
+  fields: <GlossJsonField>[
+    _schemaVersionField(glossRealDropsCurrentSchemaVersion),
+    _revisionField,
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Presentation',
+      summary: 'Fallback presentation when no conditional variant matches.',
+      node: _realDropPresentationNode,
+    ),
+    GlossJsonField(
+      key: 'variants',
+      type: GlossJsonType.array,
+      title: 'Conditional variants',
+      summary: 'Complete alternatives selected by condition and priority.',
+      node: GlossJsonArray(
+        item: _realDropVariantNode,
+        itemTitle: 'Variant',
+        itemSummary: 'One conditional real-drop presentation.',
+      ),
+    ),
+    const GlossJsonField(
+      key: 'audience',
+      type: GlossJsonType.object,
+      title: 'Audience',
+      summary: 'Per-viewer visibility for the selected presentation.',
+      node: _realDropAudienceNode,
     ),
   ],
 );
@@ -1420,7 +1643,7 @@ const GlossJsonObject _damageIndicatorMotionNode = GlossJsonObject(
   ],
 );
 
-const GlossJsonObject _damageIndicatorPresentationNode = GlossJsonObject(
+const GlossJsonObject _damageIndicatorTransformNode = GlossJsonObject(
   fields: <GlossJsonField>[
     GlossJsonField(
       key: 'startScale',
@@ -1446,12 +1669,33 @@ const GlossJsonObject _damageIndicatorPresentationNode = GlossJsonObject(
 const GlossJsonObject _damageIndicatorStyleNode = GlossJsonObject(
   fields: <GlossJsonField>[
     GlossJsonField(
-      key: 'enabled',
-      type: GlossJsonType.boolean,
-      title: 'Enabled',
-      summary: 'Whether this health-change type spawns indicators.',
-      defaultLiteral: 'true',
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'The event must satisfy this typed condition.',
+      docKey: 'condition.when',
+      defaultLiteral: '"true"',
     ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Default presentation',
+      summary: 'Fallback complete indicator presentation.',
+      node: _damageIndicatorCompletePresentationNode,
+    ),
+    GlossJsonField(
+      key: 'variants',
+      type: GlossJsonType.array,
+      title: 'Variants',
+      summary: 'Conditional complete presentation alternatives.',
+      node: GlossJsonArray(item: _damageIndicatorVariantNode),
+    ),
+  ],
+);
+
+const GlossJsonObject
+_damageIndicatorCompletePresentationNode = GlossJsonObject(
+  fields: <GlossJsonField>[
     GlossJsonField(
       key: 'format',
       type: GlossJsonType.string,
@@ -1474,24 +1718,56 @@ const GlossJsonObject _damageIndicatorStyleNode = GlossJsonObject(
       node: _damageIndicatorMotionNode,
     ),
     GlossJsonField(
-      key: 'presentation',
+      key: 'transform',
       type: GlossJsonType.object,
-      title: 'Presentation',
+      title: 'Transform',
       summary: 'Scale interpolation and fade timing.',
-      node: _damageIndicatorPresentationNode,
+      node: _damageIndicatorTransformNode,
     ),
   ],
 );
 
-const GlossJsonObject _damageIndicatorFiltersNode = GlossJsonObject(
+const GlossJsonObject _damageIndicatorVariantNode = GlossJsonObject(
   fields: <GlossJsonField>[
     GlossJsonField(
-      key: 'disabledWorlds',
-      type: GlossJsonType.array,
-      title: 'Disabled worlds',
-      summary:
-          'Exact, case-sensitive world folder names where numbers do not spawn.',
-      node: _plainStringsNode,
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Variant id',
+      summary: 'Stable unique id; smaller ids win priority ties.',
+    ),
+    GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Highest matching priority wins.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Typed condition for this complete alternative.',
+      docKey: 'condition.when',
+      defaultLiteral: '"false"',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Presentation',
+      summary: 'Complete format, offset, motion and transform.',
+      node: _damageIndicatorCompletePresentationNode,
+    ),
+  ],
+);
+
+const GlossJsonObject _damageIndicatorAudienceNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Viewer condition',
+      summary: 'Each viewer must satisfy this condition to see indicators.',
+      docKey: 'condition.when',
     ),
   ],
 );
@@ -1511,22 +1787,22 @@ final GlossJsonObject glossDamageIndicatorsJsonSchema = GlossJsonObject(
       key: 'damage',
       type: GlossJsonType.object,
       title: 'Damage',
-      summary: 'Text and trajectory for health loss.',
+      summary: 'Conditional presentations for health loss.',
       node: _damageIndicatorStyleNode,
     ),
     const GlossJsonField(
       key: 'healing',
       type: GlossJsonType.object,
       title: 'Healing',
-      summary: 'Text and trajectory for health gain.',
+      summary: 'Conditional presentations for health gain.',
       node: _damageIndicatorStyleNode,
     ),
     const GlossJsonField(
-      key: 'filters',
+      key: 'audience',
       type: GlossJsonType.object,
-      title: 'Filters',
-      summary: 'Worlds where the service remains inactive.',
-      node: _damageIndicatorFiltersNode,
+      title: 'Audience',
+      summary: 'Per-viewer visibility condition.',
+      node: _damageIndicatorAudienceNode,
     ),
   ],
 );

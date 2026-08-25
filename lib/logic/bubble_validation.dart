@@ -4,8 +4,7 @@
 /// present-but-malformed `offset` kills the file (the strict `[x, y, z]`
 /// Vector adapter). The two numeric fields clamp SILENTLY
 /// (`BubbleStyleDoc.java:26-28`), so out-of-range values are warnings that
-/// name the effective value, per the wave-1 convention. The select notes
-/// mirror `BubbleStyles.resolveStyleId` and `Select.cleanStrings`.
+/// name the effective value, per the wave-1 convention.
 library;
 
 import '../model/gloss_bubble_style.dart';
@@ -87,50 +86,11 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
           'glossBubbleStylePermissionPrefix': glossBubbleStylePermissionPrefix,
           'glossBubbleDefaultStyleId': glossBubbleDefaultStyleId,
         },
-        fix: 'Add a select rule to auto-apply it by world or group.',
+        fix: 'Add a select rule with a condition to auto-apply it.',
       ),
     );
   } else {
-    if (select.worlds.length != select.effectiveWorlds.length) {
-      issues.add(
-        const HuiIssue(
-          severity: HuiSeverity.info,
-          path: r'$.select.worlds',
-          message:
-              'Blank world entries are silently dropped; the rest are '
-              'trimmed.',
-          fix: 'Remove the empty entries to keep the file honest.',
-        ),
-      );
-    }
-    if (select.groups.length != select.effectiveGroups.length ||
-        !_sameStrings(select.groups, select.effectiveGroups)) {
-      issues.add(
-        HuiIssue(
-          severity: HuiSeverity.info,
-          path: r'$.select.groups',
-          message:
-              "Gloss normalizes the groups to [{join}] — trimmed, lowercased, blanks dropped.",
-          messageArguments: <String, Object?>{
-            'join': select.effectiveGroups.join(', '),
-          },
-          fix: 'Write the normalized names to keep the file honest.',
-        ),
-      );
-    }
-    if (select.effectiveWorlds.isEmpty && select.effectiveGroups.isEmpty) {
-      issues.add(
-        const HuiIssue(
-          severity: HuiSeverity.info,
-          path: r'$.select',
-          message:
-              'A select with no worlds and no groups matches every player '
-              'in every world — only its priority separates it from other '
-              'auto-matching styles.',
-          fix: 'Constrain it, or lean on priority deliberately.',
-        ),
-      );
-    }
+    _validateSelectCondition(select.when, issues);
   }
 
   issues.addAll(
@@ -140,6 +100,43 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
   );
 
   return issues;
+}
+
+void _validateSelectCondition(String source, List<HuiIssue> issues) {
+  try {
+    final PExpr expression = parsePreviewExpr(source);
+    if (isConstantExpr(expression)) {
+      final Object value = evalPreviewExpr(expression, _EmptyConditionScope());
+      if (value is! bool) {
+        issues.add(
+          const HuiIssue(
+            severity: HuiSeverity.error,
+            path: r'$.select.when',
+            message: 'A selection condition must evaluate to true or false.',
+            fix: 'Write a boolean expression.',
+          ),
+        );
+      }
+    }
+  } on PExprException catch (error) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: r'$.select.when',
+        message: 'Invalid selection condition: {error}',
+        messageArguments: <String, Object?>{'error': error.message},
+        fix: 'Correct the condition expression.',
+      ),
+    );
+  }
+}
+
+final class _EmptyConditionScope extends PExprScope {
+  @override
+  Object? call(String name, List<Object?> args) => null;
+
+  @override
+  Object? variable(String dottedName) => null;
 }
 
 List<HuiIssue> _validateShimmer(GlossBubbleStyleDoc doc) {
@@ -504,12 +501,4 @@ void _collectMotionNames(
     case PBool():
       break;
   }
-}
-
-bool _sameStrings(List<String> first, List<String> second) {
-  if (first.length != second.length) return false;
-  for (int index = 0; index < first.length; index++) {
-    if (first[index] != second[index]) return false;
-  }
-  return true;
 }

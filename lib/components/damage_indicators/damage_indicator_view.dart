@@ -13,6 +13,7 @@ import '../../state/editor_store.dart';
 import '../common/hui_number_field.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_text_line.dart';
+import '../scoreboard/scoreboard_selection.dart';
 
 const Duration _tickPeriod = Duration(milliseconds: 50);
 const double _pixelsPerBlock = 72;
@@ -94,18 +95,10 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
     }
     _ticker ??= Timer.periodic(_tickPeriod, (Timer _) {
       if (!mounted) return;
-      final GlossDamageIndicatorsDoc? current = _store.damageIndicatorsDoc;
-      if (current == null) {
+      if (_store.damageIndicatorsDoc == null) {
         _ticker?.cancel();
         _ticker = null;
         return;
-      }
-      final int elapsed = _elapsedMs();
-      if (elapsed >= current.limits.lifetimeMs) {
-        _playing = false;
-        _heldMs = current.limits.lifetimeMs;
-        _ticker?.cancel();
-        _ticker = null;
       }
       setState(() {});
     });
@@ -158,19 +151,47 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
     _syncTicker();
     final GlossDamageIndicatorStyle style =
         _kind == DamageIndicatorPreviewKind.damage ? doc.damage : doc.healing;
-    final int elapsed = _elapsedMs().clamp(0, doc.limits.lifetimeMs);
+    final GlossConditionContext conditionContext = GlossConditionContext(
+      variables: <String, Object?>{
+        'event.type': _kind == DamageIndicatorPreviewKind.damage
+            ? 'damage'
+            : 'healing',
+        'event.amount': _amount,
+        'event.damage': _kind == DamageIndicatorPreviewKind.damage,
+        'event.healing': _kind == DamageIndicatorPreviewKind.healing,
+        'subject.health': 12.0,
+        'subject.maxHealth': 20.0,
+        'subject.healthPercent': 60.0,
+        'subject.world': 'world',
+      },
+      permissions: <String>{'gloss.indicators.show'},
+    );
+    final GlossDamageIndicatorPresentation? presentation =
+        resolveDamageIndicatorPresentation(style, conditionContext);
+    final bool audienceVisible = glossConditionMatches(
+      doc.audience.when,
+      conditionContext,
+    ).matches;
+    final DamageIndicatorPreviewCycle cycle =
+        resolveDamageIndicatorPreviewCycle(
+          lifetimeMs: doc.limits.lifetimeMs,
+          totalElapsedMs: _elapsedMs(),
+          baseSeed: _seed,
+        );
     final DamageIndicatorPreviewFrame frame = resolveDamageIndicatorFrame(
-      style: style,
+      presentation: presentation ?? style.presentation,
       lifetimeMs: doc.limits.lifetimeMs,
-      elapsedMs: elapsed,
-      seed: _seed,
+      elapsedMs: cycle.elapsedMs,
+      seed: cycle.seed,
     );
     final String formatted = renderDamageIndicatorText(
-      style,
+      presentation ?? style.presentation,
       _amount,
       doc.limits.decimals,
     );
-    final Widget scene = _scene(frame, formatted, elapsed);
+    final Widget scene = presentation == null || !audienceVisible
+        ? const dom.div(classes: 'hui-damage-indicator-empty-state', <Widget>[])
+        : _scene(frame, formatted, cycle.elapsedMs);
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.world,
@@ -181,7 +202,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
     }
     return dom.div(classes: 'hui-damage-indicator-stage', <Widget>[
       dom.div(classes: 'hui-damage-indicator-sky', <Widget>[scene]),
-      _controls(doc, elapsed),
+      _controls(doc, cycle),
     ]);
   }
 
@@ -231,61 +252,63 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
     ]),
   ]);
 
-  Widget _controls(GlossDamageIndicatorsDoc doc, int elapsed) =>
-      dom.div(classes: 'hui-damage-indicator-controls', <Widget>[
-        dom.div(
-          classes: 'hui-damage-indicator-kind',
-          attributes: <String, String>{
-            'role': 'group',
-            'aria-label': huiText('Indicator type'),
+  Widget _controls(
+    GlossDamageIndicatorsDoc doc,
+    DamageIndicatorPreviewCycle cycle,
+  ) => dom.div(classes: 'hui-damage-indicator-controls', <Widget>[
+    dom.div(
+      classes: 'hui-damage-indicator-kind',
+      attributes: <String, String>{
+        'role': 'group',
+        'aria-label': huiText('Indicator type'),
+      },
+      <Widget>[
+        _kindButton(DamageIndicatorPreviewKind.damage, huiText('Damage')),
+        _kindButton(DamageIndicatorPreviewKind.healing, huiText('Healing')),
+      ],
+    ),
+    _playPauseButton(),
+    _replayButton(),
+    Button(
+      variant: ButtonVariant.outline,
+      size: ButtonSize.iconSm,
+      onPressed: () => _replay(nextSeed: true),
+      attributes: <String, String>{
+        'aria-label': huiText('Next trajectory'),
+        'title': huiText('Next trajectory'),
+      },
+      child: ArcaneIcon.shuffle(size: IconSize.sm),
+    ),
+    dom.label(classes: 'hui-damage-indicator-amount', <Widget>[
+      dom.span(<Widget>[Text(huiText('Sample amount'))]),
+      dom.div(classes: 'hui-damage-indicator-amount-field', <Widget>[
+        HuiNumberField(
+          value: _amount,
+          step: 0.25,
+          decimals: 2,
+          steppers: false,
+          fullWidth: false,
+          onChanged: (double value) {
+            _amount = value;
+            _replay();
           },
-          <Widget>[
-            _kindButton(DamageIndicatorPreviewKind.damage, huiText('Damage')),
-            _kindButton(DamageIndicatorPreviewKind.healing, huiText('Healing')),
-          ],
         ),
-        _playPauseButton(),
-        _replayButton(),
-        Button(
-          variant: ButtonVariant.outline,
-          size: ButtonSize.iconSm,
-          onPressed: () => _replay(nextSeed: true),
-          attributes: <String, String>{
-            'aria-label': huiText('Next trajectory'),
-            'title': huiText('Next trajectory'),
+      ]),
+    ]),
+    dom.span(classes: 'hui-damage-indicator-readout', <Widget>[
+      Text(
+        huiText(
+          '{elapsed} / {lifetime} ms · seed {seed} · {rate}/s global cap',
+          <String, Object?>{
+            'elapsed': cycle.elapsedMs,
+            'lifetime': doc.limits.lifetimeMs,
+            'seed': cycle.seed,
+            'rate': doc.limits.maxPerSecond,
           },
-          child: ArcaneIcon.shuffle(size: IconSize.sm),
         ),
-        dom.label(classes: 'hui-damage-indicator-amount', <Widget>[
-          dom.span(<Widget>[Text(huiText('Sample amount'))]),
-          dom.div(classes: 'hui-damage-indicator-amount-field', <Widget>[
-            HuiNumberField(
-              value: _amount,
-              step: 0.25,
-              decimals: 2,
-              steppers: false,
-              fullWidth: false,
-              onChanged: (double value) {
-                _amount = value;
-                _replay();
-              },
-            ),
-          ]),
-        ]),
-        dom.span(classes: 'hui-damage-indicator-readout', <Widget>[
-          Text(
-            huiText(
-              '{elapsed} / {lifetime} ms · seed {seed} · {rate}/s global cap',
-              <String, Object?>{
-                'elapsed': elapsed,
-                'lifetime': doc.limits.lifetimeMs,
-                'seed': _seed,
-                'rate': doc.limits.maxPerSecond,
-              },
-            ),
-          ),
-        ]),
-      ]);
+      ),
+    ]),
+  ]);
 
   Widget _kindButton(DamageIndicatorPreviewKind kind, String label) => Button(
     variant: ButtonVariant.outline,

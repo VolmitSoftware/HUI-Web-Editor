@@ -1,12 +1,28 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
-  "useHeaderFooter": true,
-  "header": "&d&lGloss",
-  "footer": "&7VolmitSoftware.com",
-  "groupListNames": true,
-  "nameFormats": {
-    "default": "$player",
-    "_op": "&6$player"
+  "headerFooter": {
+    "enabled": true,
+    "presentation": {
+      "header": "&d&lGloss",
+      "footer": "&7VolmitSoftware.com"
+    },
+    "variants": []
+  },
+  "listNames": {
+    "enabled": true,
+    "presentation": {
+      "format": "$player"
+    },
+    "variants": [
+      {
+        "id": "operator",
+        "priority": 100,
+        "when": "subject.op",
+        "presentation": {
+          "format": "&6$player"
+        }
+      }
+    ]
   }
 }

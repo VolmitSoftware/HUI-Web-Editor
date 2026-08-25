@@ -2,9 +2,8 @@
 /// the validation that refuses what the server refuses, and the expression
 /// engine that evaluates them.
 ///
-/// Both blocks are additive and optional, so the first thing this file pins is
-/// the thing an author never sees and would never forgive: a document written
-/// before they existed comes back out of the editor byte for byte.
+/// Both blocks are additive and optional, so an untouched canonical document
+/// that omits them must continue to omit them.
 ///
 /// The worked examples at the end come out of `DROP_SCRIPT_FORMAT.md` in the
 /// paired plugin checkout, which is where the plugin's own
@@ -26,13 +25,13 @@ import 'package:test/test.dart';
 
 import 'support/gloss_repository.dart';
 
-/// The shipped default with the two new blocks taken back off: the exact shape
-/// every operator file written before this feature carries.
-String _legacyJson() {
+String _withoutOptionalBlocksJson() {
   final Map<String, dynamic> map =
       jsonDecode(kGlossRealDropsDefaultJson) as Map<String, dynamic>;
-  map.remove('physics');
-  map.remove('script');
+  final Map<String, dynamic> presentation =
+      map['presentation'] as Map<String, dynamic>;
+  presentation.remove('physics');
+  presentation.remove('script');
   return huiWriteJson(map);
 }
 
@@ -41,8 +40,11 @@ GlossRealDropSettingsDoc _doc(String json) =>
 
 /// A document carrying only `script`, the way the format doc's examples are
 /// written — everything else falls back to the shipped defaults.
-GlossRealDropSettingsDoc _scripted(String scriptJson) =>
-    _doc('{"schemaVersion":1,"revision":2,"script":$scriptJson}');
+GlossRealDropSettingsDoc _scripted(String scriptJson) => _doc(
+  '{"schemaVersion":2,"revision":2,'
+  '"presentation":{"script":$scriptJson},'
+  '"variants":[],"audience":{"when":"true"}}',
+);
 
 RealDropScriptContext _context({
   double t = 0,
@@ -104,18 +106,18 @@ List<String> _workedExamples() {
 }
 
 void main() {
-  group('a document without the blocks never grows them', () {
+  group('a canonical document without optional blocks never grows them', () {
     test('round-trips byte for byte', () {
-      final String legacy = _legacyJson();
-      final GlossRealDropSettingsDoc doc = _doc(legacy);
-      expect(doc.physics, isNull);
-      expect(doc.script, isNull);
-      expect(encodeGlossRealDropSettingsDoc(doc), legacy);
-      expect(encodeGlossRealDropSettingsDoc(doc.copy()), legacy);
+      final String source = _withoutOptionalBlocksJson();
+      final GlossRealDropSettingsDoc doc = _doc(source);
+      expect(doc.presentation.physics, isNull);
+      expect(doc.presentation.script, isNull);
+      expect(encodeGlossRealDropSettingsDoc(doc), source);
+      expect(encodeGlossRealDropSettingsDoc(doc.copy()), source);
     });
 
     test('validates clean and evaluates to nothing', () {
-      final GlossRealDropSettingsDoc doc = _doc(_legacyJson());
+      final GlossRealDropSettingsDoc doc = _doc(_withoutOptionalBlocksJson());
       expect(validateRealDropSettingsDoc(doc), isEmpty);
       expect(RealDropScriptPlan.empty.issues, isEmpty);
       expect(
@@ -126,15 +128,17 @@ void main() {
     });
 
     test('grows the block only once somebody touches it', () {
-      final GlossRealDropSettingsDoc doc = _doc(_legacyJson());
+      final GlossRealDropSettingsDoc doc = _doc(_withoutOptionalBlocksJson());
       expect(encodeGlossRealDropSettingsDoc(doc), isNot(contains('physics')));
-      doc.physics = GlossRealDropPhysics();
+      doc.presentation.physics = GlossRealDropPhysics();
       final Map<String, dynamic> written =
           jsonDecode(encodeGlossRealDropSettingsDoc(doc))
               as Map<String, dynamic>;
-      expect(written.containsKey('physics'), isTrue);
+      final Map<String, dynamic> presentation =
+          written['presentation'] as Map<String, dynamic>;
+      expect(presentation.containsKey('physics'), isTrue);
       expect(
-        written.containsKey('script'),
+        presentation.containsKey('script'),
         isFalse,
         reason: 'touching one block must not conjure the other',
       );
@@ -161,7 +165,7 @@ void main() {
     test('and still says no to another kind entirely', () {
       expect(
         looksLikeRealDropSettingsDoc(
-          jsonDecode('{"schemaVersion":1,"revision":1,"lines":["hi"]}'),
+          jsonDecode('{"schemaVersion":2,"revision":1,"lines":["hi"]}'),
         ),
         isFalse,
       );
@@ -172,17 +176,17 @@ void main() {
   group('the shipped default carries both blocks', () {
     test('decodes them disabled and neutral', () {
       final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-      expect(doc.physics, isNotNull);
-      expect(doc.physics!.enabled, isFalse);
-      expect(doc.physics!.gravityMultiplier, 1);
-      expect(doc.physics!.bounce, 0);
-      expect(doc.script, isNotNull);
-      expect(doc.script!.enabled, isFalse);
-      expect(doc.script!.vars, isEmpty);
-      expect(doc.script!.offset.x, '0');
-      expect(doc.script!.scale.z, '1');
-      expect(doc.script!.glow, '');
-      expect(doc.script!.visible, 'true');
+      expect(doc.presentation.physics, isNotNull);
+      expect(doc.presentation.physics!.enabled, isFalse);
+      expect(doc.presentation.physics!.gravityMultiplier, 1);
+      expect(doc.presentation.physics!.bounce, 0);
+      expect(doc.presentation.script, isNotNull);
+      expect(doc.presentation.script!.enabled, isFalse);
+      expect(doc.presentation.script!.vars, isEmpty);
+      expect(doc.presentation.script!.offset.x, '0');
+      expect(doc.presentation.script!.scale.z, '1');
+      expect(doc.presentation.script!.glow, '');
+      expect(doc.presentation.script!.visible, 'true');
       expect(validateRealDropSettingsDoc(doc), isEmpty);
     });
 
@@ -197,20 +201,24 @@ void main() {
   group('vars keep their declaration order', () {
     const String source = '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 2,
+  "presentation": {
   "script": {
     "enabled": true,
     "vars": { "zulu": "1", "alpha": "zulu + 1", "mike": "alpha * 2" },
     "offset": { "y": "mike" }
   }
+  },
+  "variants": [],
+  "audience": {"when": "true"}
 }
 ''';
 
     test('on read, in file order rather than alphabetical', () {
       final GlossRealDropSettingsDoc doc = _doc(source);
       expect(
-        doc.script!.vars.map((GlossRealDropScriptVar v) => v.name),
+        doc.presentation.script!.vars.map((GlossRealDropScriptVar v) => v.name),
         <String>['zulu', 'alpha', 'mike'],
       );
       expect(validateRealDropSettingsDoc(doc), isEmpty);
@@ -230,7 +238,10 @@ void main() {
 
     test('on edit: moving a reader above what it reads is an error', () {
       final GlossRealDropSettingsDoc doc = _doc(source);
-      doc.script!.vars.insert(0, doc.script!.vars.removeAt(1));
+      doc.presentation.script!.vars.insert(
+        0,
+        doc.presentation.script!.vars.removeAt(1),
+      );
       expect(
         _messages(doc),
         contains("script.vars.alpha: unknown variable 'zulu' at position 0"),
@@ -242,16 +253,16 @@ void main() {
 
     test('and the order survives an add and a remove', () {
       final GlossRealDropSettingsDoc doc = _doc(source);
-      doc.script!.vars.add(
+      doc.presentation.script!.vars.add(
         GlossRealDropScriptVar(name: 'tail', expression: 'mike + 1'),
       );
-      doc.script!.vars.removeAt(0);
-      doc.script!.vars.insert(
+      doc.presentation.script!.vars.removeAt(0);
+      doc.presentation.script!.vars.insert(
         0,
         GlossRealDropScriptVar(name: 'zulu', expression: '1'),
       );
       expect(
-        doc.script!.vars.map((GlossRealDropScriptVar v) => v.name),
+        doc.presentation.script!.vars.map((GlossRealDropScriptVar v) => v.name),
         <String>['zulu', 'alpha', 'mike', 'tail'],
       );
       expect(validateRealDropSettingsDoc(doc), isEmpty);
@@ -344,7 +355,7 @@ void main() {
       final GlossRealDropSettingsDoc doc = _scripted(
         '{"enabled": true, "vars": {"mine": "1"}}',
       );
-      doc.script!.vars.add(
+      doc.presentation.script!.vars.add(
         GlossRealDropScriptVar(name: 'mine', expression: '2'),
       );
       expect(_messages(doc), contains('script.vars.mine is declared twice'));
@@ -353,7 +364,7 @@ void main() {
     test('more than thirty-two variables', () {
       final GlossRealDropSettingsDoc doc = _scripted('{"enabled": true}');
       for (int index = 0; index <= GlossRealDropScript.maxVars; index++) {
-        doc.script!.vars.add(
+        doc.presentation.script!.vars.add(
           GlossRealDropScriptVar(name: 'v$index', expression: '1'),
         );
       }
@@ -378,13 +389,15 @@ void main() {
       );
       expect(issues, hasLength(1));
       expect(issues.single.severity, HuiSeverity.error);
-      expect(issues.single.path, r'$.script.offset.y');
+      expect(issues.single.path, r'$.presentation.script.offset.y');
     });
 
     test('physics clamps are warnings, because the server clamps them', () {
       final GlossRealDropSettingsDoc doc = _doc(
-        '{"schemaVersion":1,"revision":2,'
-        '"physics":{"enabled":true,"gravityMultiplier":9,"bounce":2}}',
+        '{"schemaVersion":2,"revision":2,'
+        '"presentation":{"physics":{'
+        '"enabled":true,"gravityMultiplier":9,"bounce":2}},'
+        '"variants":[],"audience":{"when":"true"}}',
       );
       final List<HuiIssue> issues = validateRealDropSettingsDoc(doc);
       expect(issues, hasLength(2));
@@ -393,7 +406,7 @@ void main() {
         isTrue,
       );
       expect(
-        doc.physics!.gravityMultiplier,
+        doc.presentation.physics!.gravityMultiplier,
         9,
         reason: 'the editor sends what the author typed and warns about it',
       );
@@ -401,8 +414,9 @@ void main() {
   });
 
   group('the material tests are the plugin normalisation', () {
-    RealDropScriptPlan plan(String glow) =>
-        RealDropScriptPlan.compile(_scripted('{"glow": "$glow"}').script!);
+    RealDropScriptPlan plan(String glow) => RealDropScriptPlan.compile(
+      _scripted('{"glow": "$glow"}').presentation.script!,
+    );
 
     int glowFor(String source, String material) =>
         plan(source).sample(_context(material: material)).glowArgb;
@@ -446,7 +460,7 @@ void main() {
   "offset": { "y": "doubled" },
   "scale": { "x": "base" }
 }
-''').script!,
+''').presentation.script!,
       );
       expect(plan.issues, isEmpty);
       final RealDropScriptSample sample = plan.sample(_context(index: 3));
@@ -459,7 +473,7 @@ void main() {
         _scripted(
           '{"enabled": true, "offset": {"y": "900"}, '
           '"rotation": {"x": "-9000"}, "scale": {"z": "40"}}',
-        ).script!,
+        ).presentation.script!,
       );
       final RealDropScriptSample sample = plan.sample(_context());
       expect(sample.offsetY, realDropScriptMaxOffset);
@@ -474,7 +488,7 @@ void main() {
         _scripted(
           '{"enabled": true, "offset": {"y": "1 / (amount - 5)"}, '
           '"scale": {"x": "2"}}',
-        ).script!,
+        ).presentation.script!,
       );
       expect(plan.issues, isEmpty, reason: 'nothing to refuse at load');
       final RealDropScriptSample sample = plan.sample(_context(amount: 5));
@@ -485,7 +499,7 @@ void main() {
 
     test('a blank glow is the feature off, not an empty expression', () {
       final RealDropScriptPlan plan = RealDropScriptPlan.compile(
-        _scripted('{"enabled": true, "glow": ""}').script!,
+        _scripted('{"enabled": true, "glow": ""}').presentation.script!,
       );
       expect(plan.issues, isEmpty);
       expect(plan.sample(_context()).glowArgb, 0);
@@ -496,7 +510,7 @@ void main() {
         RealDropScriptPlan.compile(
           _scripted(
             '{"enabled": true, "offset": {"y": "sin(t) * 0.1"}}',
-          ).script!,
+          ).presentation.script!,
         ).environmentReferenced,
         isFalse,
       );
@@ -504,7 +518,7 @@ void main() {
         RealDropScriptPlan.compile(
           _scripted(
             '{"enabled": true, "offset": {"y": "height * 0.1"}}',
-          ).script!,
+          ).presentation.script!,
         ).environmentReferenced,
         isTrue,
       );
@@ -525,7 +539,8 @@ void main() {
         final GlossRealDropSettingsDoc doc = _doc(example);
         expect(validateRealDropSettingsDoc(doc), isEmpty, reason: example);
         expect(
-          (doc.script?.enabled ?? false) || (doc.physics?.enabled ?? false),
+          (doc.presentation.script?.enabled ?? false) ||
+              (doc.presentation.physics?.enabled ?? false),
           isTrue,
           reason: 'a worked example that enables nothing shows nothing',
         );
@@ -534,7 +549,7 @@ void main() {
 
     test('7.1 a torch that glows, and nothing else does', () {
       final RealDropScriptPlan plan = RealDropScriptPlan.compile(
-        _doc(_workedExamples()[0]).script!,
+        _doc(_workedExamples()[0]).presentation.script!,
       );
       expect(plan.issues, isEmpty);
       for (final String torch in <String>[
@@ -560,7 +575,7 @@ void main() {
 
     test('7.1 with a named intermediate, driving three fields at once', () {
       final RealDropScriptPlan plan = RealDropScriptPlan.compile(
-        _doc(_workedExamples()[1]).script!,
+        _doc(_workedExamples()[1]).presentation.script!,
       );
       expect(plan.issues, isEmpty);
       expect(
@@ -594,11 +609,13 @@ void main() {
 
     test('7.2 a stack that bobs in water, and lies still out of it', () {
       final GlossRealDropSettingsDoc doc = _doc(_workedExamples()[2]);
-      expect(doc.physics!.enabled, isTrue);
-      expect(doc.physics!.waterBuoyancy, closeTo(0.35, 1e-12));
-      expect(doc.physics!.waterDrag, closeTo(0.12, 1e-12));
+      expect(doc.presentation.physics!.enabled, isTrue);
+      expect(doc.presentation.physics!.waterBuoyancy, closeTo(0.35, 1e-12));
+      expect(doc.presentation.physics!.waterDrag, closeTo(0.12, 1e-12));
 
-      final RealDropScriptPlan plan = RealDropScriptPlan.compile(doc.script!);
+      final RealDropScriptPlan plan = RealDropScriptPlan.compile(
+        doc.presentation.script!,
+      );
       expect(plan.issues, isEmpty);
 
       final RealDropScriptSample dry = plan.sample(_context(t: 1.5));
@@ -627,10 +644,12 @@ void main() {
 
     test('7.3 a squash on the bounce that loses energy as it goes', () {
       final GlossRealDropSettingsDoc doc = _doc(_workedExamples()[3]);
-      expect(doc.physics!.enabled, isTrue);
-      expect(doc.physics!.bounce, closeTo(0.45, 1e-12));
+      expect(doc.presentation.physics!.enabled, isTrue);
+      expect(doc.presentation.physics!.bounce, closeTo(0.45, 1e-12));
 
-      final RealDropScriptPlan plan = RealDropScriptPlan.compile(doc.script!);
+      final RealDropScriptPlan plan = RealDropScriptPlan.compile(
+        doc.presentation.script!,
+      );
       expect(plan.issues, isEmpty);
 
       // On the ground: pop is 0, so the model is energy on all three axes.

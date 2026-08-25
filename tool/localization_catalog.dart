@@ -5348,6 +5348,7 @@ _unchangedNaturalLanguageAllowlistByReason = <String, Map<String, Set<String>>>{
           'messages["Routes"]',
           'messages["Spawn"]',
           'messages["Type"]',
+          'messages["Variant {id}"]',
           'messages["Variant {value}"]',
           'messages["Vars"]',
           'messages["accent"]',
@@ -5357,6 +5358,8 @@ _unchangedNaturalLanguageAllowlistByReason = <String, Map<String, Set<String>>>{
           'messages["hologram"]',
           'messages["label"]',
           'messages["sim"]',
+          'messages["variant {id}"]',
+          'messages["variant: {id}"]',
           'messages["schema {version}"]',
           'messages["via proxy"]',
           'contexts["state.open"]',
@@ -5400,6 +5403,11 @@ _unchangedNaturalLanguageAllowlistByReason = <String, Map<String, Set<String>>>{
 
 const Set<String> _runtimeContractInvariantLocations = <String>{
   'messages["Original Gloss"]',
+  'messages["drop.material == \'DIAMOND\'"]',
+  'messages["variant-id"]',
+  'messages["viewer.world == \'world\'"]',
+  'messages["viewer.world == \'world\' && inGroup(\'viewer\', \'vip\')"]',
+  'messages["vip, staff"]',
   'previewMessages["gloss.preview.stat.xp_gain"]',
   'previewMessages["gloss.preview.stat.xp_zero"]',
   'previewMessages["gloss.preview.state.surge_suffix"]',

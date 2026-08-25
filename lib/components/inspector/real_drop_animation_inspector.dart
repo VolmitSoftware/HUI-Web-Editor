@@ -82,7 +82,7 @@ class RealDropAnimationInspector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final GlossRealDropAnimation? animation = _doc?.animation;
+    final GlossRealDropAnimation? animation = _doc?.presentation.animation;
     return InspectorSection(
       title: huiText('Animation authoring'),
       sectionKey: 'realDrops.animation',
@@ -686,7 +686,7 @@ class RealDropAnimationInspector extends StatelessWidget {
   ) => store.mutateRealDropSettings(
     label,
     (GlossRealDropSettingsDoc doc) =>
-        change(doc.animation ??= GlossRealDropAnimation()),
+        change(doc.presentation.animation ??= GlossRealDropAnimation()),
   );
 
   void _editProfile(

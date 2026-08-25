@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 
 const String _style = '''
 {
-  "schemaVersion": 2,
+  "schemaVersion":3,
   "revision": 2,
   "prefix": "&6",
   "offset": [0.0, 1.2, 0.0],
@@ -31,18 +31,17 @@ const String _style = '''
   "followPlayer": false,
   "hideOwn": false,
   "select": {
-    "worlds": ["world*"],
-    "groups": ["vip"],
-    "priority": 10
+    "priority": 10,
+    "when": "matchesGlob(viewer.world, 'world*') && inGroup('viewer', 'vip')"
   }
 }
 ''';
 
 void main() {
   group('decode', () {
-    test('reads the full schema-2 document with string expressions', () {
+    test('reads the full schema-3 document with conditional selection', () {
       final GlossBubbleStyleDoc doc = decodeGlossBubbleStyleDoc(_style);
-      expect(doc.schemaVersion, 2);
+      expect(doc.schemaVersion, 3);
       expect(doc.revision, 2);
       expect(doc.prefix, '&6');
       expect(doc.offset, <double>[0, 1.2, 0]);
@@ -62,15 +61,15 @@ void main() {
       expect(doc.shimmer.flyAwayLeadMs, 1100);
       expect(doc.followPlayer, isFalse);
       expect(doc.hideOwn, isFalse);
-      expect(doc.select!.worlds, <String>['world*']);
-      expect(doc.select!.groups, <String>['vip']);
       expect(doc.select!.priority, 10);
+      expect(doc.select!.when, contains('inGroup'));
     });
 
-    test('rejects legacy, future, and missing schema versions', () {
+    test('rejects unsupported and missing schema versions', () {
       for (final String json in <String>[
         '{"schemaVersion":1,"wordWrapChars":32}',
-        '{"schemaVersion":3,"wordWrapChars":32}',
+        '{"schemaVersion":2,"wordWrapChars":32}',
+        '{"schemaVersion":4,"wordWrapChars":32}',
         '{"wordWrapChars":32}',
       ]) {
         expect(
@@ -84,7 +83,7 @@ void main() {
     test('rejects numeric motion leaves instead of changing their type', () {
       expect(
         () => decodeGlossBubbleStyleDoc(
-          '{"schemaVersion":2,"revision":1,'
+          '{"schemaVersion":3,"revision":1,'
           '"motion":{"translation":{"x":0}}}',
         ),
         throwsA(
@@ -99,7 +98,7 @@ void main() {
 
     test('missing motion keys carry the exact runtime defaults', () {
       final GlossBubbleStyleDoc doc = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":2,"revision":1}',
+        '{"schemaVersion":3,"revision":1}',
       );
       expect(doc.motion.translation.x, '0');
       expect(
@@ -118,15 +117,6 @@ void main() {
       expect(doc.shimmer.spawnDelayMs, glossBubbleShimmerDefaultSpawnDelayMs);
       expect(doc.shimmer.flyAwayLeadMs, glossBubbleShimmerDefaultFlyAwayLeadMs);
       expect(doc.select, isNull);
-    });
-
-    test('drops the retired two-tone edge color when rewriting a style', () {
-      final GlossBubbleStyleDoc doc = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":2,"revision":1,"shimmer":{"edgeColor":"#aaaaaa"}}',
-      );
-      final Map<String, dynamic> shimmer =
-          doc.toJson()['shimmer'] as Map<String, dynamic>;
-      expect(shimmer, isNot(contains('edgeColor')));
     });
   });
 
@@ -158,10 +148,10 @@ void main() {
 
     test('only a missing prefix falls back to &7', () {
       final GlossBubbleStyleDoc absent = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":2,"revision":1}',
+        '{"schemaVersion":3,"revision":1}',
       );
       final GlossBubbleStyleDoc empty = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":2,"revision":1,"prefix":""}',
+        '{"schemaVersion":3,"revision":1,"prefix":""}',
       );
       expect(absent.effectivePrefix, '&7');
       expect(empty.effectivePrefix, '');
@@ -169,11 +159,11 @@ void main() {
 
     test('offset defaults, while malformed source survives for validation', () {
       final GlossBubbleStyleDoc absent = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":2,"revision":1}',
+        '{"schemaVersion":3,"revision":1}',
       );
       expect(absent.offset, <double>[0, 0.3, 0]);
       final GlossBubbleStyleDoc malformed = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":2,"revision":1,"offset":[1,2]}',
+        '{"schemaVersion":3,"revision":1,"offset":[1,2]}',
       );
       expect(malformed.offsetIsValidTriple, isFalse);
       final Map<String, dynamic> encoded =
@@ -183,14 +173,16 @@ void main() {
     });
   });
 
-  group('select normalization', () {
-    test('worlds keep case while groups lowercase', () {
+  group('conditional selection', () {
+    test('priority and condition round-trip directly', () {
       final GlossBubbleSelect select = GlossBubbleSelect(
-        worlds: <String>[' World_*', '', '  '],
-        groups: <String>[' VIP', '', 'Mvp '],
+        priority: 42,
+        when: "viewer.world == 'world'",
       );
-      expect(select.effectiveWorlds, <String>['World_*']);
-      expect(select.effectiveGroups, <String>['vip', 'mvp']);
+      expect(select.toJson(), <String, Object?>{
+        'priority': 42,
+        'when': "viewer.world == 'world'",
+      });
     });
   });
 
@@ -211,15 +203,15 @@ void main() {
       () {
         const String withExtras = '''
 {
-  "schemaVersion": 2,
+  "schemaVersion":3,
   "revision": 1,
   "wordWrapChars": 32,
   "motion": {
     "translation": {"x": "0", "y": "0", "z": "0", "space": "world"},
     "easing": "custom"
   },
-  "shimmer": {"sparkle": "legacy"},
-  "select": {"worlds": [], "groups": [], "priority": 0, "biomes": ["ocean"]},
+  "shimmer": {"sparkle": "custom"},
+  "select": {"priority": 0, "when": "true", "biomes": ["ocean"]},
   "particles": "hearts"
 }
 ''';
@@ -231,7 +223,7 @@ void main() {
           'ocean',
         ]);
         expect((out['motion'] as Map<String, dynamic>)['easing'], 'custom');
-        expect((out['shimmer'] as Map<String, dynamic>)['sparkle'], 'legacy');
+        expect((out['shimmer'] as Map<String, dynamic>)['sparkle'], 'custom');
         expect(
           ((out['motion'] as Map<String, dynamic>)['translation']
               as Map<String, dynamic>)['space'],
@@ -241,12 +233,12 @@ void main() {
     );
   });
 
-  group('shape and glob behavior', () {
+  group('shape behavior', () {
     test('claims bubble styles and excludes other Gloss shapes', () {
       expect(looksLikeBubbleStyleDoc(jsonDecode(_style)), isTrue);
       expect(
         looksLikeBubbleStyleDoc(<String, Object?>{
-          'schemaVersion': 2,
+          'schemaVersion': 3,
           'frames': <String>['a'],
           'maxAliveMs': 5000,
         }),
@@ -262,15 +254,5 @@ void main() {
       expect(looksLikeAnimationDoc(jsonDecode(_style)), isFalse);
       expect(looksLikeHologramDoc(jsonDecode(_style)), isFalse);
     });
-
-    test(
-      'glob matcher treats wildcards specially and regex syntax literally',
-      () {
-        expect(glossBubbleGlobMatches('world*', 'world_nether'), isTrue);
-        expect(glossBubbleGlobMatches('w?rld', 'world'), isTrue);
-        expect(glossBubbleGlobMatches('a.b', 'a.b'), isTrue);
-        expect(glossBubbleGlobMatches('a.b', 'axb'), isFalse);
-      },
-    );
   });
 }

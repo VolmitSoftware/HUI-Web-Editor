@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 
 GlossBubbleStyleDoc _clean() => decodeGlossBubbleStyleDoc('''
 {
-  "schemaVersion": 2,
+  "schemaVersion":3,
   "revision": 1,
   "prefix": "&7",
   "offset": [0.0, 1.0, 0.0],
@@ -25,7 +25,7 @@ GlossBubbleStyleDoc _clean() => decodeGlossBubbleStyleDoc('''
   },
   "followPlayer": true,
   "hideOwn": true,
-  "select": {"worlds": ["world"], "groups": [], "priority": 0}
+  "select": {"priority": 0, "when": "viewer.world == 'world'"}
 }
 ''');
 
@@ -160,22 +160,19 @@ void main() {
     expect(issue.message, contains('gloss.bubbles.style.'));
   });
 
-  test('blank select entries and normalization are infos', () {
+  test('invalid select conditions are errors', () {
     final GlossBubbleStyleDoc doc = _clean();
-    doc.select!.worlds.add('  ');
-    doc.select!.groups.addAll(<String>['VIP', '']);
+    doc.select!.when = 'viewer.world ==';
     final List<HuiIssue> issues = validateBubbleStyleDoc(doc);
-    expect(
-      issues.map((HuiIssue issue) => issue.path),
-      containsAll(<String>[r'$.select.worlds', r'$.select.groups']),
-    );
+    expect(issues.single.path, r'$.select.when');
+    expect(issues.single.severity, HuiSeverity.error);
   });
 
-  test('a select with no constraints matches every player', () {
+  test('a non-boolean constant select condition is an error', () {
     final GlossBubbleStyleDoc doc = _clean();
-    doc.select!.worlds.clear();
+    doc.select!.when = '5';
     final HuiIssue issue = validateBubbleStyleDoc(doc).single;
-    expect(issue.severity, HuiSeverity.info);
-    expect(issue.message, contains('every player'));
+    expect(issue.severity, HuiSeverity.error);
+    expect(issue.path, r'$.select.when');
   });
 }

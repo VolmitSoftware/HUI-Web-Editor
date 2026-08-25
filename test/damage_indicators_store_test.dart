@@ -46,11 +46,15 @@ void main() {
     store.newGlossDocument(DocumentTypes.damageIndicators);
     store.mutateDamageIndicators(
       'damage format',
-      (GlossDamageIndicatorsDoc doc) => doc.damage.format = '&4{amount}',
+      (GlossDamageIndicatorsDoc doc) =>
+          doc.damage.presentation.format = '&4{amount}',
     );
-    expect(store.damageIndicatorsDoc!.damage.format, '&4{amount}');
+    expect(store.damageIndicatorsDoc!.damage.presentation.format, '&4{amount}');
     expect(store.performUndo(), isTrue);
-    expect(store.damageIndicatorsDoc!.damage.format, '&c&l{amount}');
+    expect(
+      store.damageIndicatorsDoc!.damage.presentation.format,
+      '&c&l{amount}',
+    );
   });
 
   test('import detection routes the canonical shape to damage indicators', () {
@@ -61,6 +65,6 @@ void main() {
     );
     expect(store.docKind, WorkspaceDocKind.damageIndicators);
     expect(store.workspace.active!.runtimeId, 'default');
-    expect(store.damageIndicatorsDoc!.healing.enabled, isTrue);
+    expect(store.damageIndicatorsDoc!.healing.when, 'true');
   });
 }

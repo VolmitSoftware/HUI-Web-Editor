@@ -29,6 +29,7 @@ import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
+import 'scoreboard_selection.dart';
 import 'scoreboard_selection_simulator.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
@@ -55,6 +56,10 @@ class ScoreboardView extends StatefulWidget {
 class _ScoreboardViewState extends State<ScoreboardView> {
   Timer? _ticker;
   bool _sceneBackdrop = false;
+  String _world = 'world';
+  String _groups = '';
+  String _permission = '';
+  double _health = 20;
 
   EditorStore get _store => component.store;
 
@@ -96,19 +101,22 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     }
   }
 
-  bool _isAnimated(GlossScoreboardDoc doc, GlossAnimationResolver animations) {
+  bool _isAnimated(
+    GlossScoreboardPresentation presentation,
+    GlossAnimationResolver animations,
+  ) {
     if (renderGlossLine(
-      doc.effectiveTitle(_store.menuId),
+      _effectiveTitle(presentation),
       animations: animations,
     ).isAnimated) {
       return true;
     }
-    final int rendered = doc.lines.length > glossBoardMaxLines
+    final int rendered = presentation.lines.length > glossBoardMaxLines
         ? glossBoardMaxLines
-        : doc.lines.length;
+        : presentation.lines.length;
     for (int index = 0; index < rendered; index++) {
       if (renderGlossLine(
-        doc.lines[index],
+        presentation.lines[index],
         animations: animations,
       ).isAnimated) {
         return true;
@@ -135,15 +143,22 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     }
     final GlossAnimationResolver animations = _store.workspaceAnimations;
     final GlossEmojiResolver emoji = _store.workspaceEmoji;
-    _syncTicker(_isAnimated(doc, animations));
+    final GlossConditionContext conditionContext = _conditionContext();
+    final GlossScoreboardPresentation presentation =
+        glossResolveScoreboardPresentation(doc, conditionContext);
+    final String? variantId = glossResolveScoreboardVariantId(
+      doc,
+      conditionContext,
+    );
+    _syncTicker(_isAnimated(presentation, animations));
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
 
-    final int rendered = doc.lines.length > glossBoardMaxLines
+    final int rendered = presentation.lines.length > glossBoardMaxLines
         ? glossBoardMaxLines
-        : doc.lines.length;
-    final int clipped = doc.lines.length - rendered;
-    final String title = doc.effectiveTitle(_store.menuId);
-    final bool titleFellBack = doc.title.isEmpty;
+        : presentation.lines.length;
+    final int clipped = presentation.lines.length - rendered;
+    final String title = _effectiveTitle(presentation);
+    final bool titleFellBack = presentation.title.isEmpty;
     final bool titleTruncated =
         glossTranslatedLength(title, animations, emoji: emoji) >
         glossBoardMaxTitleLength;
@@ -164,14 +179,14 @@ class _ScoreboardViewState extends State<ScoreboardView> {
           dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
             GlossTextLine(
               render: renderGlossScoreboardLine(
-                doc.lines[index],
+                presentation.lines[index],
                 animations: animations,
                 emoji: emoji,
                 nowMs: nowMs,
               ),
             ),
           ]),
-          if (!doc.hideNumbers)
+          if (!presentation.hideNumbers)
             dom.span(classes: 'hui-scoreboard-score', <Widget>[
               Text(
                 huiText("{glossBoardScoreForRow}", <String, Object?>{
@@ -225,9 +240,18 @@ class _ScoreboardViewState extends State<ScoreboardView> {
         ],
       ),
       dom.div(classes: 'hui-scoreboard-readout', <Widget>[
-        Text(_readout(doc, clipped, titleTruncated, titleFellBack)),
+        Text(
+          _readout(
+            presentation,
+            variantId,
+            clipped,
+            titleTruncated,
+            titleFellBack,
+          ),
+        ),
       ]),
-      ScoreboardSelectionSimulator(store: _store),
+      _conditionControls(),
+      ScoreboardSelectionSimulator(store: _store, context: conditionContext),
     ]);
   }
 
@@ -252,29 +276,22 @@ class _ScoreboardViewState extends State<ScoreboardView> {
   );
 
   String _readout(
-    GlossScoreboardDoc doc,
+    GlossScoreboardPresentation presentation,
+    String? variantId,
     int clipped,
     bool titleTruncated,
     bool titleFellBack,
   ) {
     final List<String> parts = <String>[
-      doc.primary ? huiText('primary') : huiText('not primary'),
-      doc.hideNumbers
+      variantId == null
+          ? huiText('default presentation')
+          : huiText('variant: {id}', <String, Object?>{'id': variantId}),
+      presentation.hideNumbers
           ? huiText(
               'score numbers hidden — 1.20.3 and newer only; older servers '
               'still draw the red column',
             )
           : huiText('score numbers visible'),
-      doc.permissionGated
-          ? huiText('needs {permission}', <String, Object?>{
-              'permission':
-                  '$glossBoardPermissionNodePrefix${doc.effectivePermission}',
-            })
-          : huiText('everyone'),
-      if (doc.effectiveGroups.isNotEmpty)
-        huiText('groups: {groups}', <String, Object?>{
-          'groups': doc.effectiveGroups.join(', '),
-        }),
       if (titleFellBack) huiText('blank title falls back to the board id'),
       if (clipped > 0)
         huiPlural(
@@ -287,4 +304,97 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     ];
     return parts.join(' · ');
   }
+
+  String _effectiveTitle(GlossScoreboardPresentation presentation) =>
+      presentation.title.isEmpty ? _store.menuId : presentation.title;
+
+  GlossConditionContext _conditionContext() {
+    final Set<String> groups = _groups
+        .split(',')
+        .map((String value) => value.trim().toLowerCase())
+        .where((String value) => value.isNotEmpty)
+        .toSet();
+    final Set<String> permissions = <String>{
+      if (_permission.trim().isNotEmpty) _permission.trim(),
+    };
+    const double maxHealth = 20;
+    return GlossConditionContext(
+      variables: <String, Object?>{
+        'viewer.health': _health,
+        'viewer.maxHealth': maxHealth,
+        'viewer.healthPercent': _health * 100 / maxHealth,
+        'viewer.world': _world,
+        'world.name': _world,
+        'world.environment': _world.contains('nether')
+            ? 'nether'
+            : _world.contains('end')
+            ? 'the_end'
+            : 'normal',
+        'viewer.op': false,
+        'viewer.ping': 42.0,
+        'viewer.gameMode': 'survival',
+        'subject.health': _health,
+        'subject.healthPercent': _health * 100 / maxHealth,
+        'subject.world': _world,
+        'subject.op': false,
+        'server.online': 12.0,
+        'server.maxPlayers': 100.0,
+        'server.tps': 20.0,
+      },
+      groups: groups,
+      permissions: permissions,
+      metrics: <String, double>{'react.tick-ms': 50},
+    );
+  }
+
+  Widget _conditionControls() =>
+      dom.div(classes: 'hui-scoreboard-sim-controls', <Widget>[
+        dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
+          dom.span(classes: 'hui-scoreboard-sim-label', <Widget>[
+            Text(huiText('World')),
+          ]),
+          TextInput(
+            value: _world,
+            size: ComponentSize.sm,
+            onInput: (String value) => setState(() => _world = value),
+          ),
+        ]),
+        dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
+          dom.span(classes: 'hui-scoreboard-sim-label', <Widget>[
+            Text(huiText('Health')),
+          ]),
+          TextInput(
+            value: '$_health',
+            size: ComponentSize.sm,
+            onInput: (String value) {
+              final double? parsed = double.tryParse(value);
+              if (parsed != null) {
+                setState(() => _health = parsed.clamp(0, 20));
+              }
+            },
+          ),
+        ]),
+        dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
+          dom.span(classes: 'hui-scoreboard-sim-label', <Widget>[
+            Text(huiText('Groups')),
+          ]),
+          TextInput(
+            value: _groups,
+            size: ComponentSize.sm,
+            placeholder: huiText('vip, staff'),
+            onInput: (String value) => setState(() => _groups = value),
+          ),
+        ]),
+        dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
+          dom.span(classes: 'hui-scoreboard-sim-label', <Widget>[
+            Text(huiText('Permission')),
+          ]),
+          TextInput(
+            value: _permission,
+            size: ComponentSize.sm,
+            placeholder: huiText('gloss.board.vip'),
+            onInput: (String value) => setState(() => _permission = value),
+          ),
+        ]),
+      ]);
 }

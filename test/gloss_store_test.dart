@@ -186,11 +186,14 @@ void main() {
       expect(store.docKind, WorkspaceDocKind.menu);
     });
 
-    test('a versioned document with a title routes to the scoreboard kind', () {
+    test('a canonical conditional document routes to the scoreboard kind', () {
       final EditorStore store = _store(_FakeStorage());
       store.importJson(
         'mystery.json',
-        '{"schemaVersion": 1, "revision": 1, "title": "x"}',
+        '{"schemaVersion":2,"revision":1,'
+            '"select":{"priority":0,"when":"true"},'
+            '"presentation":{"title":"x","lines":[],"hideNumbers":false},'
+            '"variants":[]}',
       );
       expect(store.docKind, WorkspaceDocKind.scoreboard);
     });
@@ -335,26 +338,27 @@ void main() {
       store.newGlossDocument(DocumentTypes.scoreboard);
       expect(store.docKind, WorkspaceDocKind.scoreboard);
       expect(store.view, EditorView.visual);
-      expect(store.scoreboardDoc!.lines, hasLength(3));
+      expect(store.scoreboardDoc!.presentation.lines, hasLength(3));
       store.mutateScoreboard(
         'add line',
-        (GlossScoreboardDoc doc) => doc.lines.add('&bnew'),
+        (GlossScoreboardDoc doc) => doc.presentation.lines.add('&bnew'),
       );
-      expect(store.scoreboardDoc!.lines, hasLength(4));
+      expect(store.scoreboardDoc!.presentation.lines, hasLength(4));
       expect(store.performUndo(), isTrue);
-      expect(store.scoreboardDoc!.lines, hasLength(3));
+      expect(store.scoreboardDoc!.presentation.lines, hasLength(3));
     });
 
     test('importJson recognizes a scoreboard document', () {
       final EditorStore store = _store(_FakeStorage());
       store.importJson(
         'vip.json',
-        '{"schemaVersion": 1, "revision": 3, "title": "&6VIP", '
-            '"lines": ["&fone"], "primary": false, "permission": "vip", '
-            '"groups": ["vip"]}',
+        '{"schemaVersion":2,"revision":3,'
+            '"select":{"priority":10,"when":"inGroup(\'viewer\',\'vip\')"},'
+            '"presentation":{"title":"&6VIP","lines":["&fone"],'
+            '"hideNumbers":false},"variants":[]}',
       );
       expect(store.docKind, WorkspaceDocKind.scoreboard);
-      expect(store.scoreboardDoc!.permission, 'vip');
+      expect(store.scoreboardDoc!.select.priority, 10);
       expect(store.scoreboardDoc!.revision, 3);
     });
 
@@ -364,8 +368,10 @@ void main() {
         DocumentTypes.scoreboard,
         name: 'showcase',
         from: GlossScoreboardDoc(
-          title: '&dGloss',
-          lines: <String>['|animation.pulse|'],
+          presentation: GlossScoreboardPresentation(
+            title: '&dGloss',
+            lines: <String>['|animation.pulse|'],
+          ),
         ),
       );
       expect(
@@ -400,17 +406,23 @@ void main() {
         from: buildShowcaseGlossScoreboard(),
       );
       store.mutateScoreboard('edit', (GlossScoreboardDoc doc) {
-        doc.title = '[00FFAA]&lEdited';
-        doc.primary = false;
-        doc.groups.add('admin');
+        doc.presentation.title = '[00FFAA]&lEdited';
+        doc.variants.add(
+          GlossScoreboardVariant(
+            id: 'admin',
+            priority: 50,
+            when: "inGroup('viewer', 'admin')",
+            presentation: doc.presentation.copy(),
+          ),
+        );
       });
       final String exported = store.exportJson();
       final EditorStore other = _store(_FakeStorage());
       other.importJson('showcase.json', exported);
       expect(other.docKind, WorkspaceDocKind.scoreboard);
       expect(other.exportJson(), exported);
-      expect(other.scoreboardDoc!.title, '[00FFAA]&lEdited');
-      expect(other.scoreboardDoc!.groups.last, 'admin');
+      expect(other.scoreboardDoc!.presentation.title, '[00FFAA]&lEdited');
+      expect(other.scoreboardDoc!.variants.last.id, 'admin');
     });
   });
 
@@ -484,8 +496,8 @@ void main() {
         (WorkspaceDoc doc) => doc.kind == WorkspaceDocKind.scoreboard,
       );
       expect(
-        decodeGlossScoreboardDoc(scoreboard.json).title,
-        buildDefaultGlossScoreboard().title,
+        decodeGlossScoreboardDoc(scoreboard.json).presentation.title,
+        buildDefaultGlossScoreboard().presentation.title,
       );
       // The restored workspace's resolver serves the restored animation.
       expect(fresh.workspaceAnimations.ids, contains('rainbow'));

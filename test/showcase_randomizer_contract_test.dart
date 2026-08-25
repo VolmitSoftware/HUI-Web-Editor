@@ -225,7 +225,10 @@ void main() {
         } else if (type is MotdDocumentType) {
           expect(store.motdDoc!.entries.length, lessThanOrEqualTo(8));
         } else if (type is TablistDocumentType) {
-          expect(store.tablistDoc!.nameFormats.length, lessThanOrEqualTo(8));
+          expect(
+            store.tablistDoc!.listNames.variants.length,
+            lessThanOrEqualTo(7),
+          );
         }
       }
     }
@@ -390,7 +393,7 @@ void main() {
         buildRandomScoreboardShowcase(
           GlossScoreboardDoc(),
           math.Random(seed),
-        ).hideNumbers,
+        ).presentation.hideNumbers,
       );
       final GlossEmojiDoc emoji = buildRandomEmojiShowcase(
         GlossEmojiDoc(),
@@ -410,11 +413,15 @@ void main() {
         GlossTablistDoc(),
         math.Random(seed),
       );
-      expect(tablist.useHeaderFooter, isTrue);
-      expect(tablist.groupListNames, isTrue);
-      headerLineCounts.add(tablist.header.split('\n').length);
-      footerLineCounts.add(tablist.footer.split('\n').length);
-      formatCounts.add(tablist.nameFormats.length);
+      expect(tablist.headerFooter.enabled, isTrue);
+      expect(tablist.listNames.enabled, isTrue);
+      headerLineCounts.add(
+        tablist.headerFooter.presentation.header.split('\n').length,
+      );
+      footerLineCounts.add(
+        tablist.headerFooter.presentation.footer.split('\n').length,
+      );
+      formatCounts.add(tablist.listNames.variants.length + 1);
       tablists.add(encodeGlossTablistDoc(tablist));
     }
     expect(billboards, glossHologramBillboards.toSet());

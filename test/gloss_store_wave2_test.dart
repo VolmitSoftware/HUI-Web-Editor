@@ -146,18 +146,22 @@ void main() {
       store.newGlossDocument(DocumentTypes.tablist);
       store.mutateTablist(
         'tablist header',
-        (GlossTablistDoc doc) => doc.header = '&bNew header',
+        (GlossTablistDoc doc) =>
+            doc.headerFooter.presentation.header = '&bNew header',
       );
-      expect(store.tablistDoc!.header, '&bNew header');
+      expect(
+        store.tablistDoc!.headerFooter.presentation.header,
+        '&bNew header',
+      );
       expect(store.performUndo(), isTrue);
-      expect(store.tablistDoc!.header, '&d&lGloss');
+      expect(store.tablistDoc!.headerFooter.presentation.header, '&d&lGloss');
     });
 
     test('import auto-detection routes a tablist document to the kind', () {
       final EditorStore store = _store(_FakeStorage());
       store.importJsonAsNewDocument('tablist.json', kGlossTablistDefaultJson);
       expect(store.docKind, WorkspaceDocKind.tablist);
-      expect(store.tablistDoc!.nameFormats, hasLength(2));
+      expect(store.tablistDoc!.listNames.variants, hasLength(1));
     });
   });
 

@@ -11,6 +11,7 @@ import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
+import 'field_help.dart';
 import 'inspector_widgets.dart';
 
 class DamageIndicatorInspector extends StatelessWidget {
@@ -18,22 +19,20 @@ class DamageIndicatorInspector extends StatelessWidget {
 
   final EditorStore store;
 
-  GlossDamageIndicatorsDoc? get _doc => store.damageIndicatorsDoc;
-
   List<HuiIssue> _issuesFor(String path) => store.issues
       .where((HuiIssue issue) => issue.path.startsWith(path))
       .toList();
 
   @override
   Widget build(BuildContext context) {
-    final GlossDamageIndicatorsDoc? doc = _doc;
+    final GlossDamageIndicatorsDoc? doc = store.damageIndicatorsDoc;
     if (doc == null) return const dom.div(<Widget>[]);
     return dom.div(classes: 'hui-inspector-body is-damage-indicators', <Widget>[
       _header(doc),
       _limits(doc),
       _style(doc, doc.damage, healing: false),
       _style(doc, doc.healing, healing: true),
-      _filters(doc),
+      _audience(doc),
     ]);
   }
 
@@ -49,7 +48,7 @@ class DamageIndicatorInspector extends StatelessWidget {
     dom.p(classes: 'hui-inspector-lede', <Widget>[
       Text(
         huiText(
-          'Floating combat numbers with independent damage and healing motion.',
+          'Conditional floating combat numbers with complete damage and healing variants.',
         ),
       ),
     ]),
@@ -61,9 +60,7 @@ class DamageIndicatorInspector extends StatelessWidget {
     children: <Widget>[
       _integer(
         label: huiText('Maximum per second'),
-        help: huiText(
-          'Global spawn budget before new combat numbers are dropped. 1..1000.',
-        ),
+        help: huiText('Global spawn budget. 1..1000.'),
         path: r'$.limits.maxPerSecond',
         value: doc.limits.maxPerSecond,
         onChanged: (int value) => _mutate(
@@ -74,7 +71,7 @@ class DamageIndicatorInspector extends StatelessWidget {
       ),
       HuiField(
         label: huiText('Lifetime'),
-        help: huiText('How long one indicator remains visible. 250..30000 ms.'),
+        help: huiText('Visible lifetime. 250..30000 ms.'),
         control: dom.div(<Widget>[
           HuiDurationField(
             value: doc.limits.lifetimeMs.toDouble(),
@@ -90,9 +87,7 @@ class DamageIndicatorInspector extends StatelessWidget {
       ),
       _decimal(
         label: huiText('Minimum health change'),
-        help: huiText(
-          'Smaller measured health changes do not spawn an indicator. 0..1000.',
-        ),
+        help: huiText('Smaller changes do not spawn an indicator. 0..1000.'),
         path: r'$.limits.minimumDelta',
         value: doc.limits.minimumDelta,
         step: 0.001,
@@ -105,7 +100,7 @@ class DamageIndicatorInspector extends StatelessWidget {
       ),
       _integer(
         label: huiText('Decimal places'),
-        help: huiText('Digits after the decimal point in {amount}. 0..4.'),
+        help: huiText('Digits after the decimal point. 0..4.'),
         path: r'$.limits.decimals',
         value: doc.limits.decimals,
         onChanged: (int value) => _mutate(
@@ -129,215 +124,308 @@ class DamageIndicatorInspector extends StatelessWidget {
           ? 'damage-indicators.healing'
           : 'damage-indicators.damage',
       children: <Widget>[
-        HuiSwitchRow(
-          label: huiText('Show {noun} indicators', <String, Object?>{
-            'noun': noun.toLowerCase(),
-          }),
-          value: style.enabled,
-          onChanged: (bool value) => _mutateStyle(
+        _condition(
+          label: huiText('Event condition'),
+          value: style.when,
+          path: '$path.when',
+          onInput: (String value) => _mutateStyle(
             healing,
-            '${noun.toLowerCase()} indicator visibility',
-            (GlossDamageIndicatorStyle edited) => edited.enabled = value,
+            '${noun.toLowerCase()} condition',
+            (GlossDamageIndicatorStyle edited) => edited.when = value,
           ),
         ),
-        HuiField(
-          label: huiText('Text format'),
-          help: huiText(
-            'Minecraft text containing {amount}, replaced by the formatted health change.',
+        HuiEyebrow(huiText('Default presentation')),
+        ..._presentationFields(
+          doc,
+          style.presentation,
+          '$path.presentation',
+          (
+            String label,
+            void Function(GlossDamageIndicatorPresentation) edit,
+          ) => _mutateStyle(
+            healing,
+            label,
+            (GlossDamageIndicatorStyle edited) => edit(edited.presentation),
           ),
-          control: dom.div(<Widget>[
-            TextInput(
-              value: style.format,
-              size: ComponentSize.sm,
-              fullWidth: true,
-              onInput: (String value) => _mutateStyle(
-                healing,
-                '${noun.toLowerCase()} indicator format',
-                (GlossDamageIndicatorStyle edited) => edited.format = value,
-              ),
-              styles: huiTechnicalInputStyles,
-              attributes: huiTechnicalInputAttributes,
-            ),
-            dom.div(classes: 'hui-damage-indicator-format-preview', <Widget>[
-              GlossTextLine(
-                render: renderGlossLine(
-                  renderDamageIndicatorText(
-                    style,
-                    healing ? 4.5 : 7.25,
-                    doc.limits.decimals,
-                  ),
-                  animations: store.workspaceAnimations,
-                  emoji: store.workspaceEmoji,
-                ),
-              ),
-            ]),
-            HuiInlineIssues(_issuesFor('$path.format')),
-          ]),
         ),
-        HuiField(
-          label: huiText('Spawn offset'),
-          help: huiText('Blocks from the damaged or healed entity.'),
-          control: dom.div(<Widget>[
-            HuiVec3Field(
-              value: style.offset,
-              labels: <String>[huiText('X'), huiText('Y'), huiText('Z')],
-              axisHints: <String>[
-                huiText('Sideways from the entity'),
-                huiText('Above the entity origin'),
-                huiText('Forward from the entity'),
-              ],
-              onChanged: (Vec3 value) => _mutateStyle(
-                healing,
-                '${noun.toLowerCase()} indicator offset',
-                (GlossDamageIndicatorStyle edited) => edited.offset = value,
+        HuiEyebrow(huiText('Conditional variants')),
+        for (int index = 0; index < style.variants.length; index++)
+          _variant(doc, style, healing, index, path),
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          icon: ArcaneIcon.plus(size: IconSize.sm),
+          onPressed: () => _mutateStyle(
+            healing,
+            'add ${noun.toLowerCase()} variant',
+            (GlossDamageIndicatorStyle edited) => edited.variants.add(
+              GlossDamageIndicatorVariant(
+                id: 'variant-${edited.variants.length + 1}',
+                when: 'false',
+                presentation: edited.presentation.copy(),
               ),
             ),
-            HuiInlineIssues(_issuesFor('$path.offset')),
-          ]),
-        ),
-        _decimal(
-          label: huiText('Horizontal speed'),
-          help: huiText('Outward travel in blocks per second. 0..16.'),
-          path: '$path.motion.horizontalSpeed',
-          value: style.motion.horizontalSpeed,
-          onChanged: (double value) => _mutateMotion(
-            healing,
-            '${noun.toLowerCase()} horizontal speed',
-            (GlossDamageIndicatorMotion edited) =>
-                edited.horizontalSpeed = value,
           ),
-        ),
-        _decimal(
-          label: huiText('Vertical speed'),
-          help: huiText(
-            'Initial vertical travel in blocks per second. -16..16.',
-          ),
-          path: '$path.motion.verticalSpeed',
-          value: style.motion.verticalSpeed,
-          onChanged: (double value) => _mutateMotion(
-            healing,
-            '${noun.toLowerCase()} vertical speed',
-            (GlossDamageIndicatorMotion edited) => edited.verticalSpeed = value,
-          ),
-        ),
-        _decimal(
-          label: huiText('Vertical acceleration'),
-          help: huiText(
-            'Curve acceleration in blocks per second squared. -32..32.',
-          ),
-          path: '$path.motion.verticalAcceleration',
-          value: style.motion.verticalAcceleration,
-          onChanged: (double value) => _mutateMotion(
-            healing,
-            '${noun.toLowerCase()} vertical acceleration',
-            (GlossDamageIndicatorMotion edited) =>
-                edited.verticalAcceleration = value,
-          ),
-        ),
-        _decimal(
-          label: huiText('Spin'),
-          help: huiText(
-            'Screen-plane roll in degrees per second. -1440..1440.',
-          ),
-          path: '$path.motion.spinDegreesPerSecond',
-          value: style.motion.spinDegreesPerSecond,
-          step: 5,
-          onChanged: (double value) => _mutateMotion(
-            healing,
-            '${noun.toLowerCase()} indicator spin',
-            (GlossDamageIndicatorMotion edited) =>
-                edited.spinDegreesPerSecond = value,
-          ),
-        ),
-        _decimal(
-          label: huiText('Start scale'),
-          help: huiText('TextDisplay scale at spawn. 0..16.'),
-          path: '$path.presentation.startScale',
-          value: style.presentation.startScale,
-          onChanged: (double value) => _mutatePresentation(
-            healing,
-            '${noun.toLowerCase()} start scale',
-            (GlossDamageIndicatorPresentation edited) =>
-                edited.startScale = value,
-          ),
-        ),
-        _decimal(
-          label: huiText('End scale'),
-          help: huiText('TextDisplay scale at expiry. 0..16.'),
-          path: '$path.presentation.endScale',
-          value: style.presentation.endScale,
-          onChanged: (double value) => _mutatePresentation(
-            healing,
-            '${noun.toLowerCase()} end scale',
-            (GlossDamageIndicatorPresentation edited) =>
-                edited.endScale = value,
-          ),
-        ),
-        _decimal(
-          label: huiText('Fade start'),
-          help: huiText(
-            'Lifetime fraction where opacity begins falling to zero. 0..1.',
-          ),
-          path: '$path.presentation.fadeStartFraction',
-          value: style.presentation.fadeStartFraction,
-          onChanged: (double value) => _mutatePresentation(
-            healing,
-            '${noun.toLowerCase()} fade start',
-            (GlossDamageIndicatorPresentation edited) =>
-                edited.fadeStartFraction = value,
-          ),
+          child: Text(huiText('Add variant')),
         ),
       ],
     );
   }
 
-  Widget _filters(GlossDamageIndicatorsDoc doc) => InspectorSection(
-    title: huiText('World filters'),
-    description: huiText(
-      'Indicators never spawn in these exact world folder names.',
-    ),
-    children: <Widget>[
-      for (int index = 0; index < doc.filters.disabledWorlds.length; index++)
-        dom.div(classes: 'hui-damage-indicator-world-row', <Widget>[
+  Widget _variant(
+    GlossDamageIndicatorsDoc doc,
+    GlossDamageIndicatorStyle style,
+    bool healing,
+    int index,
+    String stylePath,
+  ) {
+    final GlossDamageIndicatorVariant variant = style.variants[index];
+    final String path = '$stylePath.variants[$index]';
+    return dom.div(classes: 'hui-damage-indicator-variant', <Widget>[
+      dom.div(classes: 'hui-inspector-title-row', <Widget>[
+        HuiEyebrow(
+          huiText('Variant {id}', <String, Object?>{
+            'id': variant.id.isEmpty ? index + 1 : variant.id,
+          }),
+        ),
+        HuiIconButton(
+          label: huiText('Delete variant'),
+          icon: ArcaneIcon.trash2(size: IconSize.sm),
+          onPressed: () => _mutateStyle(healing, 'delete indicator variant', (
+            GlossDamageIndicatorStyle edited,
+          ) {
+            if (index < edited.variants.length) {
+              edited.variants.removeAt(index);
+            }
+          }),
+        ),
+      ]),
+      HuiField(
+        label: huiText('Variant id'),
+        control: dom.div(<Widget>[
           TextInput(
-            value: doc.filters.disabledWorlds[index],
+            value: variant.id,
             size: ComponentSize.sm,
             fullWidth: true,
-            placeholder: huiText('world_nether'),
-            onInput: (String value) => _mutate(
-              'edit disabled indicator world',
-              (GlossDamageIndicatorsDoc edited) {
-                if (index < edited.filters.disabledWorlds.length) {
-                  edited.filters.disabledWorlds[index] = value;
-                }
-              },
+            onInput: (String value) => _mutateVariant(
+              healing,
+              index,
+              'indicator variant id',
+              (GlossDamageIndicatorVariant edited) => edited.id = value,
             ),
           ),
-          HuiIconButton(
-            label: huiText('Remove world'),
-            icon: ArcaneIcon.trash2(size: IconSize.sm),
-            onPressed: () => _mutate('remove disabled indicator world', (
-              GlossDamageIndicatorsDoc edited,
-            ) {
-              if (index < edited.filters.disabledWorlds.length) {
-                edited.filters.disabledWorlds.removeAt(index);
-              }
-            }),
+          HuiInlineIssues(_issuesFor('$path.id')),
+        ]),
+      ),
+      _integer(
+        label: huiText('Priority'),
+        help: huiText('Highest matching priority wins.'),
+        path: '$path.priority',
+        value: variant.priority,
+        onChanged: (int value) => _mutateVariant(
+          healing,
+          index,
+          'indicator variant priority',
+          (GlossDamageIndicatorVariant edited) => edited.priority = value,
+        ),
+      ),
+      _condition(
+        label: huiText('Condition'),
+        value: variant.when,
+        path: '$path.when',
+        onInput: (String value) => _mutateVariant(
+          healing,
+          index,
+          'indicator variant condition',
+          (GlossDamageIndicatorVariant edited) => edited.when = value,
+        ),
+      ),
+      ..._presentationFields(
+        doc,
+        variant.presentation,
+        '$path.presentation',
+        (String label, void Function(GlossDamageIndicatorPresentation) edit) =>
+            _mutateVariant(
+              healing,
+              index,
+              label,
+              (GlossDamageIndicatorVariant edited) => edit(edited.presentation),
+            ),
+      ),
+    ]);
+  }
+
+  List<Widget> _presentationFields(
+    GlossDamageIndicatorsDoc doc,
+    GlossDamageIndicatorPresentation presentation,
+    String path,
+    void Function(
+      String label,
+      void Function(GlossDamageIndicatorPresentation presentation) edit,
+    )
+    mutate,
+  ) => <Widget>[
+    HuiField(
+      label: huiText('Text format'),
+      help: huiText('Minecraft text containing {amount}.'),
+      control: dom.div(<Widget>[
+        TextInput(
+          value: presentation.format,
+          size: ComponentSize.sm,
+          fullWidth: true,
+          onInput: (String value) => mutate(
+            'indicator format',
+            (GlossDamageIndicatorPresentation edited) => edited.format = value,
+          ),
+          styles: huiTechnicalInputStyles,
+          attributes: huiTechnicalInputAttributes,
+        ),
+        dom.div(classes: 'hui-damage-indicator-format-preview', <Widget>[
+          GlossTextLine(
+            render: renderGlossLine(
+              renderDamageIndicatorText(
+                presentation,
+                7.25,
+                doc.limits.decimals,
+              ),
+              animations: store.workspaceAnimations,
+              emoji: store.workspaceEmoji,
+            ),
           ),
         ]),
-      Button(
-        variant: ButtonVariant.outline,
-        size: ButtonSize.sm,
-        icon: ArcaneIcon.plus(size: IconSize.sm),
-        onPressed: () => _mutate(
-          'add disabled indicator world',
-          (GlossDamageIndicatorsDoc edited) =>
-              edited.filters.disabledWorlds.add(''),
+        HuiInlineIssues(_issuesFor('$path.format')),
+      ]),
+    ),
+    HuiField(
+      label: huiText('Spawn offset'),
+      control: dom.div(<Widget>[
+        HuiVec3Field(
+          value: presentation.offset,
+          labels: <String>[huiText('X'), huiText('Y'), huiText('Z')],
+          onChanged: (Vec3 value) => mutate(
+            'indicator offset',
+            (GlossDamageIndicatorPresentation edited) => edited.offset = value,
+          ),
         ),
-        child: Text(huiText('Add world')),
+        HuiInlineIssues(_issuesFor('$path.offset')),
+      ]),
+    ),
+    _decimal(
+      label: huiText('Horizontal speed'),
+      help: huiText('Outward speed. 0..16.'),
+      path: '$path.motion.horizontalSpeed',
+      value: presentation.motion.horizontalSpeed,
+      onChanged: (double value) => mutate(
+        'indicator horizontal speed',
+        (GlossDamageIndicatorPresentation edited) =>
+            edited.motion.horizontalSpeed = value,
       ),
-      HuiInlineIssues(_issuesFor(r'$.filters.disabledWorlds')),
+    ),
+    _decimal(
+      label: huiText('Vertical speed'),
+      help: huiText('Initial vertical speed. -16..16.'),
+      path: '$path.motion.verticalSpeed',
+      value: presentation.motion.verticalSpeed,
+      onChanged: (double value) => mutate(
+        'indicator vertical speed',
+        (GlossDamageIndicatorPresentation edited) =>
+            edited.motion.verticalSpeed = value,
+      ),
+    ),
+    _decimal(
+      label: huiText('Vertical acceleration'),
+      help: huiText('Vertical acceleration. -32..32.'),
+      path: '$path.motion.verticalAcceleration',
+      value: presentation.motion.verticalAcceleration,
+      onChanged: (double value) => mutate(
+        'indicator vertical acceleration',
+        (GlossDamageIndicatorPresentation edited) =>
+            edited.motion.verticalAcceleration = value,
+      ),
+    ),
+    _decimal(
+      label: huiText('Spin'),
+      help: huiText('Degrees per second. -1440..1440.'),
+      path: '$path.motion.spinDegreesPerSecond',
+      value: presentation.motion.spinDegreesPerSecond,
+      step: 5,
+      onChanged: (double value) => mutate(
+        'indicator spin',
+        (GlossDamageIndicatorPresentation edited) =>
+            edited.motion.spinDegreesPerSecond = value,
+      ),
+    ),
+    _decimal(
+      label: huiText('Start scale'),
+      help: huiText('Scale at spawn. 0..16.'),
+      path: '$path.transform.startScale',
+      value: presentation.transform.startScale,
+      onChanged: (double value) => mutate(
+        'indicator start scale',
+        (GlossDamageIndicatorPresentation edited) =>
+            edited.transform.startScale = value,
+      ),
+    ),
+    _decimal(
+      label: huiText('End scale'),
+      help: huiText('Scale at expiry. 0..16.'),
+      path: '$path.transform.endScale',
+      value: presentation.transform.endScale,
+      onChanged: (double value) => mutate(
+        'indicator end scale',
+        (GlossDamageIndicatorPresentation edited) =>
+            edited.transform.endScale = value,
+      ),
+    ),
+    _decimal(
+      label: huiText('Fade start'),
+      help: huiText('Lifetime fraction where fading begins. 0..1.'),
+      path: '$path.transform.fadeStartFraction',
+      value: presentation.transform.fadeStartFraction,
+      onChanged: (double value) => mutate(
+        'indicator fade start',
+        (GlossDamageIndicatorPresentation edited) =>
+            edited.transform.fadeStartFraction = value,
+      ),
+    ),
+  ];
+
+  Widget _audience(GlossDamageIndicatorsDoc doc) => InspectorSection(
+    title: huiText('Audience'),
+    description: huiText('Evaluated independently for every viewer.'),
+    children: <Widget>[
+      _condition(
+        label: huiText('Viewer condition'),
+        value: doc.audience.when,
+        path: r'$.audience.when',
+        onInput: (String value) => _mutate(
+          'indicator audience condition',
+          (GlossDamageIndicatorsDoc edited) => edited.audience.when = value,
+        ),
+      ),
     ],
+  );
+
+  Widget _condition({
+    required String label,
+    required String value,
+    required String path,
+    required void Function(String value) onInput,
+  }) => HuiField(
+    label: label,
+    trailing: const HuiFieldHelp('condition.when'),
+    control: dom.div(<Widget>[
+      TextInput(
+        value: value,
+        size: ComponentSize.sm,
+        fullWidth: true,
+        placeholder: huiText("viewer.world == 'world'"),
+        onInput: onInput,
+        styles: huiTechnicalInputStyles,
+        attributes: huiTechnicalInputAttributes,
+      ),
+      HuiInlineIssues(_issuesFor(path)),
+    ]),
   );
 
   Widget _integer({
@@ -398,23 +486,12 @@ class DamageIndicatorInspector extends StatelessWidget {
         change(healing ? doc.healing : doc.damage),
   );
 
-  void _mutateMotion(
+  void _mutateVariant(
     bool healing,
+    int index,
     String label,
-    void Function(GlossDamageIndicatorMotion motion) change,
-  ) => _mutateStyle(
-    healing,
-    label,
-    (GlossDamageIndicatorStyle style) => change(style.motion),
-  );
-
-  void _mutatePresentation(
-    bool healing,
-    String label,
-    void Function(GlossDamageIndicatorPresentation presentation) change,
-  ) => _mutateStyle(
-    healing,
-    label,
-    (GlossDamageIndicatorStyle style) => change(style.presentation),
-  );
+    void Function(GlossDamageIndicatorVariant variant) change,
+  ) => _mutateStyle(healing, label, (GlossDamageIndicatorStyle style) {
+    if (index < style.variants.length) change(style.variants[index]);
+  });
 }

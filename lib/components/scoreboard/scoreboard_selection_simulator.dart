@@ -1,16 +1,3 @@
-/// "Which board would this player get?" — the workspace's scoreboard
-/// documents run through the real `BoardService.selectBoardId` scan.
-///
-/// A single board document says nothing about whether anyone will ever see
-/// it: selection is a property of the whole set. This panel names a viewer
-/// (their primary group, and whether they hold the `gloss.board.*` nodes) and
-/// shows the winner, the pass that picked it, and why each losing board lost.
-///
-/// The rules live in `scoreboard_selection.dart`; this file only gathers
-/// candidates and draws them. Candidates come from the workspace through the
-/// store's public getters — the open document from the live model, since its
-/// stored JSON lags by the autosave debounce — and are sorted by runtime id,
-/// which is the order `BoardService.boards()` scans in.
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
@@ -24,9 +11,14 @@ import 'scoreboard_selection.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ScoreboardSelectionSimulator extends StatefulWidget {
-  const ScoreboardSelectionSimulator({required this.store, super.key});
+  const ScoreboardSelectionSimulator({
+    required this.store,
+    required this.context,
+    super.key,
+  });
 
   final EditorStore store;
+  final GlossConditionContext context;
 
   @override
   State<ScoreboardSelectionSimulator> createState() =>
@@ -35,26 +27,11 @@ class ScoreboardSelectionSimulator extends StatefulWidget {
 
 class _ScoreboardSelectionSimulatorState
     extends State<ScoreboardSelectionSimulator> {
-  /// The simulated viewer's primary group, as a permissions plugin would
-  /// report it. Empty means "no group", which skips the first pass entirely.
-  String _primaryGroup = '';
-
-  /// Whether the simulated viewer holds every `gloss.board.*` node. One
-  /// switch rather than a node-by-node grid: the runtime answer only ever
-  /// turns on whether a specific board's node is held, and both extremes are
-  /// what authors actually need to check.
-  bool _hasPermissions = false;
-
-  /// Candidate memo. Decoding every board's JSON on each repaint would run on
-  /// the surface's animation ticker, so it is keyed by a cheap signature of
-  /// the workspace's scoreboard documents.
   List<GlossBoardCandidate>? _candidates;
   String _candidateSignature = '';
 
   EditorStore get _store => component.store;
 
-  /// Workspace documents of the scoreboard kind, live document first-class,
-  /// sorted by runtime id like `BoardService.boards()`.
   List<GlossBoardCandidate> _boards() {
     final WorkspaceDocKind? kind = DocumentTypeRegistry.byWireKind(
       'scoreboard',
@@ -75,22 +52,17 @@ class _ScoreboardSelectionSimulatorState
     final List<GlossBoardCandidate> built = <GlossBoardCandidate>[];
     for (final WorkspaceDoc doc in docs) {
       final String id = doc.runtimeId!;
-      if (doc.id == _store.workspace.activeId && open != null) {
-        built.add(GlossBoardCandidate.fromDoc(id, open));
-        continue;
-      }
       try {
         built.add(
-          GlossBoardCandidate.fromDoc(id, decodeGlossScoreboardDoc(doc.json)),
+          GlossBoardCandidate.fromDoc(
+            id,
+            doc.id == _store.workspace.activeId && open != null
+                ? open
+                : decodeGlossScoreboardDoc(doc.json),
+          ),
         );
-      } catch (_) {
-        // An unreadable document never becomes a GlossBoardMeta, so it takes
-        // no part in selection either.
-      }
+      } catch (_) {}
     }
-    built.sort(
-      (GlossBoardCandidate a, GlossBoardCandidate b) => a.id.compareTo(b.id),
-    );
     _candidates = built;
     _candidateSignature = signature;
     return built;
@@ -99,162 +71,82 @@ class _ScoreboardSelectionSimulatorState
   @override
   Widget build(BuildContext context) {
     final List<GlossBoardCandidate> boards = _boards();
-    final String group = _primaryGroup.trim();
     final GlossBoardSelection selection = glossSelectBoard(
-      primaryGroup: group.isEmpty ? null : group,
       boards: boards,
-      permissionTest: (String _) => _hasPermissions,
+      context: component.context,
     );
-    final String openId = _store.menuId;
-
     return dom.div(classes: 'hui-scoreboard-sim', <Widget>[
       dom.div(classes: 'hui-scoreboard-sim-head', <Widget>[
         dom.span(classes: 'hui-scoreboard-sim-title', <Widget>[
           Text(huiText('Board selection')),
         ]),
         dom.span(classes: 'hui-scoreboard-sim-verdict', <Widget>[
-          Text(_verdict(selection, boards.length)),
-        ]),
-      ]),
-      dom.div(classes: 'hui-scoreboard-sim-controls', <Widget>[
-        dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
-          dom.span(classes: 'hui-scoreboard-sim-label', <Widget>[
-            Text(huiText('Primary group')),
-          ]),
-          TextInput(
-            value: _primaryGroup,
-            size: ComponentSize.sm,
-            placeholder: huiText('none'),
-            onInput: (String value) => setState(() => _primaryGroup = value),
-            attributes: <String, String>{
-              'autocomplete': 'off',
-              'spellcheck': 'false',
-              'dir': 'ltr',
-              'aria-label': huiText("Simulated viewer's primary group"),
-            },
+          Text(
+            selection.boardId == null
+                ? huiText('this viewer gets no sidebar')
+                : huiText('{id} wins', <String, Object?>{
+                    'id': selection.boardId!,
+                  }),
           ),
         ]),
-        ArcaneToggleSwitch(
-          value: _hasPermissions,
-          size: ComponentSize.sm,
-          onChanged: (bool value) => setState(() => _hasPermissions = value),
-          label: _hasPermissions
-              ? huiText('Holds every gloss.board.* node')
-              : huiText('Holds no gloss.board.* node'),
-        ),
       ]),
       if (boards.isEmpty)
         dom.p(classes: 'hui-scoreboard-sim-empty', <Widget>[
-          Text(
-            huiText(
-              'No scoreboard documents in the workspace, so no player gets a '
-              'sidebar.',
-            ),
-          ),
+          Text(huiText('No scoreboard documents are available.')),
         ])
       else
         dom.ul(classes: 'hui-scoreboard-sim-list', <Widget>[
           for (final GlossBoardCandidate board in boards)
-            _row(board, selection, group, openId),
+            _row(board, selection),
         ]),
       dom.p(classes: 'hui-scoreboard-sim-note', <Widget>[
         Text(
           huiText(
-            'Boards are scanned in id order — group match first, then a held '
-            'permission node, then the primary flag. Group names are compared '
-            'exactly against the normalized (lowercased) list, so a permissions '
-            'plugin reporting "VIP" does not match a board listing "vip".',
+            'Every matching select.when enters the contest. Highest priority '
+            'wins; equal priorities use the smaller board id.',
           ),
         ),
       ]),
     ]);
   }
 
-  Widget _row(
-    GlossBoardCandidate board,
-    GlossBoardSelection selection,
-    String group,
-    String openId,
-  ) {
+  Widget _row(GlossBoardCandidate board, GlossBoardSelection selection) {
+    final ({bool matches, String? error}) result = glossConditionMatches(
+      board.when,
+      component.context,
+    );
     final bool wins = board.id == selection.boardId;
-    final bool hidden = board.permissionGated && !_hasPermissions;
     return dom.li(
       classes: <String>[
         'hui-scoreboard-sim-row',
         if (wins) 'is-winner',
-        if (!wins && hidden) 'is-hidden-from-viewer',
-        if (board.id == openId) 'is-open',
+        if (!result.matches) 'is-hidden-from-viewer',
       ].join(' '),
       <Widget>[
         dom.span(classes: 'hui-scoreboard-sim-id', <Widget>[Text(board.id)]),
         dom.span(classes: 'hui-scoreboard-sim-flags', <Widget>[
-          if (board.primary)
-            dom.span(classes: 'hui-scoreboard-sim-flag', <Widget>[
-              Text(huiText('primary')),
-            ]),
-          if (board.permissionGated)
-            dom.span(classes: 'hui-scoreboard-sim-flag', <Widget>[
-              Text(board.permissionNode),
-            ]),
-          for (final String name in board.groups)
-            dom.span(
-              classes:
-                  'hui-scoreboard-sim-flag'
-                  '${name == group ? ' is-match' : ''}',
-              <Widget>[Text(name)],
+          dom.span(classes: 'hui-scoreboard-sim-flag', <Widget>[
+            Text(
+              huiText('priority {priority}', <String, Object?>{
+                'priority': board.priority,
+              }),
             ),
+          ]),
         ]),
         dom.span(classes: 'hui-scoreboard-sim-state', <Widget>[
-          Text(_state(board, selection, wins, hidden)),
+          Text(
+            wins
+                ? huiText('shown')
+                : result.error != null
+                ? huiText('condition error: {error}', <String, Object?>{
+                    'error': result.error!,
+                  })
+                : result.matches
+                ? huiText('outranked')
+                : huiText('condition false'),
+          ),
         ]),
       ],
     );
-  }
-
-  String _state(
-    GlossBoardCandidate board,
-    GlossBoardSelection selection,
-    bool wins,
-    bool hidden,
-  ) {
-    if (wins) {
-      return switch (selection.pass) {
-        GlossBoardSelectionPass.group => huiText('shown — group match'),
-        GlossBoardSelectionPass.permission => huiText(
-          'shown — permission held',
-        ),
-        GlossBoardSelectionPass.primary => huiText('shown — primary board'),
-        GlossBoardSelectionPass.none => huiText('shown'),
-      };
-    }
-    if (hidden) return huiText('permission not held');
-    if (board.primary) return huiText('outranked');
-    return board.groups.isEmpty && !board.permissionGated
-        ? huiText('never selected — no group, no permission, not primary')
-        : huiText('no match for this viewer');
-  }
-
-  String _verdict(GlossBoardSelection selection, int count) {
-    final String? id = selection.boardId;
-    if (id == null) {
-      return count == 0
-          ? huiText('nothing to select')
-          : huiText('this viewer gets no sidebar at all');
-    }
-    return switch (selection.pass) {
-      GlossBoardSelectionPass.group => huiText(
-        '{id} wins on the group pass',
-        <String, Object?>{'id': id},
-      ),
-      GlossBoardSelectionPass.permission => huiText(
-        '{id} wins on the permission pass',
-        <String, Object?>{'id': id},
-      ),
-      GlossBoardSelectionPass.primary => huiText(
-        '{id} wins as the primary board',
-        <String, Object?>{'id': id},
-      ),
-      GlossBoardSelectionPass.none => id,
-    };
   }
 }

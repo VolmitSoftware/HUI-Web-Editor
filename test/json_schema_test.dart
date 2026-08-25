@@ -94,7 +94,8 @@ List<(String, GlossJsonField)> _allFields(GlossJsonObject root) {
   return out;
 }
 
-HuiIconStyle _style() => HuiIconStyle(blockLight: 7, skyLight: 3, glowColor: '#ff00ff');
+HuiIconStyle _style() =>
+    HuiIconStyle(blockLight: 7, skyLight: 3, glowColor: '#ff00ff');
 
 /// A menu that writes every key the menu format has: all three component
 /// types, all seven icon types, all six actions, and the optional blocks
@@ -173,8 +174,11 @@ const String _animation =
     '"frameIntervalMs":250,"frames":["a","b"]}';
 
 const String _scoreboard =
-    '{"schemaVersion":1,"revision":2,"title":"t","lines":["a"],'
-    '"primary":true,"hideNumbers":true,"permission":"vip","groups":["vip"]}';
+    '{"schemaVersion":2,"revision":2,'
+    '"select":{"priority":10,"when":"true"},'
+    '"presentation":{"title":"t","lines":["a"],"hideNumbers":true},'
+    '"variants":[{"id":"low","priority":20,"when":"viewer.health<5",'
+    '"presentation":{"title":"low","lines":["b"],"hideNumbers":true}}]}';
 
 const String _motd =
     '{"schemaVersion":1,"revision":2,"entries":[{"lines":["a","b"]}]}';
@@ -184,7 +188,7 @@ const String _emoji =
     '"enabled":false}';
 
 const String _bubble =
-    '{"schemaVersion":2,"revision":2,"prefix":"&7","offset":[0,0.3,0],'
+    '{"schemaVersion":3,"revision":2,"prefix":"&7","offset":[0,0.3,0],'
     '"wordWrapChars":32,"maxAliveMs":5000,'
     '"motion":{"translation":{"x":"0","y":"1","z":"0"},'
     '"scale":{"x":"1","y":"1","z":"1"},'
@@ -192,12 +196,15 @@ const String _bubble =
     '"shimmer":{"spawn":true,"flyAway":true,"color":"#ffffff","width":3,'
     '"durationMs":700,"spawnDelayMs":400,"flyAwayLeadMs":700},'
     '"followPlayer":true,"hideOwn":true,'
-    '"select":{"worlds":["w*"],"groups":["vip"],"priority":5}}';
+    '"select":{"priority":5,"when":"inGroup(\'viewer\', \'vip\')"}}';
 
 const String _tablist =
-    '{"schemaVersion":1,"revision":2,"useHeaderFooter":true,"header":"h",'
-    r'"footer":"f","groupListNames":true,'
-    r'"nameFormats":{"default":"$player","_op":"&6$player","vip":"&b$player"}}';
+    '{"schemaVersion":2,"revision":2,'
+    '"headerFooter":{"enabled":true,"presentation":{"header":"h",'
+    '"footer":"f"},"variants":[]},'
+    r'"listNames":{"enabled":true,"presentation":{"format":"$player"},'
+    r'"variants":[{"id":"op","priority":10,"when":"subject.op",'
+    r'"presentation":{"format":"&6$player"}}]}}';
 
 void main() {
   group('coverage', () {
@@ -365,17 +372,15 @@ void main() {
     });
 
     test('resolves a field five levels down, through two variants', () {
-      final GlossJsonField? field = glossJsonFieldAt(
-        glossMenuJsonSchema,
-        <JsonPathStep>[
-          const JsonPathStep.key('components'),
-          const JsonPathStep.index(0),
-          const JsonPathStep.key('data'),
-          const JsonPathStep.key('icon', ownerType: 'button'),
-          const JsonPathStep.key('style', ownerType: 'text'),
-          const JsonPathStep.key('billboard'),
-        ],
-      );
+      final GlossJsonField? field =
+          glossJsonFieldAt(glossMenuJsonSchema, <JsonPathStep>[
+            const JsonPathStep.key('components'),
+            const JsonPathStep.index(0),
+            const JsonPathStep.key('data'),
+            const JsonPathStep.key('icon', ownerType: 'button'),
+            const JsonPathStep.key('style', ownerType: 'text'),
+            const JsonPathStep.key('billboard'),
+          ]);
       expect(field, isNotNull);
       expect(field!.type, GlossJsonType.string);
       expect(

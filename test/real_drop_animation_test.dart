@@ -15,8 +15,9 @@ void main() {
   test('the complete animation contract round-trips without losing extras', () {
     final GlossRealDropSettingsDoc doc = decodeGlossRealDropSettingsDoc('''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 2,
+  "presentation": {
   "animation": {
     "enabled": true,
     "future": 7,
@@ -53,24 +54,29 @@ void main() {
       }]
     }]
   }
+  },
+  "variants": [],
+  "audience": {"when": "true"}
 }
 ''');
 
     expect(
-      doc.animation!.profiles.single.clips.single.tracks[0].target,
+      doc.presentation.animation!.profiles.single.clips.single.tracks[0].target,
       GlossRealDropAnimationTarget.physics,
     );
     expect(
-      doc.animation!.profiles.single.clips.single.tracks[1].target,
+      doc.presentation.animation!.profiles.single.clips.single.tracks[1].target,
       GlossRealDropAnimationTarget.lightLevel,
     );
     final Map<String, dynamic> encoded =
         jsonDecode(encodeGlossRealDropSettingsDoc(doc)) as Map<String, dynamic>;
-    expect((encoded['animation'] as Map<String, dynamic>)['future'], 7);
+    final Map<String, dynamic> presentation =
+        encoded['presentation'] as Map<String, dynamic>;
+    final Map<String, dynamic> animation =
+        presentation['animation'] as Map<String, dynamic>;
+    expect(animation['future'], 7);
     expect(
-      ((encoded['animation'] as Map<String, dynamic>)['profiles']
-              as List<Object?>)
-          .single,
+      (animation['profiles'] as List<Object?>).single,
       containsPair('id', 'lights'),
     );
   });
@@ -178,29 +184,31 @@ void main() {
 
   test('validation rejects the same unsafe track combinations as Gloss', () {
     final GlossRealDropSettingsDoc doc = GlossRealDropSettingsDoc(
-      animation: GlossRealDropAnimation(
-        enabled: true,
-        profiles: <GlossRealDropAnimationProfile>[
-          GlossRealDropAnimationProfile(
-            clips: <GlossRealDropAnimationClip>[
-              GlossRealDropAnimationClip(
-                durationTicks: 5,
-                tracks: <GlossRealDropAnimationTrack>[
-                  GlossRealDropAnimationTrack(
-                    target: GlossRealDropAnimationTarget.physics,
-                    blend: GlossRealDropAnimationBlend.add,
-                    keyframes: <GlossRealDropAnimationKeyframe>[
-                      GlossRealDropAnimationKeyframe(
-                        tick: 6,
-                        materialMap: 'missing',
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+      presentation: GlossRealDropPresentation(
+        animation: GlossRealDropAnimation(
+          enabled: true,
+          profiles: <GlossRealDropAnimationProfile>[
+            GlossRealDropAnimationProfile(
+              clips: <GlossRealDropAnimationClip>[
+                GlossRealDropAnimationClip(
+                  durationTicks: 5,
+                  tracks: <GlossRealDropAnimationTrack>[
+                    GlossRealDropAnimationTrack(
+                      target: GlossRealDropAnimationTarget.physics,
+                      blend: GlossRealDropAnimationBlend.add,
+                      keyframes: <GlossRealDropAnimationKeyframe>[
+                        GlossRealDropAnimationKeyframe(
+                          tick: 6,
+                          materialMap: 'missing',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
     final List<HuiIssue> issues = validateRealDropSettingsDoc(doc);
@@ -286,14 +294,16 @@ void main() {
       ],
     );
     final GlossRealDropSettingsDoc animatedDoc = GlossRealDropSettingsDoc(
-      animation: GlossRealDropAnimation(
-        enabled: true,
-        profiles: <GlossRealDropAnimationProfile>[
-          GlossRealDropAnimationProfile(
-            id: 'hover-release',
-            clips: <GlossRealDropAnimationClip>[sequence],
-          ),
-        ],
+      presentation: GlossRealDropPresentation(
+        animation: GlossRealDropAnimation(
+          enabled: true,
+          profiles: <GlossRealDropAnimationProfile>[
+            GlossRealDropAnimationProfile(
+              id: 'hover-release',
+              clips: <GlossRealDropAnimationClip>[sequence],
+            ),
+          ],
+        ),
       ),
     );
     final ShowcaseDrop drop = showcaseDrops.firstWhere(

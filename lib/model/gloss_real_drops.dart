@@ -6,30 +6,15 @@ import 'gloss_doc.dart';
 import 'gloss_real_drop_animation.dart';
 import 'json_codec.dart';
 
-const int glossRealDropsCurrentSchemaVersion = 1;
+const int glossRealDropsCurrentSchemaVersion = 2;
 
 /// Whether [json] is a real-drops settings document.
 ///
-/// Two shapes count. The first is the shipped one: every presentation block
-/// present, which is what the plugin writes and what the editor exports. The
-/// second is a document that carries `physics` or `script` — the two blocks no
-/// other Gloss kind has a key for — because the plugin accepts a file made of
-/// nothing but `schemaVersion`, `revision` and one of those blocks, and every
-/// worked example in `DROP_SCRIPT_FORMAT.md` is written that way. Refusing them
-/// would mean the editor rejects documents the server loads.
 bool looksLikeRealDropSettingsDoc(Object? json) {
   if (json is! Map || json['schemaVersion'] is! num) return false;
-  if (json.containsKey('physics') ||
-      json.containsKey('script') ||
-      json.containsKey('animation')) {
-    return true;
-  }
-  return json.containsKey('limits') &&
-      json.containsKey('scale') &&
-      json.containsKey('motion') &&
-      json.containsKey('landing') &&
-      json.containsKey('labels') &&
-      json.containsKey('filters');
+  return json.containsKey('presentation') &&
+      json.containsKey('variants') &&
+      json.containsKey('audience');
 }
 
 GlossRealDropSettingsDoc decodeGlossRealDropSettingsDoc(String json) {
@@ -50,6 +35,11 @@ String encodeGlossRealDropSettingsDoc(GlossRealDropSettingsDoc doc) =>
 const Set<String> _docKnown = <String>{
   'schemaVersion',
   'revision',
+  'presentation',
+  'variants',
+  'audience',
+};
+const Set<String> _presentationKnown = <String>{
   'limits',
   'scale',
   'motion',
@@ -60,6 +50,13 @@ const Set<String> _docKnown = <String>{
   'script',
   'animation',
 };
+const Set<String> _variantKnown = <String>{
+  'id',
+  'priority',
+  'when',
+  'presentation',
+};
+const Set<String> _audienceKnown = <String>{'when'};
 
 final class GlossRealDropLimits {
   GlossRealDropLimits({
@@ -439,10 +436,8 @@ final class GlossRealDropFilters {
   GlossRealDropFilters copy() => GlossRealDropFilters.fromJson(toJson());
 }
 
-final class GlossRealDropSettingsDoc extends GlossDoc {
-  GlossRealDropSettingsDoc({
-    super.schemaVersion = glossRealDropsCurrentSchemaVersion,
-    super.revision = glossInitialRevision,
+final class GlossRealDropPresentation {
+  GlossRealDropPresentation({
     GlossRealDropLimits? limits,
     GlossRealDropScale? scale,
     GlossRealDropMotion? motion,
@@ -468,33 +463,26 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
   GlossRealDropLabels labels;
   GlossRealDropFilters filters;
 
-  /// Null while the document has no `physics` key at all, which is how a file
-  /// written before the block existed round-trips byte for byte. The inspector
-  /// creates the block the first time somebody touches one of its controls.
+  /// Null while this presentation omits the optional `physics` block. The
+  /// inspector creates the block the first time a control changes it.
   GlossRealDropPhysics? physics;
 
-  /// Null while the document has no `script` key at all, on the same terms as
-  /// [physics].
+  /// Null while this presentation omits the optional `script` block.
   GlossRealDropScript? script;
 
   GlossRealDropAnimation? animation;
 
   Map<String, dynamic> extras;
 
-  static GlossRealDropSettingsDoc fromJson(Object? raw) {
-    final Map<String, dynamic> map = huiReadObject(raw, r'$');
-    glossReadSchemaVersion(map, 'real-drop settings');
-    return GlossRealDropSettingsDoc(
-      schemaVersion: glossRealDropsCurrentSchemaVersion,
-      revision: glossReadRevision(map),
+  static GlossRealDropPresentation fromJson(Object? raw, String path) {
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return GlossRealDropPresentation(
       limits: GlossRealDropLimits.fromJson(map['limits']),
       scale: GlossRealDropScale.fromJson(map['scale']),
       motion: GlossRealDropMotion.fromJson(map['motion']),
       landing: GlossRealDropLanding.fromJson(map['landing']),
       labels: GlossRealDropLabels.fromJson(map['labels']),
       filters: GlossRealDropFilters.fromJson(map['filters']),
-      // Absent stays absent: the two optional blocks are only materialised
-      // when the file actually carries them.
       physics: map['physics'] == null
           ? null
           : GlossRealDropPhysics.fromJson(map['physics']),
@@ -504,14 +492,11 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
       animation: map['animation'] == null
           ? null
           : GlossRealDropAnimation.fromJson(map['animation']),
-      extras: huiCollectExtras(map, _docKnown),
+      extras: huiCollectExtras(map, _presentationKnown),
     );
   }
 
-  @override
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
-    'schemaVersion': schemaVersion,
-    'revision': revision,
     'limits': limits.toJson(),
     'scale': scale.toJson(),
     'motion': motion.toJson(),
@@ -523,8 +508,144 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
     if (animation != null) 'animation': animation!.toJson(),
   }, extras);
 
-  GlossRealDropSettingsDoc copy() =>
-      GlossRealDropSettingsDoc.fromJson(toJson());
+  GlossRealDropPresentation copy() =>
+      GlossRealDropPresentation.fromJson(toJson(), r'$.presentation');
+}
+
+final class GlossRealDropVariant {
+  GlossRealDropVariant({
+    this.id = '',
+    this.priority = 0,
+    this.when = 'false',
+    GlossRealDropPresentation? presentation,
+    Map<String, dynamic>? extras,
+  }) : presentation = presentation ?? GlossRealDropPresentation(),
+       extras = extras ?? <String, dynamic>{};
+
+  String id;
+  int priority;
+  String when;
+  GlossRealDropPresentation presentation;
+  Map<String, dynamic> extras;
+
+  static GlossRealDropVariant fromJson(Object? raw, int index) {
+    final String path =
+        r'$.variants['
+        '$index]';
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return GlossRealDropVariant(
+      id: huiReadString(map, 'id'),
+      priority: huiReadInt(map, 'priority'),
+      when: huiReadString(map, 'when'),
+      presentation: GlossRealDropPresentation.fromJson(
+        map['presentation'],
+        '$path.presentation',
+      ),
+      extras: huiCollectExtras(map, _variantKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'id': id,
+    'priority': priority,
+    'when': when,
+    'presentation': presentation.toJson(),
+  }, extras);
+
+  GlossRealDropVariant copy() => GlossRealDropVariant(
+    id: id,
+    priority: priority,
+    when: when,
+    presentation: presentation.copy(),
+    extras: huiDeepCopyMap(extras),
+  );
+}
+
+final class GlossRealDropAudience {
+  GlossRealDropAudience({this.when = 'true', Map<String, dynamic>? extras})
+    : extras = extras ?? <String, dynamic>{};
+
+  String when;
+  Map<String, dynamic> extras;
+
+  static GlossRealDropAudience fromJson(Object? raw) {
+    if (raw == null) return GlossRealDropAudience();
+    final Map<String, dynamic> map = huiReadObject(raw, r'$.audience');
+    return GlossRealDropAudience(
+      when: huiReadString(map, 'when', fallback: 'true'),
+      extras: huiCollectExtras(map, _audienceKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() =>
+      huiMergeExtras(<String, dynamic>{'when': when}, extras);
+
+  GlossRealDropAudience copy() =>
+      GlossRealDropAudience(when: when, extras: huiDeepCopyMap(extras));
+}
+
+final class GlossRealDropSettingsDoc extends GlossDoc {
+  GlossRealDropSettingsDoc({
+    super.schemaVersion = glossRealDropsCurrentSchemaVersion,
+    super.revision = glossInitialRevision,
+    GlossRealDropPresentation? presentation,
+    List<GlossRealDropVariant>? variants,
+    GlossRealDropAudience? audience,
+    Map<String, dynamic>? extras,
+  }) : presentation = presentation ?? GlossRealDropPresentation(),
+       variants = variants ?? <GlossRealDropVariant>[],
+       audience = audience ?? GlossRealDropAudience(),
+       extras = extras ?? <String, dynamic>{};
+
+  GlossRealDropPresentation presentation;
+  List<GlossRealDropVariant> variants;
+  GlossRealDropAudience audience;
+  Map<String, dynamic> extras;
+
+  static GlossRealDropSettingsDoc fromJson(Object? raw) {
+    final Map<String, dynamic> map = huiReadObject(raw, r'$');
+    glossReadSchemaVersion(
+      map,
+      'real-drop settings',
+      expected: glossRealDropsCurrentSchemaVersion,
+    );
+    final List<Object?> rawVariants = huiReadList(map['variants']);
+    return GlossRealDropSettingsDoc(
+      revision: glossReadRevision(map),
+      presentation: GlossRealDropPresentation.fromJson(
+        map['presentation'],
+        r'$.presentation',
+      ),
+      variants: <GlossRealDropVariant>[
+        for (int index = 0; index < rawVariants.length; index++)
+          GlossRealDropVariant.fromJson(rawVariants[index], index),
+      ],
+      audience: GlossRealDropAudience.fromJson(map['audience']),
+      extras: huiCollectExtras(map, _docKnown),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'schemaVersion': schemaVersion,
+    'revision': revision,
+    'presentation': presentation.toJson(),
+    'variants': <Map<String, dynamic>>[
+      for (final GlossRealDropVariant variant in variants) variant.toJson(),
+    ],
+    'audience': audience.toJson(),
+  }, extras);
+
+  GlossRealDropSettingsDoc copy() => GlossRealDropSettingsDoc(
+    schemaVersion: schemaVersion,
+    revision: revision,
+    presentation: presentation.copy(),
+    variants: <GlossRealDropVariant>[
+      for (final GlossRealDropVariant variant in variants) variant.copy(),
+    ],
+    audience: audience.copy(),
+    extras: huiDeepCopyMap(extras),
+  );
 }
 
 /// `RealDropSettingsDoc.Physics`: real changes to how the dropped `Item` entity
@@ -532,8 +653,8 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
 ///
 /// Gloss writes these to the entity's velocity and gravity flag through Bukkit
 /// (`RealDropService.applyPhysics`), so the item's real position, its collision
-/// and its pickup radius all follow. Absent from a document, the whole block is
-/// absent from this model too — see [GlossRealDropSettingsDoc.physics].
+/// and its pickup radius all follow. An omitted block stays absent from the
+/// corresponding [GlossRealDropPresentation].
 ///
 /// Every number here is clamped by the server after the document loads
 /// (`RealDropSettingsDoc.Physics` compact constructor). The editor stores what

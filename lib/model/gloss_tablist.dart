@@ -1,27 +1,3 @@
-/// Mirror of Gloss `TablistDoc.java` — the tab-screen document:
-///
-/// ```json
-/// {
-///   "schemaVersion": 1,
-///   "revision": 1,
-///   "useHeaderFooter": true,
-///   "header": "&d&lGloss",
-///   "footer": "&7VolmitSoftware.com",
-///   "groupListNames": true,
-///   "nameFormats": {
-///     "default": "$player",
-///     "_op": "&6$player"
-///   }
-/// }
-/// ```
-///
-/// The plugin keeps exactly one file (`plugins/Gloss/tablist.json`). Null
-/// header/footer become `""`; `nameFormats` keys are trimmed, lowercased and
-/// blank keys dropped SILENTLY on load (`TablistDoc.copyFormats`) — the
-/// editor preserves what was written and exposes [effectiveNameFormats].
-/// `_op` and `default` are reserved keys (`OP_GROUP_KEY`,
-/// `DEFAULT_GROUP_KEY`), and the resolution order lives in
-/// `logic/tablist_selection.dart`.
 library;
 
 import 'dart:convert';
@@ -29,21 +5,11 @@ import 'dart:convert';
 import 'gloss_doc.dart';
 import 'json_codec.dart';
 
-/// `TablistDoc.OP_GROUP_KEY` — the format operators get first.
-const String glossTablistOpGroupKey = '_op';
-
-/// `TablistDoc.DEFAULT_GROUP_KEY` — the fallback format key.
-const String glossTablistDefaultGroupKey = 'default';
-
-/// `TablistDoc.FALLBACK_FORMAT` — used when not even `default` exists.
+const int glossTablistCurrentSchemaVersion = 2;
 const String glossTablistFallbackFormat = r'$player';
 
-/// True when [json] has the shape of a Gloss tablist document: the versioned
-/// envelope plus tab keys no other kind carries. Routing only — full
-/// checking is `validateTablistDoc`'s job.
 bool looksLikeTablistDoc(Object? json) {
-  if (json is! Map) return false;
-  if (json['schemaVersion'] is! num) return false;
+  if (json is! Map || json['schemaVersion'] is! num) return false;
   if (json.containsKey('anchor') ||
       json.containsKey('frames') ||
       json.containsKey('entries') ||
@@ -52,19 +18,16 @@ bool looksLikeTablistDoc(Object? json) {
       json.containsKey('elements')) {
     return false;
   }
-  return json.containsKey('useHeaderFooter') ||
-      json.containsKey('nameFormats') ||
-      json.containsKey('groupListNames') ||
-      (json.containsKey('header') && json.containsKey('footer'));
+  return json.containsKey('headerFooter') && json.containsKey('listNames');
 }
 
 GlossTablistDoc decodeGlossTablistDoc(String json) {
   final Object? raw;
   try {
     raw = jsonDecode(json);
-  } on FormatException catch (e) {
+  } on FormatException catch (error) {
     throw HuiFormatException('Invalid JSON: {error}', r'$', <String, Object?>{
-      'error': e.message,
+      'error': error.message,
     });
   }
   return GlossTablistDoc.fromJson(raw);
@@ -78,116 +41,349 @@ GlossTablistDoc cloneGlossTablistDoc(GlossTablistDoc doc) =>
 const Set<String> _docKnown = <String>{
   'schemaVersion',
   'revision',
-  'useHeaderFooter',
-  'header',
-  'footer',
-  'groupListNames',
-  'nameFormats',
+  'headerFooter',
+  'listNames',
 };
+const Set<String> _sectionKnown = <String>{
+  'enabled',
+  'presentation',
+  'variants',
+};
+const Set<String> _variantKnown = <String>{
+  'id',
+  'priority',
+  'when',
+  'presentation',
+};
+const Set<String> _headerFooterPresentationKnown = <String>{'header', 'footer'};
+const Set<String> _listNamePresentationKnown = <String>{'format'};
+
+abstract interface class GlossConditionalVariant {
+  String get id;
+  int get priority;
+  String get when;
+}
+
+final class GlossTablistHeaderFooterPresentation {
+  GlossTablistHeaderFooterPresentation({
+    this.header = '',
+    this.footer = '',
+    Map<String, dynamic>? extras,
+  }) : extras = extras ?? <String, dynamic>{};
+
+  String header;
+  String footer;
+  Map<String, dynamic> extras;
+
+  static GlossTablistHeaderFooterPresentation fromJson(
+    Object? raw,
+    String path,
+  ) {
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return GlossTablistHeaderFooterPresentation(
+      header: huiReadString(map, 'header'),
+      footer: huiReadString(map, 'footer'),
+      extras: huiCollectExtras(map, _headerFooterPresentationKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'header': header,
+    'footer': footer,
+  }, extras);
+
+  GlossTablistHeaderFooterPresentation copy() =>
+      GlossTablistHeaderFooterPresentation(
+        header: header,
+        footer: footer,
+        extras: huiDeepCopyMap(extras),
+      );
+}
+
+final class GlossTablistListNamePresentation {
+  GlossTablistListNamePresentation({
+    this.format = glossTablistFallbackFormat,
+    Map<String, dynamic>? extras,
+  }) : extras = extras ?? <String, dynamic>{};
+
+  String format;
+  Map<String, dynamic> extras;
+
+  static GlossTablistListNamePresentation fromJson(Object? raw, String path) {
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return GlossTablistListNamePresentation(
+      format: huiReadString(
+        map,
+        'format',
+        fallback: glossTablistFallbackFormat,
+      ),
+      extras: huiCollectExtras(map, _listNamePresentationKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() =>
+      huiMergeExtras(<String, dynamic>{'format': format}, extras);
+
+  GlossTablistListNamePresentation copy() => GlossTablistListNamePresentation(
+    format: format,
+    extras: huiDeepCopyMap(extras),
+  );
+}
+
+final class GlossTablistHeaderFooterVariant implements GlossConditionalVariant {
+  GlossTablistHeaderFooterVariant({
+    this.id = '',
+    this.priority = 0,
+    this.when = 'false',
+    GlossTablistHeaderFooterPresentation? presentation,
+    Map<String, dynamic>? extras,
+  }) : presentation = presentation ?? GlossTablistHeaderFooterPresentation(),
+       extras = extras ?? <String, dynamic>{};
+
+  @override
+  String id;
+  @override
+  int priority;
+  @override
+  String when;
+  GlossTablistHeaderFooterPresentation presentation;
+  Map<String, dynamic> extras;
+
+  static GlossTablistHeaderFooterVariant fromJson(Object? raw, int index) {
+    final String path =
+        r'$'
+        '.headerFooter.variants['
+        '$index]';
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return GlossTablistHeaderFooterVariant(
+      id: huiReadString(map, 'id'),
+      priority: huiReadInt(map, 'priority'),
+      when: huiReadString(map, 'when', fallback: 'false'),
+      presentation: GlossTablistHeaderFooterPresentation.fromJson(
+        map['presentation'],
+        '$path.presentation',
+      ),
+      extras: huiCollectExtras(map, _variantKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'id': id,
+    'priority': priority,
+    'when': when,
+    'presentation': presentation.toJson(),
+  }, extras);
+
+  GlossTablistHeaderFooterVariant copy() => GlossTablistHeaderFooterVariant(
+    id: id,
+    priority: priority,
+    when: when,
+    presentation: presentation.copy(),
+    extras: huiDeepCopyMap(extras),
+  );
+}
+
+final class GlossTablistListNameVariant implements GlossConditionalVariant {
+  GlossTablistListNameVariant({
+    this.id = '',
+    this.priority = 0,
+    this.when = 'false',
+    GlossTablistListNamePresentation? presentation,
+    Map<String, dynamic>? extras,
+  }) : presentation = presentation ?? GlossTablistListNamePresentation(),
+       extras = extras ?? <String, dynamic>{};
+
+  @override
+  String id;
+  @override
+  int priority;
+  @override
+  String when;
+  GlossTablistListNamePresentation presentation;
+  Map<String, dynamic> extras;
+
+  static GlossTablistListNameVariant fromJson(Object? raw, int index) {
+    final String path =
+        r'$'
+        '.listNames.variants['
+        '$index]';
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return GlossTablistListNameVariant(
+      id: huiReadString(map, 'id'),
+      priority: huiReadInt(map, 'priority'),
+      when: huiReadString(map, 'when', fallback: 'false'),
+      presentation: GlossTablistListNamePresentation.fromJson(
+        map['presentation'],
+        '$path.presentation',
+      ),
+      extras: huiCollectExtras(map, _variantKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'id': id,
+    'priority': priority,
+    'when': when,
+    'presentation': presentation.toJson(),
+  }, extras);
+
+  GlossTablistListNameVariant copy() => GlossTablistListNameVariant(
+    id: id,
+    priority: priority,
+    when: when,
+    presentation: presentation.copy(),
+    extras: huiDeepCopyMap(extras),
+  );
+}
+
+final class GlossTablistHeaderFooter {
+  GlossTablistHeaderFooter({
+    this.enabled = false,
+    GlossTablistHeaderFooterPresentation? presentation,
+    List<GlossTablistHeaderFooterVariant>? variants,
+    Map<String, dynamic>? extras,
+  }) : presentation = presentation ?? GlossTablistHeaderFooterPresentation(),
+       variants = variants ?? <GlossTablistHeaderFooterVariant>[],
+       extras = extras ?? <String, dynamic>{};
+
+  bool enabled;
+  GlossTablistHeaderFooterPresentation presentation;
+  List<GlossTablistHeaderFooterVariant> variants;
+  Map<String, dynamic> extras;
+
+  static GlossTablistHeaderFooter fromJson(Object? raw) {
+    final Map<String, dynamic> map = huiReadObject(raw, r'$.headerFooter');
+    final List<Object?> rawVariants = huiReadList(map['variants']);
+    return GlossTablistHeaderFooter(
+      enabled: huiReadBool(map, 'enabled'),
+      presentation: GlossTablistHeaderFooterPresentation.fromJson(
+        map['presentation'],
+        r'$.headerFooter.presentation',
+      ),
+      variants: <GlossTablistHeaderFooterVariant>[
+        for (int index = 0; index < rawVariants.length; index++)
+          GlossTablistHeaderFooterVariant.fromJson(rawVariants[index], index),
+      ],
+      extras: huiCollectExtras(map, _sectionKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'enabled': enabled,
+    'presentation': presentation.toJson(),
+    'variants': <Map<String, dynamic>>[
+      for (final GlossTablistHeaderFooterVariant variant in variants)
+        variant.toJson(),
+    ],
+  }, extras);
+
+  GlossTablistHeaderFooter copy() => GlossTablistHeaderFooter(
+    enabled: enabled,
+    presentation: presentation.copy(),
+    variants: <GlossTablistHeaderFooterVariant>[
+      for (final GlossTablistHeaderFooterVariant variant in variants)
+        variant.copy(),
+    ],
+    extras: huiDeepCopyMap(extras),
+  );
+}
+
+final class GlossTablistListNames {
+  GlossTablistListNames({
+    this.enabled = false,
+    GlossTablistListNamePresentation? presentation,
+    List<GlossTablistListNameVariant>? variants,
+    Map<String, dynamic>? extras,
+  }) : presentation = presentation ?? GlossTablistListNamePresentation(),
+       variants = variants ?? <GlossTablistListNameVariant>[],
+       extras = extras ?? <String, dynamic>{};
+
+  bool enabled;
+  GlossTablistListNamePresentation presentation;
+  List<GlossTablistListNameVariant> variants;
+  Map<String, dynamic> extras;
+
+  static GlossTablistListNames fromJson(Object? raw) {
+    final Map<String, dynamic> map = huiReadObject(raw, r'$.listNames');
+    final List<Object?> rawVariants = huiReadList(map['variants']);
+    return GlossTablistListNames(
+      enabled: huiReadBool(map, 'enabled'),
+      presentation: GlossTablistListNamePresentation.fromJson(
+        map['presentation'],
+        r'$.listNames.presentation',
+      ),
+      variants: <GlossTablistListNameVariant>[
+        for (int index = 0; index < rawVariants.length; index++)
+          GlossTablistListNameVariant.fromJson(rawVariants[index], index),
+      ],
+      extras: huiCollectExtras(map, _sectionKnown),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'enabled': enabled,
+    'presentation': presentation.toJson(),
+    'variants': <Map<String, dynamic>>[
+      for (final GlossTablistListNameVariant variant in variants)
+        variant.toJson(),
+    ],
+  }, extras);
+
+  GlossTablistListNames copy() => GlossTablistListNames(
+    enabled: enabled,
+    presentation: presentation.copy(),
+    variants: <GlossTablistListNameVariant>[
+      for (final GlossTablistListNameVariant variant in variants)
+        variant.copy(),
+    ],
+    extras: huiDeepCopyMap(extras),
+  );
+}
 
 final class GlossTablistDoc extends GlossDoc {
   GlossTablistDoc({
-    super.schemaVersion = glossCurrentSchemaVersion,
+    super.schemaVersion = glossTablistCurrentSchemaVersion,
     super.revision = glossInitialRevision,
-    this.useHeaderFooter = false,
-    this.header = '',
-    this.footer = '',
-    this.groupListNames = false,
-    Map<String, String>? nameFormats,
+    GlossTablistHeaderFooter? headerFooter,
+    GlossTablistListNames? listNames,
     Map<String, dynamic>? extras,
-    Set<String>? absentKeys,
-  }) : nameFormats = nameFormats ?? <String, String>{},
-       extras = extras ?? <String, dynamic>{},
-       absentKeys = absentKeys ?? <String>{};
+  }) : headerFooter = headerFooter ?? GlossTablistHeaderFooter(),
+       listNames = listNames ?? GlossTablistListNames(),
+       extras = extras ?? <String, dynamic>{};
 
-  /// When false the plugin clears any header/footer it applied and leaves
-  /// the tab screen alone.
-  bool useHeaderFooter;
-
-  /// Rendered through the text pipeline per viewer, per update tick.
-  String header;
-  String footer;
-
-  /// When false list names reset to vanilla and [nameFormats] goes unused.
-  bool groupListNames;
-
-  /// As written, insertion-ordered; see [effectiveNameFormats].
-  Map<String, String> nameFormats;
-
+  GlossTablistHeaderFooter headerFooter;
+  GlossTablistListNames listNames;
   Map<String, dynamic> extras;
-  Set<String> absentKeys;
-
-  /// `TablistDoc.copyFormats`: keys trimmed and lowercased, blank keys
-  /// dropped, null values `""`, later duplicates overwriting earlier ones in
-  /// first-seen position (LinkedHashMap semantics).
-  Map<String, String> get effectiveNameFormats {
-    final Map<String, String> out = <String, String>{};
-    for (final MapEntry<String, String> entry in nameFormats.entries) {
-      final String key = entry.key.trim().toLowerCase();
-      if (key.isEmpty) continue;
-      out[key] = entry.value;
-    }
-    return out;
-  }
 
   static GlossTablistDoc fromJson(Object? raw) {
     final Map<String, dynamic> map = huiReadObject(raw, r'$');
-    glossReadSchemaVersion(map, 'tablist');
-    final Object? formats = map['nameFormats'];
+    glossReadSchemaVersion(
+      map,
+      'tablist',
+      expected: glossTablistCurrentSchemaVersion,
+    );
     return GlossTablistDoc(
-      schemaVersion: glossCurrentSchemaVersion,
+      schemaVersion: glossTablistCurrentSchemaVersion,
       revision: glossReadRevision(map),
-      useHeaderFooter: huiReadBool(map, 'useHeaderFooter'),
-      header: huiReadString(map, 'header'),
-      footer: huiReadString(map, 'footer'),
-      groupListNames: huiReadBool(map, 'groupListNames'),
-      nameFormats: <String, String>{
-        if (formats is Map)
-          for (final MapEntry<Object?, Object?> entry in formats.entries)
-            entry.key.toString(): entry.value == null
-                ? ''
-                : entry.value is String
-                ? entry.value! as String
-                : entry.value.toString(),
-      },
+      headerFooter: GlossTablistHeaderFooter.fromJson(map['headerFooter']),
+      listNames: GlossTablistListNames.fromJson(map['listNames']),
       extras: huiCollectExtras(map, _docKnown),
-      absentKeys: <String>{
-        if (map['revision'] == null) 'revision',
-        if (map['useHeaderFooter'] == null) 'useHeaderFooter',
-        if (map['header'] == null) 'header',
-        if (map['footer'] == null) 'footer',
-        if (map['groupListNames'] == null) 'groupListNames',
-        if (map['nameFormats'] == null) 'nameFormats',
-      },
     );
   }
 
   @override
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> out = <String, dynamic>{
-      'schemaVersion': schemaVersion,
-      if (!absentKeys.contains('revision')) 'revision': revision,
-      if (!absentKeys.contains('useHeaderFooter') || useHeaderFooter)
-        'useHeaderFooter': useHeaderFooter,
-      if (!absentKeys.contains('header') || header.isNotEmpty) 'header': header,
-      if (!absentKeys.contains('footer') || footer.isNotEmpty) 'footer': footer,
-      if (!absentKeys.contains('groupListNames') || groupListNames)
-        'groupListNames': groupListNames,
-      if (!absentKeys.contains('nameFormats') || nameFormats.isNotEmpty)
-        'nameFormats': Map<String, String>.of(nameFormats),
-    };
-    return huiMergeExtras(out, extras);
-  }
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'schemaVersion': schemaVersion,
+    'revision': revision,
+    'headerFooter': headerFooter.toJson(),
+    'listNames': listNames.toJson(),
+  }, extras);
 
   GlossTablistDoc copy() => GlossTablistDoc(
     schemaVersion: schemaVersion,
     revision: revision,
-    useHeaderFooter: useHeaderFooter,
-    header: header,
-    footer: footer,
-    groupListNames: groupListNames,
-    nameFormats: Map<String, String>.of(nameFormats),
+    headerFooter: headerFooter.copy(),
+    listNames: listNames.copy(),
     extras: huiDeepCopyMap(extras),
-    absentKeys: Set<String>.of(absentKeys),
   );
 }

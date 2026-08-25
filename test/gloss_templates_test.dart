@@ -56,8 +56,8 @@ void main() {
           buildDefaultGlossDamageIndicators();
       expect(identical(first, second), isFalse);
       expect(first.limits.maxPerSecond, 40);
-      expect(first.damage.format, '&c&l{amount}');
-      expect(first.healing.offset, Vec3(0, -0.1, 0));
+      expect(first.damage.presentation.format, '&c&l{amount}');
+      expect(first.healing.presentation.offset, Vec3(0, -0.1, 0));
       expect(validateDamageIndicatorsDoc(first), isEmpty);
     });
 
@@ -91,12 +91,12 @@ void main() {
       expectRange('motion', 'verticalSpeed', -16, 16);
       expectRange('motion', 'verticalAcceleration', -32, 32);
       expectRange('motion', 'spinDegreesPerSecond', -1440, 1440);
-      expectRange('presentation', 'startScale', 0, 16);
-      expectRange('presentation', 'endScale', 0, 16);
-      expectRange('presentation', 'fadeStartFraction', 0, 1);
+      expectRange('transform', 'startScale', 0, 16);
+      expectRange('transform', 'endScale', 0, 16);
+      expectRange('transform', 'fadeStartFraction', 0, 1);
 
       final Map<String, dynamic> offset =
-          properties('style')['offset']! as Map<String, dynamic>;
+          definitions['offset']! as Map<String, dynamic>;
       final List<Object?> axes = offset['prefixItems']! as List<Object?>;
       for (final Object? axis in axes) {
         final Map<String, dynamic> range = axis! as Map<String, dynamic>;
@@ -146,10 +146,13 @@ void main() {
       final GlossRealDropSettingsDoc first = buildDefaultGlossRealDrops();
       final GlossRealDropSettingsDoc second = buildDefaultGlossRealDrops();
       expect(identical(first, second), isFalse);
-      expect(first.motion.speedMultiplier, 1.35);
-      expect(first.labels.seeThrough, isTrue);
-      expect(first.limits.updateIntervalTicks, 2);
-      expect(first.filters.materialBlacklist, <String>['BEDROCK', 'BARRIER']);
+      expect(first.presentation.motion.speedMultiplier, 1.35);
+      expect(first.presentation.labels.seeThrough, isTrue);
+      expect(first.presentation.limits.updateIntervalTicks, 2);
+      expect(first.presentation.filters.materialBlacklist, <String>[
+        'BEDROCK',
+        'BARRIER',
+      ]);
     });
   });
 
@@ -274,16 +277,12 @@ void main() {
       final GlossScoreboardDoc first = buildDefaultGlossScoreboard();
       final GlossScoreboardDoc second = buildDefaultGlossScoreboard();
       expect(identical(first, second), isFalse);
-      expect(first.title, '&d&lGloss');
-      expect(first.lines, hasLength(3));
-      expect(
-        first.primary,
-        isFalse,
-        reason: 'the shipped default never forces a sidebar',
-      );
-      expect(first.permission, 'default');
+      expect(first.presentation.title, '&d&lGloss');
+      expect(first.presentation.lines, hasLength(3));
+      expect(first.select.when, 'false');
+      expect(first.variants, isEmpty);
       expect(validateScoreboardDoc(first), isEmpty);
-      for (final String line in first.lines) {
+      for (final String line in first.presentation.lines) {
         expect(
           measureGlossScoreboardLine(line, _Animations()).truncated,
           isFalse,
@@ -307,14 +306,14 @@ void main() {
     test('every row demonstrates one changing effect without truncation', () {
       final GlossScoreboardDoc doc = buildAnimationShowcaseGlossScoreboard();
       final _Animations animations = _Animations();
-      expect(doc.title, '&d&lANIMATION LAB');
-      expect(doc.lines, hasLength(10));
-      expect(doc.primary, isFalse);
-      expect(doc.hideNumbers, isTrue);
-      expect(doc.permissionGated, isFalse);
+      expect(doc.presentation.title, '&d&lANIMATION LAB');
+      expect(doc.presentation.lines, hasLength(10));
+      expect(doc.select.when, 'false');
+      expect(doc.presentation.hideNumbers, isTrue);
+      expect(doc.variants, isEmpty);
       expect(validateScoreboardDoc(doc, animations: animations), isEmpty);
-      for (int index = 0; index < doc.lines.length; index++) {
-        final String line = doc.lines[index];
+      for (int index = 0; index < doc.presentation.lines.length; index++) {
+        final String line = doc.presentation.lines[index];
         final GlossScoreboardLineMeasure measure = measureGlossScoreboardLine(
           line,
           animations,
@@ -447,7 +446,7 @@ void main() {
       expect(first.effectiveWordWrapChars, 32);
       expect(first.schemaVersion, glossBubbleCurrentSchemaVersion);
       expect(first.motion.translation.x, '0');
-      expect(first.motion.translation.y, glossBubbleLegacyFlyAwayExpression);
+      expect(first.motion.translation.y, glossBubbleDefaultTranslationY);
       expect(first.motion.opacity, '1');
       expect(first.shimmer.spawn, isTrue);
       expect(first.shimmer.flyAway, isTrue);
@@ -499,24 +498,25 @@ void main() {
       final GlossTablistDoc first = buildDefaultGlossTablist();
       final GlossTablistDoc second = buildDefaultGlossTablist();
       expect(identical(first, second), isFalse);
-      expect(first.useHeaderFooter, isTrue);
-      expect(first.header, '&d&lGloss');
-      expect(first.footer, '&7VolmitSoftware.com');
-      expect(first.groupListNames, isTrue);
-      expect(first.nameFormats, <String, String>{
-        'default': r'$player',
-        '_op': r'&6$player',
-      });
+      expect(first.headerFooter.enabled, isTrue);
+      expect(first.headerFooter.presentation.header, '&d&lGloss');
+      expect(first.headerFooter.presentation.footer, '&7VolmitSoftware.com');
+      expect(first.listNames.enabled, isTrue);
+      expect(first.listNames.presentation.format, r'$player');
+      expect(first.listNames.variants.single.id, 'operator');
       expect(validateTablistDoc(first), isEmpty);
     });
   });
 
   test('the tablist showcase builds without errors', () {
     final GlossTablistDoc doc = buildShowcaseGlossTablist();
-    expect(doc.nameFormats, hasLength(3));
-    expect(doc.header, contains('{{ player.name }}'));
-    expect(doc.footer, contains('server.tps'));
-    expect(doc.header, contains("papi('vault_prefix',"));
+    expect(doc.listNames.variants, hasLength(2));
+    expect(doc.headerFooter.presentation.header, contains('{{ player.name }}'));
+    expect(doc.headerFooter.presentation.footer, contains('server.tps'));
+    expect(
+      doc.headerFooter.presentation.header,
+      contains("papi('vault_prefix',"),
+    );
     final List<HuiIssue> issues = validateTablistDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.error),
@@ -534,15 +534,18 @@ void main() {
   test('the scoreboard showcase builds without errors', () {
     final GlossScoreboardDoc doc = buildShowcaseGlossScoreboard();
     final _Animations animations = _Animations();
-    expect(doc.lines, hasLength(13));
-    expect(doc.primary, isTrue);
-    expect(doc.hideNumbers, isTrue);
-    expect(doc.permissionGated, isTrue);
-    expect(doc.lines.join('\n'), contains('{{ player.name }}'));
-    expect(doc.lines.join('\n'), contains('server.tps'));
-    expect(doc.lines.join('\n'), contains("papi('vault_prefix',"));
-    expect(doc.lines.join('\n'), contains("metric('react.tick-ms',"));
-    final String ticker = doc.lines.singleWhere(
+    expect(doc.presentation.lines, hasLength(13));
+    expect(doc.select.priority, 20);
+    expect(doc.presentation.hideNumbers, isTrue);
+    expect(doc.variants.single.id, 'critical-health');
+    expect(doc.presentation.lines.join('\n'), contains('{{ player.name }}'));
+    expect(doc.presentation.lines.join('\n'), contains('server.tps'));
+    expect(doc.presentation.lines.join('\n'), contains("papi('vault_prefix',"));
+    expect(
+      doc.presentation.lines.join('\n'),
+      contains("metric('react.tick-ms',"),
+    );
+    final String ticker = doc.presentation.lines.singleWhere(
       (String line) => line.contains('LIVE EVENT'),
     );
     expect(ticker, contains('floor(time.seconds)'));
@@ -565,8 +568,8 @@ void main() {
       reason:
           'scoreboard uses a compact spinner that fits the 16+16 wire budget',
     );
-    for (int index = 0; index < doc.lines.length; index++) {
-      final String line = doc.lines[index];
+    for (int index = 0; index < doc.presentation.lines.length; index++) {
+      final String line = doc.presentation.lines[index];
       final GlossScoreboardLineMeasure measure = measureGlossScoreboardLine(
         line,
         animations,

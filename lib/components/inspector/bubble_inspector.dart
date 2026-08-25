@@ -184,8 +184,8 @@ class _BubbleInspectorState extends State<BubbleInspector> {
       dom.div(classes: 'hui-bubble-motion-presets', <Widget>[
         _motionPreset(huiText('Static'), GlossBubbleMotion.identity),
         _motionPreset(
-          huiText('Legacy fly-away'),
-          GlossBubbleMotion.legacyFlyAway,
+          huiText('Runtime fly-away'),
+          GlossBubbleMotion.runtimeDefaults,
         ),
         _motionPreset(huiText('Fly up'), _flyUpMotion),
         _motionPreset(huiText('Fade away'), _fadeMotion),
@@ -612,88 +612,40 @@ class _BubbleInspectorState extends State<BubbleInspector> {
             icon: ArcaneIcon.plus(size: IconSize.sm),
             onPressed: () => _store.mutateBubbleStyle(
               'add select',
-              (GlossBubbleStyleDoc edited) =>
-                  edited.select = GlossBubbleSelect(),
+              (GlossBubbleStyleDoc edited) => edited.select = GlossBubbleSelect(
+                when: "viewer.world == 'world'",
+              ),
             ),
             child: Text(huiText('Add select rule')),
           ),
           HuiInlineIssues(_issuesFor(r'$.select')),
         ] else ...<Widget>[
-          _selectStrings(
-            label: huiText('World globs'),
-            helpKey: 'bubble.select.worlds',
+          HuiField(
+            label: huiText('When'),
+            trailing: const HuiFieldHelp('condition.when'),
             help: huiText(
-              'World-name patterns with * and ? wildcards. Empty matches '
-              'every world.',
+              'Typed condition evaluated for the player. Errors fail closed.',
             ),
-            placeholder: huiText('world*'),
-            values: select.worlds,
-            onEdit: (int index, String value) => _store.mutateBubbleStyle(
-              'edit select world',
-              (GlossBubbleStyleDoc edited) {
-                final GlossBubbleSelect? live = edited.select;
-                if (live != null && index < live.worlds.length) {
-                  live.worlds[index] = value;
-                }
-              },
-            ),
-            onRemove: (int index) => _store.mutateBubbleStyle(
-              'remove select world',
-              (GlossBubbleStyleDoc edited) {
-                final GlossBubbleSelect? live = edited.select;
-                if (live != null && index < live.worlds.length) {
-                  live.worlds.removeAt(index);
-                }
-              },
-            ),
-            onAdd: () => _store.mutateBubbleStyle('add select world', (
-              GlossBubbleStyleDoc edited,
-            ) {
-              final GlossBubbleSelect? live = edited.select;
-              if (live != null) {
-                live.worlds.add('');
-                live.absentKeys.remove('worlds');
-              }
-            }),
-            issuesPath: r'$.select.worlds',
-          ),
-          _selectStrings(
-            label: huiText('Groups'),
-            helpKey: 'bubble.select.groups',
-            help: huiText(
-              'Vault group names, lowercased by the server. Empty skips '
-              'the group check.',
-            ),
-            placeholder: huiText('vip'),
-            values: select.groups,
-            onEdit: (int index, String value) => _store.mutateBubbleStyle(
-              'edit select group',
-              (GlossBubbleStyleDoc edited) {
-                final GlossBubbleSelect? live = edited.select;
-                if (live != null && index < live.groups.length) {
-                  live.groups[index] = value;
-                }
-              },
-            ),
-            onRemove: (int index) => _store.mutateBubbleStyle(
-              'remove select group',
-              (GlossBubbleStyleDoc edited) {
-                final GlossBubbleSelect? live = edited.select;
-                if (live != null && index < live.groups.length) {
-                  live.groups.removeAt(index);
-                }
-              },
-            ),
-            onAdd: () => _store.mutateBubbleStyle('add select group', (
-              GlossBubbleStyleDoc edited,
-            ) {
-              final GlossBubbleSelect? live = edited.select;
-              if (live != null) {
-                live.groups.add('');
-                live.absentKeys.remove('groups');
-              }
-            }),
-            issuesPath: r'$.select.groups',
+            control: dom.div(<Widget>[
+              TextInput(
+                value: select.when,
+                size: ComponentSize.sm,
+                fullWidth: true,
+                placeholder: huiText(
+                  "viewer.world == 'world' && inGroup('viewer', 'vip')",
+                ),
+                onInput: (String value) => _store.mutateBubbleStyle(
+                  'select condition',
+                  (GlossBubbleStyleDoc edited) {
+                    final GlossBubbleSelect? live = edited.select;
+                    if (live != null) live.when = value;
+                  },
+                ),
+                styles: huiTechnicalInputStyles,
+                attributes: huiTechnicalInputAttributes,
+              ),
+              HuiInlineIssues(_issuesFor(r'$.select.when')),
+            ]),
           ),
           HuiField(
             label: huiText('Priority'),
@@ -712,10 +664,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
                   'select priority',
                   (GlossBubbleStyleDoc edited) {
                     final GlossBubbleSelect? live = edited.select;
-                    if (live != null) {
-                      live.priority = parsed.round();
-                      live.absentKeys.remove('priority');
-                    }
+                    if (live != null) live.priority = parsed.round();
                   },
                 ),
               ),
@@ -736,53 +685,4 @@ class _BubbleInspectorState extends State<BubbleInspector> {
       ],
     );
   }
-
-  Widget _selectStrings({
-    required String label,
-    required String helpKey,
-    required String help,
-    required String placeholder,
-    required List<String> values,
-    required void Function(int index, String value) onEdit,
-    required void Function(int index) onRemove,
-    required void Function() onAdd,
-    required String issuesPath,
-  }) => HuiField(
-    label: label,
-    trailing: HuiFieldHelp(helpKey),
-    help: help,
-    control: dom.div(<Widget>[
-      for (int index = 0; index < values.length; index++)
-        dom.div(classes: 'hui-scoreboard-group-row', <Widget>[
-          TextInput(
-            value: values[index],
-            size: ComponentSize.sm,
-            fullWidth: true,
-            styles: huiTechnicalInputStyles,
-            placeholder: placeholder,
-            onInput: (String value) => onEdit(index, value),
-            attributes: const <String, String>{...huiTechnicalInputAttributes},
-          ),
-          HuiIconButton(
-            label: huiText("Remove {label} entry", <String, Object?>{
-              'label': label,
-            }),
-            icon: ArcaneIcon.trash2(size: IconSize.sm),
-            onPressed: () => onRemove(index),
-          ),
-        ]),
-      Button(
-        variant: ButtonVariant.outline,
-        size: ButtonSize.sm,
-        icon: ArcaneIcon.plus(size: IconSize.sm),
-        onPressed: onAdd,
-        child: Text(
-          huiText("Add {toLowerCase} entry", <String, Object?>{
-            'toLowerCase': label.toLowerCase(),
-          }),
-        ),
-      ),
-      HuiInlineIssues(_issuesFor(issuesPath)),
-    ]),
-  );
 }

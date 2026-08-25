@@ -79,11 +79,13 @@ import '../../config/showcase_flavor.dart';
 import '../../logic/gloss_text.dart';
 import '../../logic/real_drop_block_geometry.dart';
 import '../../logic/real_drop_model.dart';
+import '../../logic/real_drop_selection.dart';
 import '../../logic/real_drop_stage.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_text_line.dart';
+import '../scoreboard/scoreboard_selection.dart';
 import 'drop_stage_camera.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
@@ -249,8 +251,8 @@ class _RealDropsViewState extends State<RealDropsView> {
   /// The period is part of the document, so a changed `updateIntervalTicks`
   /// has to replace the timer rather than keep the old cadence.
   void _syncTicker(GlossRealDropSettingsDoc doc) {
-    final int periodMs = (doc.limits.updateIntervalTicks.clamp(1, 20) * 50)
-        .toInt();
+    final int periodMs =
+        (doc.presentation.limits.updateIntervalTicks.clamp(1, 20) * 50).toInt();
     if (!_playing) {
       _ticker?.cancel();
       _ticker = null;
@@ -437,15 +439,60 @@ class _RealDropsViewState extends State<RealDropsView> {
       );
     }
 
-    _syncTicker(doc);
     final int nowMs = _nowMs();
     final ShowcaseDrop drop = _dropAt(
       nowMs,
       dropStageCycleMsFor(doc, water: _water),
     );
-    final DropStageTimeline timeline = _timelineFor(doc, drop);
+    final GlossConditionContext itemContext = GlossConditionContext(
+      variables: <String, Object?>{
+        'drop.material': drop.registryName,
+        'drop.amount': drop.amount.toDouble(),
+        'drop.maxStackSize': drop.maxStackSize.toDouble(),
+        'drop.world': 'world',
+        'drop.onGround': false,
+        'drop.inWater': _water,
+        'drop.inLava': false,
+        'drop.playerDropped': true,
+        'drop.customNamed': _itemDisplayNames,
+        'source.present': true,
+        'source.type': 'player',
+        'subject.world': 'world',
+        'world.name': 'world',
+        'event.type': 'spawn',
+        'event.playerDrop': true,
+      },
+    );
+    final GlossRealDropPresentation selectedPresentation =
+        glossResolveRealDropPresentation(doc, itemContext);
+    final String? selectedVariantId = glossResolveRealDropVariantId(
+      doc,
+      itemContext,
+    );
+    final GlossConditionContext audienceContext = GlossConditionContext(
+      variables: <String, Object?>{
+        ...itemContext.variables,
+        'viewer.world': 'world',
+        'viewer.health': 20.0,
+        'viewer.maxHealth': 20.0,
+        'viewer.healthPercent': 100.0,
+        'viewer.gameMode': 'SURVIVAL',
+      },
+      groups: const <String>{'player'},
+    );
+    final bool audienceVisible = glossRealDropAudienceVisible(
+      doc,
+      audienceContext,
+    );
+    final GlossRealDropSettingsDoc selectedDoc = GlossRealDropSettingsDoc(
+      revision: doc.revision,
+      presentation: selectedPresentation,
+      audience: doc.audience.copy(),
+    );
+    _syncTicker(selectedDoc);
+    final DropStageTimeline timeline = _timelineFor(selectedDoc, drop);
     final DropStageFrame frame = timeline.frameAt(nowMs);
-    final Widget scene = _scene(doc, drop, frame, nowMs);
+    final Widget scene = _scene(selectedDoc, drop, frame, nowMs);
 
     if (component.gameContext) {
       return GlossGameScreen(
@@ -469,7 +516,16 @@ class _RealDropsViewState extends State<RealDropsView> {
         _resetButton(),
         _timelineControl(timeline, frame, nowMs),
         dom.span(classes: 'hui-real-drops-readout-inline', <Widget>[
-          Text(_readout(doc, drop, timeline, frame)),
+          Text(
+            _readout(
+              selectedDoc,
+              drop,
+              timeline,
+              frame,
+              selectedVariantId,
+              audienceVisible,
+            ),
+          ),
         ]),
         dom.span(classes: 'hui-real-drops-hint', <Widget>[
           Text(
@@ -620,7 +676,7 @@ class _RealDropsViewState extends State<RealDropsView> {
     DropStageFrame frame,
     int nowMs,
   ) {
-    final GlossRealDropLabels labels = doc.labels;
+    final GlossRealDropLabels labels = doc.presentation.labels;
     final int easeMs = frame.interpolationTicks.clamp(0, 59) * 50;
     final double edgePx = frame.modelScale * _pixelsPerBlock;
     final double forwardPx = frame.carrierZ * _pixelsPerBlock;
@@ -1031,13 +1087,15 @@ class _RealDropsViewState extends State<RealDropsView> {
     ShowcaseDrop drop,
     DropStageTimeline timeline,
     DropStageFrame frame,
+    String? selectedVariantId,
+    bool audienceVisible,
   ) {
     final String kind = switch (frame.modelKind) {
       DropModelKind.block => huiText('cube'),
       DropModelKind.flat => huiText('flat'),
       DropModelKind.thin => huiText('thin'),
     };
-    final GlossRealDropPhysics? physics = doc.physics;
+    final GlossRealDropPhysics? physics = doc.presentation.physics;
     final bool physical = physics != null && physics.enabled;
     final int hidden = frame.visuals
         .where((DropStageVisual visual) => !visual.visible)
@@ -1047,13 +1105,19 @@ class _RealDropsViewState extends State<RealDropsView> {
         'amount': drop.amount,
         'type': _displayType(timeline),
       }),
+      selectedVariantId == null
+          ? huiText('default presentation')
+          : huiText('variant {id}', <String, Object?>{'id': selectedVariantId}),
+      audienceVisible
+          ? huiText('visible to preview viewer')
+          : huiText('hidden from preview viewer'),
       huiText('{kind} model at {scale}', <String, Object?>{
         'kind': kind,
         'scale': frame.modelScale.toStringAsFixed(2),
       }),
       huiText('{visible} of {maximum} displays', <String, Object?>{
         'visible': timeline.visualCount,
-        'maximum': doc.limits.maxVisualsPerStack,
+        'maximum': doc.presentation.limits.maxVisualsPerStack,
       }),
       huiText('{phase} for {ticks} ticks', <String, Object?>{
         'phase': _phaseLabel(frame.phase),
@@ -1061,21 +1125,23 @@ class _RealDropsViewState extends State<RealDropsView> {
       }),
       frame.settled
           ? huiText('{mode} landing, {ticks}-tick ease', <String, Object?>{
-              'mode': doc.landing.mode.toLowerCase(),
-              'ticks': doc.landing.transitionTicks,
+              'mode': doc.presentation.landing.mode.toLowerCase(),
+              'ticks': doc.presentation.landing.transitionTicks,
             })
-          : doc.motion.tumble
+          : doc.presentation.motion.tumble
           ? huiText('tumbling {speed}x, bounce {bounce}', <String, Object?>{
-              'speed': doc.motion.speedMultiplier.toStringAsFixed(2),
+              'speed': doc.presentation.motion.speedMultiplier.toStringAsFixed(
+                2,
+              ),
               'bounce': frame.bounceRevision,
             })
           : huiText('no tumble'),
       huiText('{ticks}-tick updates', <String, Object?>{
-        'ticks': doc.limits.updateIntervalTicks,
+        'ticks': doc.presentation.limits.updateIntervalTicks,
       }),
-      doc.labels.enabled
+      doc.presentation.labels.enabled
           ? huiText('label {billboard}', <String, Object?>{
-              'billboard': doc.labels.billboard.toLowerCase(),
+              'billboard': doc.presentation.labels.billboard.toLowerCase(),
             })
           : huiText('no label'),
       if (physical)

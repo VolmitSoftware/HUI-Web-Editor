@@ -3,6 +3,7 @@ library;
 import '../model/gloss_doc.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
+import 'preview_expr.dart';
 import 'real_drop_script.dart';
 import 'validation.dart';
 
@@ -10,6 +11,53 @@ List<HuiIssue> validateRealDropSettingsDoc(GlossRealDropSettingsDoc doc) {
   final List<HuiIssue> issues = <HuiIssue>[];
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) issues.add(revisionIssue);
+  issues.addAll(_atPresentation(doc.presentation, r'$.presentation'));
+
+  final Set<String> ids = <String>{};
+  for (int index = 0; index < doc.variants.length; index++) {
+    final GlossRealDropVariant variant = doc.variants[index];
+    final String path =
+        r'$.variants['
+        '$index]';
+    final String id = variant.id.trim();
+    if (id.isEmpty) {
+      _error(issues, '$path.id', 'Variant ids must not be blank.');
+    } else if (!_validVariantId.hasMatch(id)) {
+      _error(
+        issues,
+        '$path.id',
+        'Variant ids accept only letters, numbers, dots, hyphens and underscores.',
+      );
+    } else if (!ids.add(id)) {
+      _error(issues, '$path.id', 'Variant id "{id}" is duplicated.', {
+        'id': id,
+      });
+    }
+    _range(issues, '$path.priority', variant.priority, -10000, 10000);
+    _condition(issues, '$path.when', variant.when);
+    issues.addAll(_atPresentation(variant.presentation, '$path.presentation'));
+  }
+  _condition(issues, r'$.audience.when', doc.audience.when);
+  return issues;
+}
+
+final RegExp _validVariantId = RegExp(r'^[A-Za-z0-9._-]+$');
+
+List<HuiIssue> _atPresentation(
+  GlossRealDropPresentation presentation,
+  String prefix,
+) => <HuiIssue>[
+  for (final HuiIssue issue in _validatePresentation(presentation))
+    HuiIssue(
+      severity: issue.severity,
+      path: issue.path == r'$' ? prefix : '$prefix${issue.path.substring(1)}',
+      message: issue.message,
+      fix: issue.fix,
+    ),
+];
+
+List<HuiIssue> _validatePresentation(GlossRealDropPresentation doc) {
+  final List<HuiIssue> issues = <HuiIssue>[];
 
   _range(
     issues,
@@ -158,6 +206,30 @@ List<HuiIssue> validateRealDropSettingsDoc(GlossRealDropSettingsDoc doc) {
   _script(issues, doc.script);
   _animation(issues, doc.animation);
   return issues;
+}
+
+void _condition(List<HuiIssue> issues, String path, String source) {
+  try {
+    final PExpr expression = parsePreviewExpr(source);
+    if (isConstantExpr(expression)) {
+      final Object value = evalPreviewExpr(expression, _EmptyConditionScope());
+      if (value is! bool) {
+        _error(issues, path, 'A condition must evaluate to true or false.');
+      }
+    }
+  } on PExprException catch (error) {
+    _error(issues, path, 'Invalid condition: {error}', <String, Object?>{
+      'error': error.message,
+    });
+  }
+}
+
+final class _EmptyConditionScope extends PExprScope {
+  @override
+  Object? call(String name, List<Object?> args) => null;
+
+  @override
+  Object? variable(String dottedName) => null;
 }
 
 void _animation(List<HuiIssue> issues, GlossRealDropAnimation? animation) {

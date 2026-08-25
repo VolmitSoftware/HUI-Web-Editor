@@ -120,11 +120,11 @@ final class BubbleStyleDocumentType extends GlossDocumentTypeAdapter {
           name: 'VIP overworld',
           description:
               'A formatted, animated, fading arc that auto-applies to '
-              'the vip group in world* worlds at priority 10, with a '
+              'a typed world-and-group condition at priority 10, with a '
               'wide pink shimmer sweeping the whole wrapped block.',
           highlights: const <String>[
             'Select rule',
-            'World glob',
+            'Typed condition',
             'Anchored',
             'Expression motion',
             'Custom shimmer',

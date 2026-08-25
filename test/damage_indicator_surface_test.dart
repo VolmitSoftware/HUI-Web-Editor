@@ -16,7 +16,7 @@ void main() {
     expect(app, contains('gameContext: true'));
   });
 
-  test('the renderer exposes trajectory, sample, and transport controls', () {
+  test('the renderer exposes looping trajectory and transport controls', () {
     final String source = File(
       'lib/components/damage_indicators/damage_indicator_view.dart',
     ).readAsStringSync();
@@ -26,13 +26,10 @@ void main() {
     expect(source, contains('Next trajectory'));
     expect(source, contains('Replay'));
     expect(source, contains('GlossGameScreen'));
-    expect(
-      source,
-      contains(
-        'final GlossDamageIndicatorsDoc? current = '
-        '_store.damageIndicatorsDoc;',
-      ),
-    );
+    expect(source, contains('resolveDamageIndicatorPreviewCycle'));
+    expect(source, contains('totalElapsedMs: _elapsedMs()'));
+    expect(source, contains('elapsedMs: cycle.elapsedMs'));
+    expect(source, contains('seed: cycle.seed'));
     expect(source, contains('_workspaceAnimationsPlaying'));
   });
 

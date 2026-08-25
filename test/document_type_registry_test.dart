@@ -12,20 +12,26 @@ void main() {
         'anchor': <String, Object>{},
       },
       'animation': <String, Object>{'schemaVersion': 1, 'frames': <Object>[]},
-      'scoreboard': <String, Object>{'schemaVersion': 1, 'title': 'Board'},
+      'scoreboard': <String, Object>{
+        'schemaVersion': 2,
+        'select': <String, Object>{},
+        'presentation': <String, Object>{},
+        'variants': <Object>[],
+      },
       'motd': <String, Object>{'schemaVersion': 1, 'entries': <Object>[]},
       'emoji': <String, Object>{'schemaVersion': 1, 'emoji': 'U+2764;'},
-      'bubble-style': <String, Object>{'schemaVersion': 2, 'wordWrapChars': 32},
+      'bubble-style': <String, Object>{'schemaVersion': 3, 'wordWrapChars': 32},
       'tablist': <String, Object>{
-        'schemaVersion': 1,
-        'nameFormats': <String, Object>{},
+        'schemaVersion': 2,
+        'headerFooter': <String, Object>{},
+        'listNames': <String, Object>{},
       },
       'damage-indicators': <String, Object>{
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'limits': <String, Object>{},
         'damage': <String, Object>{},
         'healing': <String, Object>{},
-        'filters': <String, Object>{},
+        'audience': <String, Object>{'when': 'true'},
       },
     };
 

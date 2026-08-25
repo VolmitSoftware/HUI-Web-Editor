@@ -838,15 +838,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'leading \'#\' that is not a valid colour literal fails to compile.',
     citation: 'gloss-preview.schema.json#/\$defs/vars',
   ),
-  'realDrops.animation': HuiFieldDoc(
-    title: 'Animation',
+  'realDrops.audience': HuiFieldDoc(
+    title: 'Audience',
     body:
-        'Typed keyframe animation profiles selected by material. Clips '
-        'are triggered by lifecycle events and physical phases, then '
-        'compose scalar display, physics-gate, glow and temporary-light '
-        'outputs. Disabled by default and independent of the advanced '
-        'script layer.',
-    citation: 'gloss-real-drops.schema.json#/properties/animation',
+        'The per-viewer condition controlling who receives the shared '
+        'real-drop models and label. A viewer who does not match receives '
+        'the vanilla item instead.',
+    citation: 'gloss-real-drops.schema.json#/properties/audience',
   ),
   'realDrops.axis': HuiFieldDoc(
     title: 'Axis',
@@ -889,13 +887,6 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'documented in DROP_SCRIPT_FORMAT.md.',
     citation: 'gloss-real-drops.schema.json#/\$defs/expression',
   ),
-  'realDrops.filters': HuiFieldDoc(
-    title: 'Filters',
-    body:
-        'Which drops get a presentation at all. A filtered-out item keeps '
-        'its ordinary vanilla appearance.',
-    citation: 'gloss-real-drops.schema.json#/properties/filters',
-  ),
   'realDrops.filters.disabledWorlds': HuiFieldDoc(
     title: 'Disabled worlds',
     body:
@@ -922,11 +913,6 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'Default false.',
     citation:
         'gloss-real-drops.schema.json#/\$defs/filters/properties/onlyPlayerDrops',
-  ),
-  'realDrops.labels': HuiFieldDoc(
-    title: 'Labels',
-    body: 'The floating TextDisplay name drawn above a dropped stack.',
-    citation: 'gloss-real-drops.schema.json#/properties/labels',
   ),
   'realDrops.labels.background': HuiFieldDoc(
     title: 'Background',
@@ -1021,13 +1007,6 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'default 0.55. Accepted range: 0 through 4.',
     citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/yOffset',
   ),
-  'realDrops.landing': HuiFieldDoc(
-    title: 'Landing',
-    body:
-        'The resting pose an item settles into once it touches the '
-        'ground.',
-    citation: 'gloss-real-drops.schema.json#/properties/landing',
-  ),
   'realDrops.landing.alignmentDegrees': HuiFieldDoc(
     title: 'Alignment degrees',
     body:
@@ -1097,14 +1076,6 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     citation:
         'gloss-real-drops.schema.json#/\$defs/landing/properties/transitionTicks',
   ),
-  'realDrops.limits': HuiFieldDoc(
-    title: 'Limits',
-    body:
-        'Update cadence and per-chunk budget. These are the knobs that '
-        'decide how much work the presentation costs; raising the visual '
-        'counts multiplies the number of display entities on screen.',
-    citation: 'gloss-real-drops.schema.json#/properties/limits',
-  ),
   'realDrops.limits.maxVisualsPerChunk': HuiFieldDoc(
     title: 'Max visuals per chunk',
     body:
@@ -1164,13 +1135,6 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'zero. Accepted range: 4 through 128.',
     citation:
         'gloss-real-drops.schema.json#/\$defs/limits/properties/viewRange',
-  ),
-  'realDrops.motion': HuiFieldDoc(
-    title: 'Motion',
-    body:
-        'Mid-air tumble. Applies while the item is falling; once it lands '
-        'the landing block takes over.',
-    citation: 'gloss-real-drops.schema.json#/properties/motion',
   ),
   'realDrops.motion.changeOnBounce': HuiFieldDoc(
     title: 'Change on bounce',
@@ -1255,17 +1219,6 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     citation:
         'gloss-real-drops.schema.json#/\$defs/motion/properties/velocityInfluence',
   ),
-  'realDrops.physics': HuiFieldDoc(
-    title: 'Physics',
-    body:
-        'Real changes to how the dropped Item entity moves, not just how '
-        'it looks. Disabled by default. These knobs write to the entity\'s '
-        'velocity and gravity flag, so they move the item\'s real position '
-        'and its pickup hitbox with it. They only apply while the item '
-        'has a Gloss presentation: a filtered-out or ineligible drop '
-        'falls exactly as vanilla does.',
-    citation: 'gloss-real-drops.schema.json#/properties/physics',
-  ),
   'realDrops.physics.bounce': HuiFieldDoc(
     title: 'Bounce',
     body:
@@ -1322,6 +1275,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     citation:
         'gloss-real-drops.schema.json#/\$defs/physics/properties/waterDrag',
   ),
+  'realDrops.presentation': HuiFieldDoc(
+    title: 'Presentation',
+    body:
+        'The complete fallback presentation used when no conditional '
+        'variant matches.',
+    citation: 'gloss-real-drops.schema.json#/properties/presentation',
+  ),
   'realDrops.revision': HuiFieldDoc(
     title: 'Revision',
     body:
@@ -1331,14 +1291,6 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'detected instead of silently overwritten. Accepted range: 1 '
         'through 9007199254740991.',
     citation: 'gloss-real-drops.schema.json#/properties/revision',
-  ),
-  'realDrops.scale': HuiFieldDoc(
-    title: 'Scale',
-    body:
-        'Base display size per model shape. Every dropped item falls into '
-        'one of three shape families and takes the matching scale, which '
-        'the script layer\'s scale block then multiplies.',
-    citation: 'gloss-real-drops.schema.json#/properties/scale',
   ),
   'realDrops.scale.defaultScale': HuiFieldDoc(
     title: 'Default scale',
@@ -1367,24 +1319,8 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   ),
   'realDrops.schemaVersion': HuiFieldDoc(
     title: 'Schema version',
-    body:
-        'Document format version. Must be exactly 1; any other value is '
-        'rejected outright rather than migrated.',
+    body: 'Document format version. Must be exactly 2.',
     citation: 'gloss-real-drops.schema.json#/properties/schemaVersion',
-  ),
-  'realDrops.script': HuiFieldDoc(
-    title: 'Script',
-    body:
-        'The scripted presentation layer: expression strings compiled '
-        'once when the document loads. Expressions without index are '
-        'shared by the stack, and static settled plans are not '
-        'reevaluated until their inputs change. Disabled by default, and '
-        'additive - it composes on top of everything the scale, motion '
-        'and landing blocks already computed rather than replacing it. '
-        'Script results move the DISPLAY only; the item entity, its '
-        'collision and its pickup radius stay where Minecraft put them. '
-        'Use the physics block when the item itself must move.',
-    citation: 'gloss-real-drops.schema.json#/properties/script',
   ),
   'realDrops.script.enabled': HuiFieldDoc(
     title: 'Enabled',
@@ -1468,6 +1404,14 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'rendering it; the item entity is untouched and remains '
         'pickupable. Defaults to "true".',
     citation: 'gloss-real-drops.schema.json#/\$defs/script/properties/visible',
+  ),
+  'realDrops.variants': HuiFieldDoc(
+    title: 'Variants',
+    body:
+        'Complete conditional presentations. Gloss chooses the matching '
+        'entry with the highest priority, then the lexicographically '
+        'smallest id when priorities tie.',
+    citation: 'gloss-real-drops.schema.json#/properties/variants',
   ),
   'toggle.condition': HuiFieldDoc(
     title: 'Condition',

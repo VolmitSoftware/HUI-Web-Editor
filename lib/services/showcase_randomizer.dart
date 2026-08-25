@@ -24,7 +24,7 @@ import 'catalogs.dart';
 import 'showcase_effects.dart';
 
 bool canRandomizeShowcase(DocumentTypeAdapter type) =>
-    type is! PanelDocumentType && type is! DamageIndicatorsDocumentType;
+    type is! PanelDocumentType;
 
 bool randomizeShowcaseDocument(
   EditorStore store,
@@ -86,7 +86,10 @@ bool randomizeShowcaseDocument(
         buildRandomRealDropShowcase(store.realDropSettingsDoc!, source),
       );
     case DamageIndicatorsDocumentType():
-      return false;
+      store.replaceGlossDoc(
+        'Randomize damage indicators',
+        buildRandomDamageIndicatorsShowcase(store.damageIndicatorsDoc!, source),
+      );
     case PanelDocumentType():
       return false;
   }
@@ -1658,17 +1661,36 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
   return GlossScoreboardDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
-    title: '$titlePrefix${server.toUpperCase()}',
-    lines: lines,
-    primary: random.nextBool(),
-    hideNumbers: random.nextInt(4) != 0,
-    permission: showcasePick(random, <String>['default', 'vip', 'staff']),
-    groups: switch (random.nextInt(4)) {
-      0 => <String>[],
-      1 => <String>['vip'],
-      2 => <String>['vip', 'mvp'],
-      _ => <String>['moderator', 'developer', 'owner'],
-    },
+    select: GlossScoreboardSelect(
+      priority: random.nextInt(31),
+      when: showcasePick(random, <String>[
+        'true',
+        "viewer.world == 'world'",
+        "hasPermission('viewer', 'gloss.board.vip')",
+        "inGroup('viewer', 'vip')",
+      ]),
+    ),
+    presentation: GlossScoreboardPresentation(
+      title: '$titlePrefix${server.toUpperCase()}',
+      lines: lines,
+      hideNumbers: random.nextInt(4) != 0,
+    ),
+    variants: <GlossScoreboardVariant>[
+      GlossScoreboardVariant(
+        id: 'critical-health',
+        priority: 100,
+        when: 'viewer.healthPercent <= 25',
+        presentation: GlossScoreboardPresentation(
+          title: '&c&lLOW HEALTH',
+          lines: <String>[
+            '&cYou are in danger',
+            '&7Health &f{{ fixed(player.health, 1) }}',
+            '&7Find somewhere safe',
+          ],
+          hideNumbers: true,
+        ),
+      ),
+    ],
   );
 }
 
@@ -1779,19 +1801,17 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
     select: switch (selectShape) {
       0 => null,
       1 => GlossBubbleSelect(
-        worlds: <String>['world*', 'twin_peaks*'],
-        groups: <String>[],
         priority: 10 + random.nextInt(41),
+        when: "matchesGlob(viewer.world, 'world*')",
       ),
       2 => GlossBubbleSelect(
-        worlds: <String>[],
-        groups: <String>['owner', 'developer', 'vip'],
         priority: 10 + random.nextInt(41),
+        when:
+            "oneOf(viewer.gameMode, ['SURVIVAL', 'ADVENTURE']) && viewer.healthPercent <= 50",
       ),
       _ => GlossBubbleSelect(
-        worlds: <String>['world*', 'twin_peaks*'],
-        groups: <String>['owner', 'developer', 'vip'],
         priority: 10 + random.nextInt(41),
+        when: "matchesGlob(viewer.world, 'world*') && inGroup('viewer', 'vip')",
       ),
     },
   );
@@ -2054,15 +2074,37 @@ GlossTablistDoc buildRandomTablistShowcase(
   final GlossTablistDoc generated = GlossTablistDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
-    useHeaderFooter: true,
-    header: headerLines.join('\n'),
-    footer: footerLines.join('\n'),
-    groupListNames: true,
-    nameFormats: nameFormats,
+    headerFooter: GlossTablistHeaderFooter(
+      enabled: true,
+      presentation: GlossTablistHeaderFooterPresentation(
+        header: headerLines.join('\n'),
+        footer: footerLines.join('\n'),
+      ),
+    ),
+    listNames: GlossTablistListNames(
+      enabled: true,
+      presentation: GlossTablistListNamePresentation(
+        format: nameFormats['default'] ?? glossTablistFallbackFormat,
+      ),
+      variants: <GlossTablistListNameVariant>[
+        for (final MapEntry<String, String> entry in nameFormats.entries)
+          if (entry.key != 'default')
+            GlossTablistListNameVariant(
+              id: entry.key == '_op' ? 'operator' : entry.key,
+              priority: entry.key == '_op' ? 100 : 50,
+              when: entry.key == '_op'
+                  ? 'subject.op'
+                  : "inGroup('subject', '${entry.key}')",
+              presentation: GlossTablistListNamePresentation(
+                format: entry.value,
+              ),
+            ),
+      ],
+    ),
   );
   if (encodeGlossTablistDoc(generated) == encodeGlossTablistDoc(current)) {
-    final String fallback = generated.nameFormats['default']!;
-    generated.nameFormats['default'] = fallback.startsWith('&f')
+    final String fallback = generated.listNames.presentation.format;
+    generated.listNames.presentation.format = fallback.startsWith('&f')
         ? '${mood.legacy}\$player'
         : '&f\$player';
   }
@@ -2293,8 +2335,9 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
           (_DropProfile candidate) => candidate.archetype == archetype,
         );
   final GlossRealDropSettingsDoc doc = current.copy();
+  final GlossRealDropPresentation presentation = doc.presentation;
 
-  doc.limits
+  presentation.limits
     ..updateIntervalTicks = 1 + random.nextInt(4)
     ..settledPollIntervalTicks = 10 + random.nextInt(51)
     ..maxVisualsPerStack = 1 + random.nextInt(glossRealDropOffsets.length)
@@ -2303,7 +2346,7 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
     ..spread = _band(random, profile.spread, 2);
 
   final double base = _band(random, profile.scale, 2);
-  doc.scale
+  presentation.scale
     ..defaultScale = base
     ..flatItems = _round2(
       (base * (1.3 + random.nextDouble() * 0.6)).clamp(0.05, 2),
@@ -2312,7 +2355,7 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
       (base * (0.8 + random.nextDouble() * 0.5)).clamp(0.05, 2),
     );
 
-  doc.motion
+  presentation.motion
     ..tumble = profile.tumble
     ..speedMultiplier = _band(random, profile.speed, 2)
     ..degreesPerSecondX = _band(random, profile.rate, 0)
@@ -2321,7 +2364,7 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
     ..variance = _round2(random.nextDouble() * 0.8)
     ..changeOnBounce = random.nextBool();
 
-  doc.landing
+  presentation.landing
     ..mode = profile.landing
     ..tiltDegrees = _band(random, profile.tilt, 0)
     ..randomYaw = random.nextBool()
@@ -2329,7 +2372,7 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
 
   final (double, double)? labelScale = profile.labels;
   final List<int> tint = _moodTint(mood, random);
-  doc.labels
+  presentation.labels
     ..enabled = labelScale != null
     ..yOffset = _round2(0.2 + random.nextDouble() * 1.1)
     ..scale = labelScale == null ? 0.85 : _band(random, labelScale, 2)
@@ -2349,7 +2392,7 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
     ..backgroundBlue = tint[2]
     ..backgroundAlpha = 32 + random.nextInt(180);
 
-  doc.filters
+  presentation.filters
     ..onlyPlayerDrops = random.nextInt(4) == 0
     ..disabledWorlds = random.nextBool()
         ? <String>[]
@@ -2362,11 +2405,99 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
     ]);
 
   _applyDropArchetype(doc, profile.archetype, random);
-  doc.physics = _buildDropPhysics(profile.archetype, random);
-  doc.script = _buildDropScript(profile.archetype, mood, random);
-  doc.animation = _buildDropAnimation(profile.archetype, mood, random);
+  presentation.physics = _buildDropPhysics(profile.archetype, random);
+  presentation.script = _buildDropScript(profile.archetype, mood, random);
+  presentation.animation = _buildDropAnimation(profile.archetype, mood, random);
 
   return doc;
+}
+
+GlossDamageIndicatorsDoc buildRandomDamageIndicatorsShowcase(
+  GlossDamageIndicatorsDoc current,
+  math.Random random,
+) {
+  return GlossDamageIndicatorsDoc(
+    schemaVersion: glossDamageIndicatorsCurrentSchemaVersion,
+    revision: current.revision,
+    limits: GlossDamageIndicatorLimits(
+      maxPerSecond: 16 + random.nextInt(105),
+      lifetimeMs: 750 + random.nextInt(76) * 50,
+      minimumDelta: showcasePick(random, const <double>[
+        0,
+        0.001,
+        0.005,
+        0.01,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1,
+      ]),
+      decimals: random.nextInt(5),
+    ),
+    damage: _randomDamageIndicatorStyle(random, healing: false),
+    healing: _randomDamageIndicatorStyle(random, healing: true),
+    audience: GlossDamageIndicatorAudience(
+      when: showcasePick(random, <String>[
+        'true',
+        "viewer.world != '${showcasePick(random, showcaseWorlds)}'",
+        "hasPermission('viewer', 'gloss.indicators.show')",
+      ]),
+    ),
+  );
+}
+
+GlossDamageIndicatorStyle _randomDamageIndicatorStyle(
+  math.Random random, {
+  required bool healing,
+}) {
+  final double startScale = _band(random, (0.65, 1.8), 2);
+  final double endScaleFactor = _band(random, (0.62, 1.38), 2);
+  return GlossDamageIndicatorStyle(
+    when: 'true',
+    presentation: GlossDamageIndicatorPresentation(
+      format: showcasePick(
+        random,
+        healing
+            ? const <String>[
+                '&a&l+{amount}',
+                '&2&l{amount}',
+                '&b+{amount} &aHP',
+                '&a[{amount}]',
+                '&e&l+{amount}',
+                '&f{amount} &aHEAL',
+              ]
+            : const <String>[
+                '&c&l{amount}',
+                '&4&l-{amount}',
+                '&6{amount} &cDMG',
+                '&c[{amount}]',
+                '&5&l{amount}&d!',
+                '&e-{amount} &6HP',
+              ],
+      ),
+      offset: Vec3(
+        _band(random, (-0.45, 0.45), 2),
+        _band(random, healing ? (-0.25, 0.9) : (0.35, 1.4), 2),
+        _band(random, (-0.45, 0.45), 2),
+      ),
+      motion: GlossDamageIndicatorMotion(
+        horizontalSpeed: _band(random, healing ? (0.15, 1.8) : (0.35, 2.4), 2),
+        verticalSpeed: _band(random, healing ? (0.25, 2.4) : (0.7, 3.4), 2),
+        verticalAcceleration: _band(
+          random,
+          healing ? (-1.5, 1.0) : (-4.0, -0.25),
+          2,
+        ),
+        spinDegreesPerSecond: _band(random, (-360, 360), 0),
+      ),
+      transform: GlossDamageIndicatorTransform(
+        startScale: startScale,
+        endScale: _round2(startScale * endScaleFactor),
+        fadeStartFraction: _band(random, (0.42, 0.86), 2),
+      ),
+    ),
+  );
 }
 
 void _applyDropArchetype(
@@ -2374,53 +2505,54 @@ void _applyDropArchetype(
   RealDropShowcaseArchetype archetype,
   math.Random random,
 ) {
+  final GlossRealDropPresentation presentation = doc.presentation;
   switch (archetype) {
     case RealDropShowcaseArchetype.ricochet:
-      doc.motion
+      presentation.motion
         ..velocityInfluence = _band(random, (1.1, 2.4), 2)
         ..submergedSpinMultiplier = _band(random, (0.2, 0.5), 2)
         ..groundRollMultiplier = _band(random, (1.2, 2.4), 2);
-      doc.landing
+      presentation.landing
         ..faceAttraction = _band(random, (0.35, 0.6), 2)
         ..movingFaceAttraction = _band(random, (0.05, 0.2), 2)
         ..alignmentDegrees = _band(random, (0.25, 0.8), 2)
         ..settleDelayTicks = 3 + random.nextInt(6);
     case RealDropShowcaseArchetype.groundRoll:
-      doc.motion
+      presentation.motion
         ..velocityInfluence = _band(random, (0.7, 1.6), 2)
         ..submergedSpinMultiplier = _band(random, (0.2, 0.45), 2)
         ..groundRollMultiplier = _band(random, (1.4, 3.2), 2);
-      doc.landing
+      presentation.landing
         ..faceAttraction = _band(random, (0.45, 0.75), 2)
         ..movingFaceAttraction = _band(random, (0.04, 0.18), 2)
         ..alignmentDegrees = _band(random, (0.2, 0.65), 2)
         ..settleDelayTicks = 4 + random.nextInt(7);
     case RealDropShowcaseArchetype.buoyant:
-      doc.motion
+      presentation.motion
         ..velocityInfluence = _band(random, (0.3, 0.9), 2)
         ..submergedSpinMultiplier = _band(random, (0.08, 0.3), 2)
         ..groundRollMultiplier = _band(random, (0.6, 1.3), 2);
-      doc.landing
+      presentation.landing
         ..faceAttraction = _band(random, (0.45, 0.7), 2)
         ..movingFaceAttraction = _band(random, (0.08, 0.22), 2)
         ..alignmentDegrees = _band(random, (0.35, 1.0), 2)
         ..settleDelayTicks = 3 + random.nextInt(6);
     case RealDropShowcaseArchetype.hoverRelease:
-      doc.motion
+      presentation.motion
         ..velocityInfluence = _band(random, (0.5, 1.2), 2)
         ..submergedSpinMultiplier = _band(random, (0.15, 0.4), 2)
         ..groundRollMultiplier = _band(random, (0.7, 1.5), 2);
-      doc.landing
+      presentation.landing
         ..faceAttraction = _band(random, (0.55, 0.82), 2)
         ..movingFaceAttraction = _band(random, (0.08, 0.24), 2)
         ..alignmentDegrees = _band(random, (0.2, 0.7), 2)
         ..settleDelayTicks = 3 + random.nextInt(5);
     case RealDropShowcaseArchetype.materialReactive:
-      doc.motion
+      presentation.motion
         ..velocityInfluence = _band(random, (0.2, 0.8), 2)
         ..submergedSpinMultiplier = _band(random, (0.1, 0.35), 2)
         ..groundRollMultiplier = _band(random, (0.4, 1.0), 2);
-      doc.landing
+      presentation.landing
         ..faceAttraction = _band(random, (0.6, 0.88), 2)
         ..movingFaceAttraction = _band(random, (0.12, 0.3), 2)
         ..alignmentDegrees = _band(random, (0.15, 0.55), 2)

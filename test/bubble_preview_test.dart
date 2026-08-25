@@ -17,7 +17,7 @@ GlossBubbleStyleDoc _style({
   prefix: prefix,
   wordWrapChars: wrap,
   maxAliveMs: maxAliveMs,
-  motion: motion ?? GlossBubbleMotion.legacyFlyAway(),
+  motion: motion ?? GlossBubbleMotion.runtimeDefaults(),
   shimmer: shimmer ?? GlossBubbleShimmer(),
 );
 

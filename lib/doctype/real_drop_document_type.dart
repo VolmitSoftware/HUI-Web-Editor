@@ -60,7 +60,7 @@ final class RealDropDocumentType extends GlossDocumentTypeAdapter {
   @override
   String get codeShapeError =>
       'That is not a real-drop settings document: it needs "schemaVersion", '
-      '"limits", "scale", "motion", "landing", "labels", and "filters".';
+      '"presentation", "variants", and "audience".';
 
   @override
   String get defaultDocumentName => 'default';
@@ -77,8 +77,8 @@ final class RealDropDocumentType extends GlossDocumentTypeAdapter {
 
   @override
   String get templatesNote =>
-      'This file controls the native dropped-item models, motion, landing, '
-      'labels, limits, and filters. Export it as real-drops/default.json.';
+      'This file controls the fallback presentation, complete conditional '
+      'variants, and per-viewer audience. Export it as real-drops/default.json.';
 
   @override
   List<DocumentTemplateSection> get templateSections =>

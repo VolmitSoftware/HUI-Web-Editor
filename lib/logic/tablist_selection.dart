@@ -1,52 +1,73 @@
-/// Mirror of the static half of Gloss `TablistService.java`: which format a
-/// player's list name uses, and how tokens substitute into it.
-///
-/// `chooseListName` (`TablistService.java`) resolves in this order: an
-/// operator takes `_op` when it exists; a non-blank primary group takes its
-/// own entry, looked up trimmed and lowercased the way `TablistDoc.copyFormats`
-/// normalizes the keys; `default` catches the rest (keeping the player's
-/// group name for `$group`); and with no `default` the literal `$player`
-/// fallback applies. `substituteTokens` (`TablistService.java:46-52`) then replaces
-/// `$player` and `$group`. A blank chosen template makes the plugin RESET
-/// the list name to vanilla rather than applying an empty one
-/// (`TablistService.applyListName`).
+/// Conditional header/footer and list-name presentation selection.
 library;
 
+import '../components/scoreboard/scoreboard_selection.dart';
 import '../model/gloss_tablist.dart';
 
-/// `TablistService.ListNameChoice`.
-typedef GlossTablistChoice = ({String template, String groupName});
-
-/// `TablistService.chooseListName`. [nameFormats] must already be the
-/// EFFECTIVE map ([GlossTablistDoc.effectiveNameFormats]) — the service only
-/// ever sees normalized keys.
-GlossTablistChoice glossTablistChooseListName(
-  bool op,
-  String? primaryGroup,
-  Map<String, String> nameFormats,
+GlossTablistHeaderFooterPresentation glossResolveTablistHeaderFooter(
+  GlossTablistDoc doc,
+  GlossConditionContext context,
 ) {
-  if (op && nameFormats.containsKey(glossTablistOpGroupKey)) {
-    return (
-      template: nameFormats[glossTablistOpGroupKey]!,
-      groupName: glossTablistOpGroupKey,
-    );
-  }
-  if (primaryGroup != null && primaryGroup.trim().isNotEmpty) {
-    final String groupKey = primaryGroup.trim().toLowerCase();
-    if (nameFormats.containsKey(groupKey)) {
-      return (template: nameFormats[groupKey]!, groupName: primaryGroup);
-    }
-  }
-  if (nameFormats.containsKey(glossTablistDefaultGroupKey)) {
-    return (
-      template: nameFormats[glossTablistDefaultGroupKey]!,
-      groupName: primaryGroup ?? '',
-    );
-  }
-  return (template: glossTablistFallbackFormat, groupName: primaryGroup ?? '');
+  final List<GlossTablistHeaderFooterVariant> matches =
+      <GlossTablistHeaderFooterVariant>[
+        for (final GlossTablistHeaderFooterVariant variant
+            in doc.headerFooter.variants)
+          if (glossConditionMatches(variant.when, context).matches) variant,
+      ]..sort(_compareVariants);
+  return matches.isEmpty
+      ? doc.headerFooter.presentation
+      : matches.first.presentation;
 }
 
-/// `TablistService.substituteTokens`.
+GlossTablistListNamePresentation glossResolveTablistListName(
+  GlossTablistDoc doc,
+  GlossConditionContext context,
+) {
+  final List<GlossTablistListNameVariant> matches =
+      <GlossTablistListNameVariant>[
+        for (final GlossTablistListNameVariant variant
+            in doc.listNames.variants)
+          if (glossConditionMatches(variant.when, context).matches) variant,
+      ]..sort(_compareVariants);
+  return matches.isEmpty
+      ? doc.listNames.presentation
+      : matches.first.presentation;
+}
+
+String? glossResolveTablistHeaderFooterVariantId(
+  GlossTablistDoc doc,
+  GlossConditionContext context,
+) {
+  final List<GlossTablistHeaderFooterVariant> matches =
+      <GlossTablistHeaderFooterVariant>[
+        for (final GlossTablistHeaderFooterVariant variant
+            in doc.headerFooter.variants)
+          if (glossConditionMatches(variant.when, context).matches) variant,
+      ]..sort(_compareVariants);
+  return matches.isEmpty ? null : matches.first.id;
+}
+
+String? glossResolveTablistListNameVariantId(
+  GlossTablistDoc doc,
+  GlossConditionContext context,
+) {
+  final List<GlossTablistListNameVariant> matches =
+      <GlossTablistListNameVariant>[
+        for (final GlossTablistListNameVariant variant
+            in doc.listNames.variants)
+          if (glossConditionMatches(variant.when, context).matches) variant,
+      ]..sort(_compareVariants);
+  return matches.isEmpty ? null : matches.first.id;
+}
+
+int _compareVariants(
+  GlossConditionalVariant first,
+  GlossConditionalVariant second,
+) {
+  final int priority = second.priority.compareTo(first.priority);
+  return priority != 0 ? priority : first.id.compareTo(second.id);
+}
+
 String glossTablistSubstituteTokens(
   String raw,
   String? playerName,

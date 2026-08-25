@@ -10,7 +10,7 @@ import '../model/model.dart';
 
 const String kGlossDamageIndicatorsDefaultJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
   "limits": {
     "maxPerSecond": 40,
@@ -19,39 +19,45 @@ const String kGlossDamageIndicatorsDefaultJson = r'''
     "decimals": 0
   },
   "damage": {
-    "enabled": true,
-    "format": "&c&l{amount}",
-    "offset": [0.0, 0.7, 0.0],
-    "motion": {
-      "horizontalSpeed": 0.8,
-      "verticalSpeed": 1.3,
-      "verticalAcceleration": -0.93,
-      "spinDegreesPerSecond": 0.0
-    },
+    "when": "true",
     "presentation": {
-      "startScale": 1.0,
-      "endScale": 0.82,
-      "fadeStartFraction": 0.68
-    }
+      "format": "&c&l{amount}",
+      "offset": [0.0, 0.7, 0.0],
+      "motion": {
+        "horizontalSpeed": 0.8,
+        "verticalSpeed": 1.3,
+        "verticalAcceleration": -0.93,
+        "spinDegreesPerSecond": 0.0
+      },
+      "transform": {
+        "startScale": 1.0,
+        "endScale": 0.82,
+        "fadeStartFraction": 0.68
+      }
+    },
+    "variants": []
   },
   "healing": {
-    "enabled": true,
-    "format": "&a&l{amount}",
-    "offset": [0.0, -0.1, 0.0],
-    "motion": {
-      "horizontalSpeed": 0.45,
-      "verticalSpeed": 0.65,
-      "verticalAcceleration": 0.05,
-      "spinDegreesPerSecond": 0.0
-    },
+    "when": "true",
     "presentation": {
-      "startScale": 1.0,
-      "endScale": 1.1,
-      "fadeStartFraction": 0.62
-    }
+      "format": "&a&l{amount}",
+      "offset": [0.0, -0.1, 0.0],
+      "motion": {
+        "horizontalSpeed": 0.45,
+        "verticalSpeed": 0.65,
+        "verticalAcceleration": 0.05,
+        "spinDegreesPerSecond": 0.0
+      },
+      "transform": {
+        "startScale": 1.0,
+        "endScale": 1.1,
+        "fadeStartFraction": 0.62
+      }
+    },
+    "variants": []
   },
-  "filters": {
-    "disabledWorlds": []
+  "audience": {
+    "when": "hasPermission('viewer', 'gloss.indicators.show')"
   }
 }
 ''';
@@ -109,92 +115,98 @@ GlossHologramDoc buildShowcaseGlossHologram() =>
 
 const String kGlossRealDropsDefaultJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
-  "limits": {
-    "updateIntervalTicks": 2,
-    "settledPollIntervalTicks": 20,
-    "maxVisualsPerStack": 3,
-    "maxVisualsPerChunk": 128,
-    "viewRange": 32.0,
-    "spread": 0.18
-  },
-  "scale": {
-    "defaultScale": 0.4,
-    "flatItems": 0.65,
-    "thinBlocks": 0.45
-  },
-  "motion": {
-    "tumble": true,
-    "speedMultiplier": 1.35,
-    "degreesPerSecondX": 160.0,
-    "degreesPerSecondY": 120.0,
-    "degreesPerSecondZ": 100.0,
-    "variance": 0.2,
-    "changeOnBounce": true,
-    "velocityInfluence": 0.35,
-    "submergedSpinMultiplier": 0.35,
-    "groundRollMultiplier": 1.0
-  },
-  "landing": {
-    "mode": "NATURAL",
-    "tiltDegrees": 10.0,
-    "randomYaw": true,
-    "transitionTicks": 4,
-    "faceAttraction": 0.55,
-    "movingFaceAttraction": 0.15,
-    "alignmentDegrees": 0.5,
-    "settleDelayTicks": 4
-  },
-  "labels": {
-    "enabled": true,
-    "yOffset": 0.55,
-    "scale": 0.85,
-    "viewRange": 32.0,
-    "billboard": "CENTER",
-    "seeThrough": true,
-    "shadow": true,
-    "background": true,
-    "backgroundRed": 0,
-    "backgroundGreen": 0,
-    "backgroundBlue": 0,
-    "backgroundAlpha": 80
-  },
-  "filters": {
-    "disabledWorlds": [],
-    "materialBlacklist": [
-      "BEDROCK",
-      "BARRIER"
-    ],
-    "onlyPlayerDrops": false
-  },
-  "physics": {
-    "enabled": false,
-    "gravityMultiplier": 1.0,
-    "bounce": 0.0,
-    "waterBuoyancy": 0.0,
-    "waterDrag": 0.0
-  },
-  "script": {
-    "enabled": false,
-    "vars": {},
-    "offset": {
-      "x": "0",
-      "y": "0",
-      "z": "0"
-    },
-    "rotation": {
-      "x": "0",
-      "y": "0",
-      "z": "0"
+  "presentation": {
+    "limits": {
+      "updateIntervalTicks": 2,
+      "settledPollIntervalTicks": 20,
+      "maxVisualsPerStack": 3,
+      "maxVisualsPerChunk": 128,
+      "viewRange": 32.0,
+      "spread": 0.18
     },
     "scale": {
-      "x": "1",
-      "y": "1",
-      "z": "1"
+      "defaultScale": 0.4,
+      "flatItems": 0.65,
+      "thinBlocks": 0.45
     },
-    "glow": "",
-    "visible": "true"
+    "motion": {
+      "tumble": true,
+      "speedMultiplier": 1.35,
+      "degreesPerSecondX": 160.0,
+      "degreesPerSecondY": 120.0,
+      "degreesPerSecondZ": 100.0,
+      "variance": 0.2,
+      "changeOnBounce": true,
+      "velocityInfluence": 0.35,
+      "submergedSpinMultiplier": 0.35,
+      "groundRollMultiplier": 1.0
+    },
+    "landing": {
+      "mode": "NATURAL",
+      "tiltDegrees": 10.0,
+      "randomYaw": true,
+      "transitionTicks": 4,
+      "faceAttraction": 0.55,
+      "movingFaceAttraction": 0.15,
+      "alignmentDegrees": 0.5,
+      "settleDelayTicks": 4
+    },
+    "labels": {
+      "enabled": true,
+      "yOffset": 0.55,
+      "scale": 0.85,
+      "viewRange": 32.0,
+      "billboard": "CENTER",
+      "seeThrough": true,
+      "shadow": true,
+      "background": true,
+      "backgroundRed": 0,
+      "backgroundGreen": 0,
+      "backgroundBlue": 0,
+      "backgroundAlpha": 80
+    },
+    "filters": {
+      "disabledWorlds": [],
+      "materialBlacklist": [
+        "BEDROCK",
+        "BARRIER"
+      ],
+      "onlyPlayerDrops": false
+    },
+    "physics": {
+      "enabled": false,
+      "gravityMultiplier": 1.0,
+      "bounce": 0.0,
+      "waterBuoyancy": 0.0,
+      "waterDrag": 0.0
+    },
+    "script": {
+      "enabled": false,
+      "vars": {},
+      "offset": {
+        "x": "0",
+        "y": "0",
+        "z": "0"
+      },
+      "rotation": {
+        "x": "0",
+        "y": "0",
+        "z": "0"
+      },
+      "scale": {
+        "x": "1",
+        "y": "1",
+        "z": "1"
+      },
+      "glow": "",
+      "visible": "true"
+    }
+  },
+  "variants": [],
+  "audience": {
+    "when": "true"
   }
 }
 ''';
@@ -209,8 +221,9 @@ GlossRealDropSettingsDoc buildDefaultGlossRealDrops() =>
 /// Slow, upright and legible: loot you are meant to read from across the room.
 const String kGlossRealDropsPalmerHouseJson = r"""
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
+  "presentation": {
   "limits": {
     "updateIntervalTicks": 1,
     "settledPollIntervalTicks": 20,
@@ -261,14 +274,20 @@ const String kGlossRealDropsPalmerHouseJson = r"""
     ],
     "onlyPlayerDrops": false
   }
+  },
+  "variants": [],
+  "audience": {
+    "when": "true"
+  }
 }
 """;
 
 /// Fast, wide and messy: a mined stack thrown across the floor.
 const String kGlossRealDropsSawmillJson = r"""
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
+  "presentation": {
   "limits": {
     "updateIntervalTicks": 1,
     "settledPollIntervalTicks": 20,
@@ -319,14 +338,20 @@ const String kGlossRealDropsSawmillJson = r"""
     ],
     "onlyPlayerDrops": true
   }
+  },
+  "variants": [],
+  "audience": {
+    "when": "true"
+  }
 }
 """;
 
 /// Small, silent ground clutter: no labels, nothing spinning, cheap to run.
 const String kGlossRealDropsQuietJson = r"""
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
+  "presentation": {
   "limits": {
     "updateIntervalTicks": 4,
     "settledPollIntervalTicks": 60,
@@ -376,6 +401,11 @@ const String kGlossRealDropsQuietJson = r"""
       "BARRIER"
     ],
     "onlyPlayerDrops": false
+  }
+  },
+  "variants": [],
+  "audience": {
+    "when": "true"
   }
 }
 """;
@@ -563,17 +593,22 @@ final Map<String, GlossAnimationDoc Function()> shippedGlossAnimationBuilders =
 /// (deliberately `primary: false`, so nothing forces a sidebar on players).
 const String kGlossScoreboardDefaultJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
-  "title": "&d&lGloss",
-  "lines": [
-    "&fWelcome!",
-    "&7Edit boards/default.json",
-    "&7or create your own board."
-  ],
-  "primary": false,
-  "permission": "default",
-  "groups": []
+  "select": {
+    "priority": 0,
+    "when": "false"
+  },
+  "presentation": {
+    "title": "&d&lGloss",
+    "lines": [
+      "&fWelcome!",
+      "&7Edit boards/default.json",
+      "&7or create your own board."
+    ],
+    "hideNumbers": false
+  },
+  "variants": []
 }
 ''';
 
@@ -581,52 +616,71 @@ const String kGlossScoreboardDefaultJson = r'''
 /// placeholder chip.
 const String kGlossScoreboardShowcaseJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
-  "title": "[FF55FF]&lMY SERVER",
-  "lines": [
-    "&7Player &f{{ player.name }}",
-    "&7Rank {{ papi('vault_prefix', '&6VIP') }}",
-    "",
-    "&7Ping {{ player.ping < 100 ? '&a' : '&e' }}{{ player.ping }}ms",
-    "&7Health &a{{ bar(player.health, 20, 8, '■', '□') }}",
-    "&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }}",
-    "&7TPS &a{{ fixed(server.tps, 1) }}",
-    "&7Tick &f{{ fixed(metric('react.tick-ms', 1000 / server.tps), 1) }}ms",
-    "&7Balance &6${{ fixed(papiNumber('vault_eco_balance', 0), 2) }}",
-    "",
-    "&d{{ select(['·', '•', '●', '•'], floor(time.seconds)) }} &f&lLIVE EVENT",
-    "&d:heart: &fWelcome!",
-    "&bplay.example.net"
-  ],
-  "primary": true,
-  "hideNumbers": true,
-  "permission": "vip",
-  "groups": ["vip", "mvp"]
+  "select": {
+    "priority": 20,
+    "when": "hasPermission('viewer', 'gloss.board.vip') || inGroup('viewer', 'vip')"
+  },
+  "presentation": {
+    "title": "[FF55FF]&lMY SERVER",
+    "lines": [
+      "&7Player &f{{ player.name }}",
+      "&7Rank {{ papi('vault_prefix', '&6VIP') }}",
+      "",
+      "&7Ping {{ player.ping < 100 ? '&a' : '&e' }}{{ player.ping }}ms",
+      "&7Health &a{{ bar(player.health, 20, 8, '■', '□') }}",
+      "&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }}",
+      "&7TPS &a{{ fixed(server.tps, 1) }}",
+      "&7Tick &f{{ fixed(metric('react.tick-ms', 1000 / server.tps), 1) }}ms",
+      "&7Balance &6${{ fixed(papiNumber('vault_eco_balance', 0), 2) }}",
+      "",
+      "&d{{ select(['·', '•', '●', '•'], floor(time.seconds)) }} &f&lLIVE EVENT",
+      "&d:heart: &fWelcome!",
+      "&bplay.example.net"
+    ],
+    "hideNumbers": true
+  },
+  "variants": [
+    {
+      "id": "critical-health",
+      "priority": 100,
+      "when": "viewer.healthPercent <= 25",
+      "presentation": {
+        "title": "&c&lLOW HEALTH",
+        "lines": ["&cYou are in danger", "&7Find somewhere safe"],
+        "hideNumbers": true
+      }
+    }
+  ]
 }
 ''';
 
 const String kGlossScoreboardAnimationShowcaseJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
-  "title": "&d&lANIMATION LAB",
-  "lines": [
-    "{{ select(['&c', '&6', '&e', '&a', '&b', '&d'], floor(time.seconds * 4)) }}&lRAINBOW",
-    "&b{{ marquee('MARQUEE', 7, floor(time.seconds * 4)) }}",
-    "{{ timeline([['&aTIMELINE', 2], ['&eNEXT SCENE', 2]], time.seconds) }}",
-    "&f{{ typewriter('TYPEWRITER', floor(time.seconds * 4) + 9, 1) }}",
-    "{{ flash('&d&lFLASH', '&7FLASH', floor(time.seconds * 4)) }}",
-    "&d{{ wipe('WIPE', floor(time.seconds * 4) + 4) }}",
-    "{{ scanner('SCANNER', '&7', '&a', floor(time.seconds * 4)) }}",
-    "&5{{ scramble('DECODE', floor(time.seconds * 4)) }}",
-    "&6ODO {{ odometer(0, 999, mod(time.seconds, 10) / 10, 3) }}",
-    "{{ wave('WAVE', ['&a', '&7'], floor(time.seconds * 4)) }}"
-  ],
-  "primary": false,
-  "hideNumbers": true,
-  "permission": "default",
-  "groups": []
+  "select": {
+    "priority": 0,
+    "when": "false"
+  },
+  "presentation": {
+    "title": "&d&lANIMATION LAB",
+    "lines": [
+      "{{ select(['&c', '&6', '&e', '&a', '&b', '&d'], floor(time.seconds * 4)) }}&lRAINBOW",
+      "&b{{ marquee('MARQUEE', 7, floor(time.seconds * 4)) }}",
+      "{{ timeline([['&aTIMELINE', 2], ['&eNEXT SCENE', 2]], time.seconds) }}",
+      "&f{{ typewriter('TYPEWRITER', floor(time.seconds * 4) + 9, 1) }}",
+      "{{ flash('&d&lFLASH', '&7FLASH', floor(time.seconds * 4)) }}",
+      "&d{{ wipe('WIPE', floor(time.seconds * 4) + 4) }}",
+      "{{ scanner('SCANNER', '&7', '&a', floor(time.seconds * 4)) }}",
+      "&5{{ scramble('DECODE', floor(time.seconds * 4)) }}",
+      "&6ODO {{ odometer(0, 999, mod(time.seconds, 10) / 10, 3) }}",
+      "{{ wave('WAVE', ['&a', '&7'], floor(time.seconds * 4)) }}"
+    ],
+    "hideNumbers": true
+  },
+  "variants": []
 }
 ''';
 
@@ -733,7 +787,7 @@ GlossEmojiDoc buildBlankGlossEmoji() =>
 /// fallback id).
 const String kGlossBubbleDefaultJson = r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "prefix": "&7",
   "offset": [0.0, 0.3, 0.0],
@@ -775,7 +829,7 @@ const String kGlossBubbleDefaultJson = r'''
 /// follow) style that auto-applies to VIPs in overworld-named worlds.
 const String kGlossBubbleShowcaseJson = r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "prefix": "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&l",
   "offset": [0.0, 1.2, 0.0],
@@ -810,9 +864,8 @@ const String kGlossBubbleShowcaseJson = r'''
   "followPlayer": false,
   "hideOwn": false,
   "select": {
-    "worlds": ["world*"],
-    "groups": ["vip"],
-    "priority": 10
+    "priority": 10,
+    "when": "matchesGlob(viewer.world, 'world*') && inGroup('viewer', 'vip')"
   }
 }
 ''';
@@ -828,15 +881,31 @@ GlossBubbleStyleDoc buildShowcaseGlossBubbleStyle() =>
 /// first run.
 const String kGlossTablistDefaultJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
-  "useHeaderFooter": true,
-  "header": "&d&lGloss",
-  "footer": "&7VolmitSoftware.com",
-  "groupListNames": true,
-  "nameFormats": {
-    "default": "$player",
-    "_op": "&6$player"
+  "headerFooter": {
+    "enabled": true,
+    "presentation": {
+      "header": "&d&lGloss",
+      "footer": "&7VolmitSoftware.com"
+    },
+    "variants": []
+  },
+  "listNames": {
+    "enabled": true,
+    "presentation": {
+      "format": "$player"
+    },
+    "variants": [
+      {
+        "id": "operator",
+        "priority": 100,
+        "when": "subject.op",
+        "presentation": {
+          "format": "&6$player"
+        }
+      }
+    ]
   }
 }
 ''';
@@ -845,16 +914,39 @@ const String kGlossTablistDefaultJson = r'''
 /// names using both tokens.
 const String kGlossTablistShowcaseJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
-  "useHeaderFooter": true,
-  "header": "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&lMy Server\n&7Welcome &f{{ player.name }} &8• {{ papi('vault_prefix', '&7Member') }} &8• &a{{ player.ping }}ms",
-  "footer": "|animation.rainbow|&lONLINE &8• &7TPS &a{{ fixed(server.tps, 1) }}",
-  "groupListNames": true,
-  "nameFormats": {
-    "default": "&7$player",
-    "_op": "{{ hex(mix(#FF3355, #FF55FF, (sin(time.seconds * 4) + 1) / 2)) }}&l[OP] &f$player",
-    "vip": "&6[$group] &f$player"
+  "headerFooter": {
+    "enabled": true,
+    "presentation": {
+      "header": "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&lMy Server\n&7Welcome &f{{ player.name }} &8• {{ papi('vault_prefix', '&7Member') }} &8• &a{{ player.ping }}ms",
+      "footer": "|animation.rainbow|&lONLINE &8• &7TPS &a{{ fixed(server.tps, 1) }}"
+    },
+    "variants": []
+  },
+  "listNames": {
+    "enabled": true,
+    "presentation": {
+      "format": "&7$player"
+    },
+    "variants": [
+      {
+        "id": "operator",
+        "priority": 100,
+        "when": "subject.op",
+        "presentation": {
+          "format": "{{ hex(mix(#FF3355, #FF55FF, (sin(time.seconds * 4) + 1) / 2)) }}&l[OP] &f$player"
+        }
+      },
+      {
+        "id": "vip",
+        "priority": 50,
+        "when": "inGroup('subject', 'vip')",
+        "presentation": {
+          "format": "&6[$group] &f$player"
+        }
+      }
+    ]
   }
 }
 ''';

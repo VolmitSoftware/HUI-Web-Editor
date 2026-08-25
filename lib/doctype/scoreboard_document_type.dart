@@ -62,8 +62,8 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
 
   @override
   String get codeShapeError =>
-      'That is not a scoreboard document: it needs "schemaVersion" plus '
-      'board keys such as "title", "primary", "permission" or "groups".';
+      'That is not a scoreboard document: it needs "schemaVersion", '
+      '"select", "presentation" and "variants".';
 
   @override
   String get defaultDocumentName => 'new-scoreboard';
@@ -85,7 +85,7 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
   @override
   String get templatesNote =>
       'A scoreboard is the right-hand sidebar: a title, up to 15 rendered '
-      'lines, and selection rules (primary, permission, groups). Default is '
+      'lines, document selection and complete conditional variants. Default is '
       'byte-identical to what the plugin ships. Every template opens as a '
       'new document, so your current one is untouched.';
 
@@ -98,8 +98,8 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
               id: 'scoreboard-default',
               name: 'Default board',
               description:
-                  'The shipped default: three welcome lines, unrestricted, '
-                  'not primary. Exactly what plugins/Gloss/boards/ starts '
+                  'The shipped default: three welcome lines and an always-true '
+                  'selection rule. Exactly what plugins/Gloss/boards/ starts '
                   'with.',
               highlights: const <String>['Shipped default', '3 lines'],
               create: (EditorStore store) => store.newGlossDocument(
@@ -112,12 +112,12 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
               id: 'scoreboard-showcase',
               name: 'Server showcase',
               description:
-                  'A gated, grouped sidebar with authored RGB, PAPI, numeric '
-                  'math, a health bar, live metrics and a reusable animation.',
+                  'A conditional sidebar with authored RGB, PAPI, numeric '
+                  'math, live metrics and a low-health presentation.',
               highlights: const <String>[
                 'Authored code',
                 'PAPI + math',
-                'Permission-gated',
+                'Conditional variant',
               ],
               create: (EditorStore store) => store.newGlossDocument(
                 this,

@@ -24,8 +24,9 @@ List<HuiCompletion> _offer(String kind, String marked) {
   return huiCodeCompletions(root: root, caret: _caret(marked).caret);
 }
 
-List<String> _labels(List<HuiCompletion> items) =>
-    <String>[for (final HuiCompletion item in items) item.label];
+List<String> _labels(List<HuiCompletion> items) => <String>[
+  for (final HuiCompletion item in items) item.label,
+];
 
 /// Accepts the candidate labelled [label] and returns the whole next buffer
 /// with `|` put back where the caret ended up.
@@ -38,7 +39,8 @@ String _accept(String kind, String marked, String label) {
   );
   final HuiCompletion item = items.firstWhere(
     (HuiCompletion candidate) => candidate.label == label,
-    orElse: () => throw StateError('no candidate "$label" in ${_labels(items)}'),
+    orElse: () =>
+        throw StateError('no candidate "$label" in ${_labels(items)}'),
   );
   final HuiCompletionEdit edit = huiApplyCompletion(at.source, at.caret, item);
   return edit.text.replaceRange(edit.caret, edit.caret, '|');
@@ -47,10 +49,13 @@ String _accept(String kind, String marked, String label) {
 void main() {
   group('key candidates', () {
     test('offers the root keys of the open kind', () {
-      expect(
-        _labels(_offer('hologram', '{\n  |\n}')),
-        <String>['schemaVersion', 'revision', 'anchor', 'lines', 'seeThrough'],
-      );
+      expect(_labels(_offer('hologram', '{\n  |\n}')), <String>[
+        'schemaVersion',
+        'revision',
+        'anchor',
+        'lines',
+        'seeThrough',
+      ]);
     });
 
     test('filters on what precedes the caret, in declaration order', () {
@@ -85,8 +90,11 @@ void main() {
 
     test('never offers a key the format only reads for migration', () {
       final List<String> labels = _labels(
-        _offer('menu', '{"components": [{"data": {"type": "decoration", '
-            '"icon": {"type": "item", |}}}]}'),
+        _offer(
+          'menu',
+          '{"components": [{"data": {"type": "decoration", '
+              '"icon": {"type": "item", |}}}]}',
+        ),
       );
       expect(labels, contains('customModelValue'));
       expect(labels, isNot(contains('customModelData')));
@@ -113,16 +121,21 @@ void main() {
       expect(labels, <String>['type']);
     });
 
-    test('offers the reserved keys of an open map', () {
+    test('offers the keys of a conditional list-name variant', () {
       final List<String> labels = _labels(
-        _offer('tablist', '{"nameFormats": {|}}'),
+        _offer('tablist', '{"listNames":{"variants":[{|}]}}'),
       );
-      expect(labels, <String>['default', '_op']);
+      expect(labels, <String>['id', 'priority', 'when', 'presentation']);
     });
 
     test('offers damage-indicator trajectory and presentation keys', () {
       expect(
-        _labels(_offer('damageIndicators', '{"damage":{"motion":{|}}}')),
+        _labels(
+          _offer(
+            'damageIndicators',
+            '{"damage":{"presentation":{"motion":{|}}}}',
+          ),
+        ),
         <String>[
           'horizontalSpeed',
           'verticalSpeed',
@@ -131,16 +144,18 @@ void main() {
         ],
       );
       expect(
-        _labels(_offer('damageIndicators', '{"healing":{"presentation":{|}}}')),
+        _labels(
+          _offer(
+            'damageIndicators',
+            '{"healing":{"presentation":{"transform":{|}}}}',
+          ),
+        ),
         <String>['startScale', 'endScale', 'fadeStartFraction'],
       );
     });
 
     test('carries the type and the summary of every key it offers', () {
-      final HuiCompletion item = _offer(
-        'hologram',
-        '{"seeThrough|"}',
-      ).first;
+      final HuiCompletion item = _offer('hologram', '{"seeThrough|"}').first;
       expect(item.detail, 'boolean');
       expect(item.description, isNotEmpty);
       expect(item.kind, HuiCompletionKind.key);
@@ -162,10 +177,7 @@ void main() {
     });
 
     test('offers both booleans, marking the default', () {
-      final List<HuiCompletion> items = _offer(
-        'hologram',
-        '{"seeThrough": |}',
-      );
+      final List<HuiCompletion> items = _offer('hologram', '{"seeThrough": |}');
       expect(_labels(items), <String>['true', 'false']);
       expect(items.first.isDefault, isTrue);
     });
@@ -184,10 +196,10 @@ void main() {
     });
 
     test('filters the enum as the value is typed', () {
-      expect(
-        _labels(_offer('animation', '{"mode": "desc|"}')),
-        <String>['descend', 'ascend_descend'],
-      );
+      expect(_labels(_offer('animation', '{"mode": "desc|"}')), <String>[
+        'descend',
+        'ascend_descend',
+      ]);
     });
 
     test('offers the tags of a nested union whose object has more keys', () {
@@ -239,14 +251,8 @@ void main() {
     });
 
     test('parks the caret inside an empty literal it had to invent', () {
-      expect(
-        _accept('hologram', '{\n  |\n}', 'lines'),
-        '{\n  "lines": [|]\n}',
-      );
-      expect(
-        _accept('emoji', '{\n  |\n}', 'emoji'),
-        '{\n  "emoji": "|"\n}',
-      );
+      expect(_accept('hologram', '{\n  |\n}', 'lines'), '{\n  "lines": [|]\n}');
+      expect(_accept('emoji', '{\n  |\n}', 'emoji'), '{\n  "emoji": "|"\n}');
     });
 
     test('writes only the key when a colon already follows', () {

@@ -4,6 +4,11 @@ import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
+extension on GlossScoreboardDoc {
+  String effectiveTitle(String boardId) =>
+      presentation.title.isEmpty ? boardId : presentation.title;
+}
+
 void main() {
   test('title preview applies the runtime 32-code-unit cut', () {
     final GlossLineRender render = renderGlossScoreboardTitle('&a${'x' * 31}');
@@ -120,7 +125,9 @@ void main() {
     });
 
     test('an authored title is never replaced', () {
-      final GlossScoreboardDoc doc = GlossScoreboardDoc(title: '&d&lGloss');
+      final GlossScoreboardDoc doc = GlossScoreboardDoc(
+        presentation: GlossScoreboardPresentation(title: '&d&lGloss'),
+      );
 
       expect(doc.effectiveTitle('welcome'), '&d&lGloss');
       expect(
@@ -130,7 +137,9 @@ void main() {
     });
 
     test('the fallback tests isEmpty, not a trim', () {
-      final GlossScoreboardDoc doc = GlossScoreboardDoc(title: ' ');
+      final GlossScoreboardDoc doc = GlossScoreboardDoc(
+        presentation: GlossScoreboardPresentation(title: ' '),
+      );
 
       expect(doc.effectiveTitle('welcome'), ' ');
     });

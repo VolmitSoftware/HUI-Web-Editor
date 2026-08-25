@@ -30,6 +30,7 @@ import '../../logic/gloss_text.dart';
 import '../../logic/tablist_selection.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
+import '../scoreboard/scoreboard_selection.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
@@ -90,6 +91,8 @@ class TablistView extends StatefulWidget {
 
 class _TablistViewState extends State<TablistView> {
   Timer? _ticker;
+  String _world = 'world';
+  double _health = 20;
 
   EditorStore get _store => component.store;
 
@@ -132,16 +135,21 @@ class _TablistViewState extends State<TablistView> {
   }
 
   bool _isAnimated(GlossTablistDoc doc, GlossAnimationResolver animations) {
-    if (doc.useHeaderFooter &&
-        (renderGlossLine(doc.header, animations: animations).isAnimated ||
-            renderGlossLine(doc.footer, animations: animations).isAnimated)) {
-      return true;
-    }
-    if (doc.groupListNames) {
-      for (final String format in doc.effectiveNameFormats.values) {
-        if (renderGlossLine(format, animations: animations).isAnimated) {
-          return true;
-        }
+    final List<String> text = <String>[
+      doc.headerFooter.presentation.header,
+      doc.headerFooter.presentation.footer,
+      doc.listNames.presentation.format,
+      for (final GlossTablistHeaderFooterVariant variant
+          in doc.headerFooter.variants) ...<String>[
+        variant.presentation.header,
+        variant.presentation.footer,
+      ],
+      for (final GlossTablistListNameVariant variant in doc.listNames.variants)
+        variant.presentation.format,
+    ];
+    for (final String value in text) {
+      if (renderGlossLine(value, animations: animations).isAnimated) {
+        return true;
       }
     }
     return false;
@@ -151,17 +159,21 @@ class _TablistViewState extends State<TablistView> {
   /// substitution, then the pipeline. Vanilla (plain name) when
   /// groupListNames is off or the chosen template is blank.
   String _listNameRaw(GlossTablistDoc doc, _MockPlayer player) {
-    if (!doc.groupListNames) return player.name;
-    final GlossTablistChoice choice = glossTablistChooseListName(
-      player.op,
-      player.group,
-      doc.effectiveNameFormats,
-    );
-    if (choice.template.trim().isEmpty) return player.name;
+    if (!doc.listNames.enabled) return player.name;
+    final GlossTablistListNamePresentation presentation =
+        glossResolveTablistListName(
+          doc,
+          _conditionContext(
+            subjectName: player.name,
+            subjectGroup: player.group,
+            subjectOp: player.op,
+          ),
+        );
+    if (presentation.format.trim().isEmpty) return player.name;
     return glossTablistSubstituteTokens(
-      choice.template,
+      presentation.format,
       player.name,
-      choice.groupName,
+      player.group,
     );
   }
 
@@ -182,6 +194,11 @@ class _TablistViewState extends State<TablistView> {
     final GlossEmojiResolver emoji = _store.workspaceEmoji;
     _syncTicker(_isAnimated(doc, animations));
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
+    final GlossConditionContext viewerContext = _conditionContext();
+    final GlossTablistHeaderFooterPresentation headerFooter =
+        glossResolveTablistHeaderFooter(doc, viewerContext);
+    final String? headerFooterVariant =
+        glossResolveTablistHeaderFooterVariantId(doc, viewerContext);
 
     List<Widget> pipelineLines(String text) => <Widget>[
       for (final String line in text.split('\n'))
@@ -198,8 +215,11 @@ class _TablistViewState extends State<TablistView> {
     ];
 
     final Widget screen = dom.div(classes: 'hui-tablist-screen', <Widget>[
-      if (doc.useHeaderFooter)
-        dom.div(classes: 'hui-tablist-header', pipelineLines(doc.header)),
+      if (doc.headerFooter.enabled)
+        dom.div(
+          classes: 'hui-tablist-header',
+          pipelineLines(headerFooter.header),
+        ),
       dom.div(classes: 'hui-tablist-grid', <Widget>[
         for (final _MockPlayer player in _players)
           dom.div(classes: 'hui-tablist-row', <Widget>[
@@ -225,8 +245,11 @@ class _TablistViewState extends State<TablistView> {
             ]),
           ]),
       ]),
-      if (doc.useHeaderFooter)
-        dom.div(classes: 'hui-tablist-footer', pipelineLines(doc.footer)),
+      if (doc.headerFooter.enabled)
+        dom.div(
+          classes: 'hui-tablist-footer',
+          pipelineLines(headerFooter.footer),
+        ),
     ]);
 
     if (component.gameContext) {
@@ -255,6 +278,7 @@ class _TablistViewState extends State<TablistView> {
         ),
       ]),
       dom.div(classes: 'hui-tablist-readout', <Widget>[Text(_readout(doc))]),
+      _conditionControls(headerFooterVariant),
     ]);
   }
 
@@ -280,21 +304,88 @@ class _TablistViewState extends State<TablistView> {
 
   String _readout(GlossTablistDoc doc) {
     final List<String> parts = <String>[
-      doc.useHeaderFooter
+      doc.headerFooter.enabled
           ? huiText('header/footer on')
           : huiText(
               'header/footer off — the tab screen keeps its vanilla top and '
               'bottom',
             ),
-      doc.groupListNames
-          ? huiText('list names: {mapping}', <String, Object?>{
-              'mapping':
-                  'Cyberpwn→_op, Magic_Psycho→developer, '
-                  'SwiftSwamp→moderator, Puretie→vip',
-            })
-          : huiText('list names vanilla (groupListNames off)'),
+      doc.listNames.enabled
+          ? huiText('conditional list names on')
+          : huiText('list names vanilla'),
       huiText('ping bars and filler players are client cosmetics'),
     ];
     return parts.join(' · ');
   }
+
+  GlossConditionContext _conditionContext({
+    String subjectName = 'Cyberpwn',
+    String? subjectGroup,
+    bool subjectOp = false,
+  }) {
+    const double maxHealth = 20;
+    return GlossConditionContext(
+      variables: <String, Object?>{
+        'viewer.name': 'Cyberpwn',
+        'viewer.health': _health,
+        'viewer.maxHealth': maxHealth,
+        'viewer.healthPercent': _health * 100 / maxHealth,
+        'viewer.world': _world,
+        'world.name': _world,
+        'viewer.op': false,
+        'viewer.ping': 42.0,
+        'subject.name': subjectName,
+        'subject.op': subjectOp,
+        'subject.world': _world,
+        'server.online': 30.0,
+        'server.maxPlayers': 100.0,
+        'server.tps': 20.0,
+      },
+      groupsByRole: <String, Set<String>>{
+        'subject': <String>{
+          if (subjectGroup != null && subjectGroup.isNotEmpty)
+            subjectGroup.toLowerCase(),
+        },
+      },
+      metrics: <String, double>{'react.tick-ms': 50},
+    );
+  }
+
+  Widget _conditionControls(String? headerFooterVariant) =>
+      dom.div(classes: 'hui-scoreboard-sim-controls', <Widget>[
+        dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
+          dom.span(classes: 'hui-scoreboard-sim-label', <Widget>[
+            Text(huiText('Viewer world')),
+          ]),
+          TextInput(
+            value: _world,
+            size: ComponentSize.sm,
+            onInput: (String value) => setState(() => _world = value),
+          ),
+        ]),
+        dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
+          dom.span(classes: 'hui-scoreboard-sim-label', <Widget>[
+            Text(huiText('Viewer health')),
+          ]),
+          TextInput(
+            value: '$_health',
+            size: ComponentSize.sm,
+            onInput: (String value) {
+              final double? parsed = double.tryParse(value);
+              if (parsed != null) {
+                setState(() => _health = parsed.clamp(0, 20));
+              }
+            },
+          ),
+        ]),
+        dom.span(classes: 'hui-scoreboard-sim-verdict', <Widget>[
+          Text(
+            headerFooterVariant == null
+                ? huiText('default header/footer presentation')
+                : huiText('header/footer variant: {id}', <String, Object?>{
+                    'id': headerFooterVariant,
+                  }),
+          ),
+        ]),
+      ]);
 }

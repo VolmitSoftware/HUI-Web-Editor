@@ -9,48 +9,59 @@ void main() {
   test('missing nested values use the runtime defaults', () {
     final GlossRealDropSettingsDoc doc = decodeGlossRealDropSettingsDoc('''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
+  "presentation": {
   "limits": {},
   "scale": {},
   "motion": {},
   "landing": {},
   "labels": {},
   "filters": {}
+  },
+  "variants": [],
+  "audience": {"when": "true"}
 }
 ''');
-    expect(doc.limits.updateIntervalTicks, 2);
-    expect(doc.motion.speedMultiplier, 1.35);
-    expect(doc.motion.tumble, isTrue);
-    expect(doc.motion.velocityInfluence, 0.35);
-    expect(doc.motion.groundRollMultiplier, 1);
-    expect(doc.landing.faceAttraction, 0.55);
-    expect(doc.landing.settleDelayTicks, 4);
-    expect(doc.labels.seeThrough, isTrue);
-    expect(doc.filters.materialBlacklist, <String>['BEDROCK', 'BARRIER']);
+    expect(doc.presentation.limits.updateIntervalTicks, 2);
+    expect(doc.presentation.motion.speedMultiplier, 1.35);
+    expect(doc.presentation.motion.tumble, isTrue);
+    expect(doc.presentation.motion.velocityInfluence, 0.35);
+    expect(doc.presentation.motion.groundRollMultiplier, 1);
+    expect(doc.presentation.landing.faceAttraction, 0.55);
+    expect(doc.presentation.landing.settleDelayTicks, 4);
+    expect(doc.presentation.labels.seeThrough, isTrue);
+    expect(doc.presentation.filters.materialBlacklist, <String>[
+      'BEDROCK',
+      'BARRIER',
+    ]);
     expect(validateRealDropSettingsDoc(doc), isEmpty);
   });
 
   test('explicit false values and unknown keys round-trip', () {
     final GlossRealDropSettingsDoc doc = decodeGlossRealDropSettingsDoc('''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 4,
+  "presentation": {
   "limits": {"futureLimit": 7},
   "scale": {},
   "motion": {"tumble": false, "changeOnBounce": false},
   "landing": {"randomYaw": false},
   "labels": {"enabled": false, "seeThrough": false},
-  "filters": {"onlyPlayerDrops": true},
+  "filters": {"onlyPlayerDrops": true}
+  },
+  "variants": [],
+  "audience": {"when": "true"},
   "futureRoot": {"kept": true}
 }
 ''');
-    expect(doc.motion.tumble, isFalse);
-    expect(doc.motion.changeOnBounce, isFalse);
-    expect(doc.landing.randomYaw, isFalse);
-    expect(doc.labels.enabled, isFalse);
-    expect(doc.labels.seeThrough, isFalse);
-    expect(doc.filters.onlyPlayerDrops, isTrue);
+    expect(doc.presentation.motion.tumble, isFalse);
+    expect(doc.presentation.motion.changeOnBounce, isFalse);
+    expect(doc.presentation.landing.randomYaw, isFalse);
+    expect(doc.presentation.labels.enabled, isFalse);
+    expect(doc.presentation.labels.seeThrough, isFalse);
+    expect(doc.presentation.filters.onlyPlayerDrops, isTrue);
     final String encoded = encodeGlossRealDropSettingsDoc(doc);
     expect(encoded, contains('"futureLimit": 7'));
     expect(encoded, contains('"futureRoot"'));
@@ -58,8 +69,8 @@ void main() {
 
   test('out-of-range settings remain editable and report runtime clamps', () {
     final GlossRealDropSettingsDoc doc = GlossRealDropSettingsDoc();
-    doc.motion.speedMultiplier = 9;
-    doc.labels.backgroundAlpha = -1;
+    doc.presentation.motion.speedMultiplier = 9;
+    doc.presentation.labels.backgroundAlpha = -1;
     final List<HuiIssue> issues = validateRealDropSettingsDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.warning),
@@ -71,24 +82,24 @@ void main() {
     'continuous motion controls round-trip through the authored document',
     () {
       final GlossRealDropSettingsDoc doc = GlossRealDropSettingsDoc();
-      doc.motion.velocityInfluence = 1.4;
-      doc.motion.submergedSpinMultiplier = 0.2;
-      doc.motion.groundRollMultiplier = 0.8;
-      doc.landing.faceAttraction = 0.7;
-      doc.landing.movingFaceAttraction = 0.1;
-      doc.landing.alignmentDegrees = 0.25;
-      doc.landing.settleDelayTicks = 12;
+      doc.presentation.motion.velocityInfluence = 1.4;
+      doc.presentation.motion.submergedSpinMultiplier = 0.2;
+      doc.presentation.motion.groundRollMultiplier = 0.8;
+      doc.presentation.landing.faceAttraction = 0.7;
+      doc.presentation.landing.movingFaceAttraction = 0.1;
+      doc.presentation.landing.alignmentDegrees = 0.25;
+      doc.presentation.landing.settleDelayTicks = 12;
 
       final GlossRealDropSettingsDoc decoded = decodeGlossRealDropSettingsDoc(
         encodeGlossRealDropSettingsDoc(doc),
       );
-      expect(decoded.motion.velocityInfluence, 1.4);
-      expect(decoded.motion.submergedSpinMultiplier, 0.2);
-      expect(decoded.motion.groundRollMultiplier, 0.8);
-      expect(decoded.landing.faceAttraction, 0.7);
-      expect(decoded.landing.movingFaceAttraction, 0.1);
-      expect(decoded.landing.alignmentDegrees, 0.25);
-      expect(decoded.landing.settleDelayTicks, 12);
+      expect(decoded.presentation.motion.velocityInfluence, 1.4);
+      expect(decoded.presentation.motion.submergedSpinMultiplier, 0.2);
+      expect(decoded.presentation.motion.groundRollMultiplier, 0.8);
+      expect(decoded.presentation.landing.faceAttraction, 0.7);
+      expect(decoded.presentation.landing.movingFaceAttraction, 0.1);
+      expect(decoded.presentation.landing.alignmentDegrees, 0.25);
+      expect(decoded.presentation.landing.settleDelayTicks, 12);
     },
   );
 
@@ -96,13 +107,10 @@ void main() {
     expect(
       () => decodeGlossRealDropSettingsDoc('''
 {
-  "schemaVersion": 2,
-  "limits": {},
-  "scale": {},
-  "motion": {},
-  "landing": {},
-  "labels": {},
-  "filters": {}
+  "schemaVersion": 1,
+  "presentation": {},
+  "variants": [],
+  "audience": {"when": "true"}
 }
 '''),
       throwsA(isA<HuiFormatException>()),

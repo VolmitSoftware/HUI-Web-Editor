@@ -969,7 +969,17 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'Gloss previously called boards.',
     citation: 'BoardDoc.java:12',
   ),
-  'scoreboard.title': HuiFieldDoc(
+  'condition.when': HuiFieldDoc(
+    title: 'Condition',
+    body:
+        'A typed boolean expression evaluated against the available viewer, '
+        'subject, source, event, world and server context. It supports '
+        'comparisons, boolean operators, arithmetic, permissions, groups, '
+        'regions, placeholders and metrics. Invalid or unavailable conditions '
+        'fail closed instead of selecting the document or variant.',
+    citation: 'ConditionCompiler.java:12',
+  ),
+  'scoreboard.presentation.title': HuiFieldDoc(
     title: 'Title',
     body:
         'Rendered through the text pipeline per viewer, then safely capped '
@@ -980,7 +990,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'Line breaks become spaces.',
     citation: 'Board.java:201-206',
   ),
-  'scoreboard.lines': HuiFieldDoc(
+  'scoreboard.presentation.lines': HuiFieldDoc(
     title: 'Lines',
     body:
         'Top to bottom, each through the text pipeline per viewer — '
@@ -991,16 +1001,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'the first 15 lines reach the client.',
     citation: 'BoardEntry.java:24-40',
   ),
-  'scoreboard.primary': HuiFieldDoc(
-    title: 'Primary board',
-    body:
-        'A primary board volunteers as the default sidebar for players no '
-        'group or permission steers to a specific one. The shipped default '
-        'board deliberately sets false so a fresh install never forces a '
-        'sidebar on anyone.',
-    citation: 'GlossBoardMeta.java:83-85',
-  ),
-  'scoreboard.hideNumbers': HuiFieldDoc(
+  'scoreboard.presentation.hideNumbers': HuiFieldDoc(
     title: 'Hide score numbers',
     body:
         'Uses Minecraft\'s blank score number format so 1.20.3+ clients do '
@@ -1008,25 +1009,6 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'global hide-scoreboard-numbers option provides the equivalent '
         'translation for 1.20.3+ clients.',
     citation: 'BoardDoc.java:10-11',
-  ),
-  'scoreboard.permission': HuiFieldDoc(
-    title: 'Permission',
-    body:
-        'Trimmed and lowercased; blank or "default" means everyone sees the '
-        'board. Any other value gates it behind gloss.board.<permission> — '
-        'operators pass through wildcard permissions, ordinary players need '
-        'the node granted. This selects who GETS the board, not who can '
-        'edit it.',
-    citation: 'BoardDoc.java:32-35',
-  ),
-  'scoreboard.groups': HuiFieldDoc(
-    title: 'Groups',
-    body:
-        'Vault group names this board attaches to: players in one of them '
-        'are steered here before permission or primary selection. The '
-        'server lowercases, trims, drops blanks and deduplicates the list '
-        'on load without rewriting the file.',
-    citation: 'BoardDoc.java:48-63',
   ),
 
   // --- gloss motd ------------------------------------------------------------
@@ -1179,22 +1161,6 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'set — everyone else still sees them.',
     citation: 'ChatBubblesService.java:208-210',
   ),
-  'bubble.select.worlds': HuiFieldDoc(
-    title: 'Select worlds',
-    body:
-        'World-name globs with * and ? wildcards; any match passes. Empty '
-        'skips the world check. Entries are trimmed and blanks dropped, '
-        'case preserved.',
-    citation: 'BubbleStyles.java:40-59',
-  ),
-  'bubble.select.groups': HuiFieldDoc(
-    title: 'Select groups',
-    body:
-        'Vault primary-group names; the sender\'s group, lowercased, must '
-        'be in the list. Empty skips the group check. Entries are trimmed, '
-        'lowercased and blanks dropped.',
-    citation: 'BubbleStyleDoc.java:41-58',
-  ),
   'bubble.select.priority': HuiFieldDoc(
     title: 'Select priority',
     body:
@@ -1213,8 +1179,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'to the server writes that one file.',
     citation: 'TablistService.java:38-39',
   ),
-  'tablist.useHeaderFooter': HuiFieldDoc(
-    title: 'Use header and footer',
+  'tablist.headerFooter.enabled': HuiFieldDoc(
+    title: 'Header and footer enabled',
     body:
         'When on, the header and footer render through the text pipeline '
         'per viewer on every update tick. When off, the plugin clears '
@@ -1222,7 +1188,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'vanilla.',
     citation: 'TablistService.java:187-199',
   ),
-  'tablist.header': HuiFieldDoc(
+  'tablist.headerFooter.presentation.header': HuiFieldDoc(
     title: 'Header',
     body:
         'Shown above the player grid. Colours, placeholders, '
@@ -1231,31 +1197,29 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'drive RGB effects at the update interval.',
     citation: 'TablistService.java:188-196',
   ),
-  'tablist.footer': HuiFieldDoc(
+  'tablist.headerFooter.presentation.footer': HuiFieldDoc(
     title: 'Footer',
     body:
         'Shown below the player grid, through the same per-viewer pipeline '
         'as the header.',
     citation: 'TablistService.java:188-196',
   ),
-  'tablist.groupListNames': HuiFieldDoc(
-    title: 'Group list names',
+  'tablist.listNames.enabled': HuiFieldDoc(
+    title: 'List names enabled',
     body:
-        'When on, every player\'s list name renders from the matching '
-        'format. When off, applied names reset to vanilla and the formats '
-        'go unused.',
+        'When on, every listed player\'s name renders from the highest-priority '
+        'matching variant or the default format. When off, applied names reset '
+        'to vanilla.',
     citation: 'TablistService.java:201-207',
   ),
-  'tablist.nameFormats': HuiFieldDoc(
-    title: 'Name formats',
+  'tablist.listNames.presentation.format': HuiFieldDoc(
+    title: 'List name format',
     body:
-        'Group key to format, with \$player and \$group tokens. Operators '
-        'take _op first, then the player\'s primary group, then default; '
-        'with no default the literal \$player fallback applies. Keys are '
-        'trimmed, lowercased and blank ones dropped on load. A blank format '
-        'RESETS matching players to vanilla. Formats also run authored '
-        'expressions, so rank colours and effects can animate.',
-    citation: 'TablistService.java:54-66',
+        'Complete list-name format with \$player and \$group tokens. The '
+        'default presentation is used when no variant matches; a blank '
+        'winning format resets that player to vanilla. Formats run through '
+        'the normal authored text pipeline.',
+    citation: 'TablistService.java:701-719',
   ),
 
   // --- real-drop timeline animation ----------------------------------------

@@ -76,7 +76,7 @@ void main() {
 
     test('falls back to the model summary where there is no help', () {
       final GlossJsonObject drops = glossJsonSchemaFor('realDrops')!;
-      const String source = '{"limits": {"spread": 0.2}}';
+      const String source = '{"presentation": {"limits": {"spread": 0.2}}}';
       final HuiCodeKeyDoc? doc = huiCodeKeyDoc(
         root: drops,
         source: source,
@@ -85,7 +85,7 @@ void main() {
       expect(doc!.title, 'Spread');
       expect(doc.body, contains('fan out'));
       expect(doc.citation, isNull);
-      expect(doc.path, r'$.limits.spread');
+      expect(doc.path, r'$.presentation.limits.spread');
     });
 
     test('documents nested damage-indicator motion fields', () {
@@ -93,7 +93,8 @@ void main() {
         'damageIndicators',
       )!;
       const String source =
-          '{"damage":{"motion":{"verticalAcceleration":-0.93}}}';
+          '{"damage":{"presentation":{"motion":'
+          '{"verticalAcceleration":-0.93}}}}';
       final HuiCodeKeyDoc? doc = huiCodeKeyDoc(
         root: indicators,
         source: source,
@@ -101,7 +102,7 @@ void main() {
       );
       expect(doc!.title, 'Vertical acceleration');
       expect(doc.body, contains('-32..32'));
-      expect(doc.path, r'$.damage.motion.verticalAcceleration');
+      expect(doc.path, r'$.damage.presentation.motion.verticalAcceleration');
     });
 
     test('names the path through a list and a variant', () {
@@ -155,16 +156,17 @@ void main() {
       expect(doc.detail, isEmpty);
     });
 
-    test('explains an open map key with the map own note', () {
+    test('explains a nested conditional list-name field', () {
       final GlossJsonObject tablist = glossJsonSchemaFor('tablist')!;
-      const String source = '{"nameFormats": {"vip": "x"}}';
+      const String source =
+          '{"listNames":{"variants":[{"when":"subject.op"}]}}';
       final HuiCodeKeyDoc? doc = huiCodeKeyDoc(
         root: tablist,
         source: source,
-        offset: source.indexOf('"vip"') + 1,
+        offset: source.indexOf('"when"') + 1,
       );
-      expect(doc!.title, 'vip');
-      expect(doc.body, contains('Vault group name'));
+      expect(doc!.title, 'Condition');
+      expect(doc.body, contains('boolean expression'));
     });
 
     test('a value string is not a key and gets no card', () {

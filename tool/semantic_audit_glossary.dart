@@ -17,9 +17,8 @@ semanticAuditGlossary = <String, Map<String, String>>{
         'Die tatsächliche Karte, die Gloss über einem Ofen, Schmelzofen '
         'oder Räucherofen zeichnet: ein Fortschrittsring, eine '
         'Brennstoffflamme und zwei Statusbeschriftungen.',
-    'The right-hand sidebar. Only the first 15 lines reach a client.':
-        'Die rechte Seitenleiste. Nur die ersten 15 Zeilen erreichen den '
-        'Client.',
+    'Complete fallback sidebar layout.':
+        'Vollständiges Fallback-Seitenleistenlayout.',
     'Ticks used to enter and leave the hovered pose. Defaults to 4; zero '
             'is instant. Accepted range: 0 through 40.':
         'Spielticks für den Übergang in die und aus der Zeigerpose. '
@@ -65,6 +64,10 @@ semanticAuditGlossary = <String, Map<String, String>>{
     'Editor status': 'Editorin tila',
     'History': 'Muutoshistoria',
     'New tablist': 'Uusi pelaajalista',
+    'Variant id "{id}" is duplicated; priority ties use the id as the '
+            'deterministic tiebreaker.':
+        'Variantin tunnus "{id}" on päällekkäinen; prioriteettitasatilanteissa '
+        'tunnusta käytetään deterministisenä ratkaisijana.',
     'World binding': 'Maailmaan sidonta',
     'airborne': 'ilmassa',
     'physics held': 'fysiikka pysäytetty',
@@ -90,6 +93,7 @@ semanticAuditGlossary = <String, Map<String, String>>{
     'Open library': 'Ouvrir la bibliothèque',
     'World binding': 'Liaison au monde',
     'airborne': 'en l’air',
+    'condition false': 'la condition vaut false',
     'on': 'activé',
     'physics held': 'physique en pause',
     'real drops': 'drops réels',
@@ -113,10 +117,8 @@ semanticAuditGlossary = <String, Map<String, String>>{
     'Open inspector': 'פתח את המפקח',
     'World binding': 'קישור לעולם',
     'airborne': 'באוויר',
-    'not primary': 'לא ראשי',
     'on': 'פעיל',
     'physics held': 'פיזיקה מושהית',
-    'primary': 'ראשי',
     'real drops': 'דרופים אמיתיים',
     'rebounding': 'קופץ חזרה',
     'rolling': 'מתגלגל',
@@ -293,7 +295,6 @@ semanticAuditGlossary = <String, Map<String, String>>{
     'airborne': 'в воздухе',
     'on': 'включено',
     'physics held': 'физика приостановлена',
-    'primary': 'основной',
     'real drops': 'реальные выпавшие предметы',
     'rebounding': 'отскакивает',
     'rolling': 'катится',
@@ -376,8 +377,8 @@ semanticAuditGlossary = <String, Map<String, String>>{
         'Thẻ thực tế mà Gloss hiển thị phía trên lò nung, lò luyện kim '
         'hoặc lò hun khói: một vòng tiến trình, một ngọn lửa nhiên liệu '
         'và hai nhãn trạng thái.',
-    'The right-hand sidebar. Only the first 15 lines reach a client.':
-        'Thanh bên phải. Chỉ 15 dòng đầu tiên được gửi đến máy khách.',
+    'Complete fallback sidebar layout.':
+        'Bố cục thanh bên dự phòng hoàn chỉnh.',
     'Ticks used to enter and leave the hovered pose. Defaults to 4; zero '
             'is instant. Accepted range: 0 through 40.':
         'Số tick dùng để vào và rời tư thế khi con trỏ di qua. Mặc định '
@@ -462,10 +463,8 @@ semanticAuditGlossary = <String, Map<String, String>>{
         '“{trimmed}”永远无法解析：查询名称必须由 1 到 16 个 A-Z、a-z、'
         '0-9 或下划线字符组成，因此此图标总会绘制备用头颅',
     'airborne': '在空中',
-    'not primary': '非主要',
     'on': '开启',
     'physics held': '物理效果已暂停',
-    'primary': '主要',
     'real drops': '真实掉落物',
     'rebounding': '反弹中',
     'rolling': '滚动中',
@@ -553,10 +552,8 @@ semanticAuditGlossary = <String, Map<String, String>>{
         '「{trimmed}」永遠無法解析：查詢名稱必須由 1 到 16 個 A-Z、a-z、'
         '0-9 或底線字元組成，因此此圖示總會繪製備用頭顱',
     'airborne': '在空中',
-    'not primary': '非主要',
     'on': '開啟',
     'physics held': '物理效果已暫停',
-    'primary': '主要',
     'real drops': '實際掉落物',
     'rebounding': '反彈中',
     'rolling': '滾動中',

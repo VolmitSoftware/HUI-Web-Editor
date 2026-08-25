@@ -61,8 +61,8 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
 
   @override
   String get codeShapeError =>
-      'That is not a tablist document: it needs "schemaVersion" plus tab '
-      'keys such as "useHeaderFooter", "groupListNames" or "nameFormats".';
+      'That is not a tablist document: it needs "schemaVersion", '
+      '"headerFooter" and "listNames".';
 
   @override
   String get defaultDocumentName => 'tablist';
@@ -80,8 +80,8 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
   @override
   String get templatesNote =>
       'The tablist is the tab screen: a header and footer over the player '
-      'grid, and per-group list-name formats with \$player and \$group '
-      'tokens (operators take _op first, unlisted groups fall to default). '
+      'grid, plus conditional list-name formats with \$player and \$group '
+      'tokens. Each section has a complete default and prioritized variants. '
       'Default is byte-identical to what the plugin ships. Every template '
       'opens as a new document, so your current one is untouched.';
 
@@ -95,9 +95,9 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
           name: 'Default tablist',
           description:
               'The shipped default: Gloss header, VolmitSoftware footer, '
-              'plain default names and gold operators. Exactly what '
+              'plain default names and a conditional gold operator format. Exactly what '
               'plugins/Gloss/tablist.json starts with.',
-          highlights: const <String>['Shipped default', '2 formats'],
+          highlights: const <String>['Shipped default', 'Conditional names'],
           create: (EditorStore store) => store.newGlossDocument(
             this,
             name: 'tablist',
@@ -109,9 +109,9 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
           name: 'Grouped showcase',
           description:
               'A live RGB header with PAPI, ping and metrics, an animated '
-              'footer, and group formats including smooth authored RGB animation.',
+              'footer, and conditional formats including smooth authored RGB animation.',
           highlights: const <String>[
-            '3 formats',
+            'Prioritized variants',
             'PAPI + metrics',
             'Authored animation',
           ],

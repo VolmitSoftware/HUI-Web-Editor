@@ -24,6 +24,26 @@ import 'package:gloss_editor/state/editor_store.dart';
 import 'package:gloss_editor/state/workspace.dart';
 import 'package:test/test.dart';
 
+extension on GlossScoreboardDoc {
+  String get title => presentation.title;
+  List<String> get lines => presentation.lines;
+  bool get hideNumbers => presentation.hideNumbers;
+}
+
+extension on GlossTablistDoc {
+  bool get useHeaderFooter => headerFooter.enabled;
+  bool get groupListNames => listNames.enabled;
+  String get header => headerFooter.presentation.header;
+  String get footer => headerFooter.presentation.footer;
+  Map<String, String> get nameFormats => <String, String>{
+    'default': listNames.presentation.format,
+    for (final GlossTablistListNameVariant variant in listNames.variants)
+      (variant.id == 'operator' ? '_op' : variant.id):
+          variant.presentation.format,
+  };
+  Map<String, String> get effectiveNameFormats => nameFormats;
+}
+
 final class _FakeStorage {
   final Map<String, String> values = <String, String>{};
 
@@ -95,18 +115,21 @@ void main() {
     }
   });
 
-  test('damage indicators do not advertise unsupported randomization', () {
+  test('damage indicators randomize in place as the default singleton', () {
     final EditorStore store = _store();
     DocumentTypes.damageIndicators.createNew(store);
     final WorkspaceDoc before = store.workspace.active!;
     final String json = before.json;
-    expect(canRandomizeShowcase(DocumentTypes.damageIndicators), isFalse);
+    expect(canRandomizeShowcase(DocumentTypes.damageIndicators), isTrue);
     expect(
       randomizeShowcaseDocument(store, before.id, random: math.Random(31)),
-      isFalse,
+      isTrue,
     );
-    expect(store.workspace.active!.json, json);
-    expect(store.canUndo, isFalse);
+    store.flushAutosave();
+    expect(store.workspace.active!.id, before.id);
+    expect(store.workspace.active!.runtimeId, glossDamageIndicatorsDefaultId);
+    expect(store.workspace.active!.json, isNot(json));
+    expect(store.canUndo, isTrue);
   });
 
   test('seeded showcase builders are deterministic and visibly vary', () {
@@ -728,10 +751,10 @@ void main() {
       expect(stage.frameAt(0).carrierY.isFinite, isTrue, reason: 'seed $seed');
 
       encoded.add(encodeGlossRealDropSettingsDoc(doc));
-      landings.add(doc.landing.mode);
-      tumbles.add(doc.motion.tumble);
-      labelled.add(doc.labels.enabled);
-      billboards.add(doc.labels.billboard);
+      landings.add(doc.presentation.landing.mode);
+      tumbles.add(doc.presentation.motion.tumble);
+      labelled.add(doc.presentation.labels.enabled);
+      billboards.add(doc.presentation.labels.billboard);
     }
     expect(encoded.length, greaterThan(120), reason: 'every press differs');
     expect(landings, containsAll(<String>['NATURAL', 'FLAT', 'UPRIGHT']));
@@ -761,9 +784,9 @@ void main() {
         math.Random(700 + index),
         archetype: archetype,
       );
-      final GlossRealDropPhysics physics = doc.physics!;
-      final GlossRealDropScript script = doc.script!;
-      final GlossRealDropAnimation animation = doc.animation!;
+      final GlossRealDropPhysics physics = doc.presentation.physics!;
+      final GlossRealDropScript script = doc.presentation.script!;
+      final GlossRealDropAnimation animation = doc.presentation.animation!;
 
       expect(validateRealDropSettingsDoc(doc), isEmpty, reason: archetype.name);
       expect(physics.enabled, isTrue, reason: archetype.name);
@@ -847,19 +870,19 @@ void main() {
 
   test('real-drop randomization replaces stale authored behavior', () {
     final GlossRealDropSettingsDoc stale = buildDefaultGlossRealDrops()
-      ..physics = GlossRealDropPhysics(
+      ..presentation.physics = GlossRealDropPhysics(
         enabled: false,
         gravityMultiplier: 0.01,
         extras: <String, dynamic>{'stalePhysics': true},
       )
-      ..script = GlossRealDropScript(
+      ..presentation.script = GlossRealDropScript(
         enabled: false,
         vars: <GlossRealDropScriptVar>[
           GlossRealDropScriptVar(name: 'staleVar', expression: '1'),
         ],
         extras: <String, dynamic>{'staleScript': true},
       )
-      ..animation = GlossRealDropAnimation(
+      ..presentation.animation = GlossRealDropAnimation(
         enabled: false,
         materialProperties:
             <String, Map<String, GlossRealDropMaterialProperties>>{
@@ -880,26 +903,28 @@ void main() {
     );
 
     expect(validateRealDropSettingsDoc(generated), isEmpty);
-    expect(generated.physics!.enabled, isTrue);
-    expect(generated.physics!.gravityMultiplier, isNot(0.01));
-    expect(generated.physics!.extras, isEmpty);
+    expect(generated.presentation.physics!.enabled, isTrue);
+    expect(generated.presentation.physics!.gravityMultiplier, isNot(0.01));
+    expect(generated.presentation.physics!.extras, isEmpty);
     expect(
-      generated.script!.vars.map((GlossRealDropScriptVar value) => value.name),
+      generated.presentation.script!.vars.map(
+        (GlossRealDropScriptVar value) => value.name,
+      ),
       isNot(contains('staleVar')),
     );
-    expect(generated.script!.extras, isEmpty);
+    expect(generated.presentation.script!.extras, isEmpty);
     expect(
-      generated.animation!.materialProperties,
+      generated.presentation.animation!.materialProperties,
       isNot(contains('staleMap')),
     );
     expect(
-      generated.animation!.profiles.map(
+      generated.presentation.animation!.profiles.map(
         (GlossRealDropAnimationProfile value) => value.id,
       ),
       isNot(contains('staleProfile')),
     );
-    expect(generated.animation!.extras, isEmpty);
-    expect(stale.animation!.profiles.single.id, 'staleProfile');
+    expect(generated.presentation.animation!.extras, isEmpty);
+    expect(stale.presentation.animation!.profiles.single.id, 'staleProfile');
   });
 
   test('generated copy comes from the themed pools and keeps the credits', () {

@@ -1,16 +1,10 @@
-/// Validation for Gloss tablist documents.
-///
-/// `TablistDoc.java` rejects nothing beyond the envelope — it normalizes the
-/// format keys silently (`copyFormats`) — so everything else here reports
-/// what the tab screen will actually do: disabled halves whose content goes
-/// unused, the blank-template reset, the missing-`default` fallback, and
-/// dangling animation references (header, footer and list names all render
-/// through the text pipeline per viewer, `TablistService.renderSafe`).
+/// Validation for conditional Gloss tablist documents.
 library;
 
 import '../model/gloss_doc.dart';
 import '../model/gloss_tablist.dart';
 import 'gloss_text.dart';
+import 'preview_expr.dart';
 import 'validation.dart';
 
 List<HuiIssue> validateTablistDoc(
@@ -18,156 +12,248 @@ List<HuiIssue> validateTablistDoc(
   GlossAnimationResolver animations = const GlossNoAnimations(),
 }) {
   final List<HuiIssue> issues = <HuiIssue>[];
-
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
-  if (revisionIssue != null) {
-    issues.add(revisionIssue);
-  }
+  if (revisionIssue != null) issues.add(revisionIssue);
 
-  if (!doc.useHeaderFooter &&
-      (doc.header.isNotEmpty || doc.footer.isNotEmpty)) {
-    issues.add(
-      const HuiIssue(
-        severity: HuiSeverity.info,
-        path: r'$.useHeaderFooter',
-        message:
-            'The header and footer are written but useHeaderFooter is off, '
-            'so the tab screen never shows them.',
-        fix: 'Turn useHeaderFooter on, or clear the texts.',
-      ),
-    );
-  }
-
-  if (!doc.groupListNames && doc.nameFormats.isNotEmpty) {
-    issues.add(
-      const HuiIssue(
-        severity: HuiSeverity.info,
-        path: r'$.groupListNames',
-        message:
-            'Name formats are written but groupListNames is off, so every '
-            'list name stays vanilla.',
-        fix: 'Turn groupListNames on, or clear the formats.',
-      ),
-    );
-  }
-
-  final Map<String, String> effective = doc.effectiveNameFormats;
-  final List<String> writtenKeys = doc.nameFormats.keys.toList();
-  final List<String> effectiveKeys = effective.keys.toList();
-  if (writtenKeys.length != effectiveKeys.length ||
-      !_sameStrings(writtenKeys, effectiveKeys)) {
-    issues.add(
-      HuiIssue(
-        severity: HuiSeverity.info,
-        path: r'$.nameFormats',
-        message:
-            "Gloss normalizes the format keys to [{join}] — trimmed, lowercased, blank keys dropped.",
-        messageArguments: <String, Object?>{'join': effectiveKeys.join(', ')},
-        fix: 'Write the normalized keys to keep the file honest.',
-      ),
-    );
-  }
-
-  if (doc.groupListNames &&
-      !effective.containsKey(glossTablistDefaultGroupKey)) {
-    issues.add(
-      const HuiIssue(
-        severity: HuiSeverity.info,
-        path: r'$.nameFormats',
-        message:
-            'No "default" entry: players in unlisted groups fall to the '
-            'literal "\$player" fallback format.',
-        fix: 'Add a "default" format to control the fallback.',
-      ),
-    );
-  }
-
-  for (final MapEntry<String, String> entry in effective.entries) {
-    if (entry.value.trim().isEmpty) {
-      issues.add(
-        HuiIssue(
-          severity: HuiSeverity.info,
-          path: r'$.nameFormats',
-          message:
-              "The \"{key}\" format is blank, which RESETS matching players to their vanilla list name rather than applying an empty one.",
-          messageArguments: <String, Object?>{'key': entry.key},
-          fix: 'Give it a format, or keep the reset deliberately.',
-        ),
-      );
-    }
-  }
-
-  void danglingRefs(
-    String text,
-    String path,
-    String message, {
-    Map<String, Object?> messageArguments = const <String, Object?>{},
-  }) {
-    for (final String reference in glossLineMissingAnimationRefs(
-      text,
-      animations,
-    )) {
-      issues.add(
-        HuiIssue(
-          severity: HuiSeverity.warning,
-          path: path,
-          message: message,
-          messageArguments: <String, Object?>{
-            'reference': reference,
-            ...messageArguments,
-          },
-          fix:
-              'Create the animation document or pick an existing one from '
-              'the reference picker.',
-        ),
-      );
-    }
-  }
-
-  danglingRefs(
-    doc.header,
-    r'$.header',
-    '|{reference}| names an animation document this workspace does not have; '
-        'the text will show literally in the tab header.',
+  _validateHeaderFooterPresentation(
+    doc.headerFooter.presentation,
+    r'$.headerFooter.presentation',
+    issues,
+    animations,
   );
-  danglingRefs(
-    doc.footer,
-    r'$.footer',
-    '|{reference}| names an animation document this workspace does not have; '
-        'the text will show literally in the tab footer.',
+  _validateHeaderFooterVariants(doc, issues, animations);
+  _validateListNamePresentation(
+    doc.listNames.presentation,
+    r'$.listNames.presentation',
+    issues,
+    animations,
   );
-  for (final MapEntry<String, String> entry in effective.entries) {
-    danglingRefs(
-      entry.value,
-      r'$.nameFormats',
-      '|{reference}| names an animation document this workspace does not have; '
-          'the text will show literally in the "{key}" list name.',
-      messageArguments: <String, Object?>{'key': entry.key},
-    );
-  }
+  _validateListNameVariants(doc, issues, animations);
 
-  final HuiIssue? metrics = glossMetricInfo(<String>[
-    doc.header,
-    doc.footer,
-    ...doc.nameFormats.values,
-  ]);
+  final List<String> allText = <String>[
+    doc.headerFooter.presentation.header,
+    doc.headerFooter.presentation.footer,
+    doc.listNames.presentation.format,
+    for (final GlossTablistHeaderFooterVariant variant
+        in doc.headerFooter.variants) ...<String>[
+      variant.presentation.header,
+      variant.presentation.footer,
+    ],
+    for (final GlossTablistListNameVariant variant in doc.listNames.variants)
+      variant.presentation.format,
+  ];
+  final HuiIssue? metrics = glossMetricInfo(allText);
   if (metrics != null) issues.add(metrics);
-  issues.addAll(
-    glossTextExpressionIssues(<({String path, String text})>[
-      (path: r'$.header', text: doc.header),
-      (path: r'$.footer', text: doc.footer),
-      for (final MapEntry<String, String> entry in doc.nameFormats.entries)
-        (path: r'$.nameFormats', text: entry.value),
-    ]),
-  );
-
   return issues;
 }
 
-bool _sameStrings(List<String> first, List<String> second) {
-  if (first.length != second.length) return false;
-  for (int index = 0; index < first.length; index++) {
-    if (first[index] != second[index]) return false;
+void _validateHeaderFooterVariants(
+  GlossTablistDoc doc,
+  List<HuiIssue> issues,
+  GlossAnimationResolver animations,
+) {
+  final Set<String> ids = <String>{};
+  for (int index = 0; index < doc.headerFooter.variants.length; index++) {
+    final GlossTablistHeaderFooterVariant variant =
+        doc.headerFooter.variants[index];
+    final String path =
+        r'$.headerFooter.variants['
+        '$index]';
+    _validateVariantIdentity(variant.id, '$path.id', ids, issues);
+    _validateCondition(variant.when, '$path.when', issues);
+    _validateHeaderFooterPresentation(
+      variant.presentation,
+      '$path.presentation',
+      issues,
+      animations,
+    );
   }
-  return true;
+}
+
+void _validateListNameVariants(
+  GlossTablistDoc doc,
+  List<HuiIssue> issues,
+  GlossAnimationResolver animations,
+) {
+  final Set<String> ids = <String>{};
+  for (int index = 0; index < doc.listNames.variants.length; index++) {
+    final GlossTablistListNameVariant variant = doc.listNames.variants[index];
+    final String path =
+        r'$.listNames.variants['
+        '$index]';
+    _validateVariantIdentity(variant.id, '$path.id', ids, issues);
+    _validateCondition(variant.when, '$path.when', issues);
+    _validateListNamePresentation(
+      variant.presentation,
+      '$path.presentation',
+      issues,
+      animations,
+    );
+  }
+}
+
+void _validateVariantIdentity(
+  String id,
+  String path,
+  Set<String> ids,
+  List<HuiIssue> issues,
+) {
+  final String normalizedId = id.trim();
+  if (normalizedId.isEmpty) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: path,
+        message: 'A conditional variant id cannot be blank.',
+        fix: 'Give the variant a stable id.',
+      ),
+    );
+  } else if (!_validVariantId.hasMatch(normalizedId)) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: path,
+        message:
+            'Variant id "{id}" contains unsupported characters. Gloss accepts only letters, numbers, dots, hyphens and underscores.',
+        messageArguments: <String, Object?>{'id': id},
+        fix: 'Use only letters, numbers, dots, hyphens and underscores.',
+      ),
+    );
+  } else if (!ids.add(normalizedId)) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: path,
+        message:
+            'Variant id "{id}" is duplicated; priority ties use the id as the deterministic tiebreaker.',
+        messageArguments: <String, Object?>{'id': id},
+        fix: 'Use a unique id within this section.',
+      ),
+    );
+  }
+}
+
+final RegExp _validVariantId = RegExp(r'^[A-Za-z0-9._-]+$');
+
+void _validateHeaderFooterPresentation(
+  GlossTablistHeaderFooterPresentation presentation,
+  String path,
+  List<HuiIssue> issues,
+  GlossAnimationResolver animations,
+) {
+  _danglingRefs(
+    presentation.header,
+    '$path.header',
+    'header',
+    issues,
+    animations,
+  );
+  _danglingRefs(
+    presentation.footer,
+    '$path.footer',
+    'footer',
+    issues,
+    animations,
+  );
+  issues.addAll(
+    glossTextExpressionIssues(<({String path, String text})>[
+      (path: '$path.header', text: presentation.header),
+      (path: '$path.footer', text: presentation.footer),
+    ]),
+  );
+}
+
+void _validateListNamePresentation(
+  GlossTablistListNamePresentation presentation,
+  String path,
+  List<HuiIssue> issues,
+  GlossAnimationResolver animations,
+) {
+  if (presentation.format.trim().isEmpty) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.info,
+        path: '$path.format',
+        message:
+            'A blank list-name format resets matching players to their vanilla list name.',
+        fix: 'Keep the reset deliberately or enter a format.',
+      ),
+    );
+  }
+  _danglingRefs(
+    presentation.format,
+    '$path.format',
+    'list name',
+    issues,
+    animations,
+  );
+  issues.addAll(
+    glossTextExpressionIssues(<({String path, String text})>[
+      (path: '$path.format', text: presentation.format),
+    ]),
+  );
+}
+
+void _danglingRefs(
+  String text,
+  String path,
+  String surface,
+  List<HuiIssue> issues,
+  GlossAnimationResolver animations,
+) {
+  for (final String reference in glossLineMissingAnimationRefs(
+    text,
+    animations,
+  )) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.warning,
+        path: path,
+        message:
+            '|{reference}| names an animation document this workspace does not have; the text will show literally in the {surface}.',
+        messageArguments: <String, Object?>{
+          'reference': reference,
+          'surface': surface,
+        },
+        fix: 'Create the animation document or select an existing one.',
+      ),
+    );
+  }
+}
+
+void _validateCondition(String source, String path, List<HuiIssue> issues) {
+  try {
+    final PExpr expression = parsePreviewExpr(source);
+    if (isConstantExpr(expression)) {
+      final Object value = evalPreviewExpr(expression, _EmptyConditionScope());
+      if (value is! bool) {
+        issues.add(
+          HuiIssue(
+            severity: HuiSeverity.error,
+            path: path,
+            message: 'A condition must evaluate to true or false.',
+            fix: 'Use a boolean comparison or boolean literal.',
+          ),
+        );
+      }
+    }
+  } on PExprException catch (error) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: path,
+        message: 'Invalid condition: {error}',
+        messageArguments: <String, Object?>{'error': error.message},
+        fix: 'Correct the boolean expression.',
+      ),
+    );
+  }
+}
+
+final class _EmptyConditionScope extends PExprScope {
+  @override
+  Object? call(String name, List<Object?> args) => null;
+
+  @override
+  Object? variable(String dottedName) => null;
 }

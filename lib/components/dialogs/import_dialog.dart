@@ -397,8 +397,13 @@ class _ImportDialogState extends State<ImportDialog> {
       _animationModeLabel(animation.mode),
     ],
     final GlossScoreboardDoc scoreboard => <String>[
-      _lineCountLabel(scoreboard.lines.length),
-      scoreboard.primary ? huiText('primary') : huiText('not primary'),
+      _lineCountLabel(scoreboard.presentation.lines.length),
+      huiPlural(
+        'import.variants.count',
+        scoreboard.variants.length,
+        oneEnglish: '{count} variant',
+        otherEnglish: '{count} variants',
+      ),
     ],
     final GlossMotdDoc motd => <String>[
       huiPlural(
@@ -421,19 +426,22 @@ class _ImportDialogState extends State<ImportDialog> {
     ],
     final GlossTablistDoc tablist => <String>[
       huiPlural(
-        'import.name_formats.count',
-        tablist.nameFormats.length,
-        oneEnglish: '{count} name format',
-        otherEnglish: '{count} name formats',
+        'import.variants.count',
+        tablist.headerFooter.variants.length +
+            tablist.listNames.variants.length,
+        oneEnglish: '{count} variant',
+        otherEnglish: '{count} variants',
       ),
     ],
     final GlossRealDropSettingsDoc realDrops => <String>[
       huiText('{speed}x tumble speed', <String, Object?>{
-        'speed': realDrops.motion.speedMultiplier.toStringAsFixed(2),
+        'speed': realDrops.presentation.motion.speedMultiplier.toStringAsFixed(
+          2,
+        ),
       }),
       huiPlural(
         'import.models_per_stack.count',
-        realDrops.limits.maxVisualsPerStack,
+        realDrops.presentation.limits.maxVisualsPerStack,
         oneEnglish: '{count} model per stack',
         otherEnglish: '{count} models per stack',
       ),

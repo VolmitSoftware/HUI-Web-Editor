@@ -2,7 +2,7 @@
 ///
 /// ```json
 /// {
-///   "schemaVersion": 2,
+///   "schemaVersion": 3,
 ///   "revision": 1,
 ///   "prefix": "&7",
 ///   "offset": [0.0, 0.3, 0.0],
@@ -25,7 +25,7 @@
 ///   },
 ///   "followPlayer": true,
 ///   "hideOwn": true,
-///   "select": {"worlds": ["world*"], "groups": ["vip"], "priority": 10}
+///   "select": {"priority": 10, "when": "viewer.world == 'world'"}
 /// }
 /// ```
 ///
@@ -36,9 +36,8 @@
 /// editor preserves what was written and
 /// exposes the effective forms, so validation can warn with the value the
 /// server will actually run. `select` is genuinely optional (null skips
-/// auto-matching entirely, `BubbleStyles.resolveStyleId`); its `worlds` are
-/// trimmed with blanks dropped, its `groups` additionally lowercased
-/// (`Select.cleanStrings`). The offset itself parses through the strict
+/// auto-matching entirely, `BubbleStyles.resolveStyleId`). The offset itself
+/// parses through the strict
 /// `[x, y, z]` Vector adapter — a present-but-malformed one kills the file,
 /// exactly like a hologram anchor position.
 library;
@@ -64,12 +63,12 @@ const int glossBubbleShimmerDefaultDurationMs = 700;
 const int glossBubbleShimmerDefaultSpawnDelayMs = 400;
 const int glossBubbleShimmerDefaultFlyAwayLeadMs = 700;
 
-/// `BubbleStyleDoc.Shimmer.DEFAULT_COLOR` — the solid legacy band color.
+/// `BubbleStyleDoc.Shimmer.DEFAULT_COLOR` — the solid shimmer band color.
 const String glossBubbleShimmerDefaultColor = '#ffffff';
 
-const int glossBubbleCurrentSchemaVersion = 2;
+const int glossBubbleCurrentSchemaVersion = 3;
 
-const String glossBubbleLegacyFlyAwayExpression =
+const String glossBubbleDefaultTranslationY =
     '10 * pow(clamp((ageMs - lifetimeMs + 2000) / 2000, 0, 1), 16)';
 
 /// `BubbleStyleDoc.DEFAULTS` prefix, applied when the file carries none.
@@ -134,7 +133,7 @@ const Set<String> _docKnown = <String>{
   'select',
 };
 
-const Set<String> _selectKnown = <String>{'worlds', 'groups', 'priority'};
+const Set<String> _selectKnown = <String>{'priority', 'when'};
 const Set<String> _motionKnown = <String>{
   'translation',
   'scale',
@@ -146,7 +145,6 @@ const Set<String> _shimmerKnown = <String>{
   'spawn',
   'flyAway',
   'color',
-  'edgeColor',
   'width',
   'durationMs',
   'spawnDelayMs',
@@ -158,72 +156,36 @@ const Set<String> _shimmerKnown = <String>{
 /// `default` fallback).
 final class GlossBubbleSelect {
   GlossBubbleSelect({
-    List<String>? worlds,
-    List<String>? groups,
     this.priority = 0,
+    this.when = 'false',
     Map<String, dynamic>? extras,
-    Set<String>? absentKeys,
-  }) : worlds = worlds ?? <String>[],
-       groups = groups ?? <String>[],
-       extras = extras ?? <String, dynamic>{},
-       absentKeys = absentKeys ?? <String>{};
-
-  /// World-name globs (`*`/`?`), as written; see [effectiveWorlds].
-  List<String> worlds;
-
-  /// Vault group names, as written; see [effectiveGroups].
-  List<String> groups;
+  }) : extras = extras ?? <String, dynamic>{};
 
   /// Highest matching priority wins; ties break to the lexicographically
   /// smaller style id (`BubbleStyles.resolveStyleId`).
   int priority;
+  String when;
 
   Map<String, dynamic> extras;
-  Set<String> absentKeys;
-
-  /// `Select.cleanStrings(worlds, false)`: trimmed, blanks dropped, case
-  /// kept.
-  List<String> get effectiveWorlds => <String>[
-    for (final String world in worlds)
-      if (world.trim().isNotEmpty) world.trim(),
-  ];
-
-  /// `Select.cleanStrings(groups, true)`: trimmed, blanks dropped,
-  /// lowercased.
-  List<String> get effectiveGroups => <String>[
-    for (final String group in groups)
-      if (group.trim().isNotEmpty) group.trim().toLowerCase(),
-  ];
 
   static GlossBubbleSelect fromJson(Object? raw) {
     final Map<String, dynamic> map = huiReadObject(raw, r'$.select');
     return GlossBubbleSelect(
-      worlds: glossReadStringList(map['worlds']),
-      groups: glossReadStringList(map['groups']),
       priority: huiReadInt(map, 'priority'),
+      when: huiReadString(map, 'when'),
       extras: huiCollectExtras(map, _selectKnown),
-      absentKeys: <String>{
-        if (map['worlds'] == null) 'worlds',
-        if (map['groups'] == null) 'groups',
-        if (map['priority'] == null) 'priority',
-      },
     );
   }
 
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
-    if (!absentKeys.contains('worlds') || worlds.isNotEmpty)
-      'worlds': List<String>.of(worlds),
-    if (!absentKeys.contains('groups') || groups.isNotEmpty)
-      'groups': List<String>.of(groups),
-    if (!absentKeys.contains('priority') || priority != 0) 'priority': priority,
+    'priority': priority,
+    'when': when,
   }, extras);
 
   GlossBubbleSelect copy() => GlossBubbleSelect(
-    worlds: List<String>.of(worlds),
-    groups: List<String>.of(groups),
     priority: priority,
+    when: when,
     extras: huiDeepCopyMap(extras),
-    absentKeys: Set<String>.of(absentKeys),
   );
 }
 
@@ -258,7 +220,7 @@ final class GlossBubbleMotionVector {
   static GlossBubbleMotionVector translationDefaults() =>
       GlossBubbleMotionVector(
         x: '0',
-        y: glossBubbleLegacyFlyAwayExpression,
+        y: glossBubbleDefaultTranslationY,
         z: '0',
       );
 
@@ -305,7 +267,7 @@ final class GlossBubbleMotion {
   String opacity;
   Map<String, dynamic> extras;
 
-  factory GlossBubbleMotion.legacyFlyAway() => GlossBubbleMotion(
+  factory GlossBubbleMotion.runtimeDefaults() => GlossBubbleMotion(
     translation: GlossBubbleMotionVector.translationDefaults(),
     scale: GlossBubbleMotionVector.scaleDefaults(),
     rotation: GlossBubbleMotionVector.rotationDefaults(),
@@ -320,7 +282,7 @@ final class GlossBubbleMotion {
   );
 
   static GlossBubbleMotion fromJson(Object? raw) {
-    final GlossBubbleMotion defaults = GlossBubbleMotion.legacyFlyAway();
+    final GlossBubbleMotion defaults = GlossBubbleMotion.runtimeDefaults();
     if (raw == null) return defaults;
     final Map<String, dynamic> map = huiReadObject(raw, r'$.motion');
     return GlossBubbleMotion(
@@ -479,7 +441,7 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     this.select,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
-  }) : motion = motion ?? GlossBubbleMotion.legacyFlyAway(),
+  }) : motion = motion ?? GlossBubbleMotion.runtimeDefaults(),
        shimmer = shimmer ?? GlossBubbleShimmer(),
        extras = extras ?? <String, dynamic>{},
        absentKeys = absentKeys ?? <String>{};
@@ -627,30 +589,4 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     extras: huiDeepCopyMap(extras),
     absentKeys: Set<String>.of(absentKeys),
   );
-}
-
-/// `BubbleStyles.globMatches`: `*` and `?` wildcards, everything else
-/// literal, anchored over the whole value.
-bool glossBubbleGlobMatches(String pattern, String value) {
-  final StringBuffer regex = StringBuffer('^');
-  final StringBuffer literal = StringBuffer();
-  void flushLiteral() {
-    if (literal.isEmpty) return;
-    regex.write(RegExp.escape(literal.toString()));
-    literal.clear();
-  }
-
-  for (int i = 0; i < pattern.length; i++) {
-    final String current = pattern[i];
-    if (current == '*' || current == '?') {
-      flushLiteral();
-      regex.write(current == '*' ? '.*' : '.');
-      continue;
-    }
-    literal.write(current);
-  }
-  flushLiteral();
-  regex.write(r'$');
-  // No dotAll: Java's Pattern leaves `.` blind to line terminators too.
-  return RegExp(regex.toString()).hasMatch(value);
 }

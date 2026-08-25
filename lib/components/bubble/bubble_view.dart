@@ -28,6 +28,7 @@ import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
+import '../scoreboard/scoreboard_selection.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 /// Repaint period for motion alone. The stack eases every poll in game; 50 ms
@@ -182,6 +183,22 @@ class _BubbleViewState extends State<BubbleView> {
     final int nowMs = _nowMs();
     final List<GlossBubblePreviewBubble> bubbles = timeline.bubblesAt(nowMs);
     final List<double> offset = doc.offset;
+    final GlossBubbleSelect? select = doc.select;
+    final ({bool matches, String? error})? selection = select == null
+        ? null
+        : glossConditionMatches(
+            select.when,
+            GlossConditionContext(
+              variables: const <String, Object?>{
+                'viewer.world': 'world',
+                'viewer.health': 20.0,
+                'viewer.maxHealth': 20.0,
+                'viewer.healthPercent': 100.0,
+                'viewer.gameMode': 'SURVIVAL',
+              },
+              groups: const <String>{'player'},
+            ),
+          );
 
     final Widget scene = dom.div(classes: 'hui-bubble-scene', <Widget>[
       for (final GlossBubblePreviewBubble bubble in bubbles)
@@ -245,7 +262,7 @@ class _BubbleViewState extends State<BubbleView> {
       dom.div(classes: 'hui-bubble-controls', <Widget>[
         _playPause(),
         dom.span(classes: 'hui-bubble-readout-inline', <Widget>[
-          Text(_readout(doc)),
+          Text(_readout(doc, selection)),
         ]),
       ]),
     ]);
@@ -267,7 +284,10 @@ class _BubbleViewState extends State<BubbleView> {
         : ArcaneIcon.play(size: IconSize.sm),
   );
 
-  String _readout(GlossBubbleStyleDoc doc) {
+  String _readout(
+    GlossBubbleStyleDoc doc,
+    ({bool matches, String? error})? selection,
+  ) {
     final List<String> parts = <String>[
       huiPlural(
         'bubble.readout.wrap',
@@ -292,6 +312,14 @@ class _BubbleViewState extends State<BubbleView> {
           ? huiText('follows the player')
           : huiText('anchored where sent'),
       if (doc.hideOwn) huiText('hidden from the sender'),
+      if (selection == null)
+        huiText('manual or default selection')
+      else if (selection.error != null)
+        huiText('selection condition error')
+      else if (selection.matches)
+        huiText('matches preview player')
+      else
+        huiText('does not match preview player'),
     ];
     return parts.join(' · ');
   }

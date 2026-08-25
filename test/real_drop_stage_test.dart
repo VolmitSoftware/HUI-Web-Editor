@@ -92,8 +92,8 @@ void main() {
         reason: drop.material,
       );
     }
-    doc.limits.updateIntervalTicks = 7;
-    doc.landing.transitionTicks = 11;
+    doc.presentation.limits.updateIntervalTicks = 7;
+    doc.presentation.landing.transitionTicks = 11;
     expect(
       DropStageTimeline(doc, showcaseDrops.first).cycleMs,
       dropStageCycleMs,
@@ -165,13 +165,19 @@ void main() {
     expect(thrown.carrierY, greaterThan(1));
     expect(thrown.grounded, isFalse);
     expect(thrown.settled, isFalse);
-    expect(thrown.interpolationTicks, doc.limits.updateIntervalTicks);
+    expect(
+      thrown.interpolationTicks,
+      doc.presentation.limits.updateIntervalTicks,
+    );
 
     final DropStageFrame settled = stage.frameAt(stage.cycleMs - 200);
     expect(settled.settled, isTrue);
     expect(settled.grounded, isTrue);
     expect(settled.carrierY, 0);
-    expect(settled.interpolationTicks, doc.landing.transitionTicks);
+    expect(
+      settled.interpolationTicks,
+      doc.presentation.landing.transitionTicks,
+    );
 
     // Mid-flight the pose keeps changing; settled it does not.
     final String early = stage
@@ -277,15 +283,15 @@ void main() {
     expect(DropStageTimeline(doc, _drop('sea_lantern')).visualCount, 2);
     expect(DropStageTimeline(doc, _drop('cake')).visualCount, 1);
 
-    doc.limits.maxVisualsPerStack = 5;
+    doc.presentation.limits.maxVisualsPerStack = 5;
     expect(DropStageTimeline(doc, _drop('sea_lantern')).visualCount, 2);
-    doc.limits.maxVisualsPerStack = 1;
+    doc.presentation.limits.maxVisualsPerStack = 1;
     expect(DropStageTimeline(doc, _drop('sea_lantern')).visualCount, 1);
   });
 
   test('turning the tumble off holds the model on its base pose', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-    doc.motion.tumble = false;
+    doc.presentation.motion.tumble = false;
     final DropStageTimeline stage = DropStageTimeline(doc, _drop('cherry_log'));
     expect(
       stage.frameAt(400).visuals.first.rotation.cssMatrix3d(),
@@ -336,9 +342,9 @@ void main() {
       doc,
       _drop('oak_slab'),
     ).frameAt(0);
-    expect(cube.modelScale, doc.scale.defaultScale);
-    expect(flat.modelScale, doc.scale.flatItems);
-    expect(thin.modelScale, doc.scale.thinBlocks);
+    expect(cube.modelScale, doc.presentation.scale.defaultScale);
+    expect(flat.modelScale, doc.presentation.scale.flatItems);
+    expect(thin.modelScale, doc.presentation.scale.thinBlocks);
 
     // Every placed block model lifts by its rotated model bounds.
     final DropStageTimeline cubeStage = DropStageTimeline(
@@ -392,7 +398,8 @@ void main() {
       void Function(GlossRealDropScript s) set,
     ) {
       final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-      final GlossRealDropScript script = doc.script!..enabled = true;
+      final GlossRealDropScript script = doc.presentation.script!
+        ..enabled = true;
       set(script);
       return doc;
     }
@@ -567,7 +574,7 @@ void main() {
   group('the stage says which variables it cannot observe', () {
     test('inWater follows the water toggle and nothing else', () {
       final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-      doc.script!
+      doc.presentation.script!
         ..enabled = true
         ..glow = 'inWater ? #3A8CBE : 0';
 
@@ -626,7 +633,8 @@ void main() {
       void Function(GlossRealDropPhysics p) set,
     ) {
       final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-      final GlossRealDropPhysics physics = doc.physics!..enabled = true;
+      final GlossRealDropPhysics physics = doc.presentation.physics!
+        ..enabled = true;
       set(physics);
       return doc;
     }

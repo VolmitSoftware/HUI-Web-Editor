@@ -2,7 +2,10 @@ library;
 
 import '../model/gloss_damage_indicators.dart';
 import '../model/gloss_doc.dart';
+import 'preview_expr.dart';
 import 'validation.dart';
+
+final RegExp _validVariantId = RegExp(r'^[A-Za-z0-9._-]+$');
 
 List<HuiIssue> validateDamageIndicatorsDoc(GlossDamageIndicatorsDoc doc) {
   final List<HuiIssue> issues = <HuiIssue>[];
@@ -15,43 +18,7 @@ List<HuiIssue> validateDamageIndicatorsDoc(GlossDamageIndicatorsDoc doc) {
   _range(issues, r'$.limits.decimals', doc.limits.decimals, 0, 4);
   _style(issues, r'$.damage', doc.damage);
   _style(issues, r'$.healing', doc.healing);
-
-  if (!doc.damage.enabled && !doc.healing.enabled) {
-    issues.add(
-      const HuiIssue(
-        severity: HuiSeverity.info,
-        path: r'$.damage.enabled',
-        message:
-            'Damage and healing indicators are both disabled, so the service stays idle.',
-        fix: 'Enable at least one indicator type to show combat numbers.',
-      ),
-    );
-  }
-
-  final Set<String> worlds = <String>{};
-  for (int index = 0; index < doc.filters.disabledWorlds.length; index++) {
-    final String world = doc.filters.disabledWorlds[index];
-    if (world.trim().isEmpty) {
-      issues.add(
-        HuiIssue(
-          severity: HuiSeverity.warning,
-          path: '\$.filters.disabledWorlds[$index]',
-          message: 'Blank disabled-world entries are ignored.',
-          fix: 'Remove the blank entry or enter a world folder name.',
-        ),
-      );
-    } else if (!worlds.add(world)) {
-      issues.add(
-        HuiIssue(
-          severity: HuiSeverity.info,
-          path: '\$.filters.disabledWorlds[$index]',
-          message: 'The world "{world}" is listed more than once.',
-          messageArguments: <String, Object?>{'world': world},
-          fix: 'Keep one entry for each disabled world.',
-        ),
-      );
-    }
-  }
+  _condition(issues, r'$.audience.when', doc.audience.when);
   return issues;
 }
 
@@ -60,69 +27,111 @@ void _style(
   String path,
   GlossDamageIndicatorStyle style,
 ) {
-  if (!style.format.contains(glossDamageAmountToken)) {
-    issues.add(
-      HuiIssue(
-        severity: HuiSeverity.error,
-        path: '$path.format',
-        message:
-            'The format must contain {amount}; Gloss rejects this document without it.',
-        fix: 'Insert {amount} where the formatted number should appear.',
-      ),
+  _condition(issues, '$path.when', style.when);
+  _presentation(issues, '$path.presentation', style.presentation);
+  final Set<String> ids = <String>{};
+  for (int index = 0; index < style.variants.length; index++) {
+    final GlossDamageIndicatorVariant variant = style.variants[index];
+    final String variantPath = '$path.variants[$index]';
+    final String id = variant.id.trim();
+    if (id.isEmpty) {
+      _error(issues, '$variantPath.id', 'Variant ids must not be blank.');
+    } else if (!_validVariantId.hasMatch(id)) {
+      _error(
+        issues,
+        '$variantPath.id',
+        'Variant ids accept only letters, numbers, dots, hyphens and underscores.',
+      );
+    } else if (!ids.add(id)) {
+      _error(issues, '$variantPath.id', 'Variant id "{id}" is duplicated.', {
+        'id': id,
+      });
+    }
+    _condition(issues, '$variantPath.when', variant.when);
+    _presentation(issues, '$variantPath.presentation', variant.presentation);
+  }
+}
+
+void _presentation(
+  List<HuiIssue> issues,
+  String path,
+  GlossDamageIndicatorPresentation presentation,
+) {
+  if (!presentation.format.contains(glossDamageAmountToken)) {
+    _error(
+      issues,
+      '$path.format',
+      'The format must contain {amount}; Gloss rejects this document without it.',
     );
   }
-  _range(issues, '$path.offset.x', style.offset.x, -32, 32);
-  _range(issues, '$path.offset.y', style.offset.y, -32, 32);
-  _range(issues, '$path.offset.z', style.offset.z, -32, 32);
+  _range(issues, '$path.offset.x', presentation.offset.x, -32, 32);
+  _range(issues, '$path.offset.y', presentation.offset.y, -32, 32);
+  _range(issues, '$path.offset.z', presentation.offset.z, -32, 32);
   _range(
     issues,
     '$path.motion.horizontalSpeed',
-    style.motion.horizontalSpeed,
+    presentation.motion.horizontalSpeed,
     0,
     16,
   );
   _range(
     issues,
     '$path.motion.verticalSpeed',
-    style.motion.verticalSpeed,
+    presentation.motion.verticalSpeed,
     -16,
     16,
   );
   _range(
     issues,
     '$path.motion.verticalAcceleration',
-    style.motion.verticalAcceleration,
+    presentation.motion.verticalAcceleration,
     -32,
     32,
   );
   _range(
     issues,
     '$path.motion.spinDegreesPerSecond',
-    style.motion.spinDegreesPerSecond,
+    presentation.motion.spinDegreesPerSecond,
     -1440,
     1440,
   );
   _range(
     issues,
-    '$path.presentation.startScale',
-    style.presentation.startScale,
+    '$path.transform.startScale',
+    presentation.transform.startScale,
     0,
     16,
   );
   _range(
     issues,
-    '$path.presentation.endScale',
-    style.presentation.endScale,
+    '$path.transform.endScale',
+    presentation.transform.endScale,
     0,
     16,
   );
   _range(
     issues,
-    '$path.presentation.fadeStartFraction',
-    style.presentation.fadeStartFraction,
+    '$path.transform.fadeStartFraction',
+    presentation.transform.fadeStartFraction,
     0,
     1,
   );
+}
+
+void _condition(List<HuiIssue> issues, String path, String source) {
+  try {
+    final PExpr expression = parsePreviewExpr(source);
+    if (isConstantExpr(expression)) {
+      final Object value = evalPreviewExpr(expression, _EmptyScope());
+      if (value is! bool) {
+        _error(issues, path, 'A condition must evaluate to true or false.');
+      }
+    }
+  } on PExprException catch (error) {
+    _error(issues, path, 'Invalid condition: {error}', <String, Object?>{
+      'error': error.message,
+    });
+  }
 }
 
 void _range(
@@ -147,4 +156,29 @@ void _range(
       fix: 'Choose a value inside the runtime range.',
     ),
   );
+}
+
+void _error(
+  List<HuiIssue> issues,
+  String path,
+  String message, [
+  Map<String, Object?> arguments = const <String, Object?>{},
+]) {
+  issues.add(
+    HuiIssue(
+      severity: HuiSeverity.error,
+      path: path,
+      message: message,
+      messageArguments: arguments,
+      fix: 'Correct the value before exporting.',
+    ),
+  );
+}
+
+final class _EmptyScope extends PExprScope {
+  @override
+  Object? call(String name, List<Object?> args) => null;
+
+  @override
+  Object? variable(String dottedName) => null;
 }

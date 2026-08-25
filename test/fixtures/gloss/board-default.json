@@ -1,13 +1,18 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
-  "title": "&d&lGloss",
-  "lines": [
-    "&fWelcome!",
-    "&7Edit boards/default.json",
-    "&7or create your own board."
-  ],
-  "primary": false,
-  "permission": "default",
-  "groups": []
+  "select": {
+    "priority": 0,
+    "when": "false"
+  },
+  "presentation": {
+    "title": "&d&lGloss",
+    "lines": [
+      "&fWelcome!",
+      "&7Edit boards/default.json",
+      "&7or create your own board."
+    ],
+    "hideNumbers": false
+  },
+  "variants": []
 }

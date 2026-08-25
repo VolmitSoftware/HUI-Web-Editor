@@ -372,16 +372,16 @@ final class DropStageTimeline {
   }) : modelKind = realDropModelKind(drop.registryName, block: drop.block),
        _spin = <DropAngles>[] {
     _flight = _flightFor(doc, water: environment.water);
-    _scale = realDropScale(modelKind, doc.scale);
+    _scale = realDropScale(modelKind, doc.presentation.scale);
     _visualCount = realDropVisualCount(
       drop.amount,
       drop.maxStackSize,
-      doc.limits.maxVisualsPerStack,
+      doc.presentation.limits.maxVisualsPerStack,
     );
     for (int revision = 0; revision <= _flight.bounces.length; revision++) {
       _spin.add(
         realDropSpin(
-          doc.motion,
+          doc.presentation.motion,
           (
             x: _unit(revision * 3 + 1),
             y: _unit(revision * 3 + 2),
@@ -395,16 +395,16 @@ final class DropStageTimeline {
         ),
       );
     }
-    _landing = realDropLandingRotation(modelKind, doc.landing, (
+    _landing = realDropLandingRotation(modelKind, doc.presentation.landing, (
       yaw: _unit(101),
       tiltX: _unit(103),
       tiltZ: _unit(107),
     ));
-    final GlossRealDropScript? script = doc.script;
+    final GlossRealDropScript? script = doc.presentation.script;
     _plan = script == null || !script.enabled
         ? RealDropScriptPlan.empty
         : RealDropScriptPlan.compile(script);
-    _animationPlan = RealDropAnimationPlan(doc.animation);
+    _animationPlan = RealDropAnimationPlan(doc.presentation.animation);
     _poses = _buildPoses();
     _carrierClock = _buildCarrierClock();
   }
@@ -464,7 +464,9 @@ final class DropStageTimeline {
         : _flight.bouncesBefore(carrierTick);
 
     final DropRotation rotation = pose.rotation;
-    final int bounceRevision = doc.motion.changeOnBounce ? bounces : 0;
+    final int bounceRevision = doc.presentation.motion.changeOnBounce
+        ? bounces
+        : 0;
 
     final bool submerged = environment.water && height < dropStageWaterLevel;
     final RealDropAnimationSample animation = _animationPlan.sample(
@@ -506,11 +508,11 @@ final class DropStageTimeline {
       submerged: submerged,
       bounces: bounces,
       interpolationTicks: settled
-          ? doc.landing.transitionTicks
-          : doc.limits.updateIntervalTicks,
+          ? doc.presentation.landing.transitionTicks
+          : doc.presentation.limits.updateIntervalTicks,
       bounceRevision: bounceRevision,
       label: label,
-      labelY: doc.labels.yOffset,
+      labelY: doc.presentation.labels.yOffset,
       modelKind: modelKind,
       modelScale: _scale,
       scriptActive: scriptActive,
@@ -635,8 +637,8 @@ final class DropStageTimeline {
   List<_DropPose> _buildPoses() {
     final int lastTick = (cycleMs / 50).ceil();
     final int requiredStableTicks = math.max(
-      math.max(1, doc.limits.updateIntervalTicks),
-      doc.landing.settleDelayTicks,
+      math.max(1, doc.presentation.limits.updateIntervalTicks),
+      doc.presentation.landing.settleDelayTicks,
     );
     final List<_DropPose> poses = <_DropPose>[];
     DropRotation rotation = realDropBaseRotation(modelKind);
@@ -665,7 +667,7 @@ final class DropStageTimeline {
         rotation = _advanceTumble(
           rotation,
           tick,
-          doc.motion.submergedSpinMultiplier,
+          doc.presentation.motion.submergedSpinMultiplier,
         );
         stableTicks = 0;
         nextPhase = DropAnimationPhase.submerged;
@@ -679,7 +681,7 @@ final class DropStageTimeline {
         final bool moving = speed > _settledHorizontalSpeed;
         bool aligned;
         if (modelKind != DropModelKind.flat &&
-            doc.landing.mode.toUpperCase() == 'NATURAL') {
+            doc.presentation.landing.mode.toUpperCase() == 'NATURAL') {
           final ({DropRotation rotation, bool aligned}) roll =
               realDropGroundedBlockRotation(
                 rotation,
@@ -687,10 +689,10 @@ final class DropStageTimeline {
                 deltaZ,
                 speed,
                 _scale,
-                doc.motion.groundRollMultiplier,
-                doc.landing.faceAttraction,
-                doc.landing.movingFaceAttraction,
-                doc.landing.alignmentDegrees * _degToRad,
+                doc.presentation.motion.groundRollMultiplier,
+                doc.presentation.landing.faceAttraction,
+                doc.presentation.landing.movingFaceAttraction,
+                doc.presentation.landing.alignmentDegrees * _degToRad,
               );
           rotation = roll.rotation;
           aligned = roll.aligned;
@@ -699,16 +701,18 @@ final class DropStageTimeline {
               ? realDropBroadFaceAlignedRotation(rotation)
               : _landing;
           final double difference = rotation.difference(target);
-          aligned = difference <= doc.landing.alignmentDegrees * _degToRad;
+          aligned =
+              difference <=
+              doc.presentation.landing.alignmentDegrees * _degToRad;
           if (aligned) {
             rotation = target;
           } else {
             final double speedReference = math.max(0.02, _scale * 0.25);
             final double motionRatio = math.min(1, speed / speedReference);
             final double attraction =
-                doc.landing.faceAttraction -
-                (doc.landing.faceAttraction -
-                        doc.landing.movingFaceAttraction) *
+                doc.presentation.landing.faceAttraction -
+                (doc.presentation.landing.faceAttraction -
+                        doc.presentation.landing.movingFaceAttraction) *
                     motionRatio;
             rotation = rotation.slerp(target, attraction);
           }
@@ -750,9 +754,9 @@ final class DropStageTimeline {
     int tick,
     double mediumMultiplier,
   ) {
-    if (!doc.motion.tumble) return rotation;
+    if (!doc.presentation.motion.tumble) return rotation;
     int revision = _flight.bouncesBefore(tick.toDouble());
-    if (!doc.motion.changeOnBounce) revision = 0;
+    if (!doc.presentation.motion.changeOnBounce) revision = 0;
     final DropAngles spin = _spin[math.min(revision, _spin.length - 1)];
     const double seconds = 1 / glossTicksPerSecond;
     final double velocityY = _flight.velocityYAt(tick.toDouble());
@@ -761,7 +765,7 @@ final class DropStageTimeline {
       velocityY * velocityY + velocityZ * velocityZ,
     );
     final double momentumMultiplier =
-        1 + math.min(2, speed * doc.motion.velocityInfluence);
+        1 + math.min(2, speed * doc.presentation.motion.velocityInfluence);
     return rotation
         .rotateX(
           spin.x * seconds * mediumMultiplier * momentumMultiplier * _degToRad,
@@ -854,7 +858,7 @@ final class DropStageTimeline {
   ) {
     final ({double x, double y, double z}) offset = realDropOffset(
       index,
-      doc.limits.spread,
+      doc.presentation.limits.spread,
     );
     // Script rotation composes onto the pose *before* the clearance is worked
     // out, which is what stops a scripted tilt sinking a block into the floor —
@@ -916,7 +920,7 @@ final class DropStageTimeline {
 final Map<String, _Flight> _flights = <String, _Flight>{};
 
 _Flight _flightFor(GlossRealDropSettingsDoc doc, {required bool water}) {
-  final GlossRealDropPhysics? physics = doc.physics;
+  final GlossRealDropPhysics? physics = doc.presentation.physics;
   if (physics == null || !physics.enabled) {
     return water
         ? _flights.putIfAbsent('water', () => _buildFlight(null, water: true))
