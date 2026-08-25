@@ -48,7 +48,7 @@ void main() {
     ).readAsStringSync();
     expect(kBlankHologramJson.trim(), fixture.trim());
     final File plugin = File(
-      glossRepositoryFilePath('src/main/resources/baselines/menu-blank.json'),
+      glossRepositoryFilePath('src/main/resources/defaults/menus/default.json'),
     );
     expect(plugin.existsSync(), isTrue);
     expect(kBlankHologramJson.trim(), plugin.readAsStringSync().trim());

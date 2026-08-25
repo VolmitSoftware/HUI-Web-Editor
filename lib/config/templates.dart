@@ -121,7 +121,7 @@ const String kBlankHologramJson = r'''
         "type": "decoration",
         "icon": {
           "type": "text",
-          "text": "&6&lHologram"
+          "text": "&6&lGloss Menu"
         }
       }
     },
@@ -132,7 +132,7 @@ const String kBlankHologramJson = r'''
         "type": "decoration",
         "icon": {
           "type": "text",
-          "text": "&7Edit this with /gloss menu or the web editor."
+          "text": "&7Edit menus/default.json or use the web editor."
         }
       }
     },
