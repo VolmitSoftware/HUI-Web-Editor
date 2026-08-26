@@ -407,7 +407,7 @@ void main() {
         expect(body(key).toLowerCase(), contains('text'), reason: key);
       }
       expect(body('icon.style.shadow'), contains('inert'));
-      expect(body('icon.style.lineWidth'), contains('2000'));
+      expect(body('icon.style.lineWidth'), contains('16384'));
     });
 
     test('brightness is a pair and one channel alone is rejected', () {

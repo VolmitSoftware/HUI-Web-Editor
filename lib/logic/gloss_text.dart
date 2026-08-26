@@ -466,10 +466,7 @@ GlossLineRender _renderGlossLine(
 }
 
 String _limitScoreboardTitle(String value) {
-  final String translated = _normalizeScoreboardCharacters(
-    _translateRuntimeColors(value),
-  );
-  return translated.substring(0, _safeLegacyBoundary(translated, 32));
+  return _normalizeScoreboardCharacters(_translateRuntimeColors(value));
 }
 
 String _limitScoreboardLine(String value) =>
@@ -477,23 +474,7 @@ String _limitScoreboardLine(String value) =>
 
 _ScoreboardLineFit _fitScoreboardLine(String input) {
   final String normalized = _normalizeScoreboardCharacters(input);
-  final int lineEnd = _safeLegacyBoundary(normalized, 32);
-  final String line = normalized.substring(0, lineEnd);
-  bool truncated = lineEnd < normalized.length;
-  if (line.length <= 16) {
-    return _ScoreboardLineFit(text: line, truncated: truncated);
-  }
-
-  final int prefixEnd = _safeLegacyBoundary(line, 16);
-  final String prefix = line.substring(0, prefixEnd);
-  final String completeSuffix =
-      _lastLegacyColors(prefix) + line.substring(prefixEnd);
-  final int suffixEnd = _safeLegacyBoundary(completeSuffix, 16);
-  truncated = truncated || suffixEnd < completeSuffix.length;
-  return _ScoreboardLineFit(
-    text: prefix + completeSuffix.substring(0, suffixEnd),
-    truncated: truncated,
-  );
+  return _ScoreboardLineFit(text: normalized, truncated: false);
 }
 
 String _normalizeScoreboardCharacters(String input) {
@@ -534,91 +515,9 @@ String _normalizeScoreboardCharacters(String input) {
   return out.toString();
 }
 
-int _safeLegacyBoundary(String input, int maximum) {
-  int end = input.length < maximum ? input.length : maximum;
-  if (end > 0 &&
-      _isHighSurrogate(input.codeUnitAt(end - 1)) &&
-      (end == input.length || _isLowSurrogate(input.codeUnitAt(end)))) {
-    end--;
-  }
-
-  int index = 0;
-  while (index < end) {
-    if (input[index] != '§') {
-      index++;
-      continue;
-    }
-    final int tokenLength = _completeBungeeHexAt(input, index) ? 14 : 2;
-    if (index + tokenLength > end) {
-      return index;
-    }
-    index += tokenLength;
-  }
-  return end;
-}
-
-bool _completeBungeeHexAt(String input, int start) {
-  if (start + 14 > input.length ||
-      input[start] != '§' ||
-      input[start + 1].toLowerCase() != 'x') {
-    return false;
-  }
-  for (int index = start + 2; index < start + 14; index += 2) {
-    if (input[index] != '§' || !_isHexDigit(input[index + 1])) {
-      return false;
-    }
-  }
-  return true;
-}
-
 bool _isHighSurrogate(int codeUnit) => codeUnit >= 0xD800 && codeUnit <= 0xDBFF;
 
 bool _isLowSurrogate(int codeUnit) => codeUnit >= 0xDC00 && codeUnit <= 0xDFFF;
-
-String _lastLegacyColors(String input) {
-  final StringBuffer formats = StringBuffer();
-  for (int index = input.length - 2; index >= 0; index--) {
-    if (input[index] != '§') continue;
-    final String code = input[index + 1].toLowerCase();
-    if (_legacyDecorations.contains(code)) {
-      formats.write('§$code');
-      continue;
-    }
-    if (code == 'r') {
-      return '§r${_reverseLegacyCodes(formats.toString())}';
-    }
-    if (mcLegacyColors.containsKey(code)) {
-      final String? hex = _bungeeHexEndingAt(input, index + 1);
-      final String color = hex ?? '§$code';
-      return color + _reverseLegacyCodes(formats.toString());
-    }
-  }
-  return _reverseLegacyCodes(formats.toString());
-}
-
-String? _bungeeHexEndingAt(String input, int digitIndex) {
-  final int start = digitIndex - 13;
-  if (start < 0 ||
-      input[start] != '§' ||
-      input[start + 1].toLowerCase() != 'x') {
-    return null;
-  }
-  for (int index = start + 2; index <= digitIndex; index += 2) {
-    if (input[index] != '§' || !_isHexDigit(input[index + 1])) {
-      return null;
-    }
-  }
-  return input.substring(start, digitIndex + 1);
-}
-
-String _reverseLegacyCodes(String reversed) {
-  if (reversed.isEmpty) return '';
-  final StringBuffer out = StringBuffer();
-  for (int index = reversed.length - 2; index >= 0; index -= 2) {
-    out.write(reversed.substring(index, index + 2));
-  }
-  return out.toString();
-}
 
 String _longestRuntimeFrame(List<String> frames) {
   String longest = '';

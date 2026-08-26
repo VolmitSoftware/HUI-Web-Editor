@@ -8,13 +8,8 @@
 ///
 /// Everything here evaluates through `logic/gloss_text.dart`, which is the
 /// same evaluator the plugin runs, so every effect plays in game exactly as it
-/// plays in the editor. Two budgets apply:
-///
-///  * `hex(...)` substitutes to `[RRGGBB]`, eight encoded characters. A
-///    scoreboard row is cut at 32, so board rows use [showcaseTickPrefix] and
-///    the legacy palette instead.
-///  * `select([...])` substitutes to one element, so a ticker costs whatever
-///    its widest frame costs.
+/// plays in the editor. `select([...])` substitutes to one element, so a
+/// ticker occupies whatever width its widest frame requires.
 library;
 
 import 'dart:math' as math;
@@ -154,13 +149,30 @@ ShowcaseEffect showcaseTypewriter(math.Random random, String text) {
   );
 }
 
+ShowcaseEffect showcaseAlignment(math.Random random, String text) {
+  final int visible = text.runes.length;
+  final int width = visible + 2 + random.nextInt(9);
+  final String safe = text.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+  return ShowcaseEffect(
+    'align',
+    '{{ ${showcaseAlignmentExpression(random, "'$safe'", width)} }}',
+  );
+}
+
+String showcaseAlignmentExpression(
+  math.Random random,
+  String expression,
+  int width,
+) =>
+    "align($expression, $width, '${showcasePick(random, const <String>['left', 'center', 'middle', 'right'])}')";
+
 ShowcaseEffect showcaseTablistAnimation(math.Random random, ShowcaseMood mood) {
   final int rate = 1 + random.nextInt(4);
   final String word = showcasePick(random, showcaseStatusWords);
   final String glyph = showcasePick(random, mood.glyphs);
   final String primary = _stripHash(mood.primary);
   final String secondary = _stripHash(mood.secondary);
-  switch (random.nextInt(showcaseAnimationEffectIds.length)) {
+  switch (random.nextInt(showcaseProceduralTextEffectIds.length)) {
     case 0:
       return ShowcaseEffect('rainbow', '|animation.rainbow|&l$word');
     case 1:
@@ -213,12 +225,15 @@ ShowcaseEffect showcaseTablistAnimation(math.Random random, ShowcaseMood mood) {
         '${mood.legacy}&lONLINE &f{{ odometer(0, $target, '
             'mod(time.seconds, $duration) / $duration, $digits) }}',
       );
-    default:
+    case 9:
       return ShowcaseEffect(
         'wave',
         "{{ wave('$word', ['${mood.legacy}', '[$primary]', "
             "'[$secondary]'], floor(time.seconds * $rate)) }}",
       );
+    default:
+      final ShowcaseEffect aligned = showcaseAlignment(random, word);
+      return ShowcaseEffect('align', '${mood.legacy}${aligned.text}');
   }
 }
 
@@ -257,12 +272,17 @@ const List<String> showcaseAnimationEffectIds = <String>[
   'wave',
 ];
 
+const List<String> showcaseProceduralTextEffectIds = <String>[
+  ...showcaseAnimationEffectIds,
+  'align',
+];
+
 ({String mode, int intervalMs, List<String> frames}) showcaseAnimationFrames(
   math.Random random,
   ShowcaseMood mood,
   String word,
 ) {
-  final String effectId = showcasePick(random, showcaseAnimationEffectIds);
+  final String effectId = showcasePick(random, showcaseProceduralTextEffectIds);
   final String glyph = showcasePick(random, mood.glyphs);
   final String mode =
       glossAnimationModes[random.nextInt(glossAnimationModes.length)];
@@ -356,6 +376,14 @@ const List<String> showcaseAnimationEffectIds = <String>[
         intervalMs: 1000,
         frames: <String>[
           "{{ wave('$word', ['${mood.legacy}', '[$primary]', '[$secondary]'], floor(time.seconds * $rate)) }}",
+        ],
+      );
+    case 'align':
+      return (
+        mode: mode,
+        intervalMs: 1000,
+        frames: <String>[
+          '${mood.legacy}${showcaseAlignment(random, word).text}',
         ],
       );
     default:

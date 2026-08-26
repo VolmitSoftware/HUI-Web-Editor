@@ -75,7 +75,6 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
     return validateScoreboardDoc(
       doc,
       animations: state.workspaceAnimations,
-      emoji: state.workspaceEmoji,
     );
   }
 

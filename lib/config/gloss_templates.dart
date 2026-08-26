@@ -676,7 +676,11 @@ const String kGlossScoreboardAnimationShowcaseJson = r'''
       "{{ scanner('SCANNER', '&7', '&a', floor(time.seconds * 4)) }}",
       "&5{{ scramble('DECODE', floor(time.seconds * 4)) }}",
       "&6ODO {{ odometer(0, 999, mod(time.seconds, 10) / 10, 3) }}",
-      "{{ wave('WAVE', ['&a', '&7'], floor(time.seconds * 4)) }}"
+      "{{ wave('WAVE', ['&a', '&7'], floor(time.seconds * 4)) }}",
+      "&d&kMAGIC&r",
+      "&a{{ align('GLOSS', 20, 'left') }}",
+      "&e{{ align('GLOSS', 20, 'center') }}",
+      "&c{{ align('GLOSS', 20, 'right') }}"
     ],
     "hideNumbers": true
   },

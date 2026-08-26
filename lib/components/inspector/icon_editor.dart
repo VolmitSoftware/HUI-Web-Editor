@@ -678,12 +678,12 @@ class _DisplayStyleEditor extends StatelessWidget {
               label: huiText('Line width'),
               help: huiText('Vanilla text-display wrap width in font pixels.'),
               trailing: const HuiFieldHelp('icon.style.lineWidth'),
-              defaultValue: '2000',
-              onReset: current.lineWidth == 2000
+              defaultValue: '16384',
+              onReset: current.lineWidth == 16384
                   ? null
                   : () => onChanged(
                       'text line width',
-                      _next((HuiIconStyle next) => next.lineWidth = 2000),
+                      _next((HuiIconStyle next) => next.lineWidth = 16384),
                     ),
               control: HuiNumberField(
                 value: current.lineWidth.toDouble(),

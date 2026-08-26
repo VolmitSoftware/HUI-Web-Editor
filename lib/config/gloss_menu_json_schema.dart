@@ -95,7 +95,7 @@ final GlossJsonObject glossIconStyleNode = GlossJsonObject(
       title: 'Line width',
       summary: 'Pixel width the client wraps text at.',
       docKey: 'icon.style.lineWidth',
-      defaultLiteral: '2000',
+      defaultLiteral: '16384',
     ),
     const GlossJsonField(
       key: 'blockLight',

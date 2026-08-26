@@ -70,6 +70,7 @@
     "metric": { "args": ["key: string", "fallback?: number"], "returns": "number", "description": "Reads a numeric integration metric, using the optional fallback while unavailable." },
     "plain": { "args": ["text: string"], "returns": "string", "description": "Strips legacy '&' color and format codes from text, leaving everything else untouched." },
     "readable": { "args": ["id: string"], "returns": "string", "description": "Converts an ENUM_STYLE id into Title Case display text, e.g. IRON_ORE becomes Iron Ore." },
+    "align": { "args": ["text: string", "width: number", "mode: string"], "returns": "string", "description": "Pads visible text to a requested character-cell width using left, center, middle, or right alignment without truncating longer content." },
     "marquee": { "args": ["text: string", "width: number", "step: number"], "returns": "string", "description": "Scrolls plain single-line text left through a fixed-width window." },
     "timeline": { "args": ["steps: [[text, seconds], ...]", "elapsedSeconds: number"], "returns": "string", "description": "Loops through text scenes with an independent positive duration for each scene." },
     "typewriter": { "args": ["text: string", "step: number", "holdSteps: number"], "returns": "string", "description": "Types, holds, and erases plain single-line text." },

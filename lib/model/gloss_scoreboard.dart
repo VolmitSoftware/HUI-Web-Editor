@@ -7,7 +7,6 @@ import 'json_codec.dart';
 
 const int glossScoreboardCurrentSchemaVersion = 2;
 const int glossBoardMaxLines = 15;
-const int glossBoardMaxTitleLength = 32;
 
 int glossBoardScoreForRow(int index) => glossBoardMaxLines - index;
 

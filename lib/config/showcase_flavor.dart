@@ -11,10 +11,8 @@
 ///
 ///  * Four names are real people and stay exactly as spelled — the shipped
 ///    easter eggs in [showcaseEasterEggs] and [showcaseBoardEasterEggs].
-///  * Scoreboard rows are cut at 32 encoded characters by
-///    `_fitScoreboardLine`, so every pool a board row can reach is bounded
-///    accordingly and [showcaseHeadlines] — the unbounded pool — is only ever
-///    used by surfaces that wrap or scroll.
+///  * Scoreboard content is allowed to use the complete modern component
+///    width, while the more compact pools keep randomized samples readable.
 library;
 
 import 'dart:math' as math;
@@ -67,8 +65,8 @@ const List<String> showcaseEvents = <String>[
   'Build contest voting live',
 ];
 
-/// Long-form lines for surfaces with no row budget — MOTD entries, tablist
-/// footers, hologram bodies.
+/// Long-form lines for MOTD entries, tablist footers, hologram bodies and
+/// full-width scoreboard rows.
 const List<String> showcaseHeadlines = <String>[
   'The owls are not what they seem',
   'Fire walk with me',
@@ -246,7 +244,7 @@ const List<String> showcaseEasterEggs = <String>[
   '&6Puretie &7ordered the damn fine coffee',
 ];
 
-/// The same eggs cut to a board row: at most 32 encoded characters.
+/// Compact versions of the same eggs for readable board rows.
 const List<String> showcaseBoardEasterEggs = <String>[
   '&dMagic_Psycho &fdebugs',
   '&dMagic_Psycho &fdreams',

@@ -52,6 +52,7 @@ const List<String> previewStandardFunctionNames = <String>[
   'fixed',
   'plain',
   'readable',
+  'align',
   'marquee',
   'timeline',
   'typewriter',
@@ -168,6 +169,8 @@ Object? previewStdFunction(String name, List<Object?> args) {
     case 'readable':
       _requireCount(name, args, 1);
       return previewReadable(_strArg(name, args, 0));
+    case 'align':
+      return _align(name, args);
     case 'marquee':
       return _marquee(name, args);
     case 'timeline':
@@ -189,6 +192,102 @@ Object? previewStdFunction(String name, List<Object?> args) {
     default:
       return null;
   }
+}
+
+String _align(String name, List<Object?> args) {
+  _requireCount(name, args, 3);
+  final String value = _strArg(name, args, 0);
+  final double widthValue = _numArg(name, args, 1);
+  if (widthValue != widthValue.roundToDouble() ||
+      widthValue < 1 ||
+      widthValue > 16384) {
+    throw PExprException(
+      '{function} argument 2 must be a whole number in [1, 16384]',
+      previewNoPosition,
+      <String, Object?>{'function': name},
+    );
+  }
+  final String mode = _strArg(name, args, 2).toLowerCase();
+  final int remaining = math
+      .max(0, widthValue.toInt() - _alignmentVisibleCodePoints(value))
+      .toInt();
+  final int leading = switch (mode) {
+    'left' => 0,
+    'center' => remaining ~/ 2,
+    'middle' => remaining ~/ 2,
+    'right' => remaining,
+    _ => throw PExprException(
+      "{function} argument 3 must be 'left', 'center', 'middle', or 'right'",
+      previewNoPosition,
+      <String, Object?>{'function': name},
+    ),
+  };
+  return ' ' * leading + value + ' ' * (remaining - leading);
+}
+
+int _alignmentVisibleCodePoints(String value) {
+  int visible = 0;
+  int index = 0;
+  while (index < value.length) {
+    final int formattingLength = _alignmentFormattingLength(value, index);
+    if (formattingLength > 0) {
+      index += formattingLength;
+      continue;
+    }
+    final int first = value.codeUnitAt(index);
+    if (first >= 0xD800 &&
+        first <= 0xDBFF &&
+        index + 1 < value.length &&
+        value.codeUnitAt(index + 1) >= 0xDC00 &&
+        value.codeUnitAt(index + 1) <= 0xDFFF) {
+      index += 2;
+    } else {
+      index++;
+    }
+    visible++;
+  }
+  return visible;
+}
+
+int _alignmentFormattingLength(String value, int index) {
+  final String marker = value[index];
+  if ((marker == '&' || marker == '§') && index + 1 < value.length) {
+    final String code = value[index + 1].toLowerCase();
+    if ('0123456789abcdefklmnor'.contains(code)) return 2;
+    if ((code == 'x' || value[index + 1] == '#') &&
+        index + 8 <= value.length &&
+        _alignmentHex(value, index + 2, 6)) {
+      return 8;
+    }
+    if (code == 'x' && index + 14 <= value.length) {
+      for (int offset = 2; offset < 14; offset += 2) {
+        if (value[index + offset] != marker ||
+            !_alignmentHex(value, index + offset + 1, 1)) {
+          return 0;
+        }
+      }
+      return 14;
+    }
+  }
+  if (marker == '[' &&
+      index + 8 <= value.length &&
+      value[index + 7] == ']' &&
+      _alignmentHex(value, index + 1, 6)) {
+    return 8;
+  }
+  return 0;
+}
+
+bool _alignmentHex(String value, int offset, int length) {
+  for (int index = offset; index < offset + length; index++) {
+    final int unit = value.codeUnitAt(index);
+    if (!(unit >= 0x30 && unit <= 0x39 ||
+        unit >= 0x41 && unit <= 0x46 ||
+        unit >= 0x61 && unit <= 0x66)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 // ---------------------------------------------------------------------------

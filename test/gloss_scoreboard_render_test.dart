@@ -10,69 +10,78 @@ extension on GlossScoreboardDoc {
 }
 
 void main() {
-  test('title preview applies the runtime 32-code-unit cut', () {
+  test('title preview preserves the complete rendered value', () {
     final GlossLineRender render = renderGlossScoreboardTitle('&a${'x' * 31}');
 
-    expect(render.plainText, 'x' * 30);
+    expect(render.plainText, 'x' * 31);
   });
 
-  test('title preview does not split surrogate or formatting sequences', () {
-    expect(renderGlossScoreboardTitle('${'x' * 31}💡').plainText, 'x' * 31);
+  test('title preview preserves surrogate and formatting sequences', () {
+    expect(
+      renderGlossScoreboardTitle('${'x' * 31}💡').plainText,
+      '${'x' * 31}💡',
+    );
     expect(
       renderGlossScoreboardTitle('${'x' * 31}&aGreen').plainText,
-      'x' * 31,
+      '${'x' * 31}Green',
     );
     expect(
       renderGlossScoreboardTitle('${'x' * 25}[123456]RGB').plainText,
-      'x' * 25,
+      '${'x' * 25}RGB',
     );
   });
 
-  test('plain row preview renders only the 16 plus 16 wire segments', () {
+  test('plain row preview preserves the full modern component', () {
     final GlossLineRender render = renderGlossScoreboardLine('x' * 40);
 
-    expect(render.plainText, 'x' * 32);
+    expect(render.plainText, 'x' * 40);
   });
 
-  test('legacy colour carry consumes the suffix wire budget', () {
+  test('legacy colour covers the complete row', () {
     final GlossLineRender render = renderGlossScoreboardLine('&a${'x' * 40}');
 
-    expect(render.plainText, 'x' * 28);
+    expect(render.plainText, 'x' * 40);
     expect(<int>[
       for (final GlossTextPiece piece in render.pieces)
         if (piece case GlossTextRun(:final span)) span.color,
     ], everyElement(0x55FF55));
   });
 
-  test('hex colour carry matches BoardEntry suffix clipping', () {
+  test('hex colour covers the complete row', () {
     final GlossLineRender render = renderGlossScoreboardLine('[123456]ABCDEF');
 
-    expect(render.plainText, 'ABCD');
+    expect(render.plainText, 'ABCDEF');
     expect(<int>[
       for (final GlossTextPiece piece in render.pieces)
         if (piece case GlossTextRun(:final span)) span.color,
     ], everyElement(0x123456));
   });
 
-  test('a hex run crossing the prefix boundary moves wholly to the suffix', () {
+  test('a hex run remains intact anywhere in the row', () {
     final GlossLineRender render = renderGlossScoreboardLine(
       '${'x' * 10}[123456]ABCD',
     );
 
-    expect(render.plainText, '${'x' * 10}AB');
+    expect(render.plainText, '${'x' * 10}ABCD');
   });
 
-  test('a hex run crossing the overall line cap is omitted atomically', () {
+  test('a formerly over-limit hex run is preserved', () {
     final GlossLineRender render = renderGlossScoreboardLine(
       '${'x' * 25}[123456]RGB',
     );
 
-    expect(render.plainText, 'x' * 25);
+    expect(render.plainText, '${'x' * 25}RGB');
   });
 
-  test('line fitting does not split surrogate or formatting suffixes', () {
-    expect(renderGlossScoreboardLine('${'x' * 31}💡').plainText, 'x' * 31);
-    expect(renderGlossScoreboardLine('${'x' * 31}&aGreen').plainText, 'x' * 31);
+  test('full rows preserve surrogate and formatting suffixes', () {
+    expect(
+      renderGlossScoreboardLine('${'x' * 31}💡').plainText,
+      '${'x' * 31}💡',
+    );
+    expect(
+      renderGlossScoreboardLine('${'x' * 31}&aGreen').plainText,
+      '${'x' * 31}Green',
+    );
   });
 
   test('every Java line separator becomes one row space', () {
@@ -95,7 +104,7 @@ void main() {
     expect(renderGlossScoreboardLine(input).plainText, 'abc');
   });
 
-  test('measure reports formatting-aware truncation', () {
+  test('measure reports full delivery without layout truncation', () {
     final GlossScoreboardLineMeasure clean = measureGlossScoreboardLine(
       '&a${'x' * 28}',
       const GlossNoAnimations(),
@@ -107,10 +116,10 @@ void main() {
 
     expect(clean.truncated, isFalse);
     expect(clean.deliveredVisibleLength, 28);
-    expect(clipped.truncated, isTrue);
+    expect(clipped.truncated, isFalse);
     expect(clipped.encodedLength, 31);
     expect(clipped.visibleLength, 29);
-    expect(clipped.deliveredVisibleLength, 28);
+    expect(clipped.deliveredVisibleLength, 29);
   });
 
   group('empty title falls back to the board id', () {
@@ -144,12 +153,12 @@ void main() {
       expect(doc.effectiveTitle('welcome'), ' ');
     });
 
-    test('the fallback id still takes the 32-unit title cut', () {
+    test('the fallback id stays full width', () {
       final GlossScoreboardDoc doc = GlossScoreboardDoc();
 
       expect(
         renderGlossScoreboardTitle(doc.effectiveTitle('x' * 40)).plainText,
-        'x' * 32,
+        'x' * 40,
       );
     });
   });

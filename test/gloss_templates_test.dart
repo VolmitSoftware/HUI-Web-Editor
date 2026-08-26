@@ -303,11 +303,11 @@ void main() {
       expect(kGlossScoreboardAnimationShowcaseJson, plugin.readAsStringSync());
     });
 
-    test('every row demonstrates one changing effect without truncation', () {
+    test('showcase combines every animation with magic and alignment', () {
       final GlossScoreboardDoc doc = buildAnimationShowcaseGlossScoreboard();
       final _Animations animations = _Animations();
       expect(doc.presentation.title, '&d&lANIMATION LAB');
-      expect(doc.presentation.lines, hasLength(10));
+      expect(doc.presentation.lines, hasLength(14));
       expect(doc.select.when, 'false');
       expect(doc.presentation.hideNumbers, isTrue);
       expect(doc.variants, isEmpty);
@@ -332,11 +332,15 @@ void main() {
         expect(first.expressionErrors, isEmpty, reason: 'line $index: $line');
         expect(second.expressionErrors, isEmpty, reason: 'line $index: $line');
         expect(first.plainText, isNot(contains('{{')), reason: line);
-        expect(
-          _renderSignature(first),
-          isNot(_renderSignature(second)),
-          reason: 'line $index did not animate: $line',
-        );
+        if (index < 10) {
+          expect(
+            _renderSignature(first),
+            isNot(_renderSignature(second)),
+            reason: 'line $index did not animate: $line',
+          );
+        } else {
+          expect(_renderSignature(first), _renderSignature(second));
+        }
       }
     });
   });
@@ -565,8 +569,7 @@ void main() {
         (HuiIssue issue) => issue.message.contains('animation.rainbow'),
       ),
       isFalse,
-      reason:
-          'scoreboard uses a compact spinner that fits the 16+16 wire budget',
+      reason: 'scoreboard uses its shipped animation references',
     );
     for (int index = 0; index < doc.presentation.lines.length; index++) {
       final String line = doc.presentation.lines[index];

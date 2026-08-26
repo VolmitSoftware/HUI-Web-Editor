@@ -247,6 +247,27 @@ void main() {
     }
   });
 
+  test('every text-bearing randomizer can generate alignment', () {
+    final List<DocumentTypeAdapter> types = <DocumentTypeAdapter>[
+      DocumentTypes.menu,
+      DocumentTypes.containerPreview,
+      DocumentTypes.hologram,
+      DocumentTypes.animation,
+      DocumentTypes.scoreboard,
+      DocumentTypes.motd,
+      DocumentTypes.bubbleStyle,
+      DocumentTypes.tablist,
+      DocumentTypes.damageIndicators,
+    ];
+    for (final DocumentTypeAdapter type in types) {
+      bool generated = false;
+      for (int seed = 0; seed < 256 && !generated; seed++) {
+        generated = _randomized(type, seed).contains('align(');
+      }
+      expect(generated, isTrue, reason: type.noun);
+    }
+  });
+
   test(
     'menu navigator uses real targets and one coherent branded ornament',
     () {
@@ -390,6 +411,7 @@ void main() {
     final Set<String> navigationModes = <String>{};
     final Set<HuiHoverEasing> easings = <HuiHoverEasing>{};
     final Set<HuiHitboxAnchor> anchors = <HuiHitboxAnchor>{};
+    bool sawAlignment = false;
     for (int seed = 0; seed < 512; seed++) {
       expect(
         randomizeMenuComponent(store, 'button', random: math.Random(seed * 3)),
@@ -439,6 +461,7 @@ void main() {
             break;
         }
       }
+      sawAlignment |= encodeHuiMenu(store.menu).contains('align(');
       _expectMenuBudget(store.menu, 'component seed $seed');
     }
     expect(iconTypes, huiIconTypes.toSet());
@@ -449,6 +472,7 @@ void main() {
     expect(navigationModes, huiNavigationModes.toSet());
     expect(easings, HuiHoverEasing.values.toSet());
     expect(anchors, HuiHitboxAnchor.values.toSet());
+    expect(sawAlignment, isTrue);
   });
 
   test(
@@ -507,6 +531,7 @@ void main() {
         'argb(',
         'number(',
         'hex(',
+        'align(',
         'time.ms',
         'time.seconds',
         'time.ticks',
@@ -663,6 +688,9 @@ void main() {
       final HuiPreviewElement after = store.previewDoc!.elements[index];
       expect(after.type, previewElementTypes[index]);
       expect(after.toJson().toString(), isNot(before));
+      if (after.type == 'label') {
+        expect(after.text, contains('align('));
+      }
     }
 
     expect(

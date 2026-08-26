@@ -182,9 +182,7 @@ const GlossJsonObject _scoreboardPresentationNode = GlossJsonObject(
       key: 'title',
       type: GlossJsonType.string,
       title: 'Title',
-      summary:
-          'Sidebar header. Empty falls back to the board id; '
-          '$glossBoardMaxTitleLength rendered characters is the cap.',
+      summary: 'Full-width sidebar header. Empty falls back to the board id.',
       docKey: 'scoreboard.presentation.title',
       defaultLiteral: '""',
     ),

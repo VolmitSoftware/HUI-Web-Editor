@@ -38,6 +38,7 @@ const Map<String, List<Object?>> functionSampleArgs = <String, List<Object?>>{
   'metric': <Object?>['react.tps'],
   'plain': <Object?>['&aHi'],
   'readable': <Object?>['IRON_ORE'],
+  'align': <Object?>['GLOSS', 8.0, 'center'],
   'marquee': <Object?>['GLOSS', 5.0, 1.0],
   'timeline': <Object?>[
     <Object?>[

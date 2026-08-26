@@ -425,7 +425,7 @@ void main() {
   });
 
   test(
-    'random animations cover every shipped effect with valid authored expressions',
+    'random animations cover every procedural text effect with valid authored expressions',
     () {
       final Set<int> lengths = <int>{};
       final Set<int> intervals = <int>{};
@@ -464,7 +464,7 @@ void main() {
         showcaseAnimationEffectIds.toSet(),
         shippedGlossAnimationBuilders.keys.toSet(),
       );
-      expect(effects, shippedGlossAnimationBuilders.keys.toSet());
+      expect(effects, showcaseProceduralTextEffectIds.toSet());
       expect(
         intervals.length,
         greaterThan(1),
@@ -638,7 +638,7 @@ void main() {
     );
   });
 
-  test('tablist animation recipes cover every shipped effect safely', () {
+  test('tablist recipes cover every procedural text effect safely', () {
     final Set<String> effectIds = <String>{};
     for (int seed = 0; seed < 512; seed++) {
       final ShowcaseEffect effect = showcaseTablistAnimation(
@@ -655,7 +655,23 @@ void main() {
         reason: 'seed $seed, ${effect.id}: ${effect.text}',
       );
     }
-    expect(effectIds, showcaseAnimationEffectIds.toSet());
+    expect(effectIds, showcaseProceduralTextEffectIds.toSet());
+  });
+
+  test('procedural alignment covers every accepted mode', () {
+    final Set<String> modes = <String>{};
+    for (int seed = 0; seed < 256; seed++) {
+      final ShowcaseEffect effect = showcaseAlignment(
+        math.Random(seed),
+        'GLOSS',
+      );
+      final RegExpMatch match = RegExp(
+        r"align\('GLOSS', \d+, '(left|center|middle|right)'\)",
+      ).firstMatch(effect.text)!;
+      modes.add(match.group(1)!);
+      expect(renderGlossLine(effect.text).expressionErrors, isEmpty);
+    }
+    expect(modes, <String>{'left', 'center', 'middle', 'right'});
   });
 
   test(
@@ -812,7 +828,7 @@ void main() {
     expect(motds.length, greaterThan(100));
   });
 
-  test('seeded scoreboard samples fit the runtime row budget', () {
+  test('seeded scoreboard samples remain complete at full width', () {
     final EditorStore store = _store();
     for (int seed = 0; seed < 256; seed++) {
       final GlossScoreboardDoc scoreboard = buildRandomScoreboardShowcase(
@@ -1160,6 +1176,7 @@ String _randomAnimationEffectId(GlossAnimationDoc animation) {
   if (animation.frames.length > 1) return 'rainbow';
   final String frame = animation.frames.single;
   const Map<String, String> helpers = <String, String>{
+    'align': 'align(',
     'marquee': 'marquee(',
     'timeline': 'timeline(',
     'typewriter': 'typewriter(',

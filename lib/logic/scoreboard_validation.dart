@@ -10,7 +10,6 @@ import 'validation.dart';
 List<HuiIssue> validateScoreboardDoc(
   GlossScoreboardDoc doc, {
   GlossAnimationResolver animations = const GlossNoAnimations(),
-  GlossEmojiResolver emoji = const GlossNoEmoji(),
 }) {
   final List<HuiIssue> issues = <HuiIssue>[];
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
@@ -22,7 +21,6 @@ List<HuiIssue> validateScoreboardDoc(
     r'$.presentation',
     issues,
     animations,
-    emoji,
   );
 
   final Set<String> ids = <String>{};
@@ -70,7 +68,6 @@ List<HuiIssue> validateScoreboardDoc(
       '$path.presentation',
       issues,
       animations,
-      emoji,
     );
   }
 
@@ -94,28 +91,7 @@ void _validatePresentation(
   String path,
   List<HuiIssue> issues,
   GlossAnimationResolver animations,
-  GlossEmojiResolver emoji,
 ) {
-  final int titleLength = glossTranslatedLength(
-    presentation.title,
-    animations,
-    emoji: emoji,
-  );
-  if (titleLength > glossBoardMaxTitleLength) {
-    issues.add(
-      HuiIssue(
-        severity: HuiSeverity.warning,
-        path: '$path.title',
-        message:
-            'The rendered title is {titleLength} UTF-16 units; VolmLib caps it safely at {glossBoardMaxTitleLength}.',
-        messageArguments: <String, Object?>{
-          'titleLength': titleLength,
-          'glossBoardMaxTitleLength': glossBoardMaxTitleLength,
-        },
-        fix: 'Shorten the title or use cheaper colour codes.',
-      ),
-    );
-  }
   if (presentation.lines.length > glossBoardMaxLines) {
     issues.add(
       HuiIssue(
@@ -135,27 +111,6 @@ void _validatePresentation(
   for (int index = 0; index < presentation.lines.length; index++) {
     final String line = presentation.lines[index];
     final String linePath = '$path.lines[$index]';
-    final GlossScoreboardLineMeasure measure = measureGlossScoreboardLine(
-      line,
-      animations,
-      emoji: emoji,
-    );
-    if (measure.truncated) {
-      issues.add(
-        HuiIssue(
-          severity: HuiSeverity.warning,
-          path: linePath,
-          message:
-              'This rendered line uses {encodedLength} encoded characters; {deliveredVisibleLength} of {visibleLength} visible characters reach the client.',
-          messageArguments: <String, Object?>{
-            'encodedLength': measure.encodedLength,
-            'deliveredVisibleLength': measure.deliveredVisibleLength,
-            'visibleLength': measure.visibleLength,
-          },
-          fix: 'Shorten the line or remove formatting codes.',
-        ),
-      );
-    }
     for (final String reference in glossLineMissingAnimationRefs(
       line,
       animations,

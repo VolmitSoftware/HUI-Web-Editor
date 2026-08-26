@@ -441,7 +441,7 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'Gloss splits the icon text on newlines and spawns one display per '
         'line, so this changes nothing between lines. It becomes visible only '
         'when a single line wraps inside its own display, which line width '
-        'governs — and at the default line width of 2000 that essentially '
+        'governs — and at the default line width of 16384 that essentially '
         'never happens.',
     citation: 'IconTextAlignment.java:14-20',
   ),
@@ -470,8 +470,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     title: 'Line width',
     body:
         'Wrap width in font pixels on a text display, measured before '
-        'scaling. Gloss defaults to 2000 rather than vanilla\'s 200, which in '
-        'practice disables wrapping — lowering it is the only way to make '
+        'scaling. Gloss defaults to 16384, which disables server-requested '
+        'wrapping — lowering it is the only way to make '
         'wrapping or alignment do anything. On an image icon it wraps the '
         'block-character raster and garbles the picture. Inert on item and '
         'block icons.',
@@ -982,12 +982,9 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'scoreboard.presentation.title': HuiFieldDoc(
     title: 'Title',
     body:
-        'Rendered through the text pipeline per viewer, then safely capped '
-        'at 32 UTF-16 units WITH the colour codes still counted — an & code costs 2 '
-        'and a [RRGGBB] tag costs 14 of the budget, so a hex-coloured title '
-        'has 18 characters left. {{ code }} evaluates before that cut, so a '
-        'time-driven colour or calculated title is measured after rendering. '
-        'Line breaks become spaces.',
+        'Rendered through the text pipeline per viewer as one complete modern '
+        'component. Gloss does not wrap or truncate it; line breaks become '
+        'spaces.',
     citation: 'Board.java:201-206',
   ),
   'scoreboard.presentation.lines': HuiFieldDoc(
@@ -995,9 +992,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
     body:
         'Top to bottom, each through the text pipeline per viewer — '
         'placeholders, |animation.<id>|, metrics, colours and {{ code }} all '
-        'work. VolmLib renders each row as a 16-character team prefix plus '
-        'a 16-character suffix; inherited colour and format codes consume '
-        'suffix space. Line breaks become spaces, rows never wrap, and only '
+        'work. VolmLib sends each row as one complete modern component without '
+        'character truncation. Line breaks become spaces, rows never wrap, and only '
         'the first 15 lines reach the client.',
     citation: 'BoardEntry.java:24-40',
   ),

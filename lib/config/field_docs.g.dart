@@ -383,7 +383,7 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   ),
   'icon.style.lineWidth': HuiFieldDoc(
     title: 'Line width',
-    body: 'Accepted range: 1 through 16384. Omitted, this is 2000.',
+    body: 'Accepted range: 1 through 16384. Omitted, this is 16384.',
     citation: 'gloss.schema.json#/\$defs/iconDisplayStyle/properties/lineWidth',
   ),
   'icon.style.scaleX': HuiFieldDoc(
@@ -690,9 +690,10 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         '-1) while mod() floors (mod(-1, 3) is 2); both throw on a zero '
         'divisor. Functions: clamp, lerp, min, max, floor, ceil, round, '
         'abs, mod, sin, cos, rgb, argb, alpha, mix, palette, str, fixed, '
-        'plain, readable, marquee, timeline, typewriter, flash, wipe, '
-        'scanner, scramble, odometer, wave, lang, count, occupied, item. '
-        'See the Gloss docs pages /gloss/13-expressions-placeholders and '
+        'plain, readable, align, marquee, timeline, typewriter, flash, '
+        'wipe, scanner, scramble, odometer, wave, lang, count, occupied, '
+        'item. See the Gloss docs pages '
+        '/gloss/13-expressions-placeholders and '
         '/gloss/15-container-previews in the central VolmitSoftware/docs '
         'repo.',
     citation: 'gloss-preview.schema.json#/\$defs/expression',

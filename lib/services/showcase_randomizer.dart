@@ -6,9 +6,8 @@
 /// sample stacks come from `config/showcase_flavor.dart`; the motion comes
 /// from `showcase_effects.dart`.
 ///
-/// Everything a builder emits has to survive its kind's validation and, for a
-/// scoreboard, the runtime's 32-character row cut — `showcase_randomizer_test`
-/// replays several hundred seeds against both.
+/// Everything a builder emits has to survive its kind's validation;
+/// `showcase_randomizer_test` replays several hundred seeds across them.
 library;
 
 import 'dart:math' as math;
@@ -178,9 +177,12 @@ HuiPreviewElement _randomPreviewElement(String type, math.Random random) {
       y: random.nextInt(41) - 20,
       z: 7 + random.nextInt(3),
       background: color,
-      text:
-          "select(['&fLIVE', '&aREADY', '&bSYNC'], "
-          'mod(floor(time / ${6 + random.nextInt(7)}), 3))',
+      text: showcaseAlignmentExpression(
+        random,
+        "select(['&fLIVE', '&aREADY', '&bSYNC'], "
+        'mod(floor(time / ${6 + random.nextInt(7)}), 3))',
+        10 + random.nextInt(9),
+      ),
       visible: visible,
     ),
     _ => HuiPreviewElement(
@@ -614,7 +616,7 @@ HuiComponent _menuTitle(
   Vec3(0, 1.45, 0),
   HuiDecorationData(
     HuiTextIcon(
-      '${context.mood.legacy}&l$title\n&7$subtitle',
+      '${context.mood.legacy}&l${showcaseAlignment(context.random, title).text}\n&7$subtitle',
       _menuIconStyle(context, title: true),
       10,
     ),
@@ -875,6 +877,14 @@ HuiPreviewDoc buildRandomPreviewShowcase(
     PreviewShowcaseArchetype.shelf => _buildRandomShelfPreview(random, theme),
   };
   doc.match.priority = 8 + random.nextInt(7);
+  final String? cardTitle = doc.card?.title;
+  if (cardTitle != null) {
+    doc.card!.title = showcaseAlignmentExpression(
+      random,
+      '($cardTitle)',
+      24 + random.nextInt(17),
+    );
+  }
   return doc;
 }
 
@@ -2002,7 +2012,7 @@ GlossHologramDoc buildRandomHologramShowcase(
         '&7${showcasePick(random, showcaseHologramNotes)}',
     showcaseEasterEgg(random),
   ];
-  switch (random.nextInt(3)) {
+  switch (random.nextInt(4)) {
     case 0:
       lines.insert(
         2,
@@ -2014,10 +2024,15 @@ GlossHologramDoc buildRandomHologramShowcase(
         2,
         '&f${showcaseTypewriter(random, showcasePick(random, showcaseHeadlines)).text}',
       );
-    default:
+    case 2:
       lines.insert(
         2,
         showcaseWave(random, showcasePick(random, showcaseAnimationWords)).text,
+      );
+    case 3:
+      lines.insert(
+        2,
+        '${mood.legacy}${showcaseAlignment(random, showcasePick(random, showcaseHeadlines)).text}',
       );
   }
   final String billboard = showcasePick(random, glossHologramBillboards);
@@ -2083,7 +2098,7 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
     '',
     '${showcaseTickPrefix(random, mood, framesPerSecond: 1.0).text}&l'
         '${showcasePick(random, showcaseStatusWords)}',
-    '&7${showcasePick(random, showcaseEvents)}',
+    '&7${showcaseAlignment(random, showcasePick(random, showcaseEvents)).text}',
     showcaseBoardEasterEgg(random),
     '&8${showcasePick(random, showcaseDomains)}',
   ];
@@ -2155,7 +2170,7 @@ GlossMotdDoc buildRandomMotdShowcase(GlossMotdDoc current, math.Random random) {
         index == easterIndex
             ? showcaseEasterEgg(random)
             : index.isEven
-            ? '&8${showcasePick(random, showcaseHeadlines)}'
+            ? '&8${showcaseAlignment(random, showcasePick(random, showcaseHeadlines)).text}'
             : "&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }} "
                   '&8• &7${showcasePick(random, showcaseDomains)}',
       );
@@ -2229,9 +2244,11 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
   return GlossBubbleStyleDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
-    prefix:
-        '${showcaseColorEffect(random, mood).text}'
-        '${showcasePick(random, _formatCodes)}',
+    prefix: random.nextBool()
+        ? '${showcaseColorEffect(random, mood).text}'
+              '${showcasePick(random, _formatCodes)}'
+        : '${showcaseColorEffect(random, mood).text}'
+              '${showcaseAlignment(random, showcasePick(random, mood.glyphs)).text}',
     offsetRaw: <num>[
       _round((random.nextDouble() - 0.5) * 1.2),
       _round(1.2 + random.nextDouble() * 1.4),
@@ -2911,6 +2928,8 @@ GlossDamageIndicatorStyle _randomDamageIndicatorStyle(
                   '&a[{amount}]',
                   '&e&l+{amount}',
                   '&f{amount} &aHEAL',
+                  '&a{{ align(\'{amount}\', 8, \'center\') }}',
+                  '&e{{ align(\'{amount}\', 8, \'right\') }}',
                 ]
               : const <String>[
                   '&c&l{amount}',
@@ -2919,6 +2938,8 @@ GlossDamageIndicatorStyle _randomDamageIndicatorStyle(
                   '&c[{amount}]',
                   '&5&l{amount}&d!',
                   '&e-{amount} &6HP',
+                  '&c{{ align(\'{amount}\', 8, \'center\') }}',
+                  '&6{{ align(\'{amount}\', 8, \'right\') }}',
                 ],
         ),
         offset: Vec3(
@@ -4227,13 +4248,13 @@ HuiIcon _randomIconOfType(
   'customItem' => _availableAssetIcons(store, random, mood).firstWhere(
     (HuiIcon icon) => icon.type == type,
     orElse: () => HuiTextIcon(
-      '${mood.legacy}${showcasePick(random, showcaseStatusWords)}',
+      '${mood.legacy}${showcaseAlignment(random, showcasePick(random, showcaseStatusWords)).text}',
       _randomStyle(random, mood),
       10,
     ),
   ),
   _ => HuiTextIcon(
-    '${mood.legacy}&l${showcasePick(random, showcaseStatusWords)}\n'
+    '${mood.legacy}&l${showcaseAlignment(random, showcasePick(random, showcaseStatusWords)).text}\n'
     '&7{{ player.name }}',
     _randomStyle(random, mood),
     5 + random.nextInt(26),

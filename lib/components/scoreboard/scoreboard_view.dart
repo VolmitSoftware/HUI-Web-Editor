@@ -1,13 +1,11 @@
 /// The scoreboard surface: a vanilla-style sidebar mock, right-anchored the
 /// way the client draws it.
 ///
-/// The title renders through Gloss's text pipeline, then VolmLib safely caps
-/// it at 32 UTF-16 units including colour codes. An empty title is not blank
-/// in game — `GlossBoardMeta.fromDoc` falls back to the board id — so the
-/// preview shows the id too. At most 15 lines reach the client; VolmLib maps
-/// every rendered line into its 16-character team prefix plus 16-character
-/// suffix, including carried colour codes. The dimmed score column stands in
-/// for the vanilla sidebar's row scores.
+/// The title and rows render through Gloss's text pipeline as complete modern
+/// components without character truncation. An empty title is not blank in
+/// game — `GlossBoardMeta.fromDoc` falls back to the board id — so the preview
+/// shows the id too. At most 15 lines reach the client. The dimmed score column
+/// stands in for the vanilla sidebar's row scores.
 ///
 /// With `gameContext` the sidebar mounts into the shared game-screen frame at
 /// the right edge, where the client actually draws it; without it the surface
@@ -159,9 +157,6 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     final int clipped = presentation.lines.length - rendered;
     final String title = _effectiveTitle(presentation);
     final bool titleFellBack = presentation.title.isEmpty;
-    final bool titleTruncated =
-        glossTranslatedLength(title, animations, emoji: emoji) >
-        glossBoardMaxTitleLength;
 
     final Widget sidebar = dom.div(classes: 'hui-scoreboard-sidebar', <Widget>[
       dom.div(classes: 'hui-scoreboard-title', <Widget>[
@@ -240,15 +235,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
         ],
       ),
       dom.div(classes: 'hui-scoreboard-readout', <Widget>[
-        Text(
-          _readout(
-            presentation,
-            variantId,
-            clipped,
-            titleTruncated,
-            titleFellBack,
-          ),
-        ),
+        Text(_readout(presentation, variantId, clipped, titleFellBack)),
       ]),
       _conditionControls(),
       ScoreboardSelectionSimulator(store: _store, context: conditionContext),
@@ -279,7 +266,6 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     GlossScoreboardPresentation presentation,
     String? variantId,
     int clipped,
-    bool titleTruncated,
     bool titleFellBack,
   ) {
     final List<String> parts = <String>[
@@ -300,7 +286,6 @@ class _ScoreboardViewState extends State<ScoreboardView> {
           oneEnglish: '{count} line past the 15-line render cap',
           otherEnglish: '{count} lines past the 15-line render cap',
         ),
-      if (titleTruncated) huiText('title exceeds the 32-unit in-game cap'),
     ];
     return parts.join(' · ');
   }
