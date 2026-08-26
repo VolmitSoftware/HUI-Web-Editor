@@ -25,7 +25,9 @@ import 'gloss_text.dart'
         GlossNoEmoji,
         GlossTextExpressionSamples,
         glossMenuTextNeedsRefresh,
-        glossRenderMenuText;
+        glossRenderMenuParticleText;
+import 'gloss_particle_text.dart'
+    show GlossParticleTextRendered, GlossParticleTextSpan;
 import 'hui_geometry.dart';
 import 'mc_text.dart';
 import 'viewport_math.dart';
@@ -251,6 +253,7 @@ class CanvasScene {
     required this.items,
     required this.drawOrder,
     required this.overlaps,
+    this.particleLayers = const <GlossParticleLayer>[],
     required this.menuOffset,
     required this.uiScale,
     required this.trueRender,
@@ -263,6 +266,7 @@ class CanvasScene {
   final List<CanvasItem> drawOrder;
 
   final List<CanvasOverlap> overlaps;
+  final List<GlossParticleLayer> particleLayers;
   final Vec3 menuOffset;
   final double uiScale;
   final bool trueRender;
@@ -349,20 +353,27 @@ class McTextCache {
     GlossTextExpressionSamples expressionSamples =
         const GlossTextExpressionSamples(),
   }) {
-    final String rendered = glossRenderMenuText(
+    final GlossParticleTextRendered rendered = glossRenderMenuParticleText(
       raw,
       animations: animations,
       emoji: emoji,
       nowMs: nowMs,
       expressionSamples: expressionSamples,
     );
-    final McTextResult? cached = _entries[rendered];
+    final String cacheKey = <String>[
+      rendered.text,
+      for (final GlossParticleTextSpan span in rendered.spans)
+        '${span.name}:${span.start}:${span.end}',
+    ].join('\u0000');
+    final McTextResult? cached = _entries[cacheKey];
     if (cached != null) return cached;
-    final McTextResult parsed = parseMcText(rendered);
+    final McTextResult parsed = parseMcText(
+      rendered.text,
+    ).withParticleSpans(rendered.text, rendered.spans);
     if (_entries.length >= capacity) {
       _entries.remove(_entries.keys.first);
     }
-    _entries[rendered] = parsed;
+    _entries[cacheKey] = parsed;
     return parsed;
   }
 
@@ -460,6 +471,7 @@ CanvasScene buildCanvasScene({
     items: items,
     drawOrder: drawOrder,
     overlaps: _findOverlaps(items),
+    particleLayers: glossCopyParticleLayers(menu.particleLayers),
     menuOffset: menu.offset.copy(),
     uiScale: uiScale,
     trueRender: trueRender,

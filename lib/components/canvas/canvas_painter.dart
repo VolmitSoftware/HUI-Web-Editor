@@ -12,8 +12,11 @@ import 'package:web/web.dart' as web;
 
 import '../../l10n/hui_localizations.dart';
 import '../../logic/canvas_scene.dart';
+import '../../logic/gloss_particle_preview.dart';
+import '../../logic/gloss_particle_text.dart';
 import '../../logic/hui_geometry.dart';
 import '../../logic/multi_select.dart';
+import '../../logic/mc_text.dart';
 import '../../logic/viewport_math.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart' show HuiBackdropMode;
@@ -46,6 +49,7 @@ class CanvasFrameOptions {
     this.marquee,
     this.guides = const <AlignmentGuide>[],
     this.obfuscationTick = 0,
+    this.particleTick = 0,
     this.selectionDashOffset = 0,
   });
 
@@ -74,6 +78,7 @@ class CanvasFrameOptions {
   final List<AlignmentGuide> guides;
 
   final int obfuscationTick;
+  final int particleTick;
 
   /// Phase of the marching selection dash, in screen pixels. The viewport owns
   /// the clock and holds this at 0 whenever the march is not running (nothing
@@ -115,6 +120,8 @@ class CanvasPainter {
 
     _paintOverlapFills(brush, scene);
 
+    _paintParticles(brush, scene, options, placement: 'behind');
+
     final IconRenderers renderers = IconRenderers(
       brush: brush,
       assets: assets,
@@ -126,6 +133,9 @@ class CanvasPainter {
     for (final CanvasItem item in scene.drawOrder) {
       renderers.paint(item);
     }
+
+    _paintParticles(brush, scene, options, placement: 'center');
+    _paintParticles(brush, scene, options, placement: 'front');
 
     if (options.showHitboxes) {
       _paintHitboxes(brush, scene);
@@ -151,6 +161,137 @@ class CanvasPainter {
   }
 
   // --- overlays -------------------------------------------------------------
+
+  void _paintParticles(
+    CanvasBrush brush,
+    CanvasScene scene,
+    CanvasFrameOptions options, {
+    required String placement,
+  }) {
+    if (scene.particleLayers.isEmpty) return;
+    brush.save();
+    for (final GlossParticleLayer layer in scene.particleLayers) {
+      if (layer.placement.layer != placement) continue;
+      final List<GlossParticleRect> targets = _particleTargets(scene, layer);
+      if (layer.target.scope != 'local' && targets.isEmpty) continue;
+      List<Vec3> points = glossSampleParticleGeometry(
+        layer.geometry,
+        targets,
+        maximum: 512,
+      );
+      points = glossSelectParticlePattern(
+        points,
+        layer.emission,
+        options.particleTick,
+      );
+      brush.fill = layer.particle.color ?? '#8bd5ff';
+      brush.alpha = placement == 'behind' ? 0.62 : 0.9;
+      final double radius = math.max(
+        1.2,
+        math.min(4, (layer.particle.size ?? 1) * 1.7),
+      );
+      final double originX = layer.target.scope == 'local'
+          ? scene.menuOffset.x
+          : 0;
+      final double originY = layer.target.scope == 'local'
+          ? scene.menuOffset.y
+          : 0;
+      for (final Vec3 point in points) {
+        brush.dot(
+          originX + point.x + layer.placement.offset.x,
+          originY + point.y + layer.placement.offset.y,
+          radius,
+        );
+      }
+    }
+    brush.restore();
+  }
+
+  List<GlossParticleRect> _particleTargets(
+    CanvasScene scene,
+    GlossParticleLayer layer,
+  ) {
+    final String scope = layer.target.scope;
+    if (scope == 'projection') {
+      final WorldBounds bounds = scene.contentBounds;
+      return <GlossParticleRect>[
+        GlossParticleRect(
+          x: bounds.centerX,
+          y: bounds.centerY,
+          z: 0,
+          width: bounds.width,
+          height: bounds.height,
+          depth: 0,
+        ),
+      ];
+    }
+    if (scope == 'local') return const <GlossParticleRect>[];
+    final List<GlossParticleRect> targets = <GlossParticleRect>[];
+    for (final CanvasItem item in scene.items) {
+      final String? component = layer.target.component;
+      if (component != null && component != item.id.toLowerCase()) continue;
+      if (scope == 'component') {
+        targets.add(_particleRect(item.hitbox, item.hitboxDepth));
+        continue;
+      }
+      final McTextResult? text = item.text;
+      if (text == null) continue;
+      final GlossParticleTextRendered rendered = GlossParticleTextRendered(
+        text: text.renderedText,
+        spans: text.particleSpans,
+      );
+      final List<GlossParticleRect> localTargets = switch (scope) {
+        'text' => <GlossParticleRect>[
+          glossParticleTextBounds(rendered.text, scene.uiScale),
+        ],
+        'line' => _lineTarget(rendered.text, scene.uiScale, layer.target.line),
+        'span' => glossParticleSpanBounds(
+          rendered,
+          layer.target.name ?? '',
+          scene.uiScale,
+          perLetter:
+              layer.geometry.type == 'letterBounds' ||
+              layer.geometry.type == 'glyphOutline' ||
+              layer.geometry.type == 'glyphFill',
+        ),
+        _ => const <GlossParticleRect>[],
+      };
+      for (final GlossParticleRect target in localTargets) {
+        targets.add(
+          target.translate(item.hitbox.x, item.hitbox.y, item.hitboxDepth),
+        );
+      }
+    }
+    return targets;
+  }
+
+  List<GlossParticleRect> _lineTarget(
+    String rendered,
+    double scale,
+    int? oneBasedLine,
+  ) {
+    if (oneBasedLine == null || oneBasedLine < 1) {
+      return const <GlossParticleRect>[];
+    }
+    final List<GlossParticleRect> lines = glossParticleLineBounds(
+      rendered,
+      scale,
+    );
+    final int index = oneBasedLine - 1;
+    return index < lines.length
+        ? <GlossParticleRect>[lines[index]]
+        : const <GlossParticleRect>[];
+  }
+
+  GlossParticleRect _particleRect(HuiRect rect, double depth) =>
+      GlossParticleRect(
+        x: rect.x,
+        y: rect.y,
+        z: depth,
+        width: rect.w,
+        height: rect.h,
+        depth: 0,
+      );
 
   void _paintHitboxes(CanvasBrush brush, CanvasScene scene) {
     brush.save();

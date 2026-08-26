@@ -2,7 +2,9 @@ library;
 
 import '../model/gloss_damage_indicators.dart';
 import '../model/gloss_doc.dart';
+import 'gloss_particle_text.dart';
 import 'preview_expr.dart';
+import 'particle_layer_validation.dart';
 import 'validation.dart';
 
 final RegExp _validVariantId = RegExp(r'^[A-Za-z0-9._-]+$');
@@ -64,6 +66,17 @@ void _presentation(
       'The format must contain {amount}; Gloss rejects this document without it.',
     );
   }
+  final String? particleSpanError = glossParticleTextSyntaxError(
+    presentation.format,
+  );
+  if (particleSpanError != null) {
+    _error(
+      issues,
+      '$path.format',
+      'Invalid particle text span: {error}',
+      <String, Object?>{'error': particleSpanError},
+    );
+  }
   _range(issues, '$path.offset.x', presentation.offset.x, -32, 32);
   _range(issues, '$path.offset.y', presentation.offset.y, -32, 32);
   _range(issues, '$path.offset.z', presentation.offset.z, -32, 32);
@@ -115,6 +128,12 @@ void _presentation(
     presentation.transform.fadeStartFraction,
     0,
     1,
+  );
+  issues.addAll(
+    validateParticleLayers(
+      presentation.particleLayers,
+      path: '$path.particleLayers',
+    ),
   );
 }
 

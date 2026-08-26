@@ -30,6 +30,9 @@ import 'dart:convert';
 
 import 'gloss_doc.dart';
 import 'json_codec.dart';
+import 'particle_layer.dart';
+
+const int glossHologramCurrentSchemaVersion = 2;
 
 /// True when [json] has the shape of a Gloss hologram document: the versioned
 /// envelope plus the `anchor` object no other kind carries. Routing only —
@@ -66,9 +69,11 @@ const Set<String> _docKnown = <String>{
   'anchor',
   'lines',
   'seeThrough',
+  'scale',
   'billboard',
   'yaw',
   'pitch',
+  'particleLayers',
 };
 
 /// The four `Display.Billboard` names `HologramDoc` accepts, in the uppercase
@@ -90,6 +95,9 @@ const double glossHologramMaxYawDegrees = 180;
 
 /// `HologramDoc.MAX_PITCH_DEGREES` (`HologramDoc.java:19`).
 const double glossHologramMaxPitchDegrees = 90;
+const double glossHologramDefaultScale = 1;
+const double glossHologramMinScale = 0.05;
+const double glossHologramMaxScale = 16;
 
 const Set<String> _anchorKnown = <String>{'world', 'position'};
 
@@ -185,18 +193,21 @@ final class GlossHologramAnchor {
 
 final class GlossHologramDoc extends GlossDoc {
   GlossHologramDoc({
-    super.schemaVersion = glossCurrentSchemaVersion,
+    super.schemaVersion = glossHologramCurrentSchemaVersion,
     super.revision = glossInitialRevision,
     GlossHologramAnchor? anchor,
     List<String>? lines,
     this.seeThrough = true,
+    this.scale = glossHologramDefaultScale,
     this.billboard = glossHologramDefaultBillboard,
     this.yaw = 0,
     this.pitch = 0,
+    List<GlossParticleLayer>? particleLayers,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
   }) : anchor = anchor ?? GlossHologramAnchor(),
        lines = lines ?? <String>[],
+       particleLayers = particleLayers ?? <GlossParticleLayer>[],
        extras = extras ?? <String, dynamic>{},
        absentKeys = absentKeys ?? <String>{};
 
@@ -208,6 +219,7 @@ final class GlossHologramDoc extends GlossDoc {
   /// (`HologramDoc.copyLines` accepts null as an empty list).
   List<String> lines;
   bool seeThrough;
+  double scale;
 
   /// Which axes the entity is allowed to turn on to face a viewer, uppercased
   /// on read the way `HologramDoc.requireBillboard` uppercases it. Only
@@ -224,6 +236,8 @@ final class GlossHologramDoc extends GlossDoc {
   /// Entity pitch in degrees, -90 to 90, positive tipping the face downward.
   /// Ignored on the axes the [billboard] mode turns.
   double pitch;
+  List<GlossParticleLayer> particleLayers;
+  bool particleLayersPresent = false;
 
   /// True when the document carried an `anchor` object at all — Gson leaves
   /// the record field null without one, which `HologramDoc`'s constructor
@@ -235,14 +249,19 @@ final class GlossHologramDoc extends GlossDoc {
 
   static GlossHologramDoc fromJson(Object? raw) {
     final Map<String, dynamic> map = huiReadObject(raw, r'$');
-    glossReadSchemaVersion(map, 'hologram');
+    glossReadSchemaVersion(
+      map,
+      'hologram',
+      expected: glossHologramCurrentSchemaVersion,
+    );
     final Object? anchorRaw = map['anchor'];
-    return GlossHologramDoc(
-      schemaVersion: glossCurrentSchemaVersion,
+    final GlossHologramDoc doc = GlossHologramDoc(
+      schemaVersion: glossHologramCurrentSchemaVersion,
       revision: glossReadRevision(map),
       anchor: GlossHologramAnchor.fromJson(anchorRaw),
       lines: glossReadStringList(map['lines']),
       seeThrough: map['seeThrough'] is bool ? map['seeThrough'] as bool : true,
+      scale: huiReadDouble(map, 'scale', fallback: glossHologramDefaultScale),
       billboard: huiReadString(
         map,
         'billboard',
@@ -250,16 +269,21 @@ final class GlossHologramDoc extends GlossDoc {
       ).trim().toUpperCase(),
       yaw: huiReadDouble(map, 'yaw'),
       pitch: huiReadDouble(map, 'pitch'),
+      particleLayers: glossReadParticleLayers(map['particleLayers']),
       extras: huiCollectExtras(map, _docKnown),
       absentKeys: <String>{
         if (map['revision'] == null) 'revision',
         if (map['lines'] == null) 'lines',
         if (map['seeThrough'] == null) 'seeThrough',
+        if (map['scale'] == null) 'scale',
         if (map['billboard'] == null) 'billboard',
         if (map['yaw'] == null) 'yaw',
         if (map['pitch'] == null) 'pitch',
       },
-    )..anchorPresent = anchorRaw is Map;
+    );
+    doc.anchorPresent = anchorRaw is Map;
+    doc.particleLayersPresent = map.containsKey('particleLayers');
+    return doc;
   }
 
   @override
@@ -272,11 +296,15 @@ final class GlossHologramDoc extends GlossDoc {
         'lines': List<String>.of(lines),
       if (!absentKeys.contains('seeThrough') || !seeThrough)
         'seeThrough': seeThrough,
+      if (!absentKeys.contains('scale') || scale != glossHologramDefaultScale)
+        'scale': scale,
       if (!absentKeys.contains('billboard') ||
           billboard != glossHologramDefaultBillboard)
         'billboard': billboard,
       if (!absentKeys.contains('yaw') || yaw != 0) 'yaw': yaw,
       if (!absentKeys.contains('pitch') || pitch != 0) 'pitch': pitch,
+      if (particleLayersPresent || particleLayers.isNotEmpty)
+        'particleLayers': glossWriteParticleLayers(particleLayers),
     };
     return huiMergeExtras(out, extras);
   }
@@ -288,13 +316,16 @@ final class GlossHologramDoc extends GlossDoc {
       anchor: anchor.copy(),
       lines: List<String>.of(lines),
       seeThrough: seeThrough,
+      scale: scale,
       billboard: billboard,
       yaw: yaw,
       pitch: pitch,
+      particleLayers: glossCopyParticleLayers(particleLayers),
       extras: huiDeepCopyMap(extras),
       absentKeys: Set<String>.of(absentKeys),
     );
     copied.anchorPresent = anchorPresent;
+    copied.particleLayersPresent = particleLayersPresent;
     return copied;
   }
 }

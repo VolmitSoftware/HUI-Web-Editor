@@ -10,8 +10,10 @@ library;
 import '../model/gloss_bubble_style.dart';
 import '../model/gloss_doc.dart';
 import 'bubble_motion.dart';
+import 'gloss_particle_text.dart';
 import 'preview_expr.dart';
 import 'preview_expr_functions.dart';
+import 'particle_layer_validation.dart';
 import 'validation.dart';
 
 List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
@@ -21,6 +23,9 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
   if (revisionIssue != null) {
     issues.add(revisionIssue);
   }
+  issues.addAll(
+    validateParticleLayers(doc.particleLayers, path: r'$.particleLayers'),
+  );
 
   if (!doc.offsetIsValidTriple) {
     issues.add(
@@ -73,6 +78,19 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
 
   issues.addAll(_validateMotion(doc.motion));
   issues.addAll(_validateShimmer(doc));
+
+  final String? particleSpanError = glossParticleTextSyntaxError(doc.prefix);
+  if (particleSpanError != null) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: r'$.prefix',
+        message: 'Invalid particle text span: {error}',
+        messageArguments: <String, Object?>{'error': particleSpanError},
+        fix: 'Correct the value before exporting.',
+      ),
+    );
+  }
 
   final GlossBubbleSelect? select = doc.select;
   if (select == null) {

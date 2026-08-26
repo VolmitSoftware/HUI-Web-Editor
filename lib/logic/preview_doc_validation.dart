@@ -14,6 +14,7 @@
 library;
 
 import 'preview_expr.dart';
+import 'particle_layer_validation.dart';
 import 'preview_expr_functions.dart' show previewStandardFunctionNames;
 import 'preview_sim.dart'
     show
@@ -32,6 +33,7 @@ import '../model/preview_doc.dart';
 /// ever parsed.
 List<HuiIssue> parseCheckPreviewDoc(HuiPreviewDoc doc) {
   final List<HuiIssue> issues = <HuiIssue>[];
+  issues.addAll(validateParticleLayers(doc.particleLayers));
 
   void check(Object? raw, String path) {
     if (raw is! String) return;

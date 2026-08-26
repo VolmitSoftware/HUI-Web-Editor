@@ -77,6 +77,8 @@ import 'package:web/web.dart' as web;
 
 import '../../config/showcase_flavor.dart';
 import '../../logic/gloss_text.dart';
+import '../../logic/gloss_particle_preview.dart';
+import '../../logic/gloss_particle_text.dart';
 import '../../logic/real_drop_block_geometry.dart';
 import '../../logic/real_drop_model.dart';
 import '../../logic/real_drop_selection.dart';
@@ -84,6 +86,7 @@ import '../../logic/real_drop_stage.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
+import '../gloss/gloss_particle_overlay.dart';
 import '../gloss/gloss_text_line.dart';
 import '../scoreboard/scoreboard_selection.dart';
 import 'drop_stage_camera.dart';
@@ -741,10 +744,48 @@ class _RealDropsViewState extends State<RealDropsView> {
                   },
                 ),
                 <Widget>[
+                  GlossParticleOverlay(
+                    layers: <GlossParticleLayer>[
+                      for (final GlossParticleLayer layer
+                          in doc.presentation.particleLayers)
+                        if (<String>{
+                          'projection',
+                          'component',
+                          'model',
+                          'local',
+                        }.contains(layer.target.scope))
+                          layer,
+                    ],
+                    pixelsPerBlock: _pixelsPerBlock,
+                    tick: nowMs ~/ 50,
+                    scopeBounds: <String, List<GlossParticleRect>>{
+                      for (final String scope in <String>[
+                        'projection',
+                        'component',
+                        'model',
+                      ])
+                        scope: <GlossParticleRect>[
+                          GlossParticleRect(
+                            x: 0,
+                            y: 0,
+                            z: 0,
+                            width: frame.modelScale,
+                            height: frame.modelScale,
+                            depth: frame.modelScale,
+                          ),
+                        ],
+                    },
+                  ),
                   for (final DropStageVisual visual in frame.visuals)
                     if (visual.visible)
                       _model(visual, frame, edgePx, easeMs, drop, itemTexture),
-                  if (labels.enabled) _label(labels, frame, nowMs),
+                  if (labels.enabled)
+                    _label(
+                      labels,
+                      frame,
+                      nowMs,
+                      doc.presentation.particleLayers,
+                    ),
                 ],
               ),
               dom.div(
@@ -1026,8 +1067,19 @@ class _RealDropsViewState extends State<RealDropsView> {
   /// The `TextDisplay` the plugin parents to the carrier: the formatted name,
   /// at `labels.yOffset` blocks, at `labels.scale`, with the configured
   /// background colour and alpha, shadow and see-through depth order.
-  Widget _label(GlossRealDropLabels labels, DropStageFrame frame, int nowMs) {
+  Widget _label(
+    GlossRealDropLabels labels,
+    DropStageFrame frame,
+    int nowMs,
+    List<GlossParticleLayer> particleLayers,
+  ) {
     final double alpha = labels.background ? labels.backgroundAlpha / 255 : 0;
+    final GlossLineRender render = renderGlossLine(
+      frame.label,
+      animations: _store.workspaceAnimations,
+      emoji: _store.workspaceEmoji,
+      nowMs: nowMs,
+    );
     return dom.div(
       classes: labels.seeThrough
           ? 'hui-real-drops-label is-see-through'
@@ -1057,14 +1109,25 @@ class _RealDropsViewState extends State<RealDropsView> {
             },
           ),
           <Widget>[
-            GlossTextLine(
-              render: renderGlossLine(
-                frame.label,
-                animations: _store.workspaceAnimations,
-                emoji: _store.workspaceEmoji,
-                nowMs: nowMs,
+            GlossParticleOverlay(
+              layers: <GlossParticleLayer>[
+                for (final GlossParticleLayer layer in particleLayers)
+                  if (<String>{
+                    'label',
+                    'text',
+                    'line',
+                    'span',
+                  }.contains(layer.target.scope))
+                    layer,
+              ],
+              pixelsPerBlock: _pixelsPerBlock,
+              tick: nowMs ~/ 50,
+              renderedText: GlossParticleTextRendered(
+                text: render.renderedText,
+                spans: render.particleSpans,
               ),
             ),
+            GlossTextLine(render: render),
           ],
         ),
       ],

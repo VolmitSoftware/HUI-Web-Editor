@@ -41,7 +41,7 @@ GlossRealDropSettingsDoc _doc(String json) =>
 /// A document carrying only `script`, the way the format doc's examples are
 /// written — everything else falls back to the shipped defaults.
 GlossRealDropSettingsDoc _scripted(String scriptJson) => _doc(
-  '{"schemaVersion":2,"revision":2,'
+  '{"schemaVersion":3,"revision":2,'
   '"presentation":{"script":$scriptJson},'
   '"variants":[],"audience":{"when":"true"}}',
 );
@@ -165,7 +165,7 @@ void main() {
     test('and still says no to another kind entirely', () {
       expect(
         looksLikeRealDropSettingsDoc(
-          jsonDecode('{"schemaVersion":2,"revision":1,"lines":["hi"]}'),
+          jsonDecode('{"schemaVersion":3,"revision":1,"lines":["hi"]}'),
         ),
         isFalse,
       );
@@ -201,7 +201,7 @@ void main() {
   group('vars keep their declaration order', () {
     const String source = '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 2,
   "presentation": {
   "script": {
@@ -394,7 +394,7 @@ void main() {
 
     test('physics clamps are warnings, because the server clamps them', () {
       final GlossRealDropSettingsDoc doc = _doc(
-        '{"schemaVersion":2,"revision":2,'
+        '{"schemaVersion":3,"revision":2,'
         '"presentation":{"physics":{'
         '"enabled":true,"gravityMultiplier":9,"bounce":2}},'
         '"variants":[],"audience":{"when":"true"}}',

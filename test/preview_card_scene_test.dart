@@ -574,6 +574,48 @@ void main() {
     });
   });
 
+  group('particle span source security', () {
+    test('authored expression literals preserve particle spans', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        elements: <HuiPreviewElement>[
+          HuiPreviewElement(
+            'label',
+            text: "'<particles:green>&4GREEN</particles> ' + vars.suffix",
+          ),
+        ],
+      );
+      final PreviewSim sim = PreviewSim('statics')
+        ..vars = PreviewSim.parseVars(<String, Object?>{'suffix': 'ready'});
+
+      final CardLabel label =
+          buildCardScene(doc, sim).items.single as CardLabel;
+
+      expect(label.renderedText, '&4GREEN ready');
+      expect(label.particleSpans, hasLength(1));
+      expect(label.particleSpans.single.name, 'green');
+      expect(label.particleSpans.single.start, 0);
+      expect(label.particleSpans.single.end, 7);
+    });
+
+    test('evaluated values cannot introduce particle spans', () {
+      final HuiPreviewDoc doc = HuiPreviewDoc(
+        elements: <HuiPreviewElement>[
+          HuiPreviewElement('label', text: 'vars.injected'),
+        ],
+      );
+      final PreviewSim sim = PreviewSim('statics')
+        ..vars = PreviewSim.parseVars(<String, Object?>{
+          'injected': '<particles:green>GREEN</particles>',
+        });
+
+      final CardLabel label =
+          buildCardScene(doc, sim).items.single as CardLabel;
+
+      expect(label.renderedText, '<particles:green>GREEN</particles>');
+      expect(label.particleSpans, isEmpty);
+    });
+  });
+
   // The model is mutable and `HuiRawExpr` is `Object?`: the JSON decoder only
   // ever stores a num/String/bool, but editor UI code assigns to these fields
   // directly and will eventually put the wrong primitive in one. None of it may

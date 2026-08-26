@@ -8,7 +8,7 @@ void main() {
       'menu': <String, Object>{'components': <Object>[]},
       'preview': <String, Object>{'elements': <Object>[]},
       'hologram': <String, Object>{
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'anchor': <String, Object>{},
       },
       'animation': <String, Object>{'schemaVersion': 1, 'frames': <Object>[]},
@@ -20,14 +20,14 @@ void main() {
       },
       'motd': <String, Object>{'schemaVersion': 1, 'entries': <Object>[]},
       'emoji': <String, Object>{'schemaVersion': 1, 'emoji': 'U+2764;'},
-      'bubble-style': <String, Object>{'schemaVersion': 3, 'wordWrapChars': 32},
+      'bubble-style': <String, Object>{'schemaVersion': 4, 'wordWrapChars': 32},
       'tablist': <String, Object>{
         'schemaVersion': 2,
         'headerFooter': <String, Object>{},
         'listNames': <String, Object>{},
       },
       'damage-indicators': <String, Object>{
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'limits': <String, Object>{},
         'damage': <String, Object>{},
         'healing': <String, Object>{},

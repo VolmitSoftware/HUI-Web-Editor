@@ -23,9 +23,12 @@ import 'package:jaspr/dom.dart' as dom;
 import 'package:web/web.dart' as web;
 
 import '../../logic/bubble_preview.dart';
+import '../../logic/gloss_particle_text.dart';
+import '../../logic/gloss_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
+import '../gloss/gloss_particle_overlay.dart';
 import '../gloss/gloss_preview_zoom.dart';
 import '../gloss/gloss_text_line.dart';
 import '../scoreboard/scoreboard_selection.dart';
@@ -202,38 +205,7 @@ class _BubbleViewState extends State<BubbleView> {
 
     final Widget scene = dom.div(classes: 'hui-bubble-scene', <Widget>[
       for (final GlossBubblePreviewBubble bubble in bubbles)
-        dom.div(
-          classes: 'hui-bubble-block',
-          styles: dom.Styles(
-            raw: <String, String>{
-              'bottom':
-                  '${((bubble.stackY + offset[1] + bubble.motion.translationY) * _pixelsPerBlock).toStringAsFixed(1)}px',
-              'left':
-                  'calc(50% + ${((offset[0] + bubble.motion.translationX) * _pixelsPerBlock).toStringAsFixed(1)}px)',
-              'opacity': bubble.motion.opacity.toStringAsFixed(3),
-              'transform':
-                  'translateX(-50%) '
-                  'translateZ(${((offset[2] + bubble.motion.translationZ) * _pixelsPerBlock).toStringAsFixed(1)}px) '
-                  'rotateX(${bubble.motion.rotationX.toStringAsFixed(2)}deg) '
-                  'rotateY(${bubble.motion.rotationY.toStringAsFixed(2)}deg) '
-                  'rotateZ(${bubble.motion.rotationZ.toStringAsFixed(2)}deg) '
-                  'scale3d(${bubble.motion.scaleX.toStringAsFixed(3)}, '
-                  '${bubble.motion.scaleY.toStringAsFixed(3)}, '
-                  '${bubble.motion.scaleZ.toStringAsFixed(3)})',
-            },
-          ),
-          <Widget>[
-            GlossTextLine(
-              render: renderGlossBubblePreviewText(
-                doc,
-                bubble,
-                animations: _store.workspaceAnimations,
-                emoji: _store.workspaceEmoji,
-                nowMs: nowMs,
-              ),
-            ),
-          ],
-        ),
+        _bubble(doc, bubble, offset, nowMs),
       if (!component.gameContext)
         const dom.div(classes: 'hui-bubble-player', <Widget>[
           dom.div(classes: 'hui-bubble-player-head', <Widget>[]),
@@ -266,6 +238,54 @@ class _BubbleViewState extends State<BubbleView> {
         ]),
       ]),
     ]);
+  }
+
+  Widget _bubble(
+    GlossBubbleStyleDoc doc,
+    GlossBubblePreviewBubble bubble,
+    List<double> offset,
+    int nowMs,
+  ) {
+    final GlossLineRender render = renderGlossBubblePreviewText(
+      doc,
+      bubble,
+      animations: _store.workspaceAnimations,
+      emoji: _store.workspaceEmoji,
+      nowMs: nowMs,
+    );
+    return dom.div(
+      classes: 'hui-bubble-block',
+      styles: dom.Styles(
+        raw: <String, String>{
+          'bottom':
+              '${((bubble.stackY + offset[1] + bubble.motion.translationY) * _pixelsPerBlock).toStringAsFixed(1)}px',
+          'left':
+              'calc(50% + ${((offset[0] + bubble.motion.translationX) * _pixelsPerBlock).toStringAsFixed(1)}px)',
+          'opacity': bubble.motion.opacity.toStringAsFixed(3),
+          'transform':
+              'translateX(-50%) '
+              'translateZ(${((offset[2] + bubble.motion.translationZ) * _pixelsPerBlock).toStringAsFixed(1)}px) '
+              'rotateX(${bubble.motion.rotationX.toStringAsFixed(2)}deg) '
+              'rotateY(${bubble.motion.rotationY.toStringAsFixed(2)}deg) '
+              'rotateZ(${bubble.motion.rotationZ.toStringAsFixed(2)}deg) '
+              'scale3d(${bubble.motion.scaleX.toStringAsFixed(3)}, '
+              '${bubble.motion.scaleY.toStringAsFixed(3)}, '
+              '${bubble.motion.scaleZ.toStringAsFixed(3)})',
+        },
+      ),
+      <Widget>[
+        GlossParticleOverlay(
+          layers: doc.particleLayers,
+          pixelsPerBlock: _pixelsPerBlock,
+          tick: nowMs ~/ 50,
+          renderedText: GlossParticleTextRendered(
+            text: render.renderedText,
+            spans: render.particleSpans,
+          ),
+        ),
+        GlossTextLine(render: render),
+      ],
+    );
   }
 
   /// Freezes the preview clock. Local, not the store toggle: this surface

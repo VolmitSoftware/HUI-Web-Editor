@@ -1,5 +1,6 @@
 import 'hui_component.dart';
 import 'json_codec.dart';
+import 'particle_layer.dart';
 import 'vec3.dart';
 
 /// `MenuDefinitionData.MAX_DISTANCE` — the clamp ceiling and the effective
@@ -17,6 +18,8 @@ class HuiMenu {
   bool closeOnDeath;
   bool closeOnTeleport;
   List<HuiComponent> components;
+  List<GlossParticleLayer> particleLayers;
+  bool particleLayersPresent = false;
   Map<String, dynamic> extras = <String, dynamic>{};
 
   /// Hard-required keys that were absent from the decoded JSON and had to be
@@ -34,8 +37,10 @@ class HuiMenu {
     this.closeOnDeath = false,
     this.closeOnTeleport = false,
     List<HuiComponent>? components,
+    List<GlossParticleLayer>? particleLayers,
   }) : offset = offset ?? Vec3.zero(),
-       components = components ?? <HuiComponent>[];
+       components = components ?? <HuiComponent>[],
+       particleLayers = particleLayers ?? <GlossParticleLayer>[];
 
   HuiComponent? componentById(String id) {
     for (final HuiComponent component in components) {
@@ -47,15 +52,21 @@ class HuiMenu {
   int indexOfComponent(String id) =>
       components.indexWhere((HuiComponent c) => c.id == id);
 
-  HuiMenu copy() => HuiMenu(
-    offset: offset.copy(),
-    lockPosition: lockPosition,
-    followPlayer: followPlayer,
-    maxDistance: maxDistance,
-    closeOnDeath: closeOnDeath,
-    closeOnTeleport: closeOnTeleport,
-    components: components.map((HuiComponent c) => c.copy()).toList(),
-  )..extras = huiDeepCopyMap(extras);
+  HuiMenu copy() {
+    final HuiMenu copied = HuiMenu(
+      offset: offset.copy(),
+      lockPosition: lockPosition,
+      followPlayer: followPlayer,
+      maxDistance: maxDistance,
+      closeOnDeath: closeOnDeath,
+      closeOnTeleport: closeOnTeleport,
+      components: components.map((HuiComponent c) => c.copy()).toList(),
+      particleLayers: glossCopyParticleLayers(particleLayers),
+    );
+    copied.extras = huiDeepCopyMap(extras);
+    copied.particleLayersPresent = particleLayersPresent;
+    return copied;
+  }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> out = <String, dynamic>{
@@ -67,6 +78,9 @@ class HuiMenu {
     out['closeOnDeath'] = closeOnDeath;
     out['closeOnTeleport'] = closeOnTeleport;
     out['components'] = components.map((HuiComponent c) => c.toJson()).toList();
+    if (particleLayersPresent || particleLayers.isNotEmpty) {
+      out['particleLayers'] = glossWriteParticleLayers(particleLayers);
+    }
     return huiMergeExtras(out, extras);
   }
 
@@ -80,6 +94,7 @@ class HuiMenu {
     'closeOnDeath',
     'closeOnTeleport',
     'components',
+    'particleLayers',
     'id',
   };
 
@@ -92,19 +107,22 @@ class HuiMenu {
       if (entry == null) continue;
       components.add(HuiComponent.fromJson(entry, path: 'components[$i]'));
     }
-    return HuiMenu(
-        offset: Vec3.fromJson(map['offset']),
-        lockPosition: huiReadBool(map, 'lockPosition'),
-        followPlayer: huiReadBool(map, 'followPlayer'),
-        maxDistance: huiReadDoubleOrNull(map, 'maxDistance'),
-        closeOnDeath: huiReadBool(map, 'closeOnDeath'),
-        closeOnTeleport: huiReadBool(map, 'closeOnTeleport'),
-        components: components,
-      )
-      ..extras = huiCollectExtras(map, _known)
-      ..absentKeys = <String>{
-        if (map['offset'] == null) 'offset',
-        if (map['components'] == null) 'components',
-      };
+    final HuiMenu menu = HuiMenu(
+      offset: Vec3.fromJson(map['offset']),
+      lockPosition: huiReadBool(map, 'lockPosition'),
+      followPlayer: huiReadBool(map, 'followPlayer'),
+      maxDistance: huiReadDoubleOrNull(map, 'maxDistance'),
+      closeOnDeath: huiReadBool(map, 'closeOnDeath'),
+      closeOnTeleport: huiReadBool(map, 'closeOnTeleport'),
+      components: components,
+      particleLayers: glossReadParticleLayers(map['particleLayers']),
+    );
+    menu.extras = huiCollectExtras(map, _known);
+    menu.absentKeys = <String>{
+      if (map['offset'] == null) 'offset',
+      if (map['components'] == null) 'components',
+    };
+    menu.particleLayersPresent = map.containsKey('particleLayers');
+    return menu;
   }
 }

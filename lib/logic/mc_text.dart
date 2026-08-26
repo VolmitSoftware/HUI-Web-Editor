@@ -16,6 +16,7 @@
 library;
 
 import '../l10n/hui_localizations.dart';
+import 'gloss_particle_text.dart';
 
 /// Colour applied to text with no colour tag in scope.
 const int mcDefaultTextColor = 0xFFFFFF;
@@ -151,7 +152,12 @@ class McSpan {
 
 /// One parsed text icon: the styled lines plus authoring warnings.
 class McTextResult {
-  const McTextResult({required this.lines, required this.warnings});
+  const McTextResult({
+    required this.lines,
+    required this.warnings,
+    this.renderedText = '',
+    this.particleSpans = const <GlossParticleTextSpan>[],
+  });
 
   /// One entry per rendered `TextDisplay` line. May be empty (see the library
   /// doc for the Java split semantics).
@@ -159,6 +165,9 @@ class McTextResult {
 
   /// Deduplicated, human-readable authoring warnings.
   final List<String> warnings;
+
+  final String renderedText;
+  final List<GlossParticleTextSpan> particleSpans;
 
   int get lineCount => lines.length;
 
@@ -169,6 +178,16 @@ class McTextResult {
       .toList(growable: false);
 
   String get plainText => plainLines.join('\n');
+
+  McTextResult withParticleSpans(
+    String source,
+    List<GlossParticleTextSpan> spans,
+  ) => McTextResult(
+    lines: lines,
+    warnings: warnings,
+    renderedText: source,
+    particleSpans: List<GlossParticleTextSpan>.unmodifiable(spans),
+  );
 
   /// Widest line in plain characters. The plugin's hitbox width uses exactly
   /// this count (`TextUtils.content(component).length()`).
@@ -196,6 +215,7 @@ McTextResult parseMcText(String raw) {
   return McTextResult(
     lines: List<List<McSpan>>.unmodifiable(lines),
     warnings: List<String>.unmodifiable(warnings),
+    renderedText: raw,
   );
 }
 

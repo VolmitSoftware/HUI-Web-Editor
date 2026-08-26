@@ -16,6 +16,7 @@ import '../common/common.dart';
 import 'extras_editor.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'particle_layers_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class MenuInspector extends StatelessWidget {
@@ -35,15 +36,22 @@ class MenuInspector extends StatelessWidget {
       .toList();
 
   @override
-  Widget build(BuildContext context) =>
-      dom.div(classes: 'hui-inspector-body is-menu', <Widget>[
-        _header(),
-        _placement(),
-        _lifetime(),
-        _install(),
-        _extras(),
-        _nonFeatures(),
-      ]);
+  Widget build(
+    BuildContext context,
+  ) => dom.div(classes: 'hui-inspector-body is-menu', <Widget>[
+    _header(),
+    _placement(),
+    ParticleLayersEditor(
+      layers: _menu.particleLayers,
+      sectionKey: 'menu.particleLayers',
+      mutate: (String label, void Function(List<GlossParticleLayer>) edit) =>
+          store.mutate(label, (HuiMenu menu) => edit(menu.particleLayers)),
+    ),
+    _lifetime(),
+    _install(),
+    _extras(),
+    _nonFeatures(),
+  ]);
 
   /// `display: contents` on the wrapper keeps the header a direct child of the
   /// scrolling body, which is what `position: sticky` needs.

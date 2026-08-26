@@ -10,6 +10,7 @@ library;
 import 'dart:convert';
 
 import 'json_codec.dart';
+import 'particle_layer.dart';
 
 /// True when [json] has the shape of a preview document (an `elements` list
 /// and no `components` key) rather than a `HuiMenu` component document. Not a
@@ -477,7 +478,13 @@ class HuiPreviewElement {
 // Document
 // ---------------------------------------------------------------------
 
-const Set<String> _docKnown = <String>{'match', 'variants', 'card', 'elements'};
+const Set<String> _docKnown = <String>{
+  'match',
+  'variants',
+  'card',
+  'elements',
+  'particleLayers',
+};
 
 /// Root of one container-preview JSON document.
 class HuiPreviewDoc {
@@ -485,6 +492,8 @@ class HuiPreviewDoc {
   List<HuiPreviewVariant> variants;
   HuiPreviewCard? card;
   List<HuiPreviewElement> elements;
+  List<GlossParticleLayer> particleLayers;
+  bool particleLayersPresent = false;
   Map<String, dynamic> extras = <String, dynamic>{};
 
   HuiPreviewDoc({
@@ -492,16 +501,24 @@ class HuiPreviewDoc {
     List<HuiPreviewVariant>? variants,
     this.card,
     List<HuiPreviewElement>? elements,
+    List<GlossParticleLayer>? particleLayers,
   }) : match = match ?? HuiPreviewMatch(),
        variants = variants ?? <HuiPreviewVariant>[],
-       elements = elements ?? <HuiPreviewElement>[];
+       elements = elements ?? <HuiPreviewElement>[],
+       particleLayers = particleLayers ?? <GlossParticleLayer>[];
 
-  HuiPreviewDoc copy() => HuiPreviewDoc(
-    match: match.copy(),
-    variants: variants.map((HuiPreviewVariant v) => v.copy()).toList(),
-    card: card?.copy(),
-    elements: elements.map((HuiPreviewElement e) => e.copy()).toList(),
-  )..extras = huiDeepCopyMap(extras);
+  HuiPreviewDoc copy() {
+    final HuiPreviewDoc copied = HuiPreviewDoc(
+      match: match.copy(),
+      variants: variants.map((HuiPreviewVariant v) => v.copy()).toList(),
+      card: card?.copy(),
+      elements: elements.map((HuiPreviewElement e) => e.copy()).toList(),
+      particleLayers: glossCopyParticleLayers(particleLayers),
+    );
+    copied.extras = huiDeepCopyMap(extras);
+    copied.particleLayersPresent = particleLayersPresent;
+    return copied;
+  }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> out = <String, dynamic>{};
@@ -519,6 +536,9 @@ class HuiPreviewDoc {
     out['elements'] = elements
         .map((HuiPreviewElement e) => e.toJson())
         .toList();
+    if (particleLayersPresent || particleLayers.isNotEmpty) {
+      out['particleLayers'] = glossWriteParticleLayers(particleLayers);
+    }
     return huiMergeExtras(out, extras);
   }
 
@@ -538,11 +558,15 @@ class HuiPreviewDoc {
       if (entry == null) continue;
       elements.add(HuiPreviewElement.fromJson(entry, path: 'elements[$i]'));
     }
-    return HuiPreviewDoc(
+    final HuiPreviewDoc doc = HuiPreviewDoc(
       match: HuiPreviewMatch.fromJson(map['match']),
       variants: variants,
       card: HuiPreviewCard.fromJson(map['card']),
       elements: elements,
-    )..extras = huiCollectExtras(map, _docKnown);
+      particleLayers: glossReadParticleLayers(map['particleLayers']),
+    );
+    doc.extras = huiCollectExtras(map, _docKnown);
+    doc.particleLayersPresent = map.containsKey('particleLayers');
+    return doc;
   }
 }

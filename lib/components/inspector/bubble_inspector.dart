@@ -16,6 +16,7 @@ import '../../logic/bubble_motion.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'preview_expr_field.dart';
+import 'particle_layers_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class BubbleInspector extends StatefulWidget {
@@ -43,6 +44,15 @@ class _BubbleInspectorState extends State<BubbleInspector> {
     return dom.div(classes: 'hui-inspector-body is-bubble', <Widget>[
       _header(doc),
       _look(doc),
+      ParticleLayersEditor(
+        layers: doc.particleLayers,
+        sectionKey: 'bubble.particleLayers',
+        mutate: (String label, void Function(List<GlossParticleLayer>) edit) =>
+            _store.mutateBubbleStyle(
+              label,
+              (GlossBubbleStyleDoc edited) => edit(edited.particleLayers),
+            ),
+      ),
       _timing(doc),
       _motion(doc),
       _shimmer(doc),

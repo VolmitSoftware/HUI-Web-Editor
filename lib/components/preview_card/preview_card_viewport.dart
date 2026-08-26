@@ -31,6 +31,7 @@ import '../../logic/preview_sim_controls.dart';
 import '../../logic/viewport_math.dart'
     show canBeginCanvasGesture, shouldPanCanvasGesture;
 import '../../model/preview_doc.dart';
+import '../../model/particle_layer.dart';
 import '../../services/catalogs.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
@@ -538,6 +539,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
               showGrid: false,
               fillBackground: false,
               labelWidths: _labelWidths,
+              particleTick: component.store.previewSim.sim.time.round(),
             )
           : PreviewCardFrameOptions(
               showGrid: store.showGrid,
@@ -545,6 +547,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
               hoveredItem: _hoveredItem,
               handles: _handleSpots(scene),
               labelWidths: _labelWidths,
+              particleTick: component.store.previewSim.sim.time.round(),
             ),
     );
     _syncIssues();
@@ -634,13 +637,25 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   /// pressing play does not, on its own, override that.
   void _reconcileTimers() {
     final EditorStore store = component.store;
-    final bool wanted = previewSimClockWanted(
-      hasArea: _hasArea,
-      isPreviewDoc: store.isPreviewDoc,
-      playing: store.animationsPlaying,
-      autoAnimated: store.previewSim.autoAnimated,
-      forcePlay: store.previewSim.forcePlay,
-    );
+    final bool particleAnimation =
+        store.previewDoc?.particleLayers.any(
+          (GlossParticleLayer layer) =>
+              layer.emission.pattern != 'steady' &&
+              layer.emission.pattern != 'corners',
+        ) ??
+        false;
+    final bool wanted =
+        previewSimClockWanted(
+          hasArea: _hasArea,
+          isPreviewDoc: store.isPreviewDoc,
+          playing: store.animationsPlaying,
+          autoAnimated: store.previewSim.autoAnimated,
+          forcePlay: store.previewSim.forcePlay,
+        ) ||
+        (_hasArea &&
+            store.isPreviewDoc &&
+            store.animationsPlaying &&
+            particleAnimation);
     if (!wanted) {
       _simTimer?.cancel();
       _simTimer = null;

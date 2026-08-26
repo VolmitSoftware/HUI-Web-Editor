@@ -55,6 +55,11 @@ void main() {
         'anchor',
         'lines',
         'seeThrough',
+        'scale',
+        'billboard',
+        'yaw',
+        'pitch',
+        'particleLayers',
       ]);
     });
 

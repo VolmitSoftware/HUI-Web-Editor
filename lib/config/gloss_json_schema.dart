@@ -21,6 +21,7 @@ import '../logic/json_schema.dart';
 import '../model/gloss_animation.dart';
 import '../model/gloss_bubble_style.dart';
 import '../model/gloss_damage_indicators.dart';
+import '../model/gloss_hologram.dart';
 import '../model/gloss_motd.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
@@ -34,7 +35,7 @@ GlossJsonField _schemaVersionField(int version) => GlossJsonField(
   key: 'schemaVersion',
   type: GlossJsonType.integer,
   title: 'Schema version',
-  summary: 'Format generation. Gloss rejects the file when it is not $version.',
+  summary: 'Schema version',
   values: <GlossJsonValue>[GlossJsonValue('$version')],
   defaultLiteral: '$version',
 );
@@ -90,7 +91,7 @@ const GlossJsonObject _hologramAnchorNode = GlossJsonObject(
 
 final GlossJsonObject glossHologramJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
-    _schemaVersionField(1),
+    _schemaVersionField(glossHologramCurrentSchemaVersion),
     _revisionField,
     const GlossJsonField(
       key: 'anchor',
@@ -115,6 +116,36 @@ final GlossJsonObject glossHologramJsonSchema = GlossJsonObject(
       docKey: 'hologram.seeThrough',
       defaultLiteral: 'true',
     ),
+    const GlossJsonField(
+      key: 'scale',
+      type: GlossJsonType.number,
+      title: 'Scale',
+      summary: 'Scale must be between 0.05 and 16.',
+      defaultLiteral: '1',
+    ),
+    GlossJsonField(
+      key: 'billboard',
+      type: GlossJsonType.string,
+      title: 'Billboard',
+      summary: 'Which axes the entity may turn on to face a viewer.',
+      values: _values(glossHologramBillboards),
+      defaultLiteral: '"CENTER"',
+    ),
+    const GlossJsonField(
+      key: 'yaw',
+      type: GlossJsonType.number,
+      title: 'Yaw',
+      summary: 'Yaw',
+      defaultLiteral: '0',
+    ),
+    const GlossJsonField(
+      key: 'pitch',
+      type: GlossJsonType.number,
+      title: 'Pitch',
+      summary: 'Pitch',
+      defaultLiteral: '0',
+    ),
+    glossParticleLayersField,
   ],
 );
 
@@ -569,6 +600,7 @@ final GlossJsonObject glossBubbleStyleJsonSchema = GlossJsonObject(
       summary: 'Auto-match rule. Without it the style never auto-matches.',
       node: _bubbleSelectNode,
     ),
+    glossParticleLayersField,
   ],
 );
 
@@ -1494,6 +1526,7 @@ final GlossJsonObject _realDropPresentationNode = GlossJsonObject(
       docKey: 'realDrops.animation',
       node: _realDropAnimationNode,
     ),
+    glossParticleLayersField,
   ],
 );
 
@@ -1664,9 +1697,9 @@ const GlossJsonObject _damageIndicatorTransformNode = GlossJsonObject(
   ],
 );
 
-const GlossJsonObject _damageIndicatorStyleNode = GlossJsonObject(
+final GlossJsonObject _damageIndicatorStyleNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    GlossJsonField(
+    const GlossJsonField(
       key: 'when',
       type: GlossJsonType.string,
       title: 'Condition',
@@ -1691,56 +1724,57 @@ const GlossJsonObject _damageIndicatorStyleNode = GlossJsonObject(
   ],
 );
 
-const GlossJsonObject
+final GlossJsonObject
 _damageIndicatorCompletePresentationNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    GlossJsonField(
+    const GlossJsonField(
       key: 'format',
       type: GlossJsonType.string,
       title: 'Format',
       summary:
           'Minecraft text. Must contain {amount} or Gloss rejects the file.',
     ),
-    GlossJsonField(
+    const GlossJsonField(
       key: 'offset',
       type: GlossJsonType.array,
       title: 'Offset',
       summary: 'Spawn offset from the entity as [x, y, z] blocks.',
       node: glossVector3Node,
     ),
-    GlossJsonField(
+    const GlossJsonField(
       key: 'motion',
       type: GlossJsonType.object,
       title: 'Motion',
       summary: 'Closed-form trajectory and roll.',
       node: _damageIndicatorMotionNode,
     ),
-    GlossJsonField(
+    const GlossJsonField(
       key: 'transform',
       type: GlossJsonType.object,
       title: 'Transform',
       summary: 'Scale interpolation and fade timing.',
       node: _damageIndicatorTransformNode,
     ),
+    glossParticleLayersField,
   ],
 );
 
-const GlossJsonObject _damageIndicatorVariantNode = GlossJsonObject(
+final GlossJsonObject _damageIndicatorVariantNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    GlossJsonField(
+    const GlossJsonField(
       key: 'id',
       type: GlossJsonType.string,
       title: 'Variant id',
       summary: 'Stable unique id; smaller ids win priority ties.',
     ),
-    GlossJsonField(
+    const GlossJsonField(
       key: 'priority',
       type: GlossJsonType.integer,
       title: 'Priority',
       summary: 'Highest matching priority wins.',
       defaultLiteral: '0',
     ),
-    GlossJsonField(
+    const GlossJsonField(
       key: 'when',
       type: GlossJsonType.string,
       title: 'Condition',
@@ -1781,14 +1815,14 @@ final GlossJsonObject glossDamageIndicatorsJsonSchema = GlossJsonObject(
       summary: 'Spawn admission, lifetime and number formatting.',
       node: _damageIndicatorLimitsNode,
     ),
-    const GlossJsonField(
+    GlossJsonField(
       key: 'damage',
       type: GlossJsonType.object,
       title: 'Damage',
       summary: 'Conditional presentations for health loss.',
       node: _damageIndicatorStyleNode,
     ),
-    const GlossJsonField(
+    GlossJsonField(
       key: 'healing',
       type: GlossJsonType.object,
       title: 'Healing',

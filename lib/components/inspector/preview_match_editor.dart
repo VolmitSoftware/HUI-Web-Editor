@@ -16,6 +16,7 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../config/links.dart';
 import '../../logic/validation.dart';
 import '../../model/preview_doc.dart';
+import '../../model/particle_layer.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'extras_editor.dart';
@@ -23,6 +24,7 @@ import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'preview_color_swatch.dart';
 import 'preview_expr_field.dart';
+import 'particle_layers_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 const List<String> _specialValues = <String>[
@@ -59,15 +61,22 @@ class PreviewMatchEditor extends StatelessWidget {
       store.mutatePreview(label, fn);
 
   @override
-  Widget build(BuildContext context) =>
-      dom.div(classes: 'hui-inspector-body is-menu', <Widget>[
-        _header(),
-        _matchSection(),
-        _variantsSection(),
-        _cardSection(),
-        _install(),
-        _extras(),
-      ]);
+  Widget build(
+    BuildContext context,
+  ) => dom.div(classes: 'hui-inspector-body is-menu', <Widget>[
+    _header(),
+    _matchSection(),
+    _variantsSection(),
+    _cardSection(),
+    ParticleLayersEditor(
+      layers: _doc.particleLayers,
+      sectionKey: 'preview.particleLayers',
+      mutate: (String label, void Function(List<GlossParticleLayer>) edit) =>
+          _mutate(label, (HuiPreviewDoc doc) => edit(doc.particleLayers)),
+    ),
+    _install(),
+    _extras(),
+  ]);
 
   Widget _header() => dom.div(classes: 'hui-inspector-headgroup', <Widget>[
     dom.div(classes: 'hui-inspector-header is-menu', <Widget>[

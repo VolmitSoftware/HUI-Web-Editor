@@ -9,6 +9,8 @@ library;
 import '../model/gloss_doc.dart';
 import '../model/gloss_hologram.dart';
 import 'gloss_text.dart';
+import 'gloss_particle_text.dart';
+import 'particle_layer_validation.dart';
 import 'validation.dart';
 
 List<HuiIssue> validateHologramDoc(
@@ -20,6 +22,22 @@ List<HuiIssue> validateHologramDoc(
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) {
     issues.add(revisionIssue);
+  }
+  issues.addAll(
+    validateParticleLayers(doc.particleLayers, path: r'$.particleLayers'),
+  );
+
+  if (!doc.scale.isFinite ||
+      doc.scale < glossHologramMinScale ||
+      doc.scale > glossHologramMaxScale) {
+    issues.add(
+      const HuiIssue(
+        severity: HuiSeverity.error,
+        path: r'$.scale',
+        message: 'Scale must be between 0.05 and 16.',
+        fix: 'Scale must be between 0.05 and 16.',
+      ),
+    );
   }
 
   if (!doc.anchorPresent) {
@@ -107,6 +125,21 @@ List<HuiIssue> validateHologramDoc(
             'The hologram has no lines. Gloss accepts the file but renders '
             'nothing at the anchor.',
         fix: 'Add at least one line of text.',
+      ),
+    );
+  }
+
+  final String? particleSpanError = glossParticleTextSyntaxError(
+    doc.lines.join('\n'),
+  );
+  if (particleSpanError != null) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: r'$.lines',
+        message: 'Invalid particle text span: {error}',
+        messageArguments: <String, Object?>{'error': particleSpanError},
+        fix: 'Correct the value before exporting.',
       ),
     );
   }

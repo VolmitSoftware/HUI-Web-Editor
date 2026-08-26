@@ -14,6 +14,8 @@ import 'gloss_text.dart'
         renderGlossLine;
 import 'hui_geometry.dart' show huiLineHeight;
 import 'mc_text.dart' show parseMcText;
+import 'particle_layer_validation.dart';
+import 'gloss_particle_text.dart' show glossParticleTextSyntaxError;
 
 enum HuiSeverity { error, warning, info }
 
@@ -428,6 +430,7 @@ class _Validator {
   }
 
   void validateMenu(HuiMenu menu) {
+    issues.addAll(validateParticleLayers(menu.particleLayers));
     if (menu.absentKeys.contains('offset')) {
       _add(
         HuiSeverity.info,
@@ -1130,6 +1133,16 @@ class _Validator {
     required bool clickable,
     required int? refreshTicks,
   }) {
+    final String? particleSpanError = glossParticleTextSyntaxError(text);
+    if (particleSpanError != null) {
+      _add(
+        HuiSeverity.error,
+        path,
+        'Invalid particle text span: {error}',
+        fix: 'Correct the value before exporting.',
+        messageArguments: <String, Object?>{'error': particleSpanError},
+      );
+    }
     // The hitbox is measured on what the icon actually renders, so the emoji
     // and bracket-hex prelude runs first — an emoji token is wider as source
     // than as the glyph it becomes. Plain length never exceeds the resolved

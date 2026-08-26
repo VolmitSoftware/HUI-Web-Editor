@@ -13,6 +13,7 @@ import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'particle_layers_editor.dart';
 
 class DamageIndicatorInspector extends StatelessWidget {
   const DamageIndicatorInspector({required this.store, super.key});
@@ -387,6 +388,16 @@ class DamageIndicatorInspector extends StatelessWidget {
         (GlossDamageIndicatorPresentation edited) =>
             edited.transform.fadeStartFraction = value,
       ),
+    ),
+    ParticleLayersEditor(
+      layers: presentation.particleLayers,
+      sectionKey: 'damage-indicators.$path.particleLayers',
+      mutate: (String label, void Function(List<GlossParticleLayer>) edit) =>
+          mutate(
+            label,
+            (GlossDamageIndicatorPresentation edited) =>
+                edit(edited.particleLayers),
+          ),
     ),
   ];
 

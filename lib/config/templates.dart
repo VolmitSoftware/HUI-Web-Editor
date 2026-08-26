@@ -113,6 +113,7 @@ const String kBlankHologramJson = r'''
   "followPlayer": false,
   "closeOnDeath": true,
   "closeOnTeleport": true,
+  "particleLayers": [],
   "components": [
     {
       "id": "title",

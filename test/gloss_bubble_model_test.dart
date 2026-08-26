@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 
 const String _style = '''
 {
-  "schemaVersion":3,
+  "schemaVersion":4,
   "revision": 2,
   "prefix": "&6",
   "offset": [0.0, 1.2, 0.0],
@@ -33,7 +33,8 @@ const String _style = '''
   "select": {
     "priority": 10,
     "when": "matchesGlob(viewer.world, 'world*') && inGroup('viewer', 'vip')"
-  }
+  },
+  "particleLayers": []
 }
 ''';
 
@@ -41,7 +42,7 @@ void main() {
   group('decode', () {
     test('reads the full schema-3 document with conditional selection', () {
       final GlossBubbleStyleDoc doc = decodeGlossBubbleStyleDoc(_style);
-      expect(doc.schemaVersion, 3);
+      expect(doc.schemaVersion, 4);
       expect(doc.revision, 2);
       expect(doc.prefix, '&6');
       expect(doc.offset, <double>[0, 1.2, 0]);
@@ -69,7 +70,7 @@ void main() {
       for (final String json in <String>[
         '{"schemaVersion":1,"wordWrapChars":32}',
         '{"schemaVersion":2,"wordWrapChars":32}',
-        '{"schemaVersion":4,"wordWrapChars":32}',
+        '{"schemaVersion":3,"wordWrapChars":32}',
         '{"wordWrapChars":32}',
       ]) {
         expect(
@@ -83,7 +84,7 @@ void main() {
     test('rejects numeric motion leaves instead of changing their type', () {
       expect(
         () => decodeGlossBubbleStyleDoc(
-          '{"schemaVersion":3,"revision":1,'
+          '{"schemaVersion":4,"revision":1,'
           '"motion":{"translation":{"x":0}}}',
         ),
         throwsA(
@@ -98,7 +99,7 @@ void main() {
 
     test('missing motion keys carry the exact runtime defaults', () {
       final GlossBubbleStyleDoc doc = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":3,"revision":1}',
+        '{"schemaVersion":4,"revision":1}',
       );
       expect(doc.motion.translation.x, '0');
       expect(
@@ -148,10 +149,10 @@ void main() {
 
     test('only a missing prefix falls back to &7', () {
       final GlossBubbleStyleDoc absent = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":3,"revision":1}',
+        '{"schemaVersion":4,"revision":1}',
       );
       final GlossBubbleStyleDoc empty = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":3,"revision":1,"prefix":""}',
+        '{"schemaVersion":4,"revision":1,"prefix":""}',
       );
       expect(absent.effectivePrefix, '&7');
       expect(empty.effectivePrefix, '');
@@ -159,11 +160,11 @@ void main() {
 
     test('offset defaults, while malformed source survives for validation', () {
       final GlossBubbleStyleDoc absent = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":3,"revision":1}',
+        '{"schemaVersion":4,"revision":1}',
       );
       expect(absent.offset, <double>[0, 0.3, 0]);
       final GlossBubbleStyleDoc malformed = decodeGlossBubbleStyleDoc(
-        '{"schemaVersion":3,"revision":1,"offset":[1,2]}',
+        '{"schemaVersion":4,"revision":1,"offset":[1,2]}',
       );
       expect(malformed.offsetIsValidTriple, isFalse);
       final Map<String, dynamic> encoded =
@@ -203,7 +204,7 @@ void main() {
       () {
         const String withExtras = '''
 {
-  "schemaVersion":3,
+  "schemaVersion":4,
   "revision": 1,
   "wordWrapChars": 32,
   "motion": {
@@ -238,7 +239,7 @@ void main() {
       expect(looksLikeBubbleStyleDoc(jsonDecode(_style)), isTrue);
       expect(
         looksLikeBubbleStyleDoc(<String, Object?>{
-          'schemaVersion': 3,
+          'schemaVersion': 4,
           'frames': <String>['a'],
           'maxAliveMs': 5000,
         }),

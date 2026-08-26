@@ -4,9 +4,10 @@ import 'dart:convert';
 
 import 'gloss_doc.dart';
 import 'json_codec.dart';
+import 'particle_layer.dart';
 import 'vec3.dart';
 
-const int glossDamageIndicatorsCurrentSchemaVersion = 2;
+const int glossDamageIndicatorsCurrentSchemaVersion = 3;
 const String glossDamageIndicatorsDefaultId = 'default';
 const String glossDamageAmountToken = '{amount}';
 
@@ -59,6 +60,7 @@ const Set<String> _indicatorPresentationKnown = <String>{
   'offset',
   'motion',
   'transform',
+  'particleLayers',
 };
 const Set<String> _motionKnown = <String>{
   'horizontalSpeed',
@@ -232,13 +234,17 @@ final class GlossDamageIndicatorPresentation {
     required this.offset,
     required this.motion,
     required this.transform,
+    List<GlossParticleLayer>? particleLayers,
     Map<String, dynamic>? extras,
-  }) : extras = extras ?? <String, dynamic>{};
+  }) : particleLayers = particleLayers ?? <GlossParticleLayer>[],
+       extras = extras ?? <String, dynamic>{};
 
   String format;
   Vec3 offset;
   GlossDamageIndicatorMotion motion;
   GlossDamageIndicatorTransform transform;
+  List<GlossParticleLayer> particleLayers;
+  bool particleLayersPresent = false;
   Map<String, dynamic> extras;
 
   static GlossDamageIndicatorPresentation damageDefaults() =>
@@ -280,26 +286,37 @@ final class GlossDamageIndicatorPresentation {
     bool requireComplete = false,
   }) {
     final Map<String, dynamic> map = huiReadObject(raw, path);
-    if (requireComplete) _requireKeys(map, _indicatorPresentationKnown, path);
-    return GlossDamageIndicatorPresentation(
-      format: huiReadString(map, 'format', fallback: fallback.format),
-      offset: map['offset'] == null
-          ? fallback.offset.copy()
-          : Vec3.fromJson(map['offset'], path: '$path.offset'),
-      motion: GlossDamageIndicatorMotion.fromJson(
-        map['motion'],
-        fallback: fallback.motion,
-        path: '$path.motion',
-        requireComplete: requireComplete,
-      ),
-      transform: GlossDamageIndicatorTransform.fromJson(
-        map['transform'],
-        fallback: fallback.transform,
-        path: '$path.transform',
-        requireComplete: requireComplete,
-      ),
-      extras: huiCollectExtras(map, _indicatorPresentationKnown),
-    );
+    if (requireComplete) {
+      _requireKeys(map, const <String>{
+        'format',
+        'offset',
+        'motion',
+        'transform',
+      }, path);
+    }
+    final GlossDamageIndicatorPresentation presentation =
+        GlossDamageIndicatorPresentation(
+          format: huiReadString(map, 'format', fallback: fallback.format),
+          offset: map['offset'] == null
+              ? fallback.offset.copy()
+              : Vec3.fromJson(map['offset'], path: '$path.offset'),
+          motion: GlossDamageIndicatorMotion.fromJson(
+            map['motion'],
+            fallback: fallback.motion,
+            path: '$path.motion',
+            requireComplete: requireComplete,
+          ),
+          transform: GlossDamageIndicatorTransform.fromJson(
+            map['transform'],
+            fallback: fallback.transform,
+            path: '$path.transform',
+            requireComplete: requireComplete,
+          ),
+          particleLayers: glossReadParticleLayers(map['particleLayers']),
+          extras: huiCollectExtras(map, _indicatorPresentationKnown),
+        );
+    presentation.particleLayersPresent = map.containsKey('particleLayers');
+    return presentation;
   }
 
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
@@ -307,15 +324,23 @@ final class GlossDamageIndicatorPresentation {
     'offset': offset.toJson(),
     'motion': motion.toJson(),
     'transform': transform.toJson(),
+    if (particleLayersPresent || particleLayers.isNotEmpty)
+      'particleLayers': glossWriteParticleLayers(particleLayers),
   }, extras);
 
-  GlossDamageIndicatorPresentation copy() => GlossDamageIndicatorPresentation(
-    format: format,
-    offset: offset.copy(),
-    motion: motion.copy(),
-    transform: transform.copy(),
-    extras: huiDeepCopyMap(extras),
-  );
+  GlossDamageIndicatorPresentation copy() {
+    final GlossDamageIndicatorPresentation copied =
+        GlossDamageIndicatorPresentation(
+          format: format,
+          offset: offset.copy(),
+          motion: motion.copy(),
+          transform: transform.copy(),
+          particleLayers: glossCopyParticleLayers(particleLayers),
+          extras: huiDeepCopyMap(extras),
+        );
+    copied.particleLayersPresent = particleLayersPresent;
+    return copied;
+  }
 }
 
 final class GlossDamageIndicatorVariant {

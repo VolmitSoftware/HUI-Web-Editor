@@ -827,6 +827,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
         marquee: _marquee,
         guides: _guides,
         obfuscationTick: _obfuscationTick,
+        particleTick: _animationElapsedMs ~/ 50,
         selectionDashOffset: _selectionTick * huiSelectionDashStep,
       ),
     );
@@ -900,6 +901,14 @@ class _CanvasViewportState extends State<CanvasViewport> {
         animated = true;
         minSpeed = math.min(minSpeed, item.textRefreshTicks);
       }
+    }
+    for (final GlossParticleLayer layer in scene.particleLayers) {
+      if (layer.emission.pattern == 'steady' ||
+          layer.emission.pattern == 'corners') {
+        continue;
+      }
+      animated = true;
+      minSpeed = math.min(minSpeed, math.max(1, layer.emission.intervalTicks));
     }
     _sceneHasObfuscation = obfuscated;
     _sceneMinAnimationSpeed = animated ? minSpeed : 1;

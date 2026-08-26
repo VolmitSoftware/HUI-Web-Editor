@@ -8,10 +8,12 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../l10n/hui_localizations.dart';
 import '../../logic/damage_indicator_preview.dart';
 import '../../logic/gloss_text.dart';
+import '../../logic/gloss_particle_text.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/hui_number_field.dart';
 import '../gloss/gloss_game_screen.dart';
+import '../gloss/gloss_particle_overlay.dart';
 import '../gloss/gloss_text_line.dart';
 import '../scoreboard/scoreboard_selection.dart';
 
@@ -200,7 +202,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
     );
     final Widget scene = presentation == null || !audience.matches
         ? _conditionFalseScene()
-        : _scene(frame, formatted, cycle.elapsedMs);
+        : _scene(frame, formatted, cycle.elapsedMs, presentation);
     if (component.gameContext) {
       return GlossGameScreen(
         anchor: GlossGameAnchor.world,
@@ -223,6 +225,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
     DamageIndicatorPreviewFrame frame,
     String formatted,
     int elapsed,
+    GlossDamageIndicatorPresentation presentation,
   ) => dom.div(classes: 'hui-damage-indicator-scene', <Widget>[
     const dom.div(classes: 'hui-damage-indicator-horizon', <Widget>[]),
     const dom.div(classes: 'hui-damage-indicator-ground', <Widget>[]),
@@ -250,6 +253,12 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
           },
         ),
         <Widget>[
+          GlossParticleOverlay(
+            layers: presentation.particleLayers,
+            pixelsPerBlock: _pixelsPerBlock,
+            tick: elapsed ~/ 50,
+            renderedText: _particleText(formatted, elapsed),
+          ),
           GlossTextLine(
             render: renderGlossLine(
               formatted,
@@ -264,6 +273,19 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
       dom.span(<Widget>[Text(huiText('Entity origin'))]),
     ]),
   ]);
+
+  GlossParticleTextRendered _particleText(String formatted, int elapsed) {
+    final GlossLineRender render = renderGlossLine(
+      formatted,
+      animations: _store.workspaceAnimations,
+      emoji: _store.workspaceEmoji,
+      nowMs: elapsed,
+    );
+    return GlossParticleTextRendered(
+      text: render.renderedText,
+      spans: render.particleSpans,
+    );
+  }
 
   Widget _conditionFalseScene() =>
       dom.div(classes: 'hui-damage-indicator-empty-state', <Widget>[

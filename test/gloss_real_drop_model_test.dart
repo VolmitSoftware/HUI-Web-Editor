@@ -9,7 +9,7 @@ void main() {
   test('missing nested values use the runtime defaults', () {
     final GlossRealDropSettingsDoc doc = decodeGlossRealDropSettingsDoc('''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "presentation": {
   "limits": {},
@@ -41,7 +41,7 @@ void main() {
   test('explicit false values and unknown keys round-trip', () {
     final GlossRealDropSettingsDoc doc = decodeGlossRealDropSettingsDoc('''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 4,
   "presentation": {
   "limits": {"futureLimit": 7},

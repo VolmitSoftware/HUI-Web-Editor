@@ -10,7 +10,7 @@ import '../model/model.dart';
 
 const String kGlossDamageIndicatorsDefaultJson = r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "limits": {
     "maxPerSecond": 40,
@@ -33,7 +33,8 @@ const String kGlossDamageIndicatorsDefaultJson = r'''
         "startScale": 1.0,
         "endScale": 0.82,
         "fadeStartFraction": 0.68
-      }
+      },
+      "particleLayers": []
     },
     "variants": []
   },
@@ -52,7 +53,8 @@ const String kGlossDamageIndicatorsDefaultJson = r'''
         "startScale": 1.0,
         "endScale": 1.1,
         "fadeStartFraction": 0.62
-      }
+      },
+      "particleLayers": []
     },
     "variants": []
   },
@@ -70,7 +72,7 @@ GlossDamageIndicatorsDoc buildDefaultGlossDamageIndicators() =>
 /// hologram document is here.
 const String kGlossHologramBaselineJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
   "anchor": {
     "world": "world",
@@ -80,7 +82,8 @@ const String kGlossHologramBaselineJson = r'''
     "&dNew hologram"
   ],
   "seeThrough": true,
-  "scale": 1.0
+  "scale": 1.0,
+  "particleLayers": []
 }
 ''';
 
@@ -89,7 +92,7 @@ const String kGlossHologramBaselineJson = r'''
 /// reference.
 const String kGlossHologramShowcaseJson = r'''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
   "anchor": {
     "world": "world",
@@ -103,7 +106,8 @@ const String kGlossHologramShowcaseJson = r'''
     "|animation.rainbow|&lLive colour prefix",
     "&7TPS &a{{ fixed(server.tps, 1) }}"
   ],
-  "seeThrough": true
+  "seeThrough": true,
+  "particleLayers": []
 }
 ''';
 
@@ -115,7 +119,7 @@ GlossHologramDoc buildShowcaseGlossHologram() =>
 
 const String kGlossRealDropsDefaultJson = r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "presentation": {
     "limits": {
@@ -202,7 +206,8 @@ const String kGlossRealDropsDefaultJson = r'''
       },
       "glow": "",
       "visible": "true"
-    }
+    },
+    "particleLayers": []
   },
   "variants": [],
   "audience": {
@@ -221,7 +226,7 @@ GlossRealDropSettingsDoc buildDefaultGlossRealDrops() =>
 /// Slow, upright and legible: loot you are meant to read from across the room.
 const String kGlossRealDropsPalmerHouseJson = r"""
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "presentation": {
   "limits": {
@@ -285,7 +290,7 @@ const String kGlossRealDropsPalmerHouseJson = r"""
 /// Fast, wide and messy: a mined stack thrown across the floor.
 const String kGlossRealDropsSawmillJson = r"""
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "presentation": {
   "limits": {
@@ -349,7 +354,7 @@ const String kGlossRealDropsSawmillJson = r"""
 /// Small, silent ground clutter: no labels, nothing spinning, cheap to run.
 const String kGlossRealDropsQuietJson = r"""
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "presentation": {
   "limits": {
@@ -791,7 +796,7 @@ GlossEmojiDoc buildBlankGlossEmoji() =>
 /// fallback id).
 const String kGlossBubbleDefaultJson = r'''
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "revision": 1,
   "prefix": "&7",
   "offset": [0.0, 0.3, 0.0],
@@ -825,7 +830,8 @@ const String kGlossBubbleDefaultJson = r'''
     "durationMs": 700,
     "spawnDelayMs": 400,
     "flyAwayLeadMs": 700
-  }
+  },
+  "particleLayers": []
 }
 ''';
 
@@ -833,7 +839,7 @@ const String kGlossBubbleDefaultJson = r'''
 /// follow) style that auto-applies to VIPs in overworld-named worlds.
 const String kGlossBubbleShowcaseJson = r'''
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "revision": 1,
   "prefix": "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&l",
   "offset": [0.0, 1.2, 0.0],

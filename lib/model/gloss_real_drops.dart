@@ -5,8 +5,9 @@ import 'dart:convert';
 import 'gloss_doc.dart';
 import 'gloss_real_drop_animation.dart';
 import 'json_codec.dart';
+import 'particle_layer.dart';
 
-const int glossRealDropsCurrentSchemaVersion = 2;
+const int glossRealDropsCurrentSchemaVersion = 3;
 
 /// Whether [json] is a real-drops settings document.
 ///
@@ -49,6 +50,7 @@ const Set<String> _presentationKnown = <String>{
   'physics',
   'script',
   'animation',
+  'particleLayers',
 };
 const Set<String> _variantKnown = <String>{
   'id',
@@ -447,6 +449,7 @@ final class GlossRealDropPresentation {
     this.physics,
     this.script,
     this.animation,
+    List<GlossParticleLayer>? particleLayers,
     Map<String, dynamic>? extras,
   }) : limits = limits ?? GlossRealDropLimits(),
        scale = scale ?? GlossRealDropScale(),
@@ -454,6 +457,7 @@ final class GlossRealDropPresentation {
        landing = landing ?? GlossRealDropLanding(),
        labels = labels ?? GlossRealDropLabels(),
        filters = filters ?? GlossRealDropFilters(),
+       particleLayers = particleLayers ?? <GlossParticleLayer>[],
        extras = extras ?? <String, dynamic>{};
 
   GlossRealDropLimits limits;
@@ -471,12 +475,14 @@ final class GlossRealDropPresentation {
   GlossRealDropScript? script;
 
   GlossRealDropAnimation? animation;
+  List<GlossParticleLayer> particleLayers;
+  bool particleLayersPresent = false;
 
   Map<String, dynamic> extras;
 
   static GlossRealDropPresentation fromJson(Object? raw, String path) {
     final Map<String, dynamic> map = huiReadObject(raw, path);
-    return GlossRealDropPresentation(
+    final GlossRealDropPresentation presentation = GlossRealDropPresentation(
       limits: GlossRealDropLimits.fromJson(map['limits']),
       scale: GlossRealDropScale.fromJson(map['scale']),
       motion: GlossRealDropMotion.fromJson(map['motion']),
@@ -492,8 +498,11 @@ final class GlossRealDropPresentation {
       animation: map['animation'] == null
           ? null
           : GlossRealDropAnimation.fromJson(map['animation']),
+      particleLayers: glossReadParticleLayers(map['particleLayers']),
       extras: huiCollectExtras(map, _presentationKnown),
     );
+    presentation.particleLayersPresent = map.containsKey('particleLayers');
+    return presentation;
   }
 
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
@@ -506,6 +515,8 @@ final class GlossRealDropPresentation {
     if (physics != null) 'physics': physics!.toJson(),
     if (script != null) 'script': script!.toJson(),
     if (animation != null) 'animation': animation!.toJson(),
+    if (particleLayersPresent || particleLayers.isNotEmpty)
+      'particleLayers': glossWriteParticleLayers(particleLayers),
   }, extras);
 
   GlossRealDropPresentation copy() =>

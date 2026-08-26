@@ -20,6 +20,7 @@ import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'line_list_section.dart';
+import 'particle_layers_editor.dart';
 import 'placeholder_picker.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
@@ -58,6 +59,15 @@ class _HologramInspectorState extends State<HologramInspector> {
       _anchor(doc),
       _presentation(doc),
       _lines(doc),
+      ParticleLayersEditor(
+        layers: doc.particleLayers,
+        sectionKey: 'hologram.particleLayers',
+        mutate: (String label, void Function(List<GlossParticleLayer>) edit) =>
+            _store.mutateHologram(
+              label,
+              (GlossHologramDoc edited) => edit(edited.particleLayers),
+            ),
+      ),
     ]);
   }
 
@@ -75,6 +85,36 @@ class _HologramInspectorState extends State<HologramInspector> {
             edited.absentKeys.remove('seeThrough');
           },
         ),
+      ),
+      HuiField(
+        label: huiText('Scale'),
+        help: huiText('Scale must be between 0.05 and 16.'),
+        defaultValue: '$glossHologramDefaultScale',
+        onReset: doc.scale == glossHologramDefaultScale
+            ? null
+            : () => _store.mutateHologram('hologram scale', (
+                GlossHologramDoc edited,
+              ) {
+                edited.scale = glossHologramDefaultScale;
+                edited.absentKeys.remove('scale');
+              }),
+        control: dom.div(<Widget>[
+          HuiNumberField(
+            value: doc.scale,
+            min: glossHologramMinScale,
+            max: glossHologramMaxScale,
+            step: 0.05,
+            decimals: 2,
+            onChanged: (double value) => _store.mutateHologram(
+              'hologram scale',
+              (GlossHologramDoc edited) {
+                edited.scale = value;
+                edited.absentKeys.remove('scale');
+              },
+            ),
+          ),
+          HuiInlineIssues(_issuesFor(r'$.scale')),
+        ]),
       ),
       HuiField(
         label: huiText('Billboard'),

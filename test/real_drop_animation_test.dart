@@ -15,7 +15,7 @@ void main() {
   test('the complete animation contract round-trips without losing extras', () {
     final GlossRealDropSettingsDoc doc = decodeGlossRealDropSettingsDoc('''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 2,
   "presentation": {
   "animation": {

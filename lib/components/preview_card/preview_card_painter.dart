@@ -19,7 +19,10 @@ import '../../l10n/hui_localizations.dart';
 import '../../logic/preview_card_edit.dart';
 import '../../logic/preview_card_scene.dart';
 import '../../logic/preview_sim.dart';
+import '../../logic/gloss_particle_preview.dart';
+import '../../logic/gloss_particle_text.dart';
 import '../../logic/mc_text.dart';
+import '../../model/model.dart';
 import '../render/canvas_brush.dart';
 import '../render/canvas_assets.dart';
 import '../render/icon_renderers.dart';
@@ -44,6 +47,7 @@ class PreviewCardFrameOptions {
     this.hoveredItem,
     this.handles = const <PreviewHandleSpot>[],
     this.labelWidths,
+    this.particleTick = 0,
   });
 
   final bool showGrid;
@@ -66,6 +70,7 @@ class PreviewCardFrameOptions {
   /// Widths measured by the previous frame, so selection rings around a label
   /// are right on the first frame after a change rather than one late.
   final List<double>? labelWidths;
+  final int particleTick;
 }
 
 class PreviewCardPainter {
@@ -98,6 +103,7 @@ class PreviewCardPainter {
       0,
       growable: false,
     );
+    _paintParticles(ctx, view, scene, options, placement: 'behind');
     for (final int index in previewPaintOrder(scene)) {
       final CardItem item = scene.items[index];
       switch (item) {
@@ -127,6 +133,8 @@ class PreviewCardPainter {
           labelWidths[index] = _paintLabel(ctx, view, item, palette);
       }
     }
+    _paintParticles(ctx, view, scene, options, placement: 'center');
+    _paintParticles(ctx, view, scene, options, placement: 'front');
 
     _paintHover(ctx, view, scene, options, palette, labelWidths);
     _paintSelection(ctx, view, scene, options, palette, labelWidths);
@@ -136,6 +144,118 @@ class PreviewCardPainter {
   }
 
   // --- chrome ---------------------------------------------------------------
+
+  void _paintParticles(
+    web.CanvasRenderingContext2D ctx,
+    PreviewCardView view,
+    PreviewCardScene scene,
+    PreviewCardFrameOptions options, {
+    required String placement,
+  }) {
+    if (scene.particleLayers.isEmpty) return;
+    ctx.save();
+    for (final GlossParticleLayer layer in scene.particleLayers) {
+      if (layer.placement.layer != placement) continue;
+      final List<GlossParticleRect> targets = _particleTargets(scene, layer);
+      if (layer.target.scope != 'local' && targets.isEmpty) continue;
+      final List<Vec3> samples = glossSelectParticlePattern(
+        glossSampleParticleGeometry(layer.geometry, targets, maximum: 512),
+        layer.emission,
+        options.particleTick,
+      );
+      ctx.fillStyle = (layer.particle.color ?? '#8bd5ff').toJS;
+      ctx.globalAlpha = placement == 'behind' ? 0.62 : 0.9;
+      final double radius = math.max(
+        1.2,
+        math.min(4, (layer.particle.size ?? 1) * 1.7),
+      );
+      for (final Vec3 point in samples) {
+        final double cardX = (point.x + layer.placement.offset.x) * 160;
+        final double cardY = (point.y + layer.placement.offset.y) * 160;
+        ctx.beginPath();
+        ctx.arc(
+          view.toScreenX(cardX),
+          view.toScreenY(cardY),
+          radius,
+          0,
+          math.pi * 2,
+        );
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  List<GlossParticleRect> _particleTargets(
+    PreviewCardScene scene,
+    GlossParticleLayer layer,
+  ) {
+    final String scope = layer.target.scope;
+    if (scope == 'projection') {
+      return <GlossParticleRect>[
+        GlossParticleRect.plane(scene.widthPx / 160, scene.heightPx / 160),
+      ];
+    }
+    if (scope == 'local') return const <GlossParticleRect>[];
+    final List<GlossParticleRect> targets = <GlossParticleRect>[];
+    for (int index = 0; index < scene.items.length; index++) {
+      final CardItem item = scene.items[index];
+      final int source = index < scene.sources.length
+          ? scene.sources[index]
+          : -1;
+      if (scope == 'component') {
+        if (source < 0 || layer.target.component != 'element-$source') continue;
+        final PreviewBox box = previewItemBox(item);
+        targets.add(
+          GlossParticleRect(
+            x: box.centerX / 160,
+            y: box.centerY / 160,
+            z: item.z / 160,
+            width: box.width / 160,
+            height: box.height / 160,
+            depth: 1 / 160,
+          ),
+        );
+        continue;
+      }
+      if (item is! CardLabel) continue;
+      final GlossParticleTextRendered rendered = GlossParticleTextRendered(
+        text: item.renderedText,
+        spans: item.particleSpans,
+      );
+      final List<GlossParticleRect> local = switch (scope) {
+        'label' || 'text' => <GlossParticleRect>[
+          glossParticleTextBounds(rendered.text, 0.25),
+        ],
+        'line' => _particleLineTarget(rendered.text, layer.target.line),
+        'span' => glossParticleSpanBounds(
+          rendered,
+          layer.target.name ?? '',
+          0.25,
+          perLetter:
+              layer.geometry.type == 'letterBounds' ||
+              layer.geometry.type == 'glyphOutline' ||
+              layer.geometry.type == 'glyphFill',
+        ),
+        _ => const <GlossParticleRect>[],
+      };
+      for (final GlossParticleRect target in local) {
+        targets.add(target.translate(item.x / 160, item.y / 160, item.z / 160));
+      }
+    }
+    return targets;
+  }
+
+  List<GlossParticleRect> _particleLineTarget(String text, int? oneBasedLine) {
+    if (oneBasedLine == null || oneBasedLine < 1) {
+      return const <GlossParticleRect>[];
+    }
+    final List<GlossParticleRect> lines = glossParticleLineBounds(text, 0.25);
+    final int index = oneBasedLine - 1;
+    return index < lines.length
+        ? <GlossParticleRect>[lines[index]]
+        : const <GlossParticleRect>[];
+  }
 
   /// Minor lines, major lines and the two card axes. Drawn across the whole
   /// surface rather than only under the card: the author places elements by

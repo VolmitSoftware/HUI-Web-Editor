@@ -54,7 +54,9 @@ library;
 
 import '../l10n/hui_localizations.dart';
 import '../model/preview_doc.dart';
+import '../model/particle_layer.dart';
 import 'gloss_text.dart' show GlossEmojiResolver, GlossNoEmoji, glossApplyEmoji;
+import 'gloss_particle_text.dart';
 import 'mc_text.dart';
 import 'preview_expr.dart';
 import 'preview_sim.dart';
@@ -182,6 +184,8 @@ class CardLabel extends CardItem {
     this.text,
     this.background, {
     this.size,
+    this.renderedText = '',
+    this.particleSpans = const <GlossParticleTextSpan>[],
   });
 
   /// Always null. The preview format has no label size: `PreviewElement.Label`
@@ -195,6 +199,8 @@ class CardLabel extends CardItem {
   /// Unsigned ARGB; 0 (fully transparent) unless the document asked for a
   /// backing plate.
   final int background;
+  final String renderedText;
+  final List<GlossParticleTextSpan> particleSpans;
 }
 
 /// One built frame: the items in paint order plus the extent they cover.
@@ -204,6 +210,7 @@ class PreviewCardScene {
     this.widthPx,
     this.heightPx, {
     this.sources = const <int>[],
+    this.particleLayers = const <GlossParticleLayer>[],
   });
 
   static const PreviewCardScene empty = PreviewCardScene(<CardItem>[], 0, 0);
@@ -229,6 +236,7 @@ class PreviewCardScene {
   /// way to know how wide a rendered string will be. Zero for an empty scene.
   final int widthPx;
   final int heightPx;
+  final List<GlossParticleLayer> particleLayers;
 }
 
 // ---------------------------------------------------------------------------
@@ -295,6 +303,7 @@ PreviewCardScene buildCardScene(
       _width(items),
       _height(items),
       sources: List<int>.unmodifiable(owners),
+      particleLayers: glossCopyParticleLayers(doc.particleLayers),
     );
   } catch (failure) {
     sink(
@@ -500,13 +509,16 @@ void _emit(
         scope,
         'background',
       );
+      final McTextResult parsed = _labelText(template.text, scope, sink, emoji);
       out.add(
         CardLabel(
           x,
           y,
           z,
-          _labelText(template.text, scope, sink, emoji),
+          _flattenRuns(parsed),
           background,
+          renderedText: parsed.renderedText,
+          particleSpans: parsed.particleSpans,
         ),
       );
   }
@@ -558,23 +570,37 @@ int _cellColor(Object? raw, PExprScope scope, void Function(String) sink) {
 /// A label's text is the other live field. It goes through [parseMcText], the
 /// twin of the plugin's `TextUtils.parse`, so a document renders the same runs
 /// the retired layouts built. A failure renders nothing.
-List<StyledTextRun> _labelText(
+McTextResult _labelText(
   String? raw,
   PExprScope scope,
   void Function(String) sink,
   GlossEmojiResolver emoji,
 ) {
   try {
-    return _parseRuns(
-      glossApplyEmoji(_string(_required(raw, 'text'), scope, 'text'), emoji),
+    final Object sourceValue = _required(raw, 'text');
+    if (sourceValue is! String) {
+      _string(sourceValue, scope, 'text');
+    }
+    final String source = sourceValue as String;
+    final GlossParticleTextRendered rendered = resolveGlossParticleText(
+      glossApplyEmoji(
+        _labelled(
+          'text',
+          () => evalString(_compileParticleText(source), scope),
+        ),
+        emoji,
+      ),
     );
+    return parseMcText(
+      rendered.text,
+    ).withParticleSpans(rendered.text, rendered.spans);
   } catch (failure) {
     sink(
       huiText('label text: {reason}', <String, Object?>{
         'reason': _reason(failure),
       }),
     );
-    return const <StyledTextRun>[];
+    return const McTextResult(lines: <List<McSpan>>[], warnings: <String>[]);
   }
 }
 
@@ -582,6 +608,10 @@ List<StyledTextRun> _labelText(
 /// never splits on newlines, so every parsed line is concatenated back.
 List<StyledTextRun> _parseRuns(String text) {
   final McTextResult parsed = parseMcText(text);
+  return _flattenRuns(parsed);
+}
+
+List<StyledTextRun> _flattenRuns(McTextResult parsed) {
   if (parsed.lines.length == 1) return parsed.lines.first;
   return <StyledTextRun>[for (final List<McSpan> line in parsed.lines) ...line];
 }
@@ -879,6 +909,7 @@ int _halfHeight(CardItem item) => switch (item) {
 const int _exprCacheLimit = 512;
 
 final Map<String, PExpr> _exprCache = <String, PExpr>{};
+final Map<String, PExpr> _particleExprCache = <String, PExpr>{};
 
 PExpr _compile(String source) {
   final PExpr? cached = _exprCache[source];
@@ -887,6 +918,61 @@ PExpr _compile(String source) {
   if (_exprCache.length >= _exprCacheLimit) _exprCache.clear();
   _exprCache[source] = parsed;
   return parsed;
+}
+
+PExpr _compileParticleText(String source) {
+  final PExpr? cached = _particleExprCache[source];
+  if (cached != null) return cached;
+  final PExpr parsed = _markParticleTextLiterals(_compile(source));
+  if (_particleExprCache.length >= _exprCacheLimit) {
+    _particleExprCache.clear();
+  }
+  _particleExprCache[source] = parsed;
+  return parsed;
+}
+
+PExpr _markParticleTextLiterals(PExpr expression) {
+  return switch (expression) {
+    PNum() => expression,
+    PStr(value: final String value) => PStr(
+      parseGlossParticleText(value).marked,
+    ),
+    PBool() => expression,
+    PList(items: final List<PExpr> items) => PList(<PExpr>[
+      for (final PExpr item in items) _markParticleTextLiterals(item),
+    ]),
+    PVar() => expression,
+    PUnary(op: final String op, operand: final PExpr operand) => PUnary(
+      op,
+      _markParticleTextLiterals(operand),
+    ),
+    PBinary(
+      op: final String op,
+      left: final PExpr left,
+      right: final PExpr right,
+    ) =>
+      PBinary(
+        op,
+        _markParticleTextLiterals(left),
+        _markParticleTextLiterals(right),
+      ),
+    PTernary(
+      condition: final PExpr condition,
+      ifTrue: final PExpr ifTrue,
+      ifFalse: final PExpr ifFalse,
+    ) =>
+      PTernary(
+        _markParticleTextLiterals(condition),
+        _markParticleTextLiterals(ifTrue),
+        _markParticleTextLiterals(ifFalse),
+      ),
+    PCall(name: final String name, args: final List<PExpr> args) => PCall(
+      name,
+      <PExpr>[
+        for (final PExpr argument in args) _markParticleTextLiterals(argument),
+      ],
+    ),
+  };
 }
 
 /// A number-or-expression field.

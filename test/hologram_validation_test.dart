@@ -22,7 +22,7 @@ final class _Animations implements GlossAnimationResolver {
 
 GlossHologramDoc _valid() => decodeGlossHologramDoc('''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
   "anchor": {"world": "world", "position": [0, 64, 0]},
   "lines": ["&fHello"]
@@ -57,7 +57,7 @@ void main() {
 
     test('a missing anchor object', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(
-        '{"schemaVersion": 1, "revision": 1, "lines": []}',
+        '{"schemaVersion": 2, "revision": 1, "lines": []}',
       );
       expect(_errors(validateHologramDoc(doc)), contains(r'$.anchor'));
     });

@@ -165,7 +165,7 @@ HuiMenu _fullMenu() {
 }
 
 const String _hologram =
-    '{"schemaVersion":1,"revision":2,'
+    '{"schemaVersion":2,"revision":2,'
     '"anchor":{"world":"world","position":[1,2,3]},'
     '"lines":["a","b"],"seeThrough":false}';
 
@@ -188,7 +188,7 @@ const String _emoji =
     '"enabled":false}';
 
 const String _bubble =
-    '{"schemaVersion":3,"revision":2,"prefix":"&7","offset":[0,0.3,0],'
+    '{"schemaVersion":4,"revision":2,"prefix":"&7","offset":[0,0.3,0],'
     '"wordWrapChars":32,"maxAliveMs":5000,'
     '"motion":{"translation":{"x":"0","y":"1","z":"0"},'
     '"scale":{"x":"1","y":"1","z":"1"},'

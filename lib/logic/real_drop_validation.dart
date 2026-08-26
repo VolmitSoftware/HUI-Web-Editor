@@ -4,6 +4,7 @@ import '../model/gloss_doc.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
 import 'preview_expr.dart';
+import 'particle_layer_validation.dart';
 import 'real_drop_script.dart';
 import 'validation.dart';
 
@@ -58,6 +59,7 @@ List<HuiIssue> _atPresentation(
 
 List<HuiIssue> _validatePresentation(GlossRealDropPresentation doc) {
   final List<HuiIssue> issues = <HuiIssue>[];
+  issues.addAll(validateParticleLayers(doc.particleLayers));
 
   _range(
     issues,

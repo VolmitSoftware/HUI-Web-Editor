@@ -43,6 +43,7 @@ library;
 import '../l10n/hui_localizations.dart';
 import '../model/gloss_animation.dart';
 import 'gloss_animation_playback.dart';
+import 'gloss_particle_text.dart';
 import 'mc_text.dart' show McSpan, mcDefaultTextColor, mcLegacyColors;
 import 'preview_expr.dart';
 import 'preview_expr_functions.dart';
@@ -261,6 +262,9 @@ final class GlossLineRender {
     required this.metrics,
     required this.expressions,
     required this.expressionErrors,
+    required this.renderedText,
+    required this.particleSpans,
+    this.particleSpanError,
   });
 
   final List<GlossTextPiece> pieces;
@@ -284,6 +288,10 @@ final class GlossLineRender {
   final List<String> expressions;
 
   final List<String> expressionErrors;
+
+  final String renderedText;
+  final List<GlossParticleTextSpan> particleSpans;
+  final String? particleSpanError;
 
   bool get isAnimated => usedAnimations.isNotEmpty || expressions.isNotEmpty;
 
@@ -431,29 +439,47 @@ GlossLineRender _renderGlossLine(
   final List<String> metrics = <String>[];
   final List<String> expressions = <String>[];
   final List<String> expressionErrors = <String>[];
-  final String functions = _applyFunctions(
-    raw,
-    animations,
-    nowMs,
-    used,
-    missing,
-    metrics: metrics,
-  );
-  String substituted = glossApplyEmoji(
-    _applyTextExpressions(
-      functions,
+  String renderMarked(String marked) {
+    final String functions = _applyFunctions(
+      marked,
+      animations,
       nowMs,
-      expressionSamples,
-      expressions,
-      expressionErrors,
-    ),
-    emoji,
-  );
-  if (runtimeTransform != null) {
-    substituted = runtimeTransform(substituted);
+      used,
+      missing,
+      metrics: metrics,
+    );
+    String substituted = glossApplyEmoji(
+      _applyTextExpressions(
+        functions,
+        nowMs,
+        expressionSamples,
+        expressions,
+        expressionErrors,
+      ),
+      emoji,
+    );
+    if (runtimeTransform != null) {
+      substituted = runtimeTransform(substituted);
+    }
+    return _translateRuntimeColors(substituted);
+  }
+
+  GlossParticleTextRendered rendered;
+  String? particleSpanError;
+  try {
+    rendered = renderGlossParticleText(raw, renderMarked);
+  } on GlossParticleTextFormatException catch (failure) {
+    particleSpanError = failure.message;
+    rendered = GlossParticleTextRendered(
+      text: renderMarked(raw),
+      spans: const <GlossParticleTextSpan>[],
+    );
   }
   final List<String> placeholders = <String>[];
-  final List<GlossTextPiece> pieces = _renderColors(substituted, placeholders);
+  final List<GlossTextPiece> pieces = _renderColors(
+    rendered.text,
+    placeholders,
+  );
   return GlossLineRender(
     pieces: List<GlossTextPiece>.unmodifiable(pieces),
     usedAnimations: List<String>.unmodifiable(used),
@@ -462,6 +488,9 @@ GlossLineRender _renderGlossLine(
     metrics: List<String>.unmodifiable(metrics),
     expressions: List<String>.unmodifiable(expressions),
     expressionErrors: List<String>.unmodifiable(expressionErrors),
+    renderedText: rendered.text,
+    particleSpans: rendered.spans,
+    particleSpanError: particleSpanError,
   );
 }
 
@@ -594,23 +623,48 @@ String glossRenderMenuText(
   int nowMs = 0,
   GlossTextExpressionSamples expressionSamples =
       const GlossTextExpressionSamples(),
+}) => glossRenderMenuParticleText(
+  raw,
+  animations: animations,
+  emoji: emoji,
+  nowMs: nowMs,
+  expressionSamples: expressionSamples,
+).text;
+
+GlossParticleTextRendered glossRenderMenuParticleText(
+  String raw, {
+  GlossAnimationResolver animations = const GlossNoAnimations(),
+  GlossEmojiResolver emoji = const GlossNoEmoji(),
+  int nowMs = 0,
+  GlossTextExpressionSamples expressionSamples =
+      const GlossTextExpressionSamples(),
 }) {
-  if (raw.isEmpty) return '';
-  final String functions = _applyFunctions(
-    raw,
-    animations,
-    nowMs,
-    <String>[],
-    <String>[],
-  );
-  final String expressions = _applyTextExpressions(
-    functions,
-    nowMs,
-    expressionSamples,
-    <String>[],
-    <String>[],
-  );
-  return _translateBracketHex(glossApplyEmoji(expressions, emoji));
+  String renderMarked(String marked) {
+    final String functions = _applyFunctions(
+      marked,
+      animations,
+      nowMs,
+      <String>[],
+      <String>[],
+    );
+    final String expressions = _applyTextExpressions(
+      functions,
+      nowMs,
+      expressionSamples,
+      <String>[],
+      <String>[],
+    );
+    return _translateBracketHex(glossApplyEmoji(expressions, emoji));
+  }
+
+  try {
+    return renderGlossParticleText(raw, renderMarked);
+  } on GlossParticleTextFormatException {
+    return GlossParticleTextRendered(
+      text: renderMarked(raw),
+      spans: const <GlossParticleTextSpan>[],
+    );
+  }
 }
 
 bool glossMenuTextNeedsRefresh(String raw) {

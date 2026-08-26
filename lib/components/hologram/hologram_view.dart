@@ -35,11 +35,13 @@ import 'package:web/web.dart' as web;
 
 import '../../logic/gloss_hologram_scene.dart';
 import '../../logic/gloss_text.dart';
+import '../../logic/gloss_particle_text.dart';
 import '../../model/model.dart';
 import '../../preview/preview_types.dart';
 import '../../preview/projection.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
+import '../gloss/gloss_particle_overlay.dart';
 import '../gloss/gloss_text_line.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
@@ -241,7 +243,8 @@ class _HologramViewState extends State<HologramView> {
       return const dom.div(classes: 'hui-hologram-stage is-empty', <Widget>[]);
     }
     final GlossAnimationResolver animations = _store.workspaceAnimations;
-    final bool animated = hologramIsAnimated(doc, animations);
+    final bool animated =
+        hologramIsAnimated(doc, animations) || doc.particleLayers.isNotEmpty;
     _syncTicker(animated);
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
 
@@ -294,7 +297,8 @@ class _HologramViewState extends State<HologramView> {
       },
       <Widget>[
         for (final HologramGridSegment segment in grid) _gridLine(segment),
-        if (placement != null) _billboard(placement, plane, lines),
+        if (placement != null)
+          _billboard(placement, plane, lines, doc, nowMs ~/ 50),
         if (placement != null) _anchorMarker(placement),
         dom.div(
           classes: 'hui-hologram-controls',
@@ -400,9 +404,13 @@ class _HologramViewState extends State<HologramView> {
     HologramBillboardPlacement placement,
     HologramPlaneTransform plane,
     List<GlossLineRender> lines,
+    GlossHologramDoc doc,
+    int tick,
   ) {
-    final double linePx = glossHologramLineHeightBlocks * placement.pxPerBlock;
+    final double linePx =
+        glossHologramLineHeightBlocks * placement.pxPerBlock * doc.scale;
     final double fontPx = linePx * 0.8;
+    final GlossParticleTextRendered rendered = _particleText(lines);
     return dom.div(
       classes: 'hui-hologram-billboard',
       styles: dom.Styles(
@@ -419,11 +427,41 @@ class _HologramViewState extends State<HologramView> {
         },
       ),
       <Widget>[
+        GlossParticleOverlay(
+          layers: doc.particleLayers,
+          pixelsPerBlock: placement.pxPerBlock,
+          tick: tick,
+          renderedText: rendered,
+          textScale: doc.scale,
+        ),
         for (final GlossLineRender line in lines)
           dom.div(classes: 'hui-hologram-line', <Widget>[
             GlossTextLine(render: line),
           ]),
       ],
+    );
+  }
+
+  GlossParticleTextRendered _particleText(List<GlossLineRender> lines) {
+    final StringBuffer text = StringBuffer();
+    final List<GlossParticleTextSpan> spans = <GlossParticleTextSpan>[];
+    for (int index = 0; index < lines.length; index++) {
+      if (index > 0) text.write('\n');
+      final GlossLineRender line = lines[index];
+      final int offset = text.length;
+      text.write(line.renderedText);
+      spans.addAll(<GlossParticleTextSpan>[
+        for (final GlossParticleTextSpan span in line.particleSpans)
+          GlossParticleTextSpan(
+            name: span.name,
+            start: span.start + offset,
+            end: span.end + offset,
+          ),
+      ]);
+    }
+    return GlossParticleTextRendered(
+      text: text.toString(),
+      spans: List<GlossParticleTextSpan>.unmodifiable(spans),
     );
   }
 

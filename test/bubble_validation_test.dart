@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 
 GlossBubbleStyleDoc _clean() => decodeGlossBubbleStyleDoc('''
 {
-  "schemaVersion":3,
+  "schemaVersion":4,
   "revision": 1,
   "prefix": "&7",
   "offset": [0.0, 1.0, 0.0],

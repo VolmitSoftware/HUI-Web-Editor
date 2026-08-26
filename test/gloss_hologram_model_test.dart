@@ -9,7 +9,7 @@ import 'package:test/test.dart';
 
 const String _baseline = '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 7,
   "anchor": {
     "world": "world_nether",
@@ -18,7 +18,8 @@ const String _baseline = '''
   "lines": [
     "&dTop",
     "&7Bottom"
-  ]
+  ],
+  "particleLayers": []
 }
 ''';
 
@@ -26,7 +27,7 @@ void main() {
   group('decode', () {
     test('reads the full document', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
-      expect(doc.schemaVersion, 1);
+      expect(doc.schemaVersion, 2);
       expect(doc.revision, 7);
       expect(doc.anchor.world, 'world_nether');
       expect(doc.anchor.position, <double>[10.5, 64, -3.25]);
@@ -37,7 +38,7 @@ void main() {
 
     test('rejects a wrong schemaVersion like DocumentEnvelope does', () {
       expect(
-        () => decodeGlossHologramDoc('{"schemaVersion": 2, "revision": 1}'),
+        () => decodeGlossHologramDoc('{"schemaVersion": 1, "revision": 1}'),
         throwsA(isA<HuiFormatException>()),
       );
     });
@@ -58,7 +59,7 @@ void main() {
 
     test('is lenient about everything validation owns', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(
-        '{"schemaVersion": 1, "revision": 0, '
+        '{"schemaVersion": 2, "revision": 0, '
         '"anchor": {"world": "", "position": [1, 2]}, "lines": []}',
       );
       expect(doc.revision, 0);
@@ -69,11 +70,11 @@ void main() {
 
     test('a missing anchor is flagged, not defaulted away', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(
-        '{"schemaVersion": 1, "revision": 1, "lines": ["a"]}',
+        '{"schemaVersion": 2, "revision": 1, "lines": ["a"]}',
       );
       expect(doc.anchorPresent, isFalse);
       expect(jsonDecode(encodeGlossHologramDoc(doc)), <String, dynamic>{
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'revision': 1,
         'lines': <String>['a'],
       });
@@ -85,13 +86,13 @@ void main() {
       () {
         expect(
           decodeGlossHologramDoc(
-            '{"schemaVersion": 1, "revision": 1, "lines": "solo"}',
+            '{"schemaVersion": 2, "revision": 1, "lines": "solo"}',
           ).lines,
           <String>['solo'],
         );
         expect(
           decodeGlossHologramDoc(
-            '{"schemaVersion": 1, "revision": 1, "lines": ["a", null, "b"]}',
+            '{"schemaVersion": 2, "revision": 1, "lines": ["a", null, "b"]}',
           ).lines,
           <String>['a', '', 'b'],
         );
@@ -122,7 +123,7 @@ void main() {
     test('unknown keys survive at both levels, after the known ones', () {
       const String withExtras = '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 3,
   "future": {"nested": [1, 2, 3]},
   "anchor": {
@@ -153,7 +154,7 @@ void main() {
 
     test('an invalid position shape is re-emitted verbatim', () {
       const String badVector =
-          '{"schemaVersion": 1, "revision": 1, '
+          '{"schemaVersion": 2, "revision": 1, '
           '"anchor": {"world": "world", "position": [1, 2]}, "lines": []}';
       final GlossHologramDoc doc = decodeGlossHologramDoc(badVector);
       final Map<String, dynamic> out =
@@ -239,7 +240,8 @@ void main() {
       );
       expect(doc.pitch, 240);
       expect(
-        (jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>)['pitch'],
+        (jsonDecode(encodeGlossHologramDoc(doc))
+            as Map<String, dynamic>)['pitch'],
         240,
       );
     });
@@ -281,7 +283,7 @@ void main() {
       );
       expect(
         looksLikeHologramDoc(<String, dynamic>{
-          'schemaVersion': 1,
+          'schemaVersion': 2,
           'lines': <String>[],
         }),
         isFalse,

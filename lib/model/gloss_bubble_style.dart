@@ -46,6 +46,7 @@ import 'dart:convert';
 
 import 'gloss_doc.dart';
 import 'json_codec.dart';
+import 'particle_layer.dart';
 
 /// `BubbleStyleDoc` clamp bounds.
 const int glossBubbleMinWordWrapChars = 8;
@@ -66,7 +67,7 @@ const int glossBubbleShimmerDefaultFlyAwayLeadMs = 700;
 /// `BubbleStyleDoc.Shimmer.DEFAULT_COLOR` — the solid shimmer band color.
 const String glossBubbleShimmerDefaultColor = '#ffffff';
 
-const int glossBubbleCurrentSchemaVersion = 3;
+const int glossBubbleCurrentSchemaVersion = 4;
 
 const String glossBubbleDefaultTranslationY =
     '10 * pow(clamp((ageMs - lifetimeMs + 2000) / 2000, 0, 1), 16)';
@@ -131,6 +132,7 @@ const Set<String> _docKnown = <String>{
   'followPlayer',
   'hideOwn',
   'select',
+  'particleLayers',
 };
 
 const Set<String> _selectKnown = <String>{'priority', 'when'};
@@ -439,10 +441,12 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     this.followPlayer = false,
     this.hideOwn = false,
     this.select,
+    List<GlossParticleLayer>? particleLayers,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
   }) : motion = motion ?? GlossBubbleMotion.runtimeDefaults(),
        shimmer = shimmer ?? GlossBubbleShimmer(),
+       particleLayers = particleLayers ?? <GlossParticleLayer>[],
        extras = extras ?? <String, dynamic>{},
        absentKeys = absentKeys ?? <String>{};
 
@@ -466,6 +470,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
 
   /// Null when the file has no `select` — the style never auto-matches.
   GlossBubbleSelect? select;
+  List<GlossParticleLayer> particleLayers;
+  bool particleLayersPresent = false;
 
   Map<String, dynamic> extras;
   Set<String> absentKeys;
@@ -526,7 +532,7 @@ final class GlossBubbleStyleDoc extends GlossDoc {
       'bubbles',
       expected: glossBubbleCurrentSchemaVersion,
     );
-    return GlossBubbleStyleDoc(
+    final GlossBubbleStyleDoc doc = GlossBubbleStyleDoc(
       schemaVersion: glossBubbleCurrentSchemaVersion,
       revision: glossReadRevision(map),
       prefix: huiReadString(map, 'prefix'),
@@ -540,6 +546,7 @@ final class GlossBubbleStyleDoc extends GlossDoc {
       select: map['select'] == null
           ? null
           : GlossBubbleSelect.fromJson(map['select']),
+      particleLayers: glossReadParticleLayers(map['particleLayers']),
       extras: huiCollectExtras(map, _docKnown),
       absentKeys: <String>{
         if (map['revision'] == null) 'revision',
@@ -551,6 +558,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
         if (map['hideOwn'] == null) 'hideOwn',
       },
     );
+    doc.particleLayersPresent = map.containsKey('particleLayers');
+    return doc;
   }
 
   @override
@@ -570,23 +579,30 @@ final class GlossBubbleStyleDoc extends GlossDoc {
         'followPlayer': followPlayer,
       if (!absentKeys.contains('hideOwn') || hideOwn) 'hideOwn': hideOwn,
       if (select != null) 'select': select!.toJson(),
+      if (particleLayersPresent || particleLayers.isNotEmpty)
+        'particleLayers': glossWriteParticleLayers(particleLayers),
     };
     return huiMergeExtras(out, extras);
   }
 
-  GlossBubbleStyleDoc copy() => GlossBubbleStyleDoc(
-    schemaVersion: schemaVersion,
-    revision: revision,
-    prefix: prefix,
-    offsetRaw: huiDeepCopy(offsetRaw),
-    wordWrapChars: wordWrapChars,
-    maxAliveMs: maxAliveMs,
-    motion: motion.copy(),
-    shimmer: shimmer.copy(),
-    followPlayer: followPlayer,
-    hideOwn: hideOwn,
-    select: select?.copy(),
-    extras: huiDeepCopyMap(extras),
-    absentKeys: Set<String>.of(absentKeys),
-  );
+  GlossBubbleStyleDoc copy() {
+    final GlossBubbleStyleDoc copied = GlossBubbleStyleDoc(
+      schemaVersion: schemaVersion,
+      revision: revision,
+      prefix: prefix,
+      offsetRaw: huiDeepCopy(offsetRaw),
+      wordWrapChars: wordWrapChars,
+      maxAliveMs: maxAliveMs,
+      motion: motion.copy(),
+      shimmer: shimmer.copy(),
+      followPlayer: followPlayer,
+      hideOwn: hideOwn,
+      select: select?.copy(),
+      particleLayers: glossCopyParticleLayers(particleLayers),
+      extras: huiDeepCopyMap(extras),
+      absentKeys: Set<String>.of(absentKeys),
+    );
+    copied.particleLayersPresent = particleLayersPresent;
+    return copied;
+  }
 }

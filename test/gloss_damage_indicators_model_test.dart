@@ -55,7 +55,7 @@ void main() {
     expect(
       () => decodeGlossDamageIndicatorsDoc('''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "damage": {
     "when": "true",

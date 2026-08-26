@@ -22,6 +22,7 @@ import '../logic/json_schema.dart';
 import '../model/hui_actions.dart';
 import '../model/hui_component.dart';
 import '../model/hui_icons.dart';
+import '../model/particle_layer.dart';
 
 /// `[x, y, z]`, the shape `BukkitTypeAdapters.VECTOR` reads. Exactly three
 /// numbers: two or four throw and kill the file.
@@ -35,6 +36,265 @@ const GlossJsonArray glossVector3Node = GlossJsonArray(
 List<GlossJsonValue> _values(List<String> tokens) => <GlossJsonValue>[
   for (final String token in tokens) GlossJsonValue('"$token"'),
 ];
+
+final GlossJsonObject glossParticleTargetNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'scope',
+      type: GlossJsonType.string,
+      title: 'Scope',
+      summary: 'Scope',
+      values: _values(glossParticleTargetScopes),
+      defaultLiteral: '"projection"',
+    ),
+    const GlossJsonField(
+      key: 'name',
+      type: GlossJsonType.string,
+      title: 'Text',
+      summary: 'Text',
+    ),
+    const GlossJsonField(
+      key: 'component',
+      type: GlossJsonType.string,
+      title: 'Component id',
+      summary: 'Component id',
+    ),
+    const GlossJsonField(
+      key: 'line',
+      type: GlossJsonType.integer,
+      title: 'Line',
+      summary: 'Line',
+    ),
+  ],
+);
+
+final GlossJsonObject glossParticleGeometryNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'type',
+      type: GlossJsonType.string,
+      title: 'Type',
+      summary: 'Type',
+      values: _values(glossParticleGeometryTypes),
+      defaultLiteral: '"outline"',
+    ),
+    const GlossJsonField(
+      key: 'from',
+      type: GlossJsonType.array,
+      title: 'Position',
+      summary: 'Position',
+      node: glossVector3Node,
+    ),
+    const GlossJsonField(
+      key: 'to',
+      type: GlossJsonType.array,
+      title: 'Position',
+      summary: 'Position',
+      node: glossVector3Node,
+    ),
+    const GlossJsonField(
+      key: 'points',
+      type: GlossJsonType.array,
+      title: 'Position',
+      summary: 'Position',
+      node: GlossJsonArray(
+        item: glossVector3Node,
+        itemType: GlossJsonType.array,
+        itemTitle: 'Position',
+        itemSummary: 'Position',
+      ),
+    ),
+    const GlossJsonField(
+      key: 'width',
+      type: GlossJsonType.number,
+      title: 'Width',
+      summary: 'Width',
+    ),
+    const GlossJsonField(
+      key: 'height',
+      type: GlossJsonType.number,
+      title: 'Height',
+      summary: 'Height',
+    ),
+    const GlossJsonField(
+      key: 'depth',
+      type: GlossJsonType.number,
+      title: 'Size',
+      summary: 'Size',
+    ),
+    const GlossJsonField(
+      key: 'padding',
+      type: GlossJsonType.number,
+      title: 'Size',
+      summary: 'Size',
+      defaultLiteral: '0',
+    ),
+    const GlossJsonField(
+      key: 'spacing',
+      type: GlossJsonType.number,
+      title: 'Size',
+      summary: 'Size',
+      defaultLiteral: '0.15',
+    ),
+  ],
+);
+
+final GlossJsonObject glossParticlePlacementNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'layer',
+      type: GlossJsonType.string,
+      title: 'Placement',
+      summary: 'Placement',
+      values: _values(glossParticlePlacementLayers),
+      defaultLiteral: '"behind"',
+    ),
+    const GlossJsonField(
+      key: 'depth',
+      type: GlossJsonType.number,
+      title: 'Size',
+      summary: 'Size',
+      defaultLiteral: '0.04',
+    ),
+    const GlossJsonField(
+      key: 'offset',
+      type: GlossJsonType.array,
+      title: 'Offset',
+      summary: 'Offset',
+      node: glossVector3Node,
+      defaultLiteral: '[0, 0, 0]',
+    ),
+  ],
+);
+
+const GlossJsonObject glossParticleSpecNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'key',
+      type: GlossJsonType.string,
+      title: 'Type',
+      summary: 'Type',
+      defaultLiteral: '"minecraft:dust"',
+    ),
+    GlossJsonField(
+      key: 'color',
+      type: GlossJsonType.string,
+      title: 'Color',
+      summary: 'Color',
+      defaultLiteral: '"#ffffff"',
+    ),
+    GlossJsonField(
+      key: 'size',
+      type: GlossJsonType.number,
+      title: 'Size',
+      summary: 'Size',
+      defaultLiteral: '1',
+    ),
+  ],
+);
+
+final GlossJsonObject glossParticleEmissionNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'intervalTicks',
+      type: GlossJsonType.integer,
+      title: 'Speed',
+      summary: 'Speed',
+      defaultLiteral: '4',
+    ),
+    GlossJsonField(
+      key: 'pattern',
+      type: GlossJsonType.string,
+      title: 'Type',
+      summary: 'Type',
+      values: _values(glossParticleEmissionPatterns),
+      defaultLiteral: '"steady"',
+    ),
+    const GlossJsonField(
+      key: 'periodTicks',
+      type: GlossJsonType.integer,
+      title: 'Speed',
+      summary: 'Speed',
+      defaultLiteral: '40',
+    ),
+    const GlossJsonField(
+      key: 'seed',
+      type: GlossJsonType.integer,
+      title: 'Value',
+      summary: 'Value',
+      defaultLiteral: '0',
+    ),
+  ],
+);
+
+final GlossJsonObject glossParticleLayerNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Component id',
+      summary: 'Component id',
+    ),
+    GlossJsonField(
+      key: 'target',
+      type: GlossJsonType.object,
+      title: 'Target',
+      summary: 'Target',
+      node: glossParticleTargetNode,
+    ),
+    GlossJsonField(
+      key: 'geometry',
+      type: GlossJsonType.object,
+      title: 'Settings',
+      summary: 'Settings',
+      node: glossParticleGeometryNode,
+    ),
+    GlossJsonField(
+      key: 'placement',
+      type: GlossJsonType.object,
+      title: 'Placement',
+      summary: 'Placement',
+      node: glossParticlePlacementNode,
+    ),
+    const GlossJsonField(
+      key: 'particle',
+      type: GlossJsonType.object,
+      title: 'Settings',
+      summary: 'Settings',
+      node: glossParticleSpecNode,
+    ),
+    GlossJsonField(
+      key: 'emission',
+      type: GlossJsonType.object,
+      title: 'Settings',
+      summary: 'Settings',
+      node: glossParticleEmissionNode,
+    ),
+    const GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Priority',
+      defaultLiteral: '0',
+    ),
+  ],
+);
+
+final GlossJsonArray glossParticleLayersNode = GlossJsonArray(
+  item: glossParticleLayerNode,
+  itemType: GlossJsonType.object,
+  itemTitle: 'Entry',
+  itemSummary: 'Entry',
+);
+
+final GlossJsonField glossParticleLayersField = GlossJsonField(
+  key: 'particleLayers',
+  type: GlossJsonType.array,
+  title: 'Particle layers',
+  summary: 'Particle layers',
+  node: glossParticleLayersNode,
+  defaultLiteral: '[]',
+);
 
 /// `icon.style` — the shared display block behind every icon but `entity`.
 final GlossJsonObject glossIconStyleNode = GlossJsonObject(
@@ -864,6 +1124,7 @@ final GlossJsonObject glossMenuJsonSchema = GlossJsonObject(
         itemSummary: 'One button, decoration or toggle.',
       ),
     ),
+    glossParticleLayersField,
     const GlossJsonField(
       key: 'id',
       type: GlossJsonType.string,

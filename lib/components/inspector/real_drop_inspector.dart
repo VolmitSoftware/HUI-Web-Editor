@@ -14,6 +14,7 @@ import 'inspector_widgets.dart';
 import 'real_drop_expr_field.dart';
 import 'real_drop_animation_inspector.dart';
 import 'reorder_list.dart';
+import 'particle_layers_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class RealDropInspector extends StatefulWidget {
@@ -45,6 +46,16 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     return dom.div(classes: 'hui-inspector-body is-real-drops', <Widget>[
       _header(doc),
       _conditionalVariants(doc),
+      ParticleLayersEditor(
+        layers: doc.presentation.particleLayers,
+        sectionKey: 'real-drops.particleLayers',
+        mutate: (String label, void Function(List<GlossParticleLayer>) edit) =>
+            _mutate(
+              label,
+              (GlossRealDropSettingsDoc edited) =>
+                  edit(edited.presentation.particleLayers),
+            ),
+      ),
       _audience(doc),
       _limits(doc),
       _scales(doc),

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "revision": 1,
   "anchor": {
     "world": "world",
@@ -9,5 +9,6 @@
     "&dNew hologram"
   ],
   "seeThrough": true,
-  "scale": 1.0
+  "scale": 1.0,
+  "particleLayers": []
 }
