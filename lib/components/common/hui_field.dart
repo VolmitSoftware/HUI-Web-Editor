@@ -190,7 +190,7 @@ class HuiField extends StatelessWidget {
             <String, Object?>{'label': label, 'defaultValue': defaultValue},
           ),
         },
-        child: ArcaneIcon.rotateCcw(size: IconSize.sm),
+        icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
       ),
     ),
   ];

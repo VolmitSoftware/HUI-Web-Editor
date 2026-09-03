@@ -489,7 +489,7 @@ class ShortcutSheet extends StatelessWidget {
       attributes: <String, String>{
         'aria-label': huiText('Close the shortcut sheet'),
       },
-      child: ArcaneIcon.x(size: IconSize.sm),
+      icon: ArcaneIcon.x(size: IconSize.sm),
     ),
   ]);
 

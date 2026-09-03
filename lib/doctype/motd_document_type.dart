@@ -3,7 +3,7 @@ library;
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
-    show ArcaneIcon, IconSize, Widget;
+    show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../config/gloss_templates.dart';
 import '../logic/motd_validation.dart';
@@ -45,7 +45,7 @@ final class MotdDocumentType extends GlossDocumentTypeAdapter {
   String? get syncWireKind => 'motd';
 
   @override
-  Widget railIcon() => ArcaneIcon.server(size: IconSize.sm);
+  ArcaneGlyph railIcon() => ArcaneIcon.server(size: IconSize.sm);
 
   @override
   GlossDoc decodeDoc(String json) => decodeGlossMotdDoc(json);

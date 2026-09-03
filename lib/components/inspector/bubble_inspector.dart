@@ -246,7 +246,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
           'bubble motion preset',
           (GlossBubbleStyleDoc edited) => edited.motion = create(),
         ),
-        child: Text(label),
+        label: label,
       );
 
   Widget _motionVector({
@@ -358,7 +358,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
             (GlossBubbleStyleDoc edited) =>
                 edited.shimmer = GlossBubbleShimmer(),
           ),
-          child: Text(huiText('Original Gloss')),
+          label: huiText('Original Gloss'),
         ),
       ]),
       HuiSwitchRow(
@@ -626,7 +626,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
                 when: "viewer.world == 'world'",
               ),
             ),
-            child: Text(huiText('Add select rule')),
+            label: huiText('Add select rule'),
           ),
           HuiInlineIssues(_issuesFor(r'$.select')),
         ] else ...<Widget>[
@@ -688,7 +688,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
               'remove select',
               (GlossBubbleStyleDoc edited) => edited.select = null,
             ),
-            child: Text(huiText('Remove select rule')),
+            label: huiText('Remove select rule'),
           ),
           HuiInlineIssues(_issuesFor(r'$.select')),
         ],

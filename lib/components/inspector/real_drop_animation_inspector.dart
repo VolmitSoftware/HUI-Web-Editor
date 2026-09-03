@@ -131,7 +131,7 @@ class RealDropAnimationInspector extends StatelessWidget {
                 '*': GlossRealDropMaterialProperties(),
               };
         }),
-        child: Text(huiText('Add property map')),
+        label: huiText('Add property map'),
       ),
     ]);
   }
@@ -187,7 +187,7 @@ class RealDropAnimationInspector extends StatelessWidget {
               target[_freshName('MATERIAL', target.keys)] =
                   GlossRealDropMaterialProperties();
             }),
-            child: Text(huiText('Add material')),
+            label: huiText('Add material'),
           ),
           Button(
             variant: ButtonVariant.ghost,
@@ -197,7 +197,7 @@ class RealDropAnimationInspector extends StatelessWidget {
               (GlossRealDropAnimation edited) =>
                   edited.materialProperties.remove(map.key),
             ),
-            child: Text(huiText('Remove map')),
+            label: huiText('Remove map'),
           ),
         ]),
       ]),
@@ -253,7 +253,7 @@ class RealDropAnimationInspector extends StatelessWidget {
           (GlossRealDropAnimation edited) =>
               edited.materialProperties[mapName]!.remove(entry.key),
         ),
-        child: Text(huiText('Remove')),
+        label: huiText('Remove'),
       ),
     ]);
   }
@@ -284,7 +284,7 @@ class RealDropAnimationInspector extends StatelessWidget {
             edited.enabled = true;
             edited.profiles.add(_hoverReleaseProfile(id));
           }),
-          child: Text(huiText('Add hover/release sequence')),
+          label: huiText('Add hover/release sequence'),
         ),
         Button(
           variant: ButtonVariant.outline,
@@ -302,7 +302,7 @@ class RealDropAnimationInspector extends StatelessWidget {
               ),
             ),
           ),
-          child: Text(huiText('Add profile')),
+          label: huiText('Add profile'),
         ),
       ]),
     ]);
@@ -361,7 +361,7 @@ class RealDropAnimationInspector extends StatelessWidget {
                   GlossRealDropAnimationClip(durationTicks: 20),
                 ),
               ),
-              child: Text(huiText('Add clip')),
+              label: huiText('Add clip'),
             ),
             Button(
               variant: ButtonVariant.ghost,
@@ -371,7 +371,7 @@ class RealDropAnimationInspector extends StatelessWidget {
                 (GlossRealDropAnimation edited) =>
                     edited.profiles.removeAt(profileIndex),
               ),
-              child: Text(huiText('Remove profile')),
+              label: huiText('Remove profile'),
             ),
           ]),
         ]),
@@ -446,7 +446,7 @@ class RealDropAnimationInspector extends StatelessWidget {
               ),
             ),
           ),
-          child: Text(huiText('Add track')),
+          label: huiText('Add track'),
         ),
         Button(
           variant: ButtonVariant.ghost,
@@ -457,7 +457,7 @@ class RealDropAnimationInspector extends StatelessWidget {
             (GlossRealDropAnimationProfile edited) =>
                 edited.clips.removeAt(clipIndex),
           ),
-          child: Text(huiText('Remove clip')),
+          label: huiText('Remove clip'),
         ),
       ]),
     ]),
@@ -536,7 +536,7 @@ class RealDropAnimationInspector extends StatelessWidget {
             (GlossRealDropAnimationTrack edited) =>
                 edited.keyframes.add(GlossRealDropAnimationKeyframe()),
           ),
-          child: Text(huiText('Add keyframe')),
+          label: huiText('Add keyframe'),
         ),
         Button(
           variant: ButtonVariant.ghost,
@@ -548,7 +548,7 @@ class RealDropAnimationInspector extends StatelessWidget {
             (GlossRealDropAnimationClip edited) =>
                 edited.tracks.removeAt(trackIndex),
           ),
-          child: Text(huiText('Remove track')),
+          label: huiText('Remove track'),
         ),
       ]),
     ]),
@@ -627,7 +627,7 @@ class RealDropAnimationInspector extends StatelessWidget {
         (GlossRealDropAnimationTrack edited) =>
             edited.keyframes.removeAt(frameIndex),
       ),
-      child: Text(huiText('Remove')),
+      label: huiText('Remove'),
     ),
   ]);
 

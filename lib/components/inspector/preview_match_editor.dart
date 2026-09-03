@@ -218,7 +218,7 @@ class PreviewMatchEditor extends StatelessWidget {
         'add variant',
         (HuiPreviewDoc d) => d.variants.add(HuiPreviewVariant()),
       ),
-      child: Text(huiText('Add')),
+      label: huiText('Add'),
     ),
     children: <Widget>[
       if (_doc.variants.isEmpty)
@@ -572,7 +572,7 @@ class _PreviewNameChipsState extends State<_PreviewNameChips> {
               size: ButtonSize.sm,
               icon: ArcaneIcon.plus(size: IconSize.sm),
               onPressed: _add,
-              child: Text(huiText('Add')),
+              label: huiText('Add'),
             ),
           ],
         ),
@@ -780,7 +780,7 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
         attributes: <String, String>{
           'aria-label': huiText("Remove {key}", <String, Object?>{'key': key}),
         },
-        child: ArcaneIcon.trash2(size: IconSize.sm),
+        icon: ArcaneIcon.trash2(size: IconSize.sm),
       ),
       help: huiText(
         'A leading "#" is read as a colour literal (#RGB, #RRGGBB or '
@@ -852,7 +852,7 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
           size: ButtonSize.sm,
           icon: ArcaneIcon.plus(size: IconSize.sm),
           onPressed: _add,
-          child: Text(huiText('Add')),
+          label: huiText('Add'),
         ),
       ],
     ),

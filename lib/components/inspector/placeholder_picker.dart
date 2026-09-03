@@ -57,7 +57,7 @@ class _PlaceholderPickerState extends State<PlaceholderPicker> {
           // keys on `arcanePopoverInteractive` and is unaffected.
           'data-arcane-interactive': 'true',
         },
-        child: Text(label),
+        label: label,
       ),
       content: dom.div(classes: 'hui-placeholder-list', <Widget>[
         HuiEyebrow(huiText('Placeholders')),

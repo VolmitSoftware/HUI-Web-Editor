@@ -542,7 +542,7 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
                   'path': path,
                 }),
               },
-              child: ArcaneIcon.download(size: IconSize.sm),
+              icon: ArcaneIcon.download(size: IconSize.sm),
             ),
             HuiTwoStepButton(
               label: huiText("Delete {path}", <String, Object?>{'path': path}),

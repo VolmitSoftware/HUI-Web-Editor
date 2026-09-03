@@ -806,7 +806,7 @@ class _CodeEditorViewState extends State<CodeEditorView> {
             variant: ButtonVariant.ghost,
             size: ButtonSize.small,
             onPressed: _reformat,
-            icon: ArcaneIcon.wandSparkles(size: IconSize.sm),
+            icon: ArcaneIcon.wand(size: IconSize.sm),
             label: huiText('Format'),
             attributes: <String, String>{
               'aria-label': huiText('Reformat the JSON in the buffer'),

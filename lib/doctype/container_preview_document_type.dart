@@ -5,7 +5,7 @@ import 'package:gloss_editor/l10n/hui_localizations.dart';
 import 'dart:math' as math;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
-    show ArcaneIcon, IconSize, Widget;
+    show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../config/defaults.dart';
 import '../config/preview_templates.dart';
@@ -61,7 +61,7 @@ final class ContainerPreviewDocumentType extends DocumentTypeAdapter {
   String? get syncWireKind => 'container-preview';
 
   @override
-  Widget railIcon() => ArcaneIcon.layoutGrid(size: IconSize.sm);
+  ArcaneGlyph railIcon() => ArcaneIcon.layoutGrid(size: IconSize.sm);
 
   @override
   void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>

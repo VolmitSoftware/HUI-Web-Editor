@@ -200,7 +200,7 @@ class HuiLineListSection extends StatelessWidget {
           size: ButtonSize.sm,
           icon: ArcaneIcon.plus(size: IconSize.sm),
           onPressed: onAdd,
-          child: Text(addLabel),
+          label: addLabel,
         ),
         ...tools,
       ]),
@@ -216,7 +216,7 @@ class HuiLineListSection extends StatelessWidget {
               size: ButtonSize.sm,
               icon: ArcaneIcon.plus(size: IconSize.sm),
               onPressed: onAdd,
-              child: Text(addLabel),
+              label: addLabel,
             ),
           ],
         )

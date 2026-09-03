@@ -121,7 +121,7 @@ class _PanelViewState extends State<PanelView> {
           ]),
           Button.outline(
             size: ButtonSize.sm,
-            icon: ArcaneIcon.wandSparkles(size: IconSize.sm),
+            icon: ArcaneIcon.wand(size: IconSize.sm),
             label: huiText('Arrange'),
             onPressed: () => _arrange(panel, graph),
           ),

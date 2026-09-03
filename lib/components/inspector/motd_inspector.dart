@@ -150,7 +150,7 @@ class _MotdInspectorState extends State<MotdInspector> {
               edited.entries[index].lines.add('');
             }
           }),
-          child: Text(huiText('Add second line')),
+          label: huiText('Add second line'),
         ),
       HuiInlineIssues(_issuesFor('entries[$index]')),
     ]);

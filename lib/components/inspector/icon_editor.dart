@@ -413,7 +413,7 @@ class IconEditor extends StatelessWidget {
               'add ${slot.label.toLowerCase()}',
               session.recallIcon(_sessionKey, type) ?? createDefaultIcon(type),
             ),
-            child: Text(_typeLabel(type)),
+            label: _typeLabel(type),
           ),
       ],
     ),
@@ -478,7 +478,7 @@ class _DisplayStyleEditor extends StatelessWidget {
             size: ButtonSize.sm,
             onPressed: () =>
                 onChanged('add display style', createDefaultIconStyle()),
-            child: Text(huiText('Customize display')),
+            label: huiText('Customize display'),
           ),
         ],
       );
@@ -495,7 +495,7 @@ class _DisplayStyleEditor extends StatelessWidget {
         variant: ButtonVariant.ghost,
         size: ButtonSize.sm,
         onPressed: () => onChanged('remove display style', null),
-        child: Text(huiText('Use defaults')),
+        label: huiText('Use defaults'),
       ),
       children: <Widget>[
         HuiField(
@@ -1295,20 +1295,18 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
         size: ButtonSize.sm,
         icon: ArcaneIcon.plus(size: IconSize.sm),
         onPressed: _addStaged,
-        child: Text(
-          huiPlural(
-            'icon.frames_add.count',
-            _staged.length,
-            oneEnglish: 'Add {count} frame',
-            otherEnglish: 'Add {count} frames',
-          ),
+        label: huiPlural(
+          'icon.frames_add.count',
+          _staged.length,
+          oneEnglish: 'Add {count} frame',
+          otherEnglish: 'Add {count} frames',
         ),
       ),
       Button(
         variant: ButtonVariant.ghost,
         size: ButtonSize.sm,
         onPressed: () => setState(_staged.clear),
-        child: Text(huiText('Clear')),
+        label: huiText('Clear'),
       ),
     ]),
   ]);

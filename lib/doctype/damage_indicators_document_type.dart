@@ -1,7 +1,7 @@
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
-    show ArcaneIcon, IconSize, Widget;
+    show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../config/gloss_templates.dart';
 import '../l10n/hui_localizations.dart';
@@ -41,7 +41,7 @@ final class DamageIndicatorsDocumentType extends GlossDocumentTypeAdapter {
   String? get syncWireKind => 'damage-indicators';
 
   @override
-  Widget railIcon() => ArcaneIcon.crosshair(size: IconSize.sm);
+  ArcaneGlyph railIcon() => ArcaneIcon.crosshair(size: IconSize.sm);
 
   @override
   GlossDoc decodeDoc(String json) => decodeGlossDamageIndicatorsDoc(json);

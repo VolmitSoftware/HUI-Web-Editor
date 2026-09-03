@@ -148,9 +148,7 @@ class PreviewSimPanel extends StatelessWidget {
                   ? huiText('Pause')
                   : huiText('Play'),
             },
-            child: Text(
-              store.animationsPlaying ? huiText('Pause') : huiText('Play'),
-            ),
+            label: store.animationsPlaying ? huiText('Pause') : huiText('Play'),
           ),
           Button(
             variant: ButtonVariant.outline,
@@ -160,7 +158,7 @@ class PreviewSimPanel extends StatelessWidget {
             attributes: <String, String>{
               'aria-label': huiText('Step one second of simulation'),
             },
-            child: Text(huiText('Step')),
+            label: huiText('Step'),
           ),
           Button(
             variant: ButtonVariant.outline,
@@ -170,7 +168,7 @@ class PreviewSimPanel extends StatelessWidget {
             attributes: <String, String>{
               'aria-label': huiText('Reset the simulated state'),
             },
-            child: Text(huiText('Reset')),
+            label: huiText('Reset'),
           ),
         ],
       ),

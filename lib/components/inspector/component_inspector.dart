@@ -633,7 +633,7 @@ class ComponentInspector extends StatelessWidget {
       icon: ArcaneIcon.arrowDown(size: IconSize.sm),
       onPressed: () =>
           _copyIcon(from: IconSlot.trueIcon, to: IconSlot.falseIcon),
-      child: Text(huiText('True to false')),
+      label: huiText('True to false'),
     ),
     Button(
       variant: ButtonVariant.outline,
@@ -641,7 +641,7 @@ class ComponentInspector extends StatelessWidget {
       icon: ArcaneIcon.arrowUp(size: IconSize.sm),
       onPressed: () =>
           _copyIcon(from: IconSlot.falseIcon, to: IconSlot.trueIcon),
-      child: Text(huiText('False to true')),
+      label: huiText('False to true'),
     ),
   ]);
 

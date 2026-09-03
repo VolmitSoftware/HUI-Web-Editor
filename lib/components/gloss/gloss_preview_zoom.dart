@@ -97,13 +97,13 @@ class _GlossPreviewZoomState extends State<GlossPreviewZoom> {
 
   Widget _action({
     required String label,
-    required Widget icon,
+    required ArcaneGlyph icon,
     required void Function()? onPressed,
   }) => Button(
     variant: ButtonVariant.outline,
     size: ButtonSize.iconSm,
     onPressed: onPressed,
     attributes: <String, String>{'aria-label': label, 'title': label},
-    child: icon,
+    icon: icon,
   );
 }

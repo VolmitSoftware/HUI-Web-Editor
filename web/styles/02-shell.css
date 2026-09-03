@@ -405,7 +405,7 @@ body.hui-resizing * { cursor: col-resize !important; }
 .hui-bar-menu-item:focus-visible {
   background: var(--hui-panel-soft) !important;
 }
-.hui-picker-label {
+[data-hui-picker-label="true"] {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -443,6 +443,12 @@ html[dir="rtl"] .hui-preview-stage { direction: ltr; unicode-bidi: isolate; }
   text-align: left;
 }
 
+input[dir="ltr"],
+textarea[dir="ltr"] {
+  unicode-bidi: isolate;
+  text-align: left;
+}
+
 .hui-tip { display: grid; gap: 4px; }
 .hui-tip-head {
   display: flex;
@@ -459,7 +465,7 @@ html[dir="rtl"] .hui-preview-stage { direction: ltr; unicode-bidi: isolate; }
   line-height: 1.35;
 }
 
-.hui-mobile-pane-label { display: none; }
+[data-hui-responsive-label="mobile-pane"] { font-size: 0 !important; }
 
 /* ---- Status bar --------------------------------------------------------- */
 /* Fixed height, matching the grid track above: if the strip could grow it would
@@ -964,7 +970,7 @@ html[dir="rtl"] .hui-preview-stage { direction: ltr; unicode-bidi: isolate; }
   .hui-bar-history { display: none; }
   .hui-bar-overflow.is-tier3 { display: none; }
   .hui-bar-overflow.is-tier4 { display: flex; }
-  .hui-mobile-pane-label { display: inline; }
+  [data-hui-responsive-label="mobile-pane"] { font-size: .8rem !important; }
   .hui-splitter { display: none; }
   .hui-shell-body {
     position: relative;
@@ -1071,7 +1077,7 @@ html[dir="rtl"] .hui-preview-stage { direction: ltr; unicode-bidi: isolate; }
   .hui-doc-id { max-width: none; }
   .hui-doc-ext { display: none; }
 
-  .hui-mobile-pane-label { display: inline; }
+  [data-hui-responsive-label="mobile-pane"] { font-size: .8rem !important; }
   .hui-kind-picker,
   .hui-bar-view-picker {
     min-width: 0;

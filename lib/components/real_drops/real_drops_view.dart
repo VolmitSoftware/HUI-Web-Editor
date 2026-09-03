@@ -550,7 +550,7 @@ class _RealDropsViewState extends State<RealDropsView> {
       'aria-label': _playing ? huiText('Pause') : huiText('Play'),
       'title': _playing ? huiText('Pause') : huiText('Play'),
     },
-    child: _playing
+    icon: _playing
         ? ArcaneIcon.pause(size: IconSize.sm)
         : ArcaneIcon.play(size: IconSize.sm),
   );
@@ -571,7 +571,7 @@ class _RealDropsViewState extends State<RealDropsView> {
               'name': huiText(drop.displayName),
             }),
     },
-    child: ArcaneIcon.shuffle(size: IconSize.sm),
+    icon: ArcaneIcon.shuffle(size: IconSize.sm),
   );
 
   /// The stage's own control, not the document's — hence the wording, which
@@ -592,7 +592,7 @@ class _RealDropsViewState extends State<RealDropsView> {
               <String, Object?>{'level': dropStageWaterLevel},
             ),
     },
-    child: ArcaneIcon.droplet(size: IconSize.sm),
+    icon: ArcaneIcon.droplet(size: IconSize.sm),
   );
 
   Widget _itemDisplayNameButton() => Button(
@@ -615,7 +615,7 @@ class _RealDropsViewState extends State<RealDropsView> {
               'false by default',
             ),
     },
-    child: ArcaneIcon.typeIcon(size: IconSize.sm),
+    icon: ArcaneIcon.typeIcon(size: IconSize.sm),
   );
 
   Widget _resetButton() => Button(
@@ -626,7 +626,7 @@ class _RealDropsViewState extends State<RealDropsView> {
       'aria-label': huiText('Reset view'),
       'title': huiText('Reset view'),
     },
-    child: ArcaneIcon.maximize(size: IconSize.sm),
+    icon: ArcaneIcon.maximize(size: IconSize.sm),
   );
 
   Widget _timelineControl(

@@ -129,7 +129,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
             ),
           ),
         ),
-        child: Text(huiText('Add variant')),
+        label: huiText('Add variant'),
       ),
       HuiNote(
         huiText(

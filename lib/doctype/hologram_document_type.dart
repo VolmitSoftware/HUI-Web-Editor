@@ -3,7 +3,7 @@ library;
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
-    show ArcaneIcon, IconSize, Widget;
+    show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../config/gloss_templates.dart';
 import '../logic/hologram_validation.dart';
@@ -44,7 +44,7 @@ final class HologramDocumentType extends GlossDocumentTypeAdapter {
   String? get syncWireKind => 'hologram';
 
   @override
-  Widget railIcon() => ArcaneIcon.sparkles(size: IconSize.sm);
+  ArcaneGlyph railIcon() => ArcaneIcon.star(size: IconSize.sm);
 
   @override
   GlossDoc decodeDoc(String json) => decodeGlossHologramDoc(json);

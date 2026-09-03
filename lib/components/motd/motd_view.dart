@@ -209,7 +209,7 @@ class _MotdViewState extends State<MotdView> {
       'aria-label': huiText('Refresh'),
       'title': huiText('Refresh'),
     },
-    child: ArcaneIcon.refreshCcw(size: IconSize.sm),
+    icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
   );
 
   String _readout(GlossMotdDoc doc, GlossMotdEntry? entry, int shown) {

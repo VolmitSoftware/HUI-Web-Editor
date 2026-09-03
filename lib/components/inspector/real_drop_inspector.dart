@@ -112,7 +112,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
             ),
           ),
         ),
-        child: Text(huiText('Add variant')),
+        label: huiText('Add variant'),
       ),
       HuiInlineIssues(_issuesFor(r'$.variants')),
     ],
@@ -176,11 +176,9 @@ class _RealDropInspectorState extends State<RealDropInspector> {
             _variantDraftError = null;
           }
         }),
-        child: Text(
-          editingPresentation
-              ? huiText('Close presentation')
-              : huiText('Edit complete presentation'),
-        ),
+        label: editingPresentation
+            ? huiText('Close presentation')
+            : huiText('Edit complete presentation'),
       ),
       if (editingPresentation)
         TextArea(
@@ -199,7 +197,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
           'remove real-drop variant',
           (GlossRealDropSettingsDoc edited) => edited.variants.removeAt(index),
         ),
-        child: Text(huiText('Remove variant')),
+        label: huiText('Remove variant'),
       ),
       HuiInlineIssues(_issuesFor(path)),
     ]);
@@ -1087,7 +1085,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
                   ),
                 ),
               ),
-        child: Text(huiText('Add variable')),
+        label: huiText('Add variable'),
       ),
     ]);
   }
@@ -1149,14 +1147,14 @@ class _RealDropInspectorState extends State<RealDropInspector> {
 
   Widget _rowButton({
     required String label,
-    required Widget icon,
+    required ArcaneGlyph icon,
     required void Function()? onPressed,
   }) => Button(
     variant: ButtonVariant.ghost,
     size: ButtonSize.iconSm,
     onPressed: onPressed,
     attributes: <String, String>{'aria-label': label, 'title': label},
-    child: icon,
+    icon: icon,
   );
 
   void _moveVar(int from, int to) => _mutateScript(

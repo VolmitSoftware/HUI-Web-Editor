@@ -1,4 +1,4 @@
-import 'package:arcane_jaspr/arcane_jaspr.dart' show ArcaneStyleData;
+import 'package:arcane_jaspr/arcane_jaspr.dart' show ArcaneStyleData, TextAlign;
 
 const Map<String, String> huiTechnicalInputAttributes = <String, String>{
   'autocomplete': 'off',
@@ -7,9 +7,5 @@ const Map<String, String> huiTechnicalInputAttributes = <String, String>{
 };
 
 const ArcaneStyleData huiTechnicalInputStyles = ArcaneStyleData(
-  raw: <String, String>{
-    'direction': 'ltr',
-    'unicode-bidi': 'isolate',
-    'text-align': 'left',
-  },
+  textAlign: TextAlign.left,
 );

@@ -3,7 +3,7 @@ library;
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
-    show ArcaneIcon, IconSize, Widget;
+    show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../logic/validation.dart' show HuiIssue;
 import '../state/editor_store.dart';
@@ -60,7 +60,7 @@ final class PanelDocumentType extends DocumentTypeAdapter {
   String? get syncWireKind => 'panel';
 
   @override
-  Widget railIcon() => ArcaneIcon.workflow(size: IconSize.sm);
+  ArcaneGlyph railIcon() => ArcaneIcon.workflow(size: IconSize.sm);
 
   @override
   void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>

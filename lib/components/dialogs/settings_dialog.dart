@@ -180,7 +180,7 @@ class SettingsDialog extends StatelessWidget {
             variant: ButtonVariant.outline,
             size: ButtonSize.sm,
             onPressed: _importCustomItems,
-            child: Text(huiText('Import custom item catalog')),
+            label: huiText('Import custom item catalog'),
           ),
           if (catalog.isNotEmpty)
             HuiTwoStepButton(

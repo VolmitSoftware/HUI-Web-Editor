@@ -101,7 +101,7 @@ class _TablistInspectorState extends State<TablistInspector> {
             ),
           ),
         ),
-        child: Text(huiText('Add header/footer variant')),
+        label: huiText('Add header/footer variant'),
       ),
     ],
   );
@@ -227,7 +227,7 @@ class _TablistInspectorState extends State<TablistInspector> {
             ),
           ),
         ),
-        child: Text(huiText('Add list-name variant')),
+        label: huiText('Add list-name variant'),
       ),
       HuiNote(
         huiText(

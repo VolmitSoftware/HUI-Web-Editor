@@ -318,7 +318,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
         'aria-label': huiText('Next trajectory'),
         'title': huiText('Next trajectory'),
       },
-      child: ArcaneIcon.shuffle(size: IconSize.sm),
+      icon: ArcaneIcon.shuffle(size: IconSize.sm),
     ),
     dom.label(classes: 'hui-damage-indicator-amount', <Widget>[
       dom.span(<Widget>[Text(huiText('Sample amount'))]),
@@ -359,7 +359,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
       'aria-pressed': (_kind == kind).toString(),
       'title': label,
     },
-    child: Text(label),
+    label: label,
   );
 
   Widget _playPauseButton() => Button(
@@ -370,7 +370,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
       'aria-label': _playing ? huiText('Pause') : huiText('Play'),
       'title': _playing ? huiText('Pause') : huiText('Play'),
     },
-    child: _playing
+    icon: _playing
         ? ArcaneIcon.pause(size: IconSize.sm)
         : ArcaneIcon.play(size: IconSize.sm),
   );
@@ -383,7 +383,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
       'aria-label': huiText('Replay'),
       'title': huiText('Replay'),
     },
-    child: ArcaneIcon.refreshCcw(size: IconSize.sm),
+    icon: ArcaneIcon.refreshCcw(size: IconSize.sm),
   );
 
   Widget _criticalButton() => Button(
@@ -394,6 +394,6 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
       'aria-pressed': _critical.toString(),
       'title': huiText('Critical hit'),
     },
-    child: Text(huiText('Critical hit')),
+    label: huiText('Critical hit'),
   );
 }

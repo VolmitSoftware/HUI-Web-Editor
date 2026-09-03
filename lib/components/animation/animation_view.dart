@@ -156,7 +156,7 @@ class _AnimationViewState extends State<AnimationView> {
                   : huiText('Play'),
               'title': _player.playing ? huiText('Pause') : huiText('Play'),
             },
-            child: _player.playing
+            icon: _player.playing
                 ? ArcaneIcon.pause(size: IconSize.sm)
                 : ArcaneIcon.play(size: IconSize.sm),
           ),
@@ -202,7 +202,7 @@ class _AnimationViewState extends State<AnimationView> {
           size: ButtonSize.iconSm,
           onPressed: () => setState(() => _player.step(-1, doc, id)),
           attributes: <String, String>{'aria-label': huiText('Previous frame')},
-          child: ArcaneIcon.skipBack(size: IconSize.sm),
+          icon: ArcaneIcon.skipBack(size: IconSize.sm),
         ),
         Button(
           variant: ButtonVariant.outline,
@@ -211,7 +211,7 @@ class _AnimationViewState extends State<AnimationView> {
           attributes: <String, String>{
             'aria-label': _player.playing ? huiText('Pause') : huiText('Play'),
           },
-          child: _player.playing
+          icon: _player.playing
               ? ArcaneIcon.pause(size: IconSize.sm)
               : ArcaneIcon.play(size: IconSize.sm),
         ),
@@ -220,7 +220,7 @@ class _AnimationViewState extends State<AnimationView> {
           size: ButtonSize.iconSm,
           onPressed: () => setState(() => _player.step(1, doc, id)),
           attributes: <String, String>{'aria-label': huiText('Next frame')},
-          child: ArcaneIcon.skipForward(size: IconSize.sm),
+          icon: ArcaneIcon.skipForward(size: IconSize.sm),
         ),
         dom.input(
           classes: 'hui-animation-scrub',

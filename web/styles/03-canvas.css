@@ -10,8 +10,8 @@
      `is-pan-ready`, `is-dragging`, `is-moving-component`, `is-over-component`
      on the stage, and `is-visible` on the drag readout.
    - the toolbar is ONE row at every width. Dart never measures anything: it
-     emits every droppable word inside `.hui-canvas-tool-label` and this file
-     decides whether that text renders. Both conditions have to hold for the
+     marks every droppable button label with `data-hui-responsive-label` and
+     this file decides whether that text renders. Both conditions have to hold for the
      labels to come back — a wide viewport AND a wide canvas cell — because in
      split view the canvas is half the window. */
 
@@ -122,6 +122,7 @@
    only thing that brings it back. The control keeps its aria-label and its
    tooltip either way. */
 .hui-canvas-tool-label { display: none; }
+[data-hui-responsive-label="canvas"] { font-size: 0 !important; }
 
 .hui-canvas-toggle-label,
 .hui-canvas-order-label {
@@ -172,18 +173,6 @@
 }
 
 /* ---- uiScale: a readout in the row, the real slider in a popover ---- */
-
-.hui-canvas-scale-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.hui-canvas-scale-value {
-  color: var(--hui-text);
-  font-size: .76rem;
-  font-variant-numeric: tabular-nums;
-}
 
 .hui-scale-pop {
   display: grid;
@@ -407,6 +396,7 @@
   @container hui-canvas (min-width: 1280px) {
     .hui-canvas-toolbar { --hui-tool-pad: 9px; }
     .hui-canvas-tool-label { display: inline; }
+    [data-hui-responsive-label="canvas"] { font-size: .75rem !important; }
   }
 }
 

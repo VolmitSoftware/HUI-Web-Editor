@@ -157,23 +157,7 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
     icon: _open
         ? ArcaneIcon.chevronUp(size: IconSize.sm)
         : ArcaneIcon.chevronDown(size: IconSize.sm),
-    child: dom.span(
-      classes: 'hui-extras-summary',
-      styles: const dom.Styles(
-        raw: <String, String>{
-          'display': 'inline-flex',
-          'align-items': 'center',
-          'gap': '6px',
-          'min-width': '0',
-        },
-      ),
-      <Widget>[
-        Text(component.title),
-        dom.span(classes: 'hui-count-chip', <Widget>[
-          Text(huiText("{count}", <String, Object?>{'count': count})),
-        ]),
-      ],
-    ),
+    label: '${component.title} ($count)',
   );
 
   Widget _body() => dom.div(
@@ -246,7 +230,7 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
       attributes: <String, String>{
         'aria-label': huiText("Remove {key}", <String, Object?>{'key': key}),
       },
-      child: ArcaneIcon.trash2(size: IconSize.sm),
+      icon: ArcaneIcon.trash2(size: IconSize.sm),
     ),
     control: TextInput(
       value: _valueText(key),
@@ -295,7 +279,7 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
           size: ButtonSize.sm,
           icon: ArcaneIcon.plus(size: IconSize.sm),
           onPressed: _add,
-          child: Text(huiText('Add')),
+          label: huiText('Add'),
         ),
       ],
     ),

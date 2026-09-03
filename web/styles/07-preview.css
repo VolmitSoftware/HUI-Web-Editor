@@ -116,23 +116,9 @@
 .hui-preview-tool-label { margin-left: 4px; }
 .hui-preview-toolgroup > .hui-preview-tool-label { margin: 0 4px 0 2px; }
 
-.hui-preview-overlays-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.hui-preview-overlays-trigger .hui-count-chip {
-  min-height: 17px;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 0;
-  background: color-mix(in srgb, var(--hui-muted) 15%, transparent);
-  font-size: .64rem;
-}
-
 @container hui-preview (max-width: 720px) {
   .hui-preview-tool-label { display: none; }
+  [data-hui-responsive-label="preview"] { font-size: 0 !important; }
 }
 
 /* ---- uiScale ------------------------------------------------------------ */

@@ -59,7 +59,7 @@ class _AnimationReferencePickerState extends State<AnimationReferencePicker> {
           // accordion binder that would fight the floating container.
           'data-arcane-interactive': 'true',
         },
-        child: Text(label),
+        label: label,
       ),
       content: dom.div(classes: 'hui-placeholder-list', <Widget>[
         HuiEyebrow(huiText('Animations')),

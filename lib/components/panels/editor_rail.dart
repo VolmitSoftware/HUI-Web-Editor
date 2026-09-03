@@ -297,7 +297,7 @@ class _EditorRailState extends State<EditorRail> {
               'aria-label': huiText('Show all documents'),
               'title': huiText('Show all documents'),
             },
-            child: ArcaneIcon.listFilter(size: IconSize.sm),
+            icon: ArcaneIcon.listFilter(size: IconSize.sm),
           ),
         _workspaceMenuButton(),
       ]),
@@ -336,7 +336,6 @@ class _EditorRailState extends State<EditorRail> {
     size: ButtonSize.sm,
     icon: ArcaneIcon.filePlus(size: IconSize.sm),
     label: huiText('New document'),
-    trailing: ArcaneIcon.chevronDown(size: IconSize.sm),
     onPressed: _openNewDocumentMenu,
     attributes: <String, String>{
       'aria-haspopup': 'menu',
@@ -400,7 +399,7 @@ class _EditorRailState extends State<EditorRail> {
       // documented opt-out.
       'data-arcane-interactive': 'true',
     },
-    child: ArcaneIcon.ellipsisVertical(size: IconSize.sm),
+    icon: ArcaneIcon.ellipsisVertical(size: IconSize.sm),
   );
 
   Widget _workspaceMenu() => HuiActionMenu(
@@ -770,7 +769,7 @@ class _EditorRailState extends State<EditorRail> {
           'aria-label': huiText('Rename'),
           'title': huiText('Rename'),
         },
-        child: ArcaneIcon.pencil(size: IconSize.sm),
+        icon: ArcaneIcon.pencil(size: IconSize.sm),
       ),
       Button(
         variant: ButtonVariant.ghost,
@@ -780,7 +779,7 @@ class _EditorRailState extends State<EditorRail> {
           'aria-label': huiText('Move'),
           'title': huiText('Move'),
         },
-        child: ArcaneIcon.folderInput(size: IconSize.sm),
+        icon: ArcaneIcon.folderInput(size: IconSize.sm),
       ),
       if (onCopyLink != null)
         Button(
@@ -791,7 +790,7 @@ class _EditorRailState extends State<EditorRail> {
             'aria-label': huiText('Copy link'),
             'title': huiText('Copy link'),
           },
-          child: ArcaneIcon.link(size: IconSize.sm),
+          icon: ArcaneIcon.link(size: IconSize.sm),
         ),
       Button(
         variant: ButtonVariant.ghost,
@@ -801,7 +800,7 @@ class _EditorRailState extends State<EditorRail> {
           'aria-label': huiText('Delete'),
           'title': huiText('Delete'),
         },
-        child: ArcaneIcon.trash2(size: IconSize.sm),
+        icon: ArcaneIcon.trash2(size: IconSize.sm),
       ),
     ]);
   }

@@ -107,15 +107,13 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
         variant: ButtonVariant.primary,
         size: ButtonSize.small,
         onPressed: () => setState(() => _typesOpen = !_typesOpen),
-        styles: const ArcaneStyleData(
-          raw: <String, String>{'padding': '0 4px !important'},
-        ),
+        styles: const ArcaneStyleData(paddingStringCustom: '0 4px !important'),
         attributes: <String, String>{
           'aria-label': huiText('Choose an element type'),
           'aria-expanded': _typesOpen ? 'true' : 'false',
           'data-arcane-interactive': 'true',
         },
-        child: _typesOpen
+        icon: _typesOpen
             ? ArcaneIcon.chevronUp(size: IconSize.sm)
             : ArcaneIcon.chevronDown(size: IconSize.sm),
       ),
@@ -280,7 +278,7 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                       'label': label,
                     }),
                   },
-                  child: ArcaneIcon.check(size: IconSize.sm),
+                  icon: ArcaneIcon.check(size: IconSize.sm),
                 ),
                 Button(
                   variant: ButtonVariant.ghost,
@@ -289,7 +287,7 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                   attributes: <String, String>{
                     'aria-label': huiText('Keep it'),
                   },
-                  child: ArcaneIcon.x(size: IconSize.sm),
+                  icon: ArcaneIcon.x(size: IconSize.sm),
                 ),
               ])
             else
@@ -306,7 +304,7 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                       'label': label,
                     }),
                   },
-                  child: ArcaneIcon.chevronUp(size: IconSize.sm),
+                  icon: ArcaneIcon.chevronUp(size: IconSize.sm),
                 ),
                 Button(
                   variant: ButtonVariant.ghost,
@@ -321,7 +319,7 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                       <String, Object?>{'label': label},
                     ),
                   },
-                  child: ArcaneIcon.chevronDown(size: IconSize.sm),
+                  icon: ArcaneIcon.chevronDown(size: IconSize.sm),
                 ),
                 Button(
                   variant: ButtonVariant.ghost,
@@ -338,7 +336,7 @@ class _PreviewElementsRailState extends State<PreviewElementsRail> {
                     'aria-expanded': _menuIndex == index ? 'true' : 'false',
                     'data-arcane-interactive': 'true',
                   },
-                  child: ArcaneIcon.ellipsisVertical(size: IconSize.sm),
+                  icon: ArcaneIcon.ellipsisVertical(size: IconSize.sm),
                 ),
               ]),
           ],

@@ -235,7 +235,7 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
   Widget _modeButton({
     required PreviewCameraMode mode,
     required String label,
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String tooltip,
   }) {
     final bool active = _store.previewCameraMode == mode;
@@ -248,6 +248,7 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
         size: ButtonSize.sm,
         type: ButtonType.button,
         attributes: <String, String>{
+          'data-hui-responsive-label': 'preview',
           'aria-pressed': '$active',
           'aria-label': huiText("{label} camera. {tooltip}", <String, Object?>{
             'label': label,
@@ -255,7 +256,7 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
           }),
         },
         onPressed: () => _store.previewCameraMode = mode,
-        child: _toolLabel(label),
+        label: label,
       ),
     );
   }
@@ -357,6 +358,7 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
             size: ButtonSize.sm,
             type: ButtonType.button,
             attributes: <String, String>{
+              'data-hui-responsive-label': 'preview',
               'aria-haspopup': 'menu',
               'aria-expanded': _overlaysOpen ? 'true' : 'false',
               // Never the word "Menu" with a capital M: the mobile-menu binder
@@ -373,13 +375,9 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
               'data-arcane-interactive': 'true',
             },
             onPressed: () => _setOverlaysOpen(!_overlaysOpen),
-            child: dom.span(classes: 'hui-preview-overlays-trigger', <Widget>[
-              _toolLabel(huiText('Overlays')),
-              if (on > 0)
-                dom.span(classes: 'hui-count-chip', <Widget>[
-                  Component.text('$on'),
-                ]),
-            ]),
+            label: on > 0
+                ? '${huiText('Overlays')} ($on)'
+                : huiText('Overlays'),
           ),
         ),
         if (_overlaysOpen) ..._overlaysMenu(),
@@ -464,15 +462,18 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
         size: ButtonSize.sm,
         type: ButtonType.button,
         disabled: _pose.log.isEmpty,
-        attributes: <String, String>{'aria-label': huiText('Clear log')},
+        attributes: <String, String>{
+          'data-hui-responsive-label': 'preview',
+          'aria-label': huiText('Clear log'),
+        },
         onPressed: _pose.log.clear,
-        child: _toolLabel(huiText('Clear log')),
+        label: huiText('Clear log'),
       ),
     ),
   ];
 
   Widget _action({
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String label,
     required String tooltip,
     required void Function() onPressed,
@@ -483,14 +484,17 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
       variant: ButtonVariant.ghost,
       size: ButtonSize.sm,
       type: ButtonType.button,
-      attributes: <String, String>{'aria-label': label},
+      attributes: <String, String>{
+        'data-hui-responsive-label': 'preview',
+        'aria-label': label,
+      },
       onPressed: onPressed,
-      child: _toolLabel(label),
+      label: label,
     ),
   );
 
   Widget _toggle({
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String label,
     required String tooltip,
     required bool active,
@@ -504,18 +508,12 @@ class _PreviewToolbarState extends State<PreviewToolbar> {
       size: ButtonSize.sm,
       type: ButtonType.button,
       attributes: <String, String>{
+        'data-hui-responsive-label': 'preview',
         'aria-pressed': '$active',
         'aria-label': label,
       },
       onPressed: onPressed,
-      child: _toolLabel(label),
+      label: label,
     ),
-  );
-
-  /// Text the stylesheet may drop when the preview cell is narrow. Never the
-  /// only description of a control.
-  static Widget _toolLabel(String text) => dom.span(
-    classes: 'hui-preview-tool-label',
-    <Widget>[Component.text(text)],
   );
 }

@@ -313,7 +313,10 @@ void main() {
     );
     expect(topBarRules, contains('.hui-kind-picker .hui-bar-menu'));
     expect(topBarRules, contains('.hui-bar-view-picker .hui-bar-menu'));
-    expect(shellCss, contains('.hui-picker-label {\n  min-width: 0;'));
+    expect(
+      shellCss,
+      contains('[data-hui-picker-label="true"] {\n  min-width: 0;'),
+    );
   });
 
   test('export footer closes without duplicating the body download action', () {

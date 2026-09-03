@@ -299,7 +299,7 @@ class _BubbleViewState extends State<BubbleView> {
       'aria-label': _playing ? huiText('Pause') : huiText('Play'),
       'title': _playing ? huiText('Pause') : huiText('Play'),
     },
-    child: _playing
+    icon: _playing
         ? ArcaneIcon.pause(size: IconSize.sm)
         : ArcaneIcon.play(size: IconSize.sm),
   );

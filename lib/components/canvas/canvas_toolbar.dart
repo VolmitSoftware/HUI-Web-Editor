@@ -204,13 +204,14 @@ class CanvasToolbar extends StatelessWidget {
         size: ButtonSize.sm,
         type: ButtonType.button,
         attributes: <String, String>{
+          'data-hui-responsive-label': 'canvas',
           'aria-label': huiText(
             "Cycle canvas backdrop, currently {value}",
             <String, Object?>{'value': huiBackdropLabel(store.backdrop)},
           ),
         },
         onPressed: _cycleBackdrop,
-        child: _toolLabel(huiBackdropLabel(store.backdrop)),
+        label: huiBackdropLabel(store.backdrop),
       ),
     ),
   ];
@@ -316,7 +317,7 @@ class CanvasToolbar extends StatelessWidget {
   }
 
   Widget _iconAction({
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String label,
     required void Function() onPressed,
   }) => ArcaneTooltip(
@@ -332,7 +333,7 @@ class CanvasToolbar extends StatelessWidget {
   );
 
   Widget _toggle({
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String label,
     required String tooltip,
     required bool active,
@@ -345,19 +346,13 @@ class CanvasToolbar extends StatelessWidget {
       size: ButtonSize.sm,
       type: ButtonType.button,
       attributes: <String, String>{
+        'data-hui-responsive-label': 'canvas',
         'aria-pressed': '$active',
         'aria-label': label,
       },
       onPressed: onPressed,
-      child: _toolLabel(label),
+      label: label,
     ),
-  );
-
-  /// Text that the stylesheet is allowed to drop when the canvas cell is too
-  /// narrow to carry it. Never the only description of a control.
-  static Widget _toolLabel(String text) => dom.span(
-    classes: 'hui-canvas-tool-label',
-    <Widget>[Component.text(text)],
   );
 
   static String _trimNumber(double value) {
@@ -875,6 +870,7 @@ class _UiScaleControlState extends State<_UiScaleControl> {
         size: ButtonSize.sm,
         type: ButtonType.button,
         attributes: <String, String>{
+          'data-hui-responsive-label': 'canvas',
           'aria-label': huiText(
             "Preview uiScale {value}. Opens the uiScale slider",
             <String, Object?>{'value': value},
@@ -888,14 +884,7 @@ class _UiScaleControlState extends State<_UiScaleControl> {
           // keys on `arcanePopoverInteractive` and is unaffected.
           'data-arcane-interactive': 'true',
         },
-        child: dom.span(classes: 'hui-canvas-scale-trigger', <Widget>[
-          dom.span(classes: 'hui-canvas-tool-label', <Widget>[
-            Component.text(huiText('uiScale')),
-          ]),
-          dom.span(classes: 'hui-canvas-scale-value', <Widget>[
-            Component.text(value),
-          ]),
-        ]),
+        label: '${huiText('uiScale')} $value',
       ),
       content: dom.div(classes: 'hui-scale-pop', <Widget>[
         dom.span(classes: 'hui-eyebrow', <Widget>[

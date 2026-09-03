@@ -173,7 +173,7 @@ class _RegistryPickerState extends State<RegistryPicker> {
                   // owns (accordion_scripts.dart:8).
                   'data-arcane-interactive': 'true',
                 },
-                child: Text(browseLabel),
+                label: browseLabel,
               ),
           ],
         ),

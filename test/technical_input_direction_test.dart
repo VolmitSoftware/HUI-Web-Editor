@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:arcane_jaspr/arcane_jaspr.dart' show TextAlign;
 import 'package:gloss_editor/components/common/hui_technical_input.dart';
 import 'package:test/test.dart';
 
@@ -8,9 +9,13 @@ void main() {
     expect(huiTechnicalInputAttributes['dir'], 'ltr');
     expect(huiTechnicalInputAttributes['autocomplete'], 'off');
     expect(huiTechnicalInputAttributes['spellcheck'], 'false');
-    expect(huiTechnicalInputStyles.raw?['direction'], 'ltr');
-    expect(huiTechnicalInputStyles.raw?['unicode-bidi'], 'isolate');
-    expect(huiTechnicalInputStyles.raw?['text-align'], 'left');
+    expect(huiTechnicalInputStyles.textAlign, TextAlign.left);
+    final String shellStyles = File(
+      'web/styles/02-shell.css',
+    ).readAsStringSync();
+    expect(shellStyles, contains('input[dir="ltr"]'));
+    expect(shellStyles, contains('textarea[dir="ltr"]'));
+    expect(shellStyles, contains('unicode-bidi: isolate'));
   });
 
   test('technical identifiers and player names use the shared bidi island', () {

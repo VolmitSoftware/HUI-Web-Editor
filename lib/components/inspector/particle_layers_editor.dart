@@ -46,7 +46,7 @@ class ParticleLayersEditor extends StatelessWidget {
               (List<GlossParticleLayer> edited) =>
                   edited.add(GlossParticleLayer(id: _nextId(edited))),
             ),
-      child: Text(huiText('Add')),
+      label: huiText('Add'),
     ),
     children: <Widget>[
       if (layers.isNotEmpty)
@@ -443,7 +443,7 @@ class _ParticleLayerCard extends StatelessWidget {
                     : edited.geometry.points.last.copy();
                 edited.geometry.points.add(next);
               }),
-          child: Text(huiText('Add')),
+          label: huiText('Add'),
         ),
       ],
     ),

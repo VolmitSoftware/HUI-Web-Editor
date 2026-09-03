@@ -102,7 +102,7 @@ class StatusBar extends StatelessWidget {
                 otherEnglish: '{count} warnings',
               ),
           ].join(', ');
-    final Widget icon = clean
+    final ArcaneGlyph icon = clean
         ? ArcaneIcon.circleCheck(size: IconSize.sm)
         : errors > 0
         ? ArcaneIcon.circleAlert(size: IconSize.sm)

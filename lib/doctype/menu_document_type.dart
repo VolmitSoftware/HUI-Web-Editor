@@ -5,7 +5,7 @@ import 'package:gloss_editor/l10n/hui_localizations.dart';
 import 'dart:math' as math;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
-    show ArcaneIcon, IconSize, Widget;
+    show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../config/defaults.dart';
 import '../config/templates.dart';
@@ -61,10 +61,10 @@ final class MenuDocumentType extends DocumentTypeAdapter {
   String? get syncWireKind => 'menu';
 
   @override
-  Widget railIcon() => ArcaneIcon.fileBraces(size: IconSize.sm);
+  ArcaneGlyph railIcon() => ArcaneIcon.fileBraces(size: IconSize.sm);
 
   @override
-  Widget createIcon() => ArcaneIcon.filePlus(size: IconSize.sm);
+  ArcaneGlyph createIcon() => ArcaneIcon.filePlus(size: IconSize.sm);
 
   @override
   void createNew(EditorStore store, {String? folderId, String? runtimeId}) =>

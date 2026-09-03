@@ -3,7 +3,7 @@ library;
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
-    show ArcaneIcon, IconSize, Widget;
+    show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../config/gloss_templates.dart';
 import '../logic/real_drop_validation.dart';
@@ -42,7 +42,7 @@ final class RealDropDocumentType extends GlossDocumentTypeAdapter {
   String? get syncWireKind => 'real-drops';
 
   @override
-  Widget railIcon() => ArcaneIcon.package(size: IconSize.sm);
+  ArcaneGlyph railIcon() => ArcaneIcon.package(size: IconSize.sm);
 
   @override
   GlossDoc decodeDoc(String json) => decodeGlossRealDropSettingsDoc(json);

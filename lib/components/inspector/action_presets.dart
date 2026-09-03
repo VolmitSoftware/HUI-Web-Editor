@@ -199,7 +199,7 @@ class ActionPresetsRow extends StatelessWidget {
 
   Widget _preset({
     required String label,
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String hint,
     required HuiAction Function() build,
   }) => ArcaneTooltip(
@@ -214,7 +214,7 @@ class ActionPresetsRow extends StatelessWidget {
           'label': label,
         }),
       },
-      child: Text(label),
+      label: label,
     ),
   );
 }

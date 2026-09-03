@@ -3,7 +3,7 @@ library;
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
-    show ArcaneIcon, IconSize, Widget;
+    show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../config/gloss_templates.dart';
 import '../logic/tablist_validation.dart';
@@ -44,7 +44,7 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
   String? get syncWireKind => 'tablist';
 
   @override
-  Widget railIcon() => ArcaneIcon.users(size: IconSize.sm);
+  ArcaneGlyph railIcon() => ArcaneIcon.users(size: IconSize.sm);
 
   @override
   GlossDoc decodeDoc(String json) => decodeGlossTablistDoc(json);

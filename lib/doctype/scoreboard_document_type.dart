@@ -3,7 +3,7 @@ library;
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart'
-    show ArcaneIcon, IconSize, Widget;
+    show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../config/gloss_templates.dart';
 import '../logic/scoreboard_validation.dart';
@@ -45,7 +45,7 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
   String? get syncWireKind => 'scoreboard';
 
   @override
-  Widget railIcon() => ArcaneIcon.panelRight(size: IconSize.sm);
+  ArcaneGlyph railIcon() => ArcaneIcon.panelRight(size: IconSize.sm);
 
   @override
   GlossDoc decodeDoc(String json) => decodeGlossScoreboardDoc(json);
@@ -72,10 +72,7 @@ final class ScoreboardDocumentType extends GlossDocumentTypeAdapter {
   List<HuiIssue> validate(DocumentStateView state) {
     final GlossDoc? doc = state.glossDoc;
     if (doc is! GlossScoreboardDoc) return const <HuiIssue>[];
-    return validateScoreboardDoc(
-      doc,
-      animations: state.workspaceAnimations,
-    );
+    return validateScoreboardDoc(doc, animations: state.workspaceAnimations);
   }
 
   @override

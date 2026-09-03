@@ -14,7 +14,7 @@
 /// the inspector pane imports.
 library;
 
-import 'package:arcane_jaspr/arcane_jaspr.dart' show Widget;
+import 'package:arcane_jaspr/arcane_jaspr.dart' show ArcaneGlyph;
 
 import '../l10n/hui_localizations.dart';
 import '../logic/canvas_scene.dart';
@@ -259,15 +259,15 @@ abstract class DocumentTypeAdapter {
   String? get syncWireKind;
 
   /// Library-rail document icon.
-  Widget railIcon();
+  ArcaneGlyph railIcon();
 
   /// Library-rail create-button icon. Distinct from [railIcon] where the
   /// established chrome differs.
-  Widget createIcon() => railIcon();
+  ArcaneGlyph createIcon() => railIcon();
 
   /// Mode-tab icon. The document icon by default: the tab and the rows it
   /// scopes the library to must read as the same thing.
-  Widget tabIcon() => railIcon();
+  ArcaneGlyph tabIcon() => railIcon();
 
   /// Creates a fresh document of this kind in [folderId] and adopts it.
   /// A null folder places the document at the workspace root.

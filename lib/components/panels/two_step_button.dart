@@ -28,7 +28,7 @@ class HuiTwoStepButton extends StatefulWidget {
 
   /// Resting label; also the `aria-label` when [iconOnly].
   final String label;
-  final Widget icon;
+  final ArcaneGlyph icon;
   final void Function() onConfirm;
   final String? confirmLabel;
   final String? cancelLabel;
@@ -70,7 +70,7 @@ class _HuiTwoStepButtonState extends State<HuiTwoStepButton> {
                 disabled: component.disabled,
                 onPressed: component.disabled ? null : _arm,
                 attributes: <String, String>{'aria-label': component.label},
-                child: component.icon,
+                icon: component.icon,
               ),
             )
           else
@@ -115,7 +115,7 @@ class _HuiTwoStepButtonState extends State<HuiTwoStepButton> {
             size: component.size,
             onPressed: _cancel,
             attributes: <String, String>{'aria-label': cancelLabel},
-            child: ArcaneIcon.x(size: IconSize.sm),
+            icon: ArcaneIcon.x(size: IconSize.sm),
           ),
         ),
       ],

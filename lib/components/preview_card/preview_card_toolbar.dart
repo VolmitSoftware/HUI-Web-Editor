@@ -147,7 +147,7 @@ class PreviewCardToolbar extends StatelessWidget {
   };
 
   Widget _iconAction({
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String label,
     required void Function() onPressed,
   }) => ArcaneTooltip(
@@ -163,7 +163,7 @@ class PreviewCardToolbar extends StatelessWidget {
   );
 
   Widget _toggle({
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String label,
     required String tooltip,
     required bool active,
@@ -176,13 +176,12 @@ class PreviewCardToolbar extends StatelessWidget {
       size: ButtonSize.sm,
       type: ButtonType.button,
       attributes: <String, String>{
+        'data-hui-responsive-label': 'canvas',
         'aria-pressed': '$active',
         'aria-label': label,
       },
       onPressed: onPressed,
-      child: dom.span(classes: 'hui-canvas-tool-label', <Widget>[
-        Component.text(label),
-      ]),
+      label: label,
     ),
   );
 }

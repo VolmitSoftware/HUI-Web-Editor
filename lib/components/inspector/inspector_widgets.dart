@@ -419,7 +419,7 @@ class HuiArmedButton extends StatefulWidget {
 
   /// Shown while armed; defaults to `Confirm`.
   final String? armedLabel;
-  final Widget? icon;
+  final ArcaneGlyph? icon;
   final void Function() onConfirm;
   final ButtonSize size;
   final ButtonVariant variant;
@@ -456,7 +456,7 @@ class _HuiArmedButtonState extends State<HuiArmedButton> {
       icon: component.icon,
       onPressed: () => setState(() => _armed = true),
       attributes: <String, String>{'aria-label': component.label},
-      child: Text(component.label),
+      label: component.label,
     );
   }
 
@@ -490,7 +490,7 @@ class _HuiArmedButtonState extends State<HuiArmedButton> {
             attributes: <String, String>{
               'aria-label': component.armedLabel ?? huiText('Confirm'),
             },
-            child: Text(component.armedLabel ?? huiText('Confirm')),
+            label: component.armedLabel ?? huiText('Confirm'),
           ),
         HuiIconButton(
           icon: ArcaneIcon.x(size: IconSize.sm),
@@ -836,7 +836,7 @@ class HuiIconButton extends StatelessWidget {
     super.key,
   });
 
-  final Widget icon;
+  final ArcaneGlyph icon;
   final String label;
   final void Function()? onPressed;
   final ButtonVariant variant;
@@ -851,7 +851,7 @@ class HuiIconButton extends StatelessWidget {
       disabled: disabled || onPressed == null,
       onPressed: disabled ? null : onPressed,
       attributes: <String, String>{'aria-label': label},
-      child: icon,
+      icon: icon,
     ),
   );
 }

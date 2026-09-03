@@ -297,7 +297,7 @@ class _TablistViewState extends State<TablistView> {
           ? huiText('Pause animations')
           : huiText('Play animations'),
     },
-    child: _store.animationsPlaying
+    icon: _store.animationsPlaying
         ? ArcaneIcon.pause(size: IconSize.sm)
         : ArcaneIcon.play(size: IconSize.sm),
   );

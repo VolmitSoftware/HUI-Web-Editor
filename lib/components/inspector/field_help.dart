@@ -155,7 +155,7 @@ class _HuiHelpPopoverState extends State<HuiHelpPopover> {
           // (accordion_scripts.dart:8).
           'data-arcane-interactive': 'true',
         },
-        child: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
+        icon: ArcaneIcon.circleQuestionMark(size: IconSize.sm),
       ),
       if (_open) ..._popover(),
     ],

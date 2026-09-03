@@ -167,7 +167,7 @@ class DamageIndicatorInspector extends StatelessWidget {
               ),
             ),
           ),
-          child: Text(huiText('Add variant')),
+          label: huiText('Add variant'),
         ),
       ],
     );

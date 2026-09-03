@@ -58,7 +58,7 @@ class ViewSwitcher extends StatelessWidget {
     EditorView.split => huiText('Split'),
   };
 
-  static Widget iconOf(EditorView value) => switch (value) {
+  static ArcaneGlyph iconOf(EditorView value) => switch (value) {
     EditorView.visual => ArcaneIcon.eye(size: IconSize.sm),
     EditorView.preview => ArcaneIcon.rotate3d(size: IconSize.sm),
     EditorView.code => ArcaneIcon.code(size: IconSize.sm),

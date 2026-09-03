@@ -301,7 +301,6 @@ class _TopBarState extends State<TopBar> {
         id: 'hui-kind-picker-menu',
         triggerIcon: _activeKindIcon(),
         triggerText: _activeKindLabel,
-        triggerTrailing: ArcaneIcon.chevronDown(size: IconSize.sm),
         triggerLabel: huiText('Document kind: {kind}', <String, Object?>{
           'kind': _activeKindLabel,
         }),
@@ -313,7 +312,7 @@ class _TopBarState extends State<TopBar> {
 
   String get _activeKindLabel => _store.mode?.pluralLabel ?? huiText('All');
 
-  Widget _activeKindIcon() =>
+  ArcaneGlyph _activeKindIcon() =>
       _store.mode?.tabIcon() ?? ArcaneIcon.layoutList(size: IconSize.sm);
 
   List<BarMenuEntry> _kindItems() {
@@ -342,7 +341,7 @@ class _TopBarState extends State<TopBar> {
   BarMenuEntry _kindItem({
     required String value,
     required String label,
-    required Widget icon,
+    required ArcaneGlyph icon,
     required bool active,
   }) => BarMenuAction(
     label: label,
@@ -364,7 +363,6 @@ class _TopBarState extends State<TopBar> {
         align: BarMenuAlign.right,
         triggerIcon: ViewSwitcher.iconOf(_store.view),
         triggerText: ViewSwitcher.labelOf(_store.view),
-        triggerTrailing: ArcaneIcon.chevronDown(size: IconSize.sm),
         triggerLabel: huiText('Editor mode: {mode}', <String, Object?>{
           'mode': ViewSwitcher.labelOf(_store.view),
         }),
@@ -518,20 +516,19 @@ class _TopBarState extends State<TopBar> {
   );
 
   Widget _mobilePaneAction({
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String label,
     required String visibleLabel,
     required bool pressed,
     required VoidCallback onPressed,
   }) => Button(
     icon: icon,
-    child: dom.span(classes: 'hui-mobile-pane-label', <Widget>[
-      Text(visibleLabel),
-    ]),
+    label: visibleLabel,
     variant: pressed ? ButtonVariant.secondary : ButtonVariant.ghost,
     size: ButtonSize.sm,
     onPressed: onPressed,
     attributes: <String, String>{
+      'data-hui-responsive-label': 'mobile-pane',
       'aria-label': label,
       'aria-pressed': '$pressed',
     },
@@ -658,7 +655,7 @@ class _TopBarState extends State<TopBar> {
   );
 
   Widget _action({
-    required Widget icon,
+    required ArcaneGlyph icon,
     required String label,
     required void Function() onPressed,
     String? shortcut,
