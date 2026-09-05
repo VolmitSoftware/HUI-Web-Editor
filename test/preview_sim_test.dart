@@ -320,6 +320,8 @@ void main() {
       final PreviewSim sim = PreviewSim('nonsense', lang: lang);
       expect(sim.variableNames, <String>[
         'time',
+        'world.name',
+        'world.time',
         'blockType',
         'customName',
         ...previewStandardVariableNames,
@@ -327,6 +329,33 @@ void main() {
       expect(sim.variable('blockType'), '');
       sim.tick(20);
       expect(sim.variable('time'), 1254.0);
+    });
+
+    test('target worlds publish a name and wrap their time of day', () {
+      final PreviewSim sim = PreviewSim('chest', lang: lang);
+      expect(sim.variable('world.name'), 'world');
+      expect(sim.variable('world.time'), 1234.0);
+      sim.worldName = 'mining';
+      sim.worldTime = 23990;
+      sim.tick(20);
+      expect(sim.variable('world.name'), 'mining');
+      expect(sim.variable('world.time'), 10.0);
+      expect(sim.variable('time'), 1254.0);
+      sim.overrides['world.time'] = 6000.0;
+      sim.tick(20);
+      expect(sim.variable('world.time'), 6000.0);
+      sim.overrides.remove('world.time');
+      expect(sim.variable('world.time'), 30.0);
+    });
+
+    test('target-less contexts have no world or time of day', () {
+      for (final String category in <String>['statics', 'nonsense']) {
+        final PreviewSim sim = PreviewSim(category, lang: lang);
+        expect(sim.variable('world.name'), '', reason: category);
+        expect(sim.variable('world.time'), 0.0, reason: category);
+        sim.tick(24020);
+        expect(sim.variable('world.time'), 0.0, reason: category);
+      }
     });
 
     test('a powered minecart consumes fuel and stops at zero', () {

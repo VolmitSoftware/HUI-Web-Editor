@@ -88,6 +88,15 @@ _varControlSpecs = <String, PreviewSimVarControl>{
     max: 24000,
     step: 20,
   ),
+  'world.name': PreviewSimVarControl(
+    'world.name',
+    PreviewSimControlKind.string,
+  ),
+  'world.time': PreviewSimVarControl(
+    'world.time',
+    PreviewSimControlKind.number,
+    max: 23999,
+  ),
   'blockType': PreviewSimVarControl('blockType', PreviewSimControlKind.string),
   'customName': PreviewSimVarControl(
     'customName',
@@ -199,6 +208,8 @@ _varControlSpecs = <String, PreviewSimVarControl>{
 
 const Map<String, String> _varLabels = <String, String>{
   'time': 'World time (game ticks)',
+  'world.name': 'World',
+  'world.time': 'Time of day',
   'blockType': 'Block type',
   'customName': 'Custom name',
   'inventory.size': 'Inventory size',

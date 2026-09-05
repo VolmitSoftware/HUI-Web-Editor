@@ -524,6 +524,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'eye; the X component is negated on load. Not scaled by uiScale.',
     citation: 'gloss.schema.json#/properties/offset',
   ),
+  'menu.particleLayers': HuiFieldDoc(
+    title: 'Particle layers',
+    body:
+        'Viewer-targeted particle effects attached to this in-world menu '
+        'projection.',
+    citation: 'gloss.schema.json#/properties/particleLayers',
+  ),
   'preview.card': HuiFieldDoc(
     title: 'Card',
     body:
@@ -553,6 +560,11 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'Minimum half-width of the panel in pixels, so a narrow card does '
         'not collapse around a short title. Default 82.',
     citation: 'gloss-preview.schema.json#/\$defs/card/properties/minHalfWidth',
+  ),
+  'preview.card.show': HuiFieldDoc(
+    title: 'Show',
+    body: 'Boolean expression controlling display visibility.',
+    citation: 'gloss-preview.schema.json#/\$defs/card/properties/show',
   ),
   'preview.card.title': HuiFieldDoc(
     title: 'Title',
@@ -598,6 +610,11 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'Emits this element once per index, with the index bound to a '
         'loop variable every field of the element can read.',
     citation: 'gloss-preview.schema.json#/\$defs/element/properties/repeat',
+  ),
+  'preview.element.show': HuiFieldDoc(
+    title: 'Show',
+    body: 'Boolean expression controlling display visibility.',
+    citation: 'gloss-preview.schema.json#/\$defs/element/properties/show',
   ),
   'preview.element.size': HuiFieldDoc(
     title: 'Size',
@@ -765,6 +782,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'dropped the type.',
     citation: 'gloss-preview.schema.json#/\$defs/names',
   ),
+  'preview.particleLayers': HuiFieldDoc(
+    title: 'Particle layers',
+    body:
+        'Viewer-targeted particle effects attached to this preview '
+        'projection or its labels.',
+    citation: 'gloss-preview.schema.json#/properties/particleLayers',
+  ),
   'preview.repeat.count': HuiFieldDoc(
     title: 'Count',
     body:
@@ -782,6 +806,11 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         '\'i\'. Must be a valid identifier and must not collide with \'vars\' '
         'or a state variable name, which would make it unreachable.',
     citation: 'gloss-preview.schema.json#/\$defs/repeat/properties/var',
+  ),
+  'preview.show': HuiFieldDoc(
+    title: 'Show',
+    body: 'Boolean expression controlling display visibility.',
+    citation: 'gloss-preview.schema.json#/properties/show',
   ),
   'preview.variant.blocks': HuiFieldDoc(
     title: 'Blocks',
@@ -1320,7 +1349,7 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
   ),
   'realDrops.schemaVersion': HuiFieldDoc(
     title: 'Schema version',
-    body: 'Document format version. Must be exactly 2.',
+    body: 'Document format version. Must be exactly 3.',
     citation: 'gloss-real-drops.schema.json#/properties/schemaVersion',
   ),
   'realDrops.script.enabled': HuiFieldDoc(

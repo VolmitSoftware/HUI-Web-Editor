@@ -1,4 +1,5 @@
 {
+  "show": true,
   "match": {
     "blocks": ["DISPENSER", "DROPPER"],
     "priority": 10,
@@ -19,12 +20,14 @@
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
+      "show": true,
       "repeat": { "count": "min(vars.cols * vars.rows, inventory.size)", "var": "i" },
       "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
       "y": "round(((vars.rows - 1) / 2 - floor(i / vars.cols)) * 20)",

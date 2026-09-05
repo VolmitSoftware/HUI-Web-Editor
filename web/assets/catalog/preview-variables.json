@@ -2,6 +2,8 @@
   "categories": {
     "universal": {
       "time": { "type": "number", "description": "Current world game time in ticks (a wall-clock tick count when the target has no world)." },
+      "world.name": { "type": "string", "description": "Name of the preview target's world; empty when the context has no target world." },
+      "world.time": { "type": "number", "description": "Time of day in the preview target's world, from 0 to 23999 ticks; zero when the context has no target world." },
       "blockType": { "type": "string", "description": "Material name of the previewed block, or the material an entity maps to; empty when neither is present." },
       "customName": { "type": "string", "description": "Player-given name of the previewed container or entity, or empty when unset." }
     },

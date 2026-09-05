@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "revision": 1,
+  "show": true,
   "mode": "ascend",
   "frameIntervalMs": 53,
   "frames": [

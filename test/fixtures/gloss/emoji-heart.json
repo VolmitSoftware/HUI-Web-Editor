@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "revision": 1,
+  "show": true,
   "trigger": "<3",
   "emoji": "U+2764;",
   "enabled": true

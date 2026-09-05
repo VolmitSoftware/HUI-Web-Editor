@@ -18,6 +18,8 @@
 /// [categoryVariableNames].
 library;
 
+import 'dart:convert';
+
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show Component;
@@ -25,6 +27,7 @@ import 'package:jaspr/jaspr.dart' show Component;
 import '../../logic/preview_doc_validation.dart';
 import '../../logic/preview_expr.dart';
 import '../../logic/validation.dart';
+import '../../model/preview_doc.dart';
 import '../common/common.dart';
 import 'inspector_widgets.dart';
 
@@ -61,6 +64,7 @@ class PreviewExprField extends StatefulWidget {
     required this.onChanged,
     this.kind = PreviewExprKind.numeric,
     this.required = false,
+    this.showCondition = false,
     this.help,
     this.placeholder,
     this.trailing,
@@ -82,6 +86,7 @@ class PreviewExprField extends StatefulWidget {
 
   final PreviewExprKind kind;
   final bool required;
+  final bool showCondition;
   final String? help;
   final String? placeholder;
   final Widget? trailing;
@@ -143,7 +148,7 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
     if (raw == null) return '';
     if (raw is bool) return raw ? 'true' : 'false';
     if (raw is num) return previewStringify(raw.toDouble());
-    return raw as String;
+    return raw is String ? raw : jsonEncode(raw);
   }
 
   Object? _encode(String trimmed) {
@@ -180,7 +185,11 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
     }
     final PExpr expr;
     try {
-      expr = parsePreviewExpr(trimmed);
+      expr = parsePreviewExpr(
+        component.showCondition
+            ? previewShowExpression(trimmed)! as String
+            : trimmed,
+      );
     } on PExprException catch (e) {
       // Held locally, never committed: a broken draft must not overwrite the
       // last value the document actually builds from.
@@ -274,7 +283,8 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
             error: _syntaxError?.call(),
             onInput: _onInput,
             onBlur: _onBlur,
-            attributes: const <String, String>{
+            attributes: <String, String>{
+              'aria-label': component.label,
               'autocomplete': 'off',
               'spellcheck': 'false',
               'dir': 'ltr',

@@ -51,8 +51,10 @@ List<HuiIssue> parseCheckPreviewDoc(HuiPreviewDoc doc) {
     }
   }
 
+  check(previewShowExpression(doc.show), 'show');
   final HuiPreviewCard? card = doc.card;
   if (card != null) {
+    check(previewShowExpression(card.show), 'card.show');
     check(card.framed, 'card.framed');
     check(card.title, 'card.title');
     check(card.accent, 'card.accent');
@@ -73,6 +75,7 @@ List<HuiIssue> parseCheckPreviewDoc(HuiPreviewDoc doc) {
     check(element.background, '$path.background');
     check(element.text, '$path.text');
     check(element.visible, '$path.visible');
+    check(previewShowExpression(element.show), '$path.show');
     check(element.repeat?.count, '$path.repeat.count');
   }
 
@@ -481,8 +484,23 @@ List<HuiIssue> validatePreviewDoc(
   /// variable reference plus, when the whole expression is constant, that it
   /// evaluates cleanly (catching a constant division by zero, for instance).
   /// A `num`/`bool` constant has nothing to check and is a no-op.
-  void checkExpr(Object? raw, String path, Set<String> scope) {
-    if (raw is! String) return;
+  void checkExpr(
+    Object? raw,
+    String path,
+    Set<String> scope, {
+    bool requireBoolean = false,
+  }) {
+    if (raw is! String) {
+      if (requireBoolean && raw != null && raw is! bool) {
+        add(
+          HuiSeverity.error,
+          path,
+          '{field}: must be a boolean or a string expression',
+          messageArguments: <String, Object?>{'field': path},
+        );
+      }
+      return;
+    }
     final PExpr expr;
     try {
       expr = parsePreviewExpr(raw);
@@ -527,7 +545,11 @@ List<HuiIssue> validatePreviewDoc(
     });
     if (previewIsConstantExpr(expr)) {
       try {
-        evalPreviewExpr(expr, _previewEmptyScope);
+        if (requireBoolean) {
+          evalBool(expr, _previewEmptyScope);
+        } else {
+          evalPreviewExpr(expr, _previewEmptyScope);
+        }
       } on PExprException catch (e) {
         add(
           HuiSeverity.error,
@@ -696,8 +718,20 @@ List<HuiIssue> validatePreviewDoc(
   }
 
   // --- card --------------------------------------------------------------
+  checkExpr(
+    previewShowExpression(doc.show),
+    'show',
+    const <String>{},
+    requireBoolean: true,
+  );
   final HuiPreviewCard? card = doc.card;
   if (card != null) {
+    checkExpr(
+      previewShowExpression(card.show),
+      'card.show',
+      const <String>{},
+      requireBoolean: true,
+    );
     checkExpr(card.framed, 'card.framed', const <String>{});
     checkExpr(card.title, 'card.title', const <String>{});
     checkExpr(card.accent, 'card.accent', const <String>{});
@@ -785,6 +819,12 @@ List<HuiIssue> validatePreviewDoc(
     checkExpr(element.y, '$path.y', scope);
     checkExpr(element.z, '$path.z', scope);
     checkExpr(element.visible, '$path.visible', scope);
+    checkExpr(
+      previewShowExpression(element.show),
+      '$path.show',
+      scope,
+      requireBoolean: true,
+    );
 
     switch (type) {
       case 'panel':

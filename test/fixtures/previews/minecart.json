@@ -1,4 +1,5 @@
 {
+  "show": true,
   "match": {
     "entities": ["CHEST_MINECART", "HOPPER_MINECART", "*_CHEST_BOAT", "*_CHEST_RAFT"],
     "special": "anyInventoryHolder",
@@ -30,13 +31,14 @@
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, readable(blockType))))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
-      "visible": "vars.row",
+      "show": "vars.row",
       "repeat": { "count": "min(vars.slots, inventory.size)", "var": "i" },
       "x": "round((i - (min(vars.slots, inventory.size) - 1) / 2) * 20)",
       "y": 0,
@@ -45,7 +47,7 @@
     },
     {
       "type": "slot",
-      "visible": "!vars.row",
+      "show": "!vars.row",
       "repeat": {
         "count": "min(vars.cols * clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows), inventory.size)",
         "var": "i"

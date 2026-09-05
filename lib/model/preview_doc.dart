@@ -43,6 +43,14 @@ HuiPreviewDoc cloneHuiPreviewDoc(HuiPreviewDoc doc) =>
 /// `null` means the key was absent from the document.
 typedef HuiRawExpr = Object?;
 
+HuiRawExpr previewShowExpression(HuiRawExpr value) {
+  if (value is! String) return value;
+  final String expression = value.trim();
+  return expression.startsWith('{{') && expression.endsWith('}}')
+      ? expression.substring(2, expression.length - 2).trim()
+      : expression;
+}
+
 HuiRawExpr _rawNumberOrExpr(Object? value) =>
     value is num || value is String ? value : null;
 
@@ -226,6 +234,7 @@ class HuiPreviewVariant {
 // ---------------------------------------------------------------------
 
 const Set<String> _cardKnown = <String>{
+  'show',
   'framed',
   'title',
   'accent',
@@ -237,6 +246,8 @@ const Set<String> _cardKnown = <String>{
 /// distinct from a card whose fields are all absent, which the parser still
 /// draws with its defaults.
 class HuiPreviewCard {
+  HuiRawExpr show;
+
   /// Raw `bool` or expression `String`. `null` means absent (parser default
   /// `true`).
   HuiRawExpr framed;
@@ -246,10 +257,17 @@ class HuiPreviewCard {
   Map<String, dynamic> extras = <String, dynamic>{};
   Set<String> absentKeys = <String>{};
 
-  HuiPreviewCard({this.framed, this.title, this.accent, this.minHalfWidth});
+  HuiPreviewCard({
+    this.show,
+    this.framed,
+    this.title,
+    this.accent,
+    this.minHalfWidth,
+  });
 
   HuiPreviewCard copy() =>
       HuiPreviewCard(
+          show: huiDeepCopy(show),
           framed: huiDeepCopy(framed),
           title: title,
           accent: accent,
@@ -260,6 +278,7 @@ class HuiPreviewCard {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> out = <String, dynamic>{};
+    if (show != null) out['show'] = show;
     if (framed != null) out['framed'] = framed;
     if (title != null) out['title'] = title;
     if (accent != null) out['accent'] = accent;
@@ -271,6 +290,7 @@ class HuiPreviewCard {
     if (raw == null) return null;
     final Map<String, dynamic> map = huiReadObject(raw, r'$.card');
     return HuiPreviewCard(
+        show: huiDeepCopy(map['show']),
         framed: _rawBoolOrExpr(map['framed']),
         title: map['title'] is String ? map['title'] as String : null,
         accent: map['accent'] is String ? map['accent'] as String : null,
@@ -344,6 +364,7 @@ const List<String> previewElementTypes = <String>[
 
 const Set<String> _elementKnown = <String>{
   'type',
+  'show',
   'x',
   'y',
   'z',
@@ -366,6 +387,7 @@ const Set<String> _elementKnown = <String>{
 /// type is the compiler's concern.
 class HuiPreviewElement {
   String type;
+  HuiRawExpr show;
   HuiRawExpr x;
   HuiRawExpr y;
 
@@ -390,6 +412,7 @@ class HuiPreviewElement {
 
   HuiPreviewElement(
     this.type, {
+    this.show,
     this.x,
     this.y,
     this.z,
@@ -408,6 +431,7 @@ class HuiPreviewElement {
   HuiPreviewElement copy() =>
       HuiPreviewElement(
           type,
+          show: huiDeepCopy(show),
           x: huiDeepCopy(x),
           y: huiDeepCopy(y),
           z: huiDeepCopy(z),
@@ -427,6 +451,7 @@ class HuiPreviewElement {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> out = <String, dynamic>{'type': type};
+    if (show != null) out['show'] = show;
     if (x != null) out['x'] = x;
     if (y != null) out['y'] = y;
     if (z != null) out['z'] = z;
@@ -448,6 +473,7 @@ class HuiPreviewElement {
     final Object? repeatRaw = map['repeat'];
     return HuiPreviewElement(
         huiReadString(map, 'type'),
+        show: huiDeepCopy(map['show']),
         x: _rawNumberOrExpr(map['x']),
         y: _rawNumberOrExpr(map['y']),
         z: _rawNumberOrExpr(map['z']),
@@ -479,6 +505,7 @@ class HuiPreviewElement {
 // ---------------------------------------------------------------------
 
 const Set<String> _docKnown = <String>{
+  'show',
   'match',
   'variants',
   'card',
@@ -488,6 +515,7 @@ const Set<String> _docKnown = <String>{
 
 /// Root of one container-preview JSON document.
 class HuiPreviewDoc {
+  HuiRawExpr show;
   HuiPreviewMatch match;
   List<HuiPreviewVariant> variants;
   HuiPreviewCard? card;
@@ -497,6 +525,7 @@ class HuiPreviewDoc {
   Map<String, dynamic> extras = <String, dynamic>{};
 
   HuiPreviewDoc({
+    this.show,
     HuiPreviewMatch? match,
     List<HuiPreviewVariant>? variants,
     this.card,
@@ -509,6 +538,7 @@ class HuiPreviewDoc {
 
   HuiPreviewDoc copy() {
     final HuiPreviewDoc copied = HuiPreviewDoc(
+      show: huiDeepCopy(show),
       match: match.copy(),
       variants: variants.map((HuiPreviewVariant v) => v.copy()).toList(),
       card: card?.copy(),
@@ -522,6 +552,7 @@ class HuiPreviewDoc {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> out = <String, dynamic>{};
+    if (show != null) out['show'] = show;
     final Map<String, dynamic> matchJson = match.toJson();
     if (matchJson.isNotEmpty) out['match'] = matchJson;
     if (variants.isNotEmpty) {
@@ -559,6 +590,7 @@ class HuiPreviewDoc {
       elements.add(HuiPreviewElement.fromJson(entry, path: 'elements[$i]'));
     }
     final HuiPreviewDoc doc = HuiPreviewDoc(
+      show: huiDeepCopy(map['show']),
       match: HuiPreviewMatch.fromJson(map['match']),
       variants: variants,
       card: HuiPreviewCard.fromJson(map['card']),

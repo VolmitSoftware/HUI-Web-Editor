@@ -1,4 +1,5 @@
 {
+  "show": true,
   "match": {
     "blocks": ["CAULDRON", "WATER_CAULDRON", "LAVA_CAULDRON", "POWDER_SNOW_CAULDRON"],
     "priority": 10,
@@ -37,12 +38,14 @@
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + plain(lang(vars.titleKey))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.cells", "var": "i" },
       "x": "round((i - (vars.cells - 1) / 2) * 20)",
       "y": 0,
@@ -51,6 +54,7 @@
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": 21,
       "text": "level <= 0 ? '&7' + lang('gloss.preview.stat.cauldron_empty', level, maxLevel) : '&b' + lang('gloss.preview.stat.cauldron_level', level, maxLevel)"

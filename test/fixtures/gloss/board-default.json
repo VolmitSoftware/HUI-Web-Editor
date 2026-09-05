@@ -1,6 +1,7 @@
 {
   "schemaVersion": 2,
   "revision": 1,
+  "show": true,
   "select": {
     "priority": 0,
     "when": "false"

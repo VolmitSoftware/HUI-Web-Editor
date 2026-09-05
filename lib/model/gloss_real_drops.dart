@@ -34,6 +34,7 @@ String encodeGlossRealDropSettingsDoc(GlossRealDropSettingsDoc doc) =>
     huiWriteJson(doc.toJson());
 
 const Set<String> _docKnown = <String>{
+  'show',
   'schemaVersion',
   'revision',
   'presentation',
@@ -597,6 +598,7 @@ final class GlossRealDropAudience {
 
 final class GlossRealDropSettingsDoc extends GlossDoc {
   GlossRealDropSettingsDoc({
+    this.show,
     super.schemaVersion = glossRealDropsCurrentSchemaVersion,
     super.revision = glossInitialRevision,
     GlossRealDropPresentation? presentation,
@@ -608,6 +610,7 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
        audience = audience ?? GlossRealDropAudience(),
        extras = extras ?? <String, dynamic>{};
 
+  Object? show;
   GlossRealDropPresentation presentation;
   List<GlossRealDropVariant> variants;
   GlossRealDropAudience audience;
@@ -622,6 +625,7 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
     );
     final List<Object?> rawVariants = huiReadList(map['variants']);
     return GlossRealDropSettingsDoc(
+      show: huiDeepCopy(map['show']),
       revision: glossReadRevision(map),
       presentation: GlossRealDropPresentation.fromJson(
         map['presentation'],
@@ -638,6 +642,7 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
 
   @override
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    if (show != null) 'show': show,
     'schemaVersion': schemaVersion,
     'revision': revision,
     'presentation': presentation.toJson(),
@@ -648,6 +653,7 @@ final class GlossRealDropSettingsDoc extends GlossDoc {
   }, extras);
 
   GlossRealDropSettingsDoc copy() => GlossRealDropSettingsDoc(
+    show: huiDeepCopy(show),
     schemaVersion: schemaVersion,
     revision: revision,
     presentation: presentation.copy(),

@@ -200,6 +200,19 @@ class PreviewElementEditor extends StatelessWidget {
         ),
       ),
       _field(
+        huiText('Visibility expression'),
+        element.show,
+        (Object? value) => _mutate(
+          'show',
+          (HuiPreviewElement element) => element.show = value,
+        ),
+        field: 'show',
+        showCondition: true,
+        docKey: 'preview.element.show',
+        kind: PreviewExprKind.boolean,
+        placeholder: huiText('true'),
+      ),
+      _field(
         huiText('Visible'),
         element.visible,
         (Object? v) =>
@@ -469,6 +482,7 @@ class PreviewElementEditor extends StatelessWidget {
     void Function(Object? value) onChanged, {
     required String field,
     bool required = false,
+    bool showCondition = false,
     PreviewExprKind kind = PreviewExprKind.numeric,
     String? placeholder,
     String? help,
@@ -478,6 +492,7 @@ class PreviewElementEditor extends StatelessWidget {
     label: label,
     raw: raw,
     required: required,
+    showCondition: showCondition,
     kind: kind,
     placeholder: placeholder,
     help: help,

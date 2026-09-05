@@ -1,4 +1,5 @@
 {
+  "show": true,
   "match": {
     "blocks": ["FURNACE", "BLAST_FURNACE", "SMOKER"],
     "priority": 10,
@@ -68,15 +69,17 @@
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
     "accent": "vars.accent"
   },
   "elements": [
-    { "type": "slot", "x": -40, "y": 10, "size": 18, "index": 0 },
-    { "type": "slot", "x": -40, "y": -10, "size": 18, "index": 1 },
-    { "type": "slot", "x": 40, "y": 10, "size": 18, "index": 2 },
+    { "show": true, "type": "slot", "x": -40, "y": 10, "size": 18, "index": 0 },
+    { "show": true, "type": "slot", "x": -40, "y": -10, "size": 18, "index": 1 },
+    { "show": true, "type": "slot", "x": 40, "y": 10, "size": 18, "index": 2 },
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.segments", "var": "i" },
       "x": "-24 + i * 7",
       "y": 10,
@@ -85,7 +88,7 @@
     },
     {
       "type": "cell",
-      "visible": "vars.style != 'blast'",
+      "show": "vars.style != 'blast'",
       "x": -20,
       "y": -10,
       "size": 12,
@@ -93,7 +96,7 @@
     },
     {
       "type": "cell",
-      "visible": "vars.style == 'blast'",
+      "show": "vars.style == 'blast'",
       "repeat": { "count": 3, "var": "vent" },
       "x": "-20 + vent * 8",
       "y": -10,
@@ -102,7 +105,7 @@
     },
     {
       "type": "cell",
-      "visible": "vars.style == 'smoker'",
+      "show": "vars.style == 'smoker'",
       "repeat": { "count": 2, "var": "wisp" },
       "x": "wisp == 0 ? -8 : 2",
       "y": -10,
@@ -111,12 +114,14 @@
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -32,
       "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? readable(item(0)) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('gloss.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('gloss.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('gloss.preview.state.no_input') : '&7' + lang('gloss.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -46,
       "text": "(burnTime > 0 ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('gloss.preview.stat.fuel_ready') : '&8' + lang('gloss.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('gloss.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('gloss.preview.stat.xp_zero') + '</dark_gray>') : '')"

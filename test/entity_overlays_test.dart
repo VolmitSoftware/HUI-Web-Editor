@@ -13,19 +13,25 @@ import 'package:gloss_editor/state/editor_store.dart';
 import 'package:gloss_editor/state/workspace.dart';
 import 'package:test/test.dart';
 
+import 'support/gloss_repository.dart';
+
 void main() {
   test('editor defaults match the shipped Gloss document and JSON schema', () {
     final Map<String, Object?> expected =
         jsonDecode(
               File(
-                '../Gloss/src/main/resources/defaults/entity-overlays/default.json',
+                glossRepositoryFilePath(
+                  'src/main/resources/defaults/entity-overlays/default.json',
+                ),
               ).readAsStringSync(),
             )
             as Map<String, Object?>;
     final Map<String, Object?> schema =
         jsonDecode(
               File(
-                '../Gloss/schema/gloss-entity-overlays.schema.json',
+                glossRepositoryFilePath(
+                  'schema/gloss-entity-overlays.schema.json',
+                ),
               ).readAsStringSync(),
             )
             as Map<String, Object?>;

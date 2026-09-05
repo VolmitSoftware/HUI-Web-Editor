@@ -1,8 +1,10 @@
 {
   "schemaVersion": 2,
   "revision": 1,
+  "show": true,
   "headerFooter": {
     "enabled": true,
+    "show": true,
     "presentation": {
       "header": "&d&lGloss",
       "footer": "&7VolmitSoftware.com"
@@ -11,6 +13,7 @@
   },
   "listNames": {
     "enabled": true,
+    "show": true,
     "presentation": {
       "format": "$player"
     },

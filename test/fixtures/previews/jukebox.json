@@ -1,4 +1,5 @@
 {
+  "show": true,
   "match": {
     "blocks": ["JUKEBOX"],
     "priority": 10,
@@ -8,13 +9,15 @@
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + plain(lang(vars.titleKey))",
     "accent": "vars.accent"
   },
   "elements": [
-    { "type": "slot", "x": 0, "y": 0, "size": 18, "index": 0 },
+    { "show": true, "type": "slot", "x": 0, "y": 0, "size": 18, "index": 0 },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -21,
       "text": "record != '' ? (playing ? '&a' + lang('gloss.preview.state.disc_playing', record) : '&7' + lang('gloss.preview.state.disc_loaded', record)) : '&8' + lang('gloss.preview.state.no_disc')"

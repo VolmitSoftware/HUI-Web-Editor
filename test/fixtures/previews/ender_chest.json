@@ -1,4 +1,5 @@
 {
+  "show": true,
   "match": {
     "blocks": ["ENDER_CHEST"],
     "special": "enderChest",
@@ -11,12 +12,14 @@
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + plain(lang(vars.titleKey))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
+      "show": true,
       "repeat": {
         "count": "min(vars.cols * clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows), inventory.size)",
         "var": "i"

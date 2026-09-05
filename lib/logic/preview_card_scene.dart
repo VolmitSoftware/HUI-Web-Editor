@@ -258,6 +258,9 @@ PreviewCardScene buildCardScene(
 }) {
   final void Function(String) sink = onError ?? _noOpSink;
   try {
+    if (!_bool(previewShowExpression(doc.show), true, sim, 'show')) {
+      return PreviewCardScene.empty;
+    }
     final List<CardItem> content = <CardItem>[];
     // Parallel to [content]: which element emitted each entry. Counted from the
     // list length rather than threaded through `_emit`, so a partially expanded
@@ -445,7 +448,10 @@ void _emit(
       <String, Object?>{'types': _elementTypes.join(', ')},
     );
   }
-  if (!_bool(template.visible, true, scope, 'visible')) return;
+  if (!_bool(previewShowExpression(template.show), true, scope, 'show') ||
+      !_bool(template.visible, true, scope, 'visible')) {
+    return;
+  }
   final int x = _coordinate(template.x, 0, scope, 'x');
   final int y = _coordinate(template.y, 0, scope, 'y');
   final int z = _coordinate(template.z, _defaultZ(type), scope, 'z');
@@ -644,7 +650,8 @@ bool _cardFramed(
   void Function(String) sink,
 ) {
   try {
-    return _bool(card.framed, true, scope, 'card.framed');
+    return _bool(previewShowExpression(card.show), true, scope, 'card.show') &&
+        _bool(card.framed, true, scope, 'card.framed');
   } catch (failure) {
     sink(
       huiText('card framed: {reason}', <String, Object?>{

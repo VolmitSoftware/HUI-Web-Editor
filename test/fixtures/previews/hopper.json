@@ -1,4 +1,5 @@
 {
+  "show": true,
   "match": {
     "blocks": ["HOPPER"],
     "priority": 10,
@@ -9,12 +10,14 @@
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
+      "show": true,
       "repeat": { "count": "min(vars.slots, inventory.size)", "var": "i" },
       "x": "round((i - (vars.slots - 1) / 2) * 20)",
       "y": 0,

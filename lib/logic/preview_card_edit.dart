@@ -557,15 +557,18 @@ final RegExp _previewTickVaryingPattern = RegExp(
 /// Note that a name is only matched whole: `cookTimeTotal` and `brewTotal` are
 /// fixed for a category and do not start the clock on their own.
 bool previewDocIsAnimated(HuiPreviewDoc doc) {
+  if (_readsClock(doc.show)) return true;
   final HuiPreviewCard? card = doc.card;
   if (card != null &&
-      (_readsClock(card.framed) ||
+      (_readsClock(card.show) ||
+          _readsClock(card.framed) ||
           _readsClock(card.title) ||
           _readsClock(card.accent))) {
     return true;
   }
   for (final HuiPreviewElement element in doc.elements) {
-    if (_readsClock(element.x) ||
+    if (_readsClock(element.show) ||
+        _readsClock(element.x) ||
         _readsClock(element.y) ||
         _readsClock(element.z) ||
         _readsClock(element.width) ||

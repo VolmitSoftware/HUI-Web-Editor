@@ -76,7 +76,13 @@ const Map<String, List<String>> previewSimCategoryGroups =
 /// declaration of what it publishes, so an extra or missing name fails there.
 const Map<String, List<String>> previewSimGroupVariables =
     <String, List<String>>{
-      'universal': <String>['time', 'blockType', 'customName'],
+      'universal': <String>[
+        'time',
+        'world.name',
+        'world.time',
+        'blockType',
+        'customName',
+      ],
       'inventory': <String>['inventory.size', 'inventory.occupied'],
       'furnace': <String>[
         'cookTime',
@@ -144,6 +150,7 @@ List<String> previewCategoryVariableNames(String category) => <String>[
 /// nothing outside this set moved.
 const Set<String> previewTickVaryingVariables = <String>{
   'time',
+  'world.time',
   'time.ms',
   'time.seconds',
   'time.ticks',
@@ -396,6 +403,8 @@ class PreviewSim implements PExprScope {
   int inventorySize = 0;
 
   double time = 0;
+  String worldName = '';
+  double worldTime = 0;
   String blockType = '';
   String customName = '';
 
@@ -453,6 +462,10 @@ class PreviewSim implements PExprScope {
     surgeGain = 0;
     _honeyProgress = 0;
     _applyCategoryDefaults();
+    worldName = previewSimCategories.contains(category) && category != 'statics'
+        ? 'world'
+        : '';
+    worldTime = worldName.isEmpty ? 0 : _goldenGameTime % 24000;
   }
 
   /// Advances the simulation by [gameTicks] game ticks: the clock always, and
@@ -461,6 +474,9 @@ class PreviewSim implements PExprScope {
   void tick(int gameTicks) {
     if (gameTicks <= 0) return;
     time += gameTicks;
+    if (worldName.isNotEmpty) {
+      worldTime = (worldTime + gameTicks) % 24000;
+    }
     // A surge is progress beyond the real elapsed ticks, which is exactly what
     // `surge.gain` reports; adding it here keeps the number the label renders
     // and the motion on screen telling the same story.
@@ -538,6 +554,10 @@ class PreviewSim implements PExprScope {
     switch (name) {
       case 'time':
         return time;
+      case 'world.name':
+        return worldName;
+      case 'world.time':
+        return worldTime;
       case 'blockType':
         return blockType;
       case 'customName':

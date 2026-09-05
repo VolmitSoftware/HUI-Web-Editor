@@ -1,15 +1,17 @@
 {
+  "show": true,
   "match": {
     "special": "locked",
     "priority": 10
   },
   "card": {
+    "show": true,
     "framed": false
   },
   "elements": [
-    { "type": "cell", "x": 0, "y": 10, "z": 4, "size": 16, "color": "#FFFFB000" },
-    { "type": "cell", "x": 0, "y": 10, "z": 6, "size": 8, "color": "#FF21170A" },
-    { "type": "cell", "x": 0, "y": -4, "z": 7, "size": 24, "color": "#FFFFB000" },
-    { "type": "cell", "x": 0, "y": -4, "z": 8, "size": 5, "color": "#FF21170A" }
+    { "show": true, "type": "cell", "x": 0, "y": 10, "z": 4, "size": 16, "color": "#FFFFB000" },
+    { "show": true, "type": "cell", "x": 0, "y": 10, "z": 6, "size": 8, "color": "#FF21170A" },
+    { "show": true, "type": "cell", "x": 0, "y": -4, "z": 7, "size": 24, "color": "#FFFFB000" },
+    { "show": true, "type": "cell", "x": 0, "y": -4, "z": 8, "size": 5, "color": "#FF21170A" }
   ]
 }

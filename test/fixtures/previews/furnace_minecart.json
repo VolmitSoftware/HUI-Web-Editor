@@ -1,4 +1,5 @@
 {
+  "show": true,
   "match": {
     "entities": ["FURNACE_MINECART"],
     "priority": 10,
@@ -13,12 +14,14 @@
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, readable(blockType))))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.cells", "var": "i" },
       "x": "round((i - (vars.cells - 1) / 2) * 10)",
       "y": 0,
@@ -27,6 +30,7 @@
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -19,
       "text": "powered ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : '&8' + lang('gloss.preview.stat.no_fuel')"

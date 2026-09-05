@@ -10,6 +10,7 @@ import '../model/model.dart';
 
 const String kGlossDamageIndicatorsDefaultJson = r'''
 {
+  "show": true,
   "schemaVersion": 3,
   "revision": 1,
   "limits": {
@@ -119,6 +120,7 @@ GlossHologramDoc buildShowcaseGlossHologram() =>
 
 const String kGlossRealDropsDefaultJson = r'''
 {
+  "show": true,
   "schemaVersion": 3,
   "revision": 1,
   "presentation": {
@@ -431,6 +433,7 @@ const String kGlossAnimationRainbowJson = r'''
 {
   "schemaVersion": 1,
   "revision": 1,
+  "show": true,
   "mode": "ascend",
   "frameIntervalMs": 53,
   "frames": [
@@ -519,6 +522,7 @@ GlossAnimationDoc buildBlankGlossAnimation() =>
     decodeGlossAnimationDoc(kGlossAnimationBlankJson);
 
 GlossAnimationDoc buildMarqueeGlossAnimation() => GlossAnimationDoc(
+  extras: <String, Object?>{'show': true},
   frameIntervalMs: 1000,
   frames: <String>[
     "&b{{ marquee('GLOSS REALMS', 12, floor(time.seconds * 4)) }}",
@@ -526,6 +530,7 @@ GlossAnimationDoc buildMarqueeGlossAnimation() => GlossAnimationDoc(
 );
 
 GlossAnimationDoc buildTimelineGlossAnimation() => GlossAnimationDoc(
+  extras: <String, Object?>{'show': true},
   frameIntervalMs: 1000,
   frames: <String>[
     "{{ timeline([['&b' + marquee('WELCOME', 10, floor(time.seconds * 4)), 4], [flash('&a&lBOOSTED', '&7BOOSTED', floor(time.seconds * 4)), 4], ['&bEVENT LIVE', 4]], time.seconds) }}",
@@ -533,6 +538,7 @@ GlossAnimationDoc buildTimelineGlossAnimation() => GlossAnimationDoc(
 );
 
 GlossAnimationDoc buildTypewriterGlossAnimation() => GlossAnimationDoc(
+  extras: <String, Object?>{'show': true},
   frameIntervalMs: 1000,
   frames: <String>[
     "&f{{ typewriter('WELCOME', floor(time.seconds * 4) + 7, 1) }}",
@@ -540,6 +546,7 @@ GlossAnimationDoc buildTypewriterGlossAnimation() => GlossAnimationDoc(
 );
 
 GlossAnimationDoc buildFlashGlossAnimation() => GlossAnimationDoc(
+  extras: <String, Object?>{'show': true},
   frameIntervalMs: 1000,
   frames: <String>[
     "{{ flash('&a&lBOOSTED', '&7BOOSTED', floor(time.seconds * 4)) }}",
@@ -547,11 +554,13 @@ GlossAnimationDoc buildFlashGlossAnimation() => GlossAnimationDoc(
 );
 
 GlossAnimationDoc buildWipeGlossAnimation() => GlossAnimationDoc(
+  extras: <String, Object?>{'show': true},
   frameIntervalMs: 1000,
   frames: <String>["&d{{ wipe('WELCOME', floor(time.seconds * 4) + 7) }}"],
 );
 
 GlossAnimationDoc buildScannerGlossAnimation() => GlossAnimationDoc(
+  extras: <String, Object?>{'show': true},
   frameIntervalMs: 1000,
   frames: <String>[
     "{{ scanner('BOOSTED', '&7', '&a', floor(time.seconds * 4)) }}",
@@ -559,11 +568,13 @@ GlossAnimationDoc buildScannerGlossAnimation() => GlossAnimationDoc(
 );
 
 GlossAnimationDoc buildDecodeGlossAnimation() => GlossAnimationDoc(
+  extras: <String, Object?>{'show': true},
   frameIntervalMs: 1000,
   frames: <String>["&d{{ scramble('GHOSTWOOD', floor(time.seconds * 4)) }}"],
 );
 
 GlossAnimationDoc buildOdometerGlossAnimation() => GlossAnimationDoc(
+  extras: <String, Object?>{'show': true},
   frameIntervalMs: 1000,
   frames: <String>[
     r'&6${{ odometer(0, 9999, mod(time.seconds, 20) / 20, 4) }}',
@@ -571,6 +582,7 @@ GlossAnimationDoc buildOdometerGlossAnimation() => GlossAnimationDoc(
 );
 
 GlossAnimationDoc buildWaveGlossAnimation() => GlossAnimationDoc(
+  extras: <String, Object?>{'show': true},
   frameIntervalMs: 1000,
   frames: <String>[
     "{{ wave('GLOSS', ['&a', '&7'], floor(time.seconds * 4)) }}",
@@ -600,6 +612,7 @@ const String kGlossScoreboardDefaultJson = r'''
 {
   "schemaVersion": 2,
   "revision": 1,
+  "show": true,
   "select": {
     "priority": 0,
     "when": "false"
@@ -665,6 +678,7 @@ const String kGlossScoreboardAnimationShowcaseJson = r'''
 {
   "schemaVersion": 2,
   "revision": 1,
+  "show": true,
   "select": {
     "priority": 0,
     "when": "false"
@@ -708,6 +722,7 @@ const String kGlossMotdDefaultJson = r'''
 {
   "schemaVersion": 1,
   "revision": 1,
+  "show": true,
   "entries": [
     {
       "lines": [
@@ -765,6 +780,7 @@ const String kGlossEmojiHeartJson = r'''
 {
   "schemaVersion": 1,
   "revision": 1,
+  "show": true,
   "trigger": "<3",
   "emoji": "U+2764;",
   "enabled": true
@@ -796,6 +812,7 @@ GlossEmojiDoc buildBlankGlossEmoji() =>
 /// fallback id).
 const String kGlossBubbleDefaultJson = r'''
 {
+  "show": true,
   "schemaVersion": 4,
   "revision": 1,
   "prefix": "&7",
@@ -893,8 +910,10 @@ const String kGlossTablistDefaultJson = r'''
 {
   "schemaVersion": 2,
   "revision": 1,
+  "show": true,
   "headerFooter": {
     "enabled": true,
+    "show": true,
     "presentation": {
       "header": "&d&lGloss",
       "footer": "&7VolmitSoftware.com"
@@ -903,6 +922,7 @@ const String kGlossTablistDefaultJson = r'''
   },
   "listNames": {
     "enabled": true,
+    "show": true,
     "presentation": {
       "format": "$player"
     },

@@ -1,4 +1,5 @@
 {
+  "show": true,
   "match": {
     "blocks": ["BREWING_STAND"],
     "priority": 10,
@@ -19,14 +20,16 @@
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
     "accent": "vars.accent"
   },
   "elements": [
-    { "type": "slot", "x": 0, "y": 16, "size": 18, "index": 3 },
-    { "type": "slot", "x": -44, "y": 16, "size": 18, "index": 4 },
+    { "show": true, "type": "slot", "x": 0, "y": 16, "size": 18, "index": 3 },
+    { "show": true, "type": "slot", "x": -44, "y": 16, "size": 18, "index": 4 },
     {
       "type": "slot",
+      "show": true,
       "repeat": { "count": "vars.bottleSlots", "var": "bottle" },
       "x": "(bottle - 1) * 24",
       "y": -12,
@@ -35,6 +38,7 @@
     },
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.segments", "var": "i" },
       "x": 44,
       "y": "18 - i * 7",
@@ -43,6 +47,7 @@
     },
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.fuelCells", "var": "i" },
       "x": -44,
       "y": "-12 + i * 7",
@@ -51,12 +56,14 @@
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -32,
       "text": "(brewTime > 0 ? vars.stateColor + lang('gloss.preview.state.brewing', round(clamp(1 - brewTime / brewTotal, 0, 1) * 100)) : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) && fuelLevel <= 0 ? '&c' + lang('gloss.preview.state.needs_blaze_powder') : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) ? '&7' + lang('gloss.preview.state.waiting') : (occupied(0) || occupied(1) || occupied(2) ? '&7' + lang('gloss.preview.state.no_ingredient') : '&8' + lang('gloss.preview.state.empty'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -46,
       "text": "(fuelLevel > 0 ? '&e' + lang('gloss.preview.stat.fuel_level', fuelLevel, maxFuel) : '&8' + lang('gloss.preview.stat.no_fuel')) + '<dark_gray>  •  </dark_gray>' + ((occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0) > 0 ? '<light_purple>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</light_purple>' : '<dark_gray>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</dark_gray>')"

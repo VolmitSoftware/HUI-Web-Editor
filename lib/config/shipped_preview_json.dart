@@ -8,6 +8,7 @@ library;
 const Map<String, String> kShippedPreviewJson = <String, String>{
   'beehive': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["BEEHIVE", "BEE_NEST"],
     "priority": 10,
@@ -26,12 +27,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + plain(lang(vars.titleKey))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.cells", "var": "i" },
       "x": "round((i - (vars.cells - 1) / 2) * 20)",
       "y": 0,
@@ -40,6 +43,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": 21,
       "text": "'&6' + lang('gloss.preview.stat.bees_and_honey', bees, maxBees, honey, maxHoney)"
@@ -49,6 +53,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'brewing_stand': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["BREWING_STAND"],
     "priority": 10,
@@ -69,14 +74,16 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
     "accent": "vars.accent"
   },
   "elements": [
-    { "type": "slot", "x": 0, "y": 16, "size": 18, "index": 3 },
-    { "type": "slot", "x": -44, "y": 16, "size": 18, "index": 4 },
+    { "show": true, "type": "slot", "x": 0, "y": 16, "size": 18, "index": 3 },
+    { "show": true, "type": "slot", "x": -44, "y": 16, "size": 18, "index": 4 },
     {
       "type": "slot",
+      "show": true,
       "repeat": { "count": "vars.bottleSlots", "var": "bottle" },
       "x": "(bottle - 1) * 24",
       "y": -12,
@@ -85,6 +92,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.segments", "var": "i" },
       "x": 44,
       "y": "18 - i * 7",
@@ -93,6 +101,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.fuelCells", "var": "i" },
       "x": -44,
       "y": "-12 + i * 7",
@@ -101,12 +110,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -32,
       "text": "(brewTime > 0 ? vars.stateColor + lang('gloss.preview.state.brewing', round(clamp(1 - brewTime / brewTotal, 0, 1) * 100)) : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) && fuelLevel <= 0 ? '&c' + lang('gloss.preview.state.needs_blaze_powder') : (occupied(3) && (occupied(0) || occupied(1) || occupied(2)) ? '&7' + lang('gloss.preview.state.waiting') : (occupied(0) || occupied(1) || occupied(2) ? '&7' + lang('gloss.preview.state.no_ingredient') : '&8' + lang('gloss.preview.state.empty'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -46,
       "text": "(fuelLevel > 0 ? '&e' + lang('gloss.preview.stat.fuel_level', fuelLevel, maxFuel) : '&8' + lang('gloss.preview.stat.no_fuel')) + '<dark_gray>  •  </dark_gray>' + ((occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0) > 0 ? '<light_purple>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</light_purple>' : '<dark_gray>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</dark_gray>')"
@@ -116,6 +127,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'cauldron': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["CAULDRON", "WATER_CAULDRON", "LAVA_CAULDRON", "POWDER_SNOW_CAULDRON"],
     "priority": 10,
@@ -154,12 +166,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + plain(lang(vars.titleKey))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.cells", "var": "i" },
       "x": "round((i - (vars.cells - 1) / 2) * 20)",
       "y": 0,
@@ -168,6 +182,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": 21,
       "text": "level <= 0 ? '&7' + lang('gloss.preview.stat.cauldron_empty', level, maxLevel) : '&b' + lang('gloss.preview.stat.cauldron_level', level, maxLevel)"
@@ -177,6 +192,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'chest': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["CHEST", "TRAPPED_CHEST", "BARREL"],
     "priority": 10,
@@ -271,12 +287,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : (plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) != '' ? plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) : readable(blockType)))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
+      "show": true,
       "repeat": {
         "count": "min(vars.cols * clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows), inventory.size)",
         "var": "i"
@@ -291,6 +309,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'chiseled_bookshelf': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["CHISELED_BOOKSHELF"],
     "priority": 10,
@@ -302,12 +321,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + plain(lang(vars.titleKey))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
+      "show": true,
       "repeat": { "count": "min(vars.cols * vars.rows, inventory.size)", "var": "i" },
       "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
       "y": "round(((vars.rows - 1) / 2 - floor(i / vars.cols)) * 20)",
@@ -319,6 +340,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'dispenser': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["DISPENSER", "DROPPER"],
     "priority": 10,
@@ -339,12 +361,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
+      "show": true,
       "repeat": { "count": "min(vars.cols * vars.rows, inventory.size)", "var": "i" },
       "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
       "y": "round(((vars.rows - 1) / 2 - floor(i / vars.cols)) * 20)",
@@ -356,6 +380,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'ender_chest': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["ENDER_CHEST"],
     "special": "enderChest",
@@ -368,12 +393,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + plain(lang(vars.titleKey))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
+      "show": true,
       "repeat": {
         "count": "min(vars.cols * clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows), inventory.size)",
         "var": "i"
@@ -388,6 +415,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'furnace': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["FURNACE", "BLAST_FURNACE", "SMOKER"],
     "priority": 10,
@@ -457,15 +485,17 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
     "accent": "vars.accent"
   },
   "elements": [
-    { "type": "slot", "x": -40, "y": 10, "size": 18, "index": 0 },
-    { "type": "slot", "x": -40, "y": -10, "size": 18, "index": 1 },
-    { "type": "slot", "x": 40, "y": 10, "size": 18, "index": 2 },
+    { "show": true, "type": "slot", "x": -40, "y": 10, "size": 18, "index": 0 },
+    { "show": true, "type": "slot", "x": -40, "y": -10, "size": 18, "index": 1 },
+    { "show": true, "type": "slot", "x": 40, "y": 10, "size": 18, "index": 2 },
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.segments", "var": "i" },
       "x": "-24 + i * 7",
       "y": 10,
@@ -474,7 +504,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "cell",
-      "visible": "vars.style != 'blast'",
+      "show": "vars.style != 'blast'",
       "x": -20,
       "y": -10,
       "size": 12,
@@ -482,7 +512,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "cell",
-      "visible": "vars.style == 'blast'",
+      "show": "vars.style == 'blast'",
       "repeat": { "count": 3, "var": "vent" },
       "x": "-20 + vent * 8",
       "y": -10,
@@ -491,7 +521,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "cell",
-      "visible": "vars.style == 'smoker'",
+      "show": "vars.style == 'smoker'",
       "repeat": { "count": 2, "var": "wisp" },
       "x": "wisp == 0 ? -8 : 2",
       "y": -10,
@@ -500,12 +530,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -32,
       "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? readable(item(0)) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('gloss.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('gloss.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('gloss.preview.state.no_input') : '&7' + lang('gloss.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -46,
       "text": "(burnTime > 0 ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('gloss.preview.stat.fuel_ready') : '&8' + lang('gloss.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('gloss.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('gloss.preview.stat.xp_zero') + '</dark_gray>') : '')"
@@ -515,6 +547,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'furnace_minecart': r'''
 {
+  "show": true,
   "match": {
     "entities": ["FURNACE_MINECART"],
     "priority": 10,
@@ -529,12 +562,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, readable(blockType))))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "cell",
+      "show": true,
       "repeat": { "count": "vars.cells", "var": "i" },
       "x": "round((i - (vars.cells - 1) / 2) * 10)",
       "y": 0,
@@ -543,6 +578,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -19,
       "text": "powered ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : '&8' + lang('gloss.preview.stat.no_fuel')"
@@ -552,6 +588,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'hopper': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["HOPPER"],
     "priority": 10,
@@ -562,12 +599,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
+      "show": true,
       "repeat": { "count": "min(vars.slots, inventory.size)", "var": "i" },
       "x": "round((i - (vars.slots - 1) / 2) * 20)",
       "y": 0,
@@ -579,6 +618,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'jukebox': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["JUKEBOX"],
     "priority": 10,
@@ -588,13 +628,15 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + plain(lang(vars.titleKey))",
     "accent": "vars.accent"
   },
   "elements": [
-    { "type": "slot", "x": 0, "y": 0, "size": 18, "index": 0 },
+    { "show": true, "type": "slot", "x": 0, "y": 0, "size": 18, "index": 0 },
     {
       "type": "label",
+      "show": true,
       "x": 0,
       "y": -21,
       "text": "record != '' ? (playing ? '&a' + lang('gloss.preview.state.disc_playing', record) : '&7' + lang('gloss.preview.state.disc_loaded', record)) : '&8' + lang('gloss.preview.state.no_disc')"
@@ -604,23 +646,26 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'locked': r'''
 {
+  "show": true,
   "match": {
     "special": "locked",
     "priority": 10
   },
   "card": {
+    "show": true,
     "framed": false
   },
   "elements": [
-    { "type": "cell", "x": 0, "y": 10, "z": 4, "size": 16, "color": "#FFFFB000" },
-    { "type": "cell", "x": 0, "y": 10, "z": 6, "size": 8, "color": "#FF21170A" },
-    { "type": "cell", "x": 0, "y": -4, "z": 7, "size": 24, "color": "#FFFFB000" },
-    { "type": "cell", "x": 0, "y": -4, "z": 8, "size": 5, "color": "#FF21170A" }
+    { "show": true, "type": "cell", "x": 0, "y": 10, "z": 4, "size": 16, "color": "#FFFFB000" },
+    { "show": true, "type": "cell", "x": 0, "y": 10, "z": 6, "size": 8, "color": "#FF21170A" },
+    { "show": true, "type": "cell", "x": 0, "y": -4, "z": 7, "size": 24, "color": "#FFFFB000" },
+    { "show": true, "type": "cell", "x": 0, "y": -4, "z": 8, "size": 5, "color": "#FF21170A" }
   ]
 }
 ''',
   'minecart': r'''
 {
+  "show": true,
   "match": {
     "entities": ["CHEST_MINECART", "HOPPER_MINECART", "*_CHEST_BOAT", "*_CHEST_RAFT"],
     "special": "anyInventoryHolder",
@@ -652,13 +697,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   ],
   "card": {
+    "show": true,
     "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, readable(blockType))))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
-      "visible": "vars.row",
+      "show": "vars.row",
       "repeat": { "count": "min(vars.slots, inventory.size)", "var": "i" },
       "x": "round((i - (min(vars.slots, inventory.size) - 1) / 2) * 20)",
       "y": 0,
@@ -667,7 +713,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     },
     {
       "type": "slot",
-      "visible": "!vars.row",
+      "show": "!vars.row",
       "repeat": {
         "count": "min(vars.cols * clamp(ceil(inventory.size / vars.cols), 1, vars.maxRows), inventory.size)",
         "var": "i"
@@ -682,6 +728,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 ''',
   'shelf': r'''
 {
+  "show": true,
   "match": {
     "blocks": ["*_SHELF"],
     "priority": 10,
@@ -691,12 +738,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     }
   },
   "card": {
+    "show": true,
     "title": "'&f&l' + plain(lang(vars.titleKey, readable(blockType)))",
     "accent": "vars.accent"
   },
   "elements": [
     {
       "type": "slot",
+      "show": true,
       "repeat": { "count": "inventory.size", "var": "i" },
       "x": "round((i - (inventory.size - 1) / 2) * 20)",
       "y": 0,

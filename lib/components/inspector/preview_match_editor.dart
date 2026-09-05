@@ -107,6 +107,17 @@ class PreviewMatchEditor extends StatelessWidget {
       'target wins.',
     ),
     children: <Widget>[
+      PreviewExprField(
+        label: huiText('Visibility expression'),
+        raw: _doc.show,
+        showCondition: true,
+        kind: PreviewExprKind.boolean,
+        placeholder: huiText('true'),
+        trailing: const HuiFieldHelp('preview.show'),
+        issues: _issuesFor('show'),
+        onChanged: (Object? value) =>
+            _mutate('show', (HuiPreviewDoc doc) => doc.show = value),
+      ),
       _PreviewNameChips(
         label: huiText('Blocks'),
         docKey: 'preview.match.blocks',
@@ -390,6 +401,17 @@ class PreviewMatchEditor extends StatelessWidget {
   }
 
   List<Widget> _cardFields(HuiPreviewCard card) => <Widget>[
+    PreviewExprField(
+      label: huiText('Visibility expression'),
+      raw: card.show,
+      showCondition: true,
+      kind: PreviewExprKind.boolean,
+      placeholder: huiText('true'),
+      trailing: const HuiFieldHelp('preview.card.show'),
+      issues: _issuesFor('card.show'),
+      onChanged: (Object? value) =>
+          _mutate('card show', (HuiPreviewDoc doc) => doc.card?.show = value),
+    ),
     PreviewExprField(
       label: huiText('Framed'),
       raw: card.framed,
