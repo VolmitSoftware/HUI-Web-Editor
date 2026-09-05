@@ -3459,6 +3459,21 @@ LocalizationSource collectLocalizationSource(Directory root) {
     }
     final String source = entity.readAsStringSync();
     _collectCalls(source, messages, contexts, plurals, entity.path);
+    if (entity.path.endsWith(
+      '${Platform.pathSeparator}entity_overlay_inspector.dart',
+    )) {
+      _collectLiteralArgumentAt(source, messages, '_toggle', 0, entity.path);
+      _collectLiteralArgumentAt(source, messages, '_number', 0, entity.path);
+      _collectLiteralArgumentAt(source, messages, '_number', 3, entity.path);
+      _collectLiteralArgumentAt(source, messages, '_text', 0, entity.path);
+      _collectLiteralArgumentAt(source, messages, '_text', 2, entity.path);
+    }
+    if (entity.path.endsWith(
+      '${Platform.pathSeparator}entity_overlay_view.dart',
+    )) {
+      _collectLiteralArgumentAt(source, messages, '_number', 0, entity.path);
+      _collectLiteralArgumentAt(source, messages, '_toggle', 0, entity.path);
+    }
     _collectNamedString(source, messages, <String>{'message', 'fix'});
     _collectFirstLiteralArgument(source, messages, 'HuiFormatException');
     _collectFirstLiteralArgument(

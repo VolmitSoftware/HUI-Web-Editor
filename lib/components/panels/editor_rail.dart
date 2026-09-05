@@ -657,7 +657,9 @@ class _EditorRailState extends State<EditorRail> {
     title: doc.title,
     runtimeId: doc.runtimeId,
     onRename: (String value) => _workspace.renameDocumentTitle(doc.id, value),
-    onRenameRuntimeId: doc.runtimeId == null
+    onRenameRuntimeId:
+        doc.runtimeId == null ||
+            DocumentTypeRegistry.of(doc.kind).fixedRuntimeId != null
         ? null
         : (String value) => _renameRuntimeId(doc, value),
     moveValue: doc.folderId ?? _rootFolderValue,
@@ -984,7 +986,8 @@ class _EditorRailState extends State<EditorRail> {
       HuiActionMenuItem(
         label: huiText('Duplicate'),
         icon: ArcaneIcon.copy(size: IconSize.sm),
-        disabled: bound,
+        disabled:
+            bound || DocumentTypeRegistry.of(doc.kind).fixedRuntimeId != null,
         hint: bound ? huiText('Server bound') : null,
         onSelect: () {
           final WorkspaceDoc? copy = _store.duplicateDocument(doc.id);

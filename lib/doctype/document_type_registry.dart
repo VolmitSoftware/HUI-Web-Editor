@@ -8,6 +8,7 @@ import 'container_preview_document_type.dart';
 import 'damage_indicators_document_type.dart';
 import 'document_type.dart';
 import 'emoji_document_type.dart';
+import 'entity_overlays_document_type.dart';
 import 'gloss_document_type.dart';
 import 'hologram_document_type.dart';
 import 'menu_document_type.dart';
@@ -31,6 +32,8 @@ abstract final class DocumentTypes {
   static const BubbleStyleDocumentType bubbleStyle = BubbleStyleDocumentType();
   static const DamageIndicatorsDocumentType damageIndicators =
       DamageIndicatorsDocumentType();
+  static const EntityOverlaysDocumentType entityOverlays =
+      EntityOverlaysDocumentType();
   static const TablistDocumentType tablist = TablistDocumentType();
   static const RealDropDocumentType realDrops = RealDropDocumentType();
 }
@@ -51,6 +54,7 @@ abstract final class DocumentTypeRegistry {
         WorkspaceDocKind.emoji: DocumentTypes.emoji,
         WorkspaceDocKind.bubbleStyle: DocumentTypes.bubbleStyle,
         WorkspaceDocKind.damageIndicators: DocumentTypes.damageIndicators,
+        WorkspaceDocKind.entityOverlays: DocumentTypes.entityOverlays,
         WorkspaceDocKind.tablist: DocumentTypes.tablist,
         WorkspaceDocKind.realDrops: DocumentTypes.realDrops,
       };
@@ -67,6 +71,7 @@ abstract final class DocumentTypeRegistry {
     DocumentTypes.emoji,
     DocumentTypes.bubbleStyle,
     DocumentTypes.damageIndicators,
+    DocumentTypes.entityOverlays,
     DocumentTypes.tablist,
     DocumentTypes.realDrops,
   ];

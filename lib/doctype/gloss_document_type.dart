@@ -140,6 +140,10 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
           'The saved document "{title}" was unreadable ({error}) and was replaced with default damage-indicator settings.',
           arguments,
         ),
+        WorkspaceDocKind.entityOverlays => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with default entity-overlay settings.',
+          arguments,
+        ),
         WorkspaceDocKind.tablist => huiText(
           'The saved document "{title}" was unreadable ({error}) and was replaced with a blank tablist.',
           arguments,
@@ -182,6 +186,10 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
       ),
       WorkspaceDocKind.damageIndicators => huiText(
         'The saved document "{title}" was unreadable and was replaced with default damage-indicator settings.',
+        arguments,
+      ),
+      WorkspaceDocKind.entityOverlays => huiText(
+        'The saved document "{title}" was unreadable and was replaced with default entity-overlay settings.',
         arguments,
       ),
       WorkspaceDocKind.tablist => huiText(

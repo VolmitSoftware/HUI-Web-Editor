@@ -23,6 +23,8 @@ const String huiTablistFile = '${huiPluginFolder}tablist.json';
 const String huiRealDropsFile = '${huiPluginFolder}real-drops/default.json';
 const String huiDamageIndicatorsFile =
     '${huiPluginFolder}damage-indicators/default.json';
+const String huiEntityOverlaysFile =
+    '${huiPluginFolder}entity-overlays/default.json';
 
 /// One external destination in the help dialog's link grid.
 class HuiLink {

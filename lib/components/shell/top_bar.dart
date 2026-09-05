@@ -552,6 +552,8 @@ class _TopBarState extends State<TopBar> {
         Text(huiText('No document'))
       else if (_store.isPanelDoc)
         Text(_store.workspace.active?.title ?? huiText('Menu flow map'))
+      else if (_store.docType.fixedRuntimeId != null)
+        Text(_store.menuId)
       else
         dom.span(classes: 'hui-ltr', <Widget>[
           MutableText(

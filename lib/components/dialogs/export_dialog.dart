@@ -67,6 +67,7 @@ class _ExportDialogState extends State<ExportDialog> {
       _wireKind == 'motd' ||
       _wireKind == 'tablist' ||
       _wireKind == 'real-drops' ||
+      _wireKind == 'entity-overlays' ||
       _wireKind == 'damage-indicators';
 
   String get _fileName => switch (_wireKind) {
@@ -74,6 +75,7 @@ class _ExportDialogState extends State<ExportDialog> {
     'tablist' => 'tablist.json',
     'real-drops' => 'default.json',
     'damage-indicators' => 'default.json',
+    'entity-overlays' => 'default.json',
     _ => '$_documentId.json',
   };
 
@@ -88,6 +90,7 @@ class _ExportDialogState extends State<ExportDialog> {
     'tablist' => huiTablistFile,
     'real-drops' => huiRealDropsFile,
     'damage-indicators' => huiDamageIndicatorsFile,
+    'entity-overlays' => huiEntityOverlaysFile,
     _ => '$huiPreviewFolder$_fileName',
   };
 

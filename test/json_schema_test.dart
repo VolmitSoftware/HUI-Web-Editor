@@ -17,6 +17,7 @@ import 'package:gloss_editor/model/gloss_animation.dart';
 import 'package:gloss_editor/model/gloss_bubble_style.dart';
 import 'package:gloss_editor/model/gloss_damage_indicators.dart';
 import 'package:gloss_editor/model/gloss_emoji.dart';
+import 'package:gloss_editor/model/gloss_entity_overlays.dart';
 import 'package:gloss_editor/model/gloss_hologram.dart';
 import 'package:gloss_editor/model/gloss_motd.dart';
 import 'package:gloss_editor/model/gloss_real_drops.dart';
@@ -224,6 +225,7 @@ void main() {
             'tablist': decodeGlossTablistDoc(_tablist).toJson(),
             'realDrops': GlossRealDropSettingsDoc().toJson(),
             'damageIndicators': GlossDamageIndicatorsDoc().toJson(),
+            'entityOverlays': GlossEntityOverlaysDoc().toJson(),
           };
       for (final MapEntry<String, Map<String, dynamic>> entry
           in documents.entries) {
@@ -256,7 +258,7 @@ void main() {
     });
 
     test('every editable kind has a model and the editor-only ones do not', () {
-      expect(glossJsonSchemas.keys, hasLength(10));
+      expect(glossJsonSchemas.keys, hasLength(11));
       for (final String kind in <String>[
         'menu',
         'hologram',
@@ -268,6 +270,7 @@ void main() {
         'tablist',
         'realDrops',
         'damageIndicators',
+        'entityOverlays',
       ]) {
         expect(glossJsonSchemaFor(kind), isNotNull, reason: kind);
       }

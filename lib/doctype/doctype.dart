@@ -7,6 +7,7 @@ export 'damage_indicators_document_type.dart';
 export 'document_type.dart';
 export 'document_type_registry.dart';
 export 'emoji_document_type.dart';
+export 'entity_overlays_document_type.dart';
 export 'gloss_document_type.dart';
 export 'hologram_document_type.dart';
 export 'menu_document_type.dart';

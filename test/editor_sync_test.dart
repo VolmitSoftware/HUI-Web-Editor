@@ -62,6 +62,7 @@ void main() {
       'container-preview',
       'damage-indicators',
       'emoji',
+      'entity-overlays',
       'hologram',
       'menu',
       'motd',

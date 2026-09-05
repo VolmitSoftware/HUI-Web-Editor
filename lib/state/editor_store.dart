@@ -351,6 +351,11 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     return doc is GlossDamageIndicatorsDoc ? doc : null;
   }
 
+  GlossEntityOverlaysDoc? get entityOverlaysDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossEntityOverlaysDoc ? doc : null;
+  }
+
   /// The active tablist, or null while another kind is open.
   GlossTablistDoc? get tablistDoc {
     final GlossDoc? doc = _glossDoc;
@@ -409,7 +414,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   String get exportFileName => '$_menuId.json';
 
   void setMenuId(String value) {
-    if (!_docType.hasRuntimeId) return;
+    if (!_docType.hasRuntimeId || _docType.fixedRuntimeId != null) return;
     final String sanitized = sanitizeMenuId(value);
     if (sanitized == _menuId) return;
     _menuId = sanitized;
@@ -428,6 +433,8 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     }
     final String previous = target.runtimeId!;
     final String next = sanitizeMenuId(value);
+    final String? fixedId = DocumentTypeRegistry.of(target.kind).fixedRuntimeId;
+    if (fixedId != null) return next == fixedId;
     if (previous == next) return true;
     final bool conflict = workspace.docs.any(
       (WorkspaceDoc document) =>
@@ -1276,6 +1283,15 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     mutateGloss(label, (GlossDoc _) => fn(doc));
   }
 
+  void mutateEntityOverlays(
+    String label,
+    void Function(GlossEntityOverlaysDoc doc) fn,
+  ) {
+    final GlossEntityOverlaysDoc? doc = entityOverlaysDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
   /// Typed arm of [mutateGloss] for the tablist inspector and surface; a
   /// no-op while the active document is not a tablist.
   void mutateTablist(String label, void Function(GlossTablistDoc doc) fn) {
@@ -2041,7 +2057,14 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       );
       return false;
     }
-    final String runtimeId = _availableRuntimeId(type.kind, requestedId);
+    final WorkspaceDoc? existing = _fixedGlossDocument(type);
+    if (existing != null) {
+      if (!openDocument(existing.id)) return false;
+      replaceGlossDoc('Import JSON', parsed);
+      return true;
+    }
+    final String runtimeId =
+        type.fixedRuntimeId ?? _availableRuntimeId(type.kind, requestedId);
     flushAutosave();
     workspace.create(
       title: runtimeId,
@@ -2087,12 +2110,17 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       );
       return;
     }
+    final WorkspaceDoc? existing = _fixedGlossDocument(type);
+    if (existing != null) {
+      if (openDocument(existing.id)) replaceGlossDoc('Import JSON', parsed);
+      return;
+    }
     _lastError = null;
     _codeError = null;
     _selection.clear();
     _previewSelection = null;
     _togglePreviewState.clear();
-    final String importedId = menuIdFromFileName(name);
+    final String importedId = type.fixedRuntimeId ?? menuIdFromFileName(name);
     _undo.clear();
     _clearCoalesce();
     _docType = type;
@@ -2557,10 +2585,17 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       _failWorkspaceProtected();
       return;
     }
+    final WorkspaceDoc? existing = _fixedGlossDocument(type);
+    if (existing != null) {
+      openDocument(existing.id);
+      return;
+    }
     flushAutosave();
     final GlossDoc next = from ?? type.newBlank();
     final String title = name ?? type.defaultDocumentName;
-    final String id = _availableRuntimeId(type.kind, sanitizeMenuId(title));
+    final String id =
+        type.fixedRuntimeId ??
+        _availableRuntimeId(type.kind, sanitizeMenuId(title));
     workspace.create(
       title: id,
       runtimeId: id,
@@ -2569,6 +2604,17 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       folderId: folderId,
     );
     _adoptDocument(type, AdoptedDocument(editorId: id, model: next));
+  }
+
+  WorkspaceDoc? _fixedGlossDocument(GlossDocumentTypeAdapter type) {
+    final String? id = type.fixedRuntimeId;
+    if (id == null) return null;
+    for (final WorkspaceDoc document in workspace.docs) {
+      if (document.kind == type.kind && document.runtimeId == id) {
+        return document;
+      }
+    }
+    return null;
   }
 
   void newPanelDocument({
@@ -2620,6 +2666,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   WorkspaceDoc? duplicateDocument(String docId) {
     final WorkspaceDoc? source = workspace.byId(docId);
     if (source == null || !workspace.canWrite) return null;
+    if (DocumentTypeRegistry.of(source.kind).fixedRuntimeId != null) {
+      return null;
+    }
     flushAutosave();
     final String? runtimeId = source.runtimeId == null
         ? null

@@ -21,6 +21,7 @@ import '../logic/json_schema.dart';
 import '../model/gloss_animation.dart';
 import '../model/gloss_bubble_style.dart';
 import '../model/gloss_damage_indicators.dart';
+import '../model/gloss_entity_overlays.dart';
 import '../model/gloss_hologram.dart';
 import '../model/gloss_motd.dart';
 import '../model/gloss_real_drop_animation.dart';
@@ -1839,6 +1840,173 @@ final GlossJsonObject glossDamageIndicatorsJsonSchema = GlossJsonObject(
   ],
 );
 
+final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
+  fields: <GlossJsonField>[
+    _schemaVersionField(glossEntityOverlaysCurrentSchemaVersion),
+    _revisionField,
+    for (final (String key, String title, String summary, String value) field
+        in <(String, String, String, String)>[
+          (
+            'enabled',
+            'Enabled',
+            'Enables nearby living-entity overlays.',
+            'true',
+          ),
+          (
+            'includePlayers',
+            'Include players',
+            'Includes nearby players.',
+            'true',
+          ),
+          (
+            'showHealthNumbers',
+            'Show health numbers',
+            'False renders only the segmented bar.',
+            'true',
+          ),
+          (
+            'showNames',
+            'Show names',
+            'Shows custom names above health.',
+            'true',
+          ),
+          (
+            'showCombatStats',
+            'Show combat stats',
+            'Shows attack and armor on the final line.',
+            'true',
+          ),
+        ])
+      GlossJsonField(
+        key: field.$1,
+        type: GlossJsonType.boolean,
+        title: field.$2,
+        summary: field.$3,
+        defaultLiteral: field.$4,
+      ),
+    for (final (
+          String key,
+          String title,
+          String summary,
+          String value,
+          bool integer,
+        )
+        field
+        in <(String, String, String, String, bool)>[
+          (
+            'range',
+            'Display range',
+            'Nearby radius in blocks. Gloss clamps to 1..64.',
+            '16',
+            false,
+          ),
+          (
+            'updateIntervalTicks',
+            'Update interval',
+            'Ticks between updates. Gloss clamps to 1..40.',
+            '5',
+            true,
+          ),
+          (
+            'maxEntitiesPerViewer',
+            'Entity limit',
+            'Overlays per viewer. Gloss clamps to 1..256.',
+            '64',
+            true,
+          ),
+          (
+            'verticalOffset',
+            'Vertical offset',
+            'Blocks above entity bounds. Gloss clamps to -2..8.',
+            '0.35',
+            false,
+          ),
+          (
+            'scale',
+            'Scale',
+            'Text display scale. Gloss clamps to 0.1..4.',
+            '0.75',
+            false,
+          ),
+          (
+            'healthSegments',
+            'Health segments',
+            'Segment count. Gloss clamps to 1..40.',
+            '10',
+            true,
+          ),
+          (
+            'hitHighlightMs',
+            'Hit highlight',
+            'Recent-hit lifetime in milliseconds. Gloss clamps to 0..10000.',
+            '750',
+            true,
+          ),
+        ])
+      GlossJsonField(
+        key: field.$1,
+        type: field.$5 ? GlossJsonType.integer : GlossJsonType.number,
+        title: field.$2,
+        summary: field.$3,
+        defaultLiteral: field.$4,
+      ),
+    for (final (String key, String title, String summary, String value) field
+        in <(String, String, String, String)>[
+          (
+            'nameFormat',
+            'Name format',
+            'Custom name token: {name}.',
+            '"&f{name}"',
+          ),
+          (
+            'healthFormat',
+            'Health format',
+            'Health tokens: {bar}, {health}, {max_health}.',
+            '"{bar} &f{health}&7/{max_health}"',
+          ),
+          (
+            'stackFormat',
+            'Stack format',
+            'React stack token: {count}. Hidden for single mobs.',
+            '" &7x{count}"',
+          ),
+          (
+            'statsFormat',
+            'Combat stats format',
+            'Final line tokens: {attack}, {armor}.',
+            '"&7ATK &f{attack} &8| &7ARM &f{armor}"',
+          ),
+          (
+            'damageFormat',
+            'Damage format',
+            'Recent health loss token: {damage}.',
+            '"&c-{damage}"',
+          ),
+        ])
+      GlossJsonField(
+        key: field.$1,
+        type: GlossJsonType.string,
+        title: field.$2,
+        summary: field.$3,
+        defaultLiteral: field.$4,
+      ),
+    const GlossJsonField(
+      key: 'blacklistWorlds',
+      type: GlossJsonType.array,
+      title: 'Excluded worlds',
+      summary: 'World names where overlays are hidden.',
+      node: _plainStringsNode,
+    ),
+    const GlossJsonField(
+      key: 'excludedEntityTypes',
+      type: GlossJsonType.array,
+      title: 'Excluded entity types',
+      summary: 'Excluded Bukkit entity types. ARMOR_STAND by default.',
+      node: _plainStringsNode,
+    ),
+  ],
+);
+
 // --- registry ---------------------------------------------------------------
 
 /// Every kind this model covers, keyed by the workspace kind enum's `name`.
@@ -1857,6 +2025,7 @@ final Map<String, GlossJsonObject> glossJsonSchemas = <String, GlossJsonObject>{
   'tablist': glossTablistJsonSchema,
   'realDrops': glossRealDropsJsonSchema,
   'damageIndicators': glossDamageIndicatorsJsonSchema,
+  'entityOverlays': glossEntityOverlaysJsonSchema,
 };
 
 /// The model for [kindName], or null when this build has none for that kind.

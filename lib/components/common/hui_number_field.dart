@@ -28,6 +28,7 @@ class HuiNumberField extends StatefulWidget {
     this.disabled = false,
     this.placeholder,
     this.prefixLabel,
+    this.ariaLabel,
     this.error,
     this.size = ComponentSize.sm,
     this.fullWidth = true,
@@ -56,6 +57,7 @@ class HuiNumberField extends StatefulWidget {
 
   /// Short leading label rendered inside the control, e.g. the axis letter.
   final String? prefixLabel;
+  final String? ariaLabel;
   final String? error;
   final ComponentSize size;
   final bool fullWidth;
@@ -183,6 +185,7 @@ class _HuiNumberFieldState extends State<HuiNumberField> {
           ? null
           : Text(component.suffix!, color: TextColor.muted),
       attributes: <String, String>{
+        if (component.ariaLabel != null) 'aria-label': component.ariaLabel!,
         'inputmode': component.integer ? 'numeric' : 'decimal',
         'autocomplete': 'off',
         'step': component.integer ? '1' : _format(component.step),

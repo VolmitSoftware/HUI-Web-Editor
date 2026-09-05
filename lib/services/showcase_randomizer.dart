@@ -89,6 +89,17 @@ bool randomizeShowcaseDocument(
         'Randomize damage indicators',
         buildRandomDamageIndicatorsShowcase(store.damageIndicatorsDoc!, source),
       );
+    case EntityOverlaysDocumentType():
+      final GlossEntityOverlaysDoc next = store.entityOverlaysDoc!.copy()
+        ..healthSegments = <int>[8, 10, 12, 16, 20][source.nextInt(5)]
+        ..scale = <double>[0.6, 0.75, 0.9, 1][source.nextInt(4)]
+        ..hitHighlightMs = <int>[500, 750, 1000, 1500][source.nextInt(4)]
+        ..nameFormat = <String>[
+          '&f{name}',
+          '&e{name}',
+          '&b{name}',
+        ][source.nextInt(3)];
+      store.replaceGlossDoc('Randomize entity overlays', next);
     case PanelDocumentType():
       return false;
   }

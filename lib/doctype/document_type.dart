@@ -156,6 +156,7 @@ enum DocumentSurface {
   emoji,
   bubble,
   damageIndicators,
+  entityOverlays,
   tablist,
   realDrops,
 }
@@ -244,6 +245,8 @@ abstract class DocumentTypeAdapter {
 
   /// Whether documents of this kind carry a canonical runtime id.
   bool get hasRuntimeId;
+
+  String? get fixedRuntimeId => null;
 
   /// Whether the document is runtime JSON that can be imported, exported and
   /// copied. Editor-only kinds are not.

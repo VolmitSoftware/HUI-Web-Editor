@@ -11,6 +11,7 @@ import 'components/animation/animation_view.dart';
 import 'components/bubble/bubble_view.dart';
 import 'components/damage_indicators/damage_indicator_view.dart';
 import 'components/emoji/emoji_view.dart';
+import 'components/entity_overlays/entity_overlay_view.dart';
 import 'components/motd/motd_view.dart';
 import 'components/scoreboard/scoreboard_view.dart';
 import 'components/real_drops/real_drops_view.dart';
@@ -865,6 +866,7 @@ class _AppState extends State<App> {
           DocumentSurface.emoji: EmojiView(store: _store),
           DocumentSurface.bubble: BubbleView(store: _store),
           DocumentSurface.damageIndicators: DamageIndicatorView(store: _store),
+          DocumentSurface.entityOverlays: EntityOverlayView(store: _store),
           DocumentSurface.tablist: TablistView(store: _store),
           DocumentSurface.realDrops: RealDropsView(store: _store),
         },
@@ -902,6 +904,10 @@ class _AppState extends State<App> {
           DocumentSurface.emoji: EmojiView(store: _store, gameContext: true),
           DocumentSurface.bubble: BubbleView(store: _store, gameContext: true),
           DocumentSurface.damageIndicators: DamageIndicatorView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.entityOverlays: EntityOverlayView(
             store: _store,
             gameContext: true,
           ),

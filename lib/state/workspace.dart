@@ -31,6 +31,7 @@ enum WorkspaceDocKind {
   emoji,
   bubbleStyle,
   damageIndicators,
+  entityOverlays,
   tablist,
   realDrops;
 

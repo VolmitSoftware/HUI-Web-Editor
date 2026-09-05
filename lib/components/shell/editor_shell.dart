@@ -711,6 +711,7 @@ class _CenterArea extends StatelessWidget {
     DocumentSurface.emoji => 'is-emoji',
     DocumentSurface.bubble => 'is-bubble',
     DocumentSurface.damageIndicators => 'is-damage-indicators',
+    DocumentSurface.entityOverlays => 'is-entity-overlays',
     DocumentSurface.tablist => 'is-tablist',
     DocumentSurface.realDrops => 'is-real-drops',
   };
