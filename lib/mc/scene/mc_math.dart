@@ -192,3 +192,113 @@ final class McMat4 {
   @override
   String toString() => 'McMat4(${m.join(', ')})';
 }
+
+/// Interpolates two rigid-ish transforms the way the client eases a display
+/// entity between packets: translation and scale linearly, rotation by
+/// quaternion slerp, so a tumbling drop turns the short way and never shrinks
+/// through the midpoint the way a raw matrix lerp would.
+///
+/// Columns 0..2 are decomposed into scale (their lengths) and a rotation (the
+/// normalised columns); a mirrored or sheared input is not expected here.
+McMat4 mcLerpTransform(McMat4 a, McMat4 b, double t) {
+  if (t <= 0) return a;
+  if (t >= 1) return b;
+  final List<double> sa = _columnScales(a), sb = _columnScales(b);
+  final List<double> qa = _quaternionOf(a, sa), qb = _quaternionOf(b, sb);
+  final List<double> q = _slerp(qa, qb, t);
+  final List<double> s = <double>[
+    for (int i = 0; i < 3; i++) sa[i] + (sb[i] - sa[i]) * t,
+  ];
+  final Float64List out = _matrixFromQuaternion(q, s);
+  for (int i = 0; i < 3; i++) {
+    out[12 + i] = a.m[12 + i] + (b.m[12 + i] - a.m[12 + i]) * t;
+  }
+  out[15] = 1;
+  return McMat4(out);
+}
+
+List<double> _columnScales(McMat4 m) => <double>[
+  for (int c = 0; c < 3; c++)
+    math.sqrt(
+      m.m[c * 4] * m.m[c * 4] +
+          m.m[c * 4 + 1] * m.m[c * 4 + 1] +
+          m.m[c * 4 + 2] * m.m[c * 4 + 2],
+    ),
+];
+
+/// `[x, y, z, w]` from the rotation part of [m] (columns divided by [scale]).
+List<double> _quaternionOf(McMat4 m, List<double> scale) {
+  double r(int col, int row) =>
+      scale[col] == 0 ? (col == row ? 1 : 0) : m.m[col * 4 + row] / scale[col];
+  final double m00 = r(0, 0), m01 = r(1, 0), m02 = r(2, 0);
+  final double m10 = r(0, 1), m11 = r(1, 1), m12 = r(2, 1);
+  final double m20 = r(0, 2), m21 = r(1, 2), m22 = r(2, 2);
+  final double trace = m00 + m11 + m22;
+  double x, y, z, w;
+  if (trace > 0) {
+    final double s = math.sqrt(trace + 1) * 2;
+    w = 0.25 * s;
+    x = (m21 - m12) / s;
+    y = (m02 - m20) / s;
+    z = (m10 - m01) / s;
+  } else if (m00 > m11 && m00 > m22) {
+    final double s = math.sqrt(1 + m00 - m11 - m22) * 2;
+    w = (m21 - m12) / s;
+    x = 0.25 * s;
+    y = (m01 + m10) / s;
+    z = (m02 + m20) / s;
+  } else if (m11 > m22) {
+    final double s = math.sqrt(1 + m11 - m00 - m22) * 2;
+    w = (m02 - m20) / s;
+    x = (m01 + m10) / s;
+    y = 0.25 * s;
+    z = (m12 + m21) / s;
+  } else {
+    final double s = math.sqrt(1 + m22 - m00 - m11) * 2;
+    w = (m10 - m01) / s;
+    x = (m02 + m20) / s;
+    y = (m12 + m21) / s;
+    z = 0.25 * s;
+  }
+  final double n = math.sqrt(x * x + y * y + z * z + w * w);
+  return n == 0 ? <double>[0, 0, 0, 1] : <double>[x / n, y / n, z / n, w / n];
+}
+
+List<double> _slerp(List<double> a, List<double> b, double t) {
+  double dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+  List<double> bb = b;
+  if (dot < 0) {
+    dot = -dot;
+    bb = <double>[-b[0], -b[1], -b[2], -b[3]];
+  }
+  if (dot > 0.9995) {
+    final List<double> lin = <double>[
+      for (int i = 0; i < 4; i++) a[i] + (bb[i] - a[i]) * t,
+    ];
+    final double n = math.sqrt(lin[0] * lin[0] + lin[1] * lin[1] + lin[2] * lin[2] + lin[3] * lin[3]);
+    return <double>[for (final double v in lin) v / n];
+  }
+  final double theta = math.acos(dot);
+  final double sinTheta = math.sin(theta);
+  final double wa = math.sin((1 - t) * theta) / sinTheta;
+  final double wb = math.sin(t * theta) / sinTheta;
+  return <double>[for (int i = 0; i < 4; i++) a[i] * wa + bb[i] * wb];
+}
+
+Float64List _matrixFromQuaternion(List<double> q, List<double> scale) {
+  final double x = q[0], y = q[1], z = q[2], w = q[3];
+  final double xx = x * x, yy = y * y, zz = z * z;
+  final double xy = x * y, xz = x * z, yz = y * z;
+  final double wx = w * x, wy = w * y, wz = w * z;
+  final Float64List m = Float64List(16);
+  m[0] = (1 - 2 * (yy + zz)) * scale[0];
+  m[1] = (2 * (xy + wz)) * scale[0];
+  m[2] = (2 * (xz - wy)) * scale[0];
+  m[4] = (2 * (xy - wz)) * scale[1];
+  m[5] = (1 - 2 * (xx + zz)) * scale[1];
+  m[6] = (2 * (yz + wx)) * scale[1];
+  m[8] = (2 * (xz + wy)) * scale[2];
+  m[9] = (2 * (yz - wx)) * scale[2];
+  m[10] = (1 - 2 * (xx + yy)) * scale[2];
+  return m;
+}

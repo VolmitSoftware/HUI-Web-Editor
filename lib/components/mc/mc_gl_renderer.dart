@@ -60,6 +60,13 @@ final class _Drawable {
   int glowArgb = 0;
   McVec3 centre = McVec3.zero;
   double depth = 0;
+
+  /// In-flight pose ease: [model] is the target; while [lerpFrom] is set the
+  /// draw uses the eased pose and asks for another frame.
+  McMat4? lerpFrom;
+  double lerpStartMs = 0;
+  double lerpMs = 0;
+  bool placed = false;
   String signature = '';
 
   /// Drawn with this node's uniforms right after it (cape, wool overlay).
@@ -117,7 +124,25 @@ final class McGlRenderer {
 
   McGlTexture _texture(String id) => _textures.putIfAbsent(id, () => _gl.texture(_pack.image(id)));
 
-  void render(
+  /// Wall-clock of the frame being drawn, for pose eases.
+  double _nowMs = 0;
+
+  /// The pose a drawable shows right now: its eased pose while an ease is in
+  /// flight, else its target.
+  McMat4 _shownModel(_Drawable d, double nowMs) {
+    final McMat4? from = d.lerpFrom;
+    if (from == null) return d.model;
+    final double t = d.lerpMs <= 0 ? 1 : (nowMs - d.lerpStartMs) / d.lerpMs;
+    if (t >= 1) {
+      d.lerpFrom = null;
+      return d.model;
+    }
+    return mcLerpTransform(from, d.model, t);
+  }
+
+  /// Draws one frame. Returns true while a pose ease is still in flight, so
+  /// the caller keeps requesting frames until every node has settled.
+  bool render(
     McScene scene,
     McCamera camera, {
     required double widthPx,
@@ -126,10 +151,11 @@ final class McGlRenderer {
     required double perspectivePx,
     McVec3 worldOffset = McVec3.zero,
   }) {
-    if (_gl.lost) return;
+    if (_gl.lost) return false;
     final web.WebGL2RenderingContext gl = _gl.gl;
     final int w = (widthPx * dpr).round(), h = (heightPx * dpr).round();
-    if (w <= 0 || h <= 0) return;
+    if (w <= 0 || h <= 0) return false;
+    _nowMs = DateTime.now().millisecondsSinceEpoch.toDouble();
     if (_gl.canvas.width != w) _gl.canvas.width = w;
     if (_gl.canvas.height != h) _gl.canvas.height = h;
     gl.viewport(0, 0, w, h);
@@ -225,14 +251,14 @@ final class McGlRenderer {
           web.WebGL2RenderingContext.REPLACE,
         );
       }
-      _drawNode(d, d.model, d.opacity, d.flat, _cutoff);
+      _drawNode(d, _shownModel(d, _nowMs), d.opacity, d.flat, _cutoff);
       if (d.glowArgb != 0) gl.disable(web.WebGL2RenderingContext.STENCIL_TEST);
     }
 
     gl.depthMask(false);
     translucent.sort((_Drawable a, _Drawable b) => b.depth.compareTo(a.depth));
     for (final _Drawable d in translucent) {
-      _drawNode(d, d.model, d.opacity, d.flat, _translucentCutoff);
+      _drawNode(d, _shownModel(d, _nowMs), d.opacity, d.flat, _translucentCutoff);
     }
     gl.depthMask(true);
 
@@ -252,12 +278,13 @@ final class McGlRenderer {
         final McMat4 outline = McMat4.translation(d.centre.x, d.centre.y, d.centre.z)
             .multiply(McMat4.scale(1.06, 1.06, 1.06))
             .multiply(McMat4.translation(-d.centre.x, -d.centre.y, -d.centre.z))
-            .multiply(d.model);
+            .multiply(_shownModel(d, _nowMs));
         _drawNode(d, outline, 0.55, <double>[rgb[0], rgb[1], rgb[2], 1], _cutoff);
       }
       gl.disable(web.WebGL2RenderingContext.STENCIL_TEST);
       gl.enable(web.WebGL2RenderingContext.DEPTH_TEST);
     }
+    return _nodes.values.any((_Drawable d) => d.lerpFrom != null);
   }
 
   void _drawNode(_Drawable d, McMat4 model, double opacity, List<double> flat, double cutoff) {
@@ -325,7 +352,14 @@ final class McGlRenderer {
       final _Drawable? existing = _nodes[key];
       final String signature = _signature(node);
       if (existing != null && existing.signature == signature) {
+        final McMat4 shown = _shownModel(existing, _nowMs);
         _place(existing, node);
+        if (scene.interpolationMs > 0 && existing.placed) {
+          existing.lerpFrom = shown;
+          existing.lerpStartMs = _nowMs;
+          existing.lerpMs = scene.interpolationMs.toDouble();
+        }
+        existing.placed = true;
         continue;
       }
       if (existing != null) _free(existing);
@@ -338,6 +372,7 @@ final class McGlRenderer {
       _unbuilt.remove(key);
       built.signature = signature;
       _place(built, node);
+      built.placed = true;
       _nodes[key] = built;
     }
     _last = scene;

@@ -61,6 +61,9 @@
   position: absolute;
   left: 0;
   top: 0;
+  /* The camera element is 0 px wide, so shrink-to-fit would collapse an
+     anchor to its min-content and wrap every space. */
+  width: max-content;
   transform-origin: 0 0;
   transform-style: preserve-3d;
   will-change: transform;

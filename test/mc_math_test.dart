@@ -8,6 +8,7 @@ import 'package:gloss_editor/preview/projection.dart';
 import 'package:test/test.dart';
 
 void main() {
+  lerpTests();
   test('identity and translation compose like huiMultiplyMatrix', () {
     final McMat4 t = McMat4.translation(1, 2, 3);
     final McMat4 s = McMat4.scale(2, 2, 2);
@@ -51,4 +52,30 @@ void main() {
   });
 
   // display pose matrix test lives in mc_display_pose_test.dart
+}
+
+void lerpTests() {
+  test('lerping a transform keeps the midpoint unit-scaled and turns the short way', () {
+    final McMat4 a = McMat4.translation(0, 0, 0).multiply(McMat4.rotationY(0));
+    final McMat4 b = McMat4.translation(2, 0, 0).multiply(McMat4.rotationY(90));
+    final McMat4 mid = mcLerpTransform(a, b, 0.5);
+    // Translation halfway.
+    expect(mid.m[12], closeTo(1, 1e-9));
+    // Rotation 45 degrees about Y: +X maps to (cos45, 0, -sin45), still unit.
+    final McVec3 x = mid.transformPoint(const McVec3(1, 0, 0)) - mid.transformPoint(McVec3.zero);
+    expect(x.length, closeTo(1, 1e-9));
+    expect(x.x, closeTo(math.cos(math.pi / 4), 1e-9));
+    expect(x.z, closeTo(-math.sin(math.pi / 4), 1e-9));
+    // Endpoints are exact.
+    expect(mcLerpTransform(a, b, 0).toList(), a.toList());
+    expect(mcLerpTransform(a, b, 1).toList(), b.toList());
+  });
+
+  test('lerping scales linearly and survives a 180 degree turn', () {
+    final McMat4 a = McMat4.scale(1, 1, 1);
+    final McMat4 b = McMat4.rotationZ(180).multiply(McMat4.scale(3, 3, 3));
+    final McMat4 mid = mcLerpTransform(a, b, 0.5);
+    final McVec3 x = mid.transformPoint(const McVec3(1, 0, 0));
+    expect(x.length, closeTo(2, 1e-9));
+  });
 }

@@ -2276,9 +2276,6 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
       "{{ fixed(papiNumber('vault_eco_balance', 0), 2) }}",
     );
   }
-  if (random.nextBool()) {
-    lines.insert(2, '${mood.legacy}${mood.name}&8 style');
-  }
   final String titlePrefix = showcasePick(random, <String>[
     '${mood.legacy}&l',
     '${mood.legacy}&o',

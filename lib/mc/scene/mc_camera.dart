@@ -84,11 +84,12 @@ final class McCamera {
         distance: distance ?? this.distance,
       );
 
-  /// Grab the world: drag right brings the scene's left side around, yaw
-  /// decreases. Drag down tips the subject's top toward the viewer — looks
-  /// further down — so pitch increases toward the +89 pole.
+  /// Orbit the eye: drag right turns it right (Minecraft yaw increases) so
+  /// the scene slides left under the pointer. Drag down tips the subject's
+  /// top toward the viewer, looking further down, so pitch increases toward
+  /// the +89 pole.
   McCamera orbitBy(double dxPx, double dyPx) => copyWith(
-    yawDeg: _wrap(yawDeg - dxPx * mcCameraYawDegPerPx),
+    yawDeg: _wrap(yawDeg + dxPx * mcCameraYawDegPerPx),
     pitchDeg: pitchDeg + dyPx * mcCameraPitchDegPerPx,
   ).clamped();
 

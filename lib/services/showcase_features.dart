@@ -8,32 +8,45 @@ import '../model/runtime_panel_definition.dart';
 import '../model/gloss_hologram_box.dart';
 import 'showcase_effects.dart';
 
+/// A display style a server would actually run: readable opacity, one
+/// uniform scale, a line width that fits a sentence, no lighting or culling
+/// surprises. Variety comes from the billboard, the plate colour and the
+/// scale; the exotic knobs stay at their defaults so a randomized document
+/// reads as a finished one rather than a stress test.
 HuiIconStyle showcaseDisplayStyle(math.Random random, ShowcaseMood mood) {
-  final bool brightness = random.nextBool();
+  final double scale = _number(random, 0.85, 1.35);
+  final int roll = random.nextInt(10);
+  final String billboard = roll < 5
+      ? 'center'
+      : roll < 8
+      ? 'vertical'
+      : roll < 9
+      ? 'fixed'
+      : 'horizontal';
   return HuiIconStyle(
-    billboard: showcasePick(random, huiIconBillboards),
-    shadow: random.nextBool(),
-    seeThrough: random.nextBool(),
-    textAlignment: showcasePick(random, huiIconTextAlignments),
+    billboard: billboard,
+    shadow: random.nextInt(4) != 0,
+    seeThrough: random.nextInt(5) == 0,
+    textAlignment: random.nextInt(4) == 0
+        ? showcasePick(random, huiIconTextAlignments)
+        : 'center',
     backgroundArgb: showcasePick(random, <String>[
-      '#00000000',
+      '#40000000',
       '#66000000',
-      '#CC${mood.primary.substring(1)}',
-      '#44${mood.secondary.substring(1)}',
+      '#80${mood.primary.substring(1)}',
+      '#4D${mood.secondary.substring(1)}',
     ]),
-    textOpacity: showcasePick(random, <int>[64, 128, 180, 220, 255]),
-    lineWidth: showcasePick(random, <int>[48, 80, 120, 240, 512, 16384]),
-    blockLight: brightness ? random.nextInt(16) : null,
-    skyLight: brightness ? random.nextInt(16) : null,
-    viewRange: _number(random, 0.25, 4),
-    shadowRadius: random.nextBool() ? 0 : _number(random, 0.1, 2),
-    shadowStrength: _number(random, 0, 1),
-    cullingWidth: random.nextBool() ? 0 : _number(random, 1, 8),
-    cullingHeight: random.nextBool() ? 0 : _number(random, 1, 8),
-    glowColor: random.nextBool() ? '#FF${mood.primary.substring(1)}' : null,
-    scaleX: _number(random, 0.35, 1.8),
-    scaleY: _number(random, 0.35, 1.8),
-    scaleZ: _number(random, 0.35, 1.8),
+    textOpacity: 255,
+    lineWidth: showcasePick(random, <int>[200, 240, 320]),
+    viewRange: _number(random, 1, 1.5),
+    shadowRadius: random.nextInt(3) == 0 ? _number(random, 0.2, 0.6) : 0,
+    shadowStrength: _number(random, 0.6, 1),
+    cullingWidth: 0,
+    cullingHeight: 0,
+    glowColor: random.nextInt(6) == 0 ? '#FF${mood.primary.substring(1)}' : null,
+    scaleX: scale,
+    scaleY: scale,
+    scaleZ: scale,
   );
 }
 
@@ -42,10 +55,10 @@ String showcaseRichText(math.Random random, ShowcaseMood mood, String text) {
     0 => '<gradient:${mood.primary}:${mood.secondary}>$text</gradient>',
     1 => '<rainbow>$text</rainbow>',
     2 => '<bold><${mood.primary}>$text</${mood.primary}></bold>',
-    3 => '<italic><underlined>$text</underlined></italic>',
+    3 => '<bold><${mood.secondary}>$text</${mood.secondary}></bold>',
     4 => '${showcaseColorEffect(random, mood).text}$text',
     5 => '${mood.legacy}&l$text',
-    6 => '<strikethrough>${mood.legacy}$text</strikethrough>',
+    6 => '${mood.legacy}$text',
     _ => '&f$text',
   };
   return '<particles:highlight>$rich</particles>';

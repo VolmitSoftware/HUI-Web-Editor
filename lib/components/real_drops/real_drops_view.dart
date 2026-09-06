@@ -612,6 +612,10 @@ class _RealDropsViewState extends State<RealDropsView> {
         spriteFallback: spriteFallback,
         spriteUrl: spriteUrl,
       ),
+      // The client eases a display between packets over its interpolation
+      // window; a coarse `updateIntervalTicks` still reads as coarse because
+      // the ease spans the whole gap.
+      interpolationMs: _easeMs(frame),
     );
     _stage.animating = _playing && _workspaceAnimationsPlaying;
   }
@@ -667,6 +671,10 @@ class _RealDropsViewState extends State<RealDropsView> {
 
   /// The stack's own particle scopes, on an anchor at the carrier so they ride
   /// it. The bounds are the model's, in blocks, the way the plugin states them.
+  /// The client's interpolation window for this frame, in milliseconds.
+  static int _easeMs(DropStageFrame frame) =>
+      frame.interpolationTicks.clamp(0, 59) * 50;
+
   Widget _carrierParticles(
     List<GlossParticleLayer> layers,
     DropStageFrame frame,
@@ -675,6 +683,7 @@ class _RealDropsViewState extends State<RealDropsView> {
     classes: 'hui-mc-anchor',
     styles: dom.Styles(
       raw: <String, String>{
+        'transition': 'transform ${_easeMs(frame)}ms linear',
         'transform': mcDomAnchorTransform(
           camera: _stage.camera,
           position: McVec3(
@@ -736,6 +745,7 @@ class _RealDropsViewState extends State<RealDropsView> {
           : 'hui-mc-anchor',
       styles: dom.Styles(
         raw: <String, String>{
+          'transition': 'transform ${_easeMs(frame)}ms linear',
           'transform': mcDomAnchorTransform(
             camera: _stage.camera,
             position: McVec3(

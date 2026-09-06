@@ -215,8 +215,12 @@ final class McSceneDiff {
 }
 
 final class McScene {
-  McScene(this.nodes, {this.worldVisible = true, this.gridVisible = false})
-      : byKey = <String, McSceneNode>{} {
+  McScene(
+    this.nodes, {
+    this.worldVisible = true,
+    this.gridVisible = false,
+    this.interpolationMs = 0,
+  }) : byKey = <String, McSceneNode>{} {
     for (final McSceneNode node in nodes) {
       if (byKey.containsKey(node.key)) {
         throw ArgumentError.value(node.key, 'key', 'duplicate scene node key');
@@ -236,6 +240,10 @@ final class McScene {
 
   /// The block-grid overlay toggle (hologram, menu preview).
   final bool gridVisible;
+
+  /// Milliseconds a moved node eases from its previous pose to this one: the
+  /// client's own interpolation window for display entities. 0 snaps.
+  final int interpolationMs;
 
   McSceneDiff diff(McScene previous) {
     final Set<String> added = <String>{};

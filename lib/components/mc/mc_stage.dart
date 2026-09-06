@@ -76,6 +76,13 @@ class _McStageState extends State<McStage> {
   double _widthPx = 0;
   double _heightPx = 0;
   bool _framePending = false;
+
+  /// Set by every event that changes what a frame would show; the loop draws
+  /// only dirty frames, so an animating stage whose scene ticks at 20 Hz
+  /// renders 20 frames a second, not 60 identical ones.
+  bool _dirty = true;
+  McCamera? _lastCamera;
+  bool? _lastWebGl;
   bool _postFramePending = false;
   bool _disposed = false;
 
@@ -118,7 +125,7 @@ class _McStageState extends State<McStage> {
     if (!identical(oldComponent.controller, component.controller)) {
       oldComponent.controller.removeListener(_onController);
       component.controller.addListener(_onController);
-      _requestFrame();
+      _invalidate();
     }
   }
 
@@ -136,7 +143,12 @@ class _McStageState extends State<McStage> {
 
   void _onController() {
     if (_disposed) return;
-    _requestFrame();
+    _invalidate();
+    // The DOM layer only depends on the camera and the WebGL flag; the scene
+    // goes to the canvas, so a scene tick must not rebuild the overlay twice.
+    if (_lastCamera == _c.camera && _lastWebGl == _c.webGlAvailable) return;
+    _lastCamera = _c.camera;
+    _lastWebGl = _c.webGlAvailable;
     setState(() {});
   }
 
@@ -149,7 +161,7 @@ class _McStageState extends State<McStage> {
       return;
     }
     _attachGl();
-    _requestFrame();
+    _invalidate();
   }
 
   void _schedulePostFrame() {
@@ -181,7 +193,7 @@ class _McStageState extends State<McStage> {
       _gl = gl;
       // The renderer re-uploads the retained scene on restore but nothing
       // schedules the frame that draws it.
-      gl.onRestored(_requestFrame);
+      gl.onRestored(_invalidate);
     }
     _attachGl();
     final web.HTMLElement stage = web.document.getElementById(_id) as web.HTMLElement;
@@ -216,6 +228,12 @@ class _McStageState extends State<McStage> {
     _heightPx = rect.height;
     _c.widthPx = rect.width;
     _c.heightPx = rect.height;
+    _invalidate();
+  }
+
+  /// Something a frame would show changed: draw on the next animation frame.
+  void _invalidate() {
+    _dirty = true;
     _requestFrame();
   }
 
@@ -226,7 +244,10 @@ class _McStageState extends State<McStage> {
       ((JSNumber _) {
         _framePending = false;
         if (_disposed) return;
-        _render();
+        if (_dirty) {
+          _dirty = false;
+          _render();
+        }
         if (_c.animating) _requestFrame();
       }).toJS,
     );
@@ -235,7 +256,7 @@ class _McStageState extends State<McStage> {
   void _render() {
     final McGlRenderer? renderer = _renderer;
     if (renderer == null || _widthPx <= 0 || _heightPx <= 0) return;
-    renderer.render(
+    final bool easing = renderer.render(
       _c.scene,
       _c.camera,
       widthPx: _widthPx,
@@ -244,6 +265,8 @@ class _McStageState extends State<McStage> {
       perspectivePx: huiPreviewPerspectivePx,
     );
     _c.frames++;
+    // A pose ease is a frame-by-frame affair: keep drawing until it settles.
+    if (easing) _invalidate();
     _host?.setAttribute('data-frames', '${_c.frames}');
   }
 

@@ -18,10 +18,10 @@ void main() {
     expect(frame.eye.y, closeTo(1.62, 1e-9));
   });
 
-  test('dragging right orbits so the scene follows the pointer', () {
-    final McCamera home = mcCameraHome(McStageKind.drops, McVec3.zero);
+  test('dragging right turns the eye right', () {
+    const McCamera home = McCamera(pivot: McVec3.zero, yawDeg: 0, pitchDeg: 20, distance: 4);
     final McCamera dragged = home.orbitBy(100, 0);
-    expect(dragged.yawDeg, closeTo(home.yawDeg - 100 * mcCameraYawDegPerPx, 1e-9));
+    expect(dragged.yawDeg, closeTo(100 * mcCameraYawDegPerPx, 1e-9));
     expect(dragged.distance, home.distance);
     expect((dragged.eye - dragged.pivot).length, closeTo(home.distance, 1e-9));
   });

@@ -11,7 +11,7 @@
 /// The stage stands every hologram at [_stageAnchor], the block over spawn,
 /// so it always meets the ground; the document's own world coordinates are a
 /// readout, not a place on this stage. The ground grid is the renderer's, off
-/// the store's `previewShowGroundGrid` toggle.
+/// this view's own grid toggle, off by default.
 ///
 /// The camera, its pointer, wheel, key and touch input, and the canvas belong
 /// to `McStage`; this file writes numbers into styles and reads the camera
@@ -96,6 +96,10 @@ class _HologramViewState extends State<HologramView> {
   );
 
   Timer? _ticker;
+
+  /// The block-grid overlay is this view's own toggle, off by default: a
+  /// hologram stands on the world, and the grid is a measuring aid.
+  bool _showGrid = false;
   bool? _gridVisible;
 
   EditorStore get _store => component.store;
@@ -144,10 +148,10 @@ class _HologramViewState extends State<HologramView> {
 
   /// What the stage draws for the open document: the home framing centres the
   /// stack (the game frame keeps the client's eye), and the block grid follows
-  /// the store's toggle.
+  /// this view's toggle.
   void _syncStage() {
     if (!component.gameContext) _stage.homePivot = _pivotFor(_store.hologramDoc);
-    final bool grid = _store.previewShowGroundGrid;
+    final bool grid = _showGrid;
     if (grid == _gridVisible) return;
     _gridVisible = grid;
     _stage.scene = McScene(const <McSceneNode>[], gridVisible: grid);
@@ -187,7 +191,7 @@ class _HologramViewState extends State<HologramView> {
   }
 
   void _toggleGrid() {
-    _store.previewShowGroundGrid = !_store.previewShowGroundGrid;
+    setState(() => _showGrid = !_showGrid);
   }
 
   @override
@@ -302,7 +306,7 @@ class _HologramViewState extends State<HologramView> {
             label: huiText('Block grid'),
             icon: ArcaneIcon.grid3x3(size: IconSize.sm),
             onPressed: _toggleGrid,
-            pressed: _store.previewShowGroundGrid,
+            pressed: _showGrid,
           ),
         ],
       ),

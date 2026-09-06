@@ -131,18 +131,15 @@ const List<String> showcaseRanks = <String>[
 /// Bounded at 24: a board row prints an animated glyph, `&l`, then one of
 /// these.
 const List<String> showcaseStatusWords = <String>[
+  'SEASON 4',
+  'EVENT LIVE',
+  'PVP ON',
+  'PEACEFUL',
+  'NEW SPAWN',
+  'VOTE OPEN',
   'LODGE OPEN',
-  'OWLS ACTIVE',
-  'DAMN FINE',
-  'COFFEE HOT',
-  'PIE READY',
-  'PALMER HOUSE',
-  'WIDE AWAKE',
-  'FIRE WALK',
-  'BLUE ROSE',
-  'DREAMING',
-  'LIVE',
-  'BOOSTED',
+  'DOUBLE XP',
+  'MARKET OPEN',
 ];
 
 /// Big single words for the animation player, where the frame is the whole
@@ -169,13 +166,13 @@ const List<String> showcaseAnimationWords = <String>[
 /// Teaching notes for hologram bodies: themed, but each one still says
 /// something true about the pipeline.
 const List<String> showcaseHologramNotes = <String>[
-  'Every expression here runs in game',
-  'Authored RGB pulses, never faked',
-  'This body was generated procedurally',
-  'Edit any of it in the code view',
-  'Math and bars evaluate per viewer',
-  'The owls are rendered per tick',
-  'Damn fine text pipeline',
+  'Vote daily for a crate key',
+  'Claim land with /claim before you build',
+  'Spawn market restocks at dawn',
+  'Keep chat friendly, keep builds yours',
+  'Backups run every hour',
+  'Type /warp lodge for the hub',
+  'Diamonds for sale at the Double R',
 ];
 
 /// Player names for the mock tablist and the canned chat scrollback.
@@ -230,30 +227,28 @@ const List<String> showcaseCredits = <String>[
 /// Hologram, MOTD and tablist easter eggs. One entry per line, already
 /// coloured; every one of [showcaseCredits] appears in several.
 const List<String> showcaseEasterEggs = <String>[
-  '&dMagic_Psycho &7is debugging reality',
-  '&dMagic_Psycho &7took the ring off the table',
-  '&dMagic_Psycho &7walked out of the waiting room',
+  '&dMagic_Psycho &7is online',
+  '&dMagic_Psycho &7opened the lodge',
+  '&dMagic_Psycho &7restocked the market',
   '&5SwiftSwamp &fSwiftSwamp smells >.<',
-  '&5SwiftSwamp &7left the log with the Log Lady',
+  '&5SwiftSwamp &7built a new farm',
   '&5SwiftSwamp &7is still owed a cherry pie',
-  '&bCyberpwn &7charted the strange loop',
-  '&bCyberpwn &7mapped every road out of town',
-  '&bCyberpwn &7heard it backwards first',
-  '&6Puretie &7found another shiny edge case',
-  '&6Puretie &7found the ring under the floor',
-  '&6Puretie &7ordered the damn fine coffee',
+  '&bCyberpwn &7mapped the caves',
+  '&bCyberpwn &7finished the rail line',
+  '&6Puretie &7is selling diamonds',
+  '&6Puretie &7found the ring',
 ];
 
 /// Compact versions of the same eggs for readable board rows.
 const List<String> showcaseBoardEasterEggs = <String>[
-  '&dMagic_Psycho &fdebugs',
-  '&dMagic_Psycho &fdreams',
+  '&dMagic_Psycho &fis online',
+  '&dMagic_Psycho &fopened the lodge',
   '&5SwiftSwamp &fsmells >.<',
-  '&5SwiftSwamp &fhas the log',
-  '&bCyberpwn &floops',
-  '&bCyberpwn &fplays it back',
-  '&6Puretie &ffound loot',
-  '&6Puretie &fhas the ring',
+  '&5SwiftSwamp &fbuilt a farm',
+  '&bCyberpwn &fmapped the caves',
+  '&bCyberpwn &flaid new rail',
+  '&6Puretie &fsells diamonds',
+  '&6Puretie &ffound the ring',
 ];
 
 /// A coherent look one randomized document commits to.
