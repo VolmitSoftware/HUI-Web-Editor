@@ -26,6 +26,7 @@ import '../services/catalogs.dart';
 import '../services/image_library.dart';
 import '../state/editor_store.dart';
 import '../state/workspace.dart';
+import '../state/workspace_panel.dart';
 
 /// Read-only view of the document state an adapter operates on.
 ///
@@ -33,6 +34,8 @@ import '../state/workspace.dart';
 /// fields; the store hands itself in wherever per-kind work needs the live
 /// document.
 abstract interface class DocumentStateView {
+  WorkspacePanelData? get panelDoc;
+
   /// The menu slot. Always a valid [HuiMenu], but only the live document
   /// while the menu kind is active.
   HuiMenu get menu;
@@ -280,6 +283,8 @@ abstract class DocumentTypeAdapter {
   /// Decodes [doc] for adoption. Never throws: an unreadable document comes
   /// back as a default replacement model with [AdoptedDocument.failure] set.
   AdoptedDocument adopt(WorkspaceDoc doc);
+
+  String duplicateJson(WorkspaceDoc doc, Workspace workspace) => doc.json;
 
   /// Decodes one undo snapshot back into this kind's model. Throws
   /// [HuiFormatException] when the snapshot does not parse.

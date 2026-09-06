@@ -11,7 +11,7 @@ import '../model/model.dart';
 const String kGlossDamageIndicatorsDefaultJson = r'''
 {
   "show": true,
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "revision": 1,
   "limits": {
     "maxPerSecond": 40,
@@ -23,7 +23,11 @@ const String kGlossDamageIndicatorsDefaultJson = r'''
     "when": "true",
     "presentation": {
       "format": "&c&l{amount}",
-      "offset": [0.0, 0.7, 0.0],
+      "offset": [
+        0.0,
+        0.7,
+        0.0
+      ],
       "motion": {
         "horizontalSpeed": 0.8,
         "verticalSpeed": 1.3,
@@ -35,7 +39,21 @@ const String kGlossDamageIndicatorsDefaultJson = r'''
         "endScale": 0.82,
         "fadeStartFraction": 0.68
       },
-      "particleLayers": []
+      "particleLayers": [],
+      "style": {
+        "billboard": "center",
+        "seeThrough": true,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "box": {
+        "enabled": false,
+        "padding": 4,
+        "borderWidth": 1,
+        "backgroundArgb": "#B31B1B22",
+        "borderArgb": "#FFAAAAAA"
+      }
     },
     "variants": []
   },
@@ -43,7 +61,11 @@ const String kGlossDamageIndicatorsDefaultJson = r'''
     "when": "true",
     "presentation": {
       "format": "&a&l{amount}",
-      "offset": [0.0, -0.1, 0.0],
+      "offset": [
+        0.0,
+        -0.1,
+        0.0
+      ],
       "motion": {
         "horizontalSpeed": 0.45,
         "verticalSpeed": 0.65,
@@ -55,7 +77,21 @@ const String kGlossDamageIndicatorsDefaultJson = r'''
         "endScale": 1.1,
         "fadeStartFraction": 0.62
       },
-      "particleLayers": []
+      "particleLayers": [],
+      "style": {
+        "billboard": "center",
+        "seeThrough": true,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "box": {
+        "enabled": false,
+        "padding": 4,
+        "borderWidth": 1,
+        "backgroundArgb": "#B31B1B22",
+        "borderArgb": "#FFAAAAAA"
+      }
     },
     "variants": []
   },
@@ -73,18 +109,34 @@ GlossDamageIndicatorsDoc buildDefaultGlossDamageIndicators() =>
 /// hologram document is here.
 const String kGlossHologramBaselineJson = r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "anchor": {
     "world": "world",
-    "position": [0.0, 0.0, 0.0]
+    "position": [
+      0.0,
+      0.0,
+      0.0
+    ]
   },
   "lines": [
     "&dNew hologram"
   ],
-  "seeThrough": true,
-  "scale": 1.0,
-  "particleLayers": []
+  "particleLayers": [],
+  "style": {
+    "billboard": "center",
+    "seeThrough": true,
+    "scaleX": 1.0,
+    "scaleY": 1.0,
+    "scaleZ": 1.0
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
+  }
 }
 ''';
 
@@ -93,11 +145,15 @@ const String kGlossHologramBaselineJson = r'''
 /// reference.
 const String kGlossHologramShowcaseJson = r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "anchor": {
     "world": "world",
-    "position": [0.5, 64.0, 0.5]
+    "position": [
+      0.5,
+      64.0,
+      0.5
+    ]
   },
   "lines": [
     "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&lWelcome",
@@ -107,8 +163,31 @@ const String kGlossHologramShowcaseJson = r'''
     "|animation.rainbow|&lLive colour prefix",
     "&7TPS &a{{ fixed(server.tps, 1) }}"
   ],
-  "seeThrough": true,
-  "particleLayers": []
+  "particleLayers": [],
+  "style": {
+    "billboard": "center",
+    "seeThrough": true,
+    "shadow": false,
+    "backgroundArgb": "#00000000",
+    "textOpacity": 255,
+    "lineWidth": 16384,
+    "textAlignment": "center",
+    "scaleX": 1.0,
+    "scaleY": 1.0,
+    "scaleZ": 1.0,
+    "viewRange": 1.0,
+    "shadowRadius": 0.0,
+    "shadowStrength": 0.0,
+    "cullingWidth": 0.0,
+    "cullingHeight": 0.0
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
+  }
 }
 ''';
 
@@ -121,7 +200,7 @@ GlossHologramDoc buildShowcaseGlossHologram() =>
 const String kGlossRealDropsDefaultJson = r'''
 {
   "show": true,
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "revision": 1,
   "presentation": {
     "limits": {
@@ -162,16 +241,33 @@ const String kGlossRealDropsDefaultJson = r'''
     "labels": {
       "enabled": true,
       "yOffset": 0.55,
-      "scale": 0.85,
-      "viewRange": 32.0,
-      "billboard": "CENTER",
-      "seeThrough": true,
-      "shadow": true,
-      "background": true,
-      "backgroundRed": 0,
-      "backgroundGreen": 0,
-      "backgroundBlue": 0,
-      "backgroundAlpha": 80
+      "style": {
+        "billboard": "center",
+        "shadow": true,
+        "seeThrough": true,
+        "textAlignment": "center",
+        "backgroundArgb": "#50000000",
+        "textOpacity": 255,
+        "lineWidth": 16384,
+        "blockLight": null,
+        "skyLight": null,
+        "viewRange": 0.5,
+        "shadowRadius": 0,
+        "shadowStrength": 0,
+        "cullingWidth": 0,
+        "cullingHeight": 0,
+        "glowColor": null,
+        "scaleX": 0.85,
+        "scaleY": 0.85,
+        "scaleZ": 0.85
+      },
+      "box": {
+        "enabled": false,
+        "padding": 4,
+        "borderWidth": 1,
+        "backgroundArgb": "#B31B1B22",
+        "borderArgb": "#FFAAAAAA"
+      }
     },
     "filters": {
       "disabledWorlds": [],
@@ -813,10 +909,14 @@ GlossEmojiDoc buildBlankGlossEmoji() =>
 const String kGlossBubbleDefaultJson = r'''
 {
   "show": true,
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "revision": 1,
   "prefix": "&7",
-  "offset": [0.0, 0.3, 0.0],
+  "offset": [
+    0.0,
+    0.3,
+    0.0
+  ],
   "wordWrapChars": 32,
   "maxAliveMs": 5000,
   "followPlayer": true,
@@ -848,7 +948,21 @@ const String kGlossBubbleDefaultJson = r'''
     "spawnDelayMs": 400,
     "flyAwayLeadMs": 700
   },
-  "particleLayers": []
+  "particleLayers": [],
+  "style": {
+    "billboard": "center",
+    "seeThrough": true,
+    "scaleX": 1.0,
+    "scaleY": 1.0,
+    "scaleZ": 1.0
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
+  }
 }
 ''';
 
@@ -856,10 +970,14 @@ const String kGlossBubbleDefaultJson = r'''
 /// follow) style that auto-applies to VIPs in overworld-named worlds.
 const String kGlossBubbleShowcaseJson = r'''
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "revision": 1,
   "prefix": "{{ hex(mix(#FF55FF, #55FFFF, (sin(time.seconds * 2) + 1) / 2)) }}&l",
-  "offset": [0.0, 1.2, 0.0],
+  "offset": [
+    0.0,
+    1.2,
+    0.0
+  ],
   "wordWrapChars": 34,
   "maxAliveMs": 7000,
   "motion": {
@@ -893,6 +1011,30 @@ const String kGlossBubbleShowcaseJson = r'''
   "select": {
     "priority": 10,
     "when": "matchesGlob(viewer.world, 'world*') && inGroup('viewer', 'vip')"
+  },
+  "style": {
+    "billboard": "center",
+    "seeThrough": true,
+    "shadow": false,
+    "backgroundArgb": "#00000000",
+    "textOpacity": 255,
+    "lineWidth": 16384,
+    "textAlignment": "center",
+    "scaleX": 1.0,
+    "scaleY": 1.0,
+    "scaleZ": 1.0,
+    "viewRange": 1.0,
+    "shadowRadius": 0.0,
+    "shadowStrength": 0.0,
+    "cullingWidth": 0.0,
+    "cullingHeight": 0.0
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
   }
 }
 ''';

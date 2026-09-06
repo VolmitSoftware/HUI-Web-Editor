@@ -16,6 +16,7 @@
 /// scoreboard view is active.
 library;
 
+import '../../logic/gloss_show.dart';
 import 'dart:async';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
@@ -148,7 +149,9 @@ class _ScoreboardViewState extends State<ScoreboardView> {
       doc,
       conditionContext,
     );
-    _syncTicker(_isAnimated(presentation, animations));
+    _syncTicker(
+      _isAnimated(presentation, animations) || doc.extras['show'] is String,
+    );
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
 
     final int rendered = presentation.lines.length > glossBoardMaxLines
@@ -158,39 +161,52 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     final String title = _effectiveTitle(presentation);
     final bool titleFellBack = presentation.title.isEmpty;
 
-    final Widget sidebar = dom.div(classes: 'hui-scoreboard-sidebar', <Widget>[
-      dom.div(classes: 'hui-scoreboard-title', <Widget>[
-        GlossTextLine(
-          render: renderGlossScoreboardTitle(
-            title,
-            animations: animations,
-            emoji: emoji,
+    final Widget sidebar = dom.div(
+      styles: dom.Styles(
+        raw: <String, String>{
+          if (!glossShowMatches(
+            doc.extras['show'],
+            scope: conditionContext,
             nowMs: nowMs,
-          ),
-        ),
-      ]),
-      for (int index = 0; index < rendered; index++)
-        dom.div(classes: 'hui-scoreboard-row', <Widget>[
-          dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
-            GlossTextLine(
-              render: renderGlossScoreboardLine(
-                presentation.lines[index],
-                animations: animations,
-                emoji: emoji,
-                nowMs: nowMs,
-              ),
+          ))
+            'visibility': 'hidden',
+        },
+      ),
+      classes: 'hui-scoreboard-sidebar',
+      <Widget>[
+        dom.div(classes: 'hui-scoreboard-title', <Widget>[
+          GlossTextLine(
+            render: renderGlossScoreboardTitle(
+              title,
+              animations: animations,
+              emoji: emoji,
+              nowMs: nowMs,
             ),
-          ]),
-          if (!presentation.hideNumbers)
-            dom.span(classes: 'hui-scoreboard-score', <Widget>[
-              Text(
-                huiText("{glossBoardScoreForRow}", <String, Object?>{
-                  'glossBoardScoreForRow': glossBoardScoreForRow(index),
-                }),
+          ),
+        ]),
+        for (int index = 0; index < rendered; index++)
+          dom.div(classes: 'hui-scoreboard-row', <Widget>[
+            dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
+              GlossTextLine(
+                render: renderGlossScoreboardLine(
+                  presentation.lines[index],
+                  animations: animations,
+                  emoji: emoji,
+                  nowMs: nowMs,
+                ),
               ),
             ]),
-        ]),
-    ]);
+            if (!presentation.hideNumbers)
+              dom.span(classes: 'hui-scoreboard-score', <Widget>[
+                Text(
+                  huiText("{glossBoardScoreForRow}", <String, Object?>{
+                    'glossBoardScoreForRow': glossBoardScoreForRow(index),
+                  }),
+                ),
+              ]),
+          ]),
+      ],
+    );
 
     if (component.gameContext) {
       return GlossGameScreen(

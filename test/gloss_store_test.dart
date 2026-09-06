@@ -46,7 +46,7 @@ void main() {
       // Canonical text, not shipped bytes — but the same document.
       expect(
         jsonDecode(store.exportJson()),
-        jsonDecode(kGlossHologramBaselineJson),
+        decodeGlossHologramDoc(kGlossHologramBaselineJson).toJson(),
       );
     });
 
@@ -115,7 +115,7 @@ void main() {
       final EditorStore store = _store(_FakeStorage());
       store.newGlossDocument(DocumentTypes.hologram);
       final bool applied = store.applyCode(
-        '{"schemaVersion": 2, "revision": 5, '
+        '{"schemaVersion": 3, "revision": 5, '
         '"anchor": {"world": "w", "position": [1, 2, 3]}, '
         '"lines": ["&bnew"]}',
       );
@@ -149,7 +149,7 @@ void main() {
 
   group('import auto-detection', () {
     const String hologramJson =
-        '{"schemaVersion": 2, "revision": 2, '
+        '{"schemaVersion": 3, "revision": 2, '
         '"anchor": {"world": "world", "position": [0, 70, 0]}, '
         '"lines": ["&dHi"]}';
 

@@ -65,6 +65,9 @@ final class TablistDocumentType extends GlossDocumentTypeAdapter {
       '"headerFooter" and "listNames".';
 
   @override
+  String get fixedRuntimeId => 'tablist';
+
+  @override
   String get defaultDocumentName => 'tablist';
 
   @override

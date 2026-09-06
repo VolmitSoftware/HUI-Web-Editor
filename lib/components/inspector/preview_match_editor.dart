@@ -22,6 +22,8 @@ import '../common/common.dart';
 import 'extras_editor.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'display_style_editor.dart';
+import '../../model/hui_icons.dart';
 import 'preview_color_swatch.dart';
 import 'preview_expr_field.dart';
 import 'particle_layers_editor.dart';
@@ -68,6 +70,23 @@ class PreviewMatchEditor extends StatelessWidget {
     _matchSection(),
     _variantsSection(),
     _cardSection(),
+    DisplayStyleEditor(
+      title: 'Text style',
+      sectionKey: 'preview.textStyle',
+      style: _doc.textStyle,
+      issues: _issuesFor('textStyle'),
+      onChanged: (String label, HuiIconStyle? style) =>
+          _mutate(label, (HuiPreviewDoc doc) => doc.textStyle = style),
+    ),
+    DisplayStyleEditor(
+      title: 'Item style',
+      sectionKey: 'preview.itemStyle',
+      style: _doc.itemStyle,
+      defaults: HuiIconStyle(blockLight: 15, skyLight: 15),
+      issues: _issuesFor('itemStyle'),
+      onChanged: (String label, HuiIconStyle? style) =>
+          _mutate(label, (HuiPreviewDoc doc) => doc.itemStyle = style),
+    ),
     ParticleLayersEditor(
       layers: _doc.particleLayers,
       sectionKey: 'preview.particleLayers',
@@ -476,6 +495,161 @@ class PreviewMatchEditor extends StatelessWidget {
         onChanged: (double value) => _mutate(
           'card minHalfWidth',
           (HuiPreviewDoc d) => d.card?.minHalfWidth = value.round(),
+        ),
+      ),
+    ),
+    HuiField(
+      label: huiText('Padding'),
+      help: huiText('Font pixels. 0..256.'),
+      defaultValue: '7',
+      onReset: () => _mutate(
+        'card padding',
+        (HuiPreviewDoc doc) => doc.card?.padding = null,
+      ),
+      control: HuiNumberField(
+        value: (card.padding ?? 7).toDouble(),
+        min: 0,
+        max: 256,
+        integer: true,
+        onChanged: (double value) => _mutate(
+          'card padding',
+          (HuiPreviewDoc doc) => doc.card?.padding = value.round(),
+        ),
+      ),
+    ),
+    HuiField(
+      label: huiText('Border width'),
+      help: huiText('Font pixels. 0..256.'),
+      defaultValue: '3',
+      onReset: () => _mutate(
+        'card borderWidth',
+        (HuiPreviewDoc doc) => doc.card?.borderWidth = null,
+      ),
+      control: HuiNumberField(
+        value: (card.borderWidth ?? 3).toDouble(),
+        min: 0,
+        max: 256,
+        integer: true,
+        onChanged: (double value) => _mutate(
+          'card borderWidth',
+          (HuiPreviewDoc doc) => doc.card?.borderWidth = value.round(),
+        ),
+      ),
+    ),
+    HuiField(
+      label: huiText('Tray padding'),
+      help: huiText('Font pixels. 0..256.'),
+      defaultValue: '4',
+      onReset: () => _mutate(
+        'card trayPadding',
+        (HuiPreviewDoc doc) => doc.card?.trayPadding = null,
+      ),
+      control: HuiNumberField(
+        value: (card.trayPadding ?? 4).toDouble(),
+        min: 0,
+        max: 256,
+        integer: true,
+        onChanged: (double value) => _mutate(
+          'card trayPadding',
+          (HuiPreviewDoc doc) => doc.card?.trayPadding = value.round(),
+        ),
+      ),
+    ),
+    HuiField(
+      label: huiText('Title height'),
+      help: huiText('Font pixels. 0..256.'),
+      defaultValue: '17',
+      onReset: () => _mutate(
+        'card titleHeight',
+        (HuiPreviewDoc doc) => doc.card?.titleHeight = null,
+      ),
+      control: HuiNumberField(
+        value: (card.titleHeight ?? 17).toDouble(),
+        min: 0,
+        max: 256,
+        integer: true,
+        onChanged: (double value) => _mutate(
+          'card titleHeight',
+          (HuiPreviewDoc doc) => doc.card?.titleHeight = value.round(),
+        ),
+      ),
+    ),
+    HuiField(
+      label: huiText('Title gap'),
+      help: huiText('Font pixels. 0..256.'),
+      defaultValue: '6',
+      onReset: () => _mutate(
+        'card titleGap',
+        (HuiPreviewDoc doc) => doc.card?.titleGap = null,
+      ),
+      control: HuiNumberField(
+        value: (card.titleGap ?? 6).toDouble(),
+        min: 0,
+        max: 256,
+        integer: true,
+        onChanged: (double value) => _mutate(
+          'card titleGap',
+          (HuiPreviewDoc doc) => doc.card?.titleGap = value.round(),
+        ),
+      ),
+    ),
+    HuiField(
+      label: huiText('Background'),
+      onReset: () => _mutate(
+        'card backgroundArgb',
+        (HuiPreviewDoc doc) => doc.card?.backgroundArgb = null,
+      ),
+      control: HuiColorField(
+        value: card.backgroundArgb ?? '#F21B1B22',
+        label: huiText('Background'),
+        onChanged: (String value) => _mutate(
+          'card backgroundArgb',
+          (HuiPreviewDoc doc) => doc.card?.backgroundArgb = value,
+        ),
+      ),
+    ),
+    HuiField(
+      label: huiText('Tray color'),
+      onReset: () => _mutate(
+        'card trayArgb',
+        (HuiPreviewDoc doc) => doc.card?.trayArgb = null,
+      ),
+      control: HuiColorField(
+        value: card.trayArgb ?? '#FF33333E',
+        label: huiText('Tray color'),
+        onChanged: (String value) => _mutate(
+          'card trayArgb',
+          (HuiPreviewDoc doc) => doc.card?.trayArgb = value,
+        ),
+      ),
+    ),
+    HuiField(
+      label: huiText('Border color'),
+      onReset: () => _mutate(
+        'card borderArgb',
+        (HuiPreviewDoc doc) => doc.card?.borderArgb = null,
+      ),
+      control: HuiColorField(
+        value: card.borderArgb ?? '#CCCBD0D9',
+        label: huiText('Border color'),
+        onChanged: (String value) => _mutate(
+          'card borderArgb',
+          (HuiPreviewDoc doc) => doc.card?.borderArgb = value,
+        ),
+      ),
+    ),
+    HuiField(
+      label: huiText('Title background'),
+      onReset: () => _mutate(
+        'card titleArgb',
+        (HuiPreviewDoc doc) => doc.card?.titleArgb = null,
+      ),
+      control: HuiColorField(
+        value: card.titleArgb ?? '#E6CBD0D9',
+        label: huiText('Title background'),
+        onChanged: (String value) => _mutate(
+          'card titleArgb',
+          (HuiPreviewDoc doc) => doc.card?.titleArgb = value,
         ),
       ),
     ),

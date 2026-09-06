@@ -126,7 +126,7 @@ void main() {
       expect(first.revision, 1);
       expect(first.anchor.world, 'world');
       expect(first.lines, <String>['&dNew hologram']);
-      expect(first.seeThrough, isTrue);
+      expect(first.style.seeThrough, isTrue);
       expect(validateHologramDoc(first), isEmpty);
     });
   });
@@ -147,7 +147,7 @@ void main() {
       final GlossRealDropSettingsDoc second = buildDefaultGlossRealDrops();
       expect(identical(first, second), isFalse);
       expect(first.presentation.motion.speedMultiplier, 1.35);
-      expect(first.presentation.labels.seeThrough, isTrue);
+      expect(first.presentation.labels.style.seeThrough, isTrue);
       expect(first.presentation.limits.updateIntervalTicks, 2);
       expect(first.presentation.filters.materialBlacklist, <String>[
         'BEDROCK',

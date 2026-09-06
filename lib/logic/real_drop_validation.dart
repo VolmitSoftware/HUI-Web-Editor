@@ -7,9 +7,13 @@ import 'preview_expr.dart';
 import 'particle_layer_validation.dart';
 import 'real_drop_script.dart';
 import 'validation.dart';
+import 'hologram_box_validation.dart';
+import 'gloss_show.dart';
 
 List<HuiIssue> validateRealDropSettingsDoc(GlossRealDropSettingsDoc doc) {
-  final List<HuiIssue> issues = <HuiIssue>[];
+  final List<HuiIssue> issues = <HuiIssue>[
+    ...validateGlossShow(doc.show),
+  ];
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) issues.add(revisionIssue);
   issues.addAll(_atPresentation(doc.presentation, r'$.presentation'));
@@ -179,31 +183,11 @@ List<HuiIssue> _validatePresentation(GlossRealDropPresentation doc) {
     'FLAT',
     'UPRIGHT',
   });
-  _range(issues, r'$.labels.yOffset', doc.labels.yOffset, 0, 4);
-  _range(issues, r'$.labels.scale', doc.labels.scale, 0.1, 4);
-  _range(issues, r'$.labels.viewRange', doc.labels.viewRange, 4, 128);
-  _choice(issues, r'$.labels.billboard', doc.labels.billboard, const <String>{
-    'CENTER',
-    'FIXED',
-    'HORIZONTAL',
-    'VERTICAL',
-  });
-  _range(issues, r'$.labels.backgroundRed', doc.labels.backgroundRed, 0, 255);
-  _range(
-    issues,
-    r'$.labels.backgroundGreen',
-    doc.labels.backgroundGreen,
-    0,
-    255,
+  _range(issues, r'$.labels.yOffset', doc.labels.yOffset, -4, 16);
+  issues.addAll(
+    validateIconDisplayStyle(doc.labels.style, path: r'$.labels.style'),
   );
-  _range(issues, r'$.labels.backgroundBlue', doc.labels.backgroundBlue, 0, 255);
-  _range(
-    issues,
-    r'$.labels.backgroundAlpha',
-    doc.labels.backgroundAlpha,
-    0,
-    255,
-  );
+  issues.addAll(validateHologramBox(doc.labels.box, path: r'$.labels.box'));
   _physics(issues, doc.physics);
   _script(issues, doc.script);
   _animation(issues, doc.animation);

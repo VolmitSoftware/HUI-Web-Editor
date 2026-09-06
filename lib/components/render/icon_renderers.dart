@@ -16,6 +16,7 @@ import '../../logic/canvas_scene.dart';
 import '../../logic/hui_geometry.dart';
 import '../../logic/mc_text.dart';
 import '../../model/model.dart';
+import '../../model/gloss_hologram_box.dart';
 import '../../services/image_library.dart';
 import 'canvas_assets.dart';
 import 'canvas_brush.dart';
@@ -124,6 +125,9 @@ class IconRenderers {
 
   void paint(CanvasItem item) {
     final HuiIconStyle style = item.icon?.style ?? HuiIconStyle();
+    if (item.icon case final HuiTextIcon text) {
+      if (text.box?.enabled == true) _paintTextBox(item, text.box!, style);
+    }
     final String? background = _argbCss(style.backgroundArgb);
     if (background != null &&
         (item.kind == CanvasIconKind.text ||
@@ -182,6 +186,46 @@ class IconRenderers {
   }
 
   // --- text -----------------------------------------------------------------
+
+  void _paintTextBox(
+    CanvasItem item,
+    GlossHologramBox box,
+    HuiIconStyle style,
+  ) {
+    final double pixelX = _blockPerFontPixel * style.scaleX;
+    final double pixelY = _blockPerFontPixel * style.scaleY;
+    final double padding = box.padding.clamp(0, 64).toDouble();
+    final double border = box.borderWidth.clamp(0, 16).toDouble();
+    final HuiRect inner = HuiRect(
+      x: item.visual.x,
+      y: item.visual.y,
+      w: item.visual.w + 2 * padding * pixelX,
+      h: item.visual.h + 2 * padding * pixelY,
+    );
+    brush.save();
+    brush.fill = _argbCss(box.backgroundArgb) ?? 'transparent';
+    brush.fillWorldRect(inner);
+    brush.fill = _argbCss(box.borderArgb) ?? 'transparent';
+    for (final double sign in <double>[-1, 1]) {
+      brush.fillWorldRect(
+        HuiRect(
+          x: inner.x,
+          y: inner.y + sign * (inner.h + border * pixelY) / 2,
+          w: inner.w + 2 * border * pixelX,
+          h: border * pixelY,
+        ),
+      );
+      brush.fillWorldRect(
+        HuiRect(
+          x: inner.x + sign * (inner.w + border * pixelX) / 2,
+          y: inner.y,
+          w: border * pixelX,
+          h: inner.h,
+        ),
+      );
+    }
+    brush.restore();
+  }
 
   void _paintText(CanvasItem item) {
     final McTextResult? parsed = item.text;

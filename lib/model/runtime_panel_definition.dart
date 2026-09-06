@@ -30,6 +30,8 @@ final class RuntimePanelTransform {
   final double scale;
 
   RuntimePanelTransform copyWith({
+    String? worldKey,
+    String? worldUuid,
     double? x,
     double? y,
     double? z,
@@ -38,8 +40,8 @@ final class RuntimePanelTransform {
     double? roll,
     double? scale,
   }) => RuntimePanelTransform(
-    worldKey: worldKey,
-    worldUuid: worldUuid,
+    worldKey: worldKey ?? this.worldKey,
+    worldUuid: worldUuid ?? this.worldUuid,
     x: x ?? this.x,
     y: y ?? this.y,
     z: z ?? this.z,
@@ -196,6 +198,7 @@ final class RuntimePanelDefinition {
     required this.transform,
     required this.follow,
     required this.visibility,
+    this.show = true,
   });
 
   final int schemaVersion;
@@ -206,12 +209,14 @@ final class RuntimePanelDefinition {
   final RuntimePanelTransform transform;
   final RuntimePanelFollow follow;
   final RuntimePanelVisibility visibility;
+  final Object show;
 
   RuntimePanelDefinition copyWith({
     String? rootMenuId,
     RuntimePanelTransform? transform,
     RuntimePanelFollow? follow,
     RuntimePanelVisibility? visibility,
+    Object? show,
   }) => RuntimePanelDefinition(
     schemaVersion: schemaVersion,
     id: id,
@@ -221,6 +226,7 @@ final class RuntimePanelDefinition {
     transform: transform ?? this.transform,
     follow: follow ?? this.follow,
     visibility: visibility ?? this.visibility,
+    show: show ?? this.show,
   );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -232,19 +238,25 @@ final class RuntimePanelDefinition {
     'transform': transform.toJson(),
     'follow': follow.toJson(),
     'visibility': visibility.toJson(),
+    'show': show,
   };
 
   factory RuntimePanelDefinition.fromJson(Map<String, dynamic> raw) {
-    _requireExactKeys(raw, const <String>{
-      'schemaVersion',
-      'id',
-      'uuid',
-      'revision',
-      'rootMenuId',
-      'transform',
-      'follow',
-      'visibility',
-    }, 'board definition');
+    _requireExactKeys(
+      <String, dynamic>{'show': true, ...raw},
+      const <String>{
+        'schemaVersion',
+        'id',
+        'uuid',
+        'revision',
+        'rootMenuId',
+        'transform',
+        'follow',
+        'visibility',
+        'show',
+      },
+      'board definition',
+    );
     return RuntimePanelDefinition(
       schemaVersion: _integer(raw['schemaVersion'], 'schemaVersion'),
       id: _string(raw['id'], 'id'),
@@ -254,6 +266,7 @@ final class RuntimePanelDefinition {
       transform: RuntimePanelTransform.fromJson(raw['transform']),
       follow: RuntimePanelFollow.fromJson(raw['follow']),
       visibility: RuntimePanelVisibility.fromJson(raw['visibility']),
+      show: _panelShow(raw['show']),
     );
   }
 }
@@ -311,4 +324,10 @@ T _enumValue<T extends Enum>(List<T> values, Object? raw, String label) {
     }
   }
   throw FormatException('$label is not supported.');
+}
+
+Object _panelShow(Object? raw) {
+  if (raw == null) return true;
+  if (raw is bool || raw is String && raw.trim().isNotEmpty) return raw;
+  throw const FormatException('show must be a boolean or expression.');
 }

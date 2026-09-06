@@ -30,6 +30,28 @@ import '../model/gloss_scoreboard.dart';
 import '../model/gloss_tablist.dart';
 import 'gloss_menu_json_schema.dart';
 
+const GlossJsonField glossShowField = GlossJsonField(
+  key: 'show',
+  type: GlossJsonType.any,
+  title: 'Show condition',
+  summary: 'Boolean or visibility expression.',
+  defaultLiteral: 'true',
+);
+final GlossJsonField glossDisplayStyleField = GlossJsonField(
+  key: 'style',
+  type: GlossJsonType.object,
+  title: 'Display style',
+  summary: 'Native Gloss display style.',
+  node: glossIconStyleNode,
+);
+const GlossJsonField glossHologramBoxField = GlossJsonField(
+  key: 'box',
+  type: GlossJsonType.object,
+  title: 'Box decoration',
+  summary: 'A uniform box that follows the visible text size.',
+  node: glossHologramBoxNode,
+);
+
 /// `schemaVersion` — the generation check every Gloss document opens with.
 /// A mismatch is rejected before anything else is read.
 GlossJsonField _schemaVersionField(int version) => GlossJsonField(
@@ -94,6 +116,7 @@ final GlossJsonObject glossHologramJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(glossHologramCurrentSchemaVersion),
     _revisionField,
+    glossShowField,
     const GlossJsonField(
       key: 'anchor',
       type: GlossJsonType.object,
@@ -109,29 +132,8 @@ final GlossJsonObject glossHologramJsonSchema = GlossJsonObject(
       docKey: 'hologram.lines',
       node: _textLinesNode,
     ),
-    const GlossJsonField(
-      key: 'seeThrough',
-      type: GlossJsonType.boolean,
-      title: 'See through',
-      summary: 'Renders through blocks instead of being occluded by them.',
-      docKey: 'hologram.seeThrough',
-      defaultLiteral: 'true',
-    ),
-    const GlossJsonField(
-      key: 'scale',
-      type: GlossJsonType.number,
-      title: 'Scale',
-      summary: 'Scale must be between 0.05 and 16.',
-      defaultLiteral: '1',
-    ),
-    GlossJsonField(
-      key: 'billboard',
-      type: GlossJsonType.string,
-      title: 'Billboard',
-      summary: 'Which axes the entity may turn on to face a viewer.',
-      values: _values(glossHologramBillboards),
-      defaultLiteral: '"CENTER"',
-    ),
+    glossDisplayStyleField,
+    glossHologramBoxField,
     const GlossJsonField(
       key: 'yaw',
       type: GlossJsonType.number,
@@ -156,6 +158,7 @@ final GlossJsonObject glossAnimationJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(1),
     _revisionField,
+    glossShowField,
     GlossJsonField(
       key: 'mode',
       type: GlossJsonType.string,
@@ -276,6 +279,7 @@ final GlossJsonObject glossScoreboardJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(glossScoreboardCurrentSchemaVersion),
     _revisionField,
+    glossShowField,
     const GlossJsonField(
       key: 'select',
       type: GlossJsonType.object,
@@ -326,6 +330,7 @@ final GlossJsonObject glossMotdJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(1),
     _revisionField,
+    glossShowField,
     const GlossJsonField(
       key: 'entries',
       type: GlossJsonType.array,
@@ -348,6 +353,7 @@ final GlossJsonObject glossEmojiJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(1),
     _revisionField,
+    glossShowField,
     const GlossJsonField(
       key: 'trigger',
       type: GlossJsonType.string,
@@ -526,6 +532,9 @@ final GlossJsonObject glossBubbleStyleJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(glossBubbleCurrentSchemaVersion),
     _revisionField,
+    glossDisplayStyleField,
+    glossHologramBoxField,
+    glossShowField,
     const GlossJsonField(
       key: 'prefix',
       type: GlossJsonType.string,
@@ -709,6 +718,7 @@ const GlossJsonObject _tablistListNameVariantNode = GlossJsonObject(
 
 const GlossJsonObject _tablistHeaderFooterNode = GlossJsonObject(
   fields: <GlossJsonField>[
+    glossShowField,
     GlossJsonField(
       key: 'enabled',
       type: GlossJsonType.boolean,
@@ -736,6 +746,7 @@ const GlossJsonObject _tablistHeaderFooterNode = GlossJsonObject(
 
 const GlossJsonObject _tablistListNamesNode = GlossJsonObject(
   fields: <GlossJsonField>[
+    glossShowField,
     GlossJsonField(
       key: 'enabled',
       type: GlossJsonType.boolean,
@@ -765,6 +776,7 @@ final GlossJsonObject glossTablistJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(glossTablistCurrentSchemaVersion),
     _revisionField,
+    glossShowField,
     const GlossJsonField(
       key: 'headerFooter',
       type: GlossJsonType.object,
@@ -999,98 +1011,24 @@ const GlossJsonObject _realDropLandingNode = GlossJsonObject(
   ],
 );
 
-const GlossJsonObject _realDropLabelsNode = GlossJsonObject(
+final GlossJsonObject _realDropLabelsNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    GlossJsonField(
+    const GlossJsonField(
       key: 'enabled',
       type: GlossJsonType.boolean,
       title: 'Enabled',
-      summary: 'Draws the &7{count}x {type} label over each stack.',
+      summary: 'Shows the stack label.',
       defaultLiteral: 'true',
     ),
-    GlossJsonField(
+    const GlossJsonField(
       key: 'yOffset',
       type: GlossJsonType.number,
       title: 'Y offset',
-      summary: 'Blocks above the stack the label floats. Clamped to 0..4.',
+      summary: 'Blocks above the stack the label floats. Clamped to -4..16.',
       defaultLiteral: '0.55',
     ),
-    GlossJsonField(
-      key: 'scale',
-      type: GlossJsonType.number,
-      title: 'Scale',
-      summary: 'Label text scale. Clamped to 0.1..4.',
-      defaultLiteral: '0.85',
-    ),
-    GlossJsonField(
-      key: 'viewRange',
-      type: GlossJsonType.number,
-      title: 'View range',
-      summary: 'Blocks the label stays visible for. Clamped to 4..128.',
-      defaultLiteral: '32',
-    ),
-    GlossJsonField(
-      key: 'billboard',
-      type: GlossJsonType.string,
-      title: 'Billboard',
-      summary: 'Which axes the label rotates on. Unknown falls to CENTER.',
-      values: <GlossJsonValue>[
-        GlossJsonValue('"CENTER"'),
-        GlossJsonValue('"FIXED"'),
-        GlossJsonValue('"HORIZONTAL"'),
-        GlossJsonValue('"VERTICAL"'),
-      ],
-      defaultLiteral: '"CENTER"',
-    ),
-    GlossJsonField(
-      key: 'seeThrough',
-      type: GlossJsonType.boolean,
-      title: 'See through',
-      summary: 'Draws the label through blocks.',
-      defaultLiteral: 'true',
-    ),
-    GlossJsonField(
-      key: 'shadow',
-      type: GlossJsonType.boolean,
-      title: 'Shadow',
-      summary: 'Vanilla text drop shadow on the label.',
-      defaultLiteral: 'true',
-    ),
-    GlossJsonField(
-      key: 'background',
-      type: GlossJsonType.boolean,
-      title: 'Background',
-      summary: 'Draws the panel behind the label text.',
-      defaultLiteral: 'true',
-    ),
-    GlossJsonField(
-      key: 'backgroundRed',
-      type: GlossJsonType.integer,
-      title: 'Background red',
-      summary: 'Red channel, 0 through 255.',
-      defaultLiteral: '0',
-    ),
-    GlossJsonField(
-      key: 'backgroundGreen',
-      type: GlossJsonType.integer,
-      title: 'Background green',
-      summary: 'Green channel, 0 through 255.',
-      defaultLiteral: '0',
-    ),
-    GlossJsonField(
-      key: 'backgroundBlue',
-      type: GlossJsonType.integer,
-      title: 'Background blue',
-      summary: 'Blue channel, 0 through 255.',
-      defaultLiteral: '0',
-    ),
-    GlossJsonField(
-      key: 'backgroundAlpha',
-      type: GlossJsonType.integer,
-      title: 'Background alpha',
-      summary: 'Panel opacity, 0 through 255.',
-      defaultLiteral: '80',
-    ),
+    glossDisplayStyleField,
+    glossHologramBoxField,
   ],
 );
 
@@ -1491,7 +1429,7 @@ final GlossJsonObject _realDropPresentationNode = GlossJsonObject(
       summary: 'The pose a stack settles into once it stops moving.',
       node: _realDropLandingNode,
     ),
-    const GlossJsonField(
+    GlossJsonField(
       key: 'labels',
       type: GlossJsonType.object,
       title: 'Labels',
@@ -1581,6 +1519,7 @@ final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(glossRealDropsCurrentSchemaVersion),
     _revisionField,
+    glossShowField,
     GlossJsonField(
       key: 'presentation',
       type: GlossJsonType.object,
@@ -1725,40 +1664,41 @@ final GlossJsonObject _damageIndicatorStyleNode = GlossJsonObject(
   ],
 );
 
-final GlossJsonObject
-_damageIndicatorCompletePresentationNode = GlossJsonObject(
-  fields: <GlossJsonField>[
-    const GlossJsonField(
-      key: 'format',
-      type: GlossJsonType.string,
-      title: 'Format',
-      summary:
-          'Minecraft text. Must contain {amount} or Gloss rejects the file.',
-    ),
-    const GlossJsonField(
-      key: 'offset',
-      type: GlossJsonType.array,
-      title: 'Offset',
-      summary: 'Spawn offset from the entity as [x, y, z] blocks.',
-      node: glossVector3Node,
-    ),
-    const GlossJsonField(
-      key: 'motion',
-      type: GlossJsonType.object,
-      title: 'Motion',
-      summary: 'Closed-form trajectory and roll.',
-      node: _damageIndicatorMotionNode,
-    ),
-    const GlossJsonField(
-      key: 'transform',
-      type: GlossJsonType.object,
-      title: 'Transform',
-      summary: 'Scale interpolation and fade timing.',
-      node: _damageIndicatorTransformNode,
-    ),
-    glossParticleLayersField,
-  ],
-);
+final GlossJsonObject _damageIndicatorCompletePresentationNode =
+    GlossJsonObject(
+      fields: <GlossJsonField>[
+        glossDisplayStyleField,
+        glossHologramBoxField,
+        const GlossJsonField(
+          key: 'format',
+          type: GlossJsonType.string,
+          title: 'Format',
+          summary: 'Minecraft text. Use {amount} for the health change.',
+        ),
+        const GlossJsonField(
+          key: 'offset',
+          type: GlossJsonType.array,
+          title: 'Offset',
+          summary: 'Spawn offset from the entity as [x, y, z] blocks.',
+          node: glossVector3Node,
+        ),
+        const GlossJsonField(
+          key: 'motion',
+          type: GlossJsonType.object,
+          title: 'Motion',
+          summary: 'Closed-form trajectory and roll.',
+          node: _damageIndicatorMotionNode,
+        ),
+        const GlossJsonField(
+          key: 'transform',
+          type: GlossJsonType.object,
+          title: 'Transform',
+          summary: 'Scale interpolation and fade timing.',
+          node: _damageIndicatorTransformNode,
+        ),
+        glossParticleLayersField,
+      ],
+    );
 
 final GlossJsonObject _damageIndicatorVariantNode = GlossJsonObject(
   fields: <GlossJsonField>[
@@ -1809,6 +1749,7 @@ final GlossJsonObject glossDamageIndicatorsJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(glossDamageIndicatorsCurrentSchemaVersion),
     _revisionField,
+    glossShowField,
     const GlossJsonField(
       key: 'limits',
       type: GlossJsonType.object,
@@ -1840,50 +1781,61 @@ final GlossJsonObject glossDamageIndicatorsJsonSchema = GlossJsonObject(
   ],
 );
 
+final GlossJsonObject _entityOverlayLineNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Line id',
+      summary: 'Unique line id.',
+    ),
+    GlossJsonField(
+      key: 'type',
+      type: GlossJsonType.string,
+      title: 'Line type',
+      summary: 'Text, repeated Insight detail, or blank spacer.',
+      values: <GlossJsonValue>[
+        for (final String type in glossEntityOverlayLineTypes)
+          GlossJsonValue('"$type"'),
+      ],
+      defaultLiteral: '"text"',
+    ),
+    const GlossJsonField(
+      key: 'text',
+      type: GlossJsonType.string,
+      title: 'Line text',
+      summary:
+          'Gloss text with entity tokens, MiniMessage, expressions and animations.',
+    ),
+    const GlossJsonField(
+      key: 'show',
+      type: GlossJsonType.any,
+      title: 'Line visibility',
+      summary: 'Boolean or visibility expression.',
+      defaultLiteral: 'true',
+    ),
+  ],
+);
+
+
 final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(glossEntityOverlaysCurrentSchemaVersion),
     _revisionField,
-    for (final (String key, String title, String summary, String value) field
-        in <(String, String, String, String)>[
-          (
-            'enabled',
-            'Enabled',
-            'Enables nearby living-entity overlays.',
-            'true',
-          ),
-          (
-            'includePlayers',
-            'Include players',
-            'Includes nearby players.',
-            'true',
-          ),
-          (
-            'showHealthNumbers',
-            'Show health numbers',
-            'False renders only the segmented bar.',
-            'true',
-          ),
-          (
-            'showNames',
-            'Show names',
-            'Shows custom names above health.',
-            'true',
-          ),
-          (
-            'showCombatStats',
-            'Show combat stats',
-            'Shows attack and armor on the final line.',
-            'true',
-          ),
-        ])
-      GlossJsonField(
-        key: field.$1,
-        type: GlossJsonType.boolean,
-        title: field.$2,
-        summary: field.$3,
-        defaultLiteral: field.$4,
-      ),
+    const GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Enabled',
+      summary: 'Enables nearby living-entity overlays.',
+      defaultLiteral: 'true',
+    ),
+    const GlossJsonField(
+      key: 'includePlayers',
+      type: GlossJsonType.boolean,
+      title: 'Include players',
+      summary: 'Includes nearby players.',
+      defaultLiteral: 'true',
+    ),
     for (final (
           String key,
           String title,
@@ -1922,13 +1874,6 @@ final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
             false,
           ),
           (
-            'scale',
-            'Scale',
-            'Text display scale. Gloss clamps to 0.1..4.',
-            '0.75',
-            false,
-          ),
-          (
             'healthSegments',
             'Health segments',
             'Segment count. Gloss clamps to 1..40.',
@@ -1950,46 +1895,6 @@ final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
         summary: field.$3,
         defaultLiteral: field.$4,
       ),
-    for (final (String key, String title, String summary, String value) field
-        in <(String, String, String, String)>[
-          (
-            'nameFormat',
-            'Name format',
-            'Custom name token: {name}.',
-            '"&f{name}"',
-          ),
-          (
-            'healthFormat',
-            'Health format',
-            'Health tokens: {bar}, {health}, {max_health}.',
-            '"{bar} &f{health}&7/{max_health}"',
-          ),
-          (
-            'stackFormat',
-            'Stack format',
-            'React stack token: {count}. Hidden for single mobs.',
-            '" &7x{count}"',
-          ),
-          (
-            'statsFormat',
-            'Combat stats format',
-            'Final line tokens: {attack}, {armor}.',
-            '"&7ATK &f{attack} &8| &7ARM &f{armor}"',
-          ),
-          (
-            'damageFormat',
-            'Damage format',
-            'Recent health loss token: {damage}.',
-            '"&c-{damage}"',
-          ),
-        ])
-      GlossJsonField(
-        key: field.$1,
-        type: GlossJsonType.string,
-        title: field.$2,
-        summary: field.$3,
-        defaultLiteral: field.$4,
-      ),
     const GlossJsonField(
       key: 'blacklistWorlds',
       type: GlossJsonType.array,
@@ -2004,9 +1909,42 @@ final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
       summary: 'Excluded Bukkit entity types. ARMOR_STAND by default.',
       node: _plainStringsNode,
     ),
+    const GlossJsonField(
+      key: 'show',
+      type: GlossJsonType.any,
+      title: 'Pane visibility',
+      summary: 'Boolean or visibility expression.',
+      defaultLiteral: 'true',
+    ),
+    GlossJsonField(
+      key: 'lines',
+      type: GlossJsonType.array,
+      title: 'Lines',
+      summary: 'Ordered text, Insight and spacer rows.',
+      node: GlossJsonArray(
+        item: _entityOverlayLineNode,
+        itemType: GlossJsonType.object,
+        itemTitle: 'Line',
+        itemSummary: 'Line',
+      ),
+    ),
+    GlossJsonField(
+      key: 'style',
+      type: GlossJsonType.object,
+      title: 'Display style',
+      summary: 'Native Gloss display style.',
+      node: glossIconStyleNode,
+    ),
+    const GlossJsonField(
+      key: 'box',
+      type: GlossJsonType.object,
+      title: 'Box decoration',
+      summary: 'A uniform box that follows the visible text size.',
+      node: glossHologramBoxNode,
+    ),
+    glossParticleLayersField,
   ],
 );
-
 // --- registry ---------------------------------------------------------------
 
 /// Every kind this model covers, keyed by the workspace kind enum's `name`.

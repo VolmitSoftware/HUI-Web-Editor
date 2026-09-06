@@ -142,6 +142,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   bool _postFramePending = false;
   bool _disposed = false;
   bool _needsInitialFit = true;
+  int _lastFitRequest = 0;
   bool _fontRequested = false;
   bool _statusDirty = true;
 
@@ -166,6 +167,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   @override
   void initState() {
     super.initState();
+    _lastFitRequest = component.store.canvasFitRequest;
     _assets = CanvasAssets(onReady: _markDirty);
     _painter = PreviewCardPainter(metrics: _metrics, assets: _assets);
     component.store.addListener(_onStoreChanged);
@@ -297,6 +299,14 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   // --- frame loop -----------------------------------------------------------
 
   void _onStoreChanged() {
+    final int fitRequest = component.store.canvasFitRequest;
+    if (_lastFitRequest != fitRequest) {
+      _lastFitRequest = fitRequest;
+      if (component.store.isPreviewDoc) {
+        _needsInitialFit = true;
+        _syncCanvasSize();
+      }
+    }
     _statusDirty = true;
     _markDirty();
   }

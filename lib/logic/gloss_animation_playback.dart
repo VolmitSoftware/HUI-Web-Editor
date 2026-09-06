@@ -24,6 +24,7 @@
 /// inject one, and the same millisecond always names the same frame.
 library;
 
+import 'gloss_show.dart';
 import '../model/gloss_animation.dart';
 
 /// The frame [doc] shows at [nowMs], resolved the way the plugin's registered
@@ -34,6 +35,7 @@ import '../model/gloss_animation.dart';
 /// rejected the file, and validation says so; the surface still has to draw
 /// something while the author fixes it.
 String glossAnimationFrameAt(GlossAnimationDoc doc, String id, int nowMs) {
+  if (!glossShowMatches(doc.extras['show'], nowMs: nowMs)) return '';
   final List<String> frames = doc.frames;
   if (frames.isEmpty) return '';
   if (frames.length == 1) return frames[0];

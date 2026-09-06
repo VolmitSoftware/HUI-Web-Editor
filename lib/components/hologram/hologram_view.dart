@@ -23,6 +23,8 @@
 /// costs nothing.
 library;
 
+import '../gloss/gloss_display_text.dart';
+import '../../logic/gloss_show.dart';
 import 'dart:async';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
@@ -244,7 +246,9 @@ class _HologramViewState extends State<HologramView> {
     }
     final GlossAnimationResolver animations = _store.workspaceAnimations;
     final bool animated =
-        hologramIsAnimated(doc, animations) || doc.particleLayers.isNotEmpty;
+        hologramIsAnimated(doc, animations) ||
+        doc.particleLayers.isNotEmpty ||
+        doc.extras['show'] is String;
     _syncTicker(animated);
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
 
@@ -297,9 +301,12 @@ class _HologramViewState extends State<HologramView> {
       },
       <Widget>[
         for (final HologramGridSegment segment in grid) _gridLine(segment),
-        if (placement != null)
+        if (placement != null &&
+            glossShowMatches(doc.extras['show'], nowMs: nowMs))
           _billboard(placement, plane, lines, doc, nowMs ~/ 50),
-        if (placement != null) _anchorMarker(placement),
+        if (placement != null &&
+            glossShowMatches(doc.extras['show'], nowMs: nowMs))
+          _anchorMarker(placement),
         dom.div(
           classes: 'hui-hologram-controls',
           attributes: <String, String>{
@@ -345,7 +352,7 @@ class _HologramViewState extends State<HologramView> {
                   'x': position[0].toStringAsFixed(2),
                   'y': position[1].toStringAsFixed(2),
                   'z': position[2].toStringAsFixed(2),
-                  'billboard': hologramBillboardNote(doc.billboard),
+                  'billboard': hologramBillboardNote(doc.style.billboard),
                   'viewNote': plane.isEdgeOn
                       ? huiText(
                           ' · edge-on from here, so it draws as nothing — '
@@ -408,7 +415,7 @@ class _HologramViewState extends State<HologramView> {
     int tick,
   ) {
     final double linePx =
-        glossHologramLineHeightBlocks * placement.pxPerBlock * doc.scale;
+        glossHologramLineHeightBlocks * placement.pxPerBlock * doc.style.scaleY;
     final double fontPx = linePx * 0.8;
     final GlossParticleTextRendered rendered = _particleText(lines);
     return dom.div(
@@ -421,8 +428,8 @@ class _HologramViewState extends State<HologramView> {
           'line-height': '${linePx.toStringAsFixed(2)}px',
           'transform-origin': '50% 100%',
           'transform':
-              'translate(-50%, -100%) matrix(${plane.a.toStringAsFixed(5)}, '
-              '${plane.b.toStringAsFixed(5)}, ${plane.c.toStringAsFixed(5)}, '
+              'translate(-50%, -100%) matrix(${(plane.a * (doc.style.scaleY == 0 ? 1 : doc.style.scaleX / doc.style.scaleY)).toStringAsFixed(5)}, '
+              '${(plane.b * (doc.style.scaleY == 0 ? 1 : doc.style.scaleX / doc.style.scaleY)).toStringAsFixed(5)}, ${plane.c.toStringAsFixed(5)}, '
               '${plane.d.toStringAsFixed(5)}, 0, 0)',
         },
       ),
@@ -432,12 +439,19 @@ class _HologramViewState extends State<HologramView> {
           pixelsPerBlock: placement.pxPerBlock,
           tick: tick,
           renderedText: rendered,
-          textScale: doc.scale,
+          textScale: doc.style.scaleY,
         ),
-        for (final GlossLineRender line in lines)
-          dom.div(classes: 'hui-hologram-line', <Widget>[
-            GlossTextLine(render: line),
+        GlossDisplayText(
+          style: doc.style,
+          box: doc.box,
+          pixelsPerFontPixel: linePx / 10,
+          child: dom.div(<Widget>[
+            for (final GlossLineRender line in lines)
+              dom.div(classes: 'hui-hologram-line', <Widget>[
+                GlossTextLine(render: line),
+              ]),
           ]),
+        ),
       ],
     );
   }

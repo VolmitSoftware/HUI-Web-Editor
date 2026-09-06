@@ -1,3 +1,5 @@
+import 'gloss_show.dart';
+import 'hologram_box_validation.dart';
 import '../config/defaults.dart' show validateMenuId;
 import '../l10n/hui_localizations.dart';
 import '../model/model.dart';
@@ -145,6 +147,15 @@ HuiIssue? glossMetricInfo(Iterable<String> texts, {String path = r'$'}) {
         'Nothing to fix if the publishing plugin is installed. Check the key '
         'spelling if it stays blank in game.',
   );
+}
+
+List<HuiIssue> validateIconDisplayStyle(
+  HuiIconStyle style, {
+  String path = 'style',
+}) {
+  final _Validator validator = _Validator();
+  validator._validateIconStyle(style, path);
+  return validator.issues;
 }
 
 List<HuiIssue> glossTextExpressionIssues(
@@ -430,6 +441,7 @@ class _Validator {
   }
 
   void validateMenu(HuiMenu menu) {
+    issues.addAll(validateGlossShow(menu.extras['show'], path: 'show'));
     issues.addAll(validateParticleLayers(menu.particleLayers));
     if (menu.absentKeys.contains('offset')) {
       _add(
@@ -529,6 +541,13 @@ class _Validator {
     String path,
     Set<String> seen,
   ) {
+    issues.addAll(
+      validateGlossShow(
+        component.extras['show'],
+        path: '$path.show',
+        componentId: component.id,
+      ),
+    );
     if (component.absentKeys.contains('offset')) {
       _add(
         HuiSeverity.info,
@@ -723,6 +742,7 @@ class _Validator {
     }
     switch (icon) {
       case final HuiTextIcon text:
+        if (text.box != null) issues.addAll(validateHologramBox(text.box!, path: '$path.box'));
         _validateText(
           text.text,
           '$path.text',

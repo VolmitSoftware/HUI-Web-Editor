@@ -17,6 +17,7 @@
 /// already displayed server-list row is not redrawn between status pings.
 library;
 
+import '../../logic/gloss_show.dart';
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show EventCallback;
@@ -105,7 +106,13 @@ class _MotdViewState extends State<MotdView> {
     final GlossMotdEntry? entry = doc.entries.isEmpty
         ? null
         : doc.entries[shown];
-    final List<String> lines = entry == null
+    final List<String> lines =
+        entry == null ||
+            !glossShowMatches(
+              doc.extras['show'],
+              nowMs: _sampledAtMs,
+              viewerAware: false,
+            )
         ? const <String>[]
         : entry.lines.take(glossMotdMaxLinesPerEntry).toList();
     final int nowMs = _sampledAtMs;
@@ -145,6 +152,7 @@ class _MotdViewState extends State<MotdView> {
                   animations: animations,
                   emoji: _store.workspaceEmoji,
                   nowMs: nowMs,
+                  viewerAware: false,
                 ),
               ),
             ]),

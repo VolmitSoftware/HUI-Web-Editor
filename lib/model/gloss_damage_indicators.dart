@@ -3,11 +3,13 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_hologram_box.dart';
+import 'hui_icons.dart';
 import 'json_codec.dart';
 import 'particle_layer.dart';
 import 'vec3.dart';
 
-const int glossDamageIndicatorsCurrentSchemaVersion = 3;
+const int glossDamageIndicatorsCurrentSchemaVersion = 4;
 const String glossDamageIndicatorsDefaultId = 'default';
 const String glossDamageAmountToken = '{amount}';
 
@@ -61,6 +63,8 @@ const Set<String> _indicatorPresentationKnown = <String>{
   'motion',
   'transform',
   'particleLayers',
+  'style',
+  'box',
 };
 const Set<String> _motionKnown = <String>{
   'horizontalSpeed',
@@ -234,15 +238,23 @@ final class GlossDamageIndicatorPresentation {
     required this.offset,
     required this.motion,
     required this.transform,
+    HuiIconStyle? style,
+    GlossHologramBox? box,
     List<GlossParticleLayer>? particleLayers,
     Map<String, dynamic>? extras,
-  }) : particleLayers = particleLayers ?? <GlossParticleLayer>[],
+  }) : style = style ?? defaultHologramDisplayStyle(),
+       box = box ?? GlossHologramBox(),
+       particleLayers = particleLayers ?? <GlossParticleLayer>[],
        extras = extras ?? <String, dynamic>{};
 
   String format;
   Vec3 offset;
   GlossDamageIndicatorMotion motion;
   GlossDamageIndicatorTransform transform;
+  bool stylePresent = true;
+  bool boxPresent = true;
+  HuiIconStyle style;
+  GlossHologramBox box;
   List<GlossParticleLayer> particleLayers;
   bool particleLayersPresent = false;
   Map<String, dynamic> extras;
@@ -312,9 +324,15 @@ final class GlossDamageIndicatorPresentation {
             path: '$path.transform',
             requireComplete: requireComplete,
           ),
+          style:
+              HuiIconStyle.fromJsonOrNull(map['style']) ??
+              defaultHologramDisplayStyle(),
+          box: GlossHologramBox.fromJson(map['box']),
           particleLayers: glossReadParticleLayers(map['particleLayers']),
           extras: huiCollectExtras(map, _indicatorPresentationKnown),
         );
+    presentation.stylePresent = map.containsKey('style');
+    presentation.boxPresent = map.containsKey('box');
     presentation.particleLayersPresent = map.containsKey('particleLayers');
     return presentation;
   }
@@ -324,6 +342,13 @@ final class GlossDamageIndicatorPresentation {
     'offset': offset.toJson(),
     'motion': motion.toJson(),
     'transform': transform.toJson(),
+    if (stylePresent ||
+        jsonEncode(style.toJson()) !=
+            jsonEncode(defaultHologramDisplayStyle().toJson()))
+      'style': style.toJson(),
+    if (boxPresent ||
+        jsonEncode(box.toJson()) != jsonEncode(GlossHologramBox().toJson()))
+      'box': box.toJson(),
     if (particleLayersPresent || particleLayers.isNotEmpty)
       'particleLayers': glossWriteParticleLayers(particleLayers),
   }, extras);
@@ -335,9 +360,13 @@ final class GlossDamageIndicatorPresentation {
           offset: offset.copy(),
           motion: motion.copy(),
           transform: transform.copy(),
+          style: style.copy(),
+          box: box.copy(),
           particleLayers: glossCopyParticleLayers(particleLayers),
           extras: huiDeepCopyMap(extras),
         );
+    copied.stylePresent = stylePresent;
+    copied.boxPresent = boxPresent;
     copied.particleLayersPresent = particleLayersPresent;
     return copied;
   }

@@ -192,6 +192,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
   bool _postFramePending = false;
   bool _disposed = false;
   bool _needsInitialFit = true;
+  int _lastFitRequest = 0;
   bool _fontRequested = false;
 
   Timer? _obfuscationTimer;
@@ -245,6 +246,7 @@ class _CanvasViewportState extends State<CanvasViewport> {
   @override
   void initState() {
     super.initState();
+    _lastFitRequest = component.store.canvasFitRequest;
     component.store.addListener(_onStoreChanged);
     component.images.addListener(_onImagesChanged);
     _schedulePostFrame();
@@ -373,6 +375,14 @@ class _CanvasViewportState extends State<CanvasViewport> {
   // --- frame loop -----------------------------------------------------------
 
   void _onStoreChanged() {
+    final int fitRequest = component.store.canvasFitRequest;
+    if (_lastFitRequest != fitRequest) {
+      _lastFitRequest = fitRequest;
+      if (component.store.isMenuDoc) {
+        _needsInitialFit = true;
+        _syncCanvasSize();
+      }
+    }
     _statusDirty = true;
     _markDirty();
   }
@@ -877,8 +887,13 @@ class _CanvasViewportState extends State<CanvasViewport> {
   /// no 50 ms wake-up, no obfuscated span means no 100 ms wake-up.
   void _measureSceneTimers(CanvasScene scene) {
     bool obfuscated = false;
-    bool animated = false;
-    int minSpeed = 1 << 30;
+    final HuiMenu menu = component.store.menu;
+    bool animated =
+        menu.extras['show'] is String ||
+        menu.components.any(
+          (HuiComponent item) => item.extras['show'] is String,
+        );
+    int minSpeed = animated ? 1 : 1 << 30;
     for (final CanvasItem item in scene.items) {
       final McTextResult? parsed = item.text;
       if (!obfuscated && parsed != null) {

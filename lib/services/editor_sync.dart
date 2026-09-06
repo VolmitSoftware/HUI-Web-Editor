@@ -10,6 +10,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import '../config/defaults.dart';
 import '../l10n/hui_localizations.dart';
 import '../logic/validation.dart';
+import '../logic/gloss_show.dart';
 import '../model/model.dart';
 import '../doctype/doctype.dart';
 import '../state/workspace.dart';
@@ -2202,16 +2203,30 @@ String _canonicalNumber(num value) {
 }
 
 void _validatePanelDefinition(Map<String, dynamic> board, Set<String> menuIds) {
-  _requireExactKeys(board, const <String>{
-    'schemaVersion',
-    'id',
-    'uuid',
-    'revision',
-    'rootMenuId',
-    'transform',
-    'follow',
-    'visibility',
-  });
+  _requireExactKeys(
+    <String, dynamic>{'show': true, ...board},
+    const <String>{
+      'schemaVersion',
+      'id',
+      'uuid',
+      'revision',
+      'rootMenuId',
+      'transform',
+      'follow',
+      'visibility',
+      'show',
+    },
+  );
+  final Object? show = board['show'];
+  if (show != null &&
+      show is! bool &&
+      (show is! String || show.trim().isEmpty)) {
+    throw const FormatException('show must be a boolean or expression.');
+  }
+  final List<HuiIssue> showIssues = validateGlossShow(show);
+  if (showIssues.isNotEmpty) {
+    throw FormatException(showIssues.first.message);
+  }
   final Object? schemaVersion = board['schemaVersion'];
   final Object? id = board['id'];
   final Object? uuid = board['uuid'];

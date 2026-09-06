@@ -240,8 +240,8 @@ class PreviewBox {
 /// the webfont has loaded. A label that resolved to nothing still gets one
 /// glyph of width, so an author can always select it and fix the expression.
 PreviewBox previewItemBox(CardItem item, {double? labelWidth}) {
-  final double halfWidth;
-  final double halfHeight;
+  double halfWidth;
+  double halfHeight;
   switch (item) {
     case CardPanel():
       halfWidth = item.width / 2;
@@ -255,8 +255,18 @@ PreviewBox previewItemBox(CardItem item, {double? labelWidth}) {
     case CardLabel():
       final double measured = labelWidth ?? previewLabelWidth(item);
       halfWidth = math.max(measured, previewGlyphAdvancePx.toDouble()) / 2;
-      halfHeight = previewLabelLineHeightPx / 2;
+      halfHeight =
+          previewLabelLines(item).length * previewLabelLineHeightPx / 2;
   }
+  if (item is CardLabel && item.box?.enabled == true) {
+    final double padding =
+        (item.box!.padding.clamp(0, 64) + item.box!.borderWidth.clamp(0, 16))
+            .toDouble();
+    halfWidth += padding;
+    halfHeight += padding;
+  }
+  halfWidth *= item.style?.scaleX ?? 1;
+  halfHeight *= item.style?.scaleY ?? 1;
   return PreviewBox(
     left: item.x - halfWidth,
     bottom: item.y - halfHeight,
@@ -269,12 +279,62 @@ PreviewBox previewItemBox(CardItem item, {double? labelWidth}) {
 /// GLYPH of a bold run by one pixel rather than the run as a whole, which is
 /// the same rule the component canvas measures by.
 double previewLabelWidth(CardLabel label) {
-  double total = 0;
-  for (final McSpan run in label.text) {
-    total +=
-        run.text.runes.length * (previewGlyphAdvancePx + (run.bold ? 1 : 0));
+  double maximum = 0;
+  for (final List<McSpan> line in previewLabelLines(label)) {
+    double width = 0;
+    for (final McSpan run in line) {
+      width +=
+          run.text.runes.length * (previewGlyphAdvancePx + (run.bold ? 1 : 0));
+    }
+    maximum = math.max(maximum, width);
   }
-  return total;
+  return maximum;
+}
+
+List<List<McSpan>> previewLabelLines(CardLabel label) {
+  final double limit = (label.style?.lineWidth ?? 16384)
+      .clamp(1, 16384)
+      .toDouble();
+  final List<List<McSpan>> lines = <List<McSpan>>[];
+  List<McSpan> line = <McSpan>[];
+  double width = 0;
+  int lastSpace = -1;
+  for (final McSpan span in label.text) {
+    for (final int rune in span.text.runes) {
+      final String glyph = String.fromCharCode(rune);
+      if (glyph == '\n') {
+        lines.add(line);
+        line = <McSpan>[];
+        width = 0;
+        lastSpace = -1;
+        continue;
+      }
+      final double advance = (previewGlyphAdvancePx + (span.bold ? 1 : 0))
+          .toDouble();
+      if (line.isNotEmpty && width + advance > limit) {
+        if (lastSpace >= 0) {
+          lines.add(line.sublist(0, lastSpace));
+          line = line.sublist(lastSpace + 1);
+          width = line.fold<double>(
+            0,
+            (double sum, McSpan run) =>
+                sum + previewGlyphAdvancePx + (run.bold ? 1 : 0),
+          );
+        } else {
+          lines.add(line);
+          line = <McSpan>[];
+          width = 0;
+        }
+        lastSpace = -1;
+        if (glyph == ' ' && line.isEmpty) continue;
+      }
+      if (glyph == ' ') lastSpace = line.length;
+      line.add(span.withText(glyph));
+      width += advance;
+    }
+  }
+  lines.add(line);
+  return lines;
 }
 
 /// Bounding box of everything drawn, or null for an empty scene.

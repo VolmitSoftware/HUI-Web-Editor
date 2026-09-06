@@ -12,13 +12,19 @@ import 'gloss_text.dart';
 import 'gloss_particle_text.dart';
 import 'particle_layer_validation.dart';
 import 'validation.dart';
+import 'hologram_box_validation.dart';
+import 'gloss_show.dart';
 
 List<HuiIssue> validateHologramDoc(
   GlossHologramDoc doc, {
   GlossAnimationResolver animations = const GlossNoAnimations(),
 }) {
-  final List<HuiIssue> issues = <HuiIssue>[];
+  final List<HuiIssue> issues = <HuiIssue>[
+    ...validateGlossShow(doc.extras['show']),
+  ];
 
+  issues.addAll(validateIconDisplayStyle(doc.style, path: r'$.style'));
+  issues.addAll(validateHologramBox(doc.box));
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) {
     issues.add(revisionIssue);
@@ -26,19 +32,6 @@ List<HuiIssue> validateHologramDoc(
   issues.addAll(
     validateParticleLayers(doc.particleLayers, path: r'$.particleLayers'),
   );
-
-  if (!doc.scale.isFinite ||
-      doc.scale < glossHologramMinScale ||
-      doc.scale > glossHologramMaxScale) {
-    issues.add(
-      const HuiIssue(
-        severity: HuiSeverity.error,
-        path: r'$.scale',
-        message: 'Scale must be between 0.05 and 16.',
-        fix: 'Scale must be between 0.05 and 16.',
-      ),
-    );
-  }
 
   if (!doc.anchorPresent) {
     issues.add(
@@ -78,22 +71,6 @@ List<HuiIssue> validateHologramDoc(
     }
   }
 
-  if (!glossHologramBillboards.contains(doc.billboard)) {
-    issues.add(
-      HuiIssue(
-        severity: HuiSeverity.error,
-        path: r'$.billboard',
-        message:
-            "\"{billboard}\" is not a billboard mode; Gloss rejects the whole file unless it is one of {join}.",
-        messageArguments: <String, Object?>{
-          'billboard': doc.billboard,
-          'join': glossHologramBillboards.join(', '),
-        },
-        fix: 'Pick CENTER, VERTICAL, HORIZONTAL or FIXED.',
-      ),
-    );
-  }
-
   issues.addAll(
     <HuiIssue?>[
       _angleIssue(r'$.yaw', 'yaw', doc.yaw, glossHologramMaxYawDegrees),
@@ -101,11 +78,11 @@ List<HuiIssue> validateHologramDoc(
     ].whereType<HuiIssue>(),
   );
 
-  if (doc.billboard == 'CENTER' && (doc.yaw != 0 || doc.pitch != 0)) {
+  if (doc.style.billboard == 'center' && (doc.yaw != 0 || doc.pitch != 0)) {
     issues.add(
       const HuiIssue(
         severity: HuiSeverity.warning,
-        path: r'$.billboard',
+        path: r'$.style.billboard',
         message:
             'CENTER turns on both axes, so this yaw and pitch never reach '
             'the screen: every viewer sees the hologram square-on anyway.',

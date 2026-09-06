@@ -1,6 +1,7 @@
 library;
 
 import 'package:gloss_editor/logic/real_drop_validation.dart';
+import 'package:gloss_editor/model/gloss_hologram_box.dart';
 import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
@@ -9,7 +10,7 @@ void main() {
   test('missing nested values use the runtime defaults', () {
     final GlossRealDropSettingsDoc doc = decodeGlossRealDropSettingsDoc('''
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "revision": 1,
   "presentation": {
   "limits": {},
@@ -30,7 +31,7 @@ void main() {
     expect(doc.presentation.motion.groundRollMultiplier, 1);
     expect(doc.presentation.landing.faceAttraction, 0.55);
     expect(doc.presentation.landing.settleDelayTicks, 4);
-    expect(doc.presentation.labels.seeThrough, isTrue);
+    expect(doc.presentation.labels.style.seeThrough, isTrue);
     expect(doc.presentation.filters.materialBlacklist, <String>[
       'BEDROCK',
       'BARRIER',
@@ -41,14 +42,14 @@ void main() {
   test('explicit false values and unknown keys round-trip', () {
     final GlossRealDropSettingsDoc doc = decodeGlossRealDropSettingsDoc('''
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "revision": 4,
   "presentation": {
   "limits": {"futureLimit": 7},
   "scale": {},
   "motion": {"tumble": false, "changeOnBounce": false},
   "landing": {"randomYaw": false},
-  "labels": {"enabled": false, "seeThrough": false},
+  "labels": {"enabled": false, "style": {"seeThrough": false}},
   "filters": {"onlyPlayerDrops": true}
   },
   "variants": [],
@@ -60,7 +61,7 @@ void main() {
     expect(doc.presentation.motion.changeOnBounce, isFalse);
     expect(doc.presentation.landing.randomYaw, isFalse);
     expect(doc.presentation.labels.enabled, isFalse);
-    expect(doc.presentation.labels.seeThrough, isFalse);
+    expect(doc.presentation.labels.style.seeThrough, isFalse);
     expect(doc.presentation.filters.onlyPlayerDrops, isTrue);
     final String encoded = encodeGlossRealDropSettingsDoc(doc);
     expect(encoded, contains('"futureLimit": 7'));
@@ -70,7 +71,7 @@ void main() {
   test('out-of-range settings remain editable and report runtime clamps', () {
     final GlossRealDropSettingsDoc doc = GlossRealDropSettingsDoc();
     doc.presentation.motion.speedMultiplier = 9;
-    doc.presentation.labels.backgroundAlpha = -1;
+    doc.presentation.labels.yOffset = -99;
     final List<HuiIssue> issues = validateRealDropSettingsDoc(doc);
     expect(
       issues.where((HuiIssue issue) => issue.severity == HuiSeverity.warning),
@@ -102,6 +103,40 @@ void main() {
       expect(decoded.presentation.landing.settleDelayTicks, 12);
     },
   );
+
+  test('label style and box round-trip independent axes and colors', () {
+    final GlossRealDropSettingsDoc doc = GlossRealDropSettingsDoc();
+    doc.presentation.labels.style = HuiIconStyle(
+      billboard: 'horizontal',
+      scaleX: 2,
+      scaleY: 0.5,
+      scaleZ: 3,
+      textOpacity: 142,
+      backgroundArgb: '#80224466',
+      blockLight: 8,
+      skyLight: 12,
+      textAlignment: 'right',
+    );
+    doc.presentation.labels.box = GlossHologramBox(
+      enabled: true,
+      padding: 9,
+      borderWidth: 3,
+      backgroundArgb: '#33224466',
+      borderArgb: '#FF334455',
+    );
+    final GlossRealDropSettingsDoc restored = decodeGlossRealDropSettingsDoc(
+      encodeGlossRealDropSettingsDoc(doc),
+    );
+    expect(
+      restored.presentation.labels.style.toJson(),
+      doc.presentation.labels.style.toJson(),
+    );
+    expect(
+      restored.presentation.labels.box.toJson(),
+      doc.presentation.labels.box.toJson(),
+    );
+    expect(validateRealDropSettingsDoc(restored), isEmpty);
+  });
 
   test('unsupported schema is rejected', () {
     expect(

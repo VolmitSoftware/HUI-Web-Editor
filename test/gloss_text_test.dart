@@ -31,6 +31,23 @@ List<McSpan> _spans(GlossLineRender render) => <McSpan>[
 ];
 
 void main() {
+  test('rich tags render around placeholders, animation output and lines', () {
+    final GlossLineRender rendered = renderGlossLine(
+      '<strikethrough>&6Title</strikethrough> <bold>%player_name%</bold>\n<red>Second</red>',
+      richText: true,
+    );
+    expect(rendered.plainText, 'Title %player_name%\nSecond');
+    expect(
+      rendered.pieces.whereType<GlossTextRun>().first.span.strikethrough,
+      isTrue,
+    );
+    expect(
+      rendered.pieces.whereType<GlossPlaceholderChip>().single.style.bold,
+      isTrue,
+    );
+    expect(rendered.pieces.whereType<GlossTextRun>().last.span.color, 0xFF5555);
+  });
+
   test('color-only animation frames get a preview-only sample word', () {
     final GlossLineRender rendered = renderGlossAnimationFramePreview(
       '[FF3300]',

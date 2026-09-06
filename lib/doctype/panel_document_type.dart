@@ -6,6 +6,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart'
     show ArcaneGlyph, ArcaneIcon, IconSize;
 
 import '../logic/validation.dart' show HuiIssue;
+import '../config/defaults.dart';
 import '../state/editor_store.dart';
 import '../state/workspace.dart';
 import '../state/workspace_panel.dart';
@@ -14,7 +15,7 @@ import 'document_type.dart';
 /// The world-panel document: a flow map over the workspace's menus plus the
 /// linked runtime panel definition. Editor-only metadata — its JSON lives in
 /// the workspace record and is written through [EditorStore.updatePanel],
-/// outside the snapshot/undo path.
+/// with undo and redo support.
 final class PanelDocumentType extends DocumentTypeAdapter {
   const PanelDocumentType();
 
@@ -51,7 +52,7 @@ final class PanelDocumentType extends DocumentTypeAdapter {
   bool get transferable => false;
 
   @override
-  bool get undoable => false;
+  bool get undoable => true;
 
   @override
   bool get sourcePreserving => false;
@@ -75,14 +76,42 @@ final class PanelDocumentType extends DocumentTypeAdapter {
       AdoptedDocument(editorId: doc.title);
 
   @override
-  Object decodeSnapshot(String snapshot) => throw StateError(
-    huiText('Panel metadata does not use the runtime snapshot path.'),
-  );
+  String duplicateJson(WorkspaceDoc doc, Workspace workspace) {
+    final WorkspacePanelDecodeResult decoded = decodeWorkspacePanel(doc.json);
+    final Map<String, dynamic>? definition = decoded.data.runtimeBoard;
+    if (decoded.warning != null || definition == null) return doc.json;
+    final Set<String> taken = <String>{
+      for (final WorkspaceDoc other in workspace.docs)
+        if (other.kind == kind &&
+            decodeWorkspacePanel(other.json).data.runtimeBoardId != null)
+          decodeWorkspacePanel(other.json).data.runtimeBoardId!,
+    };
+    final String name = (definition['id'] as String).split('/').last;
+    final String base = name.length > 40 ? name.substring(0, 40) : name;
+    final String id = uniqueComponentId('$base-copy', taken);
+    return encodeWorkspacePanel(
+      decoded.data.copyWith(
+        runtimeBoardId: id,
+        runtimeBoard: <String, dynamic>{
+          ...definition,
+          'id': id,
+          'uuid': newWorkspaceUuid(),
+          'revision': 1,
+        },
+      ),
+    );
+  }
 
   @override
-  String snapshot(DocumentStateView state) => throw StateError(
-    huiText('Panel metadata does not use the runtime snapshot path.'),
-  );
+  Object decodeSnapshot(String snapshot) {
+    final WorkspacePanelDecodeResult decoded = decodeWorkspacePanel(snapshot);
+    if (decoded.warning != null) throw FormatException(decoded.warning!);
+    return decoded.data;
+  }
+
+  @override
+  String snapshot(DocumentStateView state) =>
+      encodeWorkspacePanel(state.panelDoc!);
 
   @override
   String exportJson(DocumentStateView state) => throw StateError(

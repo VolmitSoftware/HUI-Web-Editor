@@ -37,7 +37,7 @@ void main() {
     expect(store.workspace.active!.runtimeId, 'default');
     expect(
       jsonDecode(store.exportJson()),
-      jsonDecode(kGlossDamageIndicatorsDefaultJson),
+      decodeGlossDamageIndicatorsDoc(kGlossDamageIndicatorsDefaultJson).toJson(),
     );
   });
 

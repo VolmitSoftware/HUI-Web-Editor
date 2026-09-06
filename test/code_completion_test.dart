@@ -52,11 +52,11 @@ void main() {
       expect(_labels(_offer('hologram', '{\n  |\n}')), <String>[
         'schemaVersion',
         'revision',
+        'show',
         'anchor',
         'lines',
-        'seeThrough',
-        'scale',
-        'billboard',
+        'style',
+        'box',
         'yaw',
         'pitch',
         'particleLayers',
@@ -88,7 +88,7 @@ void main() {
 
     test('still offers the key the caret is editing', () {
       expect(
-        _labels(_offer('hologram', '{"see|Through": true}')),
+        _labels(_offer('hologram', '{"style": {"see|Through": true}}')),
         contains('seeThrough'),
       );
     });
@@ -160,7 +160,10 @@ void main() {
     });
 
     test('carries the type and the summary of every key it offers', () {
-      final HuiCompletion item = _offer('hologram', '{"seeThrough|"}').first;
+      final HuiCompletion item = _offer(
+        'hologram',
+        '{"style": {"seeThrough|"}}',
+      ).first;
       expect(item.detail, 'boolean');
       expect(item.description, isNotEmpty);
       expect(item.kind, HuiCompletionKind.key);
@@ -182,9 +185,12 @@ void main() {
     });
 
     test('offers both booleans, marking the default', () {
-      final List<HuiCompletion> items = _offer('hologram', '{"seeThrough": |}');
+      final List<HuiCompletion> items = _offer(
+        'hologram',
+        '{"style": {"seeThrough": |}}',
+      );
       expect(_labels(items), <String>['true', 'false']);
-      expect(items.first.isDefault, isTrue);
+      expect(items[1].isDefault, isTrue);
     });
 
     test('offers the default alone when the field has no closed set', () {
@@ -249,10 +255,7 @@ void main() {
 
   group('accepting', () {
     test('writes a key, its colon and the field default', () {
-      expect(
-        _accept('hologram', '{\n  |\n}', 'seeThrough'),
-        '{\n  "seeThrough": true|\n}',
-      );
+      expect(_accept('hologram', '{\n  |\n}', 'yaw'), '{\n  "yaw": 0|\n}');
     });
 
     test('parks the caret inside an empty literal it had to invent', () {
@@ -262,15 +265,15 @@ void main() {
 
     test('writes only the key when a colon already follows', () {
       expect(
-        _accept('hologram', '{\n  "see|": true\n}', 'seeThrough'),
-        '{\n  "seeThrough"|: true\n}',
+        _accept('hologram', '{\n  "ya|": 0\n}', 'yaw'),
+        '{\n  "yaw"|: 0\n}',
       );
     });
 
     test('splices the separating comma onto the previous member', () {
       expect(
-        _accept('hologram', '{\n  "revision": 1\n  |\n}', 'seeThrough'),
-        '{\n  "revision": 1,\n  "seeThrough": true|\n}',
+        _accept('hologram', '{\n  "revision": 1\n  |\n}', 'yaw'),
+        '{\n  "revision": 1,\n  "yaw": 0|\n}',
       );
     });
 
@@ -290,8 +293,8 @@ void main() {
 
     test('writes a bare literal without inventing quotes', () {
       expect(
-        _accept('hologram', '{"seeThrough": |}', 'false'),
-        '{"seeThrough": false|}',
+        _accept('hologram', '{"style": {"seeThrough": |}}', 'false'),
+        '{"style": {"seeThrough": false|}}',
       );
     });
   });

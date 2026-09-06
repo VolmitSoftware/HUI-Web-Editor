@@ -7,6 +7,8 @@
 /// task; this file only has to be a lossless, byte-stable mirror of the JSON.
 library;
 
+import 'hui_icons.dart';
+import 'gloss_hologram_box.dart';
 import 'dart:convert';
 
 import 'json_codec.dart';
@@ -239,6 +241,15 @@ const Set<String> _cardKnown = <String>{
   'title',
   'accent',
   'minHalfWidth',
+  'padding',
+  'borderWidth',
+  'trayPadding',
+  'titleHeight',
+  'titleGap',
+  'backgroundArgb',
+  'trayArgb',
+  'borderArgb',
+  'titleArgb',
 };
 
 /// The chrome drawn around the elements. `null` at the `HuiPreviewDoc` level
@@ -254,6 +265,16 @@ class HuiPreviewCard {
   String? title;
   String? accent;
   int? minHalfWidth;
+  int? padding;
+  int? borderWidth;
+  int? trayPadding;
+  int? titleHeight;
+  int? titleGap;
+  String? backgroundArgb;
+  String? trayArgb;
+  String? borderArgb;
+  String? titleArgb;
+
   Map<String, dynamic> extras = <String, dynamic>{};
   Set<String> absentKeys = <String>{};
 
@@ -263,6 +284,15 @@ class HuiPreviewCard {
     this.title,
     this.accent,
     this.minHalfWidth,
+    this.padding,
+    this.borderWidth,
+    this.trayPadding,
+    this.titleHeight,
+    this.titleGap,
+    this.backgroundArgb,
+    this.trayArgb,
+    this.borderArgb,
+    this.titleArgb,
   });
 
   HuiPreviewCard copy() =>
@@ -272,6 +302,15 @@ class HuiPreviewCard {
           title: title,
           accent: accent,
           minHalfWidth: minHalfWidth,
+          padding: padding,
+          borderWidth: borderWidth,
+          trayPadding: trayPadding,
+          titleHeight: titleHeight,
+          titleGap: titleGap,
+          backgroundArgb: backgroundArgb,
+          trayArgb: trayArgb,
+          borderArgb: borderArgb,
+          titleArgb: titleArgb,
         )
         ..extras = huiDeepCopyMap(extras)
         ..absentKeys = Set<String>.of(absentKeys);
@@ -283,6 +322,15 @@ class HuiPreviewCard {
     if (title != null) out['title'] = title;
     if (accent != null) out['accent'] = accent;
     if (minHalfWidth != null) out['minHalfWidth'] = minHalfWidth;
+    if (padding != null) out['padding'] = padding;
+    if (borderWidth != null) out['borderWidth'] = borderWidth;
+    if (trayPadding != null) out['trayPadding'] = trayPadding;
+    if (titleHeight != null) out['titleHeight'] = titleHeight;
+    if (titleGap != null) out['titleGap'] = titleGap;
+    if (backgroundArgb != null) out['backgroundArgb'] = backgroundArgb;
+    if (trayArgb != null) out['trayArgb'] = trayArgb;
+    if (borderArgb != null) out['borderArgb'] = borderArgb;
+    if (titleArgb != null) out['titleArgb'] = titleArgb;
     return huiMergeExtras(out, extras);
   }
 
@@ -291,6 +339,30 @@ class HuiPreviewCard {
     final Map<String, dynamic> map = huiReadObject(raw, r'$.card');
     return HuiPreviewCard(
         show: huiDeepCopy(map['show']),
+        padding: map['padding'] == null ? null : huiReadInt(map, 'padding'),
+        borderWidth: map['borderWidth'] == null
+            ? null
+            : huiReadInt(map, 'borderWidth'),
+        trayPadding: map['trayPadding'] == null
+            ? null
+            : huiReadInt(map, 'trayPadding'),
+        titleHeight: map['titleHeight'] == null
+            ? null
+            : huiReadInt(map, 'titleHeight'),
+        titleGap: map['titleGap'] == null ? null : huiReadInt(map, 'titleGap'),
+        backgroundArgb: map['backgroundArgb'] == null
+            ? null
+            : huiReadString(map, 'backgroundArgb'),
+        trayArgb: map['trayArgb'] == null
+            ? null
+            : huiReadString(map, 'trayArgb'),
+        borderArgb: map['borderArgb'] == null
+            ? null
+            : huiReadString(map, 'borderArgb'),
+        titleArgb: map['titleArgb'] == null
+            ? null
+            : huiReadString(map, 'titleArgb'),
+
         framed: _rawBoolOrExpr(map['framed']),
         title: map['title'] is String ? map['title'] as String : null,
         accent: map['accent'] is String ? map['accent'] as String : null,
@@ -378,6 +450,8 @@ const Set<String> _elementKnown = <String>{
   'text',
   'visible',
   'repeat',
+  'style',
+  'box',
 };
 
 /// One drawn element (`panel`, `cell`, `slot`, or `label`), in paint order. A
@@ -387,6 +461,8 @@ const Set<String> _elementKnown = <String>{
 /// type is the compiler's concern.
 class HuiPreviewElement {
   String type;
+  HuiIconStyle? style;
+  GlossHologramBox? box;
   HuiRawExpr show;
   HuiRawExpr x;
   HuiRawExpr y;
@@ -413,6 +489,8 @@ class HuiPreviewElement {
   HuiPreviewElement(
     this.type, {
     this.show,
+    this.style,
+    this.box,
     this.x,
     this.y,
     this.z,
@@ -431,6 +509,8 @@ class HuiPreviewElement {
   HuiPreviewElement copy() =>
       HuiPreviewElement(
           type,
+          style: style?.copy(),
+          box: box?.copy(),
           show: huiDeepCopy(show),
           x: huiDeepCopy(x),
           y: huiDeepCopy(y),
@@ -452,6 +532,8 @@ class HuiPreviewElement {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> out = <String, dynamic>{'type': type};
     if (show != null) out['show'] = show;
+    if (style != null) out['style'] = style!.toJson();
+    if (box != null) out['box'] = box!.toJson();
     if (x != null) out['x'] = x;
     if (y != null) out['y'] = y;
     if (z != null) out['z'] = z;
@@ -474,6 +556,8 @@ class HuiPreviewElement {
     return HuiPreviewElement(
         huiReadString(map, 'type'),
         show: huiDeepCopy(map['show']),
+        style: HuiIconStyle.fromJsonOrNull(map['style'], path: '$path.style'),
+        box: map['box'] == null ? null : GlossHologramBox.fromJson(map['box']),
         x: _rawNumberOrExpr(map['x']),
         y: _rawNumberOrExpr(map['y']),
         z: _rawNumberOrExpr(map['z']),
@@ -511,11 +595,15 @@ const Set<String> _docKnown = <String>{
   'card',
   'elements',
   'particleLayers',
+  'textStyle',
+  'itemStyle',
 };
 
 /// Root of one container-preview JSON document.
 class HuiPreviewDoc {
   HuiRawExpr show;
+  HuiIconStyle? textStyle;
+  HuiIconStyle? itemStyle;
   HuiPreviewMatch match;
   List<HuiPreviewVariant> variants;
   HuiPreviewCard? card;
@@ -526,6 +614,8 @@ class HuiPreviewDoc {
 
   HuiPreviewDoc({
     this.show,
+    this.textStyle,
+    this.itemStyle,
     HuiPreviewMatch? match,
     List<HuiPreviewVariant>? variants,
     this.card,
@@ -539,6 +629,8 @@ class HuiPreviewDoc {
   HuiPreviewDoc copy() {
     final HuiPreviewDoc copied = HuiPreviewDoc(
       show: huiDeepCopy(show),
+      textStyle: textStyle?.copy(),
+      itemStyle: itemStyle?.copy(),
       match: match.copy(),
       variants: variants.map((HuiPreviewVariant v) => v.copy()).toList(),
       card: card?.copy(),
@@ -553,6 +645,8 @@ class HuiPreviewDoc {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> out = <String, dynamic>{};
     if (show != null) out['show'] = show;
+    if (textStyle != null) out['textStyle'] = textStyle!.toJson();
+    if (itemStyle != null) out['itemStyle'] = itemStyle!.toJson();
     final Map<String, dynamic> matchJson = match.toJson();
     if (matchJson.isNotEmpty) out['match'] = matchJson;
     if (variants.isNotEmpty) {
@@ -591,6 +685,14 @@ class HuiPreviewDoc {
     }
     final HuiPreviewDoc doc = HuiPreviewDoc(
       show: huiDeepCopy(map['show']),
+      textStyle: HuiIconStyle.fromJsonOrNull(
+        map['textStyle'],
+        path: r'$.textStyle',
+      ),
+      itemStyle: HuiIconStyle.fromJsonOrNull(
+        map['itemStyle'],
+        path: r'$.itemStyle',
+      ),
       match: HuiPreviewMatch.fromJson(map['match']),
       variants: variants,
       card: HuiPreviewCard.fromJson(map['card']),

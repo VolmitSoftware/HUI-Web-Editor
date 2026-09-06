@@ -171,6 +171,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// Bumped on every change to [_previewDoc], whether it was swapped wholesale
   /// or edited in place.
   int _previewRevision = 0;
+  int _canvasFitRequest = 0;
 
   /// The one [PreviewSim] the preview-card viewport and the simulation panel
   /// (task E8) share — see [PreviewSimController]'s own doc comment for why
@@ -292,6 +293,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
 
   bool get canTransferDocument => hasActiveDocument && _docType.transferable;
 
+  @override
+  WorkspacePanelData? get panelDoc => activePanel?.data;
+
   WorkspacePanelDecodeResult? get activePanel {
     if (!isPanelDoc) return null;
     final WorkspaceDoc? doc = workspace.active;
@@ -394,6 +398,14 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// place, so identity proves nothing and hashing it every frame would cost
   /// more than it saved.
   int get previewRevision => _previewRevision;
+
+  int get canvasFitRequest => _canvasFitRequest;
+
+  void requestCanvasFit() {
+    if (!isMenuDoc && !isPreviewDoc) return;
+    _canvasFitRequest++;
+    _notify();
+  }
 
   /// The one place [_previewDoc] is assigned, so no swap can be made without
   /// the revision moving with it.
@@ -1379,6 +1391,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
           trigger: model.trigger,
           glyph: model.resolvedGlyph,
           enabled: model.enabled,
+          show: model.extras['show'],
           fromWorkspace: true,
         );
       }
@@ -2587,7 +2600,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     }
     final WorkspaceDoc? existing = _fixedGlossDocument(type);
     if (existing != null) {
-      openDocument(existing.id);
+      if (openDocument(existing.id) && from != null) {
+        replaceGlossDoc('Apply template', from);
+      }
       return;
     }
     flushAutosave();
@@ -2639,12 +2654,17 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _adoptActiveDocument();
   }
 
-  bool updatePanel(WorkspacePanelData panel) {
-    if (!isPanelDoc) return false;
-    final bool saved = workspace.updateActive(
-      json: encodeWorkspacePanel(panel),
-    );
-    if (saved) _lastSavedAt = DateTime.now();
+  bool updatePanel(WorkspacePanelData panel, {bool coalesce = true}) {
+    if (!isPanelDoc || !workspace.canWrite) return false;
+    final String before = _snapshot();
+    final String next = encodeWorkspacePanel(panel);
+    if (before == next) return true;
+    final bool saved = workspace.updateActive(json: next);
+    if (saved) {
+      _pushUndo('Edit world panel', before, coalesce: coalesce);
+      _lastSavedAt = DateTime.now();
+      _documentRevision++;
+    }
     _notify();
     return saved;
   }
@@ -2676,7 +2696,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     final WorkspaceDoc copy = workspace.create(
       title: huiText('{title} copy', <String, Object?>{'title': source.title}),
       runtimeId: runtimeId,
-      json: source.json,
+      json: DocumentTypeRegistry.of(
+        source.kind,
+      ).duplicateJson(source, workspace),
       kind: source.kind,
       folderId: source.folderId,
     );
@@ -2860,6 +2882,12 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   bool _applySnapshot(String snapshot) {
     try {
       _installModel(_docType.decodeSnapshot(snapshot));
+      if (isPanelDoc) {
+        _documentRevision++;
+        _lastSavedAt = DateTime.now();
+        _notify();
+        return true;
+      }
     } on HuiFormatException catch (e) {
       _failResolved(
         () => huiText(
@@ -2885,6 +2913,8 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       _menu = model;
     } else if (model is HuiPreviewDoc) {
       _setPreviewDoc(model);
+    } else if (model is WorkspacePanelData) {
+      workspace.updateActive(json: encodeWorkspacePanel(model));
     } else if (model is GlossDoc) {
       _setGlossDoc(model);
       _animationCache = null;

@@ -103,7 +103,7 @@ void main() {
       expect(store.view, EditorView.visual);
       expect(
         jsonDecode(store.exportJson()),
-        jsonDecode(kGlossBubbleDefaultJson),
+        decodeGlossBubbleStyleDoc(kGlossBubbleDefaultJson).toJson(),
       );
     });
 

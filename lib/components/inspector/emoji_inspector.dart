@@ -12,6 +12,8 @@ import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'gloss_visibility_editor.dart';
+import '../../logic/gloss_show.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class EmojiInspector extends StatefulWidget {
@@ -38,6 +40,17 @@ class _EmojiInspectorState extends State<EmojiInspector> {
     if (doc == null) return const dom.div(<Widget>[]);
     return dom.div(classes: 'hui-inspector-body is-emoji', <Widget>[
       _header(doc),
+      GlossVisibilityEditor(
+        raw: doc.extras['show'],
+        sectionKey: 'emoji.visibility',
+        issues: _store.issues
+            .where((HuiIssue issue) => issue.path == r'$.show')
+            .toList(),
+        onChanged: (Object? value) => _store.mutateEmoji(
+          'visibility',
+          (GlossEmojiDoc edited) => setGlossShow(edited.extras, value),
+        ),
+      ),
       _value(doc),
       _behavior(doc),
     ]);

@@ -758,8 +758,13 @@ class _PreviewStageState extends State<PreviewStage>
 
   void _measureSceneClocks(CanvasScene scene) {
     bool obfuscated = false;
-    bool animated = false;
-    int minSpeed = 1 << 30;
+    final HuiMenu menu = _store.menu;
+    bool animated =
+        menu.extras['show'] is String ||
+        menu.components.any(
+          (HuiComponent item) => item.extras['show'] is String,
+        );
+    int minSpeed = animated ? 1 : 1 << 30;
     for (final CanvasItem item in scene.items) {
       final McTextResult? parsed = item.text;
       if (!obfuscated && parsed != null) {

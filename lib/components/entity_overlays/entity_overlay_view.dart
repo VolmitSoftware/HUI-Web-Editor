@@ -9,6 +9,8 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../l10n/hui_localizations.dart';
 import '../../logic/entity_overlay_preview.dart';
 import '../../logic/gloss_text.dart';
+import '../../logic/gloss_particle_preview.dart';
+import '../gloss/gloss_particle_overlay.dart';
 import '../../model/gloss_entity_overlays.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
@@ -31,6 +33,8 @@ class EntityOverlayView extends StatefulWidget {
 
 class _EntityOverlayViewState extends State<EntityOverlayView> {
   Timer? _hitTimer;
+  Timer? _animationTimer;
+  final Stopwatch _clock = Stopwatch();
   String _name = 'Sample sentinel';
   double _health = 14;
   double _maxHealth = 20;
@@ -49,6 +53,8 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
   void initState() {
     super.initState();
     component.store.addListener(_changed);
+    _clock.start();
+    _syncClock();
   }
 
   @override
@@ -63,12 +69,36 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
   @override
   void dispose() {
     _hitTimer?.cancel();
+    _animationTimer?.cancel();
+    _clock.stop();
     component.store.removeListener(_changed);
     super.dispose();
   }
 
   void _changed() {
+    _syncClock();
     if (mounted) setState(() {});
+  }
+
+  void _syncClock() {
+    final GlossEntityOverlaysDoc? doc = component.store.entityOverlaysDoc;
+    final bool active =
+        doc != null &&
+        (doc.particleLayers.isNotEmpty ||
+            doc.show.toString().contains('time.') ||
+            doc.lines.any(
+              (GlossEntityOverlayLine line) =>
+                  glossTextRequiresFastRefresh(line.text) ||
+                  line.show.toString().contains('time.'),
+            ));
+    if (!active) {
+      _animationTimer?.cancel();
+      _animationTimer = null;
+    } else {
+      _animationTimer ??= Timer.periodic(const Duration(milliseconds: 50), (_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   void _strike() {
@@ -119,6 +149,9 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
     final EntityOverlayPreview preview = resolveEntityOverlayPreview(
       doc,
       sample,
+      animations: component.store.workspaceAnimations,
+      emoji: component.store.workspaceEmoji,
+      nowMs: _clock.elapsedMilliseconds,
     );
     final Widget scene = _scene(doc, preview);
     return dom.div(classes: 'hui-entity-overlay-stage', <Widget>[
@@ -130,6 +163,15 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
         )
       else
         dom.div(classes: 'hui-entity-overlay-sky', <Widget>[scene]),
+      if (preview.errors.isNotEmpty)
+        dom.div(
+          classes: 'hui-entity-overlay-hidden',
+          attributes: const <String, String>{'role': 'alert'},
+          <Widget>[
+            for (final String error in preview.errors)
+              dom.p(<Widget>[Text(error)]),
+          ],
+        ),
       _controls(),
     ]);
   }
@@ -157,18 +199,50 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
           styles: dom.Styles(
             raw: <String, String>{
               'transform':
-                  'translate(-50%, ${-doc.verticalOffset.clamp(-2, 8) * 36}px) scale(${doc.scale.clamp(0.1, 4)})',
+                  'translate(-50%, ${-doc.verticalOffset.clamp(-2, 8) * 36}px) scale(${doc.style.scaleX.clamp(0.01, 64)}, ${doc.style.scaleY.clamp(0.01, 64)})',
+              'text-align': doc.style.textAlignment,
+              'padding':
+                  '${doc.box.enabled ? doc.box.padding.clamp(0, 64) * 2 : 0}px',
+              'border': doc.box.enabled
+                  ? '${doc.box.borderWidth.clamp(0, 16) * 2}px solid ${_argb(doc.box.borderArgb)}'
+                  : 'none',
+              'background': doc.box.enabled
+                  ? _argb(doc.box.backgroundArgb)
+                  : 'transparent',
+              'background-clip': 'padding-box',
             },
           ),
           <Widget>[
-            for (final String line in preview.lines)
-              GlossTextLine(
-                render: renderGlossLine(
-                  line,
-                  animations: component.store.workspaceAnimations,
-                  emoji: component.store.workspaceEmoji,
-                ),
+            GlossParticleOverlay(
+              layers: doc.particleLayers,
+              pixelsPerBlock: 80,
+              tick: _clock.elapsedMilliseconds ~/ 50,
+              renderedText: preview.particleText,
+              textScale: 1,
+              scopeBounds: <String, List<GlossParticleRect>>{
+                'projection': <GlossParticleRect>[
+                  glossParticleTextBounds(preview.particleText.text, 1),
+                ],
+              },
+            ),
+            dom.div(
+              classes: 'hui-entity-overlay-text',
+              styles: dom.Styles(
+                raw: <String, String>{
+                  'background': _argb(doc.style.backgroundArgb),
+                  'opacity': (doc.style.textOpacity.clamp(0, 255) / 255)
+                      .toString(),
+                  'max-width': '${doc.style.lineWidth.clamp(1, 16384) * 2}px',
+                  'text-shadow': doc.style.shadow
+                      ? '2px 2px rgba(0,0,0,.65)'
+                      : 'none',
+                },
               ),
+              <Widget>[
+                for (final GlossLineRender line in preview.rows)
+                  GlossTextLine(render: line),
+              ],
+            ),
           ],
         )
       else
@@ -280,4 +354,8 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
     attributes: <String, String>{'aria-pressed': value.toString()},
     onPressed: () => setState(edit),
   );
+  static String _argb(String value) {
+    if (!RegExp(r'^#[a-fA-F0-9]{8}$').hasMatch(value)) return 'transparent';
+    return '#${value.substring(3)}${value.substring(1, 3)}';
+  }
 }

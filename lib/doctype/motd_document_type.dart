@@ -65,6 +65,9 @@ final class MotdDocumentType extends GlossDocumentTypeAdapter {
       '"entries" list of {"lines": [...]} objects.';
 
   @override
+  String get fixedRuntimeId => 'motd';
+
+  @override
   String get defaultDocumentName => 'motd';
 
   @override

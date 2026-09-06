@@ -45,6 +45,8 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_hologram_box.dart';
+import 'hui_icons.dart';
 import 'json_codec.dart';
 import 'particle_layer.dart';
 
@@ -67,7 +69,7 @@ const int glossBubbleShimmerDefaultFlyAwayLeadMs = 700;
 /// `BubbleStyleDoc.Shimmer.DEFAULT_COLOR` — the solid shimmer band color.
 const String glossBubbleShimmerDefaultColor = '#ffffff';
 
-const int glossBubbleCurrentSchemaVersion = 4;
+const int glossBubbleCurrentSchemaVersion = 5;
 
 const String glossBubbleDefaultTranslationY =
     '10 * pow(clamp((ageMs - lifetimeMs + 2000) / 2000, 0, 1), 16)';
@@ -133,6 +135,8 @@ const Set<String> _docKnown = <String>{
   'hideOwn',
   'select',
   'particleLayers',
+  'style',
+  'box',
 };
 
 const Set<String> _selectKnown = <String>{'priority', 'when'};
@@ -441,10 +445,14 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     this.followPlayer = false,
     this.hideOwn = false,
     this.select,
+    HuiIconStyle? style,
+    GlossHologramBox? box,
     List<GlossParticleLayer>? particleLayers,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
-  }) : motion = motion ?? GlossBubbleMotion.runtimeDefaults(),
+  }) : style = style ?? defaultHologramDisplayStyle(),
+       box = box ?? GlossHologramBox(),
+       motion = motion ?? GlossBubbleMotion.runtimeDefaults(),
        shimmer = shimmer ?? GlossBubbleShimmer(),
        particleLayers = particleLayers ?? <GlossParticleLayer>[],
        extras = extras ?? <String, dynamic>{},
@@ -470,6 +478,10 @@ final class GlossBubbleStyleDoc extends GlossDoc {
 
   /// Null when the file has no `select` — the style never auto-matches.
   GlossBubbleSelect? select;
+  bool stylePresent = true;
+  bool boxPresent = true;
+  HuiIconStyle style;
+  GlossHologramBox box;
   List<GlossParticleLayer> particleLayers;
   bool particleLayersPresent = false;
 
@@ -546,6 +558,10 @@ final class GlossBubbleStyleDoc extends GlossDoc {
       select: map['select'] == null
           ? null
           : GlossBubbleSelect.fromJson(map['select']),
+      style:
+          HuiIconStyle.fromJsonOrNull(map['style']) ??
+          defaultHologramDisplayStyle(),
+      box: GlossHologramBox.fromJson(map['box']),
       particleLayers: glossReadParticleLayers(map['particleLayers']),
       extras: huiCollectExtras(map, _docKnown),
       absentKeys: <String>{
@@ -558,6 +574,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
         if (map['hideOwn'] == null) 'hideOwn',
       },
     );
+    doc.stylePresent = map.containsKey('style');
+    doc.boxPresent = map.containsKey('box');
     doc.particleLayersPresent = map.containsKey('particleLayers');
     return doc;
   }
@@ -579,6 +597,13 @@ final class GlossBubbleStyleDoc extends GlossDoc {
         'followPlayer': followPlayer,
       if (!absentKeys.contains('hideOwn') || hideOwn) 'hideOwn': hideOwn,
       if (select != null) 'select': select!.toJson(),
+      if (stylePresent ||
+          jsonEncode(style.toJson()) !=
+              jsonEncode(defaultHologramDisplayStyle().toJson()))
+        'style': style.toJson(),
+      if (boxPresent ||
+          jsonEncode(box.toJson()) != jsonEncode(GlossHologramBox().toJson()))
+        'box': box.toJson(),
       if (particleLayersPresent || particleLayers.isNotEmpty)
         'particleLayers': glossWriteParticleLayers(particleLayers),
     };
@@ -598,10 +623,14 @@ final class GlossBubbleStyleDoc extends GlossDoc {
       followPlayer: followPlayer,
       hideOwn: hideOwn,
       select: select?.copy(),
+      style: style.copy(),
+      box: box.copy(),
       particleLayers: glossCopyParticleLayers(particleLayers),
       extras: huiDeepCopyMap(extras),
       absentKeys: Set<String>.of(absentKeys),
     );
+    copied.stylePresent = stylePresent;
+    copied.boxPresent = boxPresent;
     copied.particleLayersPresent = particleLayersPresent;
     return copied;
   }

@@ -18,6 +18,8 @@ import 'field_help.dart';
 import 'icon_editor.dart';
 import 'inspector_session.dart';
 import 'inspector_widgets.dart';
+import 'gloss_visibility_editor.dart';
+import '../../logic/gloss_show.dart';
 import 'placeholder_picker.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
@@ -66,6 +68,15 @@ class ComponentInspector extends StatelessWidget {
   Widget build(BuildContext context) =>
       dom.div(classes: 'hui-inspector-body is-component', <Widget>[
         _ComponentHeader(store: store, session: session, target: target),
+        GlossVisibilityEditor(
+          raw: target.extras['show'],
+          sectionKey: 'component.visibility',
+          onChanged: (Object? value) => store.editComponent(
+            _id,
+            'visibility',
+            (HuiComponent edited) => setGlossShow(edited.extras, value),
+          ),
+        ),
         _placement(),
         ..._typeSections(),
         _extras(),
@@ -677,6 +688,7 @@ class ComponentInspector extends StatelessWidget {
       ExtrasEditor(
         title: huiText('Component'),
         extras: target.extras,
+        knownKeys: const <String>{'show'},
         onChanged: (String label, Map<String, dynamic> next) =>
             store.editComponent(
               _id,

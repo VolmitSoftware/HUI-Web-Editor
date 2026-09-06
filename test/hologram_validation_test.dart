@@ -22,7 +22,7 @@ final class _Animations implements GlossAnimationResolver {
 
 GlossHologramDoc _valid() => decodeGlossHologramDoc('''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "anchor": {"world": "world", "position": [0, 64, 0]},
   "lines": ["&fHello"]
@@ -57,7 +57,7 @@ void main() {
 
     test('a missing anchor object', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(
-        '{"schemaVersion": 2, "revision": 1, "lines": []}',
+        '{"schemaVersion": 3, "revision": 1, "lines": []}',
       );
       expect(_errors(validateHologramDoc(doc)), contains(r'$.anchor'));
     });
@@ -133,16 +133,16 @@ void main() {
     });
 
     test('every mode Gloss accepts is clean', () {
-      for (final String mode in glossHologramBillboards) {
-        final GlossHologramDoc doc = _valid()..billboard = mode;
+      for (final String mode in huiIconBillboards) {
+        final GlossHologramDoc doc = _valid()..style.billboard = mode;
         expect(validateHologramDoc(doc), isEmpty, reason: mode);
       }
     });
 
     test('an unknown mode is an error, because the file will not load', () {
-      final GlossHologramDoc doc = _valid()..billboard = 'SPIN';
+      final GlossHologramDoc doc = _valid()..style.billboard = 'SPIN';
       final List<HuiIssue> issues = validateHologramDoc(doc);
-      expect(_errors(issues), contains(r'$.billboard'));
+      expect(_errors(issues), contains(r'$.style.billboard'));
       expect(issues.first.message, contains('SPIN'));
     });
 
@@ -162,18 +162,18 @@ void main() {
     test('angles CENTER can never use are a warning, not an error', () {
       final List<HuiIssue> issues = validateHologramDoc(
         _valid()
-          ..billboard = 'CENTER'
+          ..style.billboard = 'center'
           ..yaw = 90,
       );
       expect(_errors(issues), isEmpty);
-      expect(_warnings(issues), contains(r'$.billboard'));
+      expect(_warnings(issues), contains(r'$.style.billboard'));
     });
 
     test('the same angles under FIXED are clean', () {
       expect(
         validateHologramDoc(
           _valid()
-            ..billboard = 'FIXED'
+            ..style.billboard = 'fixed'
             ..yaw = 90,
         ),
         isEmpty,

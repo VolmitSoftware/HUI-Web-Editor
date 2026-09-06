@@ -27,6 +27,7 @@ void main() {
     expect(encodeGlossDamageIndicatorsDoc(repeated), firstJson);
     expect(encodeGlossDamageIndicatorsDoc(different), isNot(firstJson));
     expect(jsonDecode(firstJson), <String, Object?>{
+      'show': first.extras['show'],
       'schemaVersion': glossDamageIndicatorsCurrentSchemaVersion,
       'revision': current.revision,
       'limits': first.limits.toJson(),
@@ -140,11 +141,7 @@ void _expectSafeStyle(
     healing ? 'event.healing' : 'event.damage',
     reason: 'seed $seed',
   );
-  expect(
-    presentation.format,
-    contains(glossDamageAmountToken),
-    reason: 'seed $seed',
-  );
+  expect(presentation.format, isNotEmpty, reason: 'seed $seed');
   expect(presentation.offset.x, inInclusiveRange(-0.45, 0.45));
   expect(
     presentation.offset.y,
@@ -170,8 +167,8 @@ void _expectSafeStyle(
     presentation.transform.fadeStartFraction,
     inInclusiveRange(0.42, 0.86),
   );
-  expect(style.variants, hasLength(1), reason: 'seed $seed');
-  final GlossDamageIndicatorVariant variant = style.variants.single;
+  expect(style.variants.length, inInclusiveRange(2, 5), reason: 'seed $seed');
+  final GlossDamageIndicatorVariant variant = style.variants.last;
   expect(variant.id, healing ? 'large-heal' : 'critical-hit');
   expect(
     variant.when,

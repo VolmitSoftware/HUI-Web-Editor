@@ -63,6 +63,9 @@ final class RealDropDocumentType extends GlossDocumentTypeAdapter {
       '"presentation", "variants", and "audience".';
 
   @override
+  String get fixedRuntimeId => 'default';
+
+  @override
   String get defaultDocumentName => 'default';
 
   @override

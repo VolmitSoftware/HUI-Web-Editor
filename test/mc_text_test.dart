@@ -52,6 +52,27 @@ List<int> colorsOf(List<McSpan> spans) =>
     spans.map((McSpan s) => s.rgb ?? -1).toList();
 
 void main() {
+  test('rainbow tags follow native hue steps, integer phase and reverse', () {
+    final McTextResult normal = parseMcText('<rainbow>abcdef</rainbow> plain');
+    expect(normal.warnings, isEmpty);
+    expect(normal.plainLines, <String>['abcdef plain']);
+    expect(normal.lines.single.take(6).map((McSpan span) => span.color), <int>[
+      0xFF0000,
+      0xFFFF00,
+      0x00FF00,
+      0x00FFFF,
+      0x0000FF,
+      0xFF00FF,
+    ]);
+    final McTextResult reversed = parseMcText('<rainbow:!>abcdef</rainbow>');
+    expect(reversed.lines.single.first.color, 0xFF00FF);
+    expect(reversed.lines.single.last.color, 0xFF0000);
+    expect(
+      parseMcText('<rainbow:5>abcdef</rainbow>').lines.single.first.color,
+      0x00FFFF,
+    );
+  });
+
   group('legacy colour codes', () {
     test('every &0-&f maps to the vanilla RGB', () {
       legacyColors.forEach((String code, int rgb) {

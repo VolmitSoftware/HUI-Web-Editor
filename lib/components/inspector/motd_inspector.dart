@@ -20,6 +20,8 @@ import '../gloss/gloss_text_line.dart';
 import 'animation_reference_picker.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'gloss_visibility_editor.dart';
+import '../../logic/gloss_show.dart';
 import 'line_list_section.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
@@ -51,6 +53,17 @@ class _MotdInspectorState extends State<MotdInspector> {
     if (doc == null) return const dom.div(<Widget>[]);
     return dom.div(classes: 'hui-inspector-body is-motd', <Widget>[
       _header(doc),
+      GlossVisibilityEditor(
+        raw: doc.extras['show'],
+        sectionKey: 'motd.visibility',
+        issues: _store.issues
+            .where((HuiIssue issue) => issue.path == r'$.show')
+            .toList(),
+        onChanged: (Object? value) => _store.mutateMotd(
+          'visibility',
+          (GlossMotdDoc edited) => setGlossShow(edited.extras, value),
+        ),
+      ),
       _entries(doc),
     ]);
   }

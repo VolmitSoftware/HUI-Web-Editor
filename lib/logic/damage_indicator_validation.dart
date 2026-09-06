@@ -6,11 +6,15 @@ import 'gloss_particle_text.dart';
 import 'preview_expr.dart';
 import 'particle_layer_validation.dart';
 import 'validation.dart';
+import 'hologram_box_validation.dart';
+import 'gloss_show.dart';
 
 final RegExp _validVariantId = RegExp(r'^[A-Za-z0-9._-]+$');
 
 List<HuiIssue> validateDamageIndicatorsDoc(GlossDamageIndicatorsDoc doc) {
-  final List<HuiIssue> issues = <HuiIssue>[];
+  final List<HuiIssue> issues = <HuiIssue>[
+    ...validateGlossShow(doc.extras['show']),
+  ];
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) issues.add(revisionIssue);
 
@@ -59,13 +63,10 @@ void _presentation(
   String path,
   GlossDamageIndicatorPresentation presentation,
 ) {
-  if (!presentation.format.contains(glossDamageAmountToken)) {
-    _error(
-      issues,
-      '$path.format',
-      'The format must contain {amount}; Gloss rejects this document without it.',
-    );
-  }
+  issues.addAll(
+    validateIconDisplayStyle(presentation.style, path: '$path.style'),
+  );
+  issues.addAll(validateHologramBox(presentation.box, path: '$path.box'));
   final String? particleSpanError = glossParticleTextSyntaxError(
     presentation.format,
   );

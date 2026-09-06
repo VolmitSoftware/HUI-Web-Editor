@@ -74,15 +74,23 @@ String _animationEasingLabel(GlossRealDropAnimationEasing easing) =>
     };
 
 class RealDropAnimationInspector extends StatelessWidget {
-  const RealDropAnimationInspector({required this.store, super.key});
+  const RealDropAnimationInspector({
+    required this.store,
+    this.variantIndex,
+    super.key,
+  });
 
   final EditorStore store;
+  final int? variantIndex;
 
   GlossRealDropSettingsDoc? get _doc => store.realDropSettingsDoc;
 
   @override
   Widget build(BuildContext context) {
-    final GlossRealDropAnimation? animation = _doc?.presentation.animation;
+    final GlossRealDropSettingsDoc? doc = _doc;
+    final GlossRealDropAnimation? animation = doc == null
+        ? null
+        : _presentation(doc).animation;
     return InspectorSection(
       title: huiText('Animation authoring'),
       sectionKey: 'realDrops.animation',
@@ -680,13 +688,20 @@ class RealDropAnimationInspector extends StatelessWidget {
     ),
   );
 
+  GlossRealDropPresentation _presentation(GlossRealDropSettingsDoc doc) {
+    final int? index = variantIndex;
+    return index != null && index >= 0 && index < doc.variants.length
+        ? doc.variants[index].presentation
+        : doc.presentation;
+  }
+
   void _mutate(
     String label,
     void Function(GlossRealDropAnimation animation) change,
   ) => store.mutateRealDropSettings(
     label,
     (GlossRealDropSettingsDoc doc) =>
-        change(doc.presentation.animation ??= GlossRealDropAnimation()),
+        change(_presentation(doc).animation ??= GlossRealDropAnimation()),
   );
 
   void _editProfile(

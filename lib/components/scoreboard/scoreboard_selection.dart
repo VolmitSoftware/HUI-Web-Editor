@@ -1,6 +1,7 @@
 /// Conditional document and presentation selection used by Gloss previews.
 library;
 
+import '../../logic/gloss_show.dart';
 import '../../logic/preview_expr.dart';
 import '../../logic/preview_expr_functions.dart';
 import '../../model/gloss_scoreboard.dart';
@@ -257,6 +258,7 @@ final class GlossBoardCandidate {
     required this.id,
     required this.priority,
     required this.when,
+    this.show,
   });
 
   factory GlossBoardCandidate.fromDoc(String id, GlossScoreboardDoc doc) =>
@@ -264,11 +266,13 @@ final class GlossBoardCandidate {
         id: id,
         priority: doc.select.priority,
         when: doc.select.when,
+        show: doc.extras['show'],
       );
 
   final String id;
   final int priority;
   final String when;
+  final Object? show;
 }
 
 final class GlossBoardSelection {
@@ -287,6 +291,7 @@ GlossBoardSelection glossSelectBoard({
   final List<GlossBoardCandidate> matches = <GlossBoardCandidate>[];
   String? firstError;
   for (final GlossBoardCandidate board in boards) {
+    if (!glossShowMatches(board.show, scope: context)) continue;
     final ({bool matches, String? error}) result = glossConditionMatches(
       board.when,
       context,

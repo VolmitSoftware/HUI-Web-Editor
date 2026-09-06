@@ -12,6 +12,8 @@ import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'gloss_visibility_editor.dart';
+import '../../logic/gloss_show.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class TablistInspector extends StatefulWidget {
@@ -36,6 +38,17 @@ class _TablistInspectorState extends State<TablistInspector> {
     if (doc == null) return const dom.div(<Widget>[]);
     return dom.div(classes: 'hui-inspector-body is-tablist', <Widget>[
       _header(doc),
+      GlossVisibilityEditor(
+        raw: doc.extras['show'],
+        sectionKey: 'tablist.visibility',
+        issues: _store.issues
+            .where((HuiIssue issue) => issue.path == r'$.show')
+            .toList(),
+        onChanged: (Object? value) => _store.mutateTablist(
+          'visibility',
+          (GlossTablistDoc edited) => setGlossShow(edited.extras, value),
+        ),
+      ),
       _headerFooter(doc),
       _listNames(doc),
     ]);
@@ -66,6 +79,16 @@ class _TablistInspectorState extends State<TablistInspector> {
   Widget _headerFooter(GlossTablistDoc doc) => InspectorSection(
     title: huiText('Header and footer'),
     children: <Widget>[
+      GlossVisibilityEditor(
+        raw: doc.headerFooter.extras['show'],
+        sectionKey: 'tablist.headerFooter.visibility',
+        issues: _issuesFor(r'$.headerFooter.show'),
+        onChanged: (Object? value) => _store.mutateTablist(
+          'visibility',
+          (GlossTablistDoc edited) =>
+              setGlossShow(edited.headerFooter.extras, value),
+        ),
+      ),
       HuiSwitchRow(
         label: huiText('Enabled'),
         trailing: const HuiFieldHelp('tablist.headerFooter.enabled'),
@@ -192,6 +215,16 @@ class _TablistInspectorState extends State<TablistInspector> {
   Widget _listNames(GlossTablistDoc doc) => InspectorSection(
     title: huiText('List names'),
     children: <Widget>[
+      GlossVisibilityEditor(
+        raw: doc.listNames.extras['show'],
+        sectionKey: 'tablist.listNames.visibility',
+        issues: _issuesFor(r'$.listNames.show'),
+        onChanged: (Object? value) => _store.mutateTablist(
+          'visibility',
+          (GlossTablistDoc edited) =>
+              setGlossShow(edited.listNames.extras, value),
+        ),
+      ),
       HuiSwitchRow(
         label: huiText('Enabled'),
         trailing: const HuiFieldHelp('tablist.listNames.enabled'),

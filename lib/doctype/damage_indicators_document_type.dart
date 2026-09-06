@@ -62,6 +62,9 @@ final class DamageIndicatorsDocumentType extends GlossDocumentTypeAdapter {
       '"limits", "damage", "healing", and "audience".';
 
   @override
+  String get fixedRuntimeId => glossDamageIndicatorsDefaultId;
+
+  @override
   String get defaultDocumentName => glossDamageIndicatorsDefaultId;
 
   @override

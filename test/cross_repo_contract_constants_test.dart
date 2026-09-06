@@ -21,7 +21,7 @@ import 'package:test/test.dart';
 import 'support/java_source.dart';
 
 const String _enumPackage = 'src/main/java/art/arcane/gloss/enums';
-const String _iconPackage = 'src/main/java/art/arcane/gloss/config/icon';
+const String _iconPackage = 'src/main/java/art/arcane/gloss/api';
 const String _menuIconPackage = 'src/main/java/art/arcane/gloss/menu/icon';
 
 /// Java float/double literals are re-parsed here as decimal text, so an exact
@@ -32,6 +32,25 @@ const double _epsilon = 1e-9;
 String _refresh(String dartFile, String javaFile) =>
     'refresh $dartFile from $javaFile — Gloss is the truth repo, so the Java '
     'side is never edited to make this pass';
+
+List<String> _displayEnumNames(String name) {
+  final String adapter = readGlossJava(
+    'src/main/java/art/arcane/gloss/config/icon/${name}Adapter.java',
+  );
+  expect(adapter, contains('out.value(value.name().toLowerCase(Locale.ROOT))'));
+  expect(
+    adapter,
+    contains('option.name().toLowerCase(Locale.ROOT).equals(value)'),
+  );
+  final String source = readGlossJava('$_iconPackage/$name.java');
+  return <String>[
+    for (final Match match in RegExp(
+      r'^  ([A-Z][A-Z_]*)\(',
+      multiLine: true,
+    ).allMatches(source))
+      match.group(1)!.toLowerCase(),
+  ];
+}
 
 void main() {
   group('enum spellings match the Gloss enums', () {
@@ -129,7 +148,7 @@ void main() {
 
     test('IconBillboard matches huiIconBillboards in order', () {
       expect(
-        javaSerializedNames(readGlossJava('$_iconPackage/IconBillboard.java')),
+        _displayEnumNames('IconBillboard'),
         huiIconBillboards,
         reason: _refresh('lib/model/hui_icons.dart', 'IconBillboard.java'),
       );
@@ -137,9 +156,7 @@ void main() {
 
     test('IconTextAlignment matches huiIconTextAlignments in order', () {
       expect(
-        javaSerializedNames(
-          readGlossJava('$_iconPackage/IconTextAlignment.java'),
-        ),
+        _displayEnumNames('IconTextAlignment'),
         huiIconTextAlignments,
         reason: _refresh('lib/model/hui_icons.dart', 'IconTextAlignment.java'),
       );

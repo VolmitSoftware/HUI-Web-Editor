@@ -86,6 +86,7 @@ import '../../logic/real_drop_stage.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
+import '../gloss/gloss_display_text.dart';
 import '../gloss/gloss_particle_overlay.dart';
 import '../gloss/gloss_text_line.dart';
 import '../scoreboard/scoreboard_selection.dart';
@@ -1065,7 +1066,7 @@ class _RealDropsViewState extends State<RealDropsView> {
   );
 
   /// The `TextDisplay` the plugin parents to the carrier: the formatted name,
-  /// at `labels.yOffset` blocks, at `labels.scale`, with the configured
+  /// at `labels.yOffset` blocks, at `labels.style.scaleX/Y/Z`, with the configured
   /// background colour and alpha, shadow and see-through depth order.
   Widget _label(
     GlossRealDropLabels labels,
@@ -1073,15 +1074,15 @@ class _RealDropsViewState extends State<RealDropsView> {
     int nowMs,
     List<GlossParticleLayer> particleLayers,
   ) {
-    final double alpha = labels.background ? labels.backgroundAlpha / 255 : 0;
     final GlossLineRender render = renderGlossLine(
       frame.label,
+      richText: true,
       animations: _store.workspaceAnimations,
       emoji: _store.workspaceEmoji,
       nowMs: nowMs,
     );
     return dom.div(
-      classes: labels.seeThrough
+      classes: labels.style.seeThrough
           ? 'hui-real-drops-label is-see-through'
           : 'hui-real-drops-label',
       styles: dom.Styles(
@@ -1092,7 +1093,7 @@ class _RealDropsViewState extends State<RealDropsView> {
         },
       ),
       <Widget>[
-        // The plate scales separately so `labels.scale` grows the text around
+        // The plate scales separately so `labels.style` grows the text around
         // the anchor the way a TextDisplay does, instead of dragging it away
         // from the stack.
         dom.div(
@@ -1100,34 +1101,43 @@ class _RealDropsViewState extends State<RealDropsView> {
           styles: dom.Styles(
             raw: <String, String>{
               'transform':
-                  '${_labelBillboard(labels.billboard)}'
-                  'scale(${labels.scale.toStringAsFixed(3)})',
-              'background':
-                  'rgba(${labels.backgroundRed}, ${labels.backgroundGreen}, '
-                  '${labels.backgroundBlue}, ${alpha.toStringAsFixed(3)})',
-              if (labels.shadow) 'text-shadow': '2px 2px 0 rgba(0, 0, 0, .55)',
+                  '${_labelBillboard(labels.style.billboard)}'
+                  'scale3d(${labels.style.scaleX}, ${labels.style.scaleY}, ${labels.style.scaleZ})',
+              'background': 'transparent',
+              'padding': '0',
             },
           ),
           <Widget>[
-            GlossParticleOverlay(
-              layers: <GlossParticleLayer>[
-                for (final GlossParticleLayer layer in particleLayers)
-                  if (<String>{
-                    'label',
-                    'text',
-                    'line',
-                    'span',
-                  }.contains(layer.target.scope))
-                    layer,
-              ],
-              pixelsPerBlock: _pixelsPerBlock,
-              tick: nowMs ~/ 50,
-              renderedText: GlossParticleTextRendered(
-                text: render.renderedText,
-                spans: render.particleSpans,
+            GlossDisplayText(
+              style: labels.style,
+              box: labels.box,
+              child: dom.div(
+                styles: const dom.Styles(
+                  raw: <String, String>{'position': 'relative'},
+                ),
+                <Widget>[
+                  GlossParticleOverlay(
+                    layers: <GlossParticleLayer>[
+                      for (final GlossParticleLayer layer in particleLayers)
+                        if (<String>{
+                          'label',
+                          'text',
+                          'line',
+                          'span',
+                        }.contains(layer.target.scope))
+                          layer,
+                    ],
+                    pixelsPerBlock: _pixelsPerBlock,
+                    tick: nowMs ~/ 50,
+                    renderedText: GlossParticleTextRendered(
+                      text: render.renderedText,
+                      spans: render.particleSpans,
+                    ),
+                  ),
+                  GlossTextLine(render: render),
+                ],
               ),
             ),
-            GlossTextLine(render: render),
           ],
         ),
       ],
@@ -1204,7 +1214,8 @@ class _RealDropsViewState extends State<RealDropsView> {
       }),
       doc.presentation.labels.enabled
           ? huiText('label {billboard}', <String, Object?>{
-              'billboard': doc.presentation.labels.billboard.toLowerCase(),
+              'billboard': doc.presentation.labels.style.billboard
+                  .toLowerCase(),
             })
           : huiText('no label'),
       if (physical)

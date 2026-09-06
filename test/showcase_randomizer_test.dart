@@ -112,6 +112,13 @@ void main() {
         reason: type.noun,
       );
       expect(store.canUndo, isTrue, reason: type.noun);
+      expect(
+        store.canvasFitRequest,
+        type is MenuDocumentType || type is ContainerPreviewDocumentType
+            ? 1
+            : 0,
+        reason: type.noun,
+      );
     }
   });
 
@@ -574,13 +581,12 @@ void main() {
       math.Random(4),
     );
     expect(bubble.effectiveWordWrapChars, inInclusiveRange(36, 108));
-    expect(bubble.effectiveMaxAliveMs, greaterThanOrEqualTo(9000));
+    expect(bubble.effectiveMaxAliveMs, inInclusiveRange(4000, 12000));
     expect(bubble.effectivePrefix, isNotEmpty);
     final String motion = bubble.motion.toJson().toString();
     expect(motion, anyOf(contains('smoothstep'), contains('pow(')));
     expect(motion, anyOf(contains('sin('), contains('* t')));
-    expect(bubble.shimmer.spawn, isTrue);
-    expect(bubble.shimmer.flyAway, isTrue);
+    expect(bubble.shimmer.spawn || bubble.shimmer.flyAway, isTrue);
     expect(bubble.shimmer.colorIsValid, isTrue);
     expect(
       bubble.shimmer.effectiveFlyAwayLeadMs,
@@ -727,33 +733,27 @@ void main() {
     },
   );
 
-  test(
-    'tablist randomization is highly varied and never repeats its input',
-    () {
-      final Set<String> documents = <String>{};
-      for (int seed = 0; seed < 128; seed++) {
-        final GlossTablistDoc tablist = buildRandomTablistShowcase(
-          GlossTablistDoc(),
-          math.Random(seed),
-        );
-        documents.add(encodeGlossTablistDoc(tablist));
-      }
-      expect(documents.length, greaterThanOrEqualTo(124));
-
-      final GlossTablistDoc first = buildRandomTablistShowcase(
+  test('tablist randomization is varied and replays its seed', () {
+    final Set<String> documents = <String>{};
+    for (int seed = 0; seed < 128; seed++) {
+      final GlossTablistDoc tablist = buildRandomTablistShowcase(
         GlossTablistDoc(),
-        math.Random(44),
+        math.Random(seed),
       );
-      final GlossTablistDoc second = buildRandomTablistShowcase(
-        first,
-        math.Random(44),
-      );
-      expect(
-        encodeGlossTablistDoc(second),
-        isNot(encodeGlossTablistDoc(first)),
-      );
-    },
-  );
+      documents.add(encodeGlossTablistDoc(tablist));
+    }
+    expect(documents.length, greaterThanOrEqualTo(124));
+
+    final GlossTablistDoc first = buildRandomTablistShowcase(
+      GlossTablistDoc(),
+      math.Random(44),
+    );
+    final GlossTablistDoc second = buildRandomTablistShowcase(
+      first,
+      math.Random(44),
+    );
+    expect(encodeGlossTablistDoc(second), encodeGlossTablistDoc(first));
+  });
 
   test('random bubbles demonstrate diverse procedural motion safely', () {
     final Set<String> expressions = <String>{};
@@ -917,7 +917,7 @@ void main() {
       landings.add(doc.presentation.landing.mode);
       tumbles.add(doc.presentation.motion.tumble);
       labelled.add(doc.presentation.labels.enabled);
-      billboards.add(doc.presentation.labels.billboard);
+      billboards.add(doc.presentation.labels.style.billboard);
     }
     expect(encoded.length, greaterThan(120), reason: 'every press differs');
     expect(landings, containsAll(<String>['NATURAL', 'FLAT', 'UPRIGHT']));

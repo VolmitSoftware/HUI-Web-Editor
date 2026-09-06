@@ -22,6 +22,33 @@ GlossBubbleStyleDoc _style({
 );
 
 void main() {
+  test('rich prefixes render while player text stays literal', () {
+    final GlossBubblePreviewBubble original = GlossBubblePreviewTimeline(
+      _style(),
+    ).bubblesAt(0).single;
+    final GlossBubblePreviewBubble bubble = GlossBubblePreviewBubble(
+      text:
+          '<red>Player</red> {{ player.name }} |animation.rainbow| &c[FF0000]literal',
+      lineCount: 1,
+      stackY: original.stackY,
+      remainingMs: original.remainingMs,
+      motion: original.motion,
+      shimmerBandIndex: null,
+    );
+    final GlossLineRender rendered = renderGlossBubblePreviewText(
+      _style(prefix: '<bold>Prefix</bold> &7'),
+      bubble,
+      nowMs: 0,
+    );
+    expect(
+      rendered.plainText,
+      'Prefix <red>Player</red> {{ player.name }} |animation.rainbow| &c[FF0000]literal',
+    );
+    expect(rendered.pieces.whereType<GlossTextRun>().first.span.bold, isTrue);
+    expect(rendered.pieces.whereType<GlossTextRun>().last.span.color, 0xAAAAAA);
+    expect(rendered.expressions, isEmpty);
+  });
+
   test('the showcase conversation is long, named, and formatted', () {
     final String conversation = glossBubblePreviewMessages.join('\n');
     expect(glossBubblePreviewMessages, hasLength(greaterThanOrEqualTo(6)));

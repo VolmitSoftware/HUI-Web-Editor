@@ -25,6 +25,10 @@ import '../common/common.dart';
 import 'extras_editor.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'display_style_editor.dart';
+import 'hologram_box_editor.dart';
+import '../../model/hui_icons.dart';
+import '../../model/gloss_hologram_box.dart';
 import 'preview_color_swatch.dart';
 import 'preview_expr_field.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
@@ -98,6 +102,30 @@ class PreviewElementEditor extends StatelessWidget {
         _placement(),
         _repeatSection(),
         ..._typeSection(),
+        DisplayStyleEditor(
+          style: element.style,
+          defaults: element.type == 'slot'
+              ? (store.previewDoc?.itemStyle ??
+                    HuiIconStyle(blockLight: 15, skyLight: 15))
+              : store.previewDoc?.textStyle,
+          issues: _elementIssues
+              .where((HuiIssue issue) => issue.path.startsWith('$_path.style'))
+              .toList(),
+          onChanged: (String label, HuiIconStyle? style) => _mutate(
+            label,
+            (HuiPreviewElement edited) => edited.style = style,
+          ),
+        ),
+        if (element.type == 'label')
+          HologramBoxEditor(
+            box: element.box ?? GlossHologramBox(),
+            issues: _issuesFor('box'),
+            mutate: (String label, void Function(GlossHologramBox) edit) =>
+                _mutate(label, (HuiPreviewElement edited) {
+                  edited.box ??= GlossHologramBox();
+                  edit(edited.box!);
+                }),
+          ),
         _extras(),
       ]);
 

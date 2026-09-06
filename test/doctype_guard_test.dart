@@ -208,7 +208,7 @@ void main() {
     }
     expect(DocumentTypes.menu.sourcePreserving, isTrue);
     expect(DocumentTypes.panel.transferable, isFalse);
-    expect(DocumentTypes.panel.undoable, isFalse);
+    expect(DocumentTypes.panel.undoable, isTrue);
     expect(DocumentTypes.hologram.hasRuntimeId, isTrue);
     expect(DocumentTypes.hologram.transferable, isTrue);
     expect(DocumentTypes.hologram.undoable, isTrue);

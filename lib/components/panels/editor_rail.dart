@@ -1,5 +1,7 @@
 library;
 
+import 'dart:math' as math;
+
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:arcane_jaspr/core/dom_value.dart';
 import 'package:jaspr/dom.dart' as dom;
@@ -18,6 +20,7 @@ import '../../services/local_data_reset.dart';
 import '../../services/showcase_randomizer.dart';
 import '../../services/workspace_location.dart';
 import '../common/common.dart';
+import '../dialogs/showcase_randomizer_dialog.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 enum _EditorRailTab { library, contents }
@@ -61,6 +64,8 @@ class _EditorRailState extends State<EditorRail> {
   bool _newDocumentMenuOpen = false;
   HuiActionMenuPoint _newDocumentMenuPoint = const HuiActionMenuPoint(8, 8);
   bool _workspaceMenuOpen = false;
+  String? _randomizeDocumentId;
+  int _randomizerSeed = math.Random().nextInt(2147483648);
   HuiActionMenuPoint _workspaceMenuPoint = const HuiActionMenuPoint(8, 8);
 
   EditorStore get _store => component.store;
@@ -203,6 +208,17 @@ class _EditorRailState extends State<EditorRail> {
       if (_menuItemId != null) _itemContextMenu(),
       if (_newDocumentMenuOpen) _newDocumentMenu(),
       if (_workspaceMenuOpen) _workspaceMenu(),
+      if (_randomizeDocumentId != null)
+        ShowcaseRandomizerDialog(
+          store: _store,
+          documentId: _randomizeDocumentId!,
+          seed: _randomizerSeed,
+          onClose: () => setState(() => _randomizeDocumentId = null),
+          onGenerated: (int seed) => setState(() {
+            _randomizerSeed = seed;
+            _randomizeDocumentId = null;
+          }),
+        ),
     ]);
   }
 
@@ -965,17 +981,13 @@ class _EditorRailState extends State<EditorRail> {
         }),
         hint: huiText('Replaces its code'),
         icon: ArcaneIcon.dices(size: IconSize.sm),
-        disabled: !canRandomizeShowcase(DocumentTypeRegistry.of(doc.kind)),
-        onSelect: () {
-          final bool changed = randomizeShowcaseDocument(_store, doc.id);
-          if (changed) {
-            ArcaneSonner.success(
-              huiText("Randomized {title}.", <String, Object?>{
-                'title': doc.title,
-              }),
-            );
-          }
-        },
+        disabled: !canRandomizeShowcase(
+          DocumentTypeRegistry.of(doc.kind),
+          linkedPanel:
+              doc.kind == DocumentTypes.panel.kind &&
+              decodeWorkspacePanel(doc.json).data.runtimeBoard != null,
+        ),
+        onSelect: () => setState(() => _randomizeDocumentId = doc.id),
       ),
       HuiActionMenuItem(
         label: huiText('Rename'),

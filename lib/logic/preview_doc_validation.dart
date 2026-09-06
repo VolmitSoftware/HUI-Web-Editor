@@ -24,6 +24,7 @@ import 'preview_sim.dart'
         previewStandardVariableNames;
 import 'preview_variant_resolver.dart' show previewMatchesGlob;
 import 'validation.dart';
+import 'hologram_box_validation.dart';
 import '../model/preview_doc.dart';
 
 /// Parses (never evaluates) every expression-string field of [doc] and
@@ -662,6 +663,13 @@ List<HuiIssue> validatePreviewDoc(
     }
   }
 
+  if (doc.textStyle != null) {
+    issues.addAll(validateIconDisplayStyle(doc.textStyle!, path: 'textStyle'));
+  }
+  if (doc.itemStyle != null) {
+    issues.addAll(validateIconDisplayStyle(doc.itemStyle!, path: 'itemStyle'));
+  }
+
   // --- match / variants ------------------------------------------------
   checkSpecial(doc.match.special, 'match.special');
   checkNames(
@@ -732,6 +740,36 @@ List<HuiIssue> validatePreviewDoc(
       const <String>{},
       requireBoolean: true,
     );
+    for (final MapEntry<String, int?> entry in <String, int?>{
+      'padding': card.padding,
+      'borderWidth': card.borderWidth,
+      'trayPadding': card.trayPadding,
+      'titleHeight': card.titleHeight,
+      'titleGap': card.titleGap,
+    }.entries) {
+      if (entry.value != null && (entry.value! < 0 || entry.value! > 256)) {
+        add(
+          HuiSeverity.error,
+          'card.${entry.key}',
+          'Font pixels must be between 0 and 256.',
+        );
+      }
+    }
+    for (final MapEntry<String, String?> entry in <String, String?>{
+      'backgroundArgb': card.backgroundArgb,
+      'trayArgb': card.trayArgb,
+      'borderArgb': card.borderArgb,
+      'titleArgb': card.titleArgb,
+    }.entries) {
+      if (entry.value != null &&
+          !RegExp(r'^#[a-fA-F0-9]{8}$').hasMatch(entry.value!)) {
+        add(
+          HuiSeverity.error,
+          'card.${entry.key}',
+          'ARGB color must use exactly eight hexadecimal digits',
+        );
+      }
+    }
     checkExpr(card.framed, 'card.framed', const <String>{});
     checkExpr(card.title, 'card.title', const <String>{});
     checkExpr(card.accent, 'card.accent', const <String>{});
@@ -743,6 +781,14 @@ List<HuiIssue> validatePreviewDoc(
     final HuiPreviewElement element = doc.elements[i];
     final String path = 'elements[$i]';
     final String type = element.type;
+    if (element.style != null) {
+      issues.addAll(
+        validateIconDisplayStyle(element.style!, path: '$path.style'),
+      );
+    }
+    if (element.box != null) {
+      issues.addAll(validateHologramBox(element.box!, path: '$path.box'));
+    }
 
     if (!_previewElementTypeSet.contains(type)) {
       add(

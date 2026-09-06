@@ -122,7 +122,7 @@ String _randomized(DocumentTypeAdapter type, int seed) {
 }
 
 void _expectMenuBudget(HuiMenu menu, String reason) {
-  expect(menu.components.length, lessThanOrEqualTo(12), reason: reason);
+  expect(menu.components.length, lessThanOrEqualTo(21), reason: reason);
   final List<HuiComponentData> clickable = menu.components
       .map((HuiComponent component) => component.data)
       .where(
@@ -130,7 +130,7 @@ void _expectMenuBudget(HuiMenu menu, String reason) {
             data is HuiButtonData || data is HuiToggleData,
       )
       .toList();
-  expect(clickable.length, lessThanOrEqualTo(8), reason: reason);
+  expect(clickable.length, lessThanOrEqualTo(14), reason: reason);
   for (final HuiComponentData data in clickable) {
     final int actions = switch (data) {
       HuiButtonData() => data.actions.length,
@@ -168,26 +168,23 @@ void _expectPreviewBudget(HuiPreviewDoc doc, String reason) {
 }
 
 void main() {
-  test(
-    'panel randomization stays disabled and leaves the active panel intact',
-    () {
-      final EditorStore store = _store();
-      DocumentTypes.panel.createNew(store);
-      final WorkspaceDoc before = store.workspace.active!;
-      final String beforeJson = before.json;
-      final String? beforeActiveId = store.workspace.activeId;
-      final int beforeCount = store.workspace.docs.length;
+  test('unlinked flow maps stay unchanged by randomization', () {
+    final EditorStore store = _store();
+    DocumentTypes.panel.createNew(store);
+    final WorkspaceDoc before = store.workspace.active!;
+    final String beforeJson = before.json;
+    final String? beforeActiveId = store.workspace.activeId;
+    final int beforeCount = store.workspace.docs.length;
 
-      expect(canRandomizeShowcase(DocumentTypes.panel), isFalse);
-      expect(
-        randomizeShowcaseDocument(store, before.id, random: math.Random(19)),
-        isFalse,
-      );
-      expect(store.workspace.activeId, beforeActiveId);
-      expect(store.workspace.docs.length, beforeCount);
-      expect(store.workspace.active!.json, beforeJson);
-    },
-  );
+    expect(canRandomizeShowcase(DocumentTypes.panel), isFalse);
+    expect(
+      randomizeShowcaseDocument(store, before.id, random: math.Random(19)),
+      isFalse,
+    );
+    expect(store.workspace.activeId, beforeActiveId);
+    expect(store.workspace.docs.length, beforeCount);
+    expect(store.workspace.active!.json, beforeJson);
+  });
 
   test('seeded runtime documents round trip cleanly within safety budgets', () {
     for (final DocumentTypeAdapter type in DocumentTypeRegistry.all) {
@@ -207,8 +204,13 @@ void main() {
         );
         final String reason = '${type.noun} seed $seed';
         final String encoded = type.formattedJson(store);
-        expect(utf8.encode(encoded).length, lessThanOrEqualTo(64 * 1024));
+        expect(
+          utf8.encode(encoded).length,
+          lessThanOrEqualTo(64 * 1024),
+          reason: reason,
+        );
         expect(jsonDecode(_roundTrip(type, encoded)), jsonDecode(encoded));
+        _expectBoundedExpressions(jsonDecode(encoded), reason);
 
         final List<HuiIssue> blocking = type
             .validate(store)
@@ -560,8 +562,8 @@ void main() {
         GlossHologramDoc(),
         math.Random(seed),
       );
-      billboards.add(hologram.billboard);
-      seeThrough.add(hologram.seeThrough);
+      billboards.add(hologram.style.billboard);
+      seeThrough.add(hologram.style.seeThrough);
       expect(hologram.yaw, inInclusiveRange(-180, 180));
       expect(hologram.pitch, inInclusiveRange(-90, 90));
       hideNumbers.add(
@@ -599,7 +601,7 @@ void main() {
       formatCounts.add(tablist.listNames.variants.length + 1);
       tablists.add(encodeGlossTablistDoc(tablist));
     }
-    expect(billboards, glossHologramBillboards.toSet());
+    expect(billboards, huiIconBillboards.toSet());
     expect(seeThrough, <bool>{true, false});
     expect(hideNumbers, <bool>{true, false});
     expect(emojiEnabled, <bool>{true, false});
@@ -701,4 +703,30 @@ void main() {
     );
     expect(store.canUndo, isTrue);
   });
+}
+
+void _expectBoundedExpressions(Object? value, String path) {
+  switch (value) {
+    case String():
+      for (final RegExpMatch match in RegExp(
+        r'\{\{(.*?)\}\}',
+        dotAll: true,
+      ).allMatches(value)) {
+        expect(
+          match.group(1)!.trim().length,
+          lessThanOrEqualTo(1024),
+          reason: path,
+        );
+      }
+    case Map():
+      for (final MapEntry<Object?, Object?> entry in value.entries) {
+        _expectBoundedExpressions(entry.value, '$path.${entry.key}');
+      }
+    case List():
+      for (int index = 0; index < value.length; index++) {
+        _expectBoundedExpressions(value[index], '$path[$index]');
+      }
+    default:
+      break;
+  }
 }

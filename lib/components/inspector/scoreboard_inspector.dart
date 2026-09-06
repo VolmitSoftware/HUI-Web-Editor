@@ -12,6 +12,8 @@ import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'gloss_visibility_editor.dart';
+import '../../logic/gloss_show.dart';
 import 'line_list_section.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
@@ -42,6 +44,17 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
     if (doc == null) return const dom.div(<Widget>[]);
     return dom.div(classes: 'hui-inspector-body is-scoreboard', <Widget>[
       _header(doc),
+      GlossVisibilityEditor(
+        raw: doc.extras['show'],
+        sectionKey: 'scoreboard.visibility',
+        issues: _store.issues
+            .where((HuiIssue issue) => issue.path == r'$.show')
+            .toList(),
+        onChanged: (Object? value) => _store.mutateScoreboard(
+          'visibility',
+          (GlossScoreboardDoc edited) => setGlossShow(edited.extras, value),
+        ),
+      ),
       _selection(doc),
       _presentation(
         doc.presentation,

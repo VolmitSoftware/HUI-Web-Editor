@@ -10,9 +10,12 @@ library;
 import '../model/gloss_animation.dart';
 import '../model/gloss_doc.dart';
 import 'validation.dart';
+import 'gloss_show.dart';
 
 List<HuiIssue> validateAnimationDoc(GlossAnimationDoc doc) {
-  final List<HuiIssue> issues = <HuiIssue>[];
+  final List<HuiIssue> issues = <HuiIssue>[
+    ...validateGlossShow(doc.extras['show']),
+  ];
 
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) {

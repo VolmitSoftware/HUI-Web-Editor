@@ -1,7 +1,79 @@
 import 'package:gloss_editor/model/runtime_panel_definition.dart';
 import 'package:test/test.dart';
+import 'package:gloss_editor/state/editor_store.dart';
+import 'package:gloss_editor/state/workspace.dart';
 
 void main() {
+  test(
+    'world panel edits undo and redo without changing local flow metadata',
+    () {
+      final EditorStore store = EditorStore(
+        workspace: Workspace(autoLoad: false),
+      );
+      addTearDown(store.dispose);
+      store.newPanelDocument(name: 'Panel');
+      final String active = store.workspace.active!.id;
+      final Map<String, dynamic> original = _panelJson();
+      expect(
+        store.updatePanel(
+          store.activePanel!.data.copyWith(
+            runtimeBoardId: 'test-panel',
+            runtimeBoard: original,
+          ),
+        ),
+        isTrue,
+      );
+      expect(store.activePanel!.data.runtimeBoard, original);
+      expect(store.performUndo(), isTrue);
+      expect(store.activePanel!.data.runtimeBoard, isNull);
+      expect(store.performRedo(), isTrue);
+      expect(store.workspace.active!.id, active);
+      expect(store.activePanel!.data.runtimeBoard, original);
+      final RuntimePanelDefinition changed =
+          RuntimePanelDefinition.fromJson(original).copyWith(
+            show: false,
+            transform: RuntimePanelDefinition.fromJson(original).transform
+                .copyWith(
+                  worldKey: 'minecraft:the_end',
+                  worldUuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                ),
+          );
+      store.updatePanel(
+        store.activePanel!.data.copyWith(runtimeBoard: changed.toJson()),
+        coalesce: false,
+      );
+      expect(store.activePanel!.data.runtimeBoard!['show'], false);
+      expect(store.performUndo(), isTrue);
+      expect(store.activePanel!.data.runtimeBoard, original);
+    },
+  );
+
+  test('duplicated linked panels receive independent runtime identities', () {
+    final EditorStore store = EditorStore(
+      workspace: Workspace(autoLoad: false),
+    );
+    addTearDown(store.dispose);
+    store.newPanelDocument(name: 'Panel');
+    final Map<String, dynamic> original = _panelJson();
+    store.updatePanel(
+      store.activePanel!.data.copyWith(
+        runtimeBoardId: original['id'] as String,
+        runtimeBoard: original,
+      ),
+    );
+    final WorkspaceDoc? copy = store.duplicateDocument(
+      store.workspace.active!.id,
+    );
+    expect(copy, isNotNull);
+    final Map<String, dynamic> duplicated =
+        store.activePanel!.data.runtimeBoard!;
+    expect(duplicated['id'], isNot(original['id']));
+    expect(duplicated['uuid'], isNot(original['uuid']));
+    expect(duplicated['revision'], 1);
+    expect(duplicated['transform'], original['transform']);
+    expect(duplicated['rootMenuId'], original['rootMenuId']);
+  });
+
   group('runtime panel definition', () {
     test('round-trips every strict contract field', () {
       final Map<String, dynamic> source = _panelJson();
@@ -10,6 +82,26 @@ void main() {
       );
 
       expect(definition.toJson(), source);
+    });
+
+    test('show accepts canonical booleans and expressions through edits', () {
+      for (final Object show in <Object>[false, 'world.time < 12000']) {
+        final RuntimePanelDefinition source = RuntimePanelDefinition.fromJson(
+          _panelJson()..['show'] = show,
+        );
+        expect(
+          source.copyWith(rootMenuId: 'other/root').toJson()['show'],
+          show,
+        );
+      }
+      expect(
+        RuntimePanelDefinition.fromJson(_panelJson()..remove('show')).show,
+        true,
+      );
+      expect(
+        () => RuntimePanelDefinition.fromJson(_panelJson()..['show'] = 2),
+        throwsFormatException,
+      );
     });
 
     test('typed placement changes preserve server-owned identity', () {
@@ -111,6 +203,7 @@ Map<String, dynamic> _panelJson() => <String, dynamic>{
   'id': 'welcome',
   'uuid': '00000000-0000-4000-8000-000000000042',
   'revision': 7,
+  'show': true,
   'rootMenuId': 'welcome/root',
   'transform': <String, dynamic>{
     'worldKey': 'minecraft:overworld',

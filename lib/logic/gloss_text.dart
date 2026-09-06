@@ -40,11 +40,13 @@
 /// deterministic under an injected clock.
 library;
 
+import 'gloss_show.dart';
 import '../l10n/hui_localizations.dart';
 import '../model/gloss_animation.dart';
 import 'gloss_animation_playback.dart';
 import 'gloss_particle_text.dart';
-import 'mc_text.dart' show McSpan, mcDefaultTextColor, mcLegacyColors;
+import 'mc_text.dart'
+    show McSpan, McTextResult, parseMcText, mcDefaultTextColor, mcLegacyColors;
 import 'preview_expr.dart';
 import 'preview_expr_functions.dart';
 
@@ -142,6 +144,7 @@ final class GlossEmojiEntry {
     required this.glyph,
     required this.enabled,
     this.fromWorkspace = false,
+    this.show,
   });
 
   /// The document id (its file path), which names the chat token.
@@ -160,6 +163,7 @@ final class GlossEmojiEntry {
   /// True when a workspace emoji document backs this entry rather than the
   /// shipped catalog. Editor bookkeeping only — the plugin has one folder.
   final bool fromWorkspace;
+  final Object? show;
 
   /// `EmojiEntry.token`.
   String get token => ':$id:';
@@ -190,12 +194,26 @@ final class GlossNoEmoji implements GlossEmojiResolver {
 /// occurrence of the trigger, then every occurrence of the `:id:` token.
 /// Both presence checks read the string BEFORE either replacement for that
 /// entry, exactly like the Java scan.
-String glossApplyEmoji(String message, GlossEmojiResolver emoji) {
+String glossApplyEmoji(
+  String message,
+  GlossEmojiResolver emoji, {
+  int nowMs = 0,
+  PExprScope? scope,
+  bool viewerAware = true,
+}) {
   final List<GlossEmojiEntry> entries = emoji.entries;
   if (message.isEmpty || entries.isEmpty) return message;
   String out = message;
   for (final GlossEmojiEntry entry in entries) {
-    if (!entry.enabled) continue;
+    if (!entry.enabled ||
+        !glossShowMatches(
+          entry.show,
+          scope: scope,
+          nowMs: nowMs,
+          viewerAware: viewerAware,
+        )) {
+      continue;
+    }
     final bool hasToken = out.contains(entry.token);
     final bool hasTrigger = entry.hasTrigger && out.contains(entry.trigger);
     if (!hasToken && !hasTrigger) continue;
@@ -313,6 +331,9 @@ GlossLineRender renderGlossLine(
   GlossAnimationResolver animations = const GlossNoAnimations(),
   GlossEmojiResolver emoji = const GlossNoEmoji(),
   int nowMs = 0,
+  bool viewerAware = true,
+  bool richText = false,
+  String Function(String)? expressionLiteralEncoder,
   GlossTextExpressionSamples expressionSamples =
       const GlossTextExpressionSamples(),
 }) => _renderGlossLine(
@@ -320,7 +341,10 @@ GlossLineRender renderGlossLine(
   animations: animations,
   emoji: emoji,
   nowMs: nowMs,
+  viewerAware: viewerAware,
+  richText: richText,
   expressionSamples: expressionSamples,
+  expressionLiteralEncoder: expressionLiteralEncoder,
 );
 
 GlossLineRender renderGlossAnimationFramePreview(
@@ -339,7 +363,7 @@ GlossLineRender renderGlossAnimationFramePreview(
       GlossPlaceholderChip() || GlossMetricChip() => true,
     },
   );
-  final bool formattingOnlySource = _plainLength(raw).isEmpty;
+  final bool formattingOnlySource = raw.isNotEmpty && _plainLength(raw).isEmpty;
   return hasVisibleContent || !formattingOnlySource
       ? rendered
       : renderGlossLine('$raw&lRAINBOW', emoji: emoji, nowMs: nowMs);
@@ -431,8 +455,11 @@ GlossLineRender _renderGlossLine(
   required GlossAnimationResolver animations,
   required GlossEmojiResolver emoji,
   required int nowMs,
+  bool viewerAware = true,
+  bool richText = false,
   required GlossTextExpressionSamples expressionSamples,
   String Function(String value)? runtimeTransform,
+  String Function(String)? expressionLiteralEncoder,
 }) {
   final List<String> used = <String>[];
   final List<String> missing = <String>[];
@@ -447,6 +474,12 @@ GlossLineRender _renderGlossLine(
       used,
       missing,
       metrics: metrics,
+      conditionScope: GlossTextExpressionScope(
+        nowMs,
+        expressionSamples,
+        viewerAware: viewerAware,
+      ),
+      viewerAware: viewerAware,
     );
     String substituted = glossApplyEmoji(
       _applyTextExpressions(
@@ -455,8 +488,17 @@ GlossLineRender _renderGlossLine(
         expressionSamples,
         expressions,
         expressionErrors,
+        literalEncoder: expressionLiteralEncoder,
+        viewerAware: viewerAware,
       ),
       emoji,
+      nowMs: nowMs,
+      viewerAware: viewerAware,
+      scope: GlossTextExpressionScope(
+        nowMs,
+        expressionSamples,
+        viewerAware: viewerAware,
+      ),
     );
     if (runtimeTransform != null) {
       substituted = runtimeTransform(substituted);
@@ -476,10 +518,9 @@ GlossLineRender _renderGlossLine(
     );
   }
   final List<String> placeholders = <String>[];
-  final List<GlossTextPiece> pieces = _renderColors(
-    rendered.text,
-    placeholders,
-  );
+  final List<GlossTextPiece> pieces = richText
+      ? _renderRichText(rendered.text, placeholders)
+      : _renderColors(rendered.text, placeholders);
   return GlossLineRender(
     pieces: List<GlossTextPiece>.unmodifiable(pieces),
     usedAnimations: List<String>.unmodifiable(used),
@@ -646,6 +687,7 @@ GlossParticleTextRendered glossRenderMenuParticleText(
       nowMs,
       <String>[],
       <String>[],
+      conditionScope: GlossTextExpressionScope(nowMs, expressionSamples),
     );
     final String expressions = _applyTextExpressions(
       functions,
@@ -654,7 +696,14 @@ GlossParticleTextRendered glossRenderMenuParticleText(
       <String>[],
       <String>[],
     );
-    return _translateBracketHex(glossApplyEmoji(expressions, emoji));
+    return _translateBracketHex(
+      glossApplyEmoji(
+        expressions,
+        emoji,
+        nowMs: nowMs,
+        scope: GlossTextExpressionScope(nowMs, expressionSamples),
+      ),
+    );
   }
 
   try {
@@ -774,11 +823,13 @@ final class GlossTextExpressionSamples {
     this.placeholders = _defaultExpressionPlaceholders,
     this.metrics = _defaultExpressionMetrics,
     this.serverTps = 19.8,
+    this.values = const <String, Object>{},
   });
 
   final Map<String, Object> placeholders;
   final Map<String, double> metrics;
   final double serverTps;
+  final Map<String, Object> values;
 }
 
 const Map<String, Object> _defaultExpressionPlaceholders = <String, Object>{
@@ -802,8 +853,10 @@ String _applyTextExpressions(
   int nowMs,
   GlossTextExpressionSamples samples,
   List<String> used,
-  List<String> errors,
-) {
+  List<String> errors, {
+  String Function(String)? literalEncoder,
+  bool viewerAware = true,
+}) {
   if (!input.contains('{{')) return input;
   final StringBuffer output = StringBuffer();
   int cursor = 0;
@@ -812,6 +865,7 @@ String _applyTextExpressions(
   final GlossTextExpressionScope scope = GlossTextExpressionScope(
     nowMs,
     samples,
+    viewerAware: viewerAware,
   );
   while (open >= 0) {
     final int close = input.indexOf('}}', open + 2);
@@ -825,7 +879,7 @@ String _applyTextExpressions(
       final String value = evalString(parsePreviewExpr(source), scope);
       output
         ..write(input.substring(cursor, open))
-        ..write(value);
+        ..write(literalEncoder == null ? value : literalEncoder(value));
       used.add(source);
       replaced = true;
       cursor = close + 2;
@@ -853,6 +907,8 @@ final class GlossTextExpressionScope extends PExprScope {
 
   @override
   Object? variable(String dottedName) {
+    final Object? supplied = samples.values[dottedName];
+    if (supplied != null) return supplied;
     switch (dottedName) {
       case 'time.ms':
         return nowMs.toDouble();
@@ -1009,6 +1065,8 @@ String _applyFunctions(
   List<String> used,
   List<String> missing, {
   String Function(GlossAnimationDoc doc)? frameOf,
+  PExprScope? conditionScope,
+  bool viewerAware = true,
   List<String>? metrics,
 }) {
   if (!input.contains('|')) return input;
@@ -1054,7 +1112,17 @@ String _applyFunctions(
     if (!used.contains(id)) used.add(id);
     out.write(input.substring(cursor, open));
     out.write(
-      frameOf != null ? frameOf(doc) : glossAnimationFrameAt(doc, id, nowMs),
+      doc.frames.isEmpty ||
+              !glossShowMatches(
+                doc.extras['show'],
+                scope: conditionScope,
+                nowMs: nowMs,
+                viewerAware: viewerAware,
+              )
+          ? ''
+          : frameOf != null
+          ? frameOf(doc)
+          : doc.frames[glossAnimationFrameIndexAt(doc, id, nowMs)],
     );
     replaced = true;
     cursor = close + 1;
@@ -1135,9 +1203,132 @@ bool _isBracketHex(String input, int offset) {
   return true;
 }
 
-List<GlossTextPiece> _renderColors(String input, List<String> placeholders) {
+List<GlossTextPiece> _renderRichText(String input, List<String> placeholders) {
+  final McTextResult parsed = parseMcText(input);
+  final List<GlossTextPiece> pieces = <GlossTextPiece>[];
+  for (int line = 0; line < parsed.lines.length; line++) {
+    if (line > 0) pieces.add(const GlossTextRun(McSpan(text: '\n')));
+    for (final McSpan span in parsed.lines[line]) {
+      int start = 0;
+      int cursor = 0;
+      while (cursor < span.text.length) {
+        final Match? metric = span.text[cursor] == '|'
+            ? _metricPattern.matchAsPrefix(span.text, cursor)
+            : null;
+        final Match? placeholder = span.text[cursor] == '%'
+            ? _placeholderPattern.matchAsPrefix(span.text, cursor)
+            : null;
+        final Match? match = metric ?? placeholder;
+        if (match == null) {
+          cursor++;
+          continue;
+        }
+        if (cursor > start) {
+          pieces.add(
+            GlossTextRun(span.withText(span.text.substring(start, cursor))),
+          );
+        }
+        final String token = match.group(0)!;
+        if (metric != null) {
+          pieces.add(
+            GlossMetricChip(
+              key: match.group(1)!,
+              token: token,
+              style: span.withText(''),
+            ),
+          );
+        } else {
+          placeholders.add(token);
+          pieces.add(
+            GlossPlaceholderChip(token: token, style: span.withText('')),
+          );
+        }
+        cursor = match.end;
+        start = cursor;
+      }
+      if (start < span.text.length) {
+        pieces.add(GlossTextRun(span.withText(span.text.substring(start))));
+      }
+    }
+  }
+  return pieces;
+}
+
+String glossRichPrefixLegacy(String prefix) {
+  String marker = '\uF8FF';
+  while (prefix.contains(marker)) {
+    marker += '\uF8FF';
+  }
+  final McTextResult parsed = parseMcText('$prefix$marker');
+  final StringBuffer output = StringBuffer();
+  for (int index = 0; index < parsed.lines.length; index++) {
+    if (index > 0) output.write('\n');
+    for (final McSpan span in parsed.lines[index]) {
+      output.write('§r§x');
+      for (final int rune
+          in span.color.toRadixString(16).padLeft(6, '0').runes) {
+        output.write('§${String.fromCharCode(rune)}');
+      }
+      if (span.bold) output.write('§l');
+      if (span.italic) output.write('§o');
+      if (span.underlined) output.write('§n');
+      if (span.strikethrough) output.write('§m');
+      if (span.obfuscated) output.write('§k');
+      output.write(span.text);
+    }
+  }
+  final String legacy = output.toString();
+  return legacy.substring(0, legacy.length - marker.length);
+}
+
+GlossLineRender renderGlossLiteralLine(String text) => GlossLineRender(
+  pieces: <GlossTextPiece>[
+    for (final GlossTextPiece piece in _renderColors(
+      text,
+      <String>[],
+      references: false,
+      alternateColors: false,
+    ))
+      piece,
+  ],
+  usedAnimations: const <String>[],
+  missingAnimations: const <String>[],
+  placeholders: const <String>[],
+  metrics: const <String>[],
+  expressions: const <String>[],
+  expressionErrors: const <String>[],
+  renderedText: text,
+  particleSpans: const <GlossParticleTextSpan>[],
+);
+
+List<McSpan> renderGlossLiteralSpans(String text, {McSpan? initial}) =>
+    <McSpan>[
+      for (final GlossTextPiece piece in _renderColors(
+        text,
+        <String>[],
+        initial: initial,
+        references: false,
+      ))
+        if (piece case GlossTextRun(:final McSpan span)) span,
+    ];
+
+List<GlossTextPiece> _renderColors(
+  String input,
+  List<String> placeholders, {
+  McSpan? initial,
+  bool references = true,
+  bool alternateColors = true,
+}) {
   final List<GlossTextPiece> pieces = <GlossTextPiece>[];
   final _ColorState state = _ColorState();
+  if (initial != null) {
+    state.color = initial.color;
+    state.bold = initial.bold;
+    state.italic = initial.italic;
+    state.underlined = initial.underlined;
+    state.strikethrough = initial.strikethrough;
+    state.obfuscated = initial.obfuscated;
+  }
   final StringBuffer run = StringBuffer();
 
   void flushRun() {
@@ -1152,7 +1343,8 @@ List<GlossTextPiece> _renderColors(String input, List<String> placeholders) {
 
     // `[RRGGBB]` — the guard set is exactly TextPipeline.translateBracketHex:
     // a `]` at open+7 and six hex digits between.
-    if (char == '[' &&
+    if (alternateColors &&
+        char == '[' &&
         i + 7 < input.length &&
         input[i + 7] == ']' &&
         _isBracketHex(input, i + 1)) {
@@ -1165,7 +1357,8 @@ List<GlossTextPiece> _renderColors(String input, List<String> placeholders) {
     // Legacy codes. `&` is translated by the pipeline
     // (`ChatColor.translateAlternateColorCodes`), `§` is honoured by the
     // client directly; both land in the same state machine here.
-    if ((char == '&' || char == '§') && i + 1 < input.length) {
+    if (((alternateColors && char == '&') || char == '§') &&
+        i + 1 < input.length) {
       final String code = input[i + 1].toLowerCase();
       final int? rgb = mcLegacyColors[code];
       if (rgb != null) {
@@ -1212,7 +1405,7 @@ List<GlossTextPiece> _renderColors(String input, List<String> placeholders) {
     }
 
     // `|metric.<key>|` — the token the function stage wrote back.
-    if (char == '|') {
+    if (references && char == '|') {
       final Match? match = _metricPattern.matchAsPrefix(input, i);
       if (match != null) {
         flushRun();
@@ -1229,7 +1422,7 @@ List<GlossTextPiece> _renderColors(String input, List<String> placeholders) {
     }
 
     // `%placeholder%`.
-    if (char == '%') {
+    if (references && char == '%') {
       final Match? match = _placeholderPattern.matchAsPrefix(input, i);
       if (match != null) {
         flushRun();

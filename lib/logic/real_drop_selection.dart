@@ -2,6 +2,7 @@ library;
 
 import '../components/scoreboard/scoreboard_selection.dart';
 import '../model/gloss_real_drops.dart';
+import 'gloss_show.dart';
 
 GlossRealDropPresentation glossResolveRealDropPresentation(
   GlossRealDropSettingsDoc doc,
@@ -28,12 +29,11 @@ String? glossResolveRealDropVariantId(
 bool glossRealDropAudienceVisible(
   GlossRealDropSettingsDoc doc,
   GlossConditionContext context,
-) => glossConditionMatches(doc.audience.when, context).matches;
+) =>
+    glossShowMatches(doc.show, scope: context) &&
+    glossConditionMatches(doc.audience.when, context).matches;
 
-int _compareVariants(
-  GlossRealDropVariant first,
-  GlossRealDropVariant second,
-) {
+int _compareVariants(GlossRealDropVariant first, GlossRealDropVariant second) {
   final int priority = second.priority.compareTo(first.priority);
   return priority != 0 ? priority : first.id.compareTo(second.id);
 }

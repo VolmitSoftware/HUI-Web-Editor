@@ -1,5 +1,6 @@
 library;
 
+import 'gloss_show.dart';
 import '../model/gloss_bubble_style.dart';
 import 'bubble_lines.dart';
 import 'bubble_motion.dart';
@@ -40,7 +41,8 @@ final class GlossBubblePreviewBubble {
 
 final class GlossBubblePreviewTimeline {
   GlossBubblePreviewTimeline(GlossBubbleStyleDoc style, {double? spread})
-    : _spread = spread ?? glossBubbleDefaultStackSpread,
+    : _show = style.extras['show'],
+      _spread = spread ?? glossBubbleDefaultStackSpread,
       _maxAliveMs = style.effectiveMaxAliveMs,
       _prefix = style.effectivePrefix,
       _motion = _compileMotion(style.motion),
@@ -72,6 +74,7 @@ final class GlossBubblePreviewTimeline {
     _periodMs = lastExpiry + 1000;
   }
 
+  final Object? _show;
   final List<_BubbleSpawn> _spawns = <_BubbleSpawn>[];
   final double _spread;
   final int _maxAliveMs;
@@ -83,6 +86,9 @@ final class GlossBubblePreviewTimeline {
   int get periodMs => _periodMs;
 
   List<GlossBubblePreviewBubble> bubblesAt(int nowMs) {
+    if (!glossShowMatches(_show, nowMs: nowMs)) {
+      return const <GlossBubblePreviewBubble>[];
+    }
     final int cycle = _periodMs <= 0 ? 0 : nowMs % _periodMs;
     final List<_BubbleSpawn> live = <_BubbleSpawn>[
       for (final _BubbleSpawn spawn in _spawns)
@@ -168,16 +174,11 @@ GlossLineRender renderGlossBubblePreviewText(
     nowMs: nowMs,
   );
   final String shimmered = glossBubbleApplyShimmer(
-    renderedPrefix + bubble.text,
+    glossRichPrefixLegacy(renderedPrefix) + bubble.text,
     style.shimmer,
     bubble.shimmerBandIndex,
   );
-  return renderGlossLine(
-    shimmered,
-    animations: animations,
-    emoji: emoji,
-    nowMs: nowMs,
-  );
+  return renderGlossLiteralLine(shimmered);
 }
 
 typedef _BubbleSpawn = ({int at, String text, int lineCount, double seed});

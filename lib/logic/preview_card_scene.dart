@@ -54,6 +54,8 @@ library;
 
 import '../l10n/hui_localizations.dart';
 import '../model/preview_doc.dart';
+import '../model/hui_icons.dart';
+import '../model/gloss_hologram_box.dart';
 import '../model/particle_layer.dart';
 import 'gloss_text.dart' show GlossEmojiResolver, GlossNoEmoji, glossApplyEmoji;
 import 'gloss_particle_text.dart';
@@ -111,7 +113,8 @@ const Set<String> _elementTypes = <String>{'panel', 'cell', 'slot', 'label'};
 /// One positioned element of a built preview. Pixel coordinates, origin at the
 /// card centre, `y` up; `z` is the paint layer the plugin assigns.
 sealed class CardItem {
-  const CardItem(this.x, this.y, this.z);
+  const CardItem(this.x, this.y, this.z, {this.style});
+  final HuiIconStyle? style;
 
   final int x;
   final int y;
@@ -127,8 +130,9 @@ class CardPanel extends CardItem {
     super.z,
     this.width,
     this.height,
-    this.color,
-  );
+    this.color, {
+    super.style,
+  });
 
   final int width;
   final int height;
@@ -140,7 +144,14 @@ class CardPanel extends CardItem {
 /// A square swatch. Its colour is the one field a document animates most, and
 /// [previewTransparent] when the expression failed.
 class CardCell extends CardItem {
-  const CardCell(super.x, super.y, super.z, this.size, this.color);
+  const CardCell(
+    super.x,
+    super.y,
+    super.z,
+    this.size,
+    this.color, {
+    super.style,
+  });
 
   final int size;
 
@@ -158,8 +169,11 @@ class CardSlot extends CardItem {
     this.size,
     this.wellColor,
     this.index,
-    this.item,
-  );
+    this.item, {
+    super.style,
+    this.wellStyle,
+  });
+  final HuiIconStyle? wellStyle;
 
   final int size;
 
@@ -183,6 +197,8 @@ class CardLabel extends CardItem {
     super.z,
     this.text,
     this.background, {
+    super.style,
+    this.box,
     this.size,
     this.renderedText = '',
     this.particleSpans = const <GlossParticleTextSpan>[],
@@ -201,6 +217,7 @@ class CardLabel extends CardItem {
   final int background;
   final String renderedText;
   final List<GlossParticleTextSpan> particleSpans;
+  final GlossHologramBox? box;
 }
 
 /// One built frame: the items in paint order plus the extent they cover.
@@ -281,7 +298,7 @@ PreviewCardScene buildCardScene(
       }
       final int before = content.length;
       try {
-        _expand(template, sim, budget, content, sink, emoji);
+        _expand(doc, template, sim, budget, content, sink, emoji);
       } catch (failure) {
         sink(
           huiText('{element}: {reason}', <String, Object?>{
@@ -345,6 +362,7 @@ String _describe(HuiPreviewElement template) => switch (template.type) {
 };
 
 void _expand(
+  HuiPreviewDoc doc,
   HuiPreviewElement template,
   PreviewSim sim,
   _Budget budget,
@@ -355,7 +373,7 @@ void _expand(
   final HuiPreviewRepeat? repeat = template.repeat;
   if (repeat == null) {
     budget.take();
-    _emit(template, sim, sim, out, sink, emoji);
+    _emit(doc, template, sim, sim, out, sink, emoji);
     return;
   }
   int count = _repeatCount(repeat, sim, sink);
@@ -375,6 +393,7 @@ void _expand(
     // hands the same scope to the live cell/label closures it builds here; the
     // editor evaluates them inline instead, off the same scope.
     _emit(
+      doc,
       template,
       sim,
       _RepeatScope(sim, name, index.toDouble()),
@@ -433,6 +452,7 @@ int _repeatCount(
 }
 
 void _emit(
+  HuiPreviewDoc doc,
   HuiPreviewElement template,
   PreviewSim sim,
   PExprScope scope,
@@ -455,6 +475,8 @@ void _emit(
   final int x = _coordinate(template.x, 0, scope, 'x');
   final int y = _coordinate(template.y, 0, scope, 'y');
   final int z = _coordinate(template.z, _defaultZ(type), scope, 'z');
+  final HuiIconStyle? style =
+      template.style ?? (type == 'slot' ? doc.itemStyle : doc.textStyle);
   switch (type) {
     case 'panel':
       out.add(
@@ -465,6 +487,7 @@ void _emit(
           _coordinate(_required(template.width, 'width'), 0, scope, 'width'),
           _coordinate(_required(template.height, 'height'), 0, scope, 'height'),
           _color(_required(template.color, 'color'), 0, scope, 'color'),
+          style: style,
         ),
       );
     case 'cell':
@@ -474,7 +497,16 @@ void _emit(
         scope,
         'size',
       );
-      out.add(CardCell(x, y, z, size, _cellColor(template.color, scope, sink)));
+      out.add(
+        CardCell(
+          x,
+          y,
+          z,
+          size,
+          _cellColor(template.color, scope, sink),
+          style: style,
+        ),
+      );
     case 'slot':
       if (sim.inventorySize <= 0) {
         sink(huiText('slot: target has no inventory'));
@@ -506,12 +538,14 @@ void _emit(
           ),
           index,
           _slotItem(sim, index),
+          style: style,
+          wellStyle: doc.textStyle,
         ),
       );
     case 'label':
       final int background = _color(
         template.background,
-        0,
+        _cardArgb(style?.backgroundArgb, 0).toDouble(),
         scope,
         'background',
       );
@@ -525,6 +559,8 @@ void _emit(
           background,
           renderedText: parsed.renderedText,
           particleSpans: parsed.particleSpans,
+          style: style,
+          box: template.box,
         ),
       );
   }
@@ -610,8 +646,6 @@ McTextResult _labelText(
   }
 }
 
-/// One label is one line: the plugin builds a single `Component` per label and
-/// never splits on newlines, so every parsed line is concatenated back.
 List<StyledTextRun> _parseRuns(String text) {
   final McTextResult parsed = parseMcText(text);
   return _flattenRuns(parsed);
@@ -619,7 +653,12 @@ List<StyledTextRun> _parseRuns(String text) {
 
 List<StyledTextRun> _flattenRuns(McTextResult parsed) {
   if (parsed.lines.length == 1) return parsed.lines.first;
-  return <StyledTextRun>[for (final List<McSpan> line in parsed.lines) ...line];
+  return <StyledTextRun>[
+    for (int i = 0; i < parsed.lines.length; i++) ...<StyledTextRun>[
+      if (i > 0) const McSpan(text: '\n'),
+      ...parsed.lines[i],
+    ],
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -641,6 +680,8 @@ List<CardItem> _framed(
     _cardTitle(card, sim, sink),
     _cardAccent(card, sim, sink),
     card.minHalfWidth ?? _minPanelHalfWidth,
+    card,
+    doc.textStyle,
   );
 }
 
@@ -711,12 +752,6 @@ int _cardAccent(
 const int _well = 18;
 const int _line = 12;
 
-const int _trayPad = 4;
-const int _panelPad = 7;
-const int _titleBarHeight = 17;
-const int _frameBorder = 3;
-const int _gap = 6;
-
 const int _minPanelHalfWidth = 82;
 
 const int _zFrame = 0;
@@ -738,6 +773,8 @@ List<CardItem> _frame(
   List<StyledTextRun> title,
   int accentColor,
   int minHalfWidth,
+  HuiPreviewCard card,
+  HuiIconStyle? textStyle,
 ) {
   bool hasGrid = false;
   int gridLeft = 0;
@@ -784,18 +821,26 @@ List<CardItem> _frame(
 
   final int panelHalfWidth = _max(
     minHalfWidth,
-    (hasGrid ? (gridRight - gridLeft) ~/ 2 : _well ~/ 2) + _panelPad,
+    (hasGrid ? (gridRight - gridLeft) ~/ 2 : _well ~/ 2) +
+        (card.padding ?? 7).clamp(0, 256),
   );
-  final int titleBarBottom = contentTop + _gap;
-  final int panelTop = titleBarBottom + _titleBarHeight;
-  final int panelBottom = contentBottom - _panelPad;
+  final int titleBarBottom = contentTop + (card.titleGap ?? 6).clamp(0, 256);
+  final int panelTop = titleBarBottom + (card.titleHeight ?? 17).clamp(0, 256);
+  final int panelBottom = contentBottom - (card.padding ?? 7).clamp(0, 256);
   final int panelCenterY = (panelTop + panelBottom) ~/ 2;
   final int panelWidth = panelHalfWidth * 2;
   final int panelHeight = panelTop - panelBottom;
 
   final int accent = accentColor;
-  final int frameColor = (_frameAlpha << 24) | (accent & 0xFFFFFF);
-  final int titleBarColor = (_titleBarAlpha << 24) | (accent & 0xFFFFFF);
+  final int frameColor = card.borderArgb == null
+      ? (_frameAlpha << 24) | (accent & 0xFFFFFF)
+      : _cardArgb(card.borderArgb!, (_frameAlpha << 24) | (accent & 0xFFFFFF));
+  final int titleBarColor = card.titleArgb == null
+      ? (_titleBarAlpha << 24) | (accent & 0xFFFFFF)
+      : _cardArgb(
+          card.titleArgb!,
+          (_titleBarAlpha << 24) | (accent & 0xFFFFFF),
+        );
 
   final List<CardItem> styled = <CardItem>[];
   styled.add(
@@ -803,17 +848,28 @@ List<CardItem> _frame(
       0,
       panelCenterY,
       _zFrame,
-      panelWidth + _frameBorder * 2,
-      panelHeight + _frameBorder * 2,
+      panelWidth + (card.borderWidth ?? 3).clamp(0, 256) * 2,
+      panelHeight + (card.borderWidth ?? 3).clamp(0, 256) * 2,
       frameColor,
+      style: textStyle,
     ),
   );
   styled.add(
-    CardPanel(0, panelCenterY, _zPanel, panelWidth, panelHeight, _panelColor),
+    CardPanel(
+      0,
+      panelCenterY,
+      _zPanel,
+      panelWidth,
+      panelHeight,
+      _cardArgb(card.backgroundArgb, _panelColor),
+      style: textStyle,
+    ),
   );
   if (hasGrid) {
-    final int trayWidth = (gridRight - gridLeft) + _trayPad * 2;
-    final int trayHeight = (gridTop - gridBottom) + _trayPad * 2;
+    final int trayWidth =
+        (gridRight - gridLeft) + (card.trayPadding ?? 4).clamp(0, 256) * 2;
+    final int trayHeight =
+        (gridTop - gridBottom) + (card.trayPadding ?? 4).clamp(0, 256) * 2;
     final int trayCenterX = (gridRight + gridLeft) ~/ 2;
     final int trayCenterY = (gridTop + gridBottom) ~/ 2;
     styled.add(
@@ -823,7 +879,8 @@ List<CardItem> _frame(
         _zTray,
         trayWidth,
         trayHeight,
-        _trayColor,
+        _cardArgb(card.trayArgb, _trayColor),
+        style: textStyle,
       ),
     );
   }
@@ -834,11 +891,14 @@ List<CardItem> _frame(
       titleBarCenterY,
       _zTitleBar,
       panelWidth,
-      _titleBarHeight,
+      (card.titleHeight ?? 17).clamp(0, 256),
       titleBarColor,
+      style: textStyle,
     ),
   );
-  styled.add(CardLabel(0, titleBarCenterY, _zLabel, title, 0));
+  styled.add(
+    CardLabel(0, titleBarCenterY, _zLabel, title, 0, style: textStyle),
+  );
   styled.addAll(content);
   return styled;
 }
@@ -1090,3 +1150,8 @@ class _RepeatScope implements PExprScope {
   Object? call(String function, List<Object?> args) =>
       parent.call(function, args);
 }
+
+int _cardArgb(String? value, int fallback) =>
+    value == null || !RegExp(r'^#[a-fA-F0-9]{8}$').hasMatch(value)
+    ? fallback
+    : int.parse(value.substring(1), radix: 16);

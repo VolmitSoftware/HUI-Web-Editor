@@ -15,10 +15,16 @@ import 'preview_expr.dart';
 import 'preview_expr_functions.dart';
 import 'particle_layer_validation.dart';
 import 'validation.dart';
+import 'hologram_box_validation.dart';
+import 'gloss_show.dart';
 
 List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
-  final List<HuiIssue> issues = <HuiIssue>[];
+  final List<HuiIssue> issues = <HuiIssue>[
+    ...validateGlossShow(doc.extras['show']),
+  ];
 
+  issues.addAll(validateIconDisplayStyle(doc.style, path: r'$.style'));
+  issues.addAll(validateHologramBox(doc.box));
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) {
     issues.add(revisionIssue);

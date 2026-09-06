@@ -1,14 +1,30 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "anchor": {
     "world": "world",
-    "position": [0.0, 0.0, 0.0]
+    "position": [
+      0.0,
+      0.0,
+      0.0
+    ]
   },
   "lines": [
     "&dNew hologram"
   ],
-  "seeThrough": true,
-  "scale": 1.0,
-  "particleLayers": []
+  "particleLayers": [],
+  "style": {
+    "billboard": "center",
+    "seeThrough": true,
+    "scaleX": 1.0,
+    "scaleY": 1.0,
+    "scaleZ": 1.0
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
+  }
 }

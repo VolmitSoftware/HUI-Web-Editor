@@ -8,6 +8,7 @@
 /// it deterministically.
 library;
 
+import 'gloss_show.dart';
 import '../model/gloss_animation.dart';
 import 'gloss_animation_playback.dart';
 
@@ -43,7 +44,9 @@ final class GlossAnimationPlayer {
     return (
       nowMs: sampledNowMs,
       frameIndex: sampledIndex,
-      frameText: doc.frames[sampledIndex],
+      frameText: glossShowMatches(doc.extras['show'], nowMs: sampledNowMs)
+          ? doc.frames[sampledIndex]
+          : '',
     );
   }
 

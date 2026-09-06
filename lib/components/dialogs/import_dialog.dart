@@ -30,6 +30,7 @@ import '../../services/catalogs.dart' show HuiCatalogs;
 import '../../services/file_transfer.dart';
 import '../../services/image_library.dart' show ImageLibrary;
 import '../../state/editor_store.dart';
+import '../../state/workspace_panel.dart';
 import '../common/common.dart';
 import 'dialog_parts.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
@@ -550,6 +551,8 @@ class _ImportDialogState extends State<ImportDialog> {
 /// against the workspace it is about to join — but the document slots carry
 /// the candidate, never the open document.
 final class _ImportedDocumentState implements DocumentStateView {
+  @override
+  WorkspacePanelData? get panelDoc => null;
   _ImportedDocumentState({
     required this.store,
     required this.document,

@@ -17,6 +17,8 @@ import '../../state/workspace_panel.dart';
 import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'preview_expr_field.dart';
+import 'panel_authoring.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class PanelInspector extends StatelessWidget {
@@ -76,6 +78,7 @@ class PanelInspector extends StatelessWidget {
             _row(huiText('Unreadable menus'), graph.invalidDocumentIds.length),
           ],
         ),
+        PanelAuthoring(store: store, key: ValueKey(store.workspace.activeId)),
         if (decoded.data.runtimeBoard != null)
           _RuntimePanelEditor(store: store, panel: decoded.data),
         HuiPanel(
@@ -313,6 +316,14 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     _placement(draft),
     _follow(draft),
     _visibility(draft),
+    PreviewExprField(
+      label: huiText('Show condition'),
+      raw: draft.show,
+      kind: PreviewExprKind.boolean,
+      showCondition: true,
+      onChanged: (Object? value) =>
+          _changeDraft(draft.copyWith(show: value ?? true)),
+    ),
     if (_typedProblem(draft) case final String problem)
       HuiNote(problem, tone: HuiNoteTone.warning),
     dom.div(classes: 'hui-dialog-actions', <Widget>[
@@ -401,6 +412,24 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
               'Coordinates are world-space blocks; rotation is in degrees.',
             ),
       children: <Widget>[
+        HuiField(
+          label: huiText('World key'),
+          control: TextInput(
+            value: transform.worldKey,
+            onInput: (String value) => _changeDraft(
+              draft.copyWith(transform: transform.copyWith(worldKey: value)),
+            ),
+          ),
+        ),
+        HuiField(
+          label: huiText('World UUID'),
+          control: TextInput(
+            value: transform.worldUuid,
+            onInput: (String value) => _changeDraft(
+              draft.copyWith(transform: transform.copyWith(worldUuid: value)),
+            ),
+          ),
+        ),
         HuiField(
           label: following
               ? huiText('Offset from the player')
@@ -492,8 +521,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
             HuiDetailRow(huiText('World UUID'), transform.worldUuid),
             HuiNote(
               huiText(
-                'The server owns the world binding. Use the in-game panel move '
-                'commands to move this panel to another world.',
+                'The world key and UUID must identify the same loaded server world.',
               ),
             ),
           ],

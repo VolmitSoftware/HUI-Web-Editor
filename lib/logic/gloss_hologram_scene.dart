@@ -31,6 +31,7 @@
 /// reads forwards or mirrored) comes out exact.
 library;
 
+import 'gloss_show.dart';
 import 'dart:math' as math;
 
 import 'package:gloss_editor/l10n/hui_localizations.dart';
@@ -260,9 +261,9 @@ HologramFacing hologramFacing({
       ? doc.pitch
       : -math.asin(toCamera.y.clamp(-1.0, 1.0)) * 180 / math.pi;
   final bool tracksYaw =
-      doc.billboard != 'FIXED' && doc.billboard != 'HORIZONTAL';
+      doc.style.billboard != 'fixed' && doc.style.billboard != 'horizontal';
   final bool tracksPitch =
-      doc.billboard != 'FIXED' && doc.billboard != 'VERTICAL';
+      doc.style.billboard != 'fixed' && doc.style.billboard != 'vertical';
   return HologramFacing(
     yawDegrees: tracksYaw ? cameraYaw : doc.yaw,
     pitchDegrees: tracksPitch ? cameraPitch : doc.pitch,
@@ -386,18 +387,18 @@ HologramPlaneTransform hologramPlaneTransform({
 /// standing apart never see the same pose — a fixed frame can show one of
 /// those poses, never the fact that they differ.
 String hologramBillboardNote(String billboard) => switch (billboard) {
-  'FIXED' => huiText(
+  'fixed' => huiText(
     'billboard fixed · never turns; orbit behind it to read it mirrored',
   ),
-  'VERTICAL' => huiText(
+  'vertical' => huiText(
     'billboard vertical · yaws to each viewer, keeps its pitch; solved here '
     'for this camera only',
   ),
-  'HORIZONTAL' => huiText(
+  'horizontal' => huiText(
     'billboard horizontal · pitches to each viewer, keeps its yaw; solved '
     'here for this camera only',
   ),
-  'CENTER' => huiText(
+  'center' => huiText(
     'billboard center · faces every viewer on both axes, so this camera '
     'stands in for all of them',
   ),
@@ -416,8 +417,15 @@ List<GlossLineRender> hologramRenderedLines(
   GlossEmojiResolver emoji = const GlossNoEmoji(),
   int nowMs = 0,
 }) => <GlossLineRender>[
-  for (final String line in doc.lines)
-    renderGlossLine(line, animations: animations, emoji: emoji, nowMs: nowMs),
+  if (glossShowMatches(doc.extras['show'], nowMs: nowMs))
+    for (final String line in doc.lines)
+      renderGlossLine(
+        line,
+        animations: animations,
+        emoji: emoji,
+        nowMs: nowMs,
+        richText: true,
+      ),
 ];
 
 /// True when any line plays an animation — the surface's ticker gate.

@@ -1,6 +1,7 @@
 /// Conditional header/footer and list-name presentation selection.
 library;
 
+import 'gloss_show.dart';
 import '../components/scoreboard/scoreboard_selection.dart';
 import '../model/gloss_tablist.dart';
 
@@ -75,3 +76,29 @@ String glossTablistSubstituteTokens(
 ) => raw
     .replaceAll(r'$player', playerName ?? '')
     .replaceAll(r'$group', groupName ?? '');
+
+bool glossTablistHeaderFooterVisible(
+  GlossTablistDoc doc,
+  GlossConditionContext context, {
+  int nowMs = 0,
+}) =>
+    doc.headerFooter.enabled &&
+    glossShowMatches(doc.extras['show'], scope: context, nowMs: nowMs) &&
+    glossShowMatches(
+      doc.headerFooter.extras['show'],
+      scope: context,
+      nowMs: nowMs,
+    );
+
+bool glossTablistListNamesVisible(
+  GlossTablistDoc doc,
+  GlossConditionContext context, {
+  int nowMs = 0,
+}) =>
+    doc.listNames.enabled &&
+    glossShowMatches(doc.extras['show'], scope: context, nowMs: nowMs) &&
+    glossShowMatches(
+      doc.listNames.extras['show'],
+      scope: context,
+      nowMs: nowMs,
+    );

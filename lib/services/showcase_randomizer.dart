@@ -17,13 +17,18 @@ import '../doctype/doctype.dart';
 import '../logic/canvas_scene.dart' show huiIsBlockLikeMaterial;
 import '../logic/real_drop_model.dart';
 import '../model/model.dart';
+import '../model/runtime_panel_definition.dart';
 import '../state/editor_store.dart';
 import '../state/workspace.dart' show WorkspaceDoc;
+import '../state/workspace_panel.dart';
 import 'catalogs.dart';
 import 'showcase_effects.dart';
+import 'showcase_features.dart';
 
-bool canRandomizeShowcase(DocumentTypeAdapter type) =>
-    type is! PanelDocumentType;
+bool canRandomizeShowcase(
+  DocumentTypeAdapter type, {
+  bool linkedPanel = false,
+}) => type is! PanelDocumentType || linkedPanel;
 
 bool randomizeShowcaseDocument(
   EditorStore store,
@@ -90,19 +95,25 @@ bool randomizeShowcaseDocument(
         buildRandomDamageIndicatorsShowcase(store.damageIndicatorsDoc!, source),
       );
     case EntityOverlaysDocumentType():
-      final GlossEntityOverlaysDoc next = store.entityOverlaysDoc!.copy()
-        ..healthSegments = <int>[8, 10, 12, 16, 20][source.nextInt(5)]
-        ..scale = <double>[0.6, 0.75, 0.9, 1][source.nextInt(4)]
-        ..hitHighlightMs = <int>[500, 750, 1000, 1500][source.nextInt(4)]
-        ..nameFormat = <String>[
-          '&f{name}',
-          '&e{name}',
-          '&b{name}',
-        ][source.nextInt(3)];
-      store.replaceGlossDoc('Randomize entity overlays', next);
+      store.replaceGlossDoc(
+        'Randomize entity overlays',
+        buildRandomEntityOverlayShowcase(store.entityOverlaysDoc!, source),
+      );
     case PanelDocumentType():
-      return false;
+      final WorkspacePanelData? panel = store.activePanel?.data;
+      final Map<String, dynamic>? board = panel?.runtimeBoard;
+      if (panel == null || board == null) return false;
+      return store.updatePanel(
+        panel.copyWith(
+          runtimeBoard: buildRandomRuntimePanelShowcase(
+            RuntimePanelDefinition.fromJson(board),
+            source,
+          ).toJson(),
+        ),
+        coalesce: false,
+      );
   }
+  store.requestCanvasFit();
   return true;
 }
 
@@ -345,11 +356,8 @@ HuiMenu buildRandomMenuShowcase(
   math.Random random, {
   MenuShowcaseArchetype? archetype,
 }) {
-  final MenuShowcaseArchetype selectedArchetype =
-      archetype ??
-      MenuShowcaseArchetype.values[random.nextInt(
-        MenuShowcaseArchetype.values.length,
-      )];
+  if (archetype == null) return _buildComposedMenu(store, random);
+  final MenuShowcaseArchetype selectedArchetype = archetype;
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
   final _MenuShowcaseContext context = _MenuShowcaseContext(
     store: store,
@@ -368,6 +376,98 @@ HuiMenu buildRandomMenuShowcase(
     MenuShowcaseArchetype.playerTools => _buildPlayerToolsMenu(context),
     MenuShowcaseArchetype.menuNavigator => _buildMenuNavigator(context),
   };
+}
+
+HuiMenu _buildComposedMenu(EditorStore store, math.Random random) {
+  final ShowcaseMood mood = showcasePick(random, showcaseMoods);
+  final int columns = 2 + random.nextInt(4);
+  final int rows = 2 + random.nextInt(3);
+  final double spacingX = _band(random, (0.8, 1.6), 2);
+  final double spacingY = _band(random, (0.65, 1.1), 2);
+  final bool stagger = random.nextBool();
+  final bool curved = random.nextBool();
+  final List<HuiComponent> components = <HuiComponent>[
+    HuiComponent(
+      'showcase-title',
+      Vec3(0, (rows + 1) * spacingY / 2, 0),
+      HuiDecorationData(
+        HuiTextIcon(
+          showcaseRichText(
+            random,
+            mood,
+            showcasePick(random, showcaseServerNames),
+          ),
+          showcaseDisplayStyle(random, mood),
+          1 + random.nextInt(20),
+        )..box = showcaseBox(random, mood),
+      ),
+    ),
+  ];
+  final List<String> types = <String>[
+    'text',
+    'item',
+    'block',
+    'playerHead',
+    'entity',
+    ..._availableAssetIconTypes(store),
+  ]..shuffle(random);
+  for (int index = 0; index < columns * rows; index++) {
+    final int row = index ~/ columns;
+    final int column = index % columns;
+    final double x =
+        (column - (columns - 1) / 2) * spacingX +
+        (stagger && row.isOdd ? spacingX / 3 : 0);
+    final Vec3 offset = Vec3(
+      x,
+      ((rows - 1) / 2 - row) * spacingY,
+      curved ? _round2(x * x * 0.12) : _band(random, (-0.1, 0.1), 2),
+    );
+    final HuiComponentData data = switch (index % 3) {
+      0 => _randomButtonData(store, random, componentOffset: offset),
+      1 => _randomToggleData(store, random),
+      _ => HuiDecorationData(
+        _randomIconOfType(store, random, mood, types[index % types.length]),
+      ),
+    };
+    if (data is HuiButtonData) {
+      data.icon = _randomIconOfType(
+        store,
+        random,
+        mood,
+        types[index % types.length],
+      );
+    }
+    components.add(
+      HuiComponent('feature-${index + 1}', offset, data)
+        ..extras['show'] = showcaseShow(random, allowHidden: true),
+    );
+  }
+  return HuiMenu(
+    offset: Vec3(
+      _band(random, (-0.3, 0.3), 2),
+      _band(random, (1.2, 2.2), 2),
+      _band(random, (2.5, 5), 2),
+    ),
+    lockPosition: random.nextBool(),
+    followPlayer: random.nextBool(),
+    maxDistance: random.nextBool() ? null : _band(random, (8, 48), 1),
+    closeOnDeath: random.nextBool(),
+    closeOnTeleport: random.nextBool(),
+    components: components,
+    particleLayers: showcaseParticleLayers(
+      random,
+      mood,
+      scopes: <String>[
+        'projection',
+        'component',
+        'text',
+        'line',
+        'span',
+        'local',
+      ],
+      componentId: 'showcase-title',
+    ),
+  )..extras['show'] = showcaseShow(random, viewerAware: true);
 }
 
 HuiMenu _buildNetworkHubMenu(_MenuShowcaseContext context) {
@@ -887,7 +987,41 @@ HuiPreviewDoc buildRandomPreviewShowcase(
     ),
     PreviewShowcaseArchetype.shelf => _buildRandomShelfPreview(random, theme),
   };
+  final ShowcaseMood mood = showcasePick(random, showcaseMoods);
+  doc.textStyle = showcaseDisplayStyle(random, mood);
+  doc.itemStyle = showcaseDisplayStyle(random, mood);
+  final HuiPreviewCard? card = doc.card;
+  if (card != null) {
+    card.padding = random.nextInt(17);
+    card.borderWidth = random.nextInt(9);
+    card.trayPadding = random.nextInt(11);
+    card.titleHeight = 10 + random.nextInt(23);
+    card.titleGap = random.nextInt(11);
+    card.backgroundArgb = showcasePick(random, <String>[
+      '#00000000',
+      '#F21B1B22',
+      '#99${mood.primary.substring(1)}',
+    ]);
+    card.trayArgb = showcasePick(random, <String>[
+      '#00000000',
+      '#FF33333E',
+      '#66${mood.secondary.substring(1)}',
+    ]);
+    card.borderArgb = '#CC${mood.primary.substring(1)}';
+    card.titleArgb = '#E6${mood.secondary.substring(1)}';
+  }
   doc.match.priority = 8 + random.nextInt(7);
+  doc.show = _showcasePreviewShow(random);
+  doc.card?.show = _showcasePreviewShow(random);
+  for (final HuiPreviewElement element in doc.elements) {
+    element.show = _showcasePreviewShow(random);
+    element.style = random.nextBool()
+        ? showcaseDisplayStyle(random, mood)
+        : null;
+    if (element.type == 'label') {
+      element.box = showcaseBox(random, mood);
+    }
+  }
   final String? cardTitle = doc.card?.title;
   if (cardTitle != null) {
     doc.card!.title = showcaseAlignmentExpression(
@@ -896,8 +1030,21 @@ HuiPreviewDoc buildRandomPreviewShowcase(
       24 + random.nextInt(17),
     );
   }
+  doc.particleLayers = showcaseParticleLayers(
+    random,
+    showcasePick(random, showcaseMoods),
+    scopes: <String>['projection', 'label', 'text', 'line', 'local'],
+  );
   return doc;
 }
+
+Object _showcasePreviewShow(math.Random random) =>
+    showcasePick(random, <Object>[
+      true,
+      'time.seconds >= 0',
+      'server.online >= 0',
+      'player.health > 0',
+    ]);
 
 HuiPreviewDoc buildRandomPreviewFurnaceLab(math.Random random) =>
     _buildRandomPreviewFurnaceLab(
@@ -2046,11 +2193,14 @@ GlossHologramDoc buildRandomHologramShowcase(
         '${mood.legacy}${showcaseAlignment(random, showcasePick(random, showcaseHeadlines)).text}',
       );
   }
-  final String billboard = showcasePick(random, glossHologramBillboards);
-  final double yaw = billboard == 'FIXED' || billboard == 'HORIZONTAL'
+  lines[0] = showcaseRichText(random, mood, lines[0]);
+  final HuiIconStyle style = showcaseDisplayStyle(random, mood);
+  final double yaw =
+      style.billboard == 'fixed' || style.billboard == 'horizontal'
       ? _round2(-180 + random.nextDouble() * 360)
       : 0;
-  final double pitch = billboard == 'FIXED' || billboard == 'VERTICAL'
+  final double pitch =
+      style.billboard == 'fixed' || style.billboard == 'vertical'
       ? _round2(-45 + random.nextDouble() * 90)
       : 0;
   return GlossHologramDoc(
@@ -2065,11 +2215,17 @@ GlossHologramDoc buildRandomHologramShowcase(
       ],
     ),
     lines: lines,
-    seeThrough: random.nextBool(),
-    billboard: billboard,
+    style: style,
+    box: showcaseBox(random, mood),
     yaw: yaw,
     pitch: pitch,
-  );
+    particleLayers: showcaseParticleLayers(
+      random,
+      mood,
+      scopes: <String>['projection', 'text', 'line', 'span', 'local'],
+      lineCount: lines.length,
+    ),
+  )..extras['show'] = showcaseShow(random, viewerAware: true);
 }
 
 GlossAnimationDoc buildRandomAnimationShowcase(
@@ -2086,7 +2242,7 @@ GlossAnimationDoc buildRandomAnimationShowcase(
     mode: built.mode,
     frameIntervalMs: built.intervalMs,
     frames: built.frames,
-  );
+  )..extras['show'] = showcaseShow(random, viewerAware: true);
 }
 
 GlossScoreboardDoc buildRandomScoreboardShowcase(
@@ -2161,8 +2317,31 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
           hideNumbers: true,
         ),
       ),
+      for (int index = 0; index < 1 + random.nextInt(4); index++)
+        GlossScoreboardVariant(
+          id: 'context-$index',
+          priority: 20 + index * 10,
+          when: showcasePick(random, <String>[
+            'viewer.ping >= 120',
+            "viewer.world == 'world_nether'",
+            "hasPermission('viewer', 'gloss.board.staff')",
+            'server.online >= 20',
+          ]),
+          presentation: GlossScoreboardPresentation(
+            title: '${mood.legacy}${showcasePick(random, showcaseStatusWords)}',
+            lines: <String>[
+              '&f{{ player.name }}',
+              '&7${showcasePick(random, showcaseEvents)}',
+              for (final String line in (List<String>.of(
+                lines,
+              )..shuffle(random)).take(3 + random.nextInt(7)))
+                line,
+            ],
+            hideNumbers: random.nextBool(),
+          ),
+        ),
     ],
-  );
+  )..extras['show'] = showcaseShow(random, viewerAware: true);
 }
 
 GlossMotdDoc buildRandomMotdShowcase(GlossMotdDoc current, math.Random random) {
@@ -2192,7 +2371,7 @@ GlossMotdDoc buildRandomMotdShowcase(GlossMotdDoc current, math.Random random) {
     schemaVersion: current.schemaVersion,
     revision: current.revision,
     entries: entries,
-  );
+  )..extras['show'] = showcaseShow(random, viewerAware: false);
 }
 
 GlossEmojiDoc buildRandomEmojiShowcase(
@@ -2212,7 +2391,7 @@ GlossEmojiDoc buildRandomEmojiShowcase(
     trigger: random.nextInt(5) == 0 ? '' : choice.$1,
     emoji: emoji,
     enabled: random.nextInt(5) != 0,
-  );
+  )..extras['show'] = showcaseShow(random, viewerAware: true);
 }
 
 /// Chat shorthands a town like this one would actually register.
@@ -2256,9 +2435,11 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
     prefix: random.nextBool()
-        ? '${showcaseColorEffect(random, mood).text}'
+        ? '${showcaseRichText(random, mood, showcasePick(random, mood.glyphs))} '
+              '${showcaseColorEffect(random, mood).text}'
               '${showcasePick(random, _formatCodes)}'
-        : '${showcaseColorEffect(random, mood).text}'
+        : '${showcaseRichText(random, mood, showcasePick(random, mood.glyphs))} '
+              '${showcaseColorEffect(random, mood).text}'
               '${showcaseAlignment(random, showcasePick(random, mood.glyphs)).text}',
     offsetRaw: <num>[
       _round((random.nextDouble() - 0.5) * 1.2),
@@ -2271,6 +2452,13 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
     shimmer: _randomBubbleShimmer(random, mood),
     followPlayer: random.nextBool(),
     hideOwn: random.nextBool(),
+    style: showcaseDisplayStyle(random, mood),
+    box: showcaseBox(random, mood),
+    particleLayers: showcaseParticleLayers(
+      random,
+      mood,
+      scopes: <String>['projection', 'text', 'line', 'span', 'local'],
+    ),
     select: switch (selectShape) {
       0 => null,
       1 => GlossBubbleSelect(
@@ -2287,7 +2475,7 @@ GlossBubbleStyleDoc buildRandomBubbleShowcase(
         when: "matchesGlob(viewer.world, 'world*') && inGroup('viewer', 'vip')",
       ),
     },
-  );
+  )..extras['show'] = showcaseShow(random, viewerAware: true);
 }
 
 GlossBubbleShimmer _randomBubbleShimmer(math.Random random, ShowcaseMood mood) {
@@ -2553,6 +2741,26 @@ GlossTablistDoc buildRandomTablistShowcase(
         header: headerLines.join('\n'),
         footer: footerLines.join('\n'),
       ),
+      variants: <GlossTablistHeaderFooterVariant>[
+        for (int index = 0; index < 1 + random.nextInt(4); index++)
+          GlossTablistHeaderFooterVariant(
+            id: 'audience-$index',
+            priority: 10 + index * 10,
+            when: showcasePick(random, <String>[
+              'viewer.ping >= 100',
+              "viewer.world == 'world_nether'",
+              "inGroup('viewer', 'vip')",
+              'viewer.healthPercent < 40',
+            ]),
+            presentation: GlossTablistHeaderFooterPresentation(
+              header:
+                  '${mood.legacy}${showcasePick(random, showcaseHeadlines)}\n${headerLines.first}',
+              footer: (List<String>.of(
+                footerLines,
+              )..shuffle(random)).join('\n'),
+            ),
+          ),
+      ],
     ),
     listNames: GlossTablistListNames(
       enabled: true,
@@ -2575,12 +2783,9 @@ GlossTablistDoc buildRandomTablistShowcase(
       ],
     ),
   );
-  if (encodeGlossTablistDoc(generated) == encodeGlossTablistDoc(current)) {
-    final String fallback = generated.listNames.presentation.format;
-    generated.listNames.presentation.format = fallback.startsWith('&f')
-        ? '${mood.legacy}\$player'
-        : '&f\$player';
-  }
+  generated.extras['show'] = showcaseShow(random);
+  generated.headerFooter.extras['show'] = showcaseShow(random);
+  generated.listNames.extras['show'] = showcaseShow(random);
   return generated;
 }
 
@@ -2726,7 +2931,7 @@ final class _DropProfile {
   /// `scale.defaultScale` band; the other two families follow it.
   final (double, double) scale;
 
-  /// `labels.scale` band, or null for a stage with no labels at all.
+  /// Label display scale band, or null for a stage with no labels at all.
   final (double, double)? labels;
 
   final (double, double) spread;
@@ -2807,7 +3012,10 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
       : _dropProfiles.firstWhere(
           (_DropProfile candidate) => candidate.archetype == archetype,
         );
-  final GlossRealDropSettingsDoc doc = current.copy();
+  final GlossRealDropSettingsDoc doc = GlossRealDropSettingsDoc(
+    revision: current.revision,
+  );
+  doc.show = showcaseShow(random);
   final GlossRealDropPresentation presentation = doc.presentation;
 
   presentation.limits
@@ -2844,26 +3052,16 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
     ..transitionTicks = random.nextInt(13);
 
   final (double, double)? labelScale = profile.labels;
-  final List<int> tint = _moodTint(mood, random);
+  final HuiIconStyle labelStyle = showcaseDisplayStyle(random, mood);
+  final double size = labelScale == null ? 0.85 : _band(random, labelScale, 2);
+  labelStyle.scaleX = size;
+  labelStyle.scaleY = size * _band(random, (0.7, 1.3), 2);
+  labelStyle.scaleZ = size;
   presentation.labels
     ..enabled = labelScale != null
     ..yOffset = _round2(0.2 + random.nextDouble() * 1.1)
-    ..scale = labelScale == null ? 0.85 : _band(random, labelScale, 2)
-    ..viewRange = _band(random, (12, 48), 0)
-    ..billboard = showcasePick(random, const <String>[
-      'CENTER',
-      'CENTER',
-      'VERTICAL',
-      'HORIZONTAL',
-      'FIXED',
-    ])
-    ..seeThrough = random.nextBool()
-    ..shadow = random.nextBool()
-    ..background = random.nextInt(4) != 0
-    ..backgroundRed = tint[0]
-    ..backgroundGreen = tint[1]
-    ..backgroundBlue = tint[2]
-    ..backgroundAlpha = 32 + random.nextInt(180);
+    ..style = labelStyle
+    ..box = showcaseBox(random, mood);
 
   presentation.filters
     ..onlyPlayerDrops = random.nextInt(4) == 0
@@ -2878,11 +3076,170 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
     ]);
 
   _applyDropArchetype(doc, profile.archetype, random);
-  presentation.physics = _buildDropPhysics(profile.archetype, random);
-  presentation.script = _buildDropScript(profile.archetype, mood, random);
-  presentation.animation = _buildDropAnimation(profile.archetype, mood, random);
+  presentation.physics = _buildDropPhysics(
+    archetype ?? showcasePick(random, RealDropShowcaseArchetype.values),
+    random,
+  );
+  presentation.script = _buildDropScript(
+    archetype ?? showcasePick(random, RealDropShowcaseArchetype.values),
+    mood,
+    random,
+  );
+  presentation.animation = _buildDropAnimation(
+    archetype ?? showcasePick(random, RealDropShowcaseArchetype.values),
+    mood,
+    random,
+  );
+  if (archetype == null) {
+    _extendDropAnimation(presentation.animation!, random);
+    doc.audience.when = showcasePick(random, <String>[
+      'true',
+      "viewer.world != 'quiet_world'",
+      "hasPermission('viewer', 'gloss.drops.view')",
+    ]);
+    final int variantCount = 1 + random.nextInt(4);
+    for (int index = 0; index < variantCount; index++) {
+      final GlossRealDropPresentation variant = presentation.copy();
+      variant.animation = random.nextBool()
+          ? null
+          : GlossRealDropAnimation(
+              enabled: true,
+              profiles: <GlossRealDropAnimationProfile>[
+                GlossRealDropAnimationProfile(
+                  id: 'variant-$index',
+                  clips: <GlossRealDropAnimationClip>[_spawnRevealClip(random)],
+                ),
+              ],
+            );
+      variant.labels.style = showcaseDisplayStyle(random, mood);
+      variant.labels.box = showcaseBox(random, mood);
+      variant.scale.defaultScale = _band(random, (0.1, 1.8), 2);
+      variant.physics = _buildDropPhysics(
+        showcasePick(random, RealDropShowcaseArchetype.values),
+        random,
+      );
+      variant.particleLayers = showcaseParticleLayers(
+        random,
+        mood,
+        scopes: <String>['projection', 'model', 'label', 'local'],
+      );
+      doc.variants.add(
+        GlossRealDropVariant(
+          id: 'audience-$index',
+          priority: 10 + index * 10,
+          when: showcasePick(random, <String>[
+            "viewer.world == 'world_nether'",
+            'viewer.healthPercent < 40',
+            "inGroup('viewer', 'vip')",
+            "hasPermission('viewer', 'gloss.drops.special')",
+          ]),
+          presentation: variant,
+        ),
+      );
+    }
+  }
+  presentation.particleLayers = showcaseParticleLayers(
+    random,
+    mood,
+    scopes: <String>['projection', 'model', 'label', 'local'],
+  );
 
   return doc;
+}
+
+void _extendDropAnimation(
+  GlossRealDropAnimation animation,
+  math.Random random,
+) {
+  for (final GlossRealDropAnimationProfile profile in animation.profiles.take(
+    1,
+  )) {
+    final int count = 1 + random.nextInt(2);
+    for (int index = 0; index < count; index++) {
+      final List<GlossRealDropAnimationTarget> targets =
+          List<GlossRealDropAnimationTarget>.of(
+            GlossRealDropAnimationTarget.values,
+          )..shuffle(random);
+      final double duration = (8 + random.nextInt(73)).toDouble();
+      profile.clips.add(
+        GlossRealDropAnimationClip(
+          trigger: showcasePick(random, GlossRealDropAnimationTrigger.values),
+          durationTicks: duration,
+          loop: random.nextBool(),
+          tracks: <GlossRealDropAnimationTrack>[
+            for (final GlossRealDropAnimationTarget target in targets.take(
+              2 + random.nextInt(3),
+            ))
+              _randomDropTrack(target, duration, random),
+          ],
+        ),
+      );
+    }
+  }
+}
+
+GlossRealDropAnimationTrack _randomDropTrack(
+  GlossRealDropAnimationTarget target,
+  double duration,
+  math.Random random,
+) {
+  final bool absolute = <GlossRealDropAnimationTarget>[
+    GlossRealDropAnimationTarget.visible,
+    GlossRealDropAnimationTarget.physics,
+    GlossRealDropAnimationTarget.glow,
+    GlossRealDropAnimationTarget.lightLevel,
+  ].contains(target);
+  final bool scale = <GlossRealDropAnimationTarget>[
+    GlossRealDropAnimationTarget.scaleX,
+    GlossRealDropAnimationTarget.scaleY,
+    GlossRealDropAnimationTarget.scaleZ,
+  ].contains(target);
+  final double resting =
+      scale ||
+          target == GlossRealDropAnimationTarget.visible ||
+          target == GlossRealDropAnimationTarget.physics
+      ? 1
+      : 0;
+  final double peak = switch (target) {
+    GlossRealDropAnimationTarget.visible ||
+    GlossRealDropAnimationTarget.physics => 0,
+    GlossRealDropAnimationTarget.glow => _argb(
+      showcasePick(random, showcaseMoods).primary,
+    ),
+    GlossRealDropAnimationTarget.lightLevel =>
+      (1 + random.nextInt(15)).toDouble(),
+    GlossRealDropAnimationTarget.scaleX ||
+    GlossRealDropAnimationTarget.scaleY ||
+    GlossRealDropAnimationTarget.scaleZ => _band(random, (0.2, 2.4), 2),
+    GlossRealDropAnimationTarget.rotationX ||
+    GlossRealDropAnimationTarget.rotationY ||
+    GlossRealDropAnimationTarget.rotationZ => _band(random, (-1080, 1080), 0),
+    _ => _band(random, (-0.75, 0.75), 2),
+  };
+  return _track(
+    target,
+    absolute
+        ? GlossRealDropAnimationBlend.replace
+        : showcasePick(random, <GlossRealDropAnimationBlend>[
+            GlossRealDropAnimationBlend.replace,
+            scale
+                ? GlossRealDropAnimationBlend.multiply
+                : GlossRealDropAnimationBlend.add,
+          ]),
+    <GlossRealDropAnimationKeyframe>[
+      _key(0, resting),
+      _key(
+        duration / 2,
+        peak,
+        easing: showcasePick(random, GlossRealDropAnimationEasing.values),
+      ),
+      _key(
+        duration,
+        resting,
+        easing: showcasePick(random, GlossRealDropAnimationEasing.values),
+      ),
+    ],
+  );
 }
 
 GlossDamageIndicatorsDoc buildRandomDamageIndicatorsShowcase(
@@ -2918,7 +3275,7 @@ GlossDamageIndicatorsDoc buildRandomDamageIndicatorsShowcase(
         "hasPermission('viewer', 'gloss.indicators.show')",
       ]),
     ),
-  );
+  )..extras['show'] = showcaseShow(random, viewerAware: true);
 }
 
 GlossDamageIndicatorStyle _randomDamageIndicatorStyle(
@@ -2933,6 +3290,7 @@ GlossDamageIndicatorStyle _randomDamageIndicatorStyle(
           random,
           healing
               ? const <String>[
+                  '&a&lRESTORED',
                   '&a&l+{amount}',
                   '&2&l{amount}',
                   '&b+{amount} &aHP',
@@ -2943,6 +3301,7 @@ GlossDamageIndicatorStyle _randomDamageIndicatorStyle(
                   '&e{{ align(\'{amount}\', 8, \'right\') }}',
                 ]
               : const <String>[
+                  '&c&lOUCH!',
                   '&c&l{amount}',
                   '&4&l-{amount}',
                   '&6{amount} &cDMG',
@@ -2978,10 +3337,35 @@ GlossDamageIndicatorStyle _randomDamageIndicatorStyle(
           fadeStartFraction: _band(random, (0.42, 0.86), 2),
         ),
       );
+  final ShowcaseMood mood = showcasePick(random, showcaseMoods);
+  presentation.format = showcaseRichText(random, mood, presentation.format);
+  presentation.style = showcaseDisplayStyle(random, mood);
+  presentation.box = showcaseBox(random, mood);
+  presentation.particleLayers = showcaseParticleLayers(
+    random,
+    mood,
+    scopes: <String>['projection', 'text', 'line', 'span', 'local'],
+  );
   return GlossDamageIndicatorStyle(
     when: healing ? 'event.healing' : 'event.damage',
     presentation: presentation,
     variants: <GlossDamageIndicatorVariant>[
+      for (int index = 0; index < 1 + random.nextInt(4); index++)
+        GlossDamageIndicatorVariant(
+          id: 'context-$index',
+          priority: 10 + index * 10,
+          when: showcasePick(random, <String>[
+            'event.amount < 2',
+            'event.amount >= 12',
+            "viewer.world == 'world_nether'",
+            'viewer.healthPercent < 40',
+          ]),
+          presentation: _randomDamageIndicatorVariantPresentation(
+            presentation,
+            random,
+            healing: healing,
+          ),
+        ),
       GlossDamageIndicatorVariant(
         id: healing ? 'large-heal' : 'critical-hit',
         priority: healing ? 60 : 100,
@@ -2992,6 +3376,7 @@ GlossDamageIndicatorStyle _randomDamageIndicatorStyle(
           presentation,
           random,
           healing: healing,
+          critical: true,
         ),
       ),
     ],
@@ -3002,19 +3387,35 @@ GlossDamageIndicatorPresentation _randomDamageIndicatorVariantPresentation(
   GlossDamageIndicatorPresentation base,
   math.Random random, {
   required bool healing,
+  bool critical = false,
 }) {
   final GlossDamageIndicatorPresentation presentation = base.copy();
+  final ShowcaseMood mood = showcasePick(random, showcaseMoods);
+  presentation.style = showcaseDisplayStyle(random, mood);
+  presentation.box = showcaseBox(random, mood);
+  presentation.particleLayers = showcaseParticleLayers(
+    random,
+    mood,
+    scopes: <String>['projection', 'text', 'line', 'span', 'local'],
+  );
   presentation.format = healing
       ? showcasePick(random, const <String>[
           '&a&l+{amount} &2BURST',
           '&b&l+{amount} &3HEAL',
           '&f&l{amount} &aRESTORED',
         ])
-      : showcasePick(random, const <String>[
+      : critical
+      ? showcasePick(random, const <String>[
           '&6&lCRIT &e-{amount}',
           '&e&l-{amount} &6CRITICAL',
           '&f&l{amount} &6CRIT',
+        ])
+      : showcasePick(random, const <String>[
+          '&c&l-{amount} &4HIT',
+          '&e-{amount}',
+          '&6&l{amount} &cDAMAGE',
         ]);
+  presentation.format = showcaseRichText(random, mood, presentation.format);
   presentation.offset.y = _round2(base.offset.y + 0.12);
   presentation.motion.horizontalSpeed = _round2(
     math.min(3.2, base.motion.horizontalSpeed * 1.2),
@@ -3925,15 +4326,6 @@ double _argb(String color) {
   return (0xFF000000 | int.parse(digits, radix: 16)).toDouble();
 }
 
-/// The mood's primary colour as a label background tint, occasionally plain
-/// black the way the shipped default is.
-List<int> _moodTint(ShowcaseMood mood, math.Random random) {
-  if (random.nextInt(3) == 0) return <int>[0, 0, 0];
-  final int packed = int.parse(mood.primary.substring(1), radix: 16);
-  return <int>[(packed >> 16) & 0xFF, (packed >> 8) & 0xFF, packed & 0xFF];
-}
-
-/// A value inside `(low, high)`, rounded to [decimals] places.
 double _band(math.Random random, (double, double) range, int decimals) {
   final double value = range.$1 + random.nextDouble() * (range.$2 - range.$1);
   if (decimals == 0) return value.roundToDouble();
@@ -3947,7 +4339,16 @@ HuiButtonData _randomButtonData(
   EditorStore store,
   math.Random random, {
   required Vec3 componentOffset,
-}) => _buttonDataForRecipe(store, random, random.nextInt(6), componentOffset);
+}) {
+  final HuiButtonData data = _buttonDataForRecipe(
+    store,
+    random,
+    random.nextInt(6),
+    componentOffset,
+  );
+  data.icon = _randomIcon(store, random);
+  return data;
+}
 
 HuiButtonData _buttonDataForRecipe(
   EditorStore store,
@@ -4095,38 +4496,15 @@ HuiNavigateAction _randomNavigationAction(
 }
 
 HuiToggleData _randomToggleData(EditorStore store, math.Random random) {
-  final ShowcaseMood mood = showcasePick(random, showcaseMoods);
   final (String, String) labels = showcasePick(random, _toggleLabels);
   final (String, String) condition = showcasePick(random, <(String, String)>[
     ('%player_is_op%', 'yes'),
     ('%player_world%', 'world'),
     ('%player_has_permission_gloss.vip%', 'true'),
   ]);
-  final int recipe = random.nextInt(3);
   final String trigger = showcasePick(random, huiActionTriggers);
-  final HuiIcon trueIcon = switch (recipe) {
-    0 => HuiTextIcon(
-      '&a[ON] &f${labels.$1}',
-      _randomStyle(random, mood),
-      10 + random.nextInt(21),
-    ),
-    1 => HuiItemIcon(
-      _material(store, random),
-      1 + random.nextInt(3),
-      random.nextInt(5),
-      _randomStyle(random, mood),
-    ),
-    _ => HuiPlayerHeadIcon('%player_name%', _randomStyle(random, mood), 20),
-  };
-  final HuiIcon falseIcon = switch (recipe) {
-    0 => HuiTextIcon(
-      '&c[OFF] &7${labels.$2}',
-      _randomStyle(random, mood),
-      10 + random.nextInt(21),
-    ),
-    1 => HuiBlockIcon(_blockMaterial(random), _randomStyle(random, mood)),
-    _ => HuiTextIcon('&7${labels.$2}', _randomStyle(random, mood), 20),
-  };
+  final HuiIcon trueIcon = _randomIcon(store, random);
+  final HuiIcon falseIcon = _randomIcon(store, random);
   return HuiToggleData(
     0.05 + random.nextDouble() * 0.1,
     condition.$1,
@@ -4207,13 +4585,13 @@ List<HuiIcon> _availableAssetIcons(
     if (images.isNotEmpty)
       HuiTextImageIcon(
         images[random.nextInt(images.length)],
-        _randomStyle(random, mood),
+        showcaseDisplayStyle(random, mood),
       ),
     if (images.length >= 2)
       HuiAnimatedImageIcon(
         frames.take(math.min(4, frames.length)).toList(),
         2 + random.nextInt(10),
-        _randomStyle(random, mood),
+        showcaseDisplayStyle(random, mood),
       ),
     ?customItem == null
         ? null
@@ -4221,7 +4599,7 @@ List<HuiIcon> _availableAssetIcons(
             customItem.provider,
             customItem.id,
             1,
-            _randomStyle(random, mood),
+            showcaseDisplayStyle(random, mood),
           ),
   ];
 }
@@ -4231,75 +4609,54 @@ HuiIcon _randomIconOfType(
   math.Random random,
   ShowcaseMood mood,
   String type,
-) => switch (type) {
-  'item' => HuiItemIcon(
-    _material(store, random),
-    1 + random.nextInt(4),
-    random.nextInt(8),
-    _randomStyle(random, mood),
-  ),
-  'block' => HuiBlockIcon(_blockMaterial(random), _randomStyle(random, mood)),
-  'entity' => HuiEntityIcon(
-    showcasePick(random, huiSpawnableLivingEntityTypes),
-    0.55 + random.nextDouble() * 0.4,
-    0.55 + random.nextDouble() * 0.4,
-  ),
-  'playerHead' => HuiPlayerHeadIcon(
-    showcasePick(random, <String>[
-      '%player_name%',
-      '%player%',
-      '{{player.name}}',
-      'Notch',
-    ]),
-    _randomStyle(random, mood),
-    random.nextBool() ? null : 20 + random.nextInt(41),
-  ),
-  'textImage' ||
-  'animatedTextImage' ||
-  'customItem' => _availableAssetIcons(store, random, mood).firstWhere(
-    (HuiIcon icon) => icon.type == type,
-    orElse: () => HuiTextIcon(
-      '${mood.legacy}${showcaseAlignment(random, showcasePick(random, showcaseStatusWords)).text}',
-      _randomStyle(random, mood),
-      10,
+) {
+  final HuiIcon icon = switch (type) {
+    'item' => HuiItemIcon(
+      _material(store, random),
+      1 + random.nextInt(4),
+      random.nextInt(8),
+      showcaseDisplayStyle(random, mood),
     ),
-  ),
-  _ => HuiTextIcon(
-    '${mood.legacy}&l${showcaseAlignment(random, showcasePick(random, showcaseStatusWords)).text}\n'
-    '&7{{ player.name }}',
-    _randomStyle(random, mood),
-    5 + random.nextInt(26),
-  ),
-};
-
-HuiIconStyle _randomStyle(math.Random random, ShowcaseMood mood) {
-  final int? brightness = random.nextBool() ? random.nextInt(16) : null;
-  return HuiIconStyle(
-    billboard: huiIconBillboards[random.nextInt(huiIconBillboards.length)],
-    shadow: random.nextBool(),
-    seeThrough: random.nextBool(),
-    textAlignment:
-        huiIconTextAlignments[random.nextInt(huiIconTextAlignments.length)],
-    backgroundArgb: showcasePick(random, <String>[
-      '#66000000',
-      '#66000000',
-      '#4D${mood.primary.substring(1)}',
-      '#33${mood.secondary.substring(1)}',
-    ]),
-    textOpacity: 180 + random.nextInt(76),
-    lineWidth: 120 + random.nextInt(281),
-    blockLight: brightness,
-    skyLight: brightness,
-    viewRange: 0.6 + random.nextDouble() * 1.8,
-    shadowRadius: random.nextDouble(),
-    shadowStrength: random.nextDouble(),
-    cullingWidth: 1 + random.nextDouble() * 4,
-    cullingHeight: 1 + random.nextDouble() * 4,
-    glowColor: random.nextBool() ? '#FF${mood.primary.substring(1)}' : null,
-    scaleX: 0.65 + random.nextDouble() * 0.4,
-    scaleY: 0.65 + random.nextDouble() * 0.4,
-    scaleZ: 0.65 + random.nextDouble() * 0.4,
-  );
+    'block' => HuiBlockIcon(
+      _blockMaterial(random),
+      showcaseDisplayStyle(random, mood),
+    ),
+    'entity' => HuiEntityIcon(
+      showcasePick(random, huiSpawnableLivingEntityTypes),
+      0.55 + random.nextDouble() * 0.4,
+      0.55 + random.nextDouble() * 0.4,
+    ),
+    'playerHead' => HuiPlayerHeadIcon(
+      showcasePick(random, <String>[
+        '%player_name%',
+        '%player%',
+        '{{player.name}}',
+        'Notch',
+      ]),
+      showcaseDisplayStyle(random, mood),
+      random.nextBool() ? null : 20 + random.nextInt(41),
+    ),
+    'textImage' ||
+    'animatedTextImage' ||
+    'customItem' => _availableAssetIcons(store, random, mood).firstWhere(
+      (HuiIcon icon) => icon.type == type,
+      orElse: () => HuiTextIcon(
+        '${mood.legacy}${showcaseAlignment(random, showcasePick(random, showcaseStatusWords)).text}',
+        showcaseDisplayStyle(random, mood),
+        10,
+      ),
+    ),
+    _ => HuiTextIcon(
+      '${mood.legacy}&l${showcaseAlignment(random, showcasePick(random, showcaseStatusWords)).text}\n'
+      '&7{{ player.name }}',
+      showcaseDisplayStyle(random, mood),
+      5 + random.nextInt(26),
+    ),
+  };
+  if (icon is HuiTextIcon) {
+    icon.box = showcaseBox(random, mood);
+  }
+  return icon;
 }
 
 String _material(EditorStore store, math.Random random) {

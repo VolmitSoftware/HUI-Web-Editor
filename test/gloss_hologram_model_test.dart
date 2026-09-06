@@ -9,7 +9,7 @@ import 'package:test/test.dart';
 
 const String _baseline = '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 7,
   "anchor": {
     "world": "world_nether",
@@ -27,13 +27,13 @@ void main() {
   group('decode', () {
     test('reads the full document', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
-      expect(doc.schemaVersion, 2);
+      expect(doc.schemaVersion, 3);
       expect(doc.revision, 7);
       expect(doc.anchor.world, 'world_nether');
       expect(doc.anchor.position, <double>[10.5, 64, -3.25]);
       expect(doc.anchor.positionIsValidTriple, isTrue);
       expect(doc.lines, <String>['&dTop', '&7Bottom']);
-      expect(doc.seeThrough, isTrue);
+      expect(doc.style.seeThrough, isTrue);
     });
 
     test('rejects a wrong schemaVersion like DocumentEnvelope does', () {
@@ -59,7 +59,7 @@ void main() {
 
     test('is lenient about everything validation owns', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(
-        '{"schemaVersion": 2, "revision": 0, '
+        '{"schemaVersion": 3, "revision": 0, '
         '"anchor": {"world": "", "position": [1, 2]}, "lines": []}',
       );
       expect(doc.revision, 0);
@@ -70,11 +70,11 @@ void main() {
 
     test('a missing anchor is flagged, not defaulted away', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(
-        '{"schemaVersion": 2, "revision": 1, "lines": ["a"]}',
+        '{"schemaVersion": 3, "revision": 1, "lines": ["a"]}',
       );
       expect(doc.anchorPresent, isFalse);
       expect(jsonDecode(encodeGlossHologramDoc(doc)), <String, dynamic>{
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'revision': 1,
         'lines': <String>['a'],
       });
@@ -86,13 +86,13 @@ void main() {
       () {
         expect(
           decodeGlossHologramDoc(
-            '{"schemaVersion": 2, "revision": 1, "lines": "solo"}',
+            '{"schemaVersion": 3, "revision": 1, "lines": "solo"}',
           ).lines,
           <String>['solo'],
         );
         expect(
           decodeGlossHologramDoc(
-            '{"schemaVersion": 2, "revision": 1, "lines": ["a", null, "b"]}',
+            '{"schemaVersion": 3, "revision": 1, "lines": ["a", null, "b"]}',
           ).lines,
           <String>['a', '', 'b'],
         );
@@ -112,18 +112,21 @@ void main() {
       final GlossHologramDoc doc = decodeGlossHologramDoc(
         _baseline.replaceFirst(
           '"lines": [',
-          '"seeThrough": false,\n  "lines": [',
+          '"style": {"seeThrough": false},\n  "lines": [',
         ),
       );
 
-      expect(doc.seeThrough, isFalse);
-      expect(jsonDecode(encodeGlossHologramDoc(doc))['seeThrough'], isFalse);
+      expect(doc.style.seeThrough, isFalse);
+      expect(
+        jsonDecode(encodeGlossHologramDoc(doc))['style']['seeThrough'],
+        isFalse,
+      );
     });
 
     test('unknown keys survive at both levels, after the known ones', () {
       const String withExtras = '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 3,
   "future": {"nested": [1, 2, 3]},
   "anchor": {
@@ -154,7 +157,7 @@ void main() {
 
     test('an invalid position shape is re-emitted verbatim', () {
       const String badVector =
-          '{"schemaVersion": 2, "revision": 1, '
+          '{"schemaVersion": 3, "revision": 1, '
           '"anchor": {"world": "world", "position": [1, 2]}, "lines": []}';
       final GlossHologramDoc doc = decodeGlossHologramDoc(badVector);
       final Map<String, dynamic> out =
@@ -178,7 +181,7 @@ void main() {
   group('orientation', () {
     test('defaults to the pre-billboard pose when the keys are absent', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
-      expect(doc.billboard, 'CENTER');
+      expect(doc.style.billboard, 'center');
       expect(doc.yaw, 0);
       expect(doc.pitch, 0);
     });
@@ -196,15 +199,15 @@ void main() {
       final GlossHologramDoc doc = decodeGlossHologramDoc(
         _baseline.replaceFirst(
           '"lines": [',
-          '"billboard": " fixed ",\n  "yaw": -135.5,\n  "pitch": 12.25,\n  "lines": [',
+          '"style": {"billboard": "fixed"},\n  "yaw": -135.5,\n  "pitch": 12.25,\n  "lines": [',
         ),
       );
-      expect(doc.billboard, 'FIXED');
+      expect(doc.style.billboard, 'fixed');
       expect(doc.yaw, -135.5);
       expect(doc.pitch, 12.25);
       final Map<String, dynamic> out =
           jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>;
-      expect(out['billboard'], 'FIXED');
+      expect(out['style']['billboard'], 'fixed');
       expect(out['yaw'], -135.5);
       expect(out['pitch'], 12.25);
     });
@@ -213,23 +216,23 @@ void main() {
       final GlossHologramDoc doc = decodeGlossHologramDoc(
         _baseline.replaceFirst(
           '"lines": [',
-          '"billboard": "CENTER",\n  "yaw": 0,\n  "pitch": 0,\n  "lines": [',
+          '"style": {"billboard": "center"},\n  "yaw": 0,\n  "pitch": 0,\n  "lines": [',
         ),
       );
       final Map<String, dynamic> out =
           jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>;
-      expect(out.containsKey('billboard'), isTrue);
+      expect((out['style'] as Map).containsKey('billboard'), isTrue);
       expect(out.containsKey('yaw'), isTrue);
       expect(out.containsKey('pitch'), isTrue);
     });
 
     test('a non-default value written into an absent key still emits', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
-      doc.billboard = 'VERTICAL';
+      doc.style.billboard = 'vertical';
       doc.pitch = -20;
       final Map<String, dynamic> out =
           jsonDecode(encodeGlossHologramDoc(doc)) as Map<String, dynamic>;
-      expect(out['billboard'], 'VERTICAL');
+      expect(out['style']['billboard'], 'vertical');
       expect(out['pitch'], -20);
       expect(out.containsKey('yaw'), isFalse, reason: 'still absent and 0');
     });
@@ -250,11 +253,11 @@ void main() {
   group('copy', () {
     test('carries the orientation', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
-      doc.billboard = 'HORIZONTAL';
+      doc.style.billboard = 'horizontal';
       doc.yaw = 45;
       doc.pitch = -10;
       final GlossHologramDoc copied = doc.copy();
-      expect(copied.billboard, 'HORIZONTAL');
+      expect(copied.style.billboard, 'horizontal');
       expect(copied.yaw, 45);
       expect(copied.pitch, -10);
     });
@@ -265,11 +268,11 @@ void main() {
       copied.lines.add('added');
       copied.anchor.world = 'other';
       copied.anchor.setPosition(9, 9, 9);
-      copied.seeThrough = false;
+      copied.style.seeThrough = false;
       expect(doc.lines, hasLength(2));
       expect(doc.anchor.world, 'world_nether');
       expect(doc.anchor.position, <double>[10.5, 64, -3.25]);
-      expect(doc.seeThrough, isTrue);
+      expect(doc.style.seeThrough, isTrue);
     });
   });
 
@@ -283,7 +286,7 @@ void main() {
       );
       expect(
         looksLikeHologramDoc(<String, dynamic>{
-          'schemaVersion': 2,
+          'schemaVersion': 3,
           'lines': <String>[],
         }),
         isFalse,

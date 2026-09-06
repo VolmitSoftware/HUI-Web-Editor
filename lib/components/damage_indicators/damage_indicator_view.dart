@@ -1,5 +1,7 @@
 library;
 
+import '../gloss/gloss_display_text.dart';
+import '../../logic/gloss_show.dart';
 import 'dart:async';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
@@ -200,7 +202,14 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
       _amount,
       doc.limits.decimals,
     );
-    final Widget scene = presentation == null || !audience.matches
+    final Widget scene =
+        presentation == null ||
+            !audience.matches ||
+            !glossShowMatches(
+              doc.extras['show'],
+              scope: audienceContext,
+              nowMs: cycle.elapsedMs,
+            )
         ? _conditionFalseScene()
         : _scene(frame, formatted, cycle.elapsedMs, presentation);
     if (component.gameContext) {
@@ -246,7 +255,12 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
                 '${(frame.y * _pixelsPerBlock).toStringAsFixed(2)}px',
             '--hui-indicator-z':
                 '${(frame.z * _pixelsPerBlock).toStringAsFixed(2)}px',
-            '--hui-indicator-scale': frame.scale.toStringAsFixed(4),
+            '--hui-indicator-scale-x': (frame.scale * presentation.style.scaleX)
+                .toStringAsFixed(4),
+            '--hui-indicator-scale-y': (frame.scale * presentation.style.scaleY)
+                .toStringAsFixed(4),
+            '--hui-indicator-scale-z': (frame.scale * presentation.style.scaleZ)
+                .toStringAsFixed(4),
             '--hui-indicator-roll':
                 '${frame.rollDegrees.toStringAsFixed(2)}deg',
             'opacity': frame.opacity.toStringAsFixed(4),
@@ -259,12 +273,17 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
             tick: elapsed ~/ 50,
             renderedText: _particleText(formatted, elapsed),
           ),
-          GlossTextLine(
-            render: renderGlossLine(
-              formatted,
-              animations: _store.workspaceAnimations,
-              emoji: _store.workspaceEmoji,
-              nowMs: elapsed,
+          GlossDisplayText(
+            style: presentation.style,
+            box: presentation.box,
+            child: GlossTextLine(
+              render: renderGlossLine(
+                formatted,
+                richText: true,
+                animations: _store.workspaceAnimations,
+                emoji: _store.workspaceEmoji,
+                nowMs: elapsed,
+              ),
             ),
           ),
         ],
@@ -277,6 +296,7 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
   GlossParticleTextRendered _particleText(String formatted, int elapsed) {
     final GlossLineRender render = renderGlossLine(
       formatted,
+      richText: true,
       animations: _store.workspaceAnimations,
       emoji: _store.workspaceEmoji,
       nowMs: elapsed,

@@ -195,6 +195,11 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     body: 'The offset relative to the menu\'s center point.',
     citation: 'gloss.schema.json#/\$defs/component/properties/offset',
   ),
+  'component.show': HuiFieldDoc(
+    title: 'Show',
+    body: 'Boolean or expression controlling visibility of this component.',
+    citation: 'gloss.schema.json#/\$defs/component/properties/show',
+  ),
   'component.type': HuiFieldDoc(
     title: 'Type',
     body:
@@ -446,6 +451,11 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     body: 'Accepted range: 0.01 through 64. Omitted, this is 1.',
     citation: 'gloss.schema.json#/\$defs/iconDisplayStyle/properties/viewRange',
   ),
+  'icon.text.box': HuiFieldDoc(
+    title: 'Box',
+    body: 'Measured text panel and complete perimeter decoration.',
+    citation: 'gloss.schema.json#/\$defs/textIcon/properties/box',
+  ),
   'icon.text.refreshTicks': HuiFieldDoc(
     title: 'Refresh ticks',
     body:
@@ -531,6 +541,11 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'projection.',
     citation: 'gloss.schema.json#/properties/particleLayers',
   ),
+  'menu.show': HuiFieldDoc(
+    title: 'Show',
+    body: 'Boolean or expression controlling visibility of the menu.',
+    citation: 'gloss.schema.json#/properties/show',
+  ),
   'preview.card': HuiFieldDoc(
     title: 'Card',
     body:
@@ -547,6 +562,26 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'Defaults to a neutral grey.',
     citation: 'gloss-preview.schema.json#/\$defs/card/properties/accent',
   ),
+  'preview.card.backgroundArgb': HuiFieldDoc(
+    title: 'Background ARGB',
+    body: 'Full ARGB color. Omitted, this is #F21B1B22.',
+    citation:
+        'gloss-preview.schema.json#/\$defs/card/properties/backgroundArgb',
+  ),
+  'preview.card.borderArgb': HuiFieldDoc(
+    title: 'Border ARGB',
+    body:
+        'Full ARGB color. Null uses the accent RGB and default layer '
+        'alpha.',
+    citation: 'gloss-preview.schema.json#/\$defs/card/properties/borderArgb',
+  ),
+  'preview.card.borderWidth': HuiFieldDoc(
+    title: 'Border width',
+    body:
+        'Card borderWidth in pixels. Accepted range: 0 through 256. '
+        'Omitted, this is 3.',
+    citation: 'gloss-preview.schema.json#/\$defs/card/properties/borderWidth',
+  ),
   'preview.card.framed': HuiFieldDoc(
     title: 'Framed',
     body:
@@ -560,6 +595,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'Minimum half-width of the panel in pixels, so a narrow card does '
         'not collapse around a short title. Default 82.',
     citation: 'gloss-preview.schema.json#/\$defs/card/properties/minHalfWidth',
+  ),
+  'preview.card.padding': HuiFieldDoc(
+    title: 'Padding',
+    body:
+        'Card padding in pixels. Accepted range: 0 through 256. Omitted, '
+        'this is 7.',
+    citation: 'gloss-preview.schema.json#/\$defs/card/properties/padding',
   ),
   'preview.card.show': HuiFieldDoc(
     title: 'Show',
@@ -576,12 +618,50 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'plain(lang(vars.titleKey)))".',
     citation: 'gloss-preview.schema.json#/\$defs/card/properties/title',
   ),
+  'preview.card.titleArgb': HuiFieldDoc(
+    title: 'Title ARGB',
+    body:
+        'Full ARGB color. Null uses the accent RGB and default layer '
+        'alpha.',
+    citation: 'gloss-preview.schema.json#/\$defs/card/properties/titleArgb',
+  ),
+  'preview.card.titleGap': HuiFieldDoc(
+    title: 'Title gap',
+    body:
+        'Card titleGap in pixels. Accepted range: 0 through 256. Omitted, '
+        'this is 6.',
+    citation: 'gloss-preview.schema.json#/\$defs/card/properties/titleGap',
+  ),
+  'preview.card.titleHeight': HuiFieldDoc(
+    title: 'Title height',
+    body:
+        'Card titleHeight in pixels. Accepted range: 0 through 256. '
+        'Omitted, this is 17.',
+    citation: 'gloss-preview.schema.json#/\$defs/card/properties/titleHeight',
+  ),
+  'preview.card.trayArgb': HuiFieldDoc(
+    title: 'Tray ARGB',
+    body: 'Full ARGB color. Omitted, this is #FF33333E.',
+    citation: 'gloss-preview.schema.json#/\$defs/card/properties/trayArgb',
+  ),
+  'preview.card.trayPadding': HuiFieldDoc(
+    title: 'Tray padding',
+    body:
+        'Card trayPadding in pixels. Accepted range: 0 through 256. '
+        'Omitted, this is 4.',
+    citation: 'gloss-preview.schema.json#/\$defs/card/properties/trayPadding',
+  ),
   'preview.element.background': HuiFieldDoc(
     title: 'Background',
     body:
-        'Text background colour. Type label only. Default fully '
-        'transparent.',
+        'Label background color. When absent, inherits '
+        'style.backgroundArgb.',
     citation: 'gloss-preview.schema.json#/\$defs/element/properties/background',
+  ),
+  'preview.element.box': HuiFieldDoc(
+    title: 'Box',
+    body: 'Measured panel and complete perimeter for a label.',
+    citation: 'gloss-preview.schema.json#/\$defs/element/properties/box',
   ),
   'preview.element.color': HuiFieldDoc(
     title: 'Color',
@@ -620,6 +700,11 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Size',
     body: 'Square edge length in pixels. Required for types cell and slot.',
     citation: 'gloss-preview.schema.json#/\$defs/element/properties/size',
+  ),
+  'preview.element.style': HuiFieldDoc(
+    title: 'Style',
+    body: 'Overrides the inherited shared display style for this element.',
+    citation: 'gloss-preview.schema.json#/\$defs/element/properties/style',
   ),
   'preview.element.text': HuiFieldDoc(
     title: 'Text',
@@ -714,6 +799,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         '/gloss/15-container-previews in the central VolmitSoftware/docs '
         'repo.',
     citation: 'gloss-preview.schema.json#/\$defs/expression',
+  ),
+  'preview.itemStyle': HuiFieldDoc(
+    title: 'Item style',
+    body:
+        'Shared style inherited by slot item displays. Omitted style uses '
+        'brightness 15/15.',
+    citation: 'gloss-preview.schema.json#/properties/itemStyle',
   ),
   'preview.match': HuiFieldDoc(
     title: 'Match',
@@ -811,6 +903,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Show',
     body: 'Boolean expression controlling display visibility.',
     citation: 'gloss-preview.schema.json#/properties/show',
+  ),
+  'preview.textStyle': HuiFieldDoc(
+    title: 'Text style',
+    body:
+        'Shared style inherited by text, panels, cells, slot wells and '
+        'item counts.',
+    citation: 'gloss-preview.schema.json#/properties/textStyle',
   ),
   'preview.variant.blocks': HuiFieldDoc(
     title: 'Blocks',
@@ -944,97 +1043,35 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     citation:
         'gloss-real-drops.schema.json#/\$defs/filters/properties/onlyPlayerDrops',
   ),
-  'realDrops.labels.background': HuiFieldDoc(
-    title: 'Background',
+  'realDrops.labels.box': HuiFieldDoc(
+    title: 'Box',
     body:
-        'Whether the label draws its coloured background plate. When '
-        'false the plate is fully transparent and the four background '
-        'channels are ignored. Default true.',
-    citation:
-        'gloss-real-drops.schema.json#/\$defs/labels/properties/background',
-  ),
-  'realDrops.labels.backgroundAlpha': HuiFieldDoc(
-    title: 'Background alpha',
-    body:
-        'Opacity of the label background plate, 0-255. Default 80. '
-        'Accepted range: 0 through 255.',
-    citation:
-        'gloss-real-drops.schema.json#/\$defs/labels/properties/backgroundAlpha',
-  ),
-  'realDrops.labels.backgroundBlue': HuiFieldDoc(
-    title: 'Background blue',
-    body:
-        'Blue channel of the label background plate, 0-255. Default 0. '
-        'Accepted range: 0 through 255.',
-    citation:
-        'gloss-real-drops.schema.json#/\$defs/labels/properties/backgroundBlue',
-  ),
-  'realDrops.labels.backgroundGreen': HuiFieldDoc(
-    title: 'Background green',
-    body:
-        'Green channel of the label background plate, 0-255. Default 0. '
-        'Accepted range: 0 through 255.',
-    citation:
-        'gloss-real-drops.schema.json#/\$defs/labels/properties/backgroundGreen',
-  ),
-  'realDrops.labels.backgroundRed': HuiFieldDoc(
-    title: 'Background red',
-    body:
-        'Red channel of the label background plate, 0-255. Default 0. '
-        'Accepted range: 0 through 255.',
-    citation:
-        'gloss-real-drops.schema.json#/\$defs/labels/properties/backgroundRed',
-  ),
-  'realDrops.labels.billboard': HuiFieldDoc(
-    title: 'Billboard',
-    body:
-        'How the label turns to face the viewer. CENTER always faces the '
-        'camera, HORIZONTAL and VERTICAL pivot on one axis only, FIXED '
-        'never turns. Default CENTER. Accepted values: CENTER, FIXED, '
-        'HORIZONTAL, VERTICAL.',
-    citation:
-        'gloss-real-drops.schema.json#/\$defs/labels/properties/billboard',
+        'Shared label background, padding, and uniform border. Visible '
+        'parts count against the chunk display budget.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/box',
   ),
   'realDrops.labels.enabled': HuiFieldDoc(
     title: 'Enabled',
     body:
-        'Whether the floating name is drawn. When off, the item\'s own '
-        'custom name visibility is restored. Default true.',
+        'Shows the item label through the shared Gloss text engine. '
+        'Omitted, this is true.',
     citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/enabled',
   ),
-  'realDrops.labels.scale': HuiFieldDoc(
-    title: 'Scale',
+  'realDrops.labels.style': HuiFieldDoc(
+    title: 'Style',
     body:
-        'Text size of the label. Clamped to 0.1-4, default 0.85. Accepted '
-        'range: 0.1 through 4.',
-    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/scale',
-  ),
-  'realDrops.labels.seeThrough': HuiFieldDoc(
-    title: 'See through',
-    body: 'Whether the label is visible through blocks. Default true.',
-    citation:
-        'gloss-real-drops.schema.json#/\$defs/labels/properties/seeThrough',
-  ),
-  'realDrops.labels.shadow': HuiFieldDoc(
-    title: 'Shadow',
-    body:
-        'Whether the label text is drawn with a drop shadow. Default '
-        'true.',
-    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/shadow',
-  ),
-  'realDrops.labels.viewRange': HuiFieldDoc(
-    title: 'View range',
-    body:
-        'Distance in blocks at which the label stops rendering. Clamped '
-        'to 4-128, default 32. Accepted range: 4 through 128.',
-    citation:
-        'gloss-real-drops.schema.json#/\$defs/labels/properties/viewRange',
+        'Native Gloss TextDisplay style. An omitted label style uses '
+        'center billboard, shadow, see-through, background #50000000, '
+        'view range 0.5, and scale 0.85 on every axis. Fields omitted '
+        'from an explicit style use native IconDisplayStyle defaults.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/style',
   ),
   'realDrops.labels.yOffset': HuiFieldDoc(
     title: 'Y offset',
     body:
-        'Height of the label above the item, in blocks. Clamped to 0-4, '
-        'default 0.55. Accepted range: 0 through 4.',
+        'Vertical label offset in blocks, clamped to -4 through 16. '
+        'Default 0.55. Accepted range: -4 through 16. Omitted, this is '
+        '0.55.',
     citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/yOffset',
   ),
   'realDrops.landing.alignmentDegrees': HuiFieldDoc(

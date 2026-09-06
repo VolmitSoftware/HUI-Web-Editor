@@ -130,22 +130,13 @@ ShowcaseEffect showcaseScanline(
 }
 
 /// [text] revealed one character at a time and then held, the way a terminal
-/// prints. Costs one `select` with as many frames as the text is long, so it
-/// is for holograms and MOTD lines, never a board row.
+/// prints.
 ShowcaseEffect showcaseTypewriter(math.Random random, String text) {
   final int rate = 6 + random.nextInt(7);
-  final List<String> frames = <String>[
-    for (int end = 1; end <= text.length; end++) text.substring(0, end),
-    text,
-    text,
-    text,
-  ];
-  final String list = frames
-      .map((String frame) => "'${frame.replaceAll("'", '')}'")
-      .join(', ');
+  final String safe = text.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
   return ShowcaseEffect(
     'typewriter',
-    '{{ select([$list], floor(time.seconds * $rate)) }}',
+    "{{ typewriter('$safe', floor(time.seconds * $rate), 3) }}",
   );
 }
 

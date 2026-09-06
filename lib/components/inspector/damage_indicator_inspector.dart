@@ -13,6 +13,11 @@ import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'display_style_editor.dart';
+import 'hologram_box_editor.dart';
+import '../../model/gloss_hologram_box.dart';
+import 'gloss_visibility_editor.dart';
+import '../../logic/gloss_show.dart';
 import 'particle_layers_editor.dart';
 
 class DamageIndicatorInspector extends StatelessWidget {
@@ -30,6 +35,18 @@ class DamageIndicatorInspector extends StatelessWidget {
     if (doc == null) return const dom.div(<Widget>[]);
     return dom.div(classes: 'hui-inspector-body is-damage-indicators', <Widget>[
       _header(doc),
+      GlossVisibilityEditor(
+        raw: doc.extras['show'],
+        sectionKey: 'damage_indicator.visibility',
+        issues: store.issues
+            .where((HuiIssue issue) => issue.path == r'$.show')
+            .toList(),
+        onChanged: (Object? value) => store.mutateDamageIndicators(
+          'visibility',
+          (GlossDamageIndicatorsDoc edited) =>
+              setGlossShow(edited.extras, value),
+        ),
+      ),
       _limits(doc),
       _style(doc, doc.damage, healing: false),
       _style(doc, doc.healing, healing: true),
@@ -266,9 +283,29 @@ class DamageIndicatorInspector extends StatelessWidget {
     )
     mutate,
   ) => <Widget>[
+    DisplayStyleEditor(
+      style: presentation.style,
+      defaults: defaultHologramDisplayStyle(),
+      issues: _issuesFor('$path.style'),
+      onChanged: (String label, HuiIconStyle? value) => mutate(
+        label,
+        (GlossDamageIndicatorPresentation edited) =>
+            edited.style = value ?? defaultHologramDisplayStyle(),
+      ),
+    ),
+    HologramBoxEditor(
+      box: presentation.box,
+      sectionKey: '$path.box',
+      issues: _issuesFor('$path.box'),
+      mutate: (String label, void Function(GlossHologramBox) edit) => mutate(
+        label,
+        (GlossDamageIndicatorPresentation edited) => edit(edited.box),
+      ),
+    ),
+
     HuiField(
       label: huiText('Text format'),
-      help: huiText('Minecraft text containing {amount}.'),
+      help: huiText('Minecraft text. Use {amount} for the health change.'),
       control: dom.div(<Widget>[
         TextInput(
           value: presentation.format,
@@ -284,6 +321,7 @@ class DamageIndicatorInspector extends StatelessWidget {
         dom.div(classes: 'hui-damage-indicator-format-preview', <Widget>[
           GlossTextLine(
             render: renderGlossLine(
+              richText: true,
               renderDamageIndicatorText(
                 presentation,
                 7.25,

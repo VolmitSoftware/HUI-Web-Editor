@@ -19,6 +19,11 @@ import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'display_style_editor.dart';
+import 'hologram_box_editor.dart';
+import '../../model/gloss_hologram_box.dart';
+import 'gloss_visibility_editor.dart';
+import '../../logic/gloss_show.dart';
 import 'line_list_section.dart';
 import 'particle_layers_editor.dart';
 import 'placeholder_picker.dart';
@@ -56,7 +61,38 @@ class _HologramInspectorState extends State<HologramInspector> {
     if (doc == null) return const dom.div(<Widget>[]);
     return dom.div(classes: 'hui-inspector-body is-hologram', <Widget>[
       _header(doc),
+      GlossVisibilityEditor(
+        raw: doc.extras['show'],
+        sectionKey: 'hologram.visibility',
+        issues: _store.issues
+            .where((HuiIssue issue) => issue.path == r'$.show')
+            .toList(),
+        onChanged: (Object? value) => _store.mutateHologram(
+          'visibility',
+          (GlossHologramDoc edited) => setGlossShow(edited.extras, value),
+        ),
+      ),
       _anchor(doc),
+      DisplayStyleEditor(
+        style: doc.style,
+        defaults: defaultHologramDisplayStyle(),
+        issues: _issuesFor(r'$.style'),
+        onChanged: (String label, HuiIconStyle? value) => _store.mutateHologram(
+          label,
+          (GlossHologramDoc edited) =>
+              edited.style = value ?? defaultHologramDisplayStyle(),
+        ),
+      ),
+      HologramBoxEditor(
+        box: doc.box,
+        sectionKey: 'hologram.box',
+        issues: _issuesFor(r'$.box'),
+        mutate: (String label, void Function(GlossHologramBox) edit) =>
+            _store.mutateHologram(
+              label,
+              (GlossHologramDoc edited) => edit(edited.box),
+            ),
+      ),
       _presentation(doc),
       _lines(doc),
       ParticleLayersEditor(
@@ -74,95 +110,15 @@ class _HologramInspectorState extends State<HologramInspector> {
   Widget _presentation(GlossHologramDoc doc) => InspectorSection(
     title: huiText('Presentation'),
     children: <Widget>[
-      HuiSwitchRow(
-        label: huiText('See through blocks'),
-        value: doc.seeThrough,
-        trailing: const HuiFieldHelp('hologram.seeThrough'),
-        onChanged: (bool value) => _store.mutateHologram(
-          'hologram visibility',
-          (GlossHologramDoc edited) {
-            edited.seeThrough = value;
-            edited.absentKeys.remove('seeThrough');
-          },
-        ),
-      ),
-      HuiField(
-        label: huiText('Scale'),
-        help: huiText('Scale must be between 0.05 and 16.'),
-        defaultValue: '$glossHologramDefaultScale',
-        onReset: doc.scale == glossHologramDefaultScale
-            ? null
-            : () => _store.mutateHologram('hologram scale', (
-                GlossHologramDoc edited,
-              ) {
-                edited.scale = glossHologramDefaultScale;
-                edited.absentKeys.remove('scale');
-              }),
-        control: dom.div(<Widget>[
-          HuiNumberField(
-            value: doc.scale,
-            min: glossHologramMinScale,
-            max: glossHologramMaxScale,
-            step: 0.05,
-            decimals: 2,
-            onChanged: (double value) => _store.mutateHologram(
-              'hologram scale',
-              (GlossHologramDoc edited) {
-                edited.scale = value;
-                edited.absentKeys.remove('scale');
-              },
-            ),
-          ),
-          HuiInlineIssues(_issuesFor(r'$.scale')),
-        ]),
-      ),
-      HuiField(
-        label: huiText('Billboard'),
-        trailing: const HuiFieldHelp('hologram.billboard'),
-        help: huiText('Which axes the entity may turn on to face a viewer.'),
-        defaultValue: huiTextKey('billboard.center', 'Center'),
-        onReset: doc.billboard == glossHologramDefaultBillboard
-            ? null
-            : () => _setBillboard(glossHologramDefaultBillboard),
-        control: dom.div(<Widget>[
-          ArcaneSelect(
-            value: doc.billboard,
-            size: ComponentSize.sm,
-            fullWidth: true,
-            options: <ArcaneSelectOption>[
-              ArcaneSelectOption(
-                label: huiText('Center — faces the viewer on both axes'),
-                value: 'CENTER',
-              ),
-              ArcaneSelectOption(
-                label: huiText(
-                  'Vertical — yaws to the viewer, keeps its pitch',
-                ),
-                value: 'VERTICAL',
-              ),
-              ArcaneSelectOption(
-                label: huiText(
-                  'Horizontal — pitches to the viewer, keeps its yaw',
-                ),
-                value: 'HORIZONTAL',
-              ),
-              ArcaneSelectOption(
-                label: huiText('Fixed — never turns'),
-                value: 'FIXED',
-              ),
-            ],
-            onChange: _setBillboard,
-          ),
-          HuiInlineIssues(_issuesFor(r'$.billboard')),
-        ]),
-      ),
       _angle(
         label: huiText('Yaw'),
         docKey: 'hologram.yaw',
         path: r'$.yaw',
         value: doc.yaw,
         limit: glossHologramMaxYawDegrees,
-        used: doc.billboard == 'FIXED' || doc.billboard == 'HORIZONTAL',
+        used:
+            doc.style.billboard == 'fixed' ||
+            doc.style.billboard == 'horizontal',
         help: huiText('0 faces south, 90 faces west, 180 north, -90 east.'),
         onChanged: (double value) =>
             _store.mutateHologram('hologram yaw', (GlossHologramDoc edited) {
@@ -176,7 +132,8 @@ class _HologramInspectorState extends State<HologramInspector> {
         path: r'$.pitch',
         value: doc.pitch,
         limit: glossHologramMaxPitchDegrees,
-        used: doc.billboard == 'FIXED' || doc.billboard == 'VERTICAL',
+        used:
+            doc.style.billboard == 'fixed' || doc.style.billboard == 'vertical',
         help: huiText('Positive tips the face downward, negative tips it up.'),
         onChanged: (double value) =>
             _store.mutateHologram('hologram pitch', (GlossHologramDoc edited) {
@@ -186,12 +143,6 @@ class _HologramInspectorState extends State<HologramInspector> {
       ),
     ],
   );
-
-  void _setBillboard(String value) =>
-      _store.mutateHologram('hologram billboard', (GlossHologramDoc edited) {
-        edited.billboard = value;
-        edited.absentKeys.remove('billboard');
-      });
 
   /// One orientation angle. The row stays put and says so when the current
   /// billboard mode turns that axis itself, because a control that vanishes
@@ -357,6 +308,7 @@ class _HologramInspectorState extends State<HologramInspector> {
       onFocus: () => _focusedLine = index,
       preview: GlossTextLine(
         render: renderGlossLine(
+          richText: true,
           line,
           animations: _store.workspaceAnimations,
           emoji: _store.workspaceEmoji,

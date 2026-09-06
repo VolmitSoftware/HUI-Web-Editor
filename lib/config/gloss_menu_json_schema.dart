@@ -297,6 +297,46 @@ final GlossJsonField glossParticleLayersField = GlossJsonField(
 );
 
 /// `icon.style` — the shared display block behind every icon but `entity`.
+const GlossJsonObject glossHologramBoxNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Show box',
+      summary: 'Draws a box around the visible lines.',
+      defaultLiteral: 'false',
+    ),
+    GlossJsonField(
+      key: 'padding',
+      type: GlossJsonType.integer,
+      title: 'Padding',
+      summary: 'Space around the text in font pixels. 0..64.',
+      defaultLiteral: '4',
+    ),
+    GlossJsonField(
+      key: 'borderWidth',
+      type: GlossJsonType.integer,
+      title: 'Border width',
+      summary: 'Uniform border width in font pixels. 0..16.',
+      defaultLiteral: '1',
+    ),
+    GlossJsonField(
+      key: 'backgroundArgb',
+      type: GlossJsonType.string,
+      title: 'Background',
+      summary: 'Eight hexadecimal digits in #AARRGGBB order.',
+      defaultLiteral: '"#B31B1B22"',
+    ),
+    GlossJsonField(
+      key: 'borderArgb',
+      type: GlossJsonType.string,
+      title: 'Border color',
+      summary: 'Eight hexadecimal digits in #AARRGGBB order.',
+      defaultLiteral: '"#FFAAAAAA"',
+    ),
+  ],
+);
+
 final GlossJsonObject glossIconStyleNode = GlossJsonObject(
   fields: <GlossJsonField>[
     GlossJsonField(
@@ -471,6 +511,13 @@ final GlossJsonObject glossIconNode = GlossJsonObject(
   ],
   variants: <String, List<GlossJsonField>>{
     'text': <GlossJsonField>[
+      const GlossJsonField(
+        key: 'box',
+        type: GlossJsonType.object,
+        title: 'Box decoration',
+        summary: 'A uniform box that follows the visible text size.',
+        node: glossHologramBoxNode,
+      ),
       const GlossJsonField(
         key: 'text',
         type: GlossJsonType.string,
@@ -1035,6 +1082,13 @@ final GlossJsonObject glossComponentDataNode = GlossJsonObject(
 final GlossJsonObject glossComponentNode = GlossJsonObject(
   fields: <GlossJsonField>[
     const GlossJsonField(
+      key: 'show',
+      type: GlossJsonType.any,
+      title: 'Show condition',
+      summary: 'Boolean or visibility expression.',
+      defaultLiteral: 'true',
+    ),
+    const GlossJsonField(
       key: 'id',
       type: GlossJsonType.string,
       title: 'Component id',
@@ -1064,6 +1118,13 @@ final GlossJsonObject glossComponentNode = GlossJsonObject(
 /// The menu document root.
 final GlossJsonObject glossMenuJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'show',
+      type: GlossJsonType.any,
+      title: 'Show condition',
+      summary: 'Boolean or visibility expression.',
+      defaultLiteral: 'true',
+    ),
     const GlossJsonField(
       key: 'offset',
       type: GlossJsonType.array,

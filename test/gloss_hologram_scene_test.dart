@@ -128,8 +128,10 @@ void main() {
       // Yaw 90 is west, which is -x in world coordinates. huiLookDirection
       // would answer +x here because it mirrors for the authoring frame.
       expect(glossDisplayNormal(yawDegrees: 90).x, closeTo(-1, 1e-9));
-      expect(glossDisplayNormal(pitchDegrees: 90, yawDegrees: 0).y,
-          closeTo(-1, 1e-9));
+      expect(
+        glossDisplayNormal(pitchDegrees: 90, yawDegrees: 0).y,
+        closeTo(-1, 1e-9),
+      );
     });
 
     test('each mode keeps exactly the axes the client does not solve', () {
@@ -137,28 +139,28 @@ void main() {
         ..yaw = 30
         ..pitch = 20;
 
-      doc.billboard = 'FIXED';
+      doc.style.billboard = 'fixed';
       HologramFacing facing = hologramFacing(basis: south(), doc: doc);
       expect(facing.tracksYaw, isFalse);
       expect(facing.tracksPitch, isFalse);
       expect(facing.yawDegrees, 30);
       expect(facing.pitchDegrees, 20);
 
-      doc.billboard = 'VERTICAL';
+      doc.style.billboard = 'vertical';
       facing = hologramFacing(basis: south(), doc: doc);
       expect(facing.tracksYaw, isTrue);
       expect(facing.tracksPitch, isFalse);
       expect(facing.pitchDegrees, 20);
       expect(facing.yawDegrees, closeTo(0, 1e-6), reason: 'camera is south');
 
-      doc.billboard = 'HORIZONTAL';
+      doc.style.billboard = 'horizontal';
       facing = hologramFacing(basis: south(), doc: doc);
       expect(facing.tracksYaw, isFalse);
       expect(facing.tracksPitch, isTrue);
       expect(facing.yawDegrees, 30);
       expect(facing.pitchDegrees, closeTo(0, 1e-6));
 
-      doc.billboard = 'CENTER';
+      doc.style.billboard = 'center';
       facing = hologramFacing(basis: south(), doc: doc);
       expect(facing.tracksYaw, isTrue);
       expect(facing.tracksPitch, isTrue);
@@ -189,7 +191,7 @@ void main() {
 
     test('FIXED reads forwards from the front and mirrored from behind', () {
       final GlossHologramDoc doc = _doc()
-        ..billboard = 'FIXED'
+        ..style.billboard = 'fixed'
         ..yaw = 0;
 
       final HologramPlaneTransform front = transformFor(doc, south());
@@ -205,7 +207,7 @@ void main() {
 
     test('FIXED seen from the side thins out to nothing', () {
       final GlossHologramDoc doc = _doc()
-        ..billboard = 'FIXED'
+        ..style.billboard = 'fixed'
         ..yaw = 90;
 
       final HologramPlaneTransform edge = transformFor(doc, south());
@@ -217,7 +219,7 @@ void main() {
 
     test('VERTICAL keeps its pitch while CENTER does not', () {
       final GlossHologramDoc doc = _doc()
-        ..billboard = 'VERTICAL'
+        ..style.billboard = 'vertical'
         ..pitch = 45;
       final CameraBasis basis = CameraBasis.orbit(
         const OrbitCamera(
@@ -232,21 +234,15 @@ void main() {
       expect(tilted.faceCoverage, lessThan(1));
       expect(tilted.a, closeTo(1, 1e-6), reason: 'yaw still tracks the camera');
 
-      doc.billboard = 'CENTER';
+      doc.style.billboard = 'center';
       expect(transformFor(doc, basis).faceCoverage, closeTo(1, 1e-6));
     });
 
     test('the readout names the mode and what one camera cannot show', () {
-      expect(hologramBillboardNote('FIXED'), contains('mirrored'));
-      expect(
-        hologramBillboardNote('VERTICAL'),
-        contains('this camera only'),
-      );
-      expect(
-        hologramBillboardNote('HORIZONTAL'),
-        contains('this camera only'),
-      );
-      expect(hologramBillboardNote('CENTER'), contains('every viewer'));
+      expect(hologramBillboardNote('fixed'), contains('mirrored'));
+      expect(hologramBillboardNote('vertical'), contains('this camera only'));
+      expect(hologramBillboardNote('horizontal'), contains('this camera only'));
+      expect(hologramBillboardNote('center'), contains('every viewer'));
       expect(hologramBillboardNote('SPIN'), contains('not a mode'));
     });
   });

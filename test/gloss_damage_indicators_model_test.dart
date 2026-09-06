@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:gloss_editor/config/gloss_templates.dart';
 import 'package:gloss_editor/logic/damage_indicator_validation.dart';
 import 'package:gloss_editor/logic/validation.dart';
@@ -7,7 +5,7 @@ import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('shipped schema 2 default decodes and round-trips canonically', () {
+  test('shipped indicator default decodes and normalizes canonically', () {
     final GlossDamageIndicatorsDoc doc = buildDefaultGlossDamageIndicators();
     expect(doc.limits.maxPerSecond, 40);
     expect(doc.damage.when, 'true');
@@ -17,10 +15,14 @@ void main() {
       doc.audience.when,
       "hasPermission('viewer', 'gloss.indicators.show')",
     );
+    final String encoded = encodeGlossDamageIndicatorsDoc(doc);
     expect(
-      jsonDecode(encodeGlossDamageIndicatorsDoc(doc)),
-      jsonDecode(kGlossDamageIndicatorsDefaultJson),
+      encodeGlossDamageIndicatorsDoc(decodeGlossDamageIndicatorsDoc(encoded)),
+      encoded,
     );
+    expect(doc.damage.presentation.style.billboard, 'center');
+    expect(doc.damage.presentation.style.seeThrough, isTrue);
+    expect(doc.damage.presentation.box.enabled, isFalse);
     expect(validateDamageIndicatorsDoc(doc), isEmpty);
   });
 
@@ -55,7 +57,7 @@ void main() {
     expect(
       () => decodeGlossDamageIndicatorsDoc('''
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "revision": 1,
   "damage": {
     "when": "true",

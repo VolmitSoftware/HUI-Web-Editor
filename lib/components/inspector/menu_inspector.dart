@@ -16,6 +16,8 @@ import '../common/common.dart';
 import 'extras_editor.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'gloss_visibility_editor.dart';
+import '../../logic/gloss_show.dart';
 import 'particle_layers_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
@@ -40,6 +42,14 @@ class MenuInspector extends StatelessWidget {
     BuildContext context,
   ) => dom.div(classes: 'hui-inspector-body is-menu', <Widget>[
     _header(),
+    GlossVisibilityEditor(
+      raw: _menu.extras['show'],
+      sectionKey: 'menu.visibility',
+      onChanged: (Object? value) => store.mutate(
+        'visibility',
+        (HuiMenu edited) => setGlossShow(edited.extras, value),
+      ),
+    ),
     _placement(),
     ParticleLayersEditor(
       layers: _menu.particleLayers,
@@ -50,7 +60,6 @@ class MenuInspector extends StatelessWidget {
     _lifetime(),
     _install(),
     _extras(),
-    _nonFeatures(),
   ]);
 
   /// `display: contents` on the wrapper keeps the header a direct child of the
@@ -297,25 +306,10 @@ class MenuInspector extends StatelessWidget {
       ExtrasEditor(
         title: huiText('Menu'),
         extras: _menu.extras,
+        knownKeys: const <String>{'show'},
         onChanged: (String label, Map<String, dynamic> next) =>
             store.mutate(label, (HuiMenu menu) => menu.extras = next),
       ),
     ],
   );
-
-  Widget _nonFeatures() => dom.div(classes: 'hui-inspector-aside', <Widget>[
-    HuiMore(
-      summary: huiText('Not in this format'),
-      children: <Widget>[
-        HuiNote(
-          huiText(
-            'The menu root has exactly seven keys. There is no background, '
-            'no scale or rotation, no title, no per-menu permission, no '
-            'version and no localization of menu text - none of those exist '
-            'in the plugin, so the editor does not offer them.',
-          ),
-        ),
-      ],
-    ),
-  ]);
 }

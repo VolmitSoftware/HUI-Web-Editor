@@ -198,6 +198,7 @@
 
 .hui-particle-dot.is-center { opacity: .8; }
 
+.hui-display-text,
 .hui-hologram-line,
 .hui-bubble-block > .hui-gloss-line,
 .hui-damage-indicator-number > .hui-gloss-line,
@@ -206,10 +207,9 @@
   z-index: 0;
 }
 
-/* Vanilla TextDisplay default background: 0x40000000. */
 .hui-hologram-line {
-  background: rgba(0, 0, 0, 0.25);
-  padding: 0 0.15em;
+  background: transparent;
+  padding: 0;
   color: #ffffff;
   white-space: pre;
 }
@@ -821,8 +821,8 @@
 .hui-bubble-block {
   position: absolute;
   left: 50%;
-  background: rgba(0, 0, 0, 0.25);
-  padding: 0.14em 0.3em;
+  background: transparent;
+  padding: 0;
   font-family: var(--hui-mc-font);
   font-size: clamp(9px, 1.25cqi, 14px);
   line-height: 1.2;
@@ -1039,7 +1039,7 @@
     translate(-50%, 50%)
     translate3d(var(--hui-indicator-x), calc(-1 * var(--hui-indicator-y)), var(--hui-indicator-z))
     rotate(var(--hui-indicator-roll))
-    scale(var(--hui-indicator-scale));
+    scale3d(var(--hui-indicator-scale-x), var(--hui-indicator-scale-y), var(--hui-indicator-scale-z));
   transform-origin: center;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, .72);
   will-change: transform, opacity;
@@ -1296,13 +1296,13 @@
   bottom: calc(18% + 112px);
   width: max-content;
   max-width: 95%;
-  padding: 5px 9px;
-  background: rgba(0, 0, 0, .72);
+  padding: 0;
+  background: transparent;
   text-align: center;
   transform-origin: bottom center;
   font-family: var(--hui-mc-font);
-  font-size: 22px;
-  line-height: 1.35;
+  font-size: 16px;
+  line-height: 20px;
 }
 .hui-entity-overlay-label .hui-gloss-line { display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
 .hui-entity-overlay-hidden {
@@ -1734,3 +1734,10 @@
   .hui-emoji-stage { padding: 12px; }
   .hui-animation-frame-large { font-size: clamp(20px, 8vw, 30px); }
 }
+
+.hui-entity-overlay-line-select { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.hui-entity-overlay-line-select > button:first-child { flex: 1; min-width: 0; justify-content: flex-start; }
+.hui-entity-overlay-line-select [aria-pressed="true"] { background: var(--accent); outline: 1px solid var(--border); }
+.hui-entity-overlay-line-editor { display: flex; flex-direction: column; gap: 10px; }
+.hui-entity-overlay-text { position: relative; }
+.hui-entity-overlay-text .hui-mc-span { text-shadow: inherit; }

@@ -26,6 +26,7 @@ import 'package:jaspr/jaspr.dart' show Component;
 
 import '../../logic/preview_doc_validation.dart';
 import '../../logic/preview_expr.dart';
+import '../../logic/gloss_show.dart';
 import '../../logic/validation.dart';
 import '../../model/preview_doc.dart';
 import '../common/common.dart';
@@ -196,6 +197,15 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
       _syntaxError = () => e.message;
       _syntaxPosition = e.position;
       return;
+    }
+    if (component.showCondition && isConstantExpr(expr)) {
+      try {
+        evalBool(expr, GlossShowScope());
+      } on PExprException catch (error) {
+        _syntaxError = () => error.message;
+        _syntaxPosition = error.position;
+        return;
+      }
     }
     _syntaxError = null;
     _syntaxPosition = previewNoPosition;

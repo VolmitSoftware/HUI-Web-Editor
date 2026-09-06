@@ -3,11 +3,13 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_hologram_box.dart';
+import 'hui_icons.dart';
 import 'gloss_real_drop_animation.dart';
 import 'json_codec.dart';
 import 'particle_layer.dart';
 
-const int glossRealDropsCurrentSchemaVersion = 3;
+const int glossRealDropsCurrentSchemaVersion = 4;
 
 /// Whether [json] is a real-drops settings document.
 ///
@@ -308,91 +310,56 @@ final class GlossRealDropLanding {
   GlossRealDropLanding copy() => GlossRealDropLanding.fromJson(toJson());
 }
 
+HuiIconStyle defaultRealDropLabelStyle() => HuiIconStyle(
+  billboard: 'center',
+  shadow: true,
+  seeThrough: true,
+  backgroundArgb: '#50000000',
+  viewRange: 0.5,
+  scaleX: 0.85,
+  scaleY: 0.85,
+  scaleZ: 0.85,
+);
+
 final class GlossRealDropLabels {
   GlossRealDropLabels({
     this.enabled = true,
     this.yOffset = 0.55,
-    this.scale = 0.85,
-    this.viewRange = 32,
-    this.billboard = 'CENTER',
-    this.seeThrough = true,
-    this.shadow = true,
-    this.background = true,
-    this.backgroundRed = 0,
-    this.backgroundGreen = 0,
-    this.backgroundBlue = 0,
-    this.backgroundAlpha = 80,
-    Map<String, dynamic>? extras,
-  }) : extras = extras ?? <String, dynamic>{};
+    HuiIconStyle? style,
+    GlossHologramBox? box,
+    Map<String, Object?>? extras,
+  }) : style = style ?? defaultRealDropLabelStyle(),
+       box = box ?? GlossHologramBox(),
+       extras = extras ?? <String, Object?>{};
 
   bool enabled;
   double yOffset;
-  double scale;
-  double viewRange;
-  String billboard;
-  bool seeThrough;
-  bool shadow;
-  bool background;
-  int backgroundRed;
-  int backgroundGreen;
-  int backgroundBlue;
-  int backgroundAlpha;
-  Map<String, dynamic> extras;
+  HuiIconStyle style;
+  GlossHologramBox box;
+  Map<String, Object?> extras;
 
   static GlossRealDropLabels fromJson(Object? raw) {
     if (raw == null) return GlossRealDropLabels();
-    final Map<String, dynamic> map = huiReadObject(raw, r'$.labels');
+    final Map<String, Object?> map = huiReadObject(raw, r'$.labels');
     return GlossRealDropLabels(
       enabled: map['enabled'] == null ? true : huiReadBool(map, 'enabled'),
       yOffset: huiReadDouble(map, 'yOffset', fallback: 0.55),
-      scale: huiReadDouble(map, 'scale', fallback: 0.85),
-      viewRange: huiReadDouble(map, 'viewRange', fallback: 32),
-      billboard: huiReadString(
-        map,
-        'billboard',
-        fallback: 'CENTER',
-      ).toUpperCase(),
-      seeThrough: map['seeThrough'] == null
-          ? true
-          : huiReadBool(map, 'seeThrough'),
-      shadow: map['shadow'] == null ? true : huiReadBool(map, 'shadow'),
-      background: map['background'] == null
-          ? true
-          : huiReadBool(map, 'background'),
-      backgroundRed: huiReadInt(map, 'backgroundRed'),
-      backgroundGreen: huiReadInt(map, 'backgroundGreen'),
-      backgroundBlue: huiReadInt(map, 'backgroundBlue'),
-      backgroundAlpha: huiReadInt(map, 'backgroundAlpha', fallback: 80),
+      style: HuiIconStyle.fromJsonOrNull(map['style'], path: r'$.labels.style'),
+      box: GlossHologramBox.fromJson(map['box']),
       extras: huiCollectExtras(map, const <String>{
         'enabled',
         'yOffset',
-        'scale',
-        'viewRange',
-        'billboard',
-        'seeThrough',
-        'shadow',
-        'background',
-        'backgroundRed',
-        'backgroundGreen',
-        'backgroundBlue',
-        'backgroundAlpha',
+        'style',
+        'box',
       }),
     );
   }
 
-  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+  Map<String, Object?> toJson() => huiMergeExtras(<String, Object?>{
     'enabled': enabled,
     'yOffset': yOffset,
-    'scale': scale,
-    'viewRange': viewRange,
-    'billboard': billboard,
-    'seeThrough': seeThrough,
-    'shadow': shadow,
-    'background': background,
-    'backgroundRed': backgroundRed,
-    'backgroundGreen': backgroundGreen,
-    'backgroundBlue': backgroundBlue,
-    'backgroundAlpha': backgroundAlpha,
+    'style': style.toJson(),
+    'box': box.toJson(),
   }, extras);
 
   GlossRealDropLabels copy() => GlossRealDropLabels.fromJson(toJson());

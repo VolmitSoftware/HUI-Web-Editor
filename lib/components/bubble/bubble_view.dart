@@ -15,6 +15,7 @@
 /// the style has a shine band, the 50 ms motion timer otherwise.
 library;
 
+import '../gloss/gloss_display_text.dart';
 import 'dart:async';
 import 'dart:js_interop';
 
@@ -268,9 +269,9 @@ class _BubbleViewState extends State<BubbleView> {
               'rotateX(${bubble.motion.rotationX.toStringAsFixed(2)}deg) '
               'rotateY(${bubble.motion.rotationY.toStringAsFixed(2)}deg) '
               'rotateZ(${bubble.motion.rotationZ.toStringAsFixed(2)}deg) '
-              'scale3d(${bubble.motion.scaleX.toStringAsFixed(3)}, '
-              '${bubble.motion.scaleY.toStringAsFixed(3)}, '
-              '${bubble.motion.scaleZ.toStringAsFixed(3)})',
+              'scale3d(${(bubble.motion.scaleX * doc.style.scaleX).toStringAsFixed(3)}, '
+              '${(bubble.motion.scaleY * doc.style.scaleY).toStringAsFixed(3)}, '
+              '${(bubble.motion.scaleZ * doc.style.scaleZ).toStringAsFixed(3)})',
         },
       ),
       <Widget>[
@@ -283,7 +284,11 @@ class _BubbleViewState extends State<BubbleView> {
             spans: render.particleSpans,
           ),
         ),
-        GlossTextLine(render: render),
+        GlossDisplayText(
+          style: doc.style,
+          box: doc.box,
+          child: GlossTextLine(render: render),
+        ),
       ],
     );
   }

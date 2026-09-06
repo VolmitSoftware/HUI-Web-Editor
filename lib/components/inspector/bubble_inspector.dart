@@ -15,6 +15,11 @@ import '../../logic/gloss_text.dart';
 import '../../logic/bubble_motion.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'display_style_editor.dart';
+import 'hologram_box_editor.dart';
+import '../../model/gloss_hologram_box.dart';
+import 'gloss_visibility_editor.dart';
+import '../../logic/gloss_show.dart';
 import 'preview_expr_field.dart';
 import 'particle_layers_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
@@ -43,6 +48,38 @@ class _BubbleInspectorState extends State<BubbleInspector> {
     if (doc == null) return const dom.div(<Widget>[]);
     return dom.div(classes: 'hui-inspector-body is-bubble', <Widget>[
       _header(doc),
+      GlossVisibilityEditor(
+        raw: doc.extras['show'],
+        sectionKey: 'bubble.visibility',
+        issues: _store.issues
+            .where((HuiIssue issue) => issue.path == r'$.show')
+            .toList(),
+        onChanged: (Object? value) => _store.mutateBubbleStyle(
+          'visibility',
+          (GlossBubbleStyleDoc edited) => setGlossShow(edited.extras, value),
+        ),
+      ),
+      DisplayStyleEditor(
+        style: doc.style,
+        defaults: defaultHologramDisplayStyle(),
+        issues: _issuesFor(r'$.style'),
+        onChanged: (String label, HuiIconStyle? value) =>
+            _store.mutateBubbleStyle(
+              label,
+              (GlossBubbleStyleDoc edited) =>
+                  edited.style = value ?? defaultHologramDisplayStyle(),
+            ),
+      ),
+      HologramBoxEditor(
+        box: doc.box,
+        sectionKey: 'bubble.box',
+        issues: _issuesFor(r'$.box'),
+        mutate: (String label, void Function(GlossHologramBox) edit) =>
+            _store.mutateBubbleStyle(
+              label,
+              (GlossBubbleStyleDoc edited) => edit(edited.box),
+            ),
+      ),
       _look(doc),
       ParticleLayersEditor(
         layers: doc.particleLayers,

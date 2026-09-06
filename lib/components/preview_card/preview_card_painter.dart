@@ -23,6 +23,7 @@ import '../../logic/gloss_particle_preview.dart';
 import '../../logic/gloss_particle_text.dart';
 import '../../logic/mc_text.dart';
 import '../../model/model.dart';
+import '../../model/gloss_hologram_box.dart';
 import '../render/canvas_brush.dart';
 import '../render/canvas_assets.dart';
 import '../render/icon_renderers.dart';
@@ -106,6 +107,10 @@ class PreviewCardPainter {
     _paintParticles(ctx, view, scene, options, placement: 'behind');
     for (final int index in previewPaintOrder(scene)) {
       final CardItem item = scene.items[index];
+      ctx.save();
+      if (item is! CardSlot) {
+        _applyDisplayStyle(ctx, view, item.x, item.y, item.style);
+      }
       switch (item) {
         case CardPanel():
           _paintRect(
@@ -132,6 +137,7 @@ class PreviewCardPainter {
         case CardLabel():
           labelWidths[index] = _paintLabel(ctx, view, item, palette);
       }
+      ctx.restore();
     }
     _paintParticles(ctx, view, scene, options, placement: 'center');
     _paintParticles(ctx, view, scene, options, placement: 'front');
@@ -141,6 +147,27 @@ class PreviewCardPainter {
     _paintHandles(ctx, view, options, palette);
     if (scene.items.isEmpty) _paintEmptyState(ctx, view, palette);
     return labelWidths;
+  }
+
+  void _applyDisplayStyle(
+    web.CanvasRenderingContext2D ctx,
+    PreviewCardView view,
+    int x,
+    int y,
+    HuiIconStyle? style,
+  ) {
+    if (style == null) return;
+    final double centerX = view.toScreenX(x);
+    final double centerY = view.toScreenY(y);
+    ctx.translate(centerX, centerY);
+    ctx.scale(style.scaleX, style.scaleY);
+    ctx.translate(-centerX, -centerY);
+    ctx.globalAlpha = style.textOpacity.clamp(0, 255) / 255;
+    if (style.shadow) {
+      ctx.shadowColor = 'rgba(0,0,0,.65)';
+      ctx.shadowOffsetX = view.zoom.toDouble();
+      ctx.shadowOffsetY = view.zoom.toDouble();
+    }
   }
 
   // --- chrome ---------------------------------------------------------------
@@ -338,7 +365,10 @@ class PreviewCardPainter {
     CanvasPalette palette,
     String? Function(String material)? textureFor,
   ) {
+    ctx.save();
+    _applyDisplayStyle(ctx, view, slot.x, slot.y, slot.wellStyle);
     _paintRect(ctx, view, slot.x, slot.y, slot.size, slot.size, slot.wellColor);
+    ctx.restore();
     final double size = (slot.size * view.zoom).toDouble();
     final double left = view.toScreenX(slot.x - slot.size / 2);
     final double top = view.toScreenY(slot.y + slot.size / 2);
@@ -354,6 +384,7 @@ class PreviewCardPainter {
       return;
     }
     ctx.save();
+    _applyDisplayStyle(ctx, view, slot.x, slot.y, slot.style);
     final String? texture = textureFor?.call(item.material.toLowerCase());
     final web.HTMLImageElement? sprite = texture == null
         ? null
@@ -379,6 +410,9 @@ class PreviewCardPainter {
       _fill(ctx, palette.label);
       ctx.fillText(_slotGlyph(item.material), left + size / 2, top + size / 2);
     }
+    ctx.restore();
+    ctx.save();
+    _applyDisplayStyle(ctx, view, slot.x, slot.y, slot.wellStyle);
     if (item.count > 1 && size >= 22) {
       ctx.font =
           '700 ${math.min(11, size / 3.5).toStringAsFixed(1)}px '
@@ -425,66 +459,122 @@ class PreviewCardPainter {
     metrics.calibrate(ctx);
     final double fontSize = metrics.fontSizeFor(fontPixel);
 
-    final List<double> advances = <double>[];
+    final List<List<McSpan>> lines = previewLabelLines(label);
+    final List<List<double>> advances = <List<double>>[];
+    final List<double> widths = <double>[];
     double total = 0;
-    for (final McSpan span in label.text) {
-      _setMinecraftFont(ctx, fontSize, span.italic);
-      // Minecraft widens every GLYPH of a bold run by one pixel, not the run.
-      final double width =
-          ctx.measureText(span.text).width +
-          (span.bold ? fontPixel * span.text.runes.length : 0);
-      advances.add(width);
-      total += width;
+    for (final List<McSpan> line in lines) {
+      final List<double> lineAdvances = <double>[];
+      double width = 0;
+      for (final McSpan span in line) {
+        _setMinecraftFont(ctx, fontSize, span.italic);
+        final double advance =
+            ctx.measureText(span.text).width +
+            (span.bold ? fontPixel * span.text.runes.length : 0);
+        lineAdvances.add(advance);
+        width += advance;
+      }
+      advances.add(lineAdvances);
+      widths.add(width);
+      total = math.max(total, width);
     }
-
-    // 7 glyph pixels sit above the baseline and 1 below, so dropping the
-    // baseline by [huiBaselineOffsetPixels] centres the cell on the position
-    // the format names — the same offset the component canvas draws text at.
-    final double baselineY =
-        view.toScreenY(label.y) + huiBaselineOffsetPixels * fontPixel;
-    double x = view.toScreenX(label.x) - total / 2;
-
+    final double left = view.toScreenX(label.x) - total / 2;
+    final double height = lines.length * previewLabelLineHeightPx * fontPixel;
+    final double top = view.toScreenY(label.y) - height / 2;
     ctx.save();
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
+    final GlossHologramBox? box = label.box;
+    if (box != null && box.enabled) {
+      final double padding = box.padding.clamp(0, 64) * fontPixel;
+      final double border = box.borderWidth.clamp(0, 16) * fontPixel;
+      final double boxTop = top - padding;
+      final double boxLeft = left - padding;
+      final double boxWidth = total + padding * 2;
+      final double boxHeight = height + padding * 2;
+      _fill(
+        ctx,
+        previewArgbCss(
+          int.tryParse(box.backgroundArgb.replaceFirst('#', ''), radix: 16) ??
+              0,
+        ),
+      );
+      ctx.fillRect(boxLeft, boxTop, boxWidth, boxHeight);
+      _fill(
+        ctx,
+        previewArgbCss(
+          int.tryParse(box.borderArgb.replaceFirst('#', ''), radix: 16) ?? 0,
+        ),
+      );
+      ctx.fillRect(
+        boxLeft - border,
+        boxTop - border,
+        boxWidth + border * 2,
+        border,
+      );
+      ctx.fillRect(
+        boxLeft - border,
+        boxTop + boxHeight,
+        boxWidth + border * 2,
+        border,
+      );
+      ctx.fillRect(boxLeft - border, boxTop, border, boxHeight);
+      ctx.fillRect(boxLeft + boxWidth, boxTop, border, boxHeight);
+    }
     if (_alpha(label.background) != 0) {
       _fill(ctx, previewArgbCss(label.background));
-      ctx.fillRect(
-        x - fontPixel,
-        view.toScreenY(label.y + previewLabelLineHeightPx / 2),
-        total + fontPixel * 2,
-        previewLabelLineHeightPx * view.zoom,
-      );
+      ctx.fillRect(left - fontPixel, top, total + fontPixel * 2, height);
     }
-    for (int i = 0; i < label.text.length; i++) {
-      final McSpan span = label.text[i];
-      _setMinecraftFont(ctx, fontSize, span.italic);
-      _fill(ctx, mcColorCss(span.color));
-      if (span.bold) {
-        _fillBoldRun(
-          ctx,
-          span.text,
-          x,
-          baselineY,
-          fontSize,
-          span.italic,
-          fontPixel,
-        );
-      } else {
-        ctx.fillText(span.text, x, baselineY);
+    for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+      final List<McSpan> line = lines[lineIndex];
+      double x =
+          left +
+          switch (label.style?.textAlignment) {
+            'left' => 0.0,
+            'right' => total - widths[lineIndex],
+            _ => (total - widths[lineIndex]) / 2,
+          };
+      final double baselineY =
+          top +
+          (lineIndex * previewLabelLineHeightPx +
+                  previewLabelLineHeightPx / 2 +
+                  huiBaselineOffsetPixels) *
+              fontPixel;
+      for (int i = 0; i < line.length; i++) {
+        final McSpan span = line[i];
+        _setMinecraftFont(ctx, fontSize, span.italic);
+        _fill(ctx, mcColorCss(span.color));
+        if (span.bold) {
+          _fillBoldRun(
+            ctx,
+            span.text,
+            x,
+            baselineY,
+            fontSize,
+            span.italic,
+            fontPixel,
+          );
+        } else {
+          ctx.fillText(span.text, x, baselineY);
+        }
+        if (span.underlined) {
+          ctx.fillRect(
+            x,
+            baselineY + fontPixel,
+            advances[lineIndex][i],
+            fontPixel,
+          );
+        }
+        if (span.strikethrough) {
+          ctx.fillRect(
+            x,
+            baselineY - huiBaselineOffsetPixels * fontPixel,
+            advances[lineIndex][i],
+            fontPixel,
+          );
+        }
+        x += advances[lineIndex][i];
       }
-      if (span.underlined) {
-        ctx.fillRect(x, baselineY + fontPixel, advances[i], fontPixel);
-      }
-      if (span.strikethrough) {
-        ctx.fillRect(
-          x,
-          baselineY - huiBaselineOffsetPixels * fontPixel,
-          advances[i],
-          fontPixel,
-        );
-      }
-      x += advances[i];
     }
     ctx.restore();
     return total / view.zoom;

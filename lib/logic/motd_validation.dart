@@ -14,6 +14,7 @@ import '../model/gloss_doc.dart';
 import '../model/gloss_motd.dart';
 import 'gloss_text.dart';
 import 'validation.dart';
+import 'gloss_show.dart';
 
 /// The vanilla server list truncates rows client-side around this many
 /// visible characters; longer lines risk an ellipsis. Client behavior, not a
@@ -24,7 +25,9 @@ List<HuiIssue> validateMotdDoc(
   GlossMotdDoc doc, {
   GlossAnimationResolver animations = const GlossNoAnimations(),
 }) {
-  final List<HuiIssue> issues = <HuiIssue>[];
+  final List<HuiIssue> issues = <HuiIssue>[
+    ...validateGlossShow(doc.extras['show']),
+  ];
 
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) {

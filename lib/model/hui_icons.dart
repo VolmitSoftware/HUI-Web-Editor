@@ -1,3 +1,4 @@
+import 'gloss_hologram_box.dart';
 import 'json_codec.dart';
 
 /// The eight JSON-authorable icon types. `itemStack` exists in the plugin enum
@@ -329,6 +330,7 @@ sealed class HuiIcon {
 class HuiTextIcon extends HuiIcon {
   String text;
   int? refreshTicks;
+  GlossHologramBox? box;
 
   HuiTextIcon([this.text = '', HuiIconStyle? style, this.refreshTicks]) {
     this.style = style;
@@ -343,27 +345,34 @@ class HuiTextIcon extends HuiIcon {
     'text': text,
     if (refreshTicks != null) 'refreshTicks': refreshTicks,
     if (style != null) 'style': style!.toJson(),
+    if (box != null) 'box': box!.toJson(),
   }, extras);
 
   @override
-  HuiTextIcon copy() =>
-      HuiTextIcon(text, style?.copy(), refreshTicks)
-        ..extras = huiDeepCopyMap(extras);
+  HuiTextIcon copy() => HuiTextIcon(text, style?.copy(), refreshTicks)
+    ..box = box?.copy()
+    ..extras = huiDeepCopyMap(extras);
 
   static const Set<String> _known = <String>{
     'type',
     'text',
     'refreshTicks',
     'style',
+    'box',
   };
 
-  static HuiTextIcon fromMap(Map<String, dynamic> map) => HuiTextIcon(
-    huiReadString(map, 'text'),
-    HuiIconStyle.fromJsonOrNull(map['style']),
-    map.containsKey('refreshTicks') && map['refreshTicks'] != null
-        ? huiReadInt(map, 'refreshTicks')
-        : null,
-  )..extras = huiCollectExtras(map, _known);
+  static HuiTextIcon fromMap(Map<String, dynamic> map) =>
+      HuiTextIcon(
+          huiReadString(map, 'text'),
+          HuiIconStyle.fromJsonOrNull(map['style']),
+          map.containsKey('refreshTicks') && map['refreshTicks'] != null
+              ? huiReadInt(map, 'refreshTicks')
+              : null,
+        )
+        ..box = map['box'] == null
+            ? null
+            : GlossHologramBox.fromJson(map['box'])
+        ..extras = huiCollectExtras(map, _known);
 }
 
 class HuiTextImageIcon extends HuiIcon {

@@ -12,6 +12,7 @@
 /// disagree on a measurement.
 library;
 
+import 'gloss_show.dart';
 import 'dart:math' as math;
 
 import '../model/model.dart';
@@ -24,6 +25,7 @@ import 'gloss_text.dart'
         GlossNoAnimations,
         GlossNoEmoji,
         GlossTextExpressionSamples,
+        GlossTextExpressionScope,
         glossMenuTextNeedsRefresh,
         glossRenderMenuParticleText;
 import 'gloss_particle_text.dart'
@@ -440,7 +442,25 @@ CanvasScene buildCanvasScene({
   int animationTicks = 0,
 }) {
   final List<CanvasItem> items = <CanvasItem>[];
+  final GlossTextExpressionScope showScope = GlossTextExpressionScope(
+    animationTicks * 50,
+    expressionSamples,
+  );
+  final bool menuVisible = glossShowMatches(
+    menu.extras['show'],
+    scope: showScope,
+    nowMs: animationTicks * 50,
+  );
   for (int index = 0; index < menu.components.length; index++) {
+    if (trueRender &&
+        (!menuVisible ||
+            !glossShowMatches(
+              menu.components[index].extras['show'],
+              scope: showScope,
+              nowMs: animationTicks * 50,
+            ))) {
+      continue;
+    }
     items.add(
       _resolveItem(
         component: menu.components[index],
@@ -471,7 +491,9 @@ CanvasScene buildCanvasScene({
     items: items,
     drawOrder: drawOrder,
     overlaps: _findOverlaps(items),
-    particleLayers: glossCopyParticleLayers(menu.particleLayers),
+    particleLayers: trueRender && !menuVisible
+        ? <GlossParticleLayer>[]
+        : glossCopyParticleLayers(menu.particleLayers),
     menuOffset: menu.offset.copy(),
     uiScale: uiScale,
     trueRender: trueRender,

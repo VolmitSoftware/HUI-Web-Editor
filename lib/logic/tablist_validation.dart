@@ -6,12 +6,23 @@ import '../model/gloss_tablist.dart';
 import 'gloss_text.dart';
 import 'preview_expr.dart';
 import 'validation.dart';
+import 'gloss_show.dart';
 
 List<HuiIssue> validateTablistDoc(
   GlossTablistDoc doc, {
   GlossAnimationResolver animations = const GlossNoAnimations(),
 }) {
-  final List<HuiIssue> issues = <HuiIssue>[];
+  final List<HuiIssue> issues = <HuiIssue>[
+    ...validateGlossShow(doc.extras['show']),
+    ...validateGlossShow(
+      doc.headerFooter.extras['show'],
+      path: r'$.headerFooter.show',
+    ),
+    ...validateGlossShow(
+      doc.listNames.extras['show'],
+      path: r'$.listNames.show',
+    ),
+  ];
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) issues.add(revisionIssue);
 

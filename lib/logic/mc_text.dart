@@ -436,6 +436,7 @@ const Map<String, _Deco> _decorationTags = <String, _Deco>{
 
 const Set<String> _colorTagNames = <String>{'color', 'colour', 'c'};
 const String _gradientTag = 'gradient';
+const String _rainbowTag = 'rainbow';
 const String _resetTag = 'reset';
 
 /// Replaces every unrecognised tag with the literal text MiniMessage would
@@ -460,6 +461,7 @@ List<_Node> _classify(List<_Node> nodes, Set<String> warnings) {
 bool _isKnownTag(_TagNode tag) {
   if (tag.closing) {
     return tag.name == _gradientTag ||
+        tag.name == _rainbowTag ||
         tag.name == _resetTag ||
         _colorTagNames.contains(tag.name) ||
         _decorationTags.containsKey(tag.name) ||
@@ -553,6 +555,30 @@ class _GradientRun {
   }
 }
 
+final class _RainbowRun extends _GradientRun {
+  _RainbowRun({required int phase, required this.reversed})
+    : super(const <int>[
+        0xFF0000,
+        0xFFFF00,
+        0x00FF00,
+        0x00FFFF,
+        0x0000FF,
+        0xFF00FF,
+        0xFF0000,
+      ], phase / 10);
+
+  final bool reversed;
+
+  @override
+  int colorAt(int position) {
+    final int index = reversed ? total - 1 - position : position;
+    final double hue = (index / (total < 1 ? 1 : total) + phase) % 1.0;
+    final double scaled = hue * 6;
+    final int segment = scaled.floor();
+    return _lerpRgb(stops[segment], stops[segment + 1], scaled - segment);
+  }
+}
+
 _GradientRun? _buildGradient(List<String> args) {
   List<String> colorArgs = args;
   double phase = 0;
@@ -631,6 +657,19 @@ class _Style {
 }
 
 _Frame? _resolveOpen(_TagNode tag) {
+  if (tag.name == _rainbowTag && tag.args.length <= 1) {
+    String argument = tag.args.isEmpty ? '' : tag.args.first;
+    final bool reversed = argument.startsWith('!');
+    if (reversed) argument = argument.substring(1);
+    final int? phase = argument.isEmpty ? 0 : int.tryParse(argument);
+    return phase == null
+        ? null
+        : _Frame(
+            key: tag.key,
+            gradient: _RainbowRun(phase: phase, reversed: reversed),
+          );
+  }
+
   if (tag.args.isEmpty) {
     final int? named = mcNamedColor(tag.name);
     if (named != null) {
@@ -728,7 +767,7 @@ int _countGradientChars(
     if (!tag.closing && tag.name == _resetTag) {
       break;
     }
-    if (tag.name == _gradientTag) {
+    if (tag.name == _gradientTag || tag.name == _rainbowTag) {
       if (!tag.closing) {
         depth++;
         continue;

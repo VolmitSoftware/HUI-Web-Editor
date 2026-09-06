@@ -21,6 +21,7 @@ class ExtrasEditor extends StatefulWidget {
     required this.title,
     required this.extras,
     required this.onChanged,
+    this.knownKeys = const <String>{},
     super.key,
   });
 
@@ -32,6 +33,7 @@ class ExtrasEditor extends StatefulWidget {
   final Map<String, dynamic> extras;
 
   final void Function(String label, Map<String, dynamic> next) onChanged;
+  final Set<String> knownKeys;
 
   @override
   State<ExtrasEditor> createState() => _ExtrasEditorState();
@@ -44,6 +46,10 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
   /// parse yet stays on screen instead of being reverted by the next rebuild.
   final Map<String, String> _drafts = <String, String>{};
   final Map<String, JsonParseResult> _errors = <String, JsonParseResult>{};
+
+  Iterable<String> get _unknownKeys => component.extras.keys.where(
+    (String key) => !component.knownKeys.contains(key),
+  );
 
   String _newKey = '';
   String Function()? _newKeyError;
@@ -101,7 +107,8 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
       setState(() => _newKeyError = () => huiText('Give the key a name.'));
       return;
     }
-    if (component.extras.containsKey(key)) {
+    if (component.extras.containsKey(key) ||
+        component.knownKeys.contains(key)) {
       setState(
         () => _newKeyError = () =>
             huiText('{key} is already here.', <String, Object?>{'key': key}),
@@ -119,7 +126,7 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final int count = component.extras.length;
+    final int count = _unknownKeys.length;
     return dom.div(
       classes: classNames(<String?>[
         'hui-extras',
@@ -172,10 +179,10 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
     ),
     <Widget>[
       _note(),
-      if (component.extras.isEmpty)
+      if (_unknownKeys.isEmpty)
         _empty()
       else
-        for (final String key in component.extras.keys.toList()) _row(key),
+        for (final String key in _unknownKeys) _row(key),
       const HuiDivider(),
       _addRow(),
     ],

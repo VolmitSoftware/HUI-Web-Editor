@@ -159,7 +159,17 @@ class _TablistViewState extends State<TablistView> {
   /// substitution, then the pipeline. Vanilla (plain name) when
   /// groupListNames is off or the chosen template is blank.
   String _listNameRaw(GlossTablistDoc doc, _MockPlayer player) {
-    if (!doc.listNames.enabled) return player.name;
+    if (!glossTablistListNamesVisible(
+      doc,
+      _conditionContext(
+        subjectName: player.name,
+        subjectGroup: player.group,
+        subjectOp: player.op,
+      ),
+      nowMs: DateTime.now().millisecondsSinceEpoch,
+    )) {
+      return player.name;
+    }
     final GlossTablistListNamePresentation presentation =
         glossResolveTablistListName(
           doc,
@@ -192,7 +202,12 @@ class _TablistViewState extends State<TablistView> {
     }
     final GlossAnimationResolver animations = _store.workspaceAnimations;
     final GlossEmojiResolver emoji = _store.workspaceEmoji;
-    _syncTicker(_isAnimated(doc, animations));
+    _syncTicker(
+      _isAnimated(doc, animations) ||
+          doc.extras['show'] is String ||
+          doc.headerFooter.extras['show'] is String ||
+          doc.listNames.extras['show'] is String,
+    );
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
     final GlossConditionContext viewerContext = _conditionContext();
     final GlossTablistHeaderFooterPresentation headerFooter =
@@ -215,7 +230,7 @@ class _TablistViewState extends State<TablistView> {
     ];
 
     final Widget screen = dom.div(classes: 'hui-tablist-screen', <Widget>[
-      if (doc.headerFooter.enabled)
+      if (glossTablistHeaderFooterVisible(doc, viewerContext, nowMs: nowMs))
         dom.div(
           classes: 'hui-tablist-header',
           pipelineLines(headerFooter.header),
@@ -245,7 +260,7 @@ class _TablistViewState extends State<TablistView> {
             ]),
           ]),
       ]),
-      if (doc.headerFooter.enabled)
+      if (glossTablistHeaderFooterVisible(doc, viewerContext, nowMs: nowMs))
         dom.div(
           classes: 'hui-tablist-footer',
           pipelineLines(headerFooter.footer),

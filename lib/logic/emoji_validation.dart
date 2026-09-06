@@ -11,9 +11,12 @@ library;
 import '../model/gloss_doc.dart';
 import '../model/gloss_emoji.dart';
 import 'validation.dart';
+import 'gloss_show.dart';
 
 List<HuiIssue> validateEmojiDoc(GlossEmojiDoc doc) {
-  final List<HuiIssue> issues = <HuiIssue>[];
+  final List<HuiIssue> issues = <HuiIssue>[
+    ...validateGlossShow(doc.extras['show']),
+  ];
 
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) {

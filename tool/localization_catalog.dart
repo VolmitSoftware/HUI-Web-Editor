@@ -3469,6 +3469,11 @@ LocalizationSource collectLocalizationSource(Directory root) {
       _collectLiteralArgumentAt(source, messages, '_text', 2, entity.path);
     }
     if (entity.path.endsWith(
+      '${Platform.pathSeparator}entity_overlay_validation.dart',
+    )) {
+      _collectLiteralArgumentAt(source, messages, '_error', 2, entity.path);
+    }
+    if (entity.path.endsWith(
       '${Platform.pathSeparator}entity_overlay_view.dart',
     )) {
       _collectLiteralArgumentAt(source, messages, '_number', 0, entity.path);
