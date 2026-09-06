@@ -50,8 +50,7 @@
 .hui-gloss-preview-viewport.is-top .hui-gloss-preview-content { transform-origin: center top; }
 .hui-gloss-preview-viewport.is-bottom .hui-gloss-preview-content { transform-origin: center bottom; }
 
-.hui-gloss-preview-controls,
-.hui-hologram-controls {
+.hui-gloss-preview-controls {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -68,7 +67,7 @@
 
 :where(
     .hui-gloss-preview-controls,
-    .hui-hologram-controls,
+    .hui-mc-controls,
     .hui-gloss-game-controls,
     .hui-scoreboard-view-controls,
     .hui-tablist-view-controls,
@@ -86,7 +85,7 @@
 
 :where(
     .hui-gloss-preview-controls,
-    .hui-hologram-controls,
+    .hui-mc-controls,
     .hui-gloss-game-controls,
     .hui-scoreboard-view-controls,
     .hui-tablist-view-controls,
@@ -96,7 +95,7 @@
   ) .arcane-button:hover:not(:disabled),
 :where(
     .hui-gloss-preview-controls,
-    .hui-hologram-controls,
+    .hui-mc-controls,
     .hui-gloss-game-controls,
     .hui-scoreboard-view-controls,
     .hui-tablist-view-controls,
@@ -109,7 +108,7 @@
 
 :where(
     .hui-gloss-preview-controls,
-    .hui-hologram-controls,
+    .hui-mc-controls,
     .hui-gloss-game-controls,
     .hui-scoreboard-view-controls,
     .hui-tablist-view-controls,
@@ -133,7 +132,7 @@
 
 /* --- hologram stage ------------------------------------------------------ */
 
-.hui-hologram-stage {
+.hui-hologram-stage.is-empty {
   position: relative;
   width: 100%;
   height: 100%;
@@ -142,28 +141,9 @@
     radial-gradient(120% 90% at 50% 20%,
       color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 60%),
     var(--color-background);
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-}
-
-.hui-hologram-stage:active { cursor: grabbing; }
-
-.hui-hologram-grid-line {
-  position: absolute;
-  height: 1px;
-  background: color-mix(in srgb, var(--color-foreground) 14%, transparent);
-  transform-origin: 0 0;
-  pointer-events: none;
-}
-
-.hui-hologram-grid-line.is-axis {
-  background: color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 
 .hui-hologram-billboard {
-  position: absolute;
-  transform: translate(-50%, -100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -201,8 +181,7 @@
 .hui-display-text,
 .hui-hologram-line,
 .hui-bubble-block > .hui-gloss-line,
-.hui-damage-indicator-number > .hui-gloss-line,
-.hui-real-drops-plate > .hui-gloss-line {
+.hui-damage-indicator-number > .hui-gloss-line {
   position: relative;
   z-index: 0;
 }
@@ -215,24 +194,12 @@
 }
 
 .hui-hologram-anchor {
-  position: absolute;
   width: 8px;
   height: 8px;
-  transform: translate(-50%, -50%) rotate(45deg);
+  transform: rotate(45deg);
   background: color-mix(in srgb, var(--color-primary) 80%, transparent);
   pointer-events: none;
 }
-
-.hui-hologram-readout {
-  position: absolute;
-  left: 12px;
-  bottom: 10px;
-  font-size: 11px;
-  color: var(--color-muted-foreground);
-  pointer-events: none;
-}
-
-.hui-hologram-controls { cursor: default; }
 
 /* --- hologram inspector -------------------------------------------------- */
 
@@ -372,7 +339,7 @@
 .hui-scoreboard-sky.is-scene {
   background:
     linear-gradient(rgba(4, 7, 8, 0.32), rgba(4, 7, 8, 0.32)),
-    url('../assets/backdrop/hui_backdrop.webp') center / cover no-repeat;
+    url('../assets/mc/26.2/world_still.png') center / cover no-repeat;
 }
 
 .hui-scoreboard-view-controls {
@@ -785,53 +752,18 @@
   background: var(--color-background);
 }
 
-.hui-bubble-sky {
-  flex: 1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 28px;
-  overflow: auto;
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--color-primary) 9%, transparent),
-      transparent 55%),
-    color-mix(in srgb, #000 14%, var(--color-background));
-}
-
-/* Anchored at the silhouette's eye line; bubbles absolute-position off its
-   bottom edge, which stands in for eye + style offset. */
-.hui-bubble-scene {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  container-type: inline-size;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  perspective: 900px;
-  transform-style: preserve-3d;
-}
-
-.hui-bubble-stage .hui-gloss-preview-content {
-  width: min(980px, 92%);
-  height: 100%;
-}
+.hui-bubble-stage > .hui-mc-stage { flex: 1; min-height: 0; }
 
 .hui-bubble-block {
-  position: absolute;
-  left: 50%;
   background: transparent;
   padding: 0;
   font-family: var(--hui-mc-font);
-  font-size: clamp(9px, 1.25cqi, 14px);
+  font-size: 14px;
   line-height: 1.2;
   color: #ffffff;
   white-space: pre;
   text-align: left;
-  transform-origin: center center;
-  transform-style: preserve-3d;
-  will-change: transform, opacity, bottom, left;
+  will-change: transform, opacity;
   pointer-events: none;
 }
 
@@ -847,37 +779,6 @@
 
 .hui-bubble-motion-grid {
   grid-template-columns: minmax(0, 1fr);
-}
-
-/* A blocky player silhouette: head, torso, arms. */
-.hui-bubble-player {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  margin-bottom: 4px;
-}
-
-.hui-bubble-player-head {
-  width: 26px;
-  height: 26px;
-  background: color-mix(in srgb, var(--color-primary) 45%, #6b5335);
-  border: 1px solid rgba(0, 0, 0, 0.4);
-}
-
-.hui-bubble-player-body {
-  width: 26px;
-  height: 38px;
-  background: color-mix(in srgb, var(--color-primary) 30%, #2d4a6b);
-  border: 1px solid rgba(0, 0, 0, 0.4);
-}
-
-.hui-bubble-player-arms {
-  width: 46px;
-  height: 6px;
-  margin-top: -40px;
-  background: color-mix(in srgb, var(--color-primary) 30%, #2d4a6b);
-  border: 1px solid rgba(0, 0, 0, 0.4);
 }
 
 .hui-bubble-controls {
@@ -911,31 +812,17 @@
   flex: 1 1 auto;
   min-height: 240px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 72% 16%, rgba(255, 244, 188, .18), transparent 9%),
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--color-primary) 16%, #172536) 0%,
-      color-mix(in srgb, var(--color-primary) 7%, #304857) 56%,
-      #26352f 56%,
-      #18231d 100%);
-}
-
-.hui-damage-indicator-scene {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 240px;
-  overflow: hidden;
-  perspective: 780px;
-  transform-style: preserve-3d;
 }
 
 .hui-damage-indicator-empty-state {
+  position: absolute;
+  inset: 0;
   display: grid;
   width: 100%;
   height: 100%;
   min-height: 240px;
   place-items: center;
+  pointer-events: none;
   color: var(--color-muted-foreground);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -948,124 +835,41 @@
   background: color-mix(in srgb, var(--color-card) 88%, transparent);
 }
 
-.hui-damage-indicator-horizon {
-  position: absolute;
-  inset: 41% 0 auto;
-  height: 22%;
-  background:
-    linear-gradient(158deg, transparent 48%, rgba(9, 18, 17, .42) 49% 56%, transparent 57%) 0 0 / 32% 100%,
-    linear-gradient(202deg, transparent 46%, rgba(9, 18, 17, .34) 47% 55%, transparent 56%) 20% 0 / 38% 100%;
-  opacity: .7;
-}
-
-.hui-damage-indicator-ground {
-  position: absolute;
-  left: -10%;
-  right: -10%;
-  bottom: -22%;
-  height: 68%;
-  transform: rotateX(63deg);
-  transform-origin: 50% 100%;
-  background:
-    linear-gradient(rgba(255, 255, 255, .055) 1px, transparent 1px) 0 0 / 42px 42px,
-    linear-gradient(90deg, rgba(255, 255, 255, .055) 1px, transparent 1px) 0 0 / 42px 42px,
-    linear-gradient(180deg, rgba(39, 64, 48, .96), rgba(21, 34, 27, .98));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
-}
-
-.hui-damage-indicator-entity {
-  position: absolute;
-  left: 50%;
-  bottom: 18%;
-  width: 58px;
-  height: 112px;
-  transform: translateX(-50%);
-}
-
-.hui-damage-indicator-entity-head,
-.hui-damage-indicator-entity-body,
-.hui-damage-indicator-entity-arms {
-  position: absolute;
-  left: 50%;
-  border: 1px solid rgba(0, 0, 0, .42);
-  transform: translateX(-50%);
-  box-shadow: inset -7px -5px 0 rgba(0, 0, 0, .13);
-}
-
-.hui-damage-indicator-entity-head {
-  top: 0;
-  width: 42px;
-  height: 42px;
-  background: #92704c;
-}
-
-.hui-damage-indicator-entity-body {
-  top: 42px;
-  width: 42px;
-  height: 62px;
-  background: color-mix(in srgb, var(--color-primary) 44%, #263c52);
-}
-
-.hui-damage-indicator-entity-arms {
-  top: 47px;
-  width: 62px;
-  height: 15px;
-  background: color-mix(in srgb, var(--color-primary) 38%, #263c52);
-}
-
-.hui-damage-indicator-entity-shadow {
-  position: absolute;
-  left: 50%;
-  bottom: -8px;
-  width: 76px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, .34);
-  filter: blur(3px);
-  transform: translateX(-50%);
-}
-
 .hui-damage-indicator-number {
-  position: absolute;
-  z-index: 4;
-  left: 50%;
-  bottom: calc(18% + 68px);
   color: #fff;
   font-family: var(--hui-mc-font);
   font-size: 22px;
   line-height: 1;
   white-space: nowrap;
-  transform:
-    translate(-50%, 50%)
-    translate3d(var(--hui-indicator-x), calc(-1 * var(--hui-indicator-y)), var(--hui-indicator-z))
-    rotate(var(--hui-indicator-roll))
-    scale3d(var(--hui-indicator-scale-x), var(--hui-indicator-scale-y), var(--hui-indicator-scale-z));
   transform-origin: center;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, .72);
   will-change: transform, opacity;
 }
 
 .hui-damage-indicator-origin {
-  position: absolute;
-  z-index: 3;
-  left: 50%;
-  bottom: calc(18% + 62px);
+  position: relative;
   width: 7px;
   height: 7px;
   border: 1px solid rgba(255, 255, 255, .5);
   background: rgba(0, 0, 0, .4);
-  transform: translate(-50%, 50%) rotate(45deg);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
+/* The caption lives inside the diamond, which is the box turned 45deg, so it
+   inherits that turn: anchoring it on the box's top-right corner (the
+   diamond's right vertex) and turning it back -45deg about that corner
+   leaves it horizontal, and the translate after the turn is in its own
+   upright frame, so it clears the vertex and centres on it. */
 .hui-damage-indicator-origin span {
   position: absolute;
-  left: 11px;
-  top: -4px;
+  left: 100%;
+  top: 0;
   color: rgba(255, 255, 255, .56);
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: .04em;
-  transform: rotate(-45deg);
+  transform-origin: 0 0;
+  transform: rotate(-45deg) translate(6px, -50%);
   white-space: nowrap;
 }
 
@@ -1255,25 +1059,7 @@
   background: linear-gradient(#141c24 0 58%, #1b2419 58% 100%);
 }
 
-.hui-real-drops-scene {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  background: linear-gradient(#0b1220 0%, #24384a 60%, #35506a 100%);
-}
-
-/* The editor stage takes the keyboard, so it is focusable, and the ring is an
-   inset shadow because an outline would be clipped away by the scene's own
-   `overflow: hidden`. Scoped to `[tabindex]`: the same scene inside the game
-   frame has no camera and must not offer one. */
-.hui-real-drops-scene[tabindex] {
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-}
-
-.hui-real-drops-scene[tabindex]:active { cursor: grabbing; }
+.hui-real-drops-stage > .hui-mc-stage { flex: 1 1 auto; min-height: 0; }
 
 .hui-entity-overlay-stage {
   display: flex;
@@ -1287,19 +1073,14 @@
   flex: 1 0 400px;
   min-height: 400px;
   overflow: hidden;
-  background: #24384a;
 }
 .hui-entity-overlay-scene { position: absolute; inset: 0; overflow: hidden; }
 .hui-entity-overlay-label {
-  position: absolute;
-  left: 50%;
-  bottom: calc(18% + 112px);
   width: max-content;
-  max-width: 95%;
+  max-width: none;
   padding: 0;
   background: transparent;
   text-align: center;
-  transform-origin: bottom center;
   font-family: var(--hui-mc-font);
   font-size: 16px;
   line-height: 20px;
@@ -1350,158 +1131,6 @@
   .hui-entity-overlay-sample-number { max-width: none; }
   .hui-entity-overlay-sample-name { flex-basis: 100%; }
 }
-
-.hui-real-drops-scene[tabindex]:focus-visible {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hui-ring) 70%, transparent);
-}
-
-/* `overflow: hidden` forces a flat transform style, so the clipping element
-   above cannot also be the 3D context — this one is. */
-.hui-real-drops-world {
-  position: absolute;
-  inset: 0;
-  perspective: 650px;
-  perspective-origin: 50% 12%;
-  transform-style: preserve-3d;
-}
-
-/* Nor can the 3D context carry the camera: `perspective` fixes the eye in
-   front of the page, so a transform on the same element moves the projected
-   picture rather than the viewer. This element is the camera, and
-   `real_drops_view.dart` writes the inverse of wherever the viewer has walked
-   to onto it — see `drop_stage_camera.dart` for why an orbit is a rotation of
-   the scene and nothing else.
-
-   The origin is the point the orbit turns around: the ground line, half a
-   block out toward the camera, which is about where a stack ends up after the
-   stage's forward throw (`dropStageThrowBlocks`). Turning around the point the
-   stack was thrown *from* would swing the settled stack across the frame. */
-.hui-real-drops-camera {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  transform-origin: 50% 60% 98px;
-}
-
-/* The ground the stack lands on: one plane laid flat through the ground line,
-   so a model's height off it is height and not a guess. Centring the plane on
-   that line gives both halves — the near floor under the camera and the far
-   floor receding to the horizon. */
-.hui-real-drops-floor {
-  position: absolute;
-  left: 50%;
-  /* Two pixels under the ground line: a model that settles flush would
-     otherwise be coplanar with the floor and z-fight it away. */
-  top: calc(60% + 2px);
-  width: 2600px;
-  height: 2600px;
-  margin-left: -1300px;
-  margin-top: -1300px;
-  transform: rotateX(90deg);
-  transform-origin: 50% 50%;
-  background:
-    repeating-linear-gradient(0deg, rgba(0, 0, 0, .3) 0 2px, transparent 2px 108px),
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, .3) 0 2px, transparent 2px 108px),
-    linear-gradient(#5c7040 0 30%, #3a4926 62%, #222c16);
-}
-
-/* The stage's water surface. A stage prop, not a document setting: the water
-   button floods the box so inWater, waterBuoyancy and waterDrag have something
-   to act on, because a browser has no world to read isInWater() off. Same
-   plane geometry as the floor, translucent so the stack reads through it. */
-.hui-real-drops-water {
-  position: absolute;
-  left: 50%;
-  top: calc(60% + 2px);
-  width: 2600px;
-  height: 2600px;
-  margin-left: -1300px;
-  margin-top: -1300px;
-  transform-origin: 50% 50%;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, .06) 0 2px, transparent 2px 54px),
-    linear-gradient(rgba(58, 140, 190, .42) 0 40%, rgba(28, 92, 140, .5));
-}
-
-/* The frame stands in for the client's own view, and a player does not get to
-   flood the world either. */
-.hui-gloss-game.is-world .hui-real-drops-water {
-  display: none;
-}
-
-/* The plugin parents every display to one carrier entity; so does the stage,
-   which is why the label rides the models instead of drifting from them. */
-.hui-real-drops-carrier {
-  position: absolute;
-  left: 50%;
-  bottom: 40%;
-  width: 0;
-  height: 0;
-  transform-style: preserve-3d;
-}
-
-.hui-real-drops-model {
-  position: absolute;
-  left: 0;
-  top: 0;
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-
-.hui-real-drops-layer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
-}
-
-.hui-real-drops-layer.is-missing {
-  border: 1px solid rgba(255, 255, 255, .25);
-  background: repeating-linear-gradient(45deg, #b04ac0 0 6px, #1b1220 6px 12px);
-}
-
-.hui-real-drops-block-face {
-  position: absolute;
-  left: 0;
-  top: 0;
-  overflow: hidden;
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-size: 100% auto;
-  image-rendering: pixelated;
-  backface-visibility: hidden;
-}
-
-.hui-real-drops-shadow {
-  position: absolute;
-  left: 50%;
-  bottom: 40%;
-  border-radius: 50%;
-  background: radial-gradient(circle at center, rgba(0, 0, 0, .68), rgba(0, 0, 0, 0) 72%);
-  transform-origin: 50% 50%;
-  transform: translate(-50%, 50%);
-  pointer-events: none;
-}
-
-.hui-real-drops-label {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 4;
-  white-space: nowrap;
-}
-
-.hui-real-drops-plate {
-  padding: 2px 6px;
-  color: #fff;
-  transform-origin: 50% 100%;
-}
-
-/* `seeThrough` is depth-test off in game: the label draws over whatever is in
-   front of it, which here is the stack it belongs to. */
-.hui-real-drops-label.is-see-through { z-index: 8; }
 
 .hui-real-drops-controls {
   display: flex;
@@ -1678,12 +1307,10 @@
 @media (max-width: 700px) {
   .hui-scoreboard-sky,
   .hui-motd-screen,
-  .hui-bubble-sky,
   .hui-tablist-sky { padding: 14px; }
 
   .hui-scoreboard-sidebar,
   .hui-motd-stage .hui-gloss-preview-content,
-  .hui-bubble-stage .hui-gloss-preview-content,
   .hui-tablist-stage .hui-gloss-preview-content { width: 100%; }
 
   .hui-scoreboard-sidebar { font-size: clamp(13px, 4cqi, 17px); }
@@ -1693,7 +1320,6 @@
   .hui-tablist-grid { grid-template-columns: 1fr; }
   .hui-tablist-header,
   .hui-tablist-footer { font-size: 13px; }
-  .hui-hologram-readout { right: 12px; }
   .hui-drop-animation-row.is-material,
   .hui-drop-animation-row.is-keyframe { grid-template-columns: minmax(0, 1fr); }
 }
@@ -1701,7 +1327,7 @@
 @media (pointer: coarse), (max-width: 700px) {
   :where(
       .hui-gloss-preview-controls,
-      .hui-hologram-controls,
+      .hui-mc-controls,
       .hui-gloss-game-controls,
       .hui-scoreboard-view-controls,
       .hui-tablist-view-controls,
@@ -1718,8 +1344,7 @@
 @media (max-width: 420px) {
   .hui-bubble-motion-presets { grid-template-columns: minmax(0, 1fr); }
 
-  .hui-gloss-preview-controls,
-  .hui-hologram-controls { top: 8px; right: 8px; }
+  .hui-gloss-preview-controls { top: 8px; right: 8px; }
 
   .hui-gloss-preview-percent,
   .hui-hologram-zoom { min-width: 34px; }

@@ -361,6 +361,30 @@ final class DropStageFrame {
   final String animationProfileId;
   final bool animationPhysics;
   final int animationLightLevel;
+
+  /// A copy with [visuals] replaced; every other field carries forward.
+  DropStageFrame copyWith({List<DropStageVisual>? visuals}) => DropStageFrame(
+    visuals: visuals ?? this.visuals,
+    carrierY: carrierY,
+    carrierZ: carrierZ,
+    grounded: grounded,
+    settled: settled,
+    phase: phase,
+    phaseTimeTicks: phaseTimeTicks,
+    submerged: submerged,
+    bounces: bounces,
+    interpolationTicks: interpolationTicks,
+    bounceRevision: bounceRevision,
+    label: label,
+    labelY: labelY,
+    modelKind: modelKind,
+    modelScale: modelScale,
+    scriptActive: scriptActive,
+    scriptFailures: scriptFailures,
+    animationProfileId: animationProfileId,
+    animationPhysics: animationPhysics,
+    animationLightLevel: animationLightLevel,
+  );
 }
 
 /// The stage for one settings document and one sample stack.

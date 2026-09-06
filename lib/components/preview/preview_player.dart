@@ -74,18 +74,14 @@ const Set<String> huiPreviewToggleKeys = <String>{
   'k',
 };
 
-/// Half-width of the ground grid, in blocks. 16 keeps the element at 3072 px a
-/// side: a composited layer over 4096 px silently fails to rasterize on the
-/// software renderer, and the grid disappears entirely.
-const int huiPreviewGroundBlocks = 16;
-
 /// Largest radius the `maxDistance` rings are drawn at, in blocks.
 ///
-/// A ring element is `2 x radius x 96` px a side, so 16 blocks lands on exactly
-/// the 3072 px the ground grid already proves rasterizes. Past that the rings
-/// are drawn AT the cap and restyled dotted rather than dropped: a toggle that
-/// silently does nothing is worse than a stated approximation, and the default
-/// `maxDistance` is 6e7, so the uncapped case is the common one.
+/// A ring element is `2 x radius x 96` px a side, so 16 blocks lands on 3072 px:
+/// a composited layer over 4096 px silently fails to rasterize on the software
+/// renderer and the ring disappears entirely. Past the cap the rings are drawn
+/// AT it and restyled dotted rather than dropped: a toggle that silently does
+/// nothing is worse than a stated approximation, and the default `maxDistance`
+/// is 6e7, so the uncapped case is the common one.
 const double huiPreviewMaxRangeBlocks = 16;
 
 /// How far an overlay is pushed along its plane normal, in blocks. The overlay
@@ -679,10 +675,10 @@ String huiPreviewRangeSummary(PreviewSimulation sim) {
 // Overlays
 // ---------------------------------------------------------------------------
 
-/// The six overlay switches, straight off the store.
+/// The overlay switches this layer draws, straight off the store. The ground
+/// grid is not among them: the GL renderer draws it (`McScene.gridVisible`).
 class PreviewOverlayFlags {
   const PreviewOverlayFlags({
-    required this.groundGrid,
     required this.center,
     required this.planes,
     required this.normals,
@@ -691,7 +687,6 @@ class PreviewOverlayFlags {
     this.selectedButtonId,
   });
 
-  final bool groundGrid;
   final bool center;
   final bool planes;
   final bool normals;
@@ -730,7 +725,6 @@ class PreviewOverlayLayer {
       camera.append(node);
     }
 
-    marker('ground', 'hui-preview-ground');
     marker('avatar-disc', 'hui-preview-avatar-disc');
     marker('avatar-postA', 'hui-preview-avatar-post');
     marker('avatar-postB', 'hui-preview-avatar-post');
@@ -799,52 +793,37 @@ class PreviewOverlayLayer {
     final bool showAvatar = !playerMode || playerFeet.distanceTo(feet) > 0.75;
 
     for (final _MarkerNode marker in _markers) {
-      final (bool visible, String transform, double width, double height)
-      spec = switch (marker.key) {
-        // Snapped to whole blocks so the 1-block gradient stays aligned to
-        // integer world coordinates however far the player wanders, and hung
-        // off the LIVE feet so walking never runs off the edge of it.
-        'ground' => (
-          flags.groundGrid,
-          _flatTransform(
-            PVec3(
-              playerFeet.x.roundToDouble(),
-              0,
-              playerFeet.z.roundToDouble(),
+      final (bool visible, String transform, double width, double height) spec =
+          switch (marker.key) {
+            'avatar-disc' => (showAvatar, _flatTransform(feet), 0.6, 0.6),
+            'avatar-postA' => (
+              showAvatar,
+              _uprightTransform(_eyeMid(feet), openYaw),
+              0.03,
+              1.62,
             ),
-          ),
-          huiPreviewGroundBlocks * 2,
-          huiPreviewGroundBlocks * 2,
-        ),
-        'avatar-disc' => (showAvatar, _flatTransform(feet), 0.6, 0.6),
-        'avatar-postA' => (
-          showAvatar,
-          _uprightTransform(_eyeMid(feet), openYaw),
-          0.03,
-          1.62,
-        ),
-        'avatar-postB' => (
-          showAvatar,
-          _uprightTransform(_eyeMid(feet), openYaw + 90),
-          0.03,
-          1.62,
-        ),
-        'avatar-eye' => (showAvatar, _flatTransform(eye), 0.4, 0.4),
-        'center-disc' => (flags.center, _flatTransform(center), 0.24, 0.24),
-        'center-postA' => (
-          flags.center,
-          _uprightTransform(center, menuYaw),
-          0.02,
-          0.4,
-        ),
-        'center-postB' => (
-          flags.center,
-          _uprightTransform(center, menuYaw + 90),
-          0.02,
-          0.4,
-        ),
-        _ => (false, '', 0, 0),
-      };
+            'avatar-postB' => (
+              showAvatar,
+              _uprightTransform(_eyeMid(feet), openYaw + 90),
+              0.03,
+              1.62,
+            ),
+            'avatar-eye' => (showAvatar, _flatTransform(eye), 0.4, 0.4),
+            'center-disc' => (flags.center, _flatTransform(center), 0.24, 0.24),
+            'center-postA' => (
+              flags.center,
+              _uprightTransform(center, menuYaw),
+              0.02,
+              0.4,
+            ),
+            'center-postB' => (
+              flags.center,
+              _uprightTransform(center, menuYaw + 90),
+              0.02,
+              0.4,
+            ),
+            _ => (false, '', 0, 0),
+          };
       huiPreviewShow(marker, spec.$1);
       if (!spec.$1) continue;
       huiPreviewPlace(

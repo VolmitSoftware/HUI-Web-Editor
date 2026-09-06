@@ -1,0 +1,89 @@
+/* --- Minecraft stages: one canvas, one CSS-3D text layer, one camera ----- */
+
+.hui-mc-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  overflow: hidden;
+  background: #c0d8ff;
+  user-select: none;
+}
+
+.hui-mc-stage[tabindex] { outline: none; cursor: grab; touch-action: none; }
+.hui-mc-stage[tabindex]:focus-visible { box-shadow: inset 0 0 0 2px var(--hui-ring); }
+.hui-mc-stage.is-orbiting { cursor: grabbing; }
+.hui-mc-stage.is-panning { cursor: move; }
+
+.hui-mc-gl-host {
+  position: absolute;
+  inset: 0;
+}
+
+.hui-mc-gl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* No WebGL2: the world still stands in for the canvas. */
+.hui-mc-still {
+  position: absolute;
+  inset: 0;
+  background: url('../assets/mc/26.2/world_still.png') center / cover no-repeat;
+  image-rendering: pixelated;
+}
+
+/* The text layer. `perspective` here, the camera matrix on the child, the
+   anchors under it: the same three-element shape the drop stage documented,
+   because the clip is the stage and cannot be the 3D context. */
+.hui-mc-dom {
+  position: absolute;
+  inset: 0;
+  perspective: 900px;
+  perspective-origin: 50% 50%;
+  pointer-events: none;
+}
+
+.hui-mc-dom-camera {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform-origin: 0 0;
+}
+
+.hui-mc-anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.hui-mc-anchor > * { pointer-events: auto; }
+
+.hui-mc-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 10px;
+}
+
+.hui-mc-readout {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+/* No WebGL2: a model's catalog sprite, anchored where the model would stand. */
+.hui-mc-sprite img {
+  image-rendering: pixelated;
+  display: block;
+  pointer-events: none;
+}

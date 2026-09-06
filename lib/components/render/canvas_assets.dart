@@ -14,8 +14,10 @@ import 'package:web/web.dart' as web;
 import '../../logic/mc_text.dart' show mcColorCss;
 import '../../services/image_library.dart';
 
+/// The world still the tool renders from the same scene the 3D stages draw,
+/// so the artboard's photo mode and the Preview frame show one place.
 /// Relative so the bundle works from Undertow at `/` and from the hosted site.
-const String huiBackdropAssetUrl = 'assets/backdrop/hui_backdrop.webp';
+const String huiBackdropAssetUrl = 'assets/mc/26.2/world_still.png';
 
 /// `TextImageMenuIcon.MISSING`: 8 rows of 4 black + 4 magenta, inverted from
 /// row 5 down.

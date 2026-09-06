@@ -349,25 +349,6 @@
 
 /* ---- world markers ------------------------------------------------------ */
 
-.hui-preview-ground {
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--hui-accent) 34%, transparent) 0 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--hui-accent) 34%, transparent) 0 1px,
-      transparent 1px
-    );
-  background-size: 96px 96px;
-  background-position: 48px 48px;
-  opacity: .5;
-  -webkit-mask-image: radial-gradient(closest-side, #000 45%, transparent 100%);
-  mask-image: radial-gradient(closest-side, #000 45%, transparent 100%);
-}
-
 .hui-preview-avatar-disc,
 .hui-preview-avatar-eye,
 .hui-preview-center-disc {

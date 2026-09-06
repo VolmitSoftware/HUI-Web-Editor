@@ -8,6 +8,14 @@
 /// every `matrix3d` and every canvas backing store on any parent rebuild. Same
 /// reason, same pattern as `canvas_viewport.dart:181-202`.
 ///
+/// Under the CSS scene is a WebGL2 canvas drawing the shared Minecraft world
+/// and every icon that resolves to a model (`mc_gl_renderer.dart`). Its camera
+/// is this file's camera through `mc_projection_bridge.dart`, which reflects
+/// the authoring frame's mirrored X into true world coordinates; the two
+/// layers then agree pixel for pixel because both project through the same
+/// `perspective: 900px`. No WebGL2, no pack, or no model for a key: the canvas
+/// draws nothing and the DOM sprite stays, exactly as before.
+///
 /// The player lives next door in `preview_player.dart`: pointer, wheel and
 /// keyboard input, the orbit camera, the whole of Player mode, and every world
 /// overlay that exists because somebody is standing somewhere. This file owns
@@ -29,6 +37,7 @@ library;
 import 'dart:async';
 import 'dart:js_interop';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
@@ -40,6 +49,16 @@ import '../../logic/gloss_text.dart';
 import '../../logic/icon_content.dart';
 import '../../logic/mc_text.dart';
 import '../../logic/viewport_math.dart';
+import '../../mc/assets/mc_display_pose.dart';
+import '../../mc/assets/mc_ids.dart';
+import '../../mc/assets/mc_model_resolver.dart';
+import '../../mc/rigs/mc_player_rig.dart';
+import '../../mc/rigs/mc_rig.dart';
+import '../../mc/rigs/mc_rigs.dart';
+import '../../mc/scene/mc_camera.dart';
+import '../../mc/scene/mc_math.dart';
+import '../../mc/scene/mc_projection_bridge.dart';
+import '../../mc/scene/mc_scene.dart';
 import '../../model/model.dart';
 import '../../preview/action_log.dart';
 import '../../preview/preview_scene.dart';
@@ -49,6 +68,9 @@ import '../../preview/simulation.dart';
 import '../../services/catalogs.dart';
 import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
+import '../mc/mc_asset_loader.dart';
+import '../mc/mc_gl.dart';
+import '../mc/mc_gl_renderer.dart';
 import '../render/icon_sprites.dart';
 import 'preview_player.dart';
 import 'preview_pose.dart';
@@ -96,6 +118,7 @@ class _PreviewStageState extends State<PreviewStage>
 
   late final String _uid = 'hui-preview-${_instances++}';
   String get _stageId => '$_uid-stage';
+  String get _glHostId => '$_uid-gl';
   String get _sceneId => '$_uid-scene';
   String get _bannerId => '$_uid-banner';
   String get _hintId => '$_uid-hint';
@@ -120,6 +143,7 @@ class _PreviewStageState extends State<PreviewStage>
 
   // --- owned DOM ---
   web.HTMLElement? _stage;
+  web.HTMLElement? _glHost;
   web.HTMLElement? _perspective;
   web.HTMLElement? _camera;
   web.HTMLElement? _menuGroup;
@@ -128,6 +152,15 @@ class _PreviewStageState extends State<PreviewStage>
   web.HTMLElement? _crosshair;
   final List<_QuadNode> _quads = <_QuadNode>[];
   web.ResizeObserver? _resizeObserver;
+
+  // --- the world under the scene ---
+  McGl? _gl;
+  McGlRenderer? _renderer;
+
+  /// Whether the pack can draw a model for an item or block key, by
+  /// `<kind>:<id>`. The answer never changes for a pack, and resolving walks
+  /// the model chain, so it is asked once per key rather than once a frame.
+  final Map<String, bool> _modelable = <String, bool>{};
 
   // --- loop state ---
   Timer? _tickTimer;
@@ -186,6 +219,13 @@ class _PreviewStageState extends State<PreviewStage>
     _pose.controller = this;
     _renderedPaused = _pose.paused;
     _renderedSession = _pose.sessionId;
+    McAssetLoader.addListener(_onPack);
+    unawaited(
+      McAssetLoader.load().then<void>(
+        (McAssetPackData _) {},
+        onError: (Object _) {},
+      ),
+    );
     _schedulePostFrame();
   }
 
@@ -216,6 +256,10 @@ class _PreviewStageState extends State<PreviewStage>
     _store.removeListener(_onStoreChanged);
     _pose.removeListener(_onPoseChanged);
     component.images.removeListener(_onImagesChanged);
+    McAssetLoader.removeListener(_onPack);
+    _gl?.dispose();
+    _gl = null;
+    _renderer = null;
     if (identical(_pose.controller, this)) _pose.controller = null;
     _tickTimer?.cancel();
     _tickTimer = null;
@@ -236,6 +280,9 @@ class _PreviewStageState extends State<PreviewStage>
     classes: 'hui-preview-stage',
     attributes: <String, String>{'tabindex': '0', 'role': 'application'},
     <Widget>[
+      // First child, so the world composites UNDER the CSS scene. Jaspr
+      // renders it empty; the canvas inside it is this state's.
+      dom.div(id: _glHostId, classes: 'hui-mc-gl-host', const <Widget>[]),
       dom.div(id: _sceneId, classes: 'hui-preview-scene', const <Widget>[]),
       dom.div(
         id: _crosshairId,
@@ -474,6 +521,13 @@ class _PreviewStageState extends State<PreviewStage>
     _rasterizer.clear();
     _canvasDirty = true;
     _wake();
+    _markDirty();
+  }
+
+  /// The asset pack landed (or failed). One dirty frame; nothing polls.
+  void _onPack() {
+    if (_disposed) return;
+    _attachRenderer();
     _markDirty();
   }
 
@@ -944,8 +998,52 @@ class _PreviewStageState extends State<PreviewStage>
     final web.HTMLElement? crosshair = _crosshair;
     if (crosshair != null) _styleCrosshair(crosshair);
     _buildWorld();
+    _attachGl();
     _input.attach(stage);
     _observeResize(stage);
+  }
+
+  /// The GL canvas, created once under the host div Jaspr renders empty — the
+  /// same bargain the CSS scene strikes, for the same reason. A browser
+  /// without WebGL2 leaves `_gl` null and the preview draws exactly what it
+  /// drew before.
+  void _attachGl() {
+    final web.Element? host = web.document.getElementById(_glHostId);
+    if (host == null || identical(_glHost, host)) return;
+    _glHost = host as web.HTMLElement;
+    _gl?.dispose();
+    _gl = null;
+    _renderer = null;
+    final web.HTMLCanvasElement canvas = web.HTMLCanvasElement()
+      ..className = 'hui-mc-gl';
+    host.append(canvas);
+    try {
+      _gl = McGl.create(canvas);
+    } catch (error) {
+      web.console.error('preview gl: $error'.toJS);
+      _gl = null;
+    }
+    // A restored context has re-uploaded the retained scene but drawn
+    // nothing; one dirty frame puts it back on screen.
+    _gl?.onRestored(_markDirty);
+    _stage?.setAttribute('data-webgl', _gl == null ? 'unavailable' : 'pending');
+    _attachRenderer();
+  }
+
+  /// The renderer needs both a context and a decoded pack, and the pack lands
+  /// asynchronously, so this runs from the attach AND from the pack listener.
+  void _attachRenderer() {
+    final McGl? gl = _gl;
+    final McAssetPackData? pack = McAssetLoader.loaded;
+    if (gl == null || pack == null || _renderer != null) return;
+    try {
+      _renderer = McGlRenderer(gl, pack);
+      _stage?.setAttribute('data-webgl', 'ready');
+    } catch (error) {
+      web.console.error('preview renderer: $error'.toJS);
+      _renderer = null;
+      _stage?.setAttribute('data-webgl', 'unavailable');
+    }
   }
 
   /// The fixed part of the scene graph. Quads are appended to [_menuGroup] as
@@ -1088,17 +1186,44 @@ class _PreviewStageState extends State<PreviewStage>
       playerMode: _playerMode,
       flags: _overlayFlags(),
     );
-    _renderQuads(preview, basis.position);
+    final List<McSceneNode> icons = _renderQuads(preview, basis.position);
+    _renderWorld(icons);
     _renderCrosshair();
     _renderHint();
     _renderBanner();
+  }
+
+  /// One GL frame: the shared world, the block grid, and every icon that
+  /// resolved to a model. Called only from [_render], so the world is drawn on
+  /// exactly the dirty frames the DOM pass runs on and an idle preview
+  /// schedules nothing.
+  ///
+  /// The world is drawn in true world coordinates and the authoring frame is
+  /// that world with X mirrored, so the camera reflects
+  /// (`mc_projection_bridge.dart`). [worldOffset] slides the spawn block half a
+  /// block on each horizontal axis, which is what puts its centre — the block
+  /// the player stands on — under the authoring origin at the feet.
+  void _renderWorld(List<McSceneNode> icons) {
+    final McGlRenderer? renderer = _renderer;
+    if (renderer == null || _widthPx <= 0 || _heightPx <= 0) return;
+    final McCamera camera = _playerMode
+        ? mcCameraFromPlayer(_pose.player)
+        : mcCameraFromOrbit(_pose.orbit);
+    renderer.render(
+      McScene(icons, gridVisible: _store.previewShowGroundGrid),
+      camera,
+      widthPx: _widthPx,
+      heightPx: _heightPx,
+      dpr: web.window.devicePixelRatio,
+      perspectivePx: huiPreviewPerspectivePx,
+      worldOffset: const McVec3(-0.5, 0, -0.5),
+    );
   }
 
   PreviewOverlayFlags _overlayFlags() {
     final EditorStore store = _store;
     final HuiComponentData? selectedData = store.selected?.data;
     return PreviewOverlayFlags(
-      groundGrid: store.previewShowGroundGrid,
       center: store.previewShowCenter,
       planes: store.previewShowPlanes,
       normals: store.previewShowNormals,
@@ -1108,9 +1233,12 @@ class _PreviewStageState extends State<PreviewStage>
     );
   }
 
-  void _renderQuads(PreviewScene preview, PVec3 eye) {
+  /// Draws every quad and returns the scene nodes the GL pass owes them: an
+  /// icon that became a model has its DOM sprite hidden, so nothing draws
+  /// twice.
+  List<McSceneNode> _renderQuads(PreviewScene preview, PVec3 eye) {
     final web.HTMLElement? group = _menuGroup;
-    if (group == null) return;
+    if (group == null) return const <McSceneNode>[];
     final List<PreviewQuad> quads = preview.quads;
     final bool open = _sim.isOpen;
 
@@ -1123,12 +1251,21 @@ class _PreviewStageState extends State<PreviewStage>
       group.append(node.root);
     }
 
+    final List<McSceneNode> nodes = <McSceneNode>[];
     for (int i = 0; i < quads.length; i++) {
-      _renderQuad(_quads[i], quads[i], preview, eye, open);
+      final McSceneNode? model = _renderQuad(
+        _quads[i],
+        quads[i],
+        preview,
+        eye,
+        open,
+      );
+      if (model != null) nodes.add(model);
     }
+    return nodes;
   }
 
-  void _renderQuad(
+  McSceneNode? _renderQuad(
     _QuadNode node,
     PreviewQuad quad,
     PreviewScene preview,
@@ -1143,7 +1280,7 @@ class _PreviewStageState extends State<PreviewStage>
     );
     if (sprite == null || !open) {
       node.root.classList.toggle('is-hidden', true);
-      return;
+      return null;
     }
     node.root.classList.toggle('is-hidden', false);
 
@@ -1213,7 +1350,203 @@ class _PreviewStageState extends State<PreviewStage>
     );
     node.root.classList.toggle('is-hovered', ticks > 0);
     node.root.classList.toggle('is-decoration', !quad.clickable);
+
+    // The model rides the same aim and the same hover push the sprite does, so
+    // hiding one for the other can never move the icon. The root stays: it is
+    // the hover state, the placeholder and the data attributes.
+    final McSceneNode? model = _iconNode(quad, visualAim, extent);
+    node.canvas.classList.toggle('is-hidden', model != null);
+    if (model == null) {
+      node.root.removeAttribute('data-model');
+    } else {
+      node.root.setAttribute('data-model', quad.item.kind.name);
+    }
+    return model;
   }
+
+  /// The model for one icon quad, or null when the DOM sprite stays.
+  ///
+  /// Null covers every case the GL pass cannot draw: no context, no pack yet,
+  /// a kind that has no model (text, image, missing), a key the pack itself
+  /// falls back to a sprite for, and a key with no model at all. The sprite is
+  /// only ever hidden when a node was actually emitted.
+  McSceneNode? _iconNode(PreviewQuad quad, PlaneAim aim, HuiRect extent) {
+    final McAssetPackData? pack = McAssetLoader.loaded;
+    if (_renderer == null || pack == null) return null;
+    final CanvasItem item = quad.item;
+    final String key = 'icon-${quad.id}';
+    return switch (item.kind) {
+      CanvasIconKind.item => _itemNode(key, item.itemKey, aim, extent, pack),
+      CanvasIconKind.customItem => _itemNode(
+        key,
+        _customItemMaterial(item),
+        aim,
+        extent,
+        pack,
+      ),
+      CanvasIconKind.block => _blockNode(key, item.itemKey, aim, extent, pack),
+      CanvasIconKind.entity => _entityNode(
+        key,
+        item.entityKey,
+        aim,
+        extent,
+        pack,
+      ),
+      CanvasIconKind.playerHead => _headNode(key, aim, extent, pack),
+      CanvasIconKind.text ||
+      CanvasIconKind.image ||
+      CanvasIconKind.missing => null,
+    };
+  }
+
+  /// A custom item is a plain `ItemStack` at runtime, so its model is its
+  /// exported base material's. Without an export there is no material and the
+  /// approximate sprite stays.
+  String _customItemMaterial(CanvasItem item) =>
+      huiFreshestCatalogs(
+        _store.catalogs,
+        component.catalogs,
+      ).customItems.entry(item.itemProvider, item.itemKey)?.material ??
+      '';
+
+  McSceneNode? _itemNode(
+    String key,
+    String itemKey,
+    PlaneAim aim,
+    HuiRect extent,
+    McAssetPackData pack,
+  ) {
+    final String id = mcItemId(itemKey);
+    if (id.isEmpty || !_hasItemModel(pack, id)) return null;
+    return McItemModelNode(
+      key: key,
+      itemId: id,
+      // `MenuIcon.itemDisplay` leaves the transform byte at 0.
+      pose: McDisplayPose.none,
+      transform: _modelTransform(aim, extent.w),
+    );
+  }
+
+  McSceneNode? _blockNode(
+    String key,
+    String blockKey,
+    PlaneAim aim,
+    HuiRect extent,
+    McAssetPackData pack,
+  ) {
+    final String id = mcBlockId(blockKey);
+    if (id.isEmpty || !_hasBlockModel(pack, id)) return null;
+    return McBlockModelNode(
+      key: key,
+      blockId: id,
+      transform: _modelTransform(aim, extent.w),
+    );
+  }
+
+  /// Only the seven rigged types become models; every other entity keeps its
+  /// catalog sprite, which is the only picture of it the editor has.
+  McSceneNode? _entityNode(
+    String key,
+    String entityKey,
+    PlaneAim aim,
+    HuiRect extent,
+    McAssetPackData pack,
+  ) {
+    final String? rigId = mcRigForEntityType(entityKey);
+    if (rigId == null || !pack.hasImage(rigId)) return null;
+    final McRig? rig = mcRigById(rigId, slim: pack.manifest.player.slim);
+    if (rig == null || rig.heightBlocks <= 0) return null;
+    return McRigNode(
+      key: key,
+      rigId: rigId,
+      textureId: rigId,
+      transform: _rigTransform(aim, extent, rig.heightBlocks),
+      poseTimeMs: 0,
+      hurt: 0,
+    );
+  }
+
+  /// The head is the player rig's head part on the pack's baked skin: the
+  /// editor cannot resolve a real player's skin without a server, and the
+  /// authored name is already reported by the sprite's own placeholder.
+  McSceneNode? _headNode(
+    String key,
+    PlaneAim aim,
+    HuiRect extent,
+    McAssetPackData pack,
+  ) {
+    if (!pack.hasImage(mcRigPlayer)) return null;
+    final McRig rig = mcHeadRig(slim: pack.manifest.player.slim);
+    return McRigNode(
+      key: key,
+      rigId: rig.id,
+      textureId: mcRigPlayer,
+      transform: _rigTransform(aim, extent, rig.heightBlocks),
+      poseTimeMs: 0,
+      hurt: 0,
+    );
+  }
+
+  bool _hasItemModel(McAssetPackData pack, String id) => _modelable.putIfAbsent(
+    'item:$id',
+    () =>
+        !pack.manifest.spriteFallbacks.contains(id) &&
+        pack.resolver.resolveItem(id) is McItemModelResolved,
+  );
+
+  bool _hasBlockModel(McAssetPackData pack, String id) =>
+      _modelable.putIfAbsent(
+        'block:$id',
+        () =>
+            !pack.manifest.spriteFallbacks.contains(id) &&
+            pack.resolver.resolveBlock(id) != null,
+      );
+
+  /// The world matrix for a unit-cube model drawn on [aim], [blocks] wide.
+  ///
+  /// Two frames meet here. The authoring frame is the world with X mirrored
+  /// (`MenuSession.java:70`), so every vector reflects on the way in. A plane's
+  /// `(right, up, normal)` is LEFT-handed in the authoring frame — that is what
+  /// `cssPlaneMatrix` spans its element with, `right` and `-up` — so the
+  /// reflection lands it right-handed here: the model draws the same way round
+  /// as the sprite it replaces, local +X along the quad's right, +Y along its
+  /// up, +Z out along its normal. Item and block models live in the unit cube,
+  /// so the last translate centres them on the quad.
+  McMat4 _modelTransform(PlaneAim aim, double blocks) => _aimMatrix(
+    aim,
+    aim.center,
+    blocks,
+  ).multiply(McMat4.translation(-0.5, -0.5, -0.5));
+
+  /// [_modelTransform] for a rig, which stands on its own origin rather than
+  /// filling a cube: the origin is the quad's bottom edge and the scale takes
+  /// the rig's hitbox height to the quad's.
+  McMat4 _rigTransform(PlaneAim aim, HuiRect extent, double rigHeightBlocks) =>
+      _aimMatrix(
+        aim,
+        aim.center - aim.up * (extent.h / 2),
+        extent.h / rigHeightBlocks,
+      );
+
+  /// Columns: the mirrored images of `right`, `up` and `normal`, scaled, on the
+  /// mirrored origin.
+  static McMat4 _aimMatrix(PlaneAim aim, PVec3 origin, double scale) {
+    final McVec3 right = _mirrorX(aim.right);
+    final McVec3 up = _mirrorX(aim.up);
+    final McVec3 normal = _mirrorX(aim.normal);
+    final McVec3 at = _mirrorX(origin);
+    return McMat4(
+      Float64List.fromList(<double>[
+        right.x, right.y, right.z, 0, //
+        up.x, up.y, up.z, 0, //
+        normal.x, normal.y, normal.z, 0, //
+        at.x, at.y, at.z, 1, //
+      ]),
+    ).multiply(McMat4.scale(scale, scale, scale));
+  }
+
+  /// The authoring frame is the world with X negated, in both directions.
+  static McVec3 _mirrorX(PVec3 vector) => McVec3(-vector.x, vector.y, vector.z);
 
   /// Raw authored text, not the parsed spans: a placeholder is a source-file
   /// fact, and `%player_name%` survives MiniMessage parsing unchanged anyway.

@@ -5195,6 +5195,18 @@ _unchangedNaturalLanguageAllowlistByReason = <String, Map<String, Set<String>>>{
     'zh_CN': _invariantUnitLocations,
     'zh_TW': _invariantUnitLocations,
   },
+  'Minecraft entity and brand names': <String, Set<String>>{
+    'de_DE': <String>{'messages["Zombie"]', 'messages["Creeper"]'},
+    'es_ES': <String>{'messages["Creeper"]'},
+    'fi_FI': <String>{'messages["Creeper"]'},
+    'fr_FR': <String>{'messages["Zombie"]', 'messages["Creeper"]'},
+    'it_IT': <String>{'messages["Creeper"]'},
+    'nl_NL': <String>{'messages["Zombie"]', 'messages["Creeper"]'},
+    'pl_PL': <String>{'messages["Zombie"]', 'messages["Creeper"]'},
+    'pt_PT': <String>{'messages["Zombie"]', 'messages["Creeper"]'},
+    'tr_TR': <String>{'messages["Creeper"]'},
+    'vi_VI': <String>{'messages["Zombie"]', 'messages["Creeper"]'},
+  },
   'Gloss runtime feature terminology': <String, Set<String>>{
     'de_DE': <String>{'messages["Scoreboard"]', 'messages["Tablist"]'},
     'es_ES': <String>{'messages["Tablist"]', 'messages["tablist"]'},

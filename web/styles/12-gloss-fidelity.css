@@ -44,48 +44,28 @@
   user-select: none;
 }
 
-/* The world behind the HUD: the backdrop the canvas already ships, darkened
-   so overlay text keeps its contrast. */
+/* The world behind the HUD: a live stage at the client's own eye. */
 .hui-gloss-game-world {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(rgba(4, 7, 8, 0.34), rgba(4, 7, 8, 0.34)),
-    url('../assets/backdrop/hui_backdrop.webp') center / cover no-repeat;
 }
 
-/* A GUI screen replaces the world view rather than sitting over it. */
+.hui-gloss-game-world .hui-mc-stage { min-height: 0; }
+
+/* A GUI screen darkens and blurs the world behind it. */
 .hui-gloss-game.is-screen .hui-gloss-game-world {
-  background:
-    linear-gradient(rgba(4, 6, 7, 0.82), rgba(4, 6, 7, 0.82)),
-    url('../assets/backdrop/hui_backdrop.webp') center / cover no-repeat;
-  filter: blur(2px);
-}
-
-.hui-gloss-game-sun {
-  position: absolute;
-  top: 8%;
-  right: 14%;
-  width: 6cqi;
-  height: 6cqi;
-  max-width: 64px;
-  max-height: 64px;
-  background: rgb(255 246 214 / 0.55);
-  filter: blur(6px);
-  pointer-events: none;
+  filter: blur(2px) brightness(0.35);
 }
 
 .hui-gloss-game-crosshair {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 15px;
-  height: 15px;
+  width: 30px;
+  height: 30px;
   transform: translate(-50%, -50%);
-  background:
-    linear-gradient(#ffffff, #ffffff) center / 15px 1px no-repeat,
-    linear-gradient(#ffffff, #ffffff) center / 1px 15px no-repeat;
-  opacity: 0.72;
+  background: url('../assets/mc/26.2/hud/crosshair.png') center / 30px 30px no-repeat;
+  image-rendering: pixelated;
   mix-blend-mode: difference;
   pointer-events: none;
 }
@@ -127,7 +107,7 @@
   width: min(62cqi, calc(100% - 24px));
 }
 
-/* Bubbles: centred over the silhouette, growing upward from its head. */
+/* Bubbles: centred over the player, growing upward from its head. */
 .hui-gloss-game.is-over-player .hui-gloss-game-anchor {
   left: 0;
   right: 0;
@@ -154,21 +134,6 @@
   width: auto;
   height: auto;
   align-self: center;
-}
-
-/* The in-world stages carry their own background; inside the frame the world
-   is already drawn, so let the backdrop through. */
-.hui-gloss-game.is-world .hui-hologram-stage {
-  background: transparent;
-}
-
-.hui-gloss-game.is-world .hui-damage-indicator-scene {
-  background: transparent;
-}
-
-.hui-gloss-game.is-world .hui-damage-indicator-horizon,
-.hui-gloss-game.is-world .hui-damage-indicator-ground {
-  display: none;
 }
 
 /* GUI screen: the server list, centred. */
@@ -230,42 +195,6 @@
   background: rgb(0 0 0 / 0.3);
 }
 
-/* --- player silhouette ---------------------------------------------------- */
-
-.hui-gloss-game-player {
-  position: absolute;
-  left: 50%;
-  bottom: 96px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.hui-gloss-game-player-head {
-  width: 34px;
-  height: 34px;
-  background: rgb(226 236 244 / 0.16);
-  border: 1px solid rgb(226 236 244 / 0.34);
-}
-
-.hui-gloss-game-player-body {
-  width: 34px;
-  height: 48px;
-  background: rgb(226 236 244 / 0.12);
-  border: 1px solid rgb(226 236 244 / 0.3);
-  border-top: 0;
-}
-
-.hui-gloss-game-player-arms {
-  width: 62px;
-  height: 12px;
-  margin-top: -46px;
-  background: rgb(226 236 244 / 0.1);
-  border: 1px solid rgb(226 236 244 / 0.26);
-}
-
 /* --- chat region ---------------------------------------------------------- */
 
 .hui-gloss-game-chat {
@@ -291,79 +220,68 @@
 .hui-gloss-game-chat-line:nth-child(2) { opacity: 0.55; }
 .hui-gloss-game-chat-line:nth-child(3) { opacity: 0.78; }
 
-/* --- bottom HUD ----------------------------------------------------------- */
+/* --- bottom HUD: the client's sprites at GUI scale 2 -------------------- */
 
 .hui-gloss-game-hud {
   position: absolute;
   left: 50%;
-  bottom: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
+  bottom: 0;
+  width: 364px;
+  height: 120px;
   transform: translateX(-50%);
   pointer-events: none;
+  image-rendering: pixelated;
 }
 
-.hui-gloss-game-stats {
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-  gap: 24px;
+.hui-gloss-game-sprite {
+  position: absolute;
+  display: block;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
 }
 
-.hui-gloss-game-hearts,
-.hui-gloss-game-hunger {
-  display: flex;
-  gap: 1px;
-}
+.hui-gloss-game-sprite.is-hotbar { left: 0; bottom: 0; width: 364px; height: 44px; background-image: url('../assets/mc/26.2/hud/hotbar.png'); }
+.hui-gloss-game-sprite.is-hotbar-selection { left: -2px; top: -2px; width: 48px; height: 46px; background-image: url('../assets/mc/26.2/hud/hotbar_selection.png'); }
+.hui-gloss-game-sprite.is-xp-background { left: 0; bottom: 58px; width: 364px; height: 10px; background-image: url('../assets/mc/26.2/hud/xp_background.png'); }
+.hui-gloss-game-sprite.is-xp-progress { left: 0; top: 0; width: 62%; height: 10px; background-image: url('../assets/mc/26.2/hud/xp_progress.png'); background-size: 364px 10px; }
 
-.hui-gloss-game-heart,
-.hui-gloss-game-drumstick {
-  width: 8px;
-  height: 8px;
-}
+.hui-gloss-game-hearts, .hui-gloss-game-food, .hui-gloss-game-armor { position: absolute; display: flex; gap: 0; }
+.hui-gloss-game-hearts { left: 0; bottom: 78px; }
+.hui-gloss-game-food { right: 0; bottom: 78px; flex-direction: row-reverse; }
+.hui-gloss-game-armor { left: 0; bottom: 98px; }
 
-/* Vanilla heart red and hunger brown, flattened to a readable silhouette. */
-.hui-gloss-game-heart {
-  background: #d63b3b;
-  clip-path: polygon(50% 100%, 0 45%, 0 18%, 25% 0, 50% 20%, 75% 0, 100% 18%, 100% 45%);
-}
+.hui-gloss-game-hearts > .hui-gloss-game-sprite,
+.hui-gloss-game-food > .hui-gloss-game-sprite,
+.hui-gloss-game-armor > .hui-gloss-game-sprite { position: relative; width: 18px; height: 18px; margin-right: -2px; }
+.hui-gloss-game-food > .hui-gloss-game-sprite { margin-right: 0; margin-left: -2px; }
+.hui-gloss-game-sprite.is-heart-container { background-image: url('../assets/mc/26.2/hud/heart_container.png'); }
+.hui-gloss-game-sprite.is-heart-full { inset: 0; background-image: url('../assets/mc/26.2/hud/heart_full.png'); }
+.hui-gloss-game-sprite.is-heart-half { inset: 0; background-image: url('../assets/mc/26.2/hud/heart_half.png'); }
+.hui-gloss-game-sprite.is-food-empty { background-image: url('../assets/mc/26.2/hud/food_empty.png'); }
+.hui-gloss-game-sprite.is-food-full { inset: 0; background-image: url('../assets/mc/26.2/hud/food_full.png'); }
+.hui-gloss-game-sprite.is-food-half { inset: 0; background-image: url('../assets/mc/26.2/hud/food_half.png'); }
+.hui-gloss-game-sprite.is-armor-empty { background-image: url('../assets/mc/26.2/hud/armor_empty.png'); }
+.hui-gloss-game-sprite.is-armor-full { background-image: url('../assets/mc/26.2/hud/armor_full.png'); }
 
-.hui-gloss-game-drumstick {
-  background: #a4713a;
-  clip-path: polygon(20% 0, 100% 0, 100% 60%, 55% 100%, 0 70%, 0 25%);
-}
+/* Narrow frames draw the HUD at GUI scale 1 — every rule below is the scale-2
+   rule above, halved. */
+@media (max-width: 700px) {
+  .hui-gloss-game-hud { width: 182px; height: 60px; }
 
-.hui-gloss-game-xp {
-  width: 182px;
-  height: 5px;
-  background: rgb(0 0 0 / 0.55);
-  border: 1px solid rgb(0 0 0 / 0.7);
-}
+  .hui-gloss-game-sprite.is-hotbar { width: 182px; height: 22px; }
+  .hui-gloss-game-sprite.is-hotbar-selection { left: -1px; top: -1px; width: 24px; height: 24px; }
+  .hui-gloss-game-sprite.is-xp-background { bottom: 29px; width: 182px; height: 5px; }
+  .hui-gloss-game-sprite.is-xp-progress { height: 5px; background-size: 182px 5px; }
 
-.hui-gloss-game-xp-fill {
-  width: 62%;
-  height: 100%;
-  background: #7ddc38;
-}
+  .hui-gloss-game-hearts { bottom: 39px; }
+  .hui-gloss-game-food { bottom: 39px; }
+  .hui-gloss-game-armor { bottom: 49px; }
 
-.hui-gloss-game-hotbar {
-  display: flex;
-  gap: 0;
-  border: 1px solid rgb(0 0 0 / 0.55);
-  background: rgb(0 0 0 / 0.45);
-}
-
-.hui-gloss-game-slot {
-  width: 20px;
-  height: 20px;
-  border: 1px solid rgb(255 255 255 / 0.14);
-}
-
-.hui-gloss-game-slot.is-selected {
-  outline: 2px solid rgb(255 255 255 / 0.85);
-  outline-offset: -1px;
+  .hui-gloss-game-hearts > .hui-gloss-game-sprite,
+  .hui-gloss-game-food > .hui-gloss-game-sprite,
+  .hui-gloss-game-armor > .hui-gloss-game-sprite { width: 9px; height: 9px; margin-right: -1px; }
+  .hui-gloss-game-food > .hui-gloss-game-sprite { margin-right: 0; margin-left: -1px; }
 }
 
 /* --- editor affordances over the frame ------------------------------------ */
@@ -517,27 +435,3 @@
   color: var(--color-muted-foreground);
 }
 
-/* The drop stage draws its own ground in the editor; inside the game frame the
-   world backdrop is already there, so only the stack and its shadow belong. */
-.hui-gloss-game.is-world .hui-real-drops-scene {
-  background: transparent;
-}
-
-.hui-gloss-game.is-world .hui-real-drops-floor {
-  display: none;
-}
-
-/* Inside the frame the backdrop's own ground is far lower than the editor
-   stage's, so the stack lands where the photo's ground is.
-
-   The stage throws a stack toward the camera, and perspective carries a
-   nearing object down the frame as well as making it bigger — over a real
-   ground plane that reads correctly, but the backdrop here is a photograph
-   with one fixed ground line. So the anchor sits higher than the photo's
-   ground and the throw crosses it: the stack leaves a little above the line
-   and settles a little below it, instead of starting on the line and sliding
-   off the bottom edge of the screen. */
-.hui-gloss-game.is-world .hui-real-drops-carrier,
-.hui-gloss-game.is-world .hui-real-drops-shadow {
-  bottom: 32%;
-}
