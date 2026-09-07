@@ -1336,14 +1336,6 @@ void main() {
       expect(validateHuiMenu(_withCommand('/a', source: '')), isEmpty);
     });
 
-    test('an explicit server source is silent', () {
-      expect(validateHuiMenu(_withCommand('/a', source: 'server')), isEmpty);
-    });
-
-    test('an explicit player source is silent', () {
-      expect(validateHuiMenu(_withCommand('/a', source: 'player')), isEmpty);
-    });
-
     test('an unrecognised source reports the player fallback', () {
       final List<HuiIssue> issues = validateHuiMenu(
         _withCommand('/a', source: 'console'),

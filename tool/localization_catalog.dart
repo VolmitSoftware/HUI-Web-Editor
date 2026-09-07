@@ -4058,7 +4058,7 @@ LocalizationCatalog applyLockedLocalizationGlossary(
     final String? styled = catalog.previewMessages[entry.value];
     if (styled == null) continue;
     messages[entry.key] = styled.replaceAll(
-      RegExp(r'&[0-9A-FK-ORa-fk-or]'),
+      _legacyColorCodePattern,
       '',
     );
   }
@@ -4091,9 +4091,10 @@ LocalizationCatalog applyLockedLocalizationGlossary(
   );
 }
 
-Set<String> localizationPlaceholders(String value) => RegExp(
-  r'\{([a-z][a-zA-Z0-9_]*)\}',
-).allMatches(value).map((Match match) => match.group(1)!).toSet();
+Set<String> localizationPlaceholders(String value) => _placeholderPattern
+    .allMatches(value)
+    .map((Match match) => match.group(1)!)
+    .toSet();
 
 List<String> validateLocalizationCatalog(
   LocalizationCatalog catalog,
@@ -4200,46 +4201,76 @@ List<String> validateLocalizationCatalog(
   return errors;
 }
 
+final class _CatalogArtifacts {
+  const _CatalogArtifacts({
+    required this.replacementCharacter,
+    required this.translationMarker,
+    required this.untranslatedDomainMarker,
+    required this.doubledDomainMarker,
+    required this.pathologicalRepetition,
+  });
+
+  factory _CatalogArtifacts.of(String value) => _CatalogArtifacts(
+    replacementCharacter: value.contains('\uFFFD'),
+    translationMarker: _translationMarkerPattern.hasMatch(value),
+    untranslatedDomainMarker: _untranslatedDomainMarkerPattern.hasMatch(value),
+    doubledDomainMarker: _doubledDomainMarkerPattern.hasMatch(value),
+    pathologicalRepetition:
+        _repeatedCharacterPattern.hasMatch(
+          value.contains('#') ? value.replaceAll(_hexColorPattern, '') : value,
+        ) ||
+        (_mayRepeatWord(value) && _repeatedWordPattern.hasMatch(value)),
+  );
+
+  final bool replacementCharacter;
+  final bool translationMarker;
+  final bool untranslatedDomainMarker;
+  final bool doubledDomainMarker;
+  final bool pathologicalRepetition;
+}
+
+bool _mayRepeatWord(String value) {
+  if (value.length < 8) return false;
+  final String folded = value.toLowerCase();
+  final Map<int, int> bigrams = <int, int>{};
+  for (int index = 0; index + 1 < folded.length; index++) {
+    final int bigram =
+        (folded.codeUnitAt(index) << 16) | folded.codeUnitAt(index + 1);
+    final int count = (bigrams[bigram] ?? 0) + 1;
+    if (count >= 3) return true;
+    bigrams[bigram] = count;
+  }
+  return false;
+}
+
+final Map<String, _CatalogArtifacts> _catalogArtifactsCache =
+    <String, _CatalogArtifacts>{};
+
 void _validateCatalogArtifacts(
   LocalizationCatalog catalog,
   List<String> errors,
 ) {
   final RegExp? forbiddenScript = _forbiddenScript(catalog.locale);
+  final bool translated = catalog.locale != 'en_US';
   for (final MapEntry<String, String> entry in _catalogStrings(catalog)) {
     final String value = entry.value;
-    if (value.contains('\uFFFD')) {
+    final _CatalogArtifacts artifacts = _catalogArtifactsCache.putIfAbsent(
+      value,
+      () => _CatalogArtifacts.of(value),
+    );
+    if (artifacts.replacementCharacter) {
       errors.add('${entry.key} contains U+FFFD.');
     }
-    if (RegExp(
-      r'(?:HUIKEEP|HUITOKEN|ZXQVTKN|XYZ\d{4}XYZ|QQQ\d{4}QQQ)',
-      caseSensitive: false,
-    ).hasMatch(value)) {
+    if (artifacts.translationMarker) {
       errors.add('${entry.key} contains a translation marker.');
     }
-    if (catalog.locale != 'en_US' &&
-        RegExp(
-          r'\b(?:in-game|human player|pointer hover|distance in blocks|game ticks?|game)\b',
-          caseSensitive: false,
-        ).hasMatch(value)) {
+    if (translated && artifacts.untranslatedDomainMarker) {
       errors.add('${entry.key} contains an untranslated domain marker.');
     }
-    if (catalog.locale != 'en_US' &&
-        RegExp(
-          r'\b(in-game|game|human|player|item|skin|tick)(?:[\s-]+\1)\b',
-          caseSensitive: false,
-        ).hasMatch(value)) {
+    if (translated && artifacts.doubledDomainMarker) {
       errors.add('${entry.key} contains a doubled domain marker.');
     }
-    final String repetitionText = value.replaceAll(
-      RegExp(r'#[0-9A-Fa-f]{3,8}\b'),
-      '',
-    );
-    if (RegExp(r'(.)\1{7,}', dotAll: true).hasMatch(repetitionText) ||
-        RegExp(
-          r'\b([\p{L}\p{N}]{2,})(?:[\s,;:|/·—–-]+\1){2,}\b',
-          caseSensitive: false,
-          unicode: true,
-        ).hasMatch(value)) {
+    if (artifacts.pathologicalRepetition) {
       errors.add('${entry.key} contains pathological repetition.');
     }
     if (forbiddenScript != null && forbiddenScript.hasMatch(value)) {
@@ -4306,7 +4337,7 @@ void _validateDomainGlossary(
         }
       }
     }
-    if (RegExp(r'\bplayer\b').hasMatch(lowerEnglish)) {
+    if (_playerWordPattern.hasMatch(lowerEnglish)) {
       _rejectDomainTerms(
         entry.key,
         lowerTranslation,
@@ -4315,7 +4346,7 @@ void _validateDomainGlossary(
         errors,
       );
     }
-    if (RegExp(r'\bskins?\b').hasMatch(lowerEnglish)) {
+    if (_skinWordPattern.hasMatch(lowerEnglish)) {
       _rejectDomainTerms(
         entry.key,
         lowerTranslation,
@@ -4324,7 +4355,7 @@ void _validateDomainGlossary(
         errors,
       );
     }
-    if (RegExp(r'\bticks?\b').hasMatch(lowerEnglish)) {
+    if (_tickWordPattern.hasMatch(lowerEnglish)) {
       _rejectDomainTerms(
         entry.key,
         lowerTranslation,
@@ -4333,7 +4364,7 @@ void _validateDomainGlossary(
         errors,
       );
     }
-    if (RegExp(r'\bhover(?:ed|ing)?\b').hasMatch(lowerEnglish)) {
+    if (_hoverWordPattern.hasMatch(lowerEnglish)) {
       _rejectDomainTerms(
         entry.key,
         lowerTranslation,
@@ -4351,7 +4382,7 @@ void _validateDomainGlossary(
         errors,
       );
     }
-    if (RegExp(r'\bsmelt(?:s|ed|ing)?\b').hasMatch(lowerEnglish)) {
+    if (_smeltWordPattern.hasMatch(lowerEnglish)) {
       _rejectDomainTerms(
         entry.key,
         lowerTranslation,
@@ -4360,7 +4391,7 @@ void _validateDomainGlossary(
         errors,
       );
     }
-    if (RegExp(r'\bbrew(?:s|ed|ing)?\b').hasMatch(lowerEnglish)) {
+    if (_brewWordPattern.hasMatch(lowerEnglish)) {
       _rejectDomainTerms(
         entry.key,
         lowerTranslation,
@@ -4369,7 +4400,7 @@ void _validateDomainGlossary(
         errors,
       );
     }
-    if (RegExp(r'\bmenus?\b').hasMatch(lowerEnglish)) {
+    if (_menuWordPattern.hasMatch(lowerEnglish)) {
       _rejectDomainTerms(
         entry.key,
         lowerTranslation,
@@ -4378,7 +4409,7 @@ void _validateDomainGlossary(
         errors,
       );
     }
-    if (RegExp(r'\bpanels?\b').hasMatch(lowerEnglish)) {
+    if (_panelWordPattern.hasMatch(lowerEnglish)) {
       _rejectDomainTerms(
         entry.key,
         lowerTranslation,
@@ -4387,7 +4418,7 @@ void _validateDomainGlossary(
         errors,
       );
     }
-    if (RegExp(r'\bitems?\b').hasMatch(lowerEnglish)) {
+    if (_itemWordPattern.hasMatch(lowerEnglish)) {
       final String location = 'messages[${jsonEncode(entry.key)}]';
       if (!(_minecraftItemDomainAllowlist[catalog.locale]?.contains(location) ??
           false)) {
@@ -4400,7 +4431,7 @@ void _validateDomainGlossary(
         );
       }
     }
-    if (RegExp(r'\bpitch\b').hasMatch(lowerEnglish)) {
+    if (_pitchWordPattern.hasMatch(lowerEnglish)) {
       _rejectDomainTerms(
         entry.key,
         lowerTranslation,
@@ -4439,7 +4470,7 @@ void _validateDomainGlossary(
           errors,
         );
       }
-      if (RegExp(r'\bplayer\b').hasMatch(lowerEnglish)) {
+      if (_playerWordPattern.hasMatch(lowerEnglish)) {
         _rejectDomainTermsAt(
           location,
           lowerTranslation,
@@ -4448,7 +4479,7 @@ void _validateDomainGlossary(
           errors,
         );
       }
-      if (RegExp(r'\bskins?\b').hasMatch(lowerEnglish)) {
+      if (_skinWordPattern.hasMatch(lowerEnglish)) {
         _rejectDomainTermsAt(
           location,
           lowerTranslation,
@@ -4457,7 +4488,7 @@ void _validateDomainGlossary(
           errors,
         );
       }
-      if (RegExp(r'\bticks?\b').hasMatch(lowerEnglish)) {
+      if (_tickWordPattern.hasMatch(lowerEnglish)) {
         _rejectDomainTermsAt(
           location,
           lowerTranslation,
@@ -4466,7 +4497,7 @@ void _validateDomainGlossary(
           errors,
         );
       }
-      if (RegExp(r'\bpitch\b').hasMatch(lowerEnglish)) {
+      if (_pitchWordPattern.hasMatch(lowerEnglish)) {
         _rejectDomainTermsAt(
           location,
           lowerTranslation,
@@ -4475,7 +4506,7 @@ void _validateDomainGlossary(
           errors,
         );
       }
-      if (RegExp(r'\bhover(?:ed|ing)?\b').hasMatch(lowerEnglish)) {
+      if (_hoverWordPattern.hasMatch(lowerEnglish)) {
         _rejectDomainTermsAt(
           location,
           lowerTranslation,
@@ -4484,7 +4515,7 @@ void _validateDomainGlossary(
           errors,
         );
       }
-      if (RegExp(r'\bsmelt(?:s|ed|ing)?\b').hasMatch(lowerEnglish)) {
+      if (_smeltWordPattern.hasMatch(lowerEnglish)) {
         _rejectDomainTermsAt(
           location,
           lowerTranslation,
@@ -4493,7 +4524,7 @@ void _validateDomainGlossary(
           errors,
         );
       }
-      if (RegExp(r'\bbrew(?:s|ed|ing)?\b').hasMatch(lowerEnglish)) {
+      if (_brewWordPattern.hasMatch(lowerEnglish)) {
         _rejectDomainTermsAt(
           location,
           lowerTranslation,
@@ -4502,7 +4533,7 @@ void _validateDomainGlossary(
           errors,
         );
       }
-      if (RegExp(r'\bitems?\b').hasMatch(lowerEnglish)) {
+      if (_itemWordPattern.hasMatch(lowerEnglish)) {
         _rejectDomainTermsAt(
           location,
           lowerTranslation,
@@ -4800,7 +4831,7 @@ void _validateDomainGlossary(
     final String? styledRuntimeValue = catalog.previewMessages[entry.value];
     if (styledRuntimeValue == null) continue;
     final String expected = styledRuntimeValue.replaceAll(
-      RegExp(r'&[0-9A-FK-ORa-fk-or]'),
+      _legacyColorCodePattern,
       '',
     );
     if (catalog.messages[entry.key] != expected) {
@@ -4878,13 +4909,10 @@ void _rejectDomainTermsAt(
 
 bool _containsDomainTerm(String translation, String term) {
   if (term == 'עור') {
-    return RegExp(
-      r'(?<![\p{L}])(?:ה|ל|ב)?עור(?![\p{L}])',
-      unicode: true,
-    ).hasMatch(translation);
+    return _hebrewSkinTermPattern.hasMatch(translation);
   }
   if (term == 'soittim') {
-    return RegExp(r'(?<![\p{L}])soittim', unicode: true).hasMatch(translation);
+    return _finnishPlayerTermPattern.hasMatch(translation);
   }
   return translation.contains(term);
 }
@@ -5045,14 +5073,99 @@ void _validateKeys(
 
 Map<String, int> _placeholderCounts(String value) {
   final Map<String, int> counts = <String, int>{};
-  for (final RegExpMatch match in RegExp(
-    r'\{([a-z][a-zA-Z0-9_]*)\}',
-  ).allMatches(value)) {
+  for (final RegExpMatch match in _placeholderPattern.allMatches(value)) {
     final String name = match.group(1)!;
     counts[name] = (counts[name] ?? 0) + 1;
   }
   return counts;
 }
+
+const String _structuralDelimiters = '[]{}<>|';
+
+final RegExp _placeholderPattern = RegExp(r'\{([a-z][a-zA-Z0-9_]*)\}');
+
+final RegExp _placeholderTokenPattern = RegExp(r'\{[a-z][a-zA-Z0-9_]*\}');
+
+final RegExp _translationMarkerPattern = RegExp(
+  r'(?:HUIKEEP|HUITOKEN|ZXQVTKN|XYZ\d{4}XYZ|QQQ\d{4}QQQ)',
+  caseSensitive: false,
+);
+
+final RegExp _untranslatedDomainMarkerPattern = RegExp(
+  r'\b(?:in-game|human player|pointer hover|distance in blocks|game ticks?|game)\b',
+  caseSensitive: false,
+);
+
+final RegExp _doubledDomainMarkerPattern = RegExp(
+  r'\b(in-game|game|human|player|item|skin|tick)(?:[\s-]+\1)\b',
+  caseSensitive: false,
+);
+
+final RegExp _hexColorPattern = RegExp(r'#[0-9A-Fa-f]{3,8}\b');
+
+final RegExp _repeatedCharacterPattern = RegExp(r'(.)\1{7,}', dotAll: true);
+
+final RegExp _repeatedWordPattern = RegExp(
+  r'\b([\p{L}\p{N}]{2,})(?:[\s,;:|/·—–-]+\1){2,}\b',
+  caseSensitive: false,
+  unicode: true,
+);
+
+final RegExp _legacyColorCodePattern = RegExp(r'&[0-9A-FK-ORa-fk-or]');
+
+final RegExp _playerWordPattern = RegExp(r'\bplayer\b');
+
+final RegExp _skinWordPattern = RegExp(r'\bskins?\b');
+
+final RegExp _tickWordPattern = RegExp(r'\bticks?\b');
+
+final RegExp _hoverWordPattern = RegExp(r'\bhover(?:ed|ing)?\b');
+
+final RegExp _smeltWordPattern = RegExp(r'\bsmelt(?:s|ed|ing)?\b');
+
+final RegExp _brewWordPattern = RegExp(r'\bbrew(?:s|ed|ing)?\b');
+
+final RegExp _menuWordPattern = RegExp(r'\bmenus?\b');
+
+final RegExp _panelWordPattern = RegExp(r'\bpanels?\b');
+
+final RegExp _itemWordPattern = RegExp(r'\bitems?\b');
+
+final RegExp _pitchWordPattern = RegExp(r'\bpitch\b');
+
+final RegExp _hebrewSkinTermPattern = RegExp(
+  r'(?<![\p{L}])(?:ה|ל|ב)?עור(?![\p{L}])',
+  unicode: true,
+);
+
+final RegExp _finnishPlayerTermPattern = RegExp(
+  r'(?<![\p{L}])soittim',
+  unicode: true,
+);
+
+final RegExp _callableIdentifierPattern = RegExp(
+  r'\b([A-Za-z][A-Za-z0-9_]*)(?=\()',
+);
+
+final RegExp _identifierPattern = RegExp(r'\b[A-Za-z][A-Za-z0-9_]*\b');
+
+final RegExp _naturalLanguageWordPattern = RegExp(
+  r"\p{L}+(?:['’]\p{L}+)?",
+  unicode: true,
+);
+
+final RegExp _leadingWhitespacePattern = RegExp(r'^\s*');
+
+final RegExp _trailingWhitespacePattern = RegExp(r'\s*$');
+
+final RegExp _whitespacePattern = RegExp(r'\s');
+
+final Map<String, RegExp> _literalTokenPatterns = <String, RegExp>{};
+
+RegExp _literalTokenPattern(String token) => _literalTokenPatterns.putIfAbsent(
+  token,
+  () => RegExp('(?<![A-Za-z0-9_])${RegExp.escape(token)}(?![A-Za-z0-9_])'),
+);
 
 final RegExp _protectedTokenPattern = RegExp(
   r'\{\{.*?\}\}|%[^%\s]+%|\|[^|\n]+\||`[^`\n]+`|https?://[A-Za-z0-9_./?=&%#:+~-]+|'
@@ -5074,7 +5187,16 @@ final RegExp _protectedTokenPattern = RegExp(
   r'<[^>\n]+>|&[0-9A-FK-ORa-fk-or]|#[0-9A-Fa-f]{3,8}',
 );
 
-Map<String, int> _protectedTokenCounts(String value) {
+final Map<String, Map<String, int>> _protectedTokenCountsCache =
+    <String, Map<String, int>>{};
+
+Map<String, int> _protectedTokenCounts(String value) =>
+    _protectedTokenCountsCache.putIfAbsent(
+      value,
+      () => _computeProtectedTokenCounts(value),
+    );
+
+Map<String, int> _computeProtectedTokenCounts(String value) {
   final Map<String, int> counts = <String, int>{};
   for (final RegExpMatch match in _protectedTokenPattern.allMatches(value)) {
     final String token = match.group(0)!;
@@ -5083,15 +5205,24 @@ Map<String, int> _protectedTokenCounts(String value) {
   return counts;
 }
 
-Map<String, int> _contextualCodeTokenCounts(String english) {
+final Map<String, Map<String, int>> _contextualCodeTokenCountsCache =
+    <String, Map<String, int>>{};
+
+Map<String, int> _contextualCodeTokenCounts(String english) =>
+    _contextualCodeTokenCountsCache.putIfAbsent(
+      english,
+      () => _computeContextualCodeTokenCounts(english),
+    );
+
+Map<String, int> _computeContextualCodeTokenCounts(String english) {
   final Map<String, int> counts = <String, int>{};
   void add(String token) {
     counts[token] = (counts[token] ?? 0) + 1;
   }
 
-  for (final RegExpMatch match in RegExp(
-    r'\b([A-Za-z][A-Za-z0-9_]*)(?=\()',
-  ).allMatches(english)) {
+  for (final RegExpMatch match in _callableIdentifierPattern.allMatches(
+    english,
+  )) {
     add(match.group(1)!);
   }
   for (final String heading in <String>['Accepted values:', 'Functions:']) {
@@ -5102,9 +5233,9 @@ Map<String, int> _contextualCodeTokenCounts(String english) {
       final int valueStart = start + heading.length;
       final int period = english.indexOf('.', valueStart);
       final int end = period < 0 ? english.length : period;
-      for (final RegExpMatch match in RegExp(
-        r'\b[A-Za-z][A-Za-z0-9_]*\b',
-      ).allMatches(english.substring(valueStart, end))) {
+      for (final RegExpMatch match in _identifierPattern.allMatches(
+        english.substring(valueStart, end),
+      )) {
         add(match.group(0)!);
       }
       cursor = end;
@@ -5151,9 +5282,8 @@ Map<String, int> _contextualCodeTokenCounts(String english) {
   return counts;
 }
 
-int _literalTokenCount(String value, String token) => RegExp(
-  '(?<![A-Za-z0-9_])${RegExp.escape(token)}(?![A-Za-z0-9_])',
-).allMatches(value).length;
+int _literalTokenCount(String value, String token) =>
+    _literalTokenPattern(token).allMatches(value).length;
 
 const Map<String, Map<String, Set<String>>>
 _unchangedNaturalLanguageAllowlistByReason = <String, Map<String, Set<String>>>{
@@ -5496,6 +5626,7 @@ void _validateEnglishResidue(
     }
     return;
   }
+  if (!_sharesAnyWord(englishWords, translated)) return;
   final List<String> translatedWords = _isVisibleQuotedSample(english)
       ? _unmaskedWords(translated)
       : _naturalLanguageWords(translated, contextualEnglish: english);
@@ -5511,19 +5642,32 @@ void _validateEnglishResidue(
   }
 }
 
+final Map<String, Map<String, List<String>>> _naturalLanguageWordsCache =
+    <String, Map<String, List<String>>>{};
+
 List<String> _naturalLanguageWords(
   String value, {
   required String contextualEnglish,
+}) => _naturalLanguageWordsCache
+    .putIfAbsent(contextualEnglish, () => <String, List<String>>{})
+    .putIfAbsent(
+      value,
+      () => _computeNaturalLanguageWords(
+        value,
+        contextualEnglish: contextualEnglish,
+      ),
+    );
+
+List<String> _computeNaturalLanguageWords(
+  String value, {
+  required String contextualEnglish,
 }) {
-  String withoutPlaceholders = value.replaceAll(
-    RegExp(r'\{[a-z][a-zA-Z0-9_]*\}'),
-    ' ',
-  );
+  String withoutPlaceholders = value.replaceAll(_placeholderTokenPattern, ' ');
   for (final String token in _contextualCodeTokenCounts(
     contextualEnglish,
   ).keys) {
     withoutPlaceholders = withoutPlaceholders.replaceAll(
-      RegExp('(?<![A-Za-z0-9_])${RegExp.escape(token)}(?![A-Za-z0-9_])'),
+      _literalTokenPattern(token),
       ' ',
     );
   }
@@ -5534,11 +5678,19 @@ List<String> _naturalLanguageWords(
   return _unmaskedWords(residue);
 }
 
+bool _sharesAnyWord(List<String> englishWords, String translated) {
+  final String lowerTranslated = translated.toLowerCase();
+  for (final String word in englishWords) {
+    if (lowerTranslated.contains(word.toLowerCase())) return true;
+  }
+  return false;
+}
+
 List<String> _unmaskedWords(String value) {
-  return RegExp(
-    r"\p{L}+(?:['’]\p{L}+)?",
-    unicode: true,
-  ).allMatches(value).map((RegExpMatch match) => match.group(0)!).toList();
+  return _naturalLanguageWordPattern
+      .allMatches(value)
+      .map((RegExpMatch match) => match.group(0)!)
+      .toList();
 }
 
 bool _isVisibleQuotedSample(String english) =>
@@ -5585,8 +5737,9 @@ bool _allowsUnchangedNaturalLanguage(String locale, String location) {
 
 Map<String, int> _structuralDelimiterCounts(String value) {
   final Map<String, int> counts = <String, int>{};
-  for (final String character in value.split('')) {
-    if (!'[]{}<>|'.contains(character)) continue;
+  for (int index = 0; index < value.length; index++) {
+    final String character = value[index];
+    if (!_structuralDelimiters.contains(character)) continue;
     counts[character] = (counts[character] ?? 0) + 1;
   }
   return counts;
@@ -5601,10 +5754,10 @@ bool _multisetsEqual(Map<String, int> left, Map<String, int> right) {
 }
 
 String _leadingWhitespace(String value) =>
-    RegExp(r'^\s*').firstMatch(value)!.group(0)!;
+    _leadingWhitespacePattern.firstMatch(value)!.group(0)!;
 
 String _trailingWhitespace(String value) =>
-    RegExp(r'\s*$').firstMatch(value)!.group(0)!;
+    _trailingWhitespacePattern.firstMatch(value)!.group(0)!;
 
 void _collectCalls(
   String source,
@@ -6250,7 +6403,7 @@ _Escape? _readCodePointEscape(String source, int slash) {
 int _skipTrivia(String source, int offset) {
   int cursor = offset;
   while (cursor < source.length) {
-    if (RegExp(r'\s').hasMatch(source[cursor])) {
+    if (_whitespacePattern.hasMatch(source[cursor])) {
       cursor++;
       continue;
     }

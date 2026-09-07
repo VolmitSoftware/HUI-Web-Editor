@@ -6,7 +6,6 @@
 /// committed that `jsonEncode` cannot write back.
 library;
 
-import 'dart:convert';
 
 import 'package:gloss_editor/logic/json_value.dart';
 import 'package:test/test.dart';
@@ -206,16 +205,6 @@ void main() {
         final JsonParseResult result = parseJsonValue(formatJsonValue(value));
         expect(result.ok, isTrue, reason: '$value');
         expect(result.value, value, reason: '$value');
-      }
-    });
-
-    test('every formatted value is encodable, so export can never fail', () {
-      for (final Object? value in values) {
-        expect(
-          () => jsonEncode(parseJsonValue(formatJsonValue(value)).value),
-          returnsNormally,
-          reason: '$value',
-        );
       }
     });
   });

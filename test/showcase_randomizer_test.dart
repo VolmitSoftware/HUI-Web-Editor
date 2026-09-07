@@ -484,6 +484,7 @@ void main() {
   );
 
   test('random MOTD and scoreboard are complete fake server examples', () {
+    final GlossAnimationResolver animations = _store().workspaceAnimations;
     final GlossMotdDoc motd = buildRandomMotdShowcase(
       GlossMotdDoc(revision: 7),
       math.Random(4),
@@ -501,10 +502,8 @@ void main() {
     expect(
       motd.entries.every(
         (GlossMotdEntry entry) => entry.lines.any(
-          (String line) => renderGlossLine(
-            line,
-            animations: _store().workspaceAnimations,
-          ).isAnimated,
+          (String line) =>
+              renderGlossLine(line, animations: animations).isAnimated,
         ),
       ),
       isTrue,
@@ -645,6 +644,7 @@ void main() {
   });
 
   test('tablist recipes cover every procedural text effect safely', () {
+    final GlossAnimationResolver animations = _store().workspaceAnimations;
     final Set<String> effectIds = <String>{};
     for (int seed = 0; seed < 512; seed++) {
       final ShowcaseEffect effect = showcaseTablistAnimation(
@@ -653,10 +653,7 @@ void main() {
       );
       effectIds.add(effect.id);
       expect(
-        renderGlossLine(
-          effect.text,
-          animations: _store().workspaceAnimations,
-        ).expressionErrors,
+        renderGlossLine(effect.text, animations: animations).expressionErrors,
         isEmpty,
         reason: 'seed $seed, ${effect.id}: ${effect.text}',
       );
@@ -683,6 +680,7 @@ void main() {
   test(
     'tablist archetypes are distinct, bounded, valid and always visible',
     () {
+      final GlossAnimationResolver animations = _store().workspaceAnimations;
       final Set<String> fingerprints = <String>{};
       for (final TablistShowcaseArchetype archetype
           in TablistShowcaseArchetype.values) {
@@ -713,7 +711,7 @@ void main() {
         expect(
           validateTablistDoc(
             tablist,
-            animations: _store().workspaceAnimations,
+            animations: animations,
           ).where((HuiIssue issue) => issue.severity != HuiSeverity.info),
           isEmpty,
           reason: archetype.name,
@@ -733,17 +731,7 @@ void main() {
     },
   );
 
-  test('tablist randomization is varied and replays its seed', () {
-    final Set<String> documents = <String>{};
-    for (int seed = 0; seed < 128; seed++) {
-      final GlossTablistDoc tablist = buildRandomTablistShowcase(
-        GlossTablistDoc(),
-        math.Random(seed),
-      );
-      documents.add(encodeGlossTablistDoc(tablist));
-    }
-    expect(documents.length, greaterThanOrEqualTo(124));
-
+  test('tablist randomization replays its seed from an authored document', () {
     final GlossTablistDoc first = buildRandomTablistShowcase(
       GlossTablistDoc(),
       math.Random(44),

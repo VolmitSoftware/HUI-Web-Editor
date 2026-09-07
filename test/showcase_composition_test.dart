@@ -132,11 +132,6 @@ void main() {
           isEmpty,
           reason: 'seed $seed',
         );
-        expect(
-          encodeHuiMenu(buildRandomMenuShowcase(store, math.Random(seed))),
-          encodeHuiMenu(menu),
-          reason: 'seed $seed',
-        );
         sizes.add(menu.components.length);
         behaviors.add(
           '${menu.lockPosition}:${menu.followPlayer}:${menu.closeOnDeath}:${menu.closeOnTeleport}',

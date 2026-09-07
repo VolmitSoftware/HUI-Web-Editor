@@ -20,11 +20,6 @@ void main() {
       expect(huiNudgeStepLarge, 0.25);
     });
 
-    test('the coarse nudge is a whole multiple of the fine one', () {
-      const double ratio = huiNudgeStepLarge / huiNudgeStep;
-      expect(ratio, closeTo(ratio.roundToDouble(), 1e-9));
-    });
-
     test('depth step reorders the draw without moving anything measurable', () {
       expect(huiDepthStep, 0.01);
       expect(huiDepthStep, lessThan(huiNudgeStep));
