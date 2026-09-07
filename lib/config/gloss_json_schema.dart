@@ -1863,7 +1863,14 @@ final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
             'maxEntitiesPerViewer',
             'Entity limit',
             'Overlays per viewer. Gloss clamps to 1..256.',
-            '64',
+            '16',
+            true,
+          ),
+          (
+            'maxActiveOverlays',
+            'Overlay limit',
+            'Overlays tracked at once across every viewer. Gloss clamps to 16..16384.',
+            '1024',
             true,
           ),
           (

@@ -193,6 +193,7 @@ GlossEntityOverlaysDoc buildRandomEntityOverlayShowcase(
     range: (8 + random.nextInt(57)).toDouble(),
     updateIntervalTicks: 1 + random.nextInt(20),
     maxEntitiesPerViewer: 16 + random.nextInt(241),
+    maxActiveOverlays: 256 + random.nextInt(3841),
     includePlayers: random.nextBool(),
     verticalOffset: _number(random, -0.25, 1.5),
     healthSegments: 4 + random.nextInt(37),

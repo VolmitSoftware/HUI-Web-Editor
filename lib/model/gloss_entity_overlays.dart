@@ -117,7 +117,8 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
     this.enabled = true,
     this.range = 16,
     this.updateIntervalTicks = 5,
-    this.maxEntitiesPerViewer = 64,
+    this.maxEntitiesPerViewer = 16,
+    this.maxActiveOverlays = 1024,
     this.includePlayers = true,
     this.verticalOffset = 0.35,
     this.healthSegments = 10,
@@ -142,6 +143,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
   double range;
   int updateIntervalTicks;
   int maxEntitiesPerViewer;
+  int maxActiveOverlays;
   bool includePlayers;
   double verticalOffset;
   int healthSegments;
@@ -174,8 +176,9 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
       maxEntitiesPerViewer: huiReadInt(
         map,
         'maxEntitiesPerViewer',
-        fallback: 64,
+        fallback: 16,
       ),
+      maxActiveOverlays: huiReadInt(map, 'maxActiveOverlays', fallback: 1024),
       includePlayers:
           map['includePlayers'] == null || huiReadBool(map, 'includePlayers'),
       verticalOffset: huiReadDouble(map, 'verticalOffset', fallback: 0.35),
@@ -230,6 +233,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
     'range': range,
     'updateIntervalTicks': updateIntervalTicks,
     'maxEntitiesPerViewer': maxEntitiesPerViewer,
+    'maxActiveOverlays': maxActiveOverlays,
     'includePlayers': includePlayers,
     'verticalOffset': verticalOffset,
     'healthSegments': healthSegments,

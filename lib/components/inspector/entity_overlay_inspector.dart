@@ -122,6 +122,15 @@ class _EntityOverlayInspectorState extends State<EntityOverlayInspector> {
                 edited.maxEntitiesPerViewer = value.round(),
             integer: true,
           ),
+          _number(
+            'Maximum active overlays',
+            'maxActiveOverlays',
+            doc.maxActiveOverlays,
+            'Maximum overlays tracked at once across every viewer. 16..16384.',
+            (GlossEntityOverlaysDoc edited, double value) =>
+                edited.maxActiveOverlays = value.round(),
+            integer: true,
+          ),
           _text(
             'Excluded worlds',
             doc.blacklistWorlds.join(', '),
