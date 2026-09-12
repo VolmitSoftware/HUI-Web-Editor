@@ -108,6 +108,10 @@ WorkspaceFlowGraph buildWorkspaceFlowGraph(
       continue;
     }
     for (final _NavigationReference reference in _navigationReferences(menu)) {
+      // Page navigation moves inside the open surface rather than between
+      // menus, so it is terminal for its triggers — which is why it is
+      // collected — but it is not a route this map can draw.
+      if (reference.action.mode == 'page') continue;
       edges.add(_resolveEdge(doc, reference, localByRuntimeId, allByRuntimeId));
     }
   }

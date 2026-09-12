@@ -427,8 +427,8 @@ void main() {
           );
       }
     }
-    expect(componentTypes, huiComponentTypes.toSet());
-    expect(actionTypes, huiActionTypes.toSet());
+    expect(componentTypes, huiEditorComponentTypes.toSet());
+    expect(actionTypes, huiEditorActionTypes.toSet());
   });
 
   test(

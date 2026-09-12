@@ -1622,7 +1622,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// Adds a component of [type] with sensible defaults at the first free slot
   /// and selects it. Returns the new id.
   String? addComponent(String type, {Vec3? offset, String? id}) {
-    final String normalized = huiComponentTypes.contains(type)
+    final String normalized = huiEditorComponentTypes.contains(type)
         ? type
         : 'decoration';
     return addComponentData(
@@ -1633,7 +1633,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   }
 
   String? addComponentData(HuiComponentData data, {Vec3? offset, String? id}) {
-    final String normalized = huiComponentTypes.contains(data.type)
+    final String normalized = huiEditorComponentTypes.contains(data.type)
         ? data.type
         : 'decoration';
     final String newId = uniqueComponentId(id ?? normalized, _takenIds());

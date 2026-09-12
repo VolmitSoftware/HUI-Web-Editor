@@ -4485,6 +4485,15 @@ HuiNavigateAction _randomNavigationAction(
       trigger,
     );
   }
+  if (random.nextInt(4) == 0) {
+    // Page mode pages the surface already open, so its target is a pager
+    // token, not a menu id.
+    return HuiNavigateAction(
+      showcasePick(random, <String>['next', 'prev']),
+      'page',
+      trigger,
+    );
+  }
   return HuiNavigateAction(
     '',
     showcasePick(random, <String>['back', 'home', 'close']),

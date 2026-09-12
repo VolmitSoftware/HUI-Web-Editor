@@ -323,7 +323,7 @@ void main() {
     });
 
     test('every default component and icon validates clean', () {
-      for (final String type in huiComponentTypes) {
+      for (final String type in huiEditorComponentTypes) {
         final HuiMenu menu = HuiMenu()
           ..components.add(
             createDefaultComponent(type: type, takenIds: const <String>{}),

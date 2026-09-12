@@ -975,7 +975,7 @@ class _NavigateActionFields extends StatelessWidget {
             HuiInlineIssues(_issuesEndingWith('.mode')),
           ]),
         ),
-        if (action.requiresTarget)
+        if (action.targetIsMenuId)
           HuiField(
             label: huiText('Target menu'),
             required: true,
@@ -996,6 +996,23 @@ class _NavigateActionFields extends StatelessWidget {
                   (WorkspaceDoc doc) => doc.kind == DocumentTypes.menu.kind,
                 ),
                 search: _searchMenus,
+                onChanged: (String value) =>
+                    onChanged('navigation target', _with(target: value)),
+              ),
+              HuiInlineIssues(_issuesEndingWith('.target')),
+            ]),
+          )
+        // Page mode addresses a page inside the surface already open, not a
+        // menu, so the id browser and its menu copy would both be wrong here.
+        else if (action.requiresTarget)
+          HuiField(
+            label: huiText('Target'),
+            required: true,
+            control: dom.div(<Widget>[
+              TextInput(
+                value: action.target,
+                size: ComponentSize.sm,
+                fullWidth: true,
                 onChanged: (String value) =>
                     onChanged('navigation target', _with(target: value)),
               ),

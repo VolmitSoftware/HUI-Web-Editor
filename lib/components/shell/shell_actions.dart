@@ -253,7 +253,7 @@ List<ShellAction> buildShellActions(
         enabled: selected > 0,
         run: () => intents.reorderDepth(op),
       ),
-    for (final String type in huiComponentTypes)
+    for (final String type in huiEditorComponentTypes)
       ShellAction(
         id: 'add.$type',
         group: shellGroupAdd,

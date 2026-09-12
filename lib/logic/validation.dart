@@ -1444,7 +1444,7 @@ class _Validator {
         fix: 'Choose the menu page this action should open',
       );
     }
-    final String? targetProblem = action.requiresTarget
+    final String? targetProblem = action.targetIsMenuId
         ? validateMenuId(action.target)
         : null;
     if (targetProblem != null && action.target.trim().isNotEmpty) {

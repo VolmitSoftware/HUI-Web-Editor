@@ -1402,7 +1402,7 @@ void main() {
 
   group('typed interaction actions', () {
     test('factory defaults cover every declared action type', () {
-      expect(huiActionTypes, <String>[
+      expect(huiEditorActionTypes, <String>[
         'command',
         'sound',
         'message',
@@ -1413,7 +1413,7 @@ void main() {
       expect(createDefaultAction('message'), isA<HuiMessageAction>());
       expect(createDefaultAction('teleport'), isA<HuiTeleportAction>());
       expect(createDefaultAction('connect'), isA<HuiConnectAction>());
-      for (final String type in huiActionTypes) {
+      for (final String type in huiEditorActionTypes) {
         final HuiAction action = createDefaultAction(type);
         expect(action.trigger, 'any', reason: type);
         expect(action.toJson().containsKey('trigger'), isFalse, reason: type);
@@ -1421,7 +1421,7 @@ void main() {
     });
 
     test('click triggers round-trip and copy across every action shape', () {
-      for (final String type in huiActionTypes) {
+      for (final String type in huiEditorActionTypes) {
         final HuiAction action = createDefaultAction(type)
           ..trigger = 'shift_right_click';
         final Map<String, dynamic> encoded = action.toJson();

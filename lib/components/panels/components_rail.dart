@@ -413,7 +413,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
       },
     },
     <Widget>[
-      for (final String type in huiComponentTypes)
+      for (final String type in huiEditorComponentTypes)
         dom.button(
           classes: 'hui-rail-type',
           styles: const dom.Styles(

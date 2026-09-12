@@ -1,6 +1,60 @@
 import 'json_codec.dart';
 
+/// Every `MenuActionType` Gloss declares, in declaration order.
+///
+/// This is the wire contract, not this build's authoring surface: the runtime
+/// accepts all of them, while [huiEditorActionTypes] is the subset the editor
+/// models end to end. Menus using the rest are Gloss-valid and still open in
+/// the plugin; the editor rejects them until each grows a typed action.
 const List<String> huiActionTypes = <String>[
+  'command',
+  'sound',
+  'message',
+  'teleport',
+  'connect',
+  'navigate',
+  'title',
+  'actionbar',
+  'bossbar',
+  'dialog',
+  'confirm',
+  'close',
+  'inventory',
+  'setSession',
+  'prompt',
+  'book',
+  'give',
+  'take',
+  'economy',
+  'setRig',
+  'rigState',
+  'delay',
+  'sequence',
+  'parallel',
+  'repeat',
+  'if',
+  'switch',
+  'chance',
+  'cooldown',
+  'emit',
+  'broadcast',
+  'effect',
+  'particle',
+  'stop',
+  'setState',
+  'addState',
+  'clearState',
+  'sky',
+  'camera',
+  'glow',
+];
+
+/// The action types this editor parses, edits, validates and re-encodes.
+///
+/// Everything that creates an action — the inspector rows, the presets, the
+/// showcase randomizer, the JSON schema value list — works from this list, so
+/// nothing offers a type the model cannot build.
+const List<String> huiEditorActionTypes = <String>[
   'command',
   'sound',
   'message',
@@ -17,12 +71,14 @@ const List<String> huiActionTriggers = <String>[
   'shift_right_click',
 ];
 
+/// `NavigationMode` serialized names, in declaration order.
 const List<String> huiNavigationModes = <String>[
   'push',
   'replace',
   'back',
   'home',
   'close',
+  'page',
 ];
 
 /// `MenuActionCommandSource` serialized names. Gson also accepts the Java enum
@@ -242,7 +298,16 @@ class HuiNavigateAction extends HuiAction {
   @override
   String get type => 'navigate';
 
-  bool get requiresTarget => mode == 'push' || mode == 'replace';
+  /// `NavigationActionData.isValid()` rejects push, replace and page without
+  /// a target.
+  bool get requiresTarget =>
+      mode == 'push' || mode == 'replace' || mode == 'page';
+
+  /// Whether [target] names a menu. Push and replace open one; page addresses
+  /// a page inside the surface already open — a hologram page id, or `next`,
+  /// `prev` or an index for an inventory list — so it is not a menu id and
+  /// never a route on a flow map.
+  bool get targetIsMenuId => mode == 'push' || mode == 'replace';
 
   @override
   Map<String, dynamic> toJson() => huiMergeExtras(

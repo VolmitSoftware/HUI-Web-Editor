@@ -467,7 +467,7 @@ void main() {
       _expectMenuBudget(store.menu, 'component seed $seed');
     }
     expect(iconTypes, huiIconTypes.toSet());
-    expect(actionTypes, huiActionTypes.toSet());
+    expect(actionTypes, huiEditorActionTypes.toSet());
     expect(triggers, huiActionTriggers.toSet());
     expect(commandSources, huiCommandSources.toSet());
     expect(soundSources, huiSoundSources.toSet());

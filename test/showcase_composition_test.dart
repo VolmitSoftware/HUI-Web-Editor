@@ -172,9 +172,9 @@ void main() {
           }
         }
       }
-      expect(components, huiComponentTypes.toSet());
+      expect(components, huiEditorComponentTypes.toSet());
       expect(icons, huiIconTypes.toSet());
-      expect(actions, huiActionTypes.toSet());
+      expect(actions, huiEditorActionTypes.toSet());
       expect(triggers, huiActionTriggers.toSet());
       expect(sources, huiSoundSources.toSet());
       expect(navigation, huiNavigationModes.toSet());

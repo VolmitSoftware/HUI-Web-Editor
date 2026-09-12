@@ -88,6 +88,9 @@ void main() {
         huiActionTypes,
         reason: _refresh('lib/model/hui_actions.dart', 'MenuActionType.java'),
       );
+      // The editor models a subset; every member of it still has to be a type
+      // Gloss declares.
+      expect(huiActionTypes, containsAll(huiEditorActionTypes));
     });
 
     test('MenuComponentType matches huiComponentTypes in order', () {
@@ -102,6 +105,7 @@ void main() {
           'MenuComponentType.java',
         ),
       );
+      expect(huiComponentTypes, containsAll(huiEditorComponentTypes));
     });
 
     test('NavigationMode matches huiNavigationModes in order', () {

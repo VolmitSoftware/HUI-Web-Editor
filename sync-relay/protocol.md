@@ -61,18 +61,34 @@ kind a newer server adds shows up here rather than being quietly dropped.
 | Wire kind | Storage | Layout | Versioned | Singleton id |
 |---|---|---|---|---|
 | `animation` | `animations` | FOLDER | yes | - |
+| `behavior` | `behaviors` | FOLDER | yes | - |
 | `bubble-style` | `bubbles` | FOLDER | yes | - |
+| `channel` | `channels` | FOLDER | yes | - |
 | `container-preview` | `previews` | FOLDER | no | - |
 | `damage-indicators` | `damage-indicators` | FOLDER | yes | `default` |
+| `dialog` | `dialogs` | FOLDER | yes | - |
 | `emoji` | `emoji` | FOLDER | yes | - |
 | `entity-overlays` | `entity-overlays` | FOLDER | yes | `default` |
+| `glyph` | `glyphs` | FOLDER | yes | - |
 | `hologram` | `holograms` | FOLDER | yes | - |
+| `inventory` | `inventories` | FOLDER | yes | - |
+| `leaderboard` | `leaderboards` | FOLDER | yes | - |
+| `marker` | `markers` | FOLDER | yes | - |
 | `menu` | `menus` | TREE | no | - |
 | `motd` | `motd.json` | SINGLE | yes | `motd` |
+| `motion` | `motion` | FOLDER | yes | - |
+| `nameplate` | `nameplates` | FOLDER | yes | - |
+| `nametag` | `nametags` | FOLDER | yes | - |
 | `panel` | `panels` | TREE | yes | - |
 | `real-drops` | `real-drops` | REAL_DROPS | yes | `default` |
+| `rig` | `rigs` | FOLDER | yes | - |
+| `rig-instance` | `rig-instances` | FOLDER | yes | - |
 | `scoreboard` | `boards` | FOLDER | yes | - |
+| `strings` | `strings` | FOLDER | yes | - |
+| `surface` | `surfaces` | FOLDER | yes | - |
 | `tablist` | `tablist.json` | SINGLE | yes | `tablist` |
+| `waypoint` | `waypoints` | FOLDER | yes | - |
+| `zone` | `zones` | FOLDER | yes | - |
 
 Each document entry has `kind`, `id`, JSON source text and an optional
 `baseRevision`. Unversioned kinds omit `revision`; versioned kinds require an
@@ -88,9 +104,9 @@ A kind this build of the editor does not know still round-trips: it is echoed
 back byte for byte, and the server refuses any change to it by name rather than
 dropping it.
 
-Menu and panel ids are canonical tree ids. Animation, bubble-style,
-container-preview, emoji, hologram, and scoreboard ids are flat. Singleton ids
-are `motd`, `tablist`, and `default` for real-drops.
+Menu and panel ids are canonical tree ids; every other kind has flat ids.
+The singleton ids are `motd`, `tablist`, and `default` for damage-indicators,
+entity-overlays, and real-drops.
 
 A panel entry contains only the canonical runtime panel definition. Browser
 flow-map layout and unlinked flow maps are editor-only and never enter a
