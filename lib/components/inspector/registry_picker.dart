@@ -143,7 +143,7 @@ class _RegistryPickerState extends State<RegistryPicker> {
                   fullWidth: true,
                   placeholder: component.placeholder,
                   prefix: _thumbnail(),
-                  onInput: (String raw) => component.onChanged(
+                  onChanged: (String raw) => component.onChanged(
                     component.lowercase ? raw.trim().toLowerCase() : raw.trim(),
                   ),
                   attributes: const <String, String>{
@@ -184,7 +184,7 @@ class _RegistryPickerState extends State<RegistryPicker> {
               size: ComponentSize.sm,
               fullWidth: true,
               placeholder: searchPlaceholder,
-              onInput: (String raw) => setState(() => _query = raw),
+              onChanged: (String raw) => setState(() => _query = raw),
               attributes: const <String, String>{
                 'autocomplete': 'off',
                 'spellcheck': 'false',

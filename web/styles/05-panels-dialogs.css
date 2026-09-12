@@ -495,6 +495,24 @@
   line-height: 1.4;
 }
 
+/* A loaded history version is read, not edited: monospace, bounded, scrolls
+   on its own so the sheet's own list never grows past the viewport. */
+.hui-history-source {
+  margin: .5rem 0 0;
+  max-height: 14rem;
+  overflow: auto;
+  padding: .6rem .75rem;
+  background: var(--hui-surface-2, rgba(255, 255, 255, .03));
+  border: 1px solid var(--hui-border, rgba(255, 255, 255, .08));
+  border-radius: .5rem;
+  color: var(--hui-fg, inherit);
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .hui-validation-path,
 .hui-code-issue-path,
 .hui-import-issue code {

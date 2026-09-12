@@ -24,7 +24,12 @@ CORS policy must be allowlisted explicitly.
   publication.
 - `GET /v3/sessions/{id}/publication?after=N` long-polls from the server.
 - `POST /v3/sessions/{id}/publication/{revision}/ack` applies, conflicts,
-  or rejects a publication.
+  or rejects a publication, carrying the per-document `conflicts` list.
+- `GET /v3/sessions/{id}/history?kind=&documentId=&version=` asks the server
+  for one stored version and long-polls up to 30 seconds for it. The query
+  form keeps tree document ids (`shop/main`) out of the path.
+- `POST /v3/sessions/{id}/history?kind=&documentId=&version=` is how the
+  server answers that ask.
 - `DELETE /v3/sessions/{id}` revokes a session.
 - `GET /v3/health` reports relay health.
 
@@ -33,9 +38,10 @@ action creates a pending publication.
 
 ## Project
 
-A project has the exact top-level keys
+A project has the required top-level keys
 `format`, `version`, `kind`, `subjectId`, `baseRevision`,
-`documents`, `images`, `constraints`, and `warnings`.
+`documents`, `images`, `constraints`, and `warnings`, and the optional
+server-owned keys `history`, `schemas`, and `defaults`.
 
 - `format` is `gloss-sync-project`.
 - `version` is `3`.
@@ -46,13 +52,41 @@ A project has the exact top-level keys
   `sha256:<lowercase hex SHA-256>` over canonical project JSON with only
   `baseRevision` omitted.
 
-The current document kinds are `animation`, `bubble-style`,
-`container-preview`, `emoji`, `hologram`, `menu`, `motd`, `panel`,
-`real-drops`, `scoreboard`, and `tablist`.
+Document kinds are open slugs: the relay validates the grammar and never
+interprets a kind. The table below is generated from
+`EditorSyncDocumentKind.ORDERED_WIRE_NAMES` in the paired Gloss checkout and is
+pinned by `test/protocol_kinds_pin_test.dart` in the editor repository, so a
+kind a newer server adds shows up here rather than being quietly dropped.
 
-Each document entry has `kind`, `id`, and JSON source text. Menu and
-container-preview entries omit `revision`. The other nine kinds require an
+| Wire kind | Storage | Layout | Versioned | Singleton id |
+|---|---|---|---|---|
+| `animation` | `animations` | FOLDER | yes | - |
+| `bubble-style` | `bubbles` | FOLDER | yes | - |
+| `container-preview` | `previews` | FOLDER | no | - |
+| `damage-indicators` | `damage-indicators` | FOLDER | yes | `default` |
+| `emoji` | `emoji` | FOLDER | yes | - |
+| `entity-overlays` | `entity-overlays` | FOLDER | yes | `default` |
+| `hologram` | `holograms` | FOLDER | yes | - |
+| `menu` | `menus` | TREE | no | - |
+| `motd` | `motd.json` | SINGLE | yes | `motd` |
+| `panel` | `panels` | TREE | yes | - |
+| `real-drops` | `real-drops` | REAL_DROPS | yes | `default` |
+| `scoreboard` | `boards` | FOLDER | yes | - |
+| `tablist` | `tablist.json` | SINGLE | yes | `tablist` |
+
+Each document entry has `kind`, `id`, JSON source text and an optional
+`baseRevision`. Unversioned kinds omit `revision`; versioned kinds require an
 integer `revision` equal to the revision inside their JSON.
+
+`baseRevision` on a document entry is `sha256:<hex>` over the canonical JSON of
+that document when the server served it. The editor returns it unchanged. The
+server compares it per document, so a publication whose other documents moved
+under it still applies the ones that did not, and reports the rest as conflicts
+instead of failing as a whole.
+
+A kind this build of the editor does not know still round-trips: it is echoed
+back byte for byte, and the server refuses any change to it by name rather than
+dropping it.
 
 Menu and panel ids are canonical tree ids. Animation, bubble-style,
 container-preview, emoji, hologram, and scoreboard ids are flat. Singleton ids
@@ -94,12 +128,37 @@ content are subject to the text-display 16×16 limit and aggregate render
 pixel/row budgets. Individual menu and panel projects include only their
 captured or referenced assets.
 
+## Warnings, history, schemas and defaults
+
+`warnings` carries diagnostics as `code|kind|id|pointer|message` strings. The
+editor's Problems panel parses that shape; anything without a pipe is a plain
+sentence.
+
+`history` lists the stored versions of the documents the project carries, at
+most twenty per document, as `{kind, id, version, source, bytes}`. `version` is
+the epoch-millisecond stamp the history request names. `source` says what took
+the copy: `watchdog`, `editor:<session>`, `pack:<id>`, `import:<source>`,
+`restore` or `command`.
+
+`schemas` maps a wire kind to its JSON Schema and `defaults` maps a wire kind to
+its shipped default documents, so an editor with no dedicated stage for a kind
+can still offer an inspector and a template for it.
+
+All four sections are server-owned. The server rebuilds them on every snapshot
+and ignores whatever the editor sends back, which is why the concurrency checks
+compare documents and images only.
+
 ## Concurrency
 
 A publication names the session `baseRevision`. The relay permits one
 pending publication. The server acknowledges it as `applied`, `conflict`,
 or `rejected`. Applied and conflict acknowledgements promote the supplied
 server snapshot and revision; rejected acknowledgements do not.
+
+Every acknowledgement carries a `conflicts` array of `{kind, id}`. An `applied`
+acknowledgement with a non-empty list means the publication landed except for
+those documents, which kept the server's copy. `conflict` is reserved for the
+case where every change the editor made conflicted.
 
 If a tab has pending local content when the server revision changes, the
 editor preserves that local work and opens the conflict flow. The user can

@@ -225,7 +225,7 @@ class DamageIndicatorInspector extends StatelessWidget {
             value: variant.id,
             size: ComponentSize.sm,
             fullWidth: true,
-            onInput: (String value) => _mutateVariant(
+            onChanged: (String value) => _mutateVariant(
               healing,
               index,
               'indicator variant id',
@@ -311,7 +311,7 @@ class DamageIndicatorInspector extends StatelessWidget {
           value: presentation.format,
           size: ComponentSize.sm,
           fullWidth: true,
-          onInput: (String value) => mutate(
+          onChanged: (String value) => mutate(
             'indicator format',
             (GlossDamageIndicatorPresentation edited) => edited.format = value,
           ),
@@ -469,7 +469,7 @@ class DamageIndicatorInspector extends StatelessWidget {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: huiText("viewer.world == 'world'"),
-        onInput: onInput,
+        onChanged: onInput,
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
       ),

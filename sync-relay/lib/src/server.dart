@@ -31,6 +31,7 @@ final class GlossSyncRelay {
       <String, List<DateTime>>{};
   final Map<String, List<DateTime>> _createsByPrincipal =
       <String, List<DateTime>>{};
+  final Map<String, _HistoryExchange> _historyExchanges = <String, _HistoryExchange>{};
   Future<void> _sessionCreationTail = Future<void>.value();
   Timer? _cleanupTimer;
   Future<void>? _cleanupTask;
@@ -56,6 +57,10 @@ final class GlossSyncRelay {
 
   Future<void> close() async {
     _cleanupTimer?.cancel();
+    for (final _HistoryExchange exchange in _historyExchanges.values.toList()) {
+      exchange.abandon();
+    }
+    _historyExchanges.clear();
     await _sessionCreationTail;
     final Future<void>? cleanup = _cleanupTask;
     if (cleanup != null) await cleanup;
@@ -116,6 +121,10 @@ final class GlossSyncRelay {
     if (segments.length == 2 && segments[1] == 'publication') {
       if (request.method == 'PUT') return _publish(request, id);
       if (request.method == 'GET') return _fetchPublication(request, id);
+    }
+    if (segments.length == 2 && segments[1] == 'history') {
+      if (request.method == 'GET') return _requestHistory(request, id);
+      if (request.method == 'POST') return _answerHistory(request, id);
     }
     if (segments.length == 4 &&
         segments[1] == 'publication' &&
@@ -346,22 +355,123 @@ final class GlossSyncRelay {
       return _error(400, 'invalid_revision');
     }
     final RelayPublication? publication = session.publication;
-    if (publication == null ||
-        publication.revision <= after ||
-        publication.state != RelayPublicationState.pending) {
+    final bool pending =
+        publication != null &&
+        publication.revision > after &&
+        publication.state == RelayPublicationState.pending;
+    final List<Object?> historyRequests = _pendingHistoryRequests(id);
+    if (!pending && historyRequests.isEmpty) {
       return Response(204);
     }
     return _json(200, <String, Object?>{
       'protocol': 3,
       'sessionId': id,
-      'publication': <String, Object?>{
-        'revision': publication.revision,
-        'baseRevision': publication.baseRevision,
-        'snapshot': publication.snapshot,
-        'publishedAt': publication.publishedAt.toUtc().toIso8601String(),
-        'state': publication.state.name,
-      },
+      'publication': pending
+          ? <String, Object?>{
+              'revision': publication.revision,
+              'baseRevision': publication.baseRevision,
+              'snapshot': publication.snapshot,
+              'publishedAt': publication.publishedAt.toUtc().toIso8601String(),
+              'state': publication.state.name,
+            }
+          : null,
+      if (historyRequests.isNotEmpty) 'historyRequests': historyRequests,
     });
+  }
+
+  /// The editor asks for one stored version and waits for the server's next poll to carry it
+  /// back. Nothing is stored: an unanswered request simply times out and the editor retries.
+  Future<Response> _requestHistory(Request request, String id) async {
+    await _authorized(request, id, editor: true);
+    final _HistoryKey? key = _historyKey(request, id);
+    if (key == null) return _error(400, 'invalid_history_request');
+    if (_historyExchanges.length >= _maximumHistoryExchanges) {
+      return _error(429, 'history_busy');
+    }
+    final _HistoryExchange exchange = _historyExchanges.putIfAbsent(
+      key.token,
+      () => _HistoryExchange(key),
+    );
+    final Map<String, Object?>? answer = await exchange.wait(
+      _historyTimeout,
+    );
+    if (identical(_historyExchanges[key.token], exchange) && exchange.settled) {
+      _historyExchanges.remove(key.token);
+    }
+    if (answer == null) {
+      _historyExchanges.remove(key.token);
+      return _error(504, 'history_timeout');
+    }
+    return _json(200, <String, Object?>{
+      'protocol': 3,
+      'kind': key.kind,
+      'id': key.documentId,
+      'version': key.version,
+      'found': answer['found'],
+      'json': answer['json'],
+    });
+  }
+
+  /// The server hands back the bytes of a version the editor asked for.
+  Future<Response> _answerHistory(Request request, String id) async {
+    await _authorized(request, id, editor: false);
+    final _HistoryKey? key = _historyKey(request, id);
+    if (key == null) return _error(400, 'invalid_history_request');
+    final Map<String, Object?> body = await _body(request);
+    _exactKeys(body, <String>{'protocol', 'found', 'json'});
+    _protocol(body);
+    final Object? found = body['found'];
+    final Object? json = body['json'];
+    if (found is! bool ||
+        (found && json is! String) ||
+        (!found && json != null) ||
+        (json is String && json.length > config.maximumSnapshotBytes)) {
+      return _error(400, 'invalid_history_answer');
+    }
+    final _HistoryExchange? exchange = _historyExchanges[key.token];
+    if (exchange == null) return _error(409, 'history_not_requested');
+    exchange.complete(<String, Object?>{'found': found, 'json': json});
+    return _json(200, <String, Object?>{'protocol': 3, 'accepted': true});
+  }
+
+  List<Object?> _pendingHistoryRequests(String sessionId) {
+    final List<Object?> requests = <Object?>[];
+    for (final _HistoryExchange exchange in _historyExchanges.values) {
+      if (exchange.key.sessionId != sessionId || exchange.settled) continue;
+      requests.add(<String, Object?>{
+        'kind': exchange.key.kind,
+        'id': exchange.key.documentId,
+        'version': exchange.key.version,
+      });
+      if (requests.length >= _maximumHistoryRequestsPerPoll) break;
+    }
+    return requests;
+  }
+
+  _HistoryKey? _historyKey(Request request, String sessionId) {
+    final Map<String, List<String>> parameters = request.url.queryParametersAll;
+    if (!parameters.keys.toSet().difference(const <String>{
+      'kind',
+      'documentId',
+      'version',
+    }).isEmpty) {
+      return null;
+    }
+    final String? kind = parameters['kind']?.single;
+    final String? documentId = parameters['documentId']?.single;
+    final String? rawVersion = parameters['version']?.single;
+    if (kind == null || documentId == null || rawVersion == null) return null;
+    final int? version = int.tryParse(rawVersion);
+    if (!_historyKindSlug.hasMatch(kind) ||
+        documentId.isEmpty ||
+        documentId.length > 256 ||
+        documentId.contains('..') ||
+        version == null ||
+        version < 0 ||
+        version > relayMaximumSafeInteger) {
+      return null;
+    }
+    return _HistoryKey(sessionId, kind, documentId, version);
   }
 
   Future<Response> _acknowledge(
@@ -383,6 +493,7 @@ final class GlossSyncRelay {
       'protocol',
       'status',
       'message',
+      if (body.containsKey('conflicts')) 'conflicts',
       if (rawStatusValue == 'applied' || rawStatusValue == 'conflict')
         'serverRevision',
       if (rawStatusValue == 'applied' || rawStatusValue == 'conflict')
@@ -411,6 +522,12 @@ final class GlossSyncRelay {
     final Map<String, Object?>? snapshot = promotes
         ? requireObject(body['snapshot'], 'snapshot')
         : null;
+    final List<Object?> conflicts;
+    try {
+      conflicts = requireConflicts(body['conflicts']);
+    } on FormatException {
+      return _error(400, 'invalid_ack_conflicts');
+    }
     if (promotes) {
       _snapshotSize(snapshot!, reservedBytes: authorized.reservedBytes);
       _snapshotShape(snapshot);
@@ -438,6 +555,7 @@ final class GlossSyncRelay {
         message: message,
         serverRevision: serverRevision,
         acknowledgedAt: _clock().toUtc(),
+        conflicts: conflicts,
       );
       return current.acknowledge(
         publication.acknowledge(ack),
@@ -823,6 +941,52 @@ final class RelayProblem implements Exception {
 }
 
 final RegExp _capability = RegExp(r'^[A-Za-z0-9_-]{22,128}$');
+final RegExp _historyKindSlug = RegExp(r'^[a-z0-9][a-z0-9-]{0,31}$');
+const Duration _historyTimeout = Duration(seconds: 30);
+const int _maximumHistoryExchanges = 64;
+const int _maximumHistoryRequestsPerPoll = 32;
+
+/// One document version an editor is waiting on, keyed so a repeated ask joins the same wait.
+final class _HistoryKey {
+  const _HistoryKey(this.sessionId, this.kind, this.documentId, this.version);
+
+  final String sessionId;
+  final String kind;
+  final String documentId;
+  final int version;
+
+  String get token => '$sessionId|$kind|$documentId|$version';
+}
+
+/// A pending history ask. It lives only in memory: a relay restart drops it and the editor asks
+/// again, which is cheaper than persisting a request that is worthless a minute later.
+final class _HistoryExchange {
+  _HistoryExchange(this.key);
+
+  final _HistoryKey key;
+  final Completer<Map<String, Object?>> _answer =
+      Completer<Map<String, Object?>>();
+
+  bool get settled => _answer.isCompleted;
+
+  void complete(Map<String, Object?> answer) {
+    if (!_answer.isCompleted) _answer.complete(answer);
+  }
+
+  void abandon() {
+    if (!_answer.isCompleted) {
+      _answer.complete(<String, Object?>{'found': false, 'json': null});
+    }
+  }
+
+  Future<Map<String, Object?>?> wait(Duration timeout) => _answer.future
+      .timeout(timeout)
+      .then<Map<String, Object?>?>((Map<String, Object?> answer) => answer)
+      .catchError(
+        (Object _) => null,
+        test: (Object error) => error is TimeoutException,
+      );
+}
 const String _missingCreateTokenHash =
     '0000000000000000000000000000000000000000000000000000000000000000';
 

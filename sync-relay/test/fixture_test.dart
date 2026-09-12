@@ -11,7 +11,7 @@ void main() {
       ...Directory('schema').listSync(followLinks: false).whereType<File>(),
       ...Directory('fixtures').listSync(followLinks: false).whereType<File>(),
     ]..sort((File left, File right) => left.path.compareTo(right.path));
-    expect(files, hasLength(17));
+    expect(files, hasLength(19));
     for (final File file in files) {
       expect(
         jsonDecode(file.readAsStringSync()),
@@ -54,6 +54,15 @@ void main() {
           as Map)['serverRevision'],
       isNull,
     );
+    expect(
+      ((_fixture('ack-applied-response-v3.json')['publication']! as Map)['ack']
+          as Map)['conflicts'],
+      <Object?>[
+        <String, Object?>{'kind': 'menu', 'id': 'admin'},
+      ],
+    );
+    expect(_fixture('history-response-v3.json')['found'], isTrue);
+    expect(_fixture('history-request-v3.json')['protocol'], 3);
   });
 
   test('fixture document kinds are open slugs the relay never interprets', () {
@@ -85,6 +94,58 @@ void main() {
         );
       }
     }
+  });
+
+  test('every project entry carries its own base revision', () {
+    // The server stamps the content revision of each served document on its
+    // entry, and a publication echoes the served value back — that is what
+    // lets the server reconcile a publication document by document. A served
+    // or applied project's entry revision is the revision of its own text; a
+    // publication's is the revision of the text it started from.
+    for (final String name in <String>[
+      'project-menu-v3.json',
+      'project-menu-edited-v3.json',
+      'project-panel-canonical-v3.json',
+      'create-request-v3.json',
+      'publish-request-v3.json',
+      'ack-applied-request-v3.json',
+    ]) {
+      final Map<String, Object?> fixture = _fixture(name);
+      final Map<String, Object?> project = fixture.containsKey('snapshot')
+          ? _object(fixture['snapshot'])
+          : fixture;
+      final List<Object?> documents = project['documents']! as List<Object?>;
+      expect(documents, isNotEmpty, reason: name);
+      for (final Object? entry in documents) {
+        final Map<String, Object?> document = _object(entry);
+        final Object? revision = document['baseRevision'];
+        expect(revision, isA<String>(), reason: name);
+        expect(
+          RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(revision! as String),
+          isTrue,
+          reason: name,
+        );
+      }
+    }
+
+    final String served =
+        _object(
+              (_fixture('project-menu-v3.json')['documents']!
+                  as List<Object?>)[0],
+            )['baseRevision']!
+            as String;
+    expect(
+      served,
+      'sha256:${sha256.convert(utf8.encode(_canonical(jsonDecode('{"components":[]}'))))}',
+    );
+    expect(
+      _object(
+        (_fixture('project-menu-edited-v3.json')['documents']!
+            as List<Object?>)[0],
+      )['baseRevision'],
+      served,
+      reason: 'a publication echoes the served revision, not its own',
+    );
   });
 
   test('the panel golden pins canonical document text', () {

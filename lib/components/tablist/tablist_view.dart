@@ -375,7 +375,7 @@ class _TablistViewState extends State<TablistView> {
           TextInput(
             value: _world,
             size: ComponentSize.sm,
-            onInput: (String value) => setState(() => _world = value),
+            onChanged: (String value) => setState(() => _world = value),
           ),
         ]),
         dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
@@ -385,7 +385,7 @@ class _TablistViewState extends State<TablistView> {
           TextInput(
             value: '$_health',
             size: ComponentSize.sm,
-            onInput: (String value) {
+            onChanged: (String value) {
               final double? parsed = double.tryParse(value);
               if (parsed != null) {
                 setState(() => _health = parsed.clamp(0, 20));

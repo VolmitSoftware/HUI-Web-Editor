@@ -291,7 +291,7 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
             fullWidth: true,
             placeholder: component.placeholder,
             error: _syntaxError?.call(),
-            onInput: _onInput,
+            onChanged: _onInput,
             onBlur: _onBlur,
             attributes: <String, String>{
               'aria-label': component.label,

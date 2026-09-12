@@ -10,7 +10,8 @@
       {
         "kind": "menu",
         "id": "main",
-        "json": "{\"components\":[],\"followPlayer\":true}"
+        "json": "{\"components\":[],\"followPlayer\":true}",
+        "baseRevision": "sha256:ac46fd24bd501fa7297f0a2945bcc7f5d655b9bcf8bfbf16718a9d25c0c2c018"
       }
     ],
     "images": [],
@@ -24,6 +25,6 @@
       "allowDeletes": false
     },
     "warnings": [],
-    "baseRevision": "sha256:662f3e7590d1321a57a0b592bd0531e271deef6710f724114302b3d45951f7bf"
+    "baseRevision": "sha256:d11e5c86a380342da13626df475fc4b4276097b1a2dc6afd6bfe73f11706e00e"
   }
 }

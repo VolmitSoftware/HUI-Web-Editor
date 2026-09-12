@@ -295,7 +295,7 @@ class SettingsDialog extends StatelessWidget {
             ArcaneSelectOption(label: huiText('Light'), value: 'light'),
             ArcaneSelectOption(label: huiText('None'), value: 'none'),
           ],
-          onChange: (String value) {
+          onChanged: (String value) {
             for (final HuiBackdropMode mode in HuiBackdropMode.values) {
               if (mode.name == value) store.backdrop = mode;
             }

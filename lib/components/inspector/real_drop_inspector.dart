@@ -79,7 +79,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
                 label: doc.variants[index].id,
               ),
           ],
-          onChange: (String value) =>
+          onChanged: (String value) =>
               setState(() => _selectedVariant = int.tryParse(value)),
         ),
       ),
@@ -164,7 +164,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         placeholder: huiText('variant-id'),
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
-        onInput: (String value) => _mutate(
+        onChanged: (String value) => _mutate(
           'rename real-drop variant',
           (GlossRealDropSettingsDoc edited) =>
               edited.variants[index].id = value,
@@ -188,7 +188,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         placeholder: huiText("drop.material == 'DIAMOND'"),
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
-        onInput: (String value) => _mutate(
+        onChanged: (String value) => _mutate(
           'real-drop variant condition',
           (GlossRealDropSettingsDoc edited) =>
               edited.variants[index].when = value,
@@ -240,7 +240,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         placeholder: huiText("hasPermission('viewer', 'gloss.drops')"),
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
-        onInput: (String value) => _mutate(
+        onChanged: (String value) => _mutate(
           'real-drop audience condition',
           (GlossRealDropSettingsDoc edited) => edited.audience.when = value,
         ),
@@ -519,7 +519,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
             ArcaneSelectOption(label: huiText('Flat'), value: 'FLAT'),
             ArcaneSelectOption(label: huiText('Upright'), value: 'UPRIGHT'),
           ],
-          onChange: (String value) => _mutatePresentation(
+          onChanged: (String value) => _mutatePresentation(
             'drop landing mode',
             (GlossRealDropPresentation edited) => edited.landing.mode = value,
           ),
@@ -993,7 +993,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
           ...huiTechnicalInputAttributes,
           'aria-label': huiText('Variable name'),
         },
-        onInput: (String value) => _mutateScript(
+        onChanged: (String value) => _mutateScript(
           'rename drop script variable',
           (GlossRealDropScript edited) =>
               edited.vars[index].name = value.trim(),
@@ -1126,7 +1126,7 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       size: ComponentSize.sm,
       fullWidth: true,
       styles: huiTechnicalInputStyles,
-      onInput: (String raw) => onChanged(
+      onChanged: (String raw) => onChanged(
         raw
             .split(',')
             .map((String entry) => entry.trim())

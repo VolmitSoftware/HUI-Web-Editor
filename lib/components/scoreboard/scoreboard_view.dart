@@ -357,7 +357,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
           TextInput(
             value: _world,
             size: ComponentSize.sm,
-            onInput: (String value) => setState(() => _world = value),
+            onChanged: (String value) => setState(() => _world = value),
           ),
         ]),
         dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
@@ -367,7 +367,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
           TextInput(
             value: '$_health',
             size: ComponentSize.sm,
-            onInput: (String value) {
+            onChanged: (String value) {
               final double? parsed = double.tryParse(value);
               if (parsed != null) {
                 setState(() => _health = parsed.clamp(0, 20));
@@ -383,7 +383,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
             value: _groups,
             size: ComponentSize.sm,
             placeholder: huiText('vip, staff'),
-            onInput: (String value) => setState(() => _groups = value),
+            onChanged: (String value) => setState(() => _groups = value),
           ),
         ]),
         dom.label(classes: 'hui-scoreboard-sim-field', <Widget>[
@@ -394,7 +394,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
             value: _permission,
             size: ComponentSize.sm,
             placeholder: huiText('gloss.board.vip'),
-            onInput: (String value) => setState(() => _permission = value),
+            onChanged: (String value) => setState(() => _permission = value),
           ),
         ]),
       ]);

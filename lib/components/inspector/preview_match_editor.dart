@@ -759,7 +759,7 @@ class _PreviewNameChipsState extends State<_PreviewNameChips> {
               size: ComponentSize.sm,
               fullWidth: true,
               placeholder: huiText('CHEST or OAK_*'),
-              onInput: (String value) => setState(() => _draft = value),
+              onChanged: (String value) => setState(() => _draft = value),
               styles: huiTechnicalInputStyles,
               attributes: huiTechnicalInputAttributes,
             ),
@@ -1004,7 +1004,7 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
                 size: ComponentSize.sm,
                 fullWidth: true,
                 placeholder: huiText('value or #RRGGBB'),
-                onInput: (String value) => _editValue(key, value),
+                onChanged: (String value) => _editValue(key, value),
                 attributes: const <String, String>{
                   'autocomplete': 'off',
                   'spellcheck': 'false',
@@ -1036,7 +1036,7 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: huiText('accent'),
-          onInput: (String value) {
+          onChanged: (String value) {
             _newKey = value;
             if (_newKeyError != null) setState(() => _newKeyError = null);
           },

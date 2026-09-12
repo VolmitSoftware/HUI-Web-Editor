@@ -118,7 +118,7 @@ class DisplayStyleEditor extends StatelessWidget {
               current.billboard,
               _billboardLabel,
             ),
-            onChange: (String value) => onChanged(
+            onChanged: (String value) => onChanged(
               'icon billboard',
               _next((HuiIconStyle next) => next.billboard = value),
             ),
@@ -238,7 +238,7 @@ class DisplayStyleEditor extends StatelessWidget {
                   current.textAlignment,
                   _alignmentLabel,
                 ),
-                onChange: (String value) => onChanged(
+                onChanged: (String value) => onChanged(
                   'text alignment',
                   _next((HuiIconStyle next) => next.textAlignment = value),
                 ),

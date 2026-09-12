@@ -23,6 +23,8 @@ import 'components/preview/preview_view.dart';
 import 'components/preview_card/preview_card.dart';
 import 'components/shell/shell.dart';
 import 'config/defaults.dart';
+import 'logic/sync_history.dart';
+import 'logic/sync_problems.dart';
 import 'model/model.dart';
 import 'services/catalogs.dart';
 import 'services/clipboard.dart';
@@ -112,6 +114,12 @@ class _AppState extends State<App> {
 
   _EditorDialog _dialog = _EditorDialog.none;
   bool _validationOpen = false;
+  bool _problemsOpen = false;
+  bool _historyOpen = false;
+  SyncHistoryVersion? _historyLoading;
+  SyncHistoryVersion? _historyLoaded;
+  String? _historyJson;
+  String Function()? _historyFailure;
   ({String? documentId, Vec3 offset})? _pendingCanvasMedia;
 
   @override
@@ -770,6 +778,82 @@ class _AppState extends State<App> {
     ArcaneSonner.success(huiText('Saved a complete local workspace backup.'));
   }
 
+  /// The server's own findings about the workspace, from the live session.
+  SyncProblems get _syncProblems {
+    final EditorSyncSession? session = _syncSession;
+    return session == null
+        ? SyncProblems.empty
+        : SyncProblems.of(session.project.warnings);
+  }
+
+  /// The stored versions the server kept for the documents this session carries.
+  SyncHistory get _syncHistory {
+    final EditorSyncSession? session = _syncSession;
+    return session == null
+        ? SyncHistory.empty
+        : SyncHistory.of(session.project.history);
+  }
+
+  /// Opens the workspace document a server finding names, by its runtime id.
+  void _openProblemDocument(String kind, String id) {
+    for (final WorkspaceDoc doc in _store.workspace.docs) {
+      if (doc.runtimeId == id) {
+        _store.openDocument(doc.id);
+        return;
+      }
+    }
+  }
+
+  Future<void> _loadHistoryVersion(SyncHistoryVersion version) async {
+    final EditorSyncBinding? binding = _syncBinding;
+    if (binding == null) return;
+    setState(() {
+      _historyLoading = version;
+      _historyFailure = null;
+    });
+    try {
+      final String? json = await _syncClient.fetchHistoryVersion(
+        binding,
+        version.kind,
+        version.id,
+        version.version,
+      );
+      if (!mounted) return;
+      setState(() {
+        _historyLoading = null;
+        _historyLoaded = json == null ? null : version;
+        _historyJson = json;
+        _historyFailure = json == null
+            ? () => huiText('The server no longer keeps that version.')
+            : null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _historyLoading = null;
+        _historyFailure = error is EditorSyncFailure
+            ? () => error.message
+            : () => huiText('The relay response could not be read.');
+      });
+    }
+  }
+
+  /// Drops a loaded version into the workspace as one undoable edit. Only the
+  /// document that is actually open can be replaced, so a version of something
+  /// else never lands on top of what the author is looking at.
+  void _restoreHistoryVersion(SyncHistoryVersion version, String json) {
+    if (_store.menuId != version.id) {
+      setState(
+        () => _historyFailure = () => huiText(
+          'Open that document before restoring one of its versions.',
+        ),
+      );
+      return;
+    }
+    _store.importJson('${version.id}.json', json);
+    setState(() => _historyOpen = false);
+  }
+
   EditorSyncProject _emptySyncProject(EditorSyncBinding binding) =>
       EditorSyncProject(
         kind: binding.kind,
@@ -823,6 +907,16 @@ class _AppState extends State<App> {
         onOpenHelp: () => _openDialog(_EditorDialog.help),
         onOpenValidation: () =>
             setState(() => _validationOpen = !_validationOpen),
+        onOpenProblems: _syncSession == null
+            ? null
+            : () => setState(() => _problemsOpen = !_problemsOpen),
+        onOpenHistory: _syncSession == null
+            ? null
+            : () => setState(() => _historyOpen = !_historyOpen),
+        serverProblemCount:
+            _syncProblems.all.length +
+            (_syncSession?.conflicts.length ?? 0),
+        serverHistoryCount: _syncHistory.documents.length,
         onCloseOverlay: _closeOverlay,
         syncControls: _syncBinding == null
             ? null
@@ -993,6 +1087,24 @@ class _AppState extends State<App> {
             store: _store,
             isOpen: _validationOpen,
             onClose: () => setState(() => _validationOpen = false),
+          ),
+          ProblemsPanel(
+            problems: _syncProblems,
+            isOpen: _problemsOpen,
+            conflicts: _syncSession?.conflicts ?? const <SyncConflict>[],
+            onClose: () => setState(() => _problemsOpen = false),
+            onOpenDocument: _openProblemDocument,
+          ),
+          HistoryPanel(
+            history: _syncHistory,
+            isOpen: _historyOpen,
+            onClose: () => setState(() => _historyOpen = false),
+            loadedVersion: _historyLoaded,
+            loadedJson: _historyJson,
+            loadingVersion: _historyLoading,
+            failure: _historyFailure?.call(),
+            onLoadVersion: _loadHistoryVersion,
+            onRestoreVersion: _restoreHistoryVersion,
           ),
         ],
       ),

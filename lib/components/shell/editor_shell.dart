@@ -79,6 +79,10 @@ class EditorShell extends StatefulWidget {
     this.onOpenHelp,
     this.onOpenSettings,
     this.onOpenValidation,
+    this.onOpenProblems,
+    this.onOpenHistory,
+    this.serverProblemCount = 0,
+    this.serverHistoryCount = 0,
     this.syncControls,
     this.onCloseOverlay,
     this.onToggleTheme,
@@ -128,6 +132,16 @@ class EditorShell extends StatefulWidget {
   final void Function()? onOpenHelp;
   final void Function()? onOpenSettings;
   final void Function()? onOpenValidation;
+
+  /// Opens the server's own findings. Null while no sync session is connected,
+  /// which is what keeps the chip off a purely local workspace.
+  final void Function()? onOpenProblems;
+
+  /// Opens the stored versions the server keeps. Null while disconnected.
+  final void Function()? onOpenHistory;
+
+  final int serverProblemCount;
+  final int serverHistoryCount;
   final EditorSyncControls? syncControls;
 
   /// Escape handler for whichever dialog or sheet the owner has open.
@@ -495,6 +509,10 @@ class _EditorShellState extends State<EditorShell> {
             store: store,
             status: component.status,
             onOpenValidation: component.onOpenValidation,
+            onOpenProblems: component.onOpenProblems,
+            onOpenHistory: component.onOpenHistory,
+            serverProblemCount: component.serverProblemCount,
+            serverHistoryCount: component.serverHistoryCount,
           ),
           // Never reachable by pointer or Tab (see `.hui-cmd-trigger`); it
           // exists only so the runtime's ⌘K handler has something to click.

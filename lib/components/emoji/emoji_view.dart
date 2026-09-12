@@ -127,7 +127,7 @@ class _EmojiViewState extends State<EmojiView> {
           value: _query,
           size: ComponentSize.sm,
           placeholder: huiText('Search name, trigger or glyph'),
-          onInput: (String value) => setState(() => _query = value),
+          onChanged: (String value) => setState(() => _query = value),
           attributes: <String, String>{
             'autocomplete': 'off',
             'spellcheck': 'false',

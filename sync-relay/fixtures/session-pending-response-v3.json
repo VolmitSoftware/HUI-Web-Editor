@@ -3,7 +3,7 @@
   "sessionId": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
   "status": "pending",
   "expiresAt": "2026-08-18T13:00:00.000Z",
-  "baseRevision": "sha256:b73e900b8d20e2969f5c8f7d333aa9b6cc93417e142be0f159aeb3c2aec9e2ed",
+  "baseRevision": "sha256:b98a5a9bbe1ff750e059e2e8f5d23878b8f35833cbf69905387800a5dac43349",
   "snapshot": {
     "format": "gloss-sync-project",
     "version": 3,
@@ -13,7 +13,8 @@
       {
         "kind": "menu",
         "id": "main",
-        "json": "{\"components\":[]}"
+        "json": "{\"components\":[]}",
+        "baseRevision": "sha256:ac46fd24bd501fa7297f0a2945bcc7f5d655b9bcf8bfbf16718a9d25c0c2c018"
       }
     ],
     "images": [],
@@ -27,11 +28,11 @@
       "allowDeletes": false
     },
     "warnings": [],
-    "baseRevision": "sha256:b73e900b8d20e2969f5c8f7d333aa9b6cc93417e142be0f159aeb3c2aec9e2ed"
+    "baseRevision": "sha256:b98a5a9bbe1ff750e059e2e8f5d23878b8f35833cbf69905387800a5dac43349"
   },
   "publication": {
     "revision": 1,
-    "baseRevision": "sha256:b73e900b8d20e2969f5c8f7d333aa9b6cc93417e142be0f159aeb3c2aec9e2ed",
+    "baseRevision": "sha256:b98a5a9bbe1ff750e059e2e8f5d23878b8f35833cbf69905387800a5dac43349",
     "snapshot": {
       "format": "gloss-sync-project",
       "version": 3,
@@ -41,7 +42,8 @@
         {
           "kind": "menu",
           "id": "main",
-          "json": "{\"components\":[],\"followPlayer\":true}"
+          "json": "{\"components\":[],\"followPlayer\":true}",
+          "baseRevision": "sha256:ac46fd24bd501fa7297f0a2945bcc7f5d655b9bcf8bfbf16718a9d25c0c2c018"
         }
       ],
       "images": [],
@@ -55,7 +57,7 @@
         "allowDeletes": false
       },
       "warnings": [],
-      "baseRevision": "sha256:662f3e7590d1321a57a0b592bd0531e271deef6710f724114302b3d45951f7bf"
+      "baseRevision": "sha256:d11e5c86a380342da13626df475fc4b4276097b1a2dc6afd6bfe73f11706e00e"
     },
     "publishedAt": "2026-08-18T12:05:00.000Z",
     "state": "pending",

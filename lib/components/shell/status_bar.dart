@@ -21,6 +21,10 @@ class StatusBar extends StatelessWidget {
     required this.store,
     this.status,
     this.onOpenValidation,
+    this.onOpenProblems,
+    this.onOpenHistory,
+    this.serverProblemCount = 0,
+    this.serverHistoryCount = 0,
     super.key,
   });
 
@@ -29,6 +33,15 @@ class StatusBar extends StatelessWidget {
   /// Canvas-owned readouts. Null renders dashes instead of numbers.
   final ShellStatus? status;
   final void Function()? onOpenValidation;
+
+  /// Opens the server's own findings, or null while nothing is connected.
+  final void Function()? onOpenProblems;
+
+  /// Opens the stored versions the server keeps, or null while disconnected.
+  final void Function()? onOpenHistory;
+
+  final int serverProblemCount;
+  final int serverHistoryCount;
 
   @override
   Widget build(BuildContext context) => dom.footer(
@@ -40,7 +53,12 @@ class StatusBar extends StatelessWidget {
         selector: _documentSignature,
         builder: (BuildContext context, String signature) => dom.div(
           classes: 'hui-status-left',
-          <Widget>[_issuesChip(), _selectionReadout()],
+          <Widget>[
+            _issuesChip(),
+            if (onOpenProblems != null) _serverProblemsChip(),
+            if (onOpenHistory != null) _historyChip(),
+            _selectionReadout(),
+          ],
         ),
       ),
       const dom.div(classes: 'hui-status-spacer', <Widget>[]),
@@ -130,6 +148,45 @@ class StatusBar extends StatelessWidget {
       ],
     );
   }
+
+  /// The server's own findings, beside the editor's. They are different
+  /// questions: this one covers documents the browser never opened.
+  Widget _serverProblemsChip() => dom.span(
+    classes: classNames(<String?>[
+      'hui-status-chip',
+      serverProblemCount == 0 ? 'is-clean' : 'is-warning',
+    ]),
+    <Widget>[
+      Button.ghost(
+        size: ButtonSize.sm,
+        icon: ArcaneIcon.server(size: IconSize.sm),
+        label: huiText("Server {count}", <String, Object?>{
+          'count': serverProblemCount,
+        }),
+        onPressed: onOpenProblems,
+        attributes: <String, String>{
+          'aria-label': huiText('Open the server problems panel.'),
+        },
+      ),
+    ],
+  );
+
+  Widget _historyChip() => dom.span(
+    classes: 'hui-status-chip is-clean',
+    <Widget>[
+      Button.ghost(
+        size: ButtonSize.sm,
+        icon: ArcaneIcon.history(size: IconSize.sm),
+        label: huiText("History {count}", <String, Object?>{
+          'count': serverHistoryCount,
+        }),
+        onPressed: onOpenHistory,
+        attributes: <String, String>{
+          'aria-label': huiText('Open the version history panel.'),
+        },
+      ),
+    ],
+  );
 
   /// A multi-selection names its size, not its primary: with eight components
   /// selected, naming one of them reads as though only that one is. The ids are

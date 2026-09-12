@@ -6,6 +6,7 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../services/editor_sync.dart';
 import 'dialog_parts.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
+import '../../logic/sync_problems.dart';
 
 bool editorSyncImportDialogShouldOpen({
   required Uri? relayEndpoint,
@@ -154,8 +155,16 @@ class EditorSyncImportDialog extends StatelessWidget {
                 ]),
               ],
             ),
-            for (final String warning in project.warnings)
-              ArcaneAlert.warning(message: warning),
+            // The plugin's findings arrive coded; this dialog shows the
+            // sentence and leaves the code and pointer to the Problems panel,
+            // which is where somebody acts on them.
+            for (final SyncProblem problem
+                in SyncProblems.of(project.warnings).all)
+              ArcaneAlert.warning(
+                message: problem.hasDocument
+                    ? '${problem.kind} ${problem.id}: ${problem.message}'
+                    : problem.message,
+              ),
           ],
         ]),
       ],

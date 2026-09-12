@@ -96,7 +96,7 @@ class _EmojiInspectorState extends State<EmojiInspector> {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: huiText('U+2764;'),
-            onInput: (String value) => _store.mutateEmoji(
+            onChanged: (String value) => _store.mutateEmoji(
               'emoji value',
               (GlossEmojiDoc edited) => edited.emoji = value,
             ),
@@ -136,7 +136,7 @@ class _EmojiInspectorState extends State<EmojiInspector> {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: '<3',
-            onInput: (String value) => _store.mutateEmoji(
+            onChanged: (String value) => _store.mutateEmoji(
               'emoji trigger',
               (GlossEmojiDoc edited) => edited.trigger = value,
             ),

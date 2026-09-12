@@ -349,7 +349,7 @@ class ActionsEditor extends StatelessWidget {
               value: action.trigger,
               fullWidth: true,
               size: ComponentSize.sm,
-              onChange: (String value) {
+              onChanged: (String value) {
                 final HuiAction next = action.copy()..trigger = value;
                 _replace(index, 'action click trigger', next);
               },
@@ -477,7 +477,7 @@ class _CommandActionFields extends StatelessWidget {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: huiText('warp shop'),
-          onInput: (String value) =>
+          onChanged: (String value) =>
               onChanged('command', _with(command: value)),
           attributes: const <String, String>{
             'autocomplete': 'off',
@@ -609,7 +609,7 @@ class _SoundActionFields extends StatelessWidget {
             value: action.source,
             fullWidth: true,
             size: ComponentSize.sm,
-            onChange: (String value) =>
+            onChanged: (String value) =>
                 onChanged('sound category', _with(source: value)),
             options: <ArcaneSelectOption>[
               for (final String source in huiSoundSources)
@@ -710,7 +710,7 @@ class _MessageActionFields extends StatelessWidget {
               fullWidth: true,
               resize: TextAreaResize.vertical,
               placeholder: huiText('<gold>Hello %player%</gold>'),
-              onInput: (String value) => onChanged('message', _with(value)),
+              onChanged: (String value) => onChanged('message', _with(value)),
             ),
             HuiInlineIssues(
               issues
@@ -770,7 +770,7 @@ class _TeleportActionFields extends StatelessWidget {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: huiText('minecraft:overworld'),
-          onInput: (String value) =>
+          onChanged: (String value) =>
               onChanged('teleport world', _with(world: value)),
           attributes: const <String, String>{
             'autocomplete': 'off',
@@ -874,7 +874,7 @@ class _ConnectActionFields extends StatelessWidget {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: huiText('lobby'),
-          onInput: (String value) => onChanged('proxy server', _with(value)),
+          onChanged: (String value) => onChanged('proxy server', _with(value)),
           attributes: const <String, String>{
             'autocomplete': 'off',
             'spellcheck': 'false',
@@ -955,7 +955,7 @@ class _NavigateActionFields extends StatelessWidget {
               value: action.mode,
               fullWidth: true,
               size: ComponentSize.sm,
-              onChange: (String value) =>
+              onChanged: (String value) =>
                   onChanged('navigation mode', _with(mode: value)),
               options: <ArcaneSelectOption>[
                 for (final String mode in huiNavigationModes)

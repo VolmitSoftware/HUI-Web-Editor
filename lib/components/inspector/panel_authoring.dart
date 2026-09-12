@@ -66,7 +66,7 @@ class _PanelAuthoringState extends State<PanelAuthoring> {
                 for (final String id in _menus)
                   ArcaneSelectOption(value: id, label: id),
               ],
-              onChange: (String value) => setState(() => _rootMenu = value),
+              onChanged: (String value) => setState(() => _rootMenu = value),
             ),
           ),
           HuiNote(
@@ -95,7 +95,7 @@ class _PanelAuthoringState extends State<PanelAuthoring> {
         label: huiText(label),
         control: TextInput(
           value: value,
-          onInput: (String value) => setState(() => changed(value)),
+          onChanged: (String value) => setState(() => changed(value)),
         ),
       );
 

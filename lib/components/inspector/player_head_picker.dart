@@ -62,7 +62,7 @@ class PlayerHeadIconEditor extends StatelessWidget {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: huiDefaultPlayerHeadSource,
-          onInput: (String value) =>
+          onChanged: (String value) =>
               onChanged('player head name', _with(player: value)),
           styles: huiTechnicalInputStyles,
           attributes: huiTechnicalInputAttributes,

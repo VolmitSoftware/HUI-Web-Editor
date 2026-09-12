@@ -213,7 +213,7 @@ class _ExportDialogState extends State<ExportDialog> {
               size: ComponentSize.sm,
               fullWidth: true,
               placeholder: huiDefaultMenuId,
-              onInput: (String value) => setState(() => _name = value),
+              onChanged: (String value) => setState(() => _name = value),
               onBlur: _commitName,
               attributes: <String, String>{
                 'aria-label': huiText('Menu id'),
@@ -387,7 +387,7 @@ class _ExportDialogState extends State<ExportDialog> {
               size: ComponentSize.sm,
               fullWidth: true,
               placeholder: huiDefaultMenuId,
-              onInput: (String value) => setState(() => _name = value),
+              onChanged: (String value) => setState(() => _name = value),
               onBlur: _commitName,
               styles: huiTechnicalInputStyles,
               attributes: <String, String>{
@@ -519,7 +519,7 @@ class _ExportDialogState extends State<ExportDialog> {
                 value: _name,
                 size: ComponentSize.sm,
                 fullWidth: true,
-                onInput: (String value) => setState(() => _name = value),
+                onChanged: (String value) => setState(() => _name = value),
                 onBlur: _commitName,
                 attributes: <String, String>{
                   'aria-label': huiText('Document id'),

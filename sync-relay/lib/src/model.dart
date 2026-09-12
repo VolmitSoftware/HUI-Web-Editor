@@ -28,6 +28,7 @@ final class RelayAck {
     required this.message,
     required this.serverRevision,
     required this.acknowledgedAt,
+    this.conflicts = const <Object?>[],
   });
 
   final RelayPublicationState status;
@@ -35,21 +36,31 @@ final class RelayAck {
   final String? serverRevision;
   final DateTime acknowledgedAt;
 
+  /// The documents the server kept its own copy of because they moved under the editor. Always
+  /// present so the editor can read it without a version check; empty when nothing conflicted.
+  final List<Object?> conflicts;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'status': status.name,
     'message': message,
     'serverRevision': serverRevision,
     'acknowledgedAt': acknowledgedAt.toUtc().toIso8601String(),
+    'conflicts': conflicts,
   };
 
   static RelayAck fromJson(Object? raw) {
     final Map<String, Object?> object = requireObject(raw, 'ack');
-    requireExactKeys(object, const <String>{
+    final Set<String> keys = object.keys.toSet();
+    const Set<String> required = <String>{
       'status',
       'message',
       'serverRevision',
       'acknowledgedAt',
-    });
+    };
+    if (!keys.containsAll(required) ||
+        !keys.difference(required).every((String key) => key == 'conflicts')) {
+      throw const FormatException('stored acknowledgement is invalid');
+    }
     final RelayPublicationState status = requirePublicationState(
       object,
       'status',
@@ -78,6 +89,7 @@ final class RelayAck {
       message: message,
       serverRevision: serverRevision,
       acknowledgedAt: DateTime.parse(requireString(object, 'acknowledgedAt')),
+      conflicts: requireConflicts(object['conflicts']),
     );
   }
 }
@@ -378,6 +390,34 @@ bool constantTimeEquals(String left, String right) {
     difference |= left.codeUnitAt(index) ^ right.codeUnitAt(index);
   }
   return difference == 0;
+}
+
+/// The `{kind, id}` pairs an acknowledgement carries, validated as transport shape only.
+List<Object?> requireConflicts(Object? raw) {
+  if (raw == null) return const <Object?>[];
+  if (raw is! List || raw.length > 512) {
+    throw const FormatException('acknowledgement conflicts are invalid');
+  }
+  final List<Object?> conflicts = <Object?>[];
+  for (final Object? entry in raw) {
+    if (entry is! Map) {
+      throw const FormatException('acknowledgement conflict must be an object');
+    }
+    final Map<String, Object?> conflict = entry.cast<String, Object?>();
+    requireExactKeys(conflict, const <String>{'kind', 'id'});
+    final Object? kind = conflict['kind'];
+    final Object? id = conflict['id'];
+    if (kind is! String ||
+        id is! String ||
+        kind.isEmpty ||
+        id.isEmpty ||
+        kind.length > 64 ||
+        id.length > 256) {
+      throw const FormatException('acknowledgement conflict is invalid');
+    }
+    conflicts.add(<String, Object?>{'kind': kind, 'id': id});
+  }
+  return List<Object?>.unmodifiable(conflicts);
 }
 
 Map<String, Object?> requireObject(Object? raw, String label) {

@@ -2,6 +2,12 @@
   "protocol": 3,
   "status": "applied",
   "message": "Applied safely.",
+  "conflicts": [
+    {
+      "kind": "menu",
+      "id": "admin"
+    }
+  ],
   "serverRevision": "sha256:662f3e7590d1321a57a0b592bd0531e271deef6710f724114302b3d45951f7bf",
   "snapshot": {
     "format": "gloss-sync-project",
@@ -12,7 +18,8 @@
       {
         "kind": "menu",
         "id": "main",
-        "json": "{\"components\":[],\"followPlayer\":true}"
+        "json": "{\"components\":[],\"followPlayer\":true}",
+        "baseRevision": "sha256:41d0ff2c736cca7c80e66a9065f20fdcf31275fc96d4da32c54cdafd6f69393d"
       }
     ],
     "images": [],
@@ -26,6 +33,6 @@
       "allowDeletes": false
     },
     "warnings": [],
-    "baseRevision": "sha256:662f3e7590d1321a57a0b592bd0531e271deef6710f724114302b3d45951f7bf"
+    "baseRevision": "sha256:5d8cc520d118444d2c1cd02e0f8ab1a38a1bb156ef56de280530aa105f50c709"
   }
 }

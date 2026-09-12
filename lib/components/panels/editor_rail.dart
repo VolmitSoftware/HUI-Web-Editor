@@ -716,7 +716,7 @@ class _EditorRailState extends State<EditorRail> {
             value: title,
             fullWidth: true,
             size: ComponentSize.sm,
-            onInput: onRename,
+            onChanged: onRename,
           ),
         ]),
         if (runtimeId != null && onRenameRuntimeId != null)
@@ -726,7 +726,7 @@ class _EditorRailState extends State<EditorRail> {
               value: runtimeId,
               fullWidth: true,
               size: ComponentSize.sm,
-              onInput: onRenameRuntimeId,
+              onChanged: onRenameRuntimeId,
               styles: huiTechnicalInputStyles,
               attributes: huiTechnicalInputAttributes,
             ),
@@ -747,7 +747,7 @@ class _EditorRailState extends State<EditorRail> {
           fullWidth: true,
           size: ComponentSize.sm,
           options: moveOptions,
-          onChange: (String value) {
+          onChanged: (String value) {
             onMove(value);
             setState(() => _movingId = null);
           },

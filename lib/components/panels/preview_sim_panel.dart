@@ -112,7 +112,7 @@ class PreviewSimPanel extends StatelessWidget {
                   value: category,
                 ),
             ],
-            onChange: (String value) => controller.setCategory(value),
+            onChanged: (String value) => controller.setCategory(value),
           ),
         ),
       ],
@@ -255,7 +255,7 @@ class PreviewSimPanel extends StatelessWidget {
             value: current.toString(),
             size: ComponentSize.sm,
             fullWidth: true,
-            onInput: (String value) => controller.setOverride(control, value),
+            onChanged: (String value) => controller.setOverride(control, value),
             attributes: const <String, String>{
               'autocomplete': 'off',
               'spellcheck': 'false',

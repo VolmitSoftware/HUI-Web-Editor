@@ -343,8 +343,8 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
           size: ComponentSize.sm,
           placeholder: 'Notch',
           disabled: _fetching,
-          onInput: (String value) => setState(() => _username = value),
-          onSubmit: (String _) => _fetchHeadByName(),
+          onChanged: (String value) => setState(() => _username = value),
+          onSubmitted: (String _) => _fetchHeadByName(),
           styles: huiTechnicalInputStyles,
           attributes: <String, String>{
             ...huiTechnicalInputAttributes,
@@ -494,9 +494,9 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
               value: draft,
               size: ComponentSize.sm,
               fullWidth: true,
-              onInput: (String value) => setState(() => _drafts[path] = value),
+              onChanged: (String value) => setState(() => _drafts[path] = value),
               onBlur: () => _commitRename(path),
-              onSubmit: (String _) => _commitRename(path),
+              onSubmitted: (String _) => _commitRename(path),
               attributes: <String, String>{
                 'aria-label': huiText("Path for {path}", <String, Object?>{
                   'path': path,

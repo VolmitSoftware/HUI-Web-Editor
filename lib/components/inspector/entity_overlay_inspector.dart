@@ -279,7 +279,7 @@ class _EntityOverlayInspectorState extends State<EntityOverlayInspector> {
           value: line.id,
           size: ComponentSize.sm,
           attributes: <String, String>{'aria-label': huiText('Line id')},
-          onInput: (String value) => _editLine(
+          onChanged: (String value) => _editLine(
             index,
             'line id',
             (GlossEntityOverlayLine edited) => edited.id = value,
@@ -296,7 +296,7 @@ class _EntityOverlayInspectorState extends State<EntityOverlayInspector> {
             ArcaneSelectOption(value: 'insight', label: huiText('Insight')),
             ArcaneSelectOption(value: 'spacer', label: huiText('Spacer')),
           ],
-          onChange: (String value) =>
+          onChanged: (String value) =>
               _editLine(index, 'line type', (GlossEntityOverlayLine edited) {
                 edited.type = value;
                 if (value == 'insight' && edited.text.isEmpty) {
@@ -363,7 +363,7 @@ class _EntityOverlayInspectorState extends State<EntityOverlayInspector> {
               ])
                 ArcaneSelectOption(value: token, label: token),
             ],
-            onChange: (String value) => _editLine(
+            onChanged: (String value) => _editLine(
               index,
               'insert entity value',
               (GlossEntityOverlayLine edited) => edited.text += value,
@@ -490,7 +490,7 @@ class _EntityOverlayInspectorState extends State<EntityOverlayInspector> {
       size: ComponentSize.sm,
       fullWidth: true,
       attributes: <String, String>{'aria-label': huiText(label)},
-      onInput: (String next) => _store.mutateEntityOverlays(
+      onChanged: (String next) => _store.mutateEntityOverlays(
         label,
         (GlossEntityOverlaysDoc doc) => edit(doc, next),
       ),

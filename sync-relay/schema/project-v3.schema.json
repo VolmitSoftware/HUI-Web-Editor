@@ -17,11 +17,23 @@
     "warnings"
   ],
   "properties": {
-    "format": { "const": "gloss-sync-project" },
-    "version": { "const": 3 },
-    "kind": { "$ref": "#/$defs/kindSlug" },
-    "subjectId": { "type": "string", "minLength": 1, "maxLength": 256 },
-    "baseRevision": { "$ref": "#/$defs/revision" },
+    "format": {
+      "const": "gloss-sync-project"
+    },
+    "version": {
+      "const": 3
+    },
+    "kind": {
+      "$ref": "#/$defs/kindSlug"
+    },
+    "subjectId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "baseRevision": {
+      "$ref": "#/$defs/revision"
+    },
     "documents": {
       "type": "array",
       "minItems": 0,
@@ -29,16 +41,33 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["kind", "id", "json"],
+        "required": [
+          "kind",
+          "id",
+          "json"
+        ],
         "properties": {
-          "kind": { "$ref": "#/$defs/kindSlug" },
-          "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "kind": {
+            "$ref": "#/$defs/kindSlug"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
           "revision": {
             "type": "integer",
             "minimum": 1,
             "maximum": 9007199254740991
           },
-          "json": { "type": "string", "minLength": 1, "maxLength": 2097152 }
+          "json": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2097152
+          },
+          "baseRevision": {
+            "$ref": "#/$defs/revision"
+          }
         }
       }
     },
@@ -48,9 +77,16 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "data"],
+        "required": [
+          "path",
+          "data"
+        ],
         "properties": {
-          "path": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
           "data": {
             "type": "string",
             "maxLength": 699100,
@@ -69,26 +105,122 @@
         "allowDeletes"
       ],
       "properties": {
-        "subjectId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "subjectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
         "documentKinds": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "$ref": "#/$defs/kindSlug" }
+          "items": {
+            "$ref": "#/$defs/kindSlug"
+          }
         },
         "createDocumentKinds": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "$ref": "#/$defs/kindSlug" }
+          "items": {
+            "$ref": "#/$defs/kindSlug"
+          }
         },
-        "newMenuPrefix": { "type": "string", "minLength": 2, "maxLength": 256 },
-        "newImagePrefix": { "type": "string", "minLength": 2, "maxLength": 256 },
-        "allowDeletes": { "type": "boolean" }
+        "newMenuPrefix": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 256
+        },
+        "newImagePrefix": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 256
+        },
+        "allowDeletes": {
+          "type": "boolean"
+        }
       }
     },
     "warnings": {
       "type": "array",
       "maxItems": 256,
-      "items": { "type": "string", "maxLength": 512 }
+      "items": {
+        "type": "string",
+        "maxLength": 512
+      }
+    },
+    "history": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "id",
+          "version",
+          "source",
+          "bytes"
+        ],
+        "properties": {
+          "kind": {
+            "$ref": "#/$defs/kindSlug"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "description": "JSON Schema per wire kind, so an editor with no stage for a kind can still render an inspector for it.",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "description": "The shipped default documents per wire kind, used as templates for a kind the editor has no template of its own for.",
+      "additionalProperties": {
+        "type": "array",
+        "maxItems": 64,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "json"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "json": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2097152
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {

@@ -9,6 +9,7 @@ import 'package:crypto/crypto.dart' as crypto;
 
 import '../config/defaults.dart';
 import '../l10n/hui_localizations.dart';
+import '../logic/sync_problems.dart';
 import '../logic/validation.dart';
 import '../logic/gloss_show.dart';
 import '../model/model.dart';
@@ -129,6 +130,7 @@ final class EditorSyncDocument {
     required this.id,
     required this.json,
     this.revision,
+    this.baseRevision,
   });
 
   final String kind;
@@ -136,11 +138,27 @@ final class EditorSyncDocument {
   final String json;
   final int? revision;
 
+  /// The content revision this document had when the server served it. The
+  /// editor never derives it: it echoes the served value back so the server can
+  /// reconcile a publication document by document instead of failing as a
+  /// whole. Null on a document the editor created, which the server takes as
+  /// new.
+  final String? baseRevision;
+
+  EditorSyncDocument withBaseRevision(String? revision) => EditorSyncDocument(
+    kind: kind,
+    id: id,
+    json: json,
+    revision: this.revision,
+    baseRevision: revision,
+  );
+
   Map<String, dynamic> toJson() => <String, dynamic>{
     'kind': kind,
     'id': id,
     if (revision != null) 'revision': revision,
     'json': json,
+    if (baseRevision != null) 'baseRevision': baseRevision,
   };
 }
 
@@ -211,9 +229,7 @@ final class EditorSyncConstraints {
       raw['createDocumentKinds'],
       'document kind',
     );
-    if (documentKinds.any(
-          (String kind) => DocumentTypeRegistry.byWireKind(kind) == null,
-        ) ||
+    if (documentKinds.any((String kind) => !editorSyncKindSlug.hasMatch(kind)) ||
         createDocumentKinds.any(
           (String kind) => !documentKinds.contains(kind),
         ) ||
@@ -247,6 +263,9 @@ final class EditorSyncProject {
     required this.images,
     required this.constraints,
     this.warnings = const <String>[],
+    this.history,
+    this.schemas,
+    this.defaults,
   });
 
   /// The sync subject's wire kind slug.
@@ -259,11 +278,38 @@ final class EditorSyncProject {
   final EditorSyncConstraints constraints;
   final List<String> warnings;
 
+  /// The stored versions the server keeps for the documents this project
+  /// carries, or null when the server sent none. Server-owned: never edited
+  /// here, and echoed back untouched.
+  final List<Object?>? history;
+
+  /// JSON Schema per wire kind, for kinds this build has no stage for.
+  final Map<String, Object?>? schemas;
+
+  /// The shipped default documents per wire kind, used as templates.
+  final Map<String, Object?>? defaults;
+
   /// The menu documents, in wire order.
   List<EditorSyncDocument> get menus => <EditorSyncDocument>[
     for (final EditorSyncDocument document in documents)
       if (document.kind == _menuWireKind) document,
   ];
+
+  /// The documents whose kind this build has no adapter for. They are never
+  /// adopted into the workspace and never edited here; they ride along so a
+  /// publication mirrors them back exactly as the server sent them.
+  List<EditorSyncDocument> get carriedDocuments => <EditorSyncDocument>[
+    for (final EditorSyncDocument document in documents)
+      if (DocumentTypeRegistry.byWireKind(document.kind) == null) document,
+  ];
+
+  /// The wire kinds this build has no adapter for, sorted and deduplicated.
+  List<String> get unknownKinds {
+    final Set<String> kinds = <String>{
+      for (final EditorSyncDocument document in carriedDocuments) document.kind,
+    };
+    return List<String>.unmodifiable(kinds.toList()..sort());
+  }
 
   /// The parsed world-panel definition for panel-subject projects, or null.
   /// Panel document text is canonical JSON, so re-encoding the returned map
@@ -289,6 +335,9 @@ final class EditorSyncProject {
     'images': images.map((EditorSyncImage image) => image.toJson()).toList(),
     'constraints': constraints.toJson(),
     'warnings': warnings,
+    if (history != null) 'history': history,
+    if (schemas != null) 'schemas': schemas,
+    if (defaults != null) 'defaults': defaults,
   };
 
   static EditorSyncProject decode(Object? raw) {
@@ -308,15 +357,30 @@ final class EditorSyncProject {
       'constraints',
       'warnings',
     };
-    if (!_hasExactKeys(raw, projectKeys)) {
+    const Set<String> serverSections = <String>{
+      'history',
+      'schemas',
+      'defaults',
+    };
+    final Set<String> present = raw.keys.whereType<String>().toSet();
+    if (!present.containsAll(projectKeys) ||
+        present.length != raw.keys.length ||
+        !present.difference(projectKeys).every(serverSections.contains)) {
       throw const FormatException('Sync project fields are invalid.');
+    }
+    final Object? history = raw['history'];
+    final Object? schemas = raw['schemas'];
+    final Object? defaults = raw['defaults'];
+    if ((history != null && history is! List) ||
+        (schemas != null && schemas is! Map) ||
+        (defaults != null && defaults is! Map)) {
+      throw const FormatException('Sync project sections are invalid.');
     }
     final Object? kind = raw['kind'];
     final Object? subjectId = raw['subjectId'];
     final Object? baseRevision = raw['baseRevision'];
     if (kind is! String ||
-        (kind != _workspaceWireKind &&
-            DocumentTypeRegistry.byWireKind(kind) == null) ||
+        (kind != _workspaceWireKind && !editorSyncKindSlug.hasMatch(kind)) ||
         subjectId is! String ||
         subjectId.isEmpty ||
         baseRevision is! String ||
@@ -348,11 +412,15 @@ final class EditorSyncProject {
           'Sync document kind is outside the session constraints.',
         );
       }
-      final DocumentTypeAdapter adapter = DocumentTypeRegistry.byWireKind(
+      final DocumentTypeAdapter? adapter = DocumentTypeRegistry.byWireKind(
         document.kind,
-      )!;
+      );
       if (!_validDocumentId(document.kind, document.id)) {
         throw const FormatException('Invalid Gloss sync document id.');
+      }
+      if (adapter == null) {
+        documents.add(document);
+        continue;
       }
       if (document.kind == _panelWireKind) {
         final Object? decoded;
@@ -505,6 +573,13 @@ final class EditorSyncProject {
       images: List<EditorSyncImage>.unmodifiable(images),
       constraints: constraints,
       warnings: List<String>.unmodifiable(warnings),
+      history: history is List ? List<Object?>.unmodifiable(history) : null,
+      schemas: schemas is Map
+          ? Map<String, Object?>.unmodifiable(schemas.cast<String, Object?>())
+          : null,
+      defaults: defaults is Map
+          ? Map<String, Object?>.unmodifiable(defaults.cast<String, Object?>())
+          : null,
     );
     if (utf8.encode(jsonEncode(project.toJson())).length >
         huiEditorSyncMaxProjectBytes) {
@@ -523,7 +598,8 @@ final class EditorSyncProject {
               key != 'kind' &&
               key != 'id' &&
               key != 'revision' &&
-              key != 'json',
+              key != 'json' &&
+              key != 'baseRevision',
         )) {
       throw const FormatException('Invalid Gloss sync document entry.');
     }
@@ -531,8 +607,14 @@ final class EditorSyncProject {
     final Object? id = entry['id'];
     final Object? json = entry['json'];
     final Object? revision = entry['revision'];
+    final Object? baseRevision = entry['baseRevision'];
+    if (baseRevision != null &&
+        (baseRevision is! String ||
+            !editorSyncRevisionPattern.hasMatch(baseRevision))) {
+      throw const FormatException('Invalid Gloss sync document entry.');
+    }
     if (kind is! String ||
-        DocumentTypeRegistry.byWireKind(kind) == null ||
+        !editorSyncKindSlug.hasMatch(kind) ||
         id is! String ||
         id.isEmpty ||
         id.length > huiEditorSyncMaxDocumentIdChars ||
@@ -544,7 +626,8 @@ final class EditorSyncProject {
             (revision is! int ||
                 revision < 1 ||
                 revision > huiEditorSyncMaxSafeInteger)) ||
-        (_requiresDocumentRevision(kind) != (revision != null))) {
+        (DocumentTypeRegistry.byWireKind(kind) != null &&
+            _requiresDocumentRevision(kind) != (revision != null))) {
       throw const FormatException('Invalid Gloss sync document entry.');
     }
     return EditorSyncDocument(
@@ -552,8 +635,21 @@ final class EditorSyncProject {
       id: id,
       json: json,
       revision: revision as int?,
+      baseRevision: baseRevision as String?,
     );
   }
+}
+
+/// Document and constraint kinds are open slugs. This build validates the
+/// grammar and carries anything it has no adapter for, so a kind a newer server
+/// adds neither blocks a session nor disappears from a workspace mirror.
+final RegExp editorSyncKindSlug = RegExp(r'^[a-z][a-z0-9-]{0,31}$');
+
+bool _containsAll(List<String> present, List<String> required) {
+  for (final String value in required) {
+    if (!present.contains(value)) return false;
+  }
+  return true;
 }
 
 bool _requiresDocumentRevision(String kind) =>
@@ -561,6 +657,7 @@ bool _requiresDocumentRevision(String kind) =>
 
 bool _validDocumentId(String kind, String id) {
   if (!isCanonicalMenuId(id)) return false;
+  if (DocumentTypeRegistry.byWireKind(kind) == null) return true;
   if (kind == _menuWireKind || kind == _panelWireKind) return true;
   if (kind == 'motd') return id == 'motd';
   if (kind == 'tablist') return id == 'tablist';
@@ -580,8 +677,8 @@ void _validateConstraintShape(
   }
   if (kind == _workspaceWireKind) {
     if (subjectId != _workspaceWireKind ||
-        !_sameStrings(constraints.documentKinds, huiEditorSyncDocumentKinds) ||
-        !_sameStrings(
+        !_containsAll(constraints.documentKinds, huiEditorSyncDocumentKinds) ||
+        !_containsAll(
           constraints.createDocumentKinds,
           huiEditorSyncDocumentKinds,
         ) ||
@@ -724,6 +821,7 @@ final class EditorSyncSession {
     required this.status,
     this.message,
     this.serverRevision,
+    this.conflicts = const <SyncConflict>[],
   });
 
   final String sessionId;
@@ -733,6 +831,11 @@ final class EditorSyncSession {
   final EditorSyncStatus status;
   final String? message;
   final String? serverRevision;
+
+  /// The documents the server kept its own copy of while applying the last
+  /// publication. An applied status with a non-empty list means everything
+  /// else landed, which is why it is not a whole-project conflict.
+  final List<SyncConflict> conflicts;
 }
 
 final class EditorSyncBinding {
@@ -747,7 +850,10 @@ final class EditorSyncBinding {
     required this.imagePaths,
     required this.constraints,
     required this.warnings,
+    this.documentBaseRevisions = const <String, String>{},
     this.pendingContentRevision,
+    this.carriedDocuments = const <EditorSyncDocument>[],
+    this.unknownKinds = const <String>[],
   });
 
   final String sessionId;
@@ -760,7 +866,28 @@ final class EditorSyncBinding {
   final List<String> imagePaths;
   final EditorSyncConstraints constraints;
   final List<String> warnings;
+
+  /// `kind id` to the content revision the server served that document at.
+  /// A publication echoes these back so the server can reconcile per document;
+  /// a key the map has no entry for is a document this editor created.
+  final Map<String, String> documentBaseRevisions;
+
   final String? pendingContentRevision;
+
+  /// The served documents of kinds this build has no adapter for, held only in
+  /// memory. They are not persisted: a binding restored from storage re-reads
+  /// the server project before it can publish, which is what
+  /// [carriesEveryUnknownKind] checks.
+  final List<EditorSyncDocument> carriedDocuments;
+
+  /// The wire kinds the session carries that this build has no adapter for.
+  final List<String> unknownKinds;
+
+  /// False when the session is known to carry kinds this build cannot edit and
+  /// their bytes are not in memory, which is the one state a workspace mirror
+  /// must not publish from.
+  bool get carriesEveryUnknownKind =>
+      unknownKinds.isEmpty || carriedDocuments.isNotEmpty;
 
   String? documentId(String kind, String id) =>
       documentIds[_documentKey(kind, id)];
@@ -790,7 +917,10 @@ final class EditorSyncBinding {
     Map<String, String>? documentIds,
     List<String>? imagePaths,
     List<String>? warnings,
+    Map<String, String>? documentBaseRevisions,
     String? pendingContentRevision,
+    List<EditorSyncDocument>? carriedDocuments,
+    List<String>? unknownKinds,
     bool clearPendingContentRevision = false,
   }) => EditorSyncBinding(
     sessionId: sessionId,
@@ -803,9 +933,12 @@ final class EditorSyncBinding {
     imagePaths: imagePaths ?? this.imagePaths,
     constraints: constraints,
     warnings: warnings ?? this.warnings,
+    documentBaseRevisions: documentBaseRevisions ?? this.documentBaseRevisions,
     pendingContentRevision: clearPendingContentRevision
         ? null
         : pendingContentRevision ?? this.pendingContentRevision,
+    carriedDocuments: carriedDocuments ?? this.carriedDocuments,
+    unknownKinds: unknownKinds ?? this.unknownKinds,
   );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -820,7 +953,9 @@ final class EditorSyncBinding {
     'imagePaths': imagePaths,
     'constraints': constraints.toJson(),
     'warnings': warnings,
+    'documentBaseRevisions': documentBaseRevisions,
     'pendingContentRevision': pendingContentRevision,
+    'unknownKinds': unknownKinds,
   };
 
   static EditorSyncBinding? decode(String raw) {
@@ -828,7 +963,7 @@ final class EditorSyncBinding {
       final Object? decoded = jsonDecode(raw);
       if (decoded is! Map ||
           decoded['version'] != huiEditorSyncProtocol ||
-          !_hasExactKeys(decoded, const <String>{
+          !_hasExactKeys(decoded, <String>{
             'version',
             'sessionId',
             'editorToken',
@@ -841,6 +976,9 @@ final class EditorSyncBinding {
             'constraints',
             'warnings',
             'pendingContentRevision',
+            if (decoded.containsKey('unknownKinds')) 'unknownKinds',
+            if (decoded.containsKey('documentBaseRevisions'))
+              'documentBaseRevisions',
           })) {
         return null;
       }
@@ -853,6 +991,9 @@ final class EditorSyncBinding {
       final Object? rawIds = decoded['documentIds'];
       final Object? rawPaths = decoded['imagePaths'];
       final Object? rawWarnings = decoded['warnings'];
+      final Object? rawBaseRevisions =
+          decoded['documentBaseRevisions'] ?? <String, Object?>{};
+      final Object? rawUnknownKinds = decoded['unknownKinds'] ?? <Object?>[];
       final Object? pendingContentRevision = decoded['pendingContentRevision'];
       final EditorSyncConstraints constraints = EditorSyncConstraints.decode(
         decoded['constraints'],
@@ -863,14 +1004,15 @@ final class EditorSyncBinding {
           !_capabilityPattern.hasMatch(editorToken) ||
           relay == null ||
           kind is! String ||
-          (kind != _workspaceWireKind &&
-              DocumentTypeRegistry.byWireKind(kind) == null) ||
+          (kind != _workspaceWireKind && !editorSyncKindSlug.hasMatch(kind)) ||
           subjectId is! String ||
           baseRevision is! String ||
           !editorSyncRevisionPattern.hasMatch(baseRevision) ||
           rawIds is! Map ||
           rawPaths is! List ||
           rawWarnings is! List ||
+          rawBaseRevisions is! Map ||
+          rawUnknownKinds is! List ||
           (pendingContentRevision != null &&
               (pendingContentRevision is! String ||
                   !editorSyncRevisionPattern.hasMatch(
@@ -884,6 +1026,15 @@ final class EditorSyncBinding {
         if (key is String && value is String) documentIds[key] = value;
       });
       if (documentIds.length != rawIds.length) return null;
+      final Map<String, String> documentBaseRevisions = <String, String>{};
+      rawBaseRevisions.forEach((Object? key, Object? value) {
+        if (key is String &&
+            value is String &&
+            editorSyncRevisionPattern.hasMatch(value)) {
+          documentBaseRevisions[key] = value;
+        }
+      });
+      if (documentBaseRevisions.length != rawBaseRevisions.length) return null;
       final List<String> imagePaths = _strictStrings(rawPaths, 'image path');
       final List<String> warnings = _strictStrings(rawWarnings, 'warning');
       return EditorSyncBinding(
@@ -897,6 +1048,12 @@ final class EditorSyncBinding {
         imagePaths: List<String>.unmodifiable(imagePaths),
         constraints: constraints,
         warnings: List<String>.unmodifiable(warnings),
+        documentBaseRevisions: Map<String, String>.unmodifiable(
+          documentBaseRevisions,
+        ),
+        unknownKinds: List<String>.unmodifiable(
+          _strictStrings(rawUnknownKinds, 'document kind'),
+        ),
         pendingContentRevision: pendingContentRevision as String?,
       );
     } catch (_) {
@@ -997,13 +1154,71 @@ final class EditorSyncClient {
     _decodeAcceptedPublication(response.bodyBytes);
   }
 
+  /// Asks the relay for one stored version of one document and waits for the
+  /// server's next poll to carry it back. Null means the server no longer keeps
+  /// that version, which is a normal answer rather than a failure.
+  Future<String?> fetchHistoryVersion(
+    EditorSyncBinding binding,
+    String kind,
+    String documentId,
+    int version, {
+    Duration timeout = const Duration(seconds: 35),
+  }) async {
+    final Uri base = _sessionUri(binding);
+    final http.Request request = http.Request(
+      'GET',
+      base.replace(
+        path: '${base.path}/history',
+        queryParameters: <String, String>{
+          'kind': kind,
+          'documentId': documentId,
+          'version': '$version',
+        },
+      ),
+    );
+    request.headers.addAll(_headers(binding.editorToken));
+    final _EditorSyncHttpResponse response = await _request(
+      request,
+      timeout: timeout,
+    );
+    if (response.statusCode == 410) {
+      throw EditorSyncGone(_errorCode(response.bodyBytes) == 'session_revoked');
+    }
+    if (response.statusCode == 504) {
+      throw const EditorSyncFailure(
+        'The server did not answer for that version in time.',
+      );
+    }
+    if (response.statusCode != 200) {
+      throw EditorSyncFailure(
+        'Relay returned HTTP {status}.',
+        <String, Object?>{'status': response.statusCode},
+      );
+    }
+    final Object? decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map ||
+        decoded['protocol'] != huiEditorSyncProtocol ||
+        decoded['found'] is! bool) {
+      throw const EditorSyncFailure('The relay history answer is malformed.');
+    }
+    if (decoded['found'] != true) return null;
+    final Object? json = decoded['json'];
+    if (json is! String || json.isEmpty) {
+      throw const EditorSyncFailure('The relay history answer is malformed.');
+    }
+    return json;
+  }
+
   void close() => _client.close();
 
-  Future<_EditorSyncHttpResponse> _request(http.BaseRequest request) async {
+  Future<_EditorSyncHttpResponse> _request(
+    http.BaseRequest request, {
+    Duration? timeout,
+  }) async {
     try {
       final http.StreamedResponse response = await _client
           .send(request)
-          .timeout(requestTimeout);
+          .timeout(timeout ?? requestTimeout);
       final String contentType = response.headers['content-type'] ?? '';
       if (response.statusCode != 204 &&
           !contentType.toLowerCase().startsWith('application/json')) {
@@ -1327,9 +1542,10 @@ Map<String, dynamic> _workspaceStateForProject(
   final List<Map<String, dynamic>> folders = <Map<String, dynamic>>[];
   final List<Map<String, dynamic>> documents = <Map<String, dynamic>>[];
   for (final EditorSyncDocument document in project.documents) {
-    final DocumentTypeAdapter adapter = DocumentTypeRegistry.byWireKind(
+    final DocumentTypeAdapter? adapter = DocumentTypeRegistry.byWireKind(
       document.kind,
-    )!;
+    );
+    if (adapter == null) continue;
     final String folderId = folderIds.putIfAbsent(document.kind, () {
       final String id = newWorkspaceUuid();
       folders.add(<String, dynamic>{
@@ -1394,6 +1610,7 @@ Future<EditorSyncBinding> _mergeSyncProject({
   final List<StoredImage> imageRollback = List<StoredImage>.of(images.images);
   try {
     for (final EditorSyncDocument document in project.documents) {
+      if (DocumentTypeRegistry.byWireKind(document.kind) == null) continue;
       final DocumentTypeAdapter adapter = DocumentTypeRegistry.byWireKind(
         document.kind,
       )!;
@@ -1485,7 +1702,13 @@ EditorSyncBinding _bindingForProject(
   Workspace workspace,
 ) {
   final Map<String, String> documentIds = <String, String>{};
+  final Map<String, String> documentBaseRevisions = <String, String>{};
   for (final EditorSyncDocument document in project.documents) {
+    final String? served = document.baseRevision;
+    if (served != null) {
+      documentBaseRevisions[_documentKey(document.kind, document.id)] = served;
+    }
+    if (DocumentTypeRegistry.byWireKind(document.kind) == null) continue;
     final WorkspaceDoc? local = _findRuntimeDocument(
       workspace,
       document.kind,
@@ -1511,6 +1734,13 @@ EditorSyncBinding _bindingForProject(
     ),
     constraints: project.constraints,
     warnings: project.warnings,
+    documentBaseRevisions: Map<String, String>.unmodifiable(
+      documentBaseRevisions,
+    ),
+    carriedDocuments: List<EditorSyncDocument>.unmodifiable(
+      project.carriedDocuments,
+    ),
+    unknownKinds: project.unknownKinds,
   );
 }
 
@@ -1598,6 +1828,17 @@ EditorSyncProject collectEditorSyncProject({
 
   final List<EditorSyncDocument> documents = <EditorSyncDocument>[];
   final Set<String> keys = <String>{};
+  if (!binding.carriesEveryUnknownKind) {
+    throw EditorSyncFailure(
+      'Refresh from the server before publishing: this editor has no codec for '
+      '{kind} and would drop it.',
+      <String, Object?>{'kind': binding.unknownKinds.join(', ')},
+    );
+  }
+  for (final EditorSyncDocument carried in binding.carriedDocuments) {
+    keys.add(_documentKey(carried.kind, carried.id));
+    documents.add(carried);
+  }
   for (final WorkspaceDoc doc in scoped) {
     final DocumentTypeAdapter adapter = DocumentTypeRegistry.of(doc.kind);
     final String? wireKind = adapter.syncWireKind;
@@ -1656,6 +1897,7 @@ EditorSyncProject collectEditorSyncProject({
         id: runtimeId,
         json: json,
         revision: _documentJsonRevision(wireKind, json),
+        baseRevision: binding.documentBaseRevisions[key],
       ),
     );
   }
@@ -1912,6 +2154,7 @@ EditorSyncSession _decodeSession(
   }
   String? message;
   String? serverRevision;
+  List<SyncConflict> conflicts = const <SyncConflict>[];
   final Object? publication = raw['publication'];
   if (publication == null) {
     if (status != EditorSyncStatus.connected) {
@@ -1935,6 +2178,7 @@ EditorSyncSession _decodeSession(
     }
     message = decoded.message;
     serverRevision = decoded.serverRevision;
+    conflicts = decoded.conflicts;
     if (decoded.project.kind != project.kind ||
         decoded.project.subjectId != project.subjectId ||
         _canonicalJson(decoded.project.constraints.toJson()) !=
@@ -1982,6 +2226,7 @@ EditorSyncSession _decodeSession(
     status: status,
     message: message,
     serverRevision: serverRevision,
+    conflicts: conflicts,
   );
 }
 
@@ -1992,6 +2237,7 @@ final class _DecodedPublication {
     required this.project,
     this.message,
     this.serverRevision,
+    this.conflicts = const <SyncConflict>[],
   });
 
   final EditorSyncStatus status;
@@ -1999,6 +2245,10 @@ final class _DecodedPublication {
   final EditorSyncProject project;
   final String? message;
   final String? serverRevision;
+
+  /// The documents the server kept its own copy of. An applied publication
+  /// with a non-empty list landed except for these.
+  final List<SyncConflict> conflicts;
 }
 
 _DecodedPublication _decodePublication(Object? raw) {
@@ -2049,13 +2299,16 @@ _DecodedPublication _decodePublication(Object? raw) {
       project: project,
     );
   }
+  final bool ackHasConflicts = rawAck is Map && rawAck.containsKey('conflicts');
   if (rawAck is! Map ||
-      !_hasExactKeys(rawAck, const <String>{
+      !_hasExactKeys(rawAck, <String>{
         'status',
         'message',
         'serverRevision',
         'acknowledgedAt',
+        if (ackHasConflicts) 'conflicts',
       }) ||
+      (ackHasConflicts && rawAck['conflicts'] is! List) ||
       rawAck['status'] != state ||
       rawAck['message'] is! String ||
       (rawAck['message']! as String).length > 2048 ||
@@ -2082,6 +2335,7 @@ _DecodedPublication _decodePublication(Object? raw) {
     project: project,
     message: rawAck['message']! as String,
     serverRevision: rawServerRevision as String?,
+    conflicts: SyncConflict.of(rawAck['conflicts']),
   );
 }
 

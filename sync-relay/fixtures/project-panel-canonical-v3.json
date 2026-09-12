@@ -7,13 +7,15 @@
     {
       "kind": "menu",
       "id": "main/menu",
-      "json": "{\"components\":[]}"
+      "json": "{\"components\":[]}",
+      "baseRevision": "sha256:ac46fd24bd501fa7297f0a2945bcc7f5d655b9bcf8bfbf16718a9d25c0c2c018"
     },
     {
       "kind": "panel",
       "id": "main",
       "json": "{\"follow\":{\"mode\":\"none\",\"rotation\":\"fixed\",\"targetPlayerUuid\":null},\"id\":\"main\",\"revision\":1,\"rootMenuId\":\"main/menu\",\"schemaVersion\":1,\"transform\":{\"pitch\":1,\"roll\":1,\"scale\":1,\"worldKey\":\"minecraft:overworld\",\"worldUuid\":\"00000000-0000-4000-8000-000000000043\",\"x\":100000000000000000000,\"y\":0.1,\"yaw\":0,\"z\":1e-7},\"uuid\":\"00000000-0000-4000-8000-000000000042\",\"visibility\":{\"interactPermission\":null,\"interactionRange\":8,\"mode\":\"public\",\"viewPermission\":null,\"viewRange\":64}}",
-      "revision": 1
+      "revision": 1,
+      "baseRevision": "sha256:92f14e898a967756bc1062d5f8543519cb92462c0931cb9cb05a0da132e3b0f7"
     }
   ],
   "images": [],
@@ -33,5 +35,5 @@
   "warnings": [
     "Snowman ☃, CJK 雪, HTML <tag>&, quote \" and slash \\, control \b\t\n\f\r, separators   , emoji 🚀"
   ],
-  "baseRevision": "sha256:be8f4692334aab6d88a95ea2d1e3f35d2f7dbd6fad4dc842115c0fac55f48ff0"
+  "baseRevision": "sha256:b5f976bb17e34852db87e1430c95d8b8f2e52086459305b94258224ee6ec29ba"
 }

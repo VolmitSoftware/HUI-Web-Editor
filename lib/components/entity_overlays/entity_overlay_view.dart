@@ -407,7 +407,7 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
             value: _name,
             size: ComponentSize.sm,
             attributes: <String, String>{'aria-label': huiText('Sample name')},
-            onInput: (String value) => setState(() => _name = value),
+            onChanged: (String value) => setState(() => _name = value),
           ),
         ]),
         _number(

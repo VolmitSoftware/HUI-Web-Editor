@@ -780,7 +780,7 @@ class _ComponentsRailState extends State<ComponentsRail> {
           value: _renameDraft,
           fullWidth: true,
           size: ComponentSize.sm,
-          onInput: (String value) => setState(() => _renameDraft = value),
+          onChanged: (String value) => setState(() => _renameDraft = value),
           styles: huiTechnicalInputStyles,
           attributes: huiTechnicalInputAttributes,
         ),

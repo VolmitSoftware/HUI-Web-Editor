@@ -218,7 +218,7 @@ class _TextIconEditorState extends State<TextIconEditor> {
               fullWidth: true,
               resize: TextAreaResize.vertical,
               placeholder: huiText('&6&lShop\n&7Click to browse'),
-              onInput: (String raw) => _push('text', raw),
+              onChanged: (String raw) => _push('text', raw),
             ),
             HuiInlineIssues(component.issues),
           ]),

@@ -120,7 +120,7 @@ class CustomItemIconEditor extends StatelessWidget {
           size: ComponentSize.sm,
           fullWidth: true,
           options: _providerOptions,
-          onChange: (String value) =>
+          onChanged: (String value) =>
               onChanged('item provider', _with(provider: value)),
         ),
         HuiInlineIssues(_issuesFor('.provider')),

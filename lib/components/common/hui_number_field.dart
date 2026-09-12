@@ -171,7 +171,7 @@ class _HuiNumberFieldState extends State<HuiNumberField> {
     final Widget input = TextInput(
       type: TextInputType.number,
       value: _text,
-      onInput: _onInput,
+      onChanged: _onInput,
       onBlur: _onBlur,
       disabled: component.disabled,
       size: component.size,

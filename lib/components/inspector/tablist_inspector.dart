@@ -353,7 +353,7 @@ class _TablistInspectorState extends State<TablistInspector> {
         value: value,
         size: ComponentSize.sm,
         fullWidth: true,
-        onInput: onChanged,
+        onChanged: onChanged,
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
       ),
@@ -372,7 +372,7 @@ class _TablistInspectorState extends State<TablistInspector> {
         value: '$value',
         size: ComponentSize.sm,
         fullWidth: true,
-        onInput: (String raw) {
+        onChanged: (String raw) {
           final int? parsed = int.tryParse(raw);
           if (parsed != null) onChanged(parsed);
         },
@@ -399,7 +399,7 @@ class _TablistInspectorState extends State<TablistInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: huiText("viewer.world == 'world'"),
-        onInput: onChanged,
+        onChanged: onChanged,
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
       ),
@@ -421,7 +421,7 @@ class _TablistInspectorState extends State<TablistInspector> {
         value: value,
         size: ComponentSize.sm,
         fullWidth: true,
-        onInput: onChanged,
+        onChanged: onChanged,
         attributes: const <String, String>{
           'autocomplete': 'off',
           'spellcheck': 'false',
@@ -446,7 +446,7 @@ class _TablistInspectorState extends State<TablistInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: huiText(r'&7$player'),
-        onInput: onChanged,
+        onChanged: onChanged,
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
       ),

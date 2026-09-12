@@ -8,7 +8,8 @@
       "status": "rejected",
       "message": "Invalid project.",
       "serverRevision": null,
-      "acknowledgedAt": "2026-08-18T12:05:02.000Z"
+      "acknowledgedAt": "2026-08-18T12:05:02.000Z",
+      "conflicts": []
     }
   }
 }

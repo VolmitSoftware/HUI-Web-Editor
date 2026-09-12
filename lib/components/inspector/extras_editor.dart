@@ -244,7 +244,7 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
       size: ComponentSize.sm,
       fullWidth: true,
       placeholder: huiText('value'),
-      onInput: (String value) => _editValue(key, value),
+      onChanged: (String value) => _editValue(key, value),
       attributes: const <String, String>{
         'autocomplete': 'off',
         'spellcheck': 'false',
@@ -272,7 +272,7 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: huiText('myPluginKey'),
-          onInput: (String value) {
+          onChanged: (String value) {
             _newKey = value;
             if (_newKeyError != null) {
               setState(() => _newKeyError = null);

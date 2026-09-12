@@ -502,7 +502,7 @@ class _ImageIconEditor extends StatelessWidget {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: huiText('logo.png'),
-            onInput: _setPath,
+            onChanged: _setPath,
             attributes: const <String, String>{
               'autocomplete': 'off',
               'spellcheck': 'false',
@@ -865,7 +865,7 @@ class _AnimatedIconEditorState extends State<_AnimatedIconEditor> {
           value: path,
           size: ComponentSize.sm,
           fullWidth: true,
-          onInput: (String value) => _setFrame(index, value),
+          onChanged: (String value) => _setFrame(index, value),
           attributes: const <String, String>{
             'autocomplete': 'off',
             'spellcheck': 'false',
