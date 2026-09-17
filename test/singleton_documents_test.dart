@@ -10,6 +10,7 @@ void main() {
     DocumentTypes.entityOverlays,
     DocumentTypes.realDrops,
     DocumentTypes.motd,
+  DocumentTypes.connections,
     DocumentTypes.tablist,
   ]) {
     test('${type.syncWireKind} keeps one canonical, editable document', () {

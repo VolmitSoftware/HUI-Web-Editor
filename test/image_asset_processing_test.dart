@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
+
 import 'package:gloss_editor/services/image_library.dart';
 import 'package:image/image.dart' as img;
 import 'package:test/test.dart';
@@ -37,6 +39,96 @@ void main() {
     final StoredPngData? decoded = decodeNormalizedPngData(normalized.dataUri);
     expect(decoded?.width, 16);
     expect(decoded?.height, 8);
+  });
+
+  group('server icons', () {
+    test('a 64x64 upload is stored at 64x64, pixels untouched', () {
+      final img.Image source = img.Image(width: 64, height: 64);
+      source.clear(img.ColorRgba8(20, 40, 60, 255));
+      final NormalizedImageData? normalized = normalizeUploadedFavicon(
+        _dataUri(source),
+      );
+
+      expect(normalized, isNotNull);
+      expect(normalized!.width, huiFaviconImageDimension);
+      expect(normalized.height, huiFaviconImageDimension);
+      final StoredPngData? decoded = decodeNormalizedPngData(
+        normalized.dataUri,
+      );
+      expect(decoded?.width, 64);
+      expect(decoded?.height, 64);
+    });
+
+    test('anything but exactly 64x64 is refused, never downscaled', () {
+      expect(
+        normalizeUploadedFavicon(_dataUri(img.Image(width: 32, height: 32))),
+        isNull,
+      );
+      expect(
+        normalizeUploadedFavicon(_dataUri(img.Image(width: 128, height: 128))),
+        isNull,
+      );
+      expect(
+        normalizeUploadedFavicon(_dataUri(img.Image(width: 64, height: 32))),
+        isNull,
+      );
+    });
+
+    test('the refusal names the required size and the size it got', () {
+      expect(faviconSizeRefusal('server.png', 64, 64), isNull);
+      final ImageLocalizedMessage? refusal = faviconSizeRefusal(
+        'server.png',
+        32,
+        32,
+      );
+      expect(refusal, isNotNull);
+      final String message = refusal!();
+      expect(message, contains('server.png'));
+      expect(message, contains('32x32'));
+      expect(message, contains('64x64'));
+    });
+
+    test('the exported zip carries the 64x64 bytes unchanged', () async {
+      final img.Image source = img.Image(width: 64, height: 64);
+      source.clear(img.ColorRgba8(20, 40, 60, 255));
+      final NormalizedImageData icon = normalizeUploadedFavicon(
+        _dataUri(source),
+      )!;
+      final ImageLibrary library = ImageLibrary(
+        autoLoad: false,
+        writer: (String _, String _) => true,
+      );
+      library.upsertAll(<StoredImage>[
+        StoredImage(
+          path: 'server.png',
+          dataUri: icon.dataUri,
+          width: icon.width,
+          height: icon.height,
+        ),
+      ]);
+
+      final Archive archive = ZipDecoder().decodeBytes(
+        Uint8List.fromList(await library.exportZipBytes()),
+      );
+      final ArchiveFile entry = archive.files.singleWhere(
+        (ArchiveFile file) => file.name == 'server.png',
+      );
+      final img.Image? shipped = img.decodePng(
+        Uint8List.fromList(entry.readBytes()!),
+      );
+      expect(shipped?.width, 64);
+      expect(shipped?.height, 64);
+    });
+
+    test('the menu image path still downscales the same file to 16x16', () {
+      // The server-icon rule must not leak into text-image uploads.
+      final NormalizedImageData? menu = normalizeUploadedPng(
+        _dataUri(img.Image(width: 64, height: 64)),
+      );
+      expect(menu, isNotNull);
+      expect(menu!.width, huiRecommendedMaxImageDimension);
+      expect(menu.height, huiRecommendedMaxImageDimension);
+    });
   });
 
   test('animated uploads expose their ordered frame group to insertion UI', () {

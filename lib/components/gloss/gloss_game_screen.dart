@@ -37,6 +37,11 @@ enum GlossGameAnchor {
   /// Lower left: the chat region, which the surface replaces.
   chat,
 
+  /// The HUD itself — the action bar above the hotbar, a boss bar across the
+  /// top, the title card in the middle. The surface places itself inside the
+  /// region, because one document can claim any of the three.
+  hud,
+
   /// Centred over the player, where a chat bubble floats.
   overPlayer,
 
@@ -56,6 +61,7 @@ extension on GlossGameAnchor {
     GlossGameAnchor.sidebar => 'sidebar',
     GlossGameAnchor.tabOverlay => 'tab-overlay',
     GlossGameAnchor.chat => 'chat',
+    GlossGameAnchor.hud => 'hud',
     GlossGameAnchor.overPlayer => 'over-player',
     GlossGameAnchor.world => 'world',
     GlossGameAnchor.screen => 'screen',

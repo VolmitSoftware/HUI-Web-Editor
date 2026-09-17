@@ -1025,6 +1025,25 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'Gloss rejects the whole file.',
     citation: 'MotdDoc.java:20-37',
   ),
+  'motd.favicon': HuiFieldDoc(
+    title: 'Server icon',
+    body:
+        'Names a file under plugins/Gloss/images/ that replaces the '
+        'server-icon.png beside server.properties for every entry without its '
+        'own. It has to be a PNG by content and exactly 64x64, or the ping '
+        'keeps the vanilla icon and the console reports which half of the '
+        'rule the file broke. Decoding happens once per revision, never per '
+        'ping.',
+    citation: 'FaviconCache.java:58-83',
+  ),
+  'motd.entries.favicon': HuiFieldDoc(
+    title: 'Icon override',
+    body:
+        'Swaps the picture for this entry alone, so the random pick changes '
+        'the icon along with the text. Leave it blank to fall back to the '
+        'document icon. The same PNG-and-64x64 rule applies.',
+    citation: 'MotdDoc.java:65-66',
+  ),
   'motd.lines': HuiFieldDoc(
     title: 'Entry lines',
     body:
@@ -1034,6 +1053,301 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'not: the response is chosen before a player or measured latency '
         'exists.',
     citation: 'TextPipeline.java:59-61',
+  ),
+  'motd.entries.sample': HuiFieldDoc(
+    title: 'Hover sample',
+    body:
+        'Up to twelve lines the client reveals when the pointer rests on the '
+        'player count. Vanilla fills that list with real player names; these '
+        'replace them wholesale, rendered the same way the entry lines are. '
+        'Paper carries it, so a Spigot server sends nothing here, and a '
+        'thirteenth line rejects the whole file.',
+    citation: 'MotdDoc.java:88-106',
+  ),
+  'motd.entries.online': HuiFieldDoc(
+    title: 'Online count',
+    body:
+        'The number in front of the slash, as authored text: a plain figure, '
+        'or an expression that renders to one. Anything else leaves the real '
+        'count in place and warns once in the console. Paper carries it, so a '
+        'Spigot server reports its own count regardless.',
+    citation: 'MotdService.java:215-226',
+  ),
+  'motd.entries.max': HuiFieldDoc(
+    title: 'Max players',
+    body:
+        'The number after the slash, under the same render-to-a-number rule '
+        'as the online count. This one is plain Bukkit rather than a Paper '
+        'extra, so it is the single ping field a Spigot server still applies.',
+    citation: 'MotdService.java:157-165',
+  ),
+  'motd.entries.version': HuiFieldDoc(
+    title: 'Version label',
+    body:
+        'Free text the client draws where the ping bars usually sit, and only '
+        'when its protocol does not match the server. It is not a protocol '
+        'number and changes nothing about who may join; Paper carries it, so '
+        'a Spigot server sends nothing here.',
+    citation: 'MotdService.java:170-172',
+  ),
+  'motd.links': HuiFieldDoc(
+    title: 'Server links',
+    body:
+        'Up to 16 entries the client lists in its pause menu. They are '
+        'published once per document revision rather than per ping, so a '
+        'player sees the list the server held when they connected, and a '
+        'seventeenth entry rejects the whole file.',
+    citation: 'MotdDoc.java:51-63',
+  ),
+  'motd.links.type': HuiFieldDoc(
+    title: 'Link type',
+    body:
+        'Picks one of ten kinds the client already has its own wording for, '
+        'so the entry reads in the player\'s language. Spelling is folded to '
+        'lowercase; a name outside the ten rejects the whole file. Leave it '
+        'unset to write a label instead.',
+    citation: 'MotdDoc.java:126-136',
+  ),
+  'motd.links.label': HuiFieldDoc(
+    title: 'Link label',
+    body:
+        'Your own wording for an entry with no type, rendered through the '
+        'text pipeline for each viewer. A link needs one or the other: with '
+        'neither a type nor a label, the whole file is rejected.',
+    citation: 'MotdDoc.java:108-116',
+  ),
+  'motd.links.url': HuiFieldDoc(
+    title: 'Link url',
+    body:
+        'Where the entry goes. Required on every link, and it has to be an '
+        'http or https address with a host — a relative path, a bare domain '
+        'or a mailto address rejects the whole file. Most clients show the '
+        'address and ask before opening it.',
+    citation: 'MotdDoc.java:138-154',
+  ),
+
+  // --- gloss connections -----------------------------------------------------
+  'connections.id': HuiFieldDoc(
+    title: 'Connection messages id',
+    body:
+        'Always connections. The plugin keeps exactly one file, '
+        'plugins/Gloss/connections.json, so the id is fixed and renaming the '
+        'document does not move it.',
+    citation: 'ConnectionsDoc.java:21',
+  ),
+  'connections.join': HuiFieldDoc(
+    title: 'Join message',
+    body:
+        'Broadcast when a player connects. A block that is present is on '
+        'unless it says otherwise, and a block the file leaves out is off '
+        'entirely, so deleting the section is how you stop announcing joins.',
+    citation: 'ConnectionsDoc.java:46-56',
+  ),
+  'connections.leave': HuiFieldDoc(
+    title: 'Leave message',
+    body:
+        'Broadcast when a player disconnects, under the same on-or-absent '
+        'rule as the join block. Quitting and being kicked both land here.',
+    citation: 'ConnectionsDoc.java:38-39',
+  ),
+  'connections.enabled': HuiFieldDoc(
+    title: 'Enabled',
+    body:
+        'Off keeps the block and its text but sends nothing. Absent is not '
+        'the same as false: a missing key reads as on, while a missing block '
+        'is off.',
+    citation: 'ConnectionsDoc.java:55-65',
+  ),
+  'connections.audience': HuiFieldDoc(
+    title: 'Audience',
+    body:
+        'A proxy setting. This server reads network and server, refuses any '
+        'other spelling, and then ignores the answer, because one standalone '
+        'server is the whole network. It matters only when a proxy shares '
+        'this file.',
+    citation: 'ConnectionsDoc.java:67-77',
+  ),
+  'connections.text': HuiFieldDoc(
+    title: 'Message text',
+    body:
+        'Rendered once per reader, not once per event, so the same join can '
+        'say different things to different people. Write {{ subject.name }} '
+        'for whoever connected and {{ viewer.name }} for whoever is reading. '
+        'The tab-list token \$player does nothing here and ships literally.',
+    citation: 'ConnectionsService.java:208-223',
+  ),
+  'connections.variants': HuiFieldDoc(
+    title: 'Conditional messages',
+    body:
+        'Checked against each reader in priority order; the first match '
+        'replaces the base text for that reader alone. An empty list leaves '
+        'everyone on the base message.',
+    citation: 'ConnectionsService.java:212-217',
+  ),
+  'connections.variants.priority': HuiFieldDoc(
+    title: 'Variant priority',
+    body:
+        'Higher wins. The runtime sorts the list by priority before matching, '
+        'so file order is presentation only and the editor leaves it alone.',
+    citation: 'ConnectionsDoc.java:79-92',
+  ),
+  'connections.variants.when': HuiFieldDoc(
+    title: 'Variant condition',
+    body:
+        'A typed boolean expression over the reader and the connecting '
+        'player. Blank is not allowed: the parser refuses the whole file '
+        'rather than treating it as always true.',
+    citation: 'ConnectionsDoc.java:104-114',
+  ),
+  'connections.switch': HuiFieldDoc(
+    title: 'Server switch (proxy only)',
+    body:
+        'A proxy announces a player moving between backends. A backend never '
+        'sees that event, so this block parses without complaint, does '
+        'nothing here, and is written back untouched for the proxy that '
+        'shares the file.',
+    citation: 'ConnectionsDoc.java:14-19',
+  ),
+
+  // --- gloss surfaces --------------------------------------------------------
+  'surface.id': HuiFieldDoc(
+    title: 'Surface id',
+    body:
+        'The file name under plugins/Gloss/surfaces/, without .json. Nothing '
+        'in the document repeats it, so renaming the document renames the '
+        'file and nothing else has to change.',
+    citation: 'SurfaceDoc.java:21',
+  ),
+  'surface.surface': HuiFieldDoc(
+    title: 'Client surface',
+    body:
+        'Which of the three HUD surfaces this document draws on, and the one '
+        'field that decides what the rest of the file means: Gloss rebuilds '
+        'the presentation out of the chosen surface\'s own keys and discards '
+        'every other key without a word. A missing or unrecognised value '
+        'refuses the whole file.',
+    citation: 'SurfaceDoc.java:121-126',
+  ),
+  'surface.select.priority': HuiFieldDoc(
+    title: 'Selection priority',
+    body:
+        'Which document wins when several are eligible for the same viewer '
+        'and lane. Higher takes it. The condition beside this decides '
+        'eligibility in the first place, and it defaults to false, so a '
+        'document with no condition never competes at all.',
+    citation: 'SurfaceDoc.java:77-84',
+  ),
+  'surface.presentation.text': HuiFieldDoc(
+    title: 'Action-bar text',
+    body:
+        'The line above the hotbar, and the one key an actionbar surface '
+        'cannot open without. On a bossbar or title surface it is thrown '
+        'away silently, so a file that carries it there ships text nobody '
+        'ever sees.',
+    citation: 'SurfaceDoc.java:129-136',
+  ),
+  'surface.presentation.title': HuiFieldDoc(
+    title: 'Title line',
+    body:
+        'The boss-bar label or the large title line, required on both of '
+        'those surfaces and dropped on an action bar. Blank counts as '
+        'missing: the parser trims it to nothing before it looks.',
+    citation: 'SurfaceDoc.java:137-145',
+  ),
+  'surface.presentation.subtitle': HuiFieldDoc(
+    title: 'Subtitle line',
+    body:
+        'The smaller second line under a title card. Omitted, it is sent as '
+        'an empty line rather than left out, and on the other two surfaces '
+        'it is dropped.',
+    citation: 'SurfaceDoc.java:146-160',
+  ),
+  'surface.presentation.progress': HuiFieldDoc(
+    title: 'Boss-bar fill',
+    body:
+        'An expression yielding 0 through 1, with or without the {{ }} '
+        'wrapper — Gloss strips it either way. It has to parse or the whole '
+        'file is refused; an omitted fill is a full bar.',
+    citation: 'SurfaceDoc.java:188-206',
+  ),
+  'surface.presentation.color': HuiFieldDoc(
+    title: 'Boss-bar colour',
+    body:
+        'One of the seven colours the client can draw a boss bar in. An '
+        'eighth spelling refuses the file rather than falling back, and an '
+        'omitted value is white.',
+    citation: 'SurfaceDoc.java:208-218',
+  ),
+  'surface.presentation.style': HuiFieldDoc(
+    title: 'Notch style',
+    body:
+        'How many segments the client cuts the boss bar into: solid, or 6, '
+        '10, 12 or 20 notches. It is decoration only — the fill is still the '
+        'expression, not the nearest notch.',
+    citation: 'SurfaceDoc.java:137-145',
+  ),
+  'surface.presentation.slots': HuiFieldDoc(
+    title: 'HUD slots',
+    body:
+        'Which lanes of the shared HUD compositor the line claims: left, '
+        'center, right. Repeats collapse, an empty list means center, and a '
+        'name outside the three refuses the whole file.',
+    citation: 'SurfaceDoc.java:162-186',
+  ),
+  'surface.presentation.priority': HuiFieldDoc(
+    title: 'Compositor lane',
+    body:
+        'Which band this line competes in when several plugins write to the '
+        'same HUD slot, from ambient up through pinned. An unlisted name '
+        'refuses the file; an omitted one is status.',
+    citation: 'SurfacePriorities.java:16-32',
+  ),
+  'surface.presentation.ttlTicks': HuiFieldDoc(
+    title: 'Lifetime',
+    body:
+        'How many ticks one delivery survives before the compositor drops '
+        'it. Out-of-range values are pinned into 1 through 1200 rather than '
+        'refused, so a 5000 here silently becomes 1200.',
+    citation: 'SurfaceDoc.java:101-106',
+  ),
+  'surface.presentation.fadeInTicks': HuiFieldDoc(
+    title: 'Title fade in',
+    body:
+        'Ticks the title card takes to appear. Pinned into 0 through 1200 '
+        'rather than refused, and omitted it is 10. Dropped on the other two '
+        'surfaces.',
+    citation: 'SurfaceDoc.java:146-159',
+  ),
+  'surface.presentation.stayTicks': HuiFieldDoc(
+    title: 'Title stay',
+    body:
+        'Ticks the title card holds at full opacity, pinned into 0 through '
+        '1200 and defaulting to 40. It also sets the floor for a repeating '
+        'card, which never replays faster than it stays.',
+    citation: 'SurfaceDoc.java:150-157',
+  ),
+  'surface.presentation.fadeOutTicks': HuiFieldDoc(
+    title: 'Title fade out',
+    body:
+        'Ticks the title card takes to disappear. Pinned into 0 through 1200 '
+        'rather than refused, and omitted it is 10.',
+    citation: 'SurfaceDoc.java:146-159',
+  ),
+  'surface.presentation.trigger': HuiFieldDoc(
+    title: 'Title trigger',
+    body:
+        'When the card plays: select shows it each time the document is '
+        'chosen, once shows it a single time per selection, repeat keeps '
+        'replaying it. Only repeat reads the interval beside it.',
+    citation: 'SurfaceDoc.java:150-159',
+  ),
+  'surface.presentation.repeatTicks': HuiFieldDoc(
+    title: 'Repeat interval',
+    body:
+        'Ticks between replays of a repeating title. Pinned into 1 through '
+        '72000, then raised to the stay time if it is shorter, so a card can '
+        'never restart before it has finished showing.',
+    citation: 'SurfaceDoc.java:150-157',
   ),
 
   // --- gloss emoji -----------------------------------------------------------

@@ -4,6 +4,7 @@ import '../model/model.dart' show looksLikePreviewDoc;
 import '../state/workspace.dart';
 import 'animation_document_type.dart';
 import 'bubble_style_document_type.dart';
+import 'connections_document_type.dart';
 import 'container_preview_document_type.dart';
 import 'damage_indicators_document_type.dart';
 import 'document_type.dart';
@@ -16,6 +17,7 @@ import 'motd_document_type.dart';
 import 'panel_document_type.dart';
 import 'real_drop_document_type.dart';
 import 'scoreboard_document_type.dart';
+import 'surface_document_type.dart';
 import 'tablist_document_type.dart';
 
 /// The const adapter instances, one per [WorkspaceDocKind].
@@ -27,7 +29,9 @@ abstract final class DocumentTypes {
   static const HologramDocumentType hologram = HologramDocumentType();
   static const AnimationDocumentType animation = AnimationDocumentType();
   static const ScoreboardDocumentType scoreboard = ScoreboardDocumentType();
+  static const SurfaceDocumentType surface = SurfaceDocumentType();
   static const MotdDocumentType motd = MotdDocumentType();
+  static const ConnectionsDocumentType connections = ConnectionsDocumentType();
   static const EmojiDocumentType emoji = EmojiDocumentType();
   static const BubbleStyleDocumentType bubbleStyle = BubbleStyleDocumentType();
   static const DamageIndicatorsDocumentType damageIndicators =
@@ -50,7 +54,9 @@ abstract final class DocumentTypeRegistry {
         WorkspaceDocKind.hologram: DocumentTypes.hologram,
         WorkspaceDocKind.animation: DocumentTypes.animation,
         WorkspaceDocKind.scoreboard: DocumentTypes.scoreboard,
+        WorkspaceDocKind.surface: DocumentTypes.surface,
         WorkspaceDocKind.motd: DocumentTypes.motd,
+        WorkspaceDocKind.connections: DocumentTypes.connections,
         WorkspaceDocKind.emoji: DocumentTypes.emoji,
         WorkspaceDocKind.bubbleStyle: DocumentTypes.bubbleStyle,
         WorkspaceDocKind.damageIndicators: DocumentTypes.damageIndicators,
@@ -67,7 +73,9 @@ abstract final class DocumentTypeRegistry {
     DocumentTypes.hologram,
     DocumentTypes.animation,
     DocumentTypes.scoreboard,
+    DocumentTypes.surface,
     DocumentTypes.motd,
+    DocumentTypes.connections,
     DocumentTypes.emoji,
     DocumentTypes.bubbleStyle,
     DocumentTypes.damageIndicators,

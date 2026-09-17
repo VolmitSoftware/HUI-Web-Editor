@@ -124,8 +124,16 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
           'The saved document "{title}" was unreadable ({error}) and was replaced with a blank scoreboard.',
           arguments,
         ),
+        WorkspaceDocKind.surface => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank surface.',
+          arguments,
+        ),
         WorkspaceDocKind.motd => huiText(
           'The saved document "{title}" was unreadable ({error}) and was replaced with a blank MOTD.',
+          arguments,
+        ),
+        WorkspaceDocKind.connections => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with blank connection messages.',
           arguments,
         ),
         WorkspaceDocKind.emoji => huiText(
@@ -172,8 +180,16 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
         'The saved document "{title}" was unreadable and was replaced with a blank scoreboard.',
         arguments,
       ),
+      WorkspaceDocKind.surface => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank surface.',
+        arguments,
+      ),
       WorkspaceDocKind.motd => huiText(
         'The saved document "{title}" was unreadable and was replaced with a blank MOTD.',
+        arguments,
+      ),
+      WorkspaceDocKind.connections => huiText(
+        'The saved document "{title}" was unreadable and was replaced with blank connection messages.',
         arguments,
       ),
       WorkspaceDocKind.emoji => huiText(

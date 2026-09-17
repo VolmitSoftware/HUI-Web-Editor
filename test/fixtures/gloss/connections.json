@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": true,
+  "join": {
+    "enabled": true,
+    "show": true,
+    "audience": "network",
+    "presentation": { "text": "&a+ &f{{ subject.name }} &7joined" },
+    "variants": []
+  },
+  "leave": {
+    "enabled": true,
+    "show": true,
+    "audience": "network",
+    "presentation": { "text": "&c- &f{{ subject.name }} &7left" },
+    "variants": []
+  }
+}

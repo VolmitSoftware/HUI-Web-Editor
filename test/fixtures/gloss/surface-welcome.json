@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "surface": "actionbar",
+  "show": "true",
+  "select": { "priority": 0, "when": "false" },
+  "presentation": { "text": "&7Welcome, &f{{ player.name }}", "slots": ["center"], "priority": "ambient", "ttlTicks": 40 },
+  "variants": []
+}

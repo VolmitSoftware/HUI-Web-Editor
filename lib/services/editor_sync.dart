@@ -660,6 +660,7 @@ bool _validDocumentId(String kind, String id) {
   if (DocumentTypeRegistry.byWireKind(kind) == null) return true;
   if (kind == _menuWireKind || kind == _panelWireKind) return true;
   if (kind == 'motd') return id == 'motd';
+  if (kind == 'connections') return id == 'connections';
   if (kind == 'tablist') return id == 'tablist';
   if (kind == 'real-drops') return id == 'default';
   if (kind == 'damage-indicators') return id == 'default';

@@ -11,6 +11,8 @@ export 'entity_overlays_document_type.dart';
 export 'gloss_document_type.dart';
 export 'hologram_document_type.dart';
 export 'menu_document_type.dart';
+export 'connections_document_type.dart';
+export 'surface_document_type.dart';
 export 'motd_document_type.dart';
 export 'panel_document_type.dart';
 export 'real_drop_document_type.dart';

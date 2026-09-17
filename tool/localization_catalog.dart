@@ -5565,6 +5565,9 @@ _unchangedNaturalLanguageAllowlistByReason = <String, Map<String, Set<String>>>{
 
 const Set<String> _runtimeContractInvariantLocations = <String>{
   'messages["Original Gloss"]',
+  // The connections document's fixed runtime id, which the plugin matches
+  // literally (`EditorSyncDocumentKind.CONNECTIONS`).
+  'messages["connections"]',
   'messages["drop.material == \'DIAMOND\'"]',
   'messages["variant-id"]',
   'messages["viewer.world == \'world\'"]',

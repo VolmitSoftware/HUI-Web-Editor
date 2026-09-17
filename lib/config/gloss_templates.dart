@@ -812,6 +812,211 @@ GlossScoreboardDoc buildShowcaseGlossScoreboard() =>
 GlossScoreboardDoc buildAnimationShowcaseGlossScoreboard() =>
     decodeGlossScoreboardDoc(kGlossScoreboardAnimationShowcaseJson);
 
+/// `Gloss/src/main/resources/defaults/connections/connections.json`, byte for
+/// byte — the join and leave lines the plugin extracts to
+/// `plugins/Gloss/connections.json` on first run.
+const String kGlossConnectionsDefaultJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": true,
+  "join": {
+    "enabled": true,
+    "show": true,
+    "audience": "network",
+    "presentation": { "text": "&a+ &f{{ subject.name }} &7joined" },
+    "variants": []
+  },
+  "leave": {
+    "enabled": true,
+    "show": true,
+    "audience": "network",
+    "presentation": { "text": "&c- &f{{ subject.name }} &7left" },
+    "variants": []
+  }
+}
+''';
+
+/// A richer sample: both sections conditional, a staff-only variant on each,
+/// and the scoped names a connection message actually reads.
+const String kGlossConnectionsShowcaseJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": true,
+  "join": {
+    "enabled": true,
+    "show": true,
+    "audience": "network",
+    "presentation": { "text": "&a+ &f{{ subject.name }} &7joined &8(&7{{ server.online }}&8/&7{{ server.max }}&8)" },
+    "variants": [
+      {
+        "priority": 10,
+        "when": "inGroup('subject', 'staff')",
+        "presentation": { "text": "&6\u00bb &e&l{{ subject.name }} &6joined &7\u2014 staff on duty" }
+      }
+    ]
+  },
+  "leave": {
+    "enabled": true,
+    "show": true,
+    "audience": "network",
+    "presentation": { "text": "&c- &f{{ subject.name }} &7left" },
+    "variants": [
+      {
+        "priority": 10,
+        "when": "inGroup('subject', 'staff')",
+        "presentation": { "text": "&6\u00ab &e{{ subject.name }} &6signed off" }
+      }
+    ]
+  }
+}
+''';
+
+GlossConnectionsDoc buildDefaultGlossConnections() =>
+    decodeGlossConnectionsDoc(kGlossConnectionsDefaultJson);
+
+GlossConnectionsDoc buildShowcaseGlossConnections() =>
+    decodeGlossConnectionsDoc(kGlossConnectionsShowcaseJson);
+
+/// `Gloss/src/main/resources/defaults/surfaces/welcome.json`, byte for byte —
+/// the action-bar greeting the plugin extracts to
+/// `plugins/Gloss/surfaces/welcome.json` on first run. It ships with
+/// `select.when` at `false`, so nothing shows it until an author writes the
+/// condition.
+const String kGlossSurfaceWelcomeJson = r"""
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "surface": "actionbar",
+  "show": "true",
+  "select": { "priority": 0, "when": "false" },
+  "presentation": { "text": "&7Welcome, &f{{ player.name }}", "slots": ["center"], "priority": "ambient", "ttlTicks": 40 },
+  "variants": []
+}
+""";
+
+/// An action bar that reports where the viewer is standing, with a
+/// higher-priority variant for the moment their health drops.
+const String kGlossSurfaceActionbarShowcaseJson = r"""
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "surface": "actionbar",
+  "show": true,
+  "select": { "priority": 10, "when": "viewer.world == 'world'" },
+  "presentation": {
+    "text": "&8┃ &7world &f{{ viewer.world }} &8┃ &7tps &a{{ fixed(server.tps, 1) }} &8┃ &7online &f{{ server.online }}&8/&7{{ server.max }}",
+    "slots": ["center"],
+    "priority": "status",
+    "ttlTicks": 60
+  },
+  "variants": [
+    {
+      "id": "critical-health",
+      "priority": 40,
+      "when": "viewer.healthPercent <= 25",
+      "presentation": {
+        "text": "&c&l! &fLOW HEALTH &8┃ &c{{ fixed(viewer.health, 1) }}&8/&7{{ fixed(viewer.maxHealth, 1) }}",
+        "slots": ["center"],
+        "priority": "modal",
+        "ttlTicks": 40
+      }
+    }
+  ]
+}
+""";
+
+/// A boss bar whose fill is an expression and whose notch style changes with
+/// the viewer's group — the two knobs only this surface has.
+const String kGlossSurfaceBossbarShowcaseJson = r"""
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "surface": "bossbar",
+  "show": true,
+  "select": { "priority": 20, "when": "viewer.level >= 0" },
+  "presentation": {
+    "title": "&d&lHARVEST FESTIVAL &8┃ &f{{ viewer.name }}",
+    "progress": "{{ clamp(viewer.level / 30, 0, 1) }}",
+    "color": "purple",
+    "style": "segmented_10",
+    "slots": ["center"],
+    "priority": "progress",
+    "ttlTicks": 200
+  },
+  "variants": [
+    {
+      "id": "vip-lane",
+      "priority": 30,
+      "when": "inGroup('viewer', 'vip')",
+      "presentation": {
+        "title": "&6&lHARVEST FESTIVAL &8┃ &eVIP &f{{ viewer.name }}",
+        "progress": "{{ clamp(viewer.level / 20, 0, 1) }}",
+        "color": "yellow",
+        "style": "segmented_20",
+        "slots": ["center"],
+        "priority": "progress",
+        "ttlTicks": 200
+      }
+    }
+  ]
+}
+""";
+
+/// A title card with a subtitle and the full fade, stay and repeat set.
+const String kGlossSurfaceTitleShowcaseJson = r"""
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "surface": "title",
+  "show": true,
+  "select": { "priority": 30, "when": "viewer.world == 'world'" },
+  "presentation": {
+    "title": "&d&lWELCOME BACK",
+    "subtitle": "&7{{ viewer.name }} &8· &7level &f{{ viewer.level }}",
+    "slots": ["center"],
+    "priority": "notice",
+    "fadeInTicks": 12,
+    "stayTicks": 70,
+    "fadeOutTicks": 16,
+    "trigger": "once",
+    "ttlTicks": 120
+  },
+  "variants": [
+    {
+      "id": "nether-arrival",
+      "priority": 20,
+      "when": "viewer.world == 'world_nether'",
+      "presentation": {
+        "title": "&c&lTHE NETHER",
+        "subtitle": "&7mind the ledges",
+        "slots": ["center"],
+        "priority": "notice",
+        "fadeInTicks": 8,
+        "stayTicks": 60,
+        "fadeOutTicks": 12,
+        "trigger": "repeat",
+        "repeatTicks": 400,
+        "ttlTicks": 120
+      }
+    }
+  ]
+}
+""";
+
+GlossSurfaceDoc buildDefaultGlossSurface() =>
+    decodeGlossSurfaceDoc(kGlossSurfaceWelcomeJson);
+
+GlossSurfaceDoc buildActionbarShowcaseGlossSurface() =>
+    decodeGlossSurfaceDoc(kGlossSurfaceActionbarShowcaseJson);
+
+GlossSurfaceDoc buildBossbarShowcaseGlossSurface() =>
+    decodeGlossSurfaceDoc(kGlossSurfaceBossbarShowcaseJson);
+
+GlossSurfaceDoc buildTitleShowcaseGlossSurface() =>
+    decodeGlossSurfaceDoc(kGlossSurfaceTitleShowcaseJson);
+
 /// `Gloss/src/main/resources/defaults/motd/motd.json`, byte for byte — the
 /// MOTD the plugin extracts to `plugins/Gloss/motd.json` on first run.
 const String kGlossMotdDefaultJson = r'''
@@ -830,7 +1035,9 @@ const String kGlossMotdDefaultJson = r'''
 ''';
 
 /// A richer sample: four entries the ping randomizes over, two-line entries,
-/// bracket hex, and an animated line — everything `renderStatic` supports.
+/// bracket hex, an animated line, the hover sample and counts an entry can
+/// author, a version label, and the pause-menu links the document publishes
+/// once per revision — everything `renderStatic` and `applyExtras` support.
 const String kGlossMotdShowcaseJson = r'''
 {
   "schemaVersion": 1,
@@ -840,13 +1047,20 @@ const String kGlossMotdShowcaseJson = r'''
       "lines": [
         "{{ select(['&d', '&b', '&6'], floor(time.seconds * 4)) }}&lMy Server",
         "&7Online &a{{ server.online }}&8/&a{{ server.maxPlayers }}"
-      ]
+      ],
+      "sample": [
+        "&7Skyblock &8• &7Survival &8• &7Creative",
+        "&8Type &f/menu &8in game"
+      ],
+      "version": "&dGloss"
     },
     {
       "lines": [
         "|animation.rainbow|&lDouble XP weekend!",
         "&7The colour changes every ping"
-      ]
+      ],
+      "online": "{{ server.online }}",
+      "max": "{{ server.maxPlayers }}"
     },
     {
       "lines": [
@@ -858,6 +1072,20 @@ const String kGlossMotdShowcaseJson = r'''
         "&bNew worlds. New menus.",
         "&7play.example.net"
       ]
+    }
+  ],
+  "links": [
+    {
+      "type": "website",
+      "url": "https://example.net"
+    },
+    {
+      "type": "report_bug",
+      "url": "https://example.net/bugs"
+    },
+    {
+      "label": "&bStore",
+      "url": "https://store.example.net"
     }
   ]
 }

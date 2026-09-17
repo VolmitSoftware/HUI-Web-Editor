@@ -64,6 +64,7 @@ kind a newer server adds shows up here rather than being quietly dropped.
 | `behavior` | `behaviors` | FOLDER | yes | - |
 | `bubble-style` | `bubbles` | FOLDER | yes | - |
 | `channel` | `channels` | FOLDER | yes | - |
+| `connections` | `connections.json` | SINGLE | yes | `ConnectionsDoc.KIND` |
 | `container-preview` | `previews` | FOLDER | no | - |
 | `damage-indicators` | `damage-indicators` | FOLDER | yes | `default` |
 | `dialog` | `dialogs` | FOLDER | yes | - |
@@ -105,8 +106,8 @@ back byte for byte, and the server refuses any change to it by name rather than
 dropping it.
 
 Menu and panel ids are canonical tree ids; every other kind has flat ids.
-The singleton ids are `motd`, `tablist`, and `default` for damage-indicators,
-entity-overlays, and real-drops.
+The singleton ids are `connections`, `motd`, `tablist`, and `default` for
+damage-indicators, entity-overlays, and real-drops.
 
 A panel entry contains only the canonical runtime panel definition. Browser
 flow-map layout and unlinked flow maps are editor-only and never enter a

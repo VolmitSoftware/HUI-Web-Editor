@@ -465,6 +465,8 @@
 .hui-center > .hui-split-cell.is-hologram,
 .hui-center > .hui-split-cell.is-animation,
 .hui-center > .hui-split-cell.is-scoreboard,
+.hui-center > .hui-split-cell.is-hud,
+.hui-center > .hui-split-cell.is-connections,
 .hui-center > .hui-split-cell.is-motd,
 .hui-center > .hui-split-cell.is-emoji,
 .hui-center > .hui-split-cell.is-bubble,

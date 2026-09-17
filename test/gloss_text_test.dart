@@ -191,6 +191,28 @@ void main() {
       expect(_plain(renderGlossLine("{{ select(['A', 'B', 'C'], 4) }}")), 'B');
     });
 
+    test('player.bedrock is the sampled viewer, and nothing without one', () {
+      // TextExpressionRenderer.java:265 — the variable is the viewer's Geyser
+      // flag, and null when a surface renders without a viewer at all.
+      expect(_plain(renderGlossLine('{{ player.bedrock }}')), 'false');
+      expect(
+        _plain(
+          renderGlossLine(
+            '{{ player.bedrock }}',
+            expressionSamples: const GlossTextExpressionSamples(
+              bedrockViewer: true,
+            ),
+          ),
+        ),
+        'true',
+      );
+      // A server-list ping has no viewer, so the token stays literal.
+      expect(
+        _plain(renderGlossLine('{{ player.bedrock }}', viewerAware: false)),
+        '{{ player.bedrock }}',
+      );
+    });
+
     test('time expressions animate without a separate animation document', () {
       const int epochMs = 1787426000000;
       final GlossLineRender first = renderGlossLine(

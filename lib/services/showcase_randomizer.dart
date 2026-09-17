@@ -69,6 +69,16 @@ bool randomizeShowcaseDocument(
         'Randomize MOTD',
         buildRandomMotdShowcase(store.motdDoc!, source),
       );
+    case ConnectionsDocumentType():
+      store.replaceGlossDoc(
+        'Randomize connection messages',
+        buildRandomConnectionsShowcase(store.connectionsDoc!, source),
+      );
+    case SurfaceDocumentType():
+      store.replaceGlossDoc(
+        'Randomize surface',
+        buildRandomSurfaceShowcase(store.surfaceDoc!, source),
+      );
     case EmojiDocumentType():
       store.replaceGlossDoc(
         'Randomize emoji',
@@ -2362,13 +2372,221 @@ GlossMotdDoc buildRandomMotdShowcase(GlossMotdDoc current, math.Random random) {
                   '&8• &7${showcasePick(random, showcaseDomains)}',
       );
     }
-    entries.add(GlossMotdEntry(lines: lines));
+    entries.add(
+      GlossMotdEntry(
+        lines: lines,
+        sample: _motdSample(random, index == 0),
+        online: random.nextBool() ? '{{ server.online }}' : null,
+        max: random.nextInt(3) == 0 ? '${64 + random.nextInt(4) * 64}' : null,
+        version: random.nextInt(3) == 0
+            ? '${showcaseColorEffect(random, mood).text}'
+                  '${showcasePick(random, showcaseStatusWords)}'
+            : null,
+      ),
+    );
   }
   return GlossMotdDoc(
     schemaVersion: current.schemaVersion,
     revision: current.revision,
     entries: entries,
+    links: _motdLinks(random, mood),
   )..extras['show'] = showcaseShow(random, viewerAware: false);
+}
+
+/// The hover list under the player count: the worlds a server runs, read as a
+/// list because that is what the vanilla list it replaces looks like. The
+/// first entry always carries one, so a generated document always teaches the
+/// field; `MotdDoc.MAX_SAMPLE_LINES` caps it well above what is generated.
+List<String> _motdSample(math.Random random, bool always) {
+  if (!always && random.nextInt(3) != 0) return <String>[];
+  final List<String> worlds = List<String>.of(showcaseWorlds)..shuffle(random);
+  return <String>[
+    '&8Now open',
+    for (final String world in worlds.take(2 + random.nextInt(4)))
+      '&7 • &f$world',
+  ];
+}
+
+/// Pause-menu links: one client-labelled entry per kind the pool offers, plus
+/// an authored label often enough to teach that both forms exist. Every url is
+/// an https address with a host, because anything else refuses the file.
+List<GlossMotdLink> _motdLinks(math.Random random, ShowcaseMood mood) {
+  if (random.nextInt(4) == 0) return <GlossMotdLink>[];
+  final List<String> domains = List<String>.of(showcaseDomains)
+    ..shuffle(random);
+  final List<String> types = List<String>.of(glossMotdLinkTypes)
+    ..shuffle(random);
+  final int count = 1 + random.nextInt(3);
+  final List<GlossMotdLink> links = <GlossMotdLink>[
+    for (int index = 0; index < count; index++)
+      GlossMotdLink(
+        type: types[index],
+        url: 'https://${domains[index % domains.length]}',
+      ),
+  ];
+  if (random.nextBool()) {
+    links.add(
+      GlossMotdLink(
+        label:
+            '${showcaseColorEffect(random, mood).text}'
+            '${showcasePick(random, showcaseStatusWords)}',
+        url: 'https://${domains[count % domains.length]}/news',
+      ),
+    );
+  }
+  return links;
+}
+
+/// A join and a leave line in one mood, each with a staff variant often
+/// enough to teach that variants are per reader. Both blocks are always
+/// present: an absent block is a silent document, which reads as a bug in a
+/// randomized sample rather than as a feature.
+GlossConnectionsDoc buildRandomConnectionsShowcase(
+  GlossConnectionsDoc current,
+  math.Random random,
+) {
+  final ShowcaseMood mood = showcasePick(random, showcaseMoods);
+  final String server = showcasePick(random, showcaseServerNames);
+  GlossConnectionsSection build(String glyph, String verb, bool counts) {
+    final String accent = showcaseColorEffect(random, mood).text;
+    return GlossConnectionsSection(
+      audience: random.nextInt(4) == 0
+          ? glossConnectionsAudienceServer
+          : glossConnectionsAudienceNetwork,
+      presentation: GlossConnectionsPresentation(
+        text: counts
+            ? '$accent$glyph &f{{ subject.name }} &7$verb &8• &7'
+                  '{{ server.online }}&8/&7{{ server.max }}'
+            : '$accent$glyph &f{{ subject.name }} &7$verb',
+      ),
+      variants: <GlossConnectionsVariant>[
+        if (random.nextBool())
+          GlossConnectionsVariant(
+            priority: 10,
+            when: "inGroup('subject', 'staff')",
+            presentation: GlossConnectionsPresentation(
+              text:
+                  '$accent$glyph &e&l{{ subject.name }} &7$verb &8• &7'
+                  '$server staff',
+            ),
+          ),
+      ],
+    )..extras['show'] = showcaseShow(random, viewerAware: true);
+  }
+
+  return GlossConnectionsDoc(
+    schemaVersion: current.schemaVersion,
+    revision: current.revision,
+    join: build('+', showcasePick(random, _connectionsJoinVerbs), true),
+    leave: build('-', showcasePick(random, _connectionsLeaveVerbs), false),
+  )..extras['show'] = showcaseShow(random, viewerAware: true);
+}
+
+const List<String> _connectionsJoinVerbs = <String>[
+  'joined',
+  'is here',
+  'walked in',
+  'came online',
+];
+
+const List<String> _connectionsLeaveVerbs = <String>[
+  'left',
+  'logged off',
+  'headed out',
+  'went dark',
+];
+
+/// One complete HUD line in one mood, on one of the three client surfaces,
+/// always with the condition that actually selects it. A randomized surface
+/// that kept the shipped `select.when` of false would render an empty stage,
+/// which reads as a broken sample rather than as a document.
+GlossSurfaceDoc buildRandomSurfaceShowcase(
+  GlossSurfaceDoc current,
+  math.Random random,
+) {
+  final ShowcaseMood mood = showcasePick(random, showcaseMoods);
+  final String kind = showcasePick(random, glossSurfaceKinds);
+  final String accent = showcaseColorEffect(random, mood).text;
+  final String server = showcasePick(random, showcaseServerNames);
+  final List<String> slots = kind == glossSurfaceKindActionbar
+      ? showcasePick(random, const <List<String>>[
+          <String>['center'],
+          <String>['left'],
+          <String>['right'],
+          <String>['left', 'right'],
+        ])
+      : const <String>['center'];
+
+  GlossSurfacePresentation present({required bool alternate}) => switch (kind) {
+    glossSurfaceKindBossbar => GlossSurfacePresentation(
+      title: alternate
+          ? '$accent&l${server.toUpperCase()} &8┃ &fpush'
+          : '$accent&l${server.toUpperCase()} &8┃ '
+                '&f{{ viewer.name }}',
+      progress: showcasePick(random, const <String>[
+        '{{ clamp(viewer.health / viewer.maxHealth, 0, 1) }}',
+        '{{ clamp(server.online / server.max, 0, 1) }}',
+        '{{ clamp(viewer.level / 30, 0, 1) }}',
+      ]),
+      color: showcasePick(random, glossSurfaceColors),
+      style: showcasePick(random, glossSurfaceStyles),
+      slots: slots,
+      priority: alternate ? 'modal' : 'progress',
+      ttlTicks: 40 + random.nextInt(400),
+    ),
+    glossSurfaceKindTitle => GlossSurfacePresentation(
+      title: alternate
+          ? '&c&lWATCH YOUR STEP'
+          : '$accent&l${server.toUpperCase()}',
+      subtitle: alternate
+          ? '&7{{ viewer.world }}'
+          : '&7{{ viewer.name }} &8· &7level &f{{ viewer.level }}',
+      slots: slots,
+      priority: alternate ? 'modal' : 'notice',
+      fadeInTicks: 4 + random.nextInt(20),
+      stayTicks: 30 + random.nextInt(90),
+      fadeOutTicks: 4 + random.nextInt(20),
+      trigger: showcasePick(random, glossSurfaceTriggers),
+      repeatTicks: 100 + random.nextInt(600),
+      ttlTicks: 60 + random.nextInt(300),
+    ),
+    _ => GlossSurfacePresentation(
+      text: alternate
+          ? '&c&l! &fLOW HEALTH &8┃ '
+                '&c{{ fixed(viewer.health, 1) }}'
+          : '$accent┃ &7tps &f{{ fixed(server.tps, 1) }} '
+                '&8┃ &7online &f{{ server.online }}&8/&7'
+                '{{ server.max }}',
+      slots: slots,
+      priority: alternate ? 'modal' : 'status',
+      ttlTicks: 20 + random.nextInt(200),
+    ),
+  };
+
+  return GlossSurfaceDoc(
+    schemaVersion: current.schemaVersion,
+    revision: current.revision,
+    surface: kind,
+    select: GlossSurfaceSelect(
+      priority: random.nextInt(40),
+      when: showcasePick(random, const <String>[
+        'viewer.health > 0',
+        "viewer.world != 'hidden_world'",
+        'server.online >= 0',
+        "inGroup('viewer', 'default')",
+      ]),
+    ),
+    presentation: present(alternate: false),
+    variants: <GlossSurfaceVariant>[
+      if (random.nextBool())
+        GlossSurfaceVariant(
+          id: 'critical',
+          priority: 40,
+          when: 'viewer.healthPercent <= 25',
+          presentation: present(alternate: true),
+        ),
+    ],
+  )..extras['show'] = showcaseShow(random, viewerAware: true);
 }
 
 GlossEmojiDoc buildRandomEmojiShowcase(

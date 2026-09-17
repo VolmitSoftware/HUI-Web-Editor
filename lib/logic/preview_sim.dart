@@ -122,6 +122,7 @@ const List<String> previewStandardVariableNames = <String>[
   'player.ping',
   'player.health',
   'player.level',
+  'player.bedrock',
 ];
 
 /// [PreviewSim.variableNames] without needing a live instance: which names a

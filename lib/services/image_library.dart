@@ -29,6 +29,10 @@ const int huiMaxImagePathLength = 256;
 /// or inexpensive general-purpose image surface.
 const int huiRecommendedMaxImageDimension = 16;
 
+/// `FaviconCache.REQUIRED_SIZE` — the server list takes one size and no
+/// other, so a server icon is never scaled to fit the way a text image is.
+const int huiFaviconImageDimension = 64;
+
 const int huiMaxStoredImageBytes = 512 * 1024;
 const int huiMaxDecodedImageDimension = 4096;
 const int huiMaxDecodedImagePixels = 4096 * 4096;
@@ -107,6 +111,45 @@ NormalizedImageData? normalizeUploadedPng(
     dataUri: '$huiNormalizedPngDataUriPrefix${base64Encode(png)}',
     width: normalized.width,
     height: normalized.height,
+  );
+}
+
+/// The server-list icon rule. `FaviconCache` refuses any file that is not
+/// exactly [huiFaviconImageDimension] square and leaves the vanilla icon in
+/// place (`FaviconCache.java:67-71`), so an upload that would have to be
+/// resized is refused here instead of being stored as bytes the ping drops.
+/// An accepted file keeps its own pixels: re-encoded to canonical PNG, never
+/// scaled.
+NormalizedImageData? normalizeUploadedFavicon(String dataUri) {
+  final Uint8List? bytes = decodeDataUriBytes(dataUri);
+  if (bytes == null) return null;
+  final img.Image? decoded = img.decodePng(bytes);
+  if (decoded == null) return null;
+  if (decoded.width != huiFaviconImageDimension ||
+      decoded.height != huiFaviconImageDimension) {
+    return null;
+  }
+  return NormalizedImageData(
+    dataUri:
+        '$huiNormalizedPngDataUriPrefix${base64Encode(img.encodePng(decoded))}',
+    width: decoded.width,
+    height: decoded.height,
+  );
+}
+
+/// Why [width]x[height] cannot be a server icon, or null when it can.
+ImageLocalizedMessage? faviconSizeRefusal(String name, int width, int height) {
+  if (width == huiFaviconImageDimension && height == huiFaviconImageDimension) {
+    return null;
+  }
+  return () => huiText(
+    '"{name}" is {width}x{height}; a server icon must be exactly {required}x{required}.',
+    <String, Object?>{
+      'name': name,
+      'width': width,
+      'height': height,
+      'required': huiFaviconImageDimension,
+    },
   );
 }
 
@@ -1018,6 +1061,112 @@ class ImageLibrary extends ChangeNotifier {
       added: candidates,
       errors: errors,
       warnings: warnings,
+      quotaExceeded: false,
+    );
+  }
+
+  /// Adds MOTD server icons. Unlike [addFromFiles], which fits a text image
+  /// into the 16x16 glyph budget, this keeps the file's own pixels: the
+  /// server list sends the icon as a picture, and `FaviconCache` refuses
+  /// anything that is not exactly [huiFaviconImageDimension] square
+  /// (`FaviconCache.java:67-71`). A file of any other size is refused here,
+  /// named and measured, rather than silently resized into bytes a ping would
+  /// throw away.
+  Future<ImageAddOutcome> addFaviconsFromFiles(
+    List<Object> files, {
+    bool replaceExisting = true,
+  }) async {
+    if (files.isEmpty) return ImageAddOutcome.empty;
+    final List<StoredImage> candidates = <StoredImage>[];
+    final List<ImageLocalizedMessage> errors = <ImageLocalizedMessage>[];
+    for (final Object file in files) {
+      final DecodedImageBatch? decoded = await decodeImageFileToPngFrames(file);
+      if (decoded == null || decoded.frames.isEmpty) {
+        errors.add(
+          () => huiText(
+            'A file could not be decoded as an image and was skipped.',
+          ),
+        );
+        continue;
+      }
+      final String decodedName = decoded.name;
+      if (decoded.totalFrames != 1) {
+        errors.add(
+          () => huiText(
+            '"{name}" is animated; a server icon must be a still image.',
+            <String, Object?>{'name': decodedName},
+          ),
+        );
+        continue;
+      }
+      final DecodedImageFile frame = decoded.frames.first;
+      final ImageLocalizedMessage? refusal = faviconSizeRefusal(
+        decodedName,
+        frame.width,
+        frame.height,
+      );
+      if (refusal != null) {
+        errors.add(refusal);
+        continue;
+      }
+      final NormalizedImageData? icon = normalizeUploadedFavicon(frame.dataUri);
+      if (icon == null) {
+        errors.add(
+          () => huiText(
+            '"{name}" could not be normalized as a PNG.',
+            <String, Object?>{'name': decodedName},
+          ),
+        );
+        continue;
+      }
+      String path = _withPngExtension(sanitizeImagePath(decodedName));
+      if (!replaceExisting &&
+          (_paths.contains(path) ||
+              candidates.any((StoredImage image) => image.path == path))) {
+        path = _uniquePath(path, candidates);
+      }
+      candidates.removeWhere((StoredImage candidate) => candidate.path == path);
+      candidates.add(
+        StoredImage(
+          path: path,
+          dataUri: icon.dataUri,
+          width: icon.width,
+          height: icon.height,
+        ),
+      );
+    }
+    if (candidates.isEmpty) {
+      return ImageAddOutcome._localized(
+        added: const <StoredImage>[],
+        errors: errors,
+        warnings: const <ImageLocalizedMessage>[],
+        quotaExceeded: false,
+      );
+    }
+    final bool stored = _commit(() {
+      for (final StoredImage image in candidates) {
+        final int index = _images.indexWhere(
+          (StoredImage current) => current.path == image.path,
+        );
+        if (index >= 0) {
+          _images[index] = image;
+        } else {
+          _images.add(image);
+        }
+      }
+    });
+    if (!stored) {
+      return ImageAddOutcome._localized(
+        added: const <StoredImage>[],
+        errors: <ImageLocalizedMessage>[...errors, _quotaMessage],
+        warnings: const <ImageLocalizedMessage>[],
+        quotaExceeded: true,
+      );
+    }
+    return ImageAddOutcome._localized(
+      added: candidates,
+      errors: errors,
+      warnings: const <ImageLocalizedMessage>[],
       quotaExceeded: false,
     );
   }

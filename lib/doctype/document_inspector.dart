@@ -19,10 +19,12 @@ import '../components/inspector/entity_overlay_inspector.dart';
 import '../components/inspector/hologram_inspector.dart';
 import '../components/inspector/inspector_session.dart';
 import '../components/inspector/menu_inspector.dart';
+import '../components/inspector/connections_inspector.dart';
 import '../components/inspector/motd_inspector.dart';
 import '../components/inspector/panel_inspector.dart';
 import '../components/inspector/preview_element_editor.dart';
 import '../components/inspector/scoreboard_inspector.dart';
+import '../components/inspector/surface_inspector.dart';
 import '../components/inspector/tablist_inspector.dart';
 import '../components/inspector/preview_match_editor.dart';
 import '../components/inspector/real_drop_inspector.dart';
@@ -66,7 +68,9 @@ final Map<WorkspaceDocKind, DocumentInspectorBuilder> _builders =
       DocumentTypes.hologram.kind: _hologramBody,
       DocumentTypes.animation.kind: _animationBody,
       DocumentTypes.scoreboard.kind: _scoreboardBody,
+      DocumentTypes.surface.kind: _surfaceBody,
       DocumentTypes.motd.kind: _motdBody,
+      DocumentTypes.connections.kind: _connectionsBody,
       DocumentTypes.emoji.kind: _emojiBody,
       DocumentTypes.bubbleStyle.kind: _bubbleBody,
       DocumentTypes.damageIndicators.kind: _damageIndicatorsBody,
@@ -101,8 +105,16 @@ List<Widget> _scoreboardBody(DocumentInspectorScope scope) => <Widget>[
   ),
 ];
 
+List<Widget> _surfaceBody(DocumentInspectorScope scope) => <Widget>[
+  SurfaceInspector(store: scope.store),
+];
+
 List<Widget> _motdBody(DocumentInspectorScope scope) => <Widget>[
   MotdInspector(store: scope.store),
+];
+
+List<Widget> _connectionsBody(DocumentInspectorScope scope) => <Widget>[
+  ConnectionsInspector(store: scope.store),
 ];
 
 List<Widget> _emojiBody(DocumentInspectorScope scope) => <Widget>[

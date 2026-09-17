@@ -59,6 +59,7 @@ void main() {
     expect(huiEditorSyncDocumentKinds, <String>[
       'animation',
       'bubble-style',
+      'connections',
       'container-preview',
       'damage-indicators',
       'emoji',
@@ -69,6 +70,7 @@ void main() {
       'panel',
       'real-drops',
       'scoreboard',
+      'surface',
       'tablist',
     ]);
     expect(DocumentTypes.containerPreview.syncWireKind, 'container-preview');
@@ -92,7 +94,27 @@ void main() {
       fixture['canonicalWithoutBaseRevision'],
     );
     expect(editorSyncProjectRevision(project), project['baseRevision']);
-    expect(EditorSyncProject.decode(project).kind, 'workspace');
+    // The fixture's bytes are the frozen pin of the canonicalization and
+    // revision algorithms, so its sampled constraint arrays are whatever the
+    // registry held on the day it was captured. Decoding is a separate
+    // smoke check, and `_validateConstraintShape` compares against the live
+    // registry, so it gets today's kind list rather than the frozen one.
+    final Map<String, dynamic> constraints = <String, dynamic>{
+      ...project['constraints']! as Map<String, dynamic>,
+      'documentKinds': huiEditorSyncDocumentKinds,
+      'createDocumentKinds': huiEditorSyncDocumentKinds,
+    };
+    final Map<String, dynamic> current = <String, dynamic>{
+      ...project,
+      'constraints': constraints,
+    };
+    // `decode` re-derives the revision from the content it is given, so the
+    // rebuilt project carries its own.
+    current['baseRevision'] = editorSyncProjectRevision(<String, dynamic>{
+      for (final MapEntry<String, dynamic> entry in current.entries)
+        if (entry.key != 'baseRevision') entry.key: entry.value,
+    });
+    expect(EditorSyncProject.decode(current).kind, 'workspace');
   });
 
   test(

@@ -133,6 +133,8 @@ void main() {
             expect(value, isA<double>(), reason: entry.name);
           case 'string':
             expect(value, isA<String>(), reason: entry.name);
+          case 'boolean':
+            expect(value, isA<bool>(), reason: entry.name);
           default:
             fail('unhandled standard type ${entry.type} for ${entry.name}');
         }

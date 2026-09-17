@@ -16,9 +16,12 @@ const String huiPreviewFolder = '${huiPluginFolder}previews/';
 const String huiHologramFolder = '${huiPluginFolder}holograms/';
 const String huiAnimationFolder = '${huiPluginFolder}animations/';
 const String huiScoreboardFolder = '${huiPluginFolder}boards/';
+const String huiSurfaceFolder = '${huiPluginFolder}surfaces/';
 const String huiEmojiFolder = '${huiPluginFolder}emoji/';
 const String huiBubbleFolder = '${huiPluginFolder}bubbles/';
 const String huiMotdFile = '${huiPluginFolder}motd.json';
+const String huiConnectionsFile =
+    '${huiPluginFolder}connections.json';
 const String huiTablistFile = '${huiPluginFolder}tablist.json';
 const String huiRealDropsFile = '${huiPluginFolder}real-drops/default.json';
 const String huiDamageIndicatorsFile =

@@ -23,6 +23,8 @@ class ImageUploadButton extends StatefulWidget {
     required this.inputId,
     this.label,
     this.onAdded,
+    this.upload,
+    this.multiple = true,
     super.key,
   });
 
@@ -36,6 +38,14 @@ class ImageUploadButton extends StatefulWidget {
   /// Called with the paths that were stored, so the caller can select one.
   final void Function(List<String> paths)? onAdded;
 
+  /// How picked files enter the library. Null takes the text-image path,
+  /// which fits every upload into the 16x16 glyph budget; the MOTD favicon
+  /// fields pass `addFaviconsFromFiles`, which keeps 64x64 bytes intact.
+  final Future<ImageAddOutcome> Function(List<Object> files)? upload;
+
+  /// False for a field that names exactly one file, such as a server icon.
+  final bool multiple;
+
   @override
   State<ImageUploadButton> createState() => _ImageUploadButtonState();
 }
@@ -43,6 +53,10 @@ class ImageUploadButton extends StatefulWidget {
 class _ImageUploadButtonState extends State<ImageUploadButton> {
   bool _busy = false;
   ImageLocalizedMessage? _message;
+
+  /// A refusal is not a caveat on a stored file: it reads as danger so an
+  /// upload that produced nothing cannot be mistaken for one that worked.
+  bool _refused = false;
 
   Future<void> _handleFiles() async {
     final List<Object> files = readInputFiles(component.inputId);
@@ -52,13 +66,16 @@ class _ImageUploadButtonState extends State<ImageUploadButton> {
       _busy = true;
       _message = null;
     });
-    final ImageAddOutcome outcome = await component.images.addFromFiles(files);
+    final Future<ImageAddOutcome> Function(List<Object> files) upload =
+        component.upload ?? component.images.addFromFiles;
+    final ImageAddOutcome outcome = await upload(files);
     final List<String> paths = outcome.added
         .map((StoredImage image) => image.path)
         .toList();
     if (paths.isNotEmpty) component.onAdded?.call(paths);
     setState(() {
       _busy = false;
+      _refused = outcome.hasErrors;
       _message = outcome.hasErrors
           ? outcome.errorMessages.first
           : (outcome.hasWarnings ? outcome.warningMessages.first : null);
@@ -87,7 +104,7 @@ class _ImageUploadButtonState extends State<ImageUploadButton> {
         attributes: <String, String>{
           'type': 'file',
           'accept': 'image/*',
-          'multiple': 'multiple',
+          if (component.multiple) 'multiple': 'multiple',
         },
         styles: const dom.Styles(
           raw: <String, String>{
@@ -100,7 +117,11 @@ class _ImageUploadButtonState extends State<ImageUploadButton> {
         ),
         events: <String, EventCallback>{'change': (_) => _handleFiles()},
       ),
-      if (_message != null) HuiNote(_message!(), tone: HuiNoteTone.warning),
+      if (_message != null)
+        HuiNote(
+          _message!(),
+          tone: _refused ? HuiNoteTone.danger : HuiNoteTone.warning,
+        ),
     ]);
   }
 }

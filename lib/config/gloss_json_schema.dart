@@ -27,6 +27,7 @@ import '../model/gloss_motd.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
 import '../model/gloss_scoreboard.dart';
+import '../model/gloss_surface.dart';
 import '../model/gloss_tablist.dart';
 import 'gloss_menu_json_schema.dart';
 
@@ -309,6 +310,247 @@ final GlossJsonObject glossScoreboardJsonSchema = GlossJsonObject(
   ],
 );
 
+// --- surface ----------------------------------------------------------------
+
+const GlossJsonObject _surfaceSelectNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Highest matching priority wins its lane.',
+      docKey: 'surface.select.priority',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary:
+          'Typed boolean expression. Omitted, this is false, so the document '
+          'never shows.',
+      docKey: 'condition.when',
+      defaultLiteral: '"false"',
+    ),
+  ],
+);
+
+final GlossJsonObject _surfacePresentationNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'text',
+      type: GlossJsonType.string,
+      title: 'Action-bar text',
+      summary: 'The action-bar line. Required there, dropped everywhere else.',
+      docKey: 'surface.presentation.text',
+      defaultLiteral: '""',
+    ),
+    const GlossJsonField(
+      key: 'title',
+      type: GlossJsonType.string,
+      title: 'Title',
+      summary:
+          'The boss-bar or title line. Required on both, dropped on an '
+          'action bar.',
+      docKey: 'surface.presentation.title',
+      defaultLiteral: '""',
+    ),
+    const GlossJsonField(
+      key: 'subtitle',
+      type: GlossJsonType.string,
+      title: 'Subtitle',
+      summary: 'Second line of a title card. Dropped on the other two.',
+      docKey: 'surface.presentation.subtitle',
+      defaultLiteral: '""',
+    ),
+    const GlossJsonField(
+      key: 'progress',
+      type: GlossJsonType.string,
+      title: 'Progress',
+      summary:
+          'Boss-bar fill as an expression yielding 0 through 1. Omitted, '
+          'this is "1".',
+      docKey: 'surface.presentation.progress',
+      defaultLiteral: '"1"',
+    ),
+    GlossJsonField(
+      key: 'color',
+      type: GlossJsonType.string,
+      title: 'Boss-bar colour',
+      summary: 'One of the seven Bukkit boss-bar colours.',
+      docKey: 'surface.presentation.color',
+      values: _values(glossSurfaceColors),
+      defaultLiteral: '"$glossSurfaceDefaultColor"',
+    ),
+    GlossJsonField(
+      key: 'style',
+      type: GlossJsonType.string,
+      title: 'Notch style',
+      summary: 'How many notches the boss bar is cut into.',
+      docKey: 'surface.presentation.style',
+      values: _values(glossSurfaceStyles),
+      defaultLiteral: '"$glossSurfaceDefaultStyle"',
+    ),
+    GlossJsonField(
+      key: 'slots',
+      type: GlossJsonType.array,
+      title: 'Slots',
+      summary: 'Which HUD lanes the line claims. Omitted, this is ["center"].',
+      docKey: 'surface.presentation.slots',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.string,
+        itemTitle: 'Slot',
+        itemSummary: 'One of left, center, right.',
+        itemValues: _values(glossSurfaceSlots),
+      ),
+    ),
+    GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.string,
+      title: 'Compositor lane',
+      summary: 'Which HUD band the line competes in.',
+      docKey: 'surface.presentation.priority',
+      values: _values(glossSurfacePriorities),
+      defaultLiteral: '"$glossSurfaceDefaultPriority"',
+    ),
+    const GlossJsonField(
+      key: 'ttlTicks',
+      type: GlossJsonType.integer,
+      title: 'Lifetime',
+      summary:
+          'How long one delivery lives. Silently clamped to '
+          '$glossSurfaceMinTtlTicks..$glossSurfaceMaxTtlTicks.',
+      docKey: 'surface.presentation.ttlTicks',
+    ),
+    const GlossJsonField(
+      key: 'fadeInTicks',
+      type: GlossJsonType.integer,
+      title: 'Fade in',
+      summary:
+          'Title fade-in. Silently clamped to '
+          '$glossSurfaceMinFadeTicks..$glossSurfaceMaxFadeTicks.',
+      docKey: 'surface.presentation.fadeInTicks',
+      defaultLiteral: '$glossSurfaceDefaultFadeInTicks',
+    ),
+    const GlossJsonField(
+      key: 'stayTicks',
+      type: GlossJsonType.integer,
+      title: 'Stay',
+      summary:
+          'How long a title holds. Silently clamped to '
+          '$glossSurfaceMinFadeTicks..$glossSurfaceMaxFadeTicks.',
+      docKey: 'surface.presentation.stayTicks',
+      defaultLiteral: '$glossSurfaceDefaultStayTicks',
+    ),
+    const GlossJsonField(
+      key: 'fadeOutTicks',
+      type: GlossJsonType.integer,
+      title: 'Fade out',
+      summary:
+          'Title fade-out. Silently clamped to '
+          '$glossSurfaceMinFadeTicks..$glossSurfaceMaxFadeTicks.',
+      docKey: 'surface.presentation.fadeOutTicks',
+      defaultLiteral: '$glossSurfaceDefaultFadeOutTicks',
+    ),
+    GlossJsonField(
+      key: 'trigger',
+      type: GlossJsonType.string,
+      title: 'Trigger',
+      summary: 'When a title card replays.',
+      docKey: 'surface.presentation.trigger',
+      values: _values(glossSurfaceTriggers),
+      defaultLiteral: '"$glossSurfaceDefaultTrigger"',
+    ),
+    const GlossJsonField(
+      key: 'repeatTicks',
+      type: GlossJsonType.integer,
+      title: 'Repeat interval',
+      summary:
+          'Ticks between replays of a repeating title. Silently clamped to '
+          '$glossSurfaceMinRepeatTicks..$glossSurfaceMaxRepeatTicks and never '
+          'shorter than the stay.',
+      docKey: 'surface.presentation.repeatTicks',
+    ),
+  ],
+);
+
+final GlossJsonObject _surfaceVariantNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Variant id',
+      summary: 'Stable unique id; the smaller id wins a priority tie.',
+    ),
+    const GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Highest matching variant priority wins.',
+      defaultLiteral: '0',
+    ),
+    const GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Typed boolean expression. Blank rejects the whole file.',
+      docKey: 'condition.when',
+      defaultLiteral: '"false"',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Presentation',
+      summary: 'Complete replacement presentation used when this variant wins.',
+      node: _surfacePresentationNode,
+    ),
+  ],
+);
+
+final GlossJsonObject glossSurfaceJsonSchema = GlossJsonObject(
+  fields: <GlossJsonField>[
+    _schemaVersionField(1),
+    _revisionField,
+    glossShowField,
+    GlossJsonField(
+      key: 'surface',
+      type: GlossJsonType.string,
+      title: 'Surface',
+      summary:
+          'Which client surface this document draws on. Decides which '
+          'presentation fields survive.',
+      docKey: 'surface.surface',
+      values: _values(glossSurfaceKinds),
+      defaultLiteral: '"$glossSurfaceKindActionbar"',
+    ),
+    const GlossJsonField(
+      key: 'select',
+      type: GlossJsonType.object,
+      title: 'Selection',
+      summary: 'Document-level lane and eligibility condition.',
+      node: _surfaceSelectNode,
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Default presentation',
+      summary: 'The fallback line for the chosen surface.',
+      node: _surfacePresentationNode,
+    ),
+    GlossJsonField(
+      key: 'variants',
+      type: GlossJsonType.array,
+      title: 'Conditional variants',
+      summary: 'Complete alternative lines selected by condition and priority.',
+      node: GlossJsonArray(
+        item: _surfaceVariantNode,
+        itemTitle: 'Variant',
+        itemSummary: 'One condition and the complete line it draws.',
+      ),
+    ),
+  ],
+);
+
 // --- MOTD -------------------------------------------------------------------
 
 const GlossJsonObject _motdEntryNode = GlossJsonObject(
@@ -323,14 +565,109 @@ const GlossJsonObject _motdEntryNode = GlossJsonObject(
       docKey: 'motd.lines',
       node: _textLinesNode,
     ),
+    GlossJsonField(
+      key: 'favicon',
+      type: GlossJsonType.string,
+      title: 'Icon override',
+      summary: 'Replaces the document icon for this entry only.',
+      docKey: 'motd.entries.favicon',
+    ),
+    GlossJsonField(
+      key: 'sample',
+      type: GlossJsonType.array,
+      title: 'Hover sample',
+      summary:
+          'Up to $glossMotdMaxSampleLines lines under the player count. '
+          'Paper only.',
+      docKey: 'motd.entries.sample',
+      node: _motdSampleNode,
+    ),
+    GlossJsonField(
+      key: 'online',
+      type: GlossJsonType.string,
+      title: 'Online count',
+      summary: 'Text that has to render to a number. Paper only.',
+      docKey: 'motd.entries.online',
+    ),
+    GlossJsonField(
+      key: 'max',
+      type: GlossJsonType.string,
+      title: 'Max players',
+      summary: 'Text that has to render to a number. Works on Spigot too.',
+      docKey: 'motd.entries.max',
+    ),
+    GlossJsonField(
+      key: 'version',
+      type: GlossJsonType.string,
+      title: 'Version label',
+      summary:
+          'Shown where the ping bars sit when the protocol does not match. '
+          'Paper only.',
+      docKey: 'motd.entries.version',
+    ),
   ],
 );
+
+const GlossJsonArray _motdSampleNode = GlossJsonArray(
+  itemType: GlossJsonType.string,
+  itemTitle: 'Hover line',
+  itemSummary: 'One line of the hover list, through the Gloss text pipeline.',
+);
+
+const GlossJsonObject _motdLinkNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'type',
+      type: GlossJsonType.string,
+      title: 'Link type',
+      summary: 'One of the ten kinds the client labels itself.',
+      docKey: 'motd.links.type',
+      values: _motdLinkTypeValues,
+    ),
+    GlossJsonField(
+      key: 'label',
+      type: GlossJsonType.string,
+      title: 'Link label',
+      summary: 'Your own wording, for a link with no type.',
+      docKey: 'motd.links.label',
+    ),
+    GlossJsonField(
+      key: 'url',
+      type: GlossJsonType.string,
+      title: 'Link url',
+      summary: 'Required http or https address with a host.',
+      docKey: 'motd.links.url',
+    ),
+  ],
+);
+
+const List<GlossJsonValue> _motdLinkTypeValues = <GlossJsonValue>[
+  GlossJsonValue('"report_bug"'),
+  GlossJsonValue('"community_guidelines"'),
+  GlossJsonValue('"support"'),
+  GlossJsonValue('"status"'),
+  GlossJsonValue('"feedback"'),
+  GlossJsonValue('"community"'),
+  GlossJsonValue('"website"'),
+  GlossJsonValue('"forums"'),
+  GlossJsonValue('"news"'),
+  GlossJsonValue('"announcements"'),
+];
 
 final GlossJsonObject glossMotdJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(1),
     _revisionField,
     glossShowField,
+    const GlossJsonField(
+      key: 'favicon',
+      type: GlossJsonType.string,
+      title: 'Server icon',
+      summary:
+          'The 64x64 server-list icon under plugins/Gloss/images/, used by '
+          'every entry. Blank keeps the vanilla one.',
+      docKey: 'motd.favicon',
+    ),
     const GlossJsonField(
       key: 'entries',
       type: GlossJsonType.array,
@@ -343,6 +680,147 @@ final GlossJsonObject glossMotdJsonSchema = GlossJsonObject(
         itemTitle: 'Entry',
         itemSummary: 'One MOTD candidate.',
       ),
+    ),
+    const GlossJsonField(
+      key: 'links',
+      type: GlossJsonType.array,
+      title: 'Server links',
+      summary:
+          'Up to $glossMotdMaxLinks pause-menu links, published once per '
+          'revision.',
+      docKey: 'motd.links',
+      node: GlossJsonArray(
+        item: _motdLinkNode,
+        itemType: GlossJsonType.object,
+        itemTitle: 'Server link',
+        itemSummary: 'One pause-menu link: a type or a label, plus a url.',
+      ),
+    ),
+  ],
+);
+
+// --- connections ------------------------------------------------------------
+
+const GlossJsonObject _connectionsPresentationNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'text',
+      type: GlossJsonType.string,
+      title: 'Message',
+      summary:
+          'The chat line, rendered once per reader. {{ subject.name }} is who '
+          'connected, {{ viewer.name }} is who is reading.',
+      docKey: 'connections.text',
+      defaultLiteral: '""',
+    ),
+  ],
+);
+
+const GlossJsonObject _connectionsVariantNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Highest matching priority replaces the base message.',
+      docKey: 'connections.variants.priority',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Typed boolean expression. Blank rejects the whole file.',
+      docKey: 'connections.variants.when',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Message',
+      summary: 'The line this variant sends instead.',
+      node: _connectionsPresentationNode,
+    ),
+  ],
+);
+
+const GlossJsonObject _connectionsSectionNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Enabled',
+      summary: 'A block that is here is on unless this says otherwise.',
+      docKey: 'connections.enabled',
+      defaultLiteral: 'true',
+    ),
+    glossShowField,
+    GlossJsonField(
+      key: 'audience',
+      type: GlossJsonType.string,
+      title: 'Audience',
+      summary:
+          'Proxy setting. A standalone server is the whole network and '
+          'broadcasts either way.',
+      docKey: 'connections.audience',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"network"', summary: 'Everyone on the network.'),
+        GlossJsonValue('"server"', summary: 'Only this backend server.'),
+      ],
+      defaultLiteral: '"network"',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Message',
+      summary: 'The line this event broadcasts.',
+      node: _connectionsPresentationNode,
+    ),
+    GlossJsonField(
+      key: 'variants',
+      type: GlossJsonType.array,
+      title: 'Conditional messages',
+      summary: 'Alternative lines chosen per reader by condition and priority.',
+      docKey: 'connections.variants',
+      node: GlossJsonArray(
+        item: _connectionsVariantNode,
+        itemType: GlossJsonType.object,
+        itemTitle: 'Conditional message',
+        itemSummary: 'One condition and the line it sends.',
+      ),
+    ),
+  ],
+);
+
+final GlossJsonObject glossConnectionsJsonSchema = GlossJsonObject(
+  fields: <GlossJsonField>[
+    _schemaVersionField(1),
+    _revisionField,
+    glossShowField,
+    const GlossJsonField(
+      key: 'join',
+      type: GlossJsonType.object,
+      title: 'Join message',
+      summary: 'Broadcast when a player connects. Leave it out to say nothing.',
+      docKey: 'connections.join',
+      node: _connectionsSectionNode,
+    ),
+    const GlossJsonField(
+      key: 'leave',
+      type: GlossJsonType.object,
+      title: 'Leave message',
+      summary:
+          'Broadcast when a player disconnects. Leave it out to say nothing.',
+      docKey: 'connections.leave',
+      node: _connectionsSectionNode,
+    ),
+    const GlossJsonField(
+      key: 'switch',
+      type: GlossJsonType.any,
+      title: 'Server switch (proxy only)',
+      summary:
+          'Read and ignored here: a backend never sees a switch. Kept for the '
+          'proxy that shares this file.',
+      docKey: 'connections.switch',
     ),
   ],
 );
@@ -1817,7 +2295,6 @@ final GlossJsonObject _entityOverlayLineNode = GlossJsonObject(
   ],
 );
 
-
 final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(glossEntityOverlaysCurrentSchemaVersion),
@@ -1964,7 +2441,9 @@ final Map<String, GlossJsonObject> glossJsonSchemas = <String, GlossJsonObject>{
   'hologram': glossHologramJsonSchema,
   'animation': glossAnimationJsonSchema,
   'scoreboard': glossScoreboardJsonSchema,
+  'surface': glossSurfaceJsonSchema,
   'motd': glossMotdJsonSchema,
+  'connections': glossConnectionsJsonSchema,
   'emoji': glossEmojiJsonSchema,
   'bubbleStyle': glossBubbleStyleJsonSchema,
   'tablist': glossTablistJsonSchema,

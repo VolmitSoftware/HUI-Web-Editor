@@ -9,6 +9,7 @@ import 'gloss_text.dart'
     show
         GlossEmojiResolver,
         GlossLineRender,
+        GlossTextExpressionSamples,
         GlossNoEmoji,
         glossMenuTextNeedsRefresh,
         glossLineMetricRefs,
@@ -161,10 +162,15 @@ List<HuiIssue> validateIconDisplayStyle(
 List<HuiIssue> glossTextExpressionIssues(
   Iterable<({String path, String text})> fields, {
   bool playerBacked = true,
+  GlossTextExpressionSamples expressionSamples =
+      const GlossTextExpressionSamples(),
 }) {
   final List<HuiIssue> issues = <HuiIssue>[];
   for (final ({String path, String text}) field in fields) {
-    final GlossLineRender rendered = renderGlossLine(field.text);
+    final GlossLineRender rendered = renderGlossLine(
+      field.text,
+      expressionSamples: expressionSamples,
+    );
     for (final String error in rendered.expressionErrors) {
       issues.add(
         HuiIssue(
@@ -396,6 +402,109 @@ const Set<String> _playerHeadViewerTokens = <String>{
   '%player%',
   '{{player.name}}',
 };
+
+/// The rules every field that names a file under `plugins/Gloss/images/`
+/// shares. The path is resolved against that one folder, so anything that
+/// could point outside it is refused, and a path the image library does not
+/// hold is called out because the exported zip will not carry it.
+///
+/// [blankIsEmptyError] is for the fields that require an image; a field where
+/// blank means "no image" passes false and gets no issues for an empty path.
+List<HuiIssue> glossImagePathIssues(
+  String path,
+  String jsonPath, {
+  Set<String>? knownImagePaths,
+  String? componentId,
+  bool blankIsEmptyError = true,
+}) {
+  final List<HuiIssue> issues = <HuiIssue>[];
+  if (path.trim().isEmpty) {
+    if (blankIsEmptyError) {
+      issues.add(
+        HuiIssue(
+          severity: HuiSeverity.error,
+          path: jsonPath,
+          message: 'Image path is empty',
+          componentId: componentId,
+          fix: 'Pick an image from the library',
+        ),
+      );
+    }
+    return issues;
+  }
+  if (path.startsWith('/')) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: jsonPath,
+        message:
+            'Image path must not start with "/": it is resolved relative to '
+            'plugins/Gloss/images/',
+        componentId: componentId,
+        fix: 'Drop the leading slash',
+      ),
+    );
+  }
+  if (path.contains(':')) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: jsonPath,
+        message: 'Image path must not contain ":"',
+        componentId: componentId,
+        fix: 'Use a path relative to plugins/Gloss/images/',
+      ),
+    );
+  }
+  if (path.contains('..')) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: jsonPath,
+        message: 'Image path must not contain ".."',
+        componentId: componentId,
+        fix: 'Use a path relative to plugins/Gloss/images/',
+      ),
+    );
+  }
+  if (path.contains(r'\')) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: jsonPath,
+        message: r'Image path must not contain "\"',
+        componentId: componentId,
+        fix: 'Use forward slashes',
+      ),
+    );
+  }
+  if (path.length > 256) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: jsonPath,
+        message: 'Image path is longer than 256 characters',
+        componentId: componentId,
+        fix: 'Rename the image to something shorter',
+      ),
+    );
+  }
+  final Set<String>? known = knownImagePaths;
+  if (known != null && !known.contains(path)) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.info,
+        path: jsonPath,
+        message:
+            'Image "{path}" is not in the image library; make sure it exists in plugins/Gloss/images/',
+        messageArguments: <String, Object?>{'path': path},
+        componentId: componentId,
+        fix: 'Upload the image so it ships with the exported zip',
+      ),
+    );
+  }
+  return issues;
+}
 
 class _Validator {
   _Validator({
@@ -1204,68 +1313,14 @@ class _Validator {
     }
   }
 
-  void _validateImagePath(String path, String jsonPath) {
-    if (path.trim().isEmpty) {
-      _add(
-        HuiSeverity.error,
-        jsonPath,
-        'Image path is empty',
-        fix: 'Pick an image from the library',
-      );
-      return;
-    }
-    if (path.startsWith('/')) {
-      _add(
-        HuiSeverity.error,
-        jsonPath,
-        'Image path must not start with "/": it is resolved relative to '
-        'plugins/Gloss/images/',
-        fix: 'Drop the leading slash',
-      );
-    }
-    if (path.contains(':')) {
-      _add(
-        HuiSeverity.error,
-        jsonPath,
-        'Image path must not contain ":"',
-        fix: 'Use a path relative to plugins/Gloss/images/',
-      );
-    }
-    if (path.contains('..')) {
-      _add(
-        HuiSeverity.error,
-        jsonPath,
-        'Image path must not contain ".."',
-        fix: 'Use a path relative to plugins/Gloss/images/',
-      );
-    }
-    if (path.contains(r'\')) {
-      _add(
-        HuiSeverity.error,
-        jsonPath,
-        r'Image path must not contain "\"',
-        fix: 'Use forward slashes',
-      );
-    }
-    if (path.length > 256) {
-      _add(
-        HuiSeverity.error,
-        jsonPath,
-        'Image path is longer than 256 characters',
-        fix: 'Rename the image to something shorter',
-      );
-    }
-    final Set<String>? known = knownImagePaths;
-    if (known != null && !known.contains(path)) {
-      _add(
-        HuiSeverity.info,
-        jsonPath,
-        "Image \"{path}\" is not in the image library; make sure it exists in plugins/Gloss/images/",
-        fix: 'Upload the image so it ships with the exported zip',
-        messageArguments: <String, Object?>{'path': path},
-      );
-    }
-  }
+  void _validateImagePath(String path, String jsonPath) => issues.addAll(
+    glossImagePathIssues(
+      path,
+      jsonPath,
+      knownImagePaths: knownImagePaths,
+      componentId: _componentId,
+    ),
+  );
 
   void _validateMaterial(String material, String path) {
     if (material.isEmpty) {

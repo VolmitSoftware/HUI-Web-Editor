@@ -9,6 +9,7 @@ import 'package:gloss_editor/doctype/doctype.dart';
 import 'package:gloss_editor/logic/animation_validation.dart';
 import 'package:gloss_editor/logic/bubble_validation.dart';
 import 'package:gloss_editor/logic/gloss_text.dart';
+import 'package:gloss_editor/logic/motd_validation.dart';
 import 'package:gloss_editor/logic/preview_card_edit.dart';
 import 'package:gloss_editor/logic/preview_card_scene.dart';
 import 'package:gloss_editor/logic/preview_sim.dart';
@@ -482,6 +483,46 @@ void main() {
       expect(modes, glossAnimationModes.toSet());
     },
   );
+
+  test('random MOTD documents author links, samples, counts and versions', () {
+    bool anyLinks = false;
+    bool anyTyped = false;
+    bool anyLabelled = false;
+    bool anySample = false;
+    bool anyCount = false;
+    bool anyVersion = false;
+    for (int seed = 0; seed < 64; seed++) {
+      final GlossMotdDoc doc = buildRandomMotdShowcase(
+        GlossMotdDoc(),
+        math.Random(seed),
+      );
+      expect(doc.links.length, lessThanOrEqualTo(glossMotdMaxLinks));
+      anyLinks = anyLinks || doc.links.isNotEmpty;
+      anyTyped =
+          anyTyped || doc.links.any((GlossMotdLink link) => !link.isLabelled);
+      anyLabelled =
+          anyLabelled || doc.links.any((GlossMotdLink link) => link.isLabelled);
+      for (final GlossMotdEntry entry in doc.entries) {
+        expect(entry.sample.length, lessThanOrEqualTo(glossMotdMaxSampleLines));
+        anySample = anySample || entry.sample.isNotEmpty;
+        anyCount = anyCount || entry.online != null || entry.max != null;
+        anyVersion = anyVersion || entry.version != null;
+      }
+      expect(
+        validateMotdDoc(
+          doc,
+        ).where((HuiIssue issue) => issue.severity == HuiSeverity.error),
+        isEmpty,
+        reason: 'seed $seed',
+      );
+    }
+    expect(anyLinks, isTrue);
+    expect(anyTyped, isTrue);
+    expect(anyLabelled, isTrue);
+    expect(anySample, isTrue);
+    expect(anyCount, isTrue);
+    expect(anyVersion, isTrue);
+  });
 
   test('random MOTD and scoreboard are complete fake server examples', () {
     final GlossAnimationResolver animations = _store().workspaceAnimations;

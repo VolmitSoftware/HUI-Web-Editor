@@ -74,7 +74,11 @@ final class MotdDocumentType extends GlossDocumentTypeAdapter {
   List<HuiIssue> validate(DocumentStateView state) {
     final GlossDoc? doc = state.glossDoc;
     if (doc is! GlossMotdDoc) return const <HuiIssue>[];
-    return validateMotdDoc(doc, animations: state.workspaceAnimations);
+    return validateMotdDoc(
+      doc,
+      animations: state.workspaceAnimations,
+      knownImagePaths: state.images?.paths,
+    );
   }
 
   @override
@@ -112,12 +116,14 @@ final class MotdDocumentType extends GlossDocumentTypeAdapter {
               name: 'Rotating showcase',
               description:
                   'Four server-safe entries with time-driven colours, live '
-                  'server counts, RGB math and a reusable animation. No '
-                  'player/PAPI values are faked during server-list ping.',
+                  'server counts, RGB math and a reusable animation, plus a '
+                  'hover sample, a version label and three pause-menu links. '
+                  'No player/PAPI values are faked during server-list ping.',
               highlights: const <String>[
                 '4 entries',
                 'Two-line entries',
                 'Authored code',
+                'Server links',
               ],
               create: (EditorStore store) => store.newGlossDocument(
                 this,

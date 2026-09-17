@@ -65,6 +65,7 @@ class _ExportDialogState extends State<ExportDialog> {
 
   bool get _fixedFileName =>
       _wireKind == 'motd' ||
+      _wireKind == 'connections' ||
       _wireKind == 'tablist' ||
       _wireKind == 'real-drops' ||
       _wireKind == 'entity-overlays' ||
@@ -72,6 +73,7 @@ class _ExportDialogState extends State<ExportDialog> {
 
   String get _fileName => switch (_wireKind) {
     'motd' => 'motd.json',
+    'connections' => 'connections.json',
     'tablist' => 'tablist.json',
     'real-drops' => 'default.json',
     'damage-indicators' => 'default.json',
@@ -84,7 +86,9 @@ class _ExportDialogState extends State<ExportDialog> {
     'hologram' => '$huiHologramFolder$_fileName',
     'animation' => '$huiAnimationFolder$_fileName',
     'scoreboard' => '$huiScoreboardFolder$_fileName',
+    'surface' => '$huiSurfaceFolder$_fileName',
     'motd' => huiMotdFile,
+    'connections' => huiConnectionsFile,
     'emoji' => '$huiEmojiFolder$_fileName',
     'bubble-style' => '$huiBubbleFolder$_fileName',
     'tablist' => huiTablistFile,

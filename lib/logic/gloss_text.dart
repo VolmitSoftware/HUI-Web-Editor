@@ -823,12 +823,19 @@ final class GlossTextExpressionSamples {
     this.placeholders = _defaultExpressionPlaceholders,
     this.metrics = _defaultExpressionMetrics,
     this.serverTps = 19.8,
+    this.bedrockViewer = false,
     this.values = const <String, Object>{},
   });
 
   final Map<String, Object> placeholders;
   final Map<String, double> metrics;
   final double serverTps;
+
+  /// What `player.bedrock` answers for the sampled viewer. The browser has no
+  /// Geyser to ask, so the simulated viewer is a Java client unless a surface
+  /// says otherwise.
+  final bool bedrockViewer;
+
   final Map<String, Object> values;
 }
 
@@ -924,6 +931,8 @@ final class GlossTextExpressionScope extends PExprScope {
         return viewerAware ? _sampleNumber('player_health') : null;
       case 'player.level':
         return viewerAware ? _sampleNumber('player_level') : null;
+      case 'player.bedrock':
+        return viewerAware ? samples.bedrockViewer : null;
       case 'server.online':
         return _sampleNumber('server_online');
       case 'server.maxPlayers':

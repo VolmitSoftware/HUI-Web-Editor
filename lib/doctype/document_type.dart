@@ -155,7 +155,12 @@ enum DocumentSurface {
   hologram,
   animation,
   scoreboard,
+
+  /// The HUD lanes a surface document draws in: action bar, boss bar,
+  /// title.
+  hud,
   motd,
+  connections,
   emoji,
   bubble,
   damageIndicators,

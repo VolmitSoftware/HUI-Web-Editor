@@ -5,6 +5,31 @@ import '../model/preview_doc.dart';
 import 'preview_expr.dart';
 import 'validation.dart';
 
+/// The sampled viewer, subject and server a surface is previewed and checked
+/// against. `GlossConditionScope` resolves the same names off real entities
+/// (`GlossConditionScope.entityValue`), so a document that reads them in a
+/// condition reads them in its text too, and the editor has to answer both
+/// from one table or the two would disagree.
+const Map<String, Object> glossScopedSampleValues = <String, Object>{
+  'viewer.name': 'Builder',
+  'viewer.world': 'world',
+  'viewer.health': 18.0,
+  'viewer.maxHealth': 20.0,
+  'viewer.healthPercent': 90.0,
+  'viewer.level': 27.0,
+  'viewer.ping': 42.0,
+  'viewer.gameMode': 'SURVIVAL',
+  'subject.name': 'Builder',
+  'subject.world': 'world',
+  'source.name': 'Builder',
+  'source.world': 'world',
+  'world.name': 'world',
+  'world.time': 6000.0,
+  'server.online': 86.0,
+  'server.max': 250.0,
+  'server.tps': 19.8,
+};
+
 const List<String> glossShowVariables = <String>[
   'viewer.name',
   'viewer.world',
@@ -101,25 +126,7 @@ final class GlossShowScope extends PExprScope {
   final int nowMs;
   final bool viewerAware;
   final GlossConditionContext _defaults = GlossConditionContext(
-    variables: <String, Object?>{
-      'viewer.name': 'Builder',
-      'viewer.world': 'world',
-      'viewer.health': 18.0,
-      'viewer.maxHealth': 20.0,
-      'viewer.healthPercent': 90.0,
-      'viewer.level': 27.0,
-      'viewer.ping': 42.0,
-      'viewer.gameMode': 'SURVIVAL',
-      'subject.name': 'Builder',
-      'subject.world': 'world',
-      'source.name': 'Builder',
-      'source.world': 'world',
-      'world.name': 'world',
-      'world.time': 6000.0,
-      'server.online': 86.0,
-      'server.max': 250.0,
-      'server.tps': 19.8,
-    },
+    variables: <String, Object?>{...glossScopedSampleValues},
     groups: <String>{'default'},
     placeholders: <String, String>{
       'player_name': 'Builder',

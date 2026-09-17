@@ -6,8 +6,18 @@
 /// renders its joined lines through `renderStatic` — text functions (so
 /// `|animation.<id>|`) and colours apply, PlaceholderAPI tokens stay literal
 /// because a ping has no viewer. The entry chips address one entry directly.
-/// The ping bars and player count are
-/// cosmetic — the client fills those, never the plugin.
+/// The 64x64 icon slot draws the resolved favicon (the entry's own, else the
+/// document's) straight from the image library; a path the library holds no
+/// bytes for leaves the vanilla placeholder, exactly as a ping without an icon
+/// does.
+///
+/// The rest of `applyExtras` draws too, through `motd_preview.dart`: the
+/// counts read `online/max` when the entry authors them and the sampled figure
+/// when it does not, the version label takes the ping-bar slot the client
+/// gives it when a protocol does not match, and the hover sample is markup the
+/// stylesheet reveals under the count. The bars and the sampled count are
+/// cosmetic — the client fills those, never the plugin — and nothing here can
+/// know whether the server runs Paper, so all four draw regardless.
 ///
 /// With `gameContext` the server row mounts into the shared game-screen frame
 /// as the multiplayer GUI screen it already looks like — no HUD behind it,
@@ -23,7 +33,9 @@ import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show EventCallback;
 
 import '../../logic/gloss_text.dart';
+import '../../logic/motd_preview.dart';
 import '../../model/model.dart';
+import '../../services/image_library.dart';
 import '../../state/editor_store.dart';
 import '../gloss/gloss_game_screen.dart';
 import '../gloss/gloss_preview_zoom.dart';
@@ -103,40 +115,82 @@ class _MotdViewState extends State<MotdView> {
     final int shown = doc.entries.isEmpty
         ? 0
         : _entryIndex.clamp(0, doc.entries.length - 1);
+    final int nowMs = _sampledAtMs;
     final GlossMotdEntry? entry = doc.entries.isEmpty
         ? null
         : doc.entries[shown];
-    final List<String> lines =
-        entry == null ||
-            !glossShowMatches(
+    // A document whose `show` is false never reaches `applyExtras` at all
+    // (`handlePing` returns first), so the whole ping stays the server's.
+    final GlossMotdEntry? ping =
+        entry != null &&
+            glossShowMatches(
               doc.extras['show'],
-              nowMs: _sampledAtMs,
+              nowMs: nowMs,
               viewerAware: false,
             )
+        ? entry
+        : null;
+    final List<String> lines = ping == null
         ? const <String>[]
-        : entry.lines.take(glossMotdMaxLinesPerEntry).toList();
-    final int nowMs = _sampledAtMs;
+        : ping.lines.take(glossMotdMaxLinesPerEntry).toList();
+    final List<String> sample = glossMotdSampleLines(ping);
+    final String? version = glossMotdVersionLabel(ping);
 
     final Widget row = dom.div(classes: 'hui-motd-row', <Widget>[
-      const dom.div(classes: 'hui-motd-icon', <Widget>[
-        dom.span(classes: 'hui-motd-icon-glyph', <Widget>[Text('▚')]),
-      ]),
+      _icon(entry == null ? null : doc.faviconFor(entry)),
       dom.div(classes: 'hui-motd-row-body', <Widget>[
         dom.div(classes: 'hui-motd-row-head', <Widget>[
           dom.span(classes: 'hui-motd-server-name', <Widget>[
             Text(huiText('My Server')),
           ]),
           dom.span(classes: 'hui-motd-row-status', <Widget>[
-            const dom.span(classes: 'hui-motd-players', <Widget>[
-              Text('17/100'),
-            ]),
-            dom.span(classes: 'hui-motd-ping', <Widget>[
-              for (int bar = 0; bar < 5; bar++)
-                dom.span(
-                  classes: 'hui-motd-ping-bar${bar < 4 ? ' is-filled' : ''}',
-                  const <Widget>[],
+            dom.div(classes: 'hui-motd-count', <Widget>[
+              dom.span(classes: 'hui-motd-players', <Widget>[
+                Text(
+                  glossMotdPlayerCount(
+                    ping,
+                    animations: animations,
+                    emoji: _store.workspaceEmoji,
+                    nowMs: nowMs,
+                  ),
                 ),
+              ]),
+              if (sample.isNotEmpty)
+                dom.div(classes: 'hui-motd-sample', <Widget>[
+                  for (final String line in sample)
+                    dom.div(classes: 'hui-motd-sample-line', <Widget>[
+                      GlossTextLine(
+                        render: renderGlossLine(
+                          line,
+                          animations: animations,
+                          emoji: _store.workspaceEmoji,
+                          nowMs: nowMs,
+                          viewerAware: false,
+                        ),
+                      ),
+                    ]),
+                ]),
             ]),
+            if (version != null)
+              dom.span(classes: 'hui-motd-version', <Widget>[
+                GlossTextLine(
+                  render: renderGlossLine(
+                    version,
+                    animations: animations,
+                    emoji: _store.workspaceEmoji,
+                    nowMs: nowMs,
+                    viewerAware: false,
+                  ),
+                ),
+              ])
+            else
+              dom.span(classes: 'hui-motd-ping', <Widget>[
+                for (int bar = 0; bar < 5; bar++)
+                  dom.span(
+                    classes: 'hui-motd-ping-bar${bar < 4 ? ' is-filled' : ''}',
+                    const <Widget>[],
+                  ),
+              ]),
           ]),
         ]),
         if (entry == null)
@@ -209,6 +263,30 @@ class _MotdViewState extends State<MotdView> {
     ]);
   }
 
+  /// The 64x64 server-list slot. The image library already holds every
+  /// uploaded and synced asset as a data URI, so the resolved icon draws for
+  /// real; a path the library has no bytes for keeps the vanilla placeholder,
+  /// which is what the client shows when the server sends no icon.
+  Widget _icon(String? favicon) {
+    final StoredImage? stored = favicon == null
+        ? null
+        : _store.images?.byPath(favicon);
+    if (stored == null) {
+      return const dom.div(classes: 'hui-motd-icon', <Widget>[
+        dom.span(classes: 'hui-motd-icon-glyph', <Widget>[Text('▚')]),
+      ]);
+    }
+    return dom.div(classes: 'hui-motd-icon has-favicon', <Widget>[
+      dom.img(
+        src: stored.dataUri,
+        alt: stored.path,
+        styles: const dom.Styles(
+          raw: <String, String>{'image-rendering': 'pixelated'},
+        ),
+      ),
+    ]);
+  }
+
   Widget _refresh() => Button(
     variant: ButtonVariant.outline,
     size: ButtonSize.iconSm,
@@ -231,6 +309,8 @@ class _MotdViewState extends State<MotdView> {
                 'total': doc.entries.length,
               },
             ),
+      if (entry != null && entry.sample.isNotEmpty)
+        huiText('hover the count to read the sample'),
       if (entry != null && entry.lines.length > glossMotdMaxLinesPerEntry)
         huiPlural(
           'motd.readout.excess-lines',

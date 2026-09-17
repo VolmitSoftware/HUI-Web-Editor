@@ -18,7 +18,20 @@ void main() {
         'presentation': <String, Object>{},
         'variants': <Object>[],
       },
+      'surface': <String, Object>{
+        'schemaVersion': 1,
+        'surface': 'bossbar',
+        'select': <String, Object>{},
+        'presentation': <String, Object>{'title': '&6Boss'},
+        'variants': <Object>[],
+      },
       'motd': <String, Object>{'schemaVersion': 1, 'entries': <Object>[]},
+      'connections': <String, Object>{
+        'schemaVersion': 1,
+        'join': <String, Object>{
+          'presentation': <String, Object>{'text': '&a+'},
+        },
+      },
       'emoji': <String, Object>{'schemaVersion': 1, 'emoji': 'U+2764;'},
       'bubble-style': <String, Object>{'schemaVersion': 4, 'wordWrapChars': 32},
       'tablist': <String, Object>{

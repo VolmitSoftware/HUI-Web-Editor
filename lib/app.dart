@@ -12,8 +12,10 @@ import 'components/bubble/bubble_view.dart';
 import 'components/damage_indicators/damage_indicator_view.dart';
 import 'components/emoji/emoji_view.dart';
 import 'components/entity_overlays/entity_overlay_view.dart';
+import 'components/connections/connections_view.dart';
 import 'components/motd/motd_view.dart';
 import 'components/scoreboard/scoreboard_view.dart';
+import 'components/surface/surface_view.dart';
 import 'components/real_drops/real_drops_view.dart';
 import 'components/tablist/tablist_view.dart';
 import 'components/hologram/hologram_view.dart';
@@ -956,7 +958,9 @@ class _AppState extends State<App> {
           DocumentSurface.hologram: HologramView(store: _store),
           DocumentSurface.animation: AnimationView(store: _store),
           DocumentSurface.scoreboard: ScoreboardView(store: _store),
+          DocumentSurface.hud: SurfaceView(store: _store),
           DocumentSurface.motd: MotdView(store: _store),
+          DocumentSurface.connections: ConnectionsView(store: _store),
           DocumentSurface.emoji: EmojiView(store: _store),
           DocumentSurface.bubble: BubbleView(store: _store),
           DocumentSurface.damageIndicators: DamageIndicatorView(store: _store),
@@ -994,7 +998,12 @@ class _AppState extends State<App> {
             store: _store,
             gameContext: true,
           ),
+          DocumentSurface.hud: SurfaceView(store: _store, gameContext: true),
           DocumentSurface.motd: MotdView(store: _store, gameContext: true),
+          DocumentSurface.connections: ConnectionsView(
+            store: _store,
+            gameContext: true,
+          ),
           DocumentSurface.emoji: EmojiView(store: _store, gameContext: true),
           DocumentSurface.bubble: BubbleView(store: _store, gameContext: true),
           DocumentSurface.damageIndicators: DamageIndicatorView(

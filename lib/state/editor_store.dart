@@ -332,10 +332,23 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     return doc is GlossScoreboardDoc ? doc : null;
   }
 
+  /// The active surface, or null while another kind is open.
+  GlossSurfaceDoc? get surfaceDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossSurfaceDoc ? doc : null;
+  }
+
   /// The active MOTD document, or null while another kind is open.
   GlossMotdDoc? get motdDoc {
     final GlossDoc? doc = _glossDoc;
     return doc is GlossMotdDoc ? doc : null;
+  }
+
+  /// The active connection-message document, or null while another kind is
+  /// open.
+  GlossConnectionsDoc? get connectionsDoc {
+    final GlossDoc? doc = _glossDoc;
+    return doc is GlossConnectionsDoc ? doc : null;
   }
 
   /// The active emoji document, or null while another kind is open.
@@ -1103,7 +1116,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     'hologram' => huiText('hologram'),
     'animation' => huiText('animation'),
     'scoreboard' => huiText('scoreboard'),
+    'surface' => huiText('surface'),
     'MOTD' => huiText('MOTD'),
+    'connection messages' => huiText('connection messages'),
     'emoji' => huiText('emoji'),
     'bubble style' => huiText('bubble style'),
     'tablist' => huiText('tablist'),
@@ -1259,10 +1274,29 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     mutateGloss(label, (GlossDoc _) => fn(doc));
   }
 
+  /// Typed arm of [mutateGloss] for the surface inspector and HUD mock; a
+  /// no-op while the active document is not a surface.
+  void mutateSurface(String label, void Function(GlossSurfaceDoc doc) fn) {
+    final GlossSurfaceDoc? doc = surfaceDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
   /// Typed arm of [mutateGloss] for the MOTD inspector and surface; a no-op
   /// while the active document is not a MOTD.
   void mutateMotd(String label, void Function(GlossMotdDoc doc) fn) {
     final GlossMotdDoc? doc = motdDoc;
+    if (doc == null) return;
+    mutateGloss(label, (GlossDoc _) => fn(doc));
+  }
+
+  /// Typed arm of [mutateGloss] for the connection-message inspector and
+  /// surface; a no-op while another kind is open.
+  void mutateConnections(
+    String label,
+    void Function(GlossConnectionsDoc doc) fn,
+  ) {
+    final GlossConnectionsDoc? doc = connectionsDoc;
     if (doc == null) return;
     mutateGloss(label, (GlossDoc _) => fn(doc));
   }

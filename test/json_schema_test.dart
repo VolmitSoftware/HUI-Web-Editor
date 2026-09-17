@@ -19,9 +19,11 @@ import 'package:gloss_editor/model/gloss_damage_indicators.dart';
 import 'package:gloss_editor/model/gloss_emoji.dart';
 import 'package:gloss_editor/model/gloss_entity_overlays.dart';
 import 'package:gloss_editor/model/gloss_hologram.dart';
+import 'package:gloss_editor/model/gloss_connections.dart';
 import 'package:gloss_editor/model/gloss_motd.dart';
 import 'package:gloss_editor/model/gloss_real_drops.dart';
 import 'package:gloss_editor/model/gloss_scoreboard.dart';
+import 'package:gloss_editor/model/gloss_surface.dart';
 import 'package:gloss_editor/model/gloss_tablist.dart';
 import 'package:gloss_editor/model/hui_actions.dart';
 import 'package:gloss_editor/model/hui_component.dart';
@@ -181,8 +183,30 @@ const String _scoreboard =
     '"variants":[{"id":"low","priority":20,"when":"viewer.health<5",'
     '"presentation":{"title":"low","lines":["b"],"hideNumbers":true}}]}';
 
+const String _surface =
+    '{"schemaVersion":1,"revision":2,"show":true,"surface":"title",'
+    '"select":{"priority":10,"when":"true"},'
+    '"presentation":{"text":"t","title":"T","subtitle":"s",'
+    '"progress":"1","color":"blue","style":"segmented_12",'
+    '"slots":["left","center"],"priority":"notice","ttlTicks":60,'
+    '"fadeInTicks":10,"stayTicks":40,"fadeOutTicks":10,'
+    '"trigger":"repeat","repeatTicks":200},'
+    '"variants":[{"id":"low","priority":20,"when":"viewer.health<5",'
+    '"presentation":{"title":"low","subtitle":"x"}}]}';
+
 const String _motd =
-    '{"schemaVersion":1,"revision":2,"entries":[{"lines":["a","b"]}]}';
+    '{"schemaVersion":1,"revision":2,"favicon":"server.png",'
+    '"entries":[{"lines":["a","b"],"favicon":"event.png",'
+    '"sample":["s"],"online":"1","max":"2","version":"v"}],'
+    '"links":[{"type":"website","label":"&bStore","url":"https://x.example"}]}';
+
+const String _connections =
+    '{"schemaVersion":1,"revision":2,"show":true,'
+    '"join":{"enabled":true,"audience":"network",'
+    '"presentation":{"text":"&a+ {{ subject.name }}"},"variants":['
+    '{"priority":5,"when":"true","presentation":{"text":"&6+"}}]},'
+    '"leave":{"enabled":false,"audience":"server",'
+    '"presentation":{"text":"&c-"},"variants":[]}}';
 
 const String _emoji =
     '{"schemaVersion":1,"revision":2,"trigger":"<3","emoji":"U+2764;",'
@@ -213,13 +237,15 @@ void main() {
       expect(_walk(glossMenuJsonSchema, _fullMenu().toJson(), r'$'), isEmpty);
     });
 
-    test('the nine non-menu models resolve every key they write', () {
+    test('the eleven non-menu models resolve every key they write', () {
       final Map<String, Map<String, dynamic>> documents =
           <String, Map<String, dynamic>>{
             'hologram': decodeGlossHologramDoc(_hologram).toJson(),
             'animation': decodeGlossAnimationDoc(_animation).toJson(),
             'scoreboard': decodeGlossScoreboardDoc(_scoreboard).toJson(),
+            'surface': decodeGlossSurfaceDoc(_surface).toJson(),
             'motd': decodeGlossMotdDoc(_motd).toJson(),
+            'connections': decodeGlossConnectionsDoc(_connections).toJson(),
             'emoji': decodeGlossEmojiDoc(_emoji).toJson(),
             'bubbleStyle': decodeGlossBubbleStyleDoc(_bubble).toJson(),
             'tablist': decodeGlossTablistDoc(_tablist).toJson(),
@@ -258,13 +284,15 @@ void main() {
     });
 
     test('every editable kind has a model and the editor-only ones do not', () {
-      expect(glossJsonSchemas.keys, hasLength(11));
+      expect(glossJsonSchemas.keys, hasLength(13));
       for (final String kind in <String>[
         'menu',
         'hologram',
         'animation',
         'scoreboard',
+        'surface',
         'motd',
+        'connections',
         'emoji',
         'bubbleStyle',
         'tablist',
@@ -401,6 +429,78 @@ void main() {
         glossJsonFieldAt(glossMenuJsonSchema, path(<Object>['offset', 'x'])),
         isNull,
       );
+    });
+
+    test('resolves the MOTD favicon at the document and the entry level', () {
+      final GlossJsonField? document = glossJsonFieldAt(
+        glossMotdJsonSchema,
+        <JsonPathStep>[const JsonPathStep.key('favicon')],
+      );
+      expect(document, isNotNull);
+      expect(document!.type, GlossJsonType.string);
+      expect(document.docKey, 'motd.favicon');
+
+      final GlossJsonField? entry =
+          glossJsonFieldAt(glossMotdJsonSchema, <JsonPathStep>[
+            const JsonPathStep.key('entries'),
+            const JsonPathStep.index(0),
+            const JsonPathStep.key('favicon'),
+          ]);
+      expect(entry, isNotNull);
+      expect(entry!.type, GlossJsonType.string);
+      expect(entry.docKey, 'motd.entries.favicon');
+    });
+
+    test('resolves the MOTD links and the per-entry ping extras', () {
+      final GlossJsonField? links = glossJsonFieldAt(
+        glossMotdJsonSchema,
+        <JsonPathStep>[const JsonPathStep.key('links')],
+      );
+      expect(links, isNotNull);
+      expect(links!.type, GlossJsonType.array);
+      expect(links.docKey, 'motd.links');
+
+      for (final (String key, String docKey) in <(String, String)>[
+        ('type', 'motd.links.type'),
+        ('label', 'motd.links.label'),
+        ('url', 'motd.links.url'),
+      ]) {
+        final GlossJsonField? field =
+            glossJsonFieldAt(glossMotdJsonSchema, <JsonPathStep>[
+              const JsonPathStep.key('links'),
+              const JsonPathStep.index(0),
+              JsonPathStep.key(key),
+            ]);
+        expect(field, isNotNull, reason: key);
+        expect(field!.docKey, docKey, reason: key);
+      }
+
+      final GlossJsonField? type =
+          glossJsonFieldAt(glossMotdJsonSchema, <JsonPathStep>[
+            const JsonPathStep.key('links'),
+            const JsonPathStep.index(0),
+            const JsonPathStep.key('type'),
+          ]);
+      expect(
+        type!.values.map((GlossJsonValue value) => value.literal),
+        <String>[for (final String name in glossMotdLinkTypes) '"$name"'],
+      );
+
+      for (final (String key, String docKey) in <(String, String)>[
+        ('sample', 'motd.entries.sample'),
+        ('online', 'motd.entries.online'),
+        ('max', 'motd.entries.max'),
+        ('version', 'motd.entries.version'),
+      ]) {
+        final GlossJsonField? field =
+            glossJsonFieldAt(glossMotdJsonSchema, <JsonPathStep>[
+              const JsonPathStep.key('entries'),
+              const JsonPathStep.index(0),
+              JsonPathStep.key(key),
+            ]);
+        expect(field, isNotNull, reason: key);
+        expect(field!.docKey, docKey, reason: key);
+      }
     });
 
     test('renders a path the way HuiIssue spells one', () {

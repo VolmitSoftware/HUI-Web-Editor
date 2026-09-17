@@ -60,7 +60,8 @@
     "player.name": { "type": "string", "description": "Viewing player's name; unresolved when the surface has no viewer." },
     "player.ping": { "type": "number", "description": "Viewing player's current ping; unresolved when the surface has no viewer." },
     "player.health": { "type": "number", "description": "Viewing player's current health; unresolved when the surface has no viewer." },
-    "player.level": { "type": "number", "description": "Viewing player's current experience level; unresolved when the surface has no viewer." }
+    "player.level": { "type": "number", "description": "Viewing player's current experience level; unresolved when the surface has no viewer." },
+    "player.bedrock": { "type": "boolean", "description": "True when the viewing player joined through Geyser (a Bedrock client); unresolved when the surface has no viewer." }
   },
   "functions": {
     "lang": { "args": ["key: string", "...args: any"], "returns": "string", "description": "Resolves a localization key, binding positional arguments onto its placeholder names in order." },

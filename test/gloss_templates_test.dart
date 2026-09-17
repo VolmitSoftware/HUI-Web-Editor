@@ -16,6 +16,7 @@ import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/logic/mc_text.dart';
 import 'package:gloss_editor/logic/motd_validation.dart';
 import 'package:gloss_editor/logic/scoreboard_validation.dart';
+import 'package:gloss_editor/logic/surface_validation.dart';
 import 'package:gloss_editor/logic/tablist_validation.dart';
 import 'package:gloss_editor/logic/validation.dart';
 import 'package:gloss_editor/model/model.dart';
@@ -345,6 +346,86 @@ void main() {
     });
   });
 
+  group('surface welcome stays the shipped default', () {
+    test('embedded copy matches the fixture and the plugin resource', () {
+      final String fixture = File(
+        'test/fixtures/gloss/surface-welcome.json',
+      ).readAsStringSync();
+      expect(kGlossSurfaceWelcomeJson, fixture);
+      final File plugin = File(
+        glossRepositoryFilePath(
+          'src/main/resources/defaults/surfaces/welcome.json',
+        ),
+      );
+      expect(plugin.existsSync(), isTrue);
+      expect(kGlossSurfaceWelcomeJson, plugin.readAsStringSync());
+    });
+
+    test('builds a fresh model each time and carries Selection.NEVER', () {
+      final GlossSurfaceDoc first = buildDefaultGlossSurface();
+      final GlossSurfaceDoc second = buildDefaultGlossSurface();
+      expect(identical(first, second), isFalse);
+      expect(first.surface, glossSurfaceKindActionbar);
+      expect(first.presentation.text, '&7Welcome, &f{{ player.name }}');
+      expect(first.presentation.priority, 'ambient');
+      expect(first.presentation.ttlTicks, 40);
+      expect(first.select.when, glossSurfaceNeverCondition);
+      final List<HuiIssue> issues = validateSurfaceDoc(first);
+      // The shipped default ships with no selection condition, which is the
+      // one thing about it worth saying out loud.
+      expect(issues.single.severity, HuiSeverity.info);
+      expect(issues.single.path, r'$.select.when');
+    });
+  });
+
+  test('one surface showcase per client surface builds without errors', () {
+    final Map<String, GlossSurfaceDoc> showcases = <String, GlossSurfaceDoc>{
+      glossSurfaceKindActionbar: buildActionbarShowcaseGlossSurface(),
+      glossSurfaceKindBossbar: buildBossbarShowcaseGlossSurface(),
+      glossSurfaceKindTitle: buildTitleShowcaseGlossSurface(),
+    };
+    expect(showcases.keys, glossSurfaceKinds);
+    for (final MapEntry<String, GlossSurfaceDoc> entry in showcases.entries) {
+      final GlossSurfaceDoc doc = entry.value;
+      expect(doc.surface, entry.key, reason: entry.key);
+      expect(doc.variants, hasLength(1), reason: entry.key);
+      expect(
+        doc.select.when,
+        isNot(glossSurfaceNeverCondition),
+        reason: '${entry.key} showcase must actually be selectable',
+      );
+      expect(
+        validateSurfaceDoc(
+          doc,
+        ).where((HuiIssue issue) => issue.severity == HuiSeverity.error),
+        isEmpty,
+        reason: entry.key,
+      );
+    }
+    // Each showcase teaches the knobs only its own surface has.
+    expect(
+      showcases[glossSurfaceKindBossbar]!.presentation.progress,
+      contains('clamp('),
+    );
+    expect(
+      showcases[glossSurfaceKindBossbar]!.presentation.style,
+      'segmented_10',
+    );
+    expect(showcases[glossSurfaceKindTitle]!.presentation.trigger, 'once');
+    expect(
+      showcases[glossSurfaceKindTitle]!
+          .variants
+          .single
+          .presentation
+          .repeatTicks,
+      400,
+    );
+    expect(
+      showcases[glossSurfaceKindActionbar]!.presentation.text,
+      contains('server.tps'),
+    );
+  });
+
   group('motd default stays the shipped default', () {
     test('embedded copy matches the fixture and the plugin resource', () {
       final String fixture = File(
@@ -389,6 +470,36 @@ void main() {
       issues.any(
         (HuiIssue issue) => issue.message.contains('animation.rainbow'),
       ),
+      isTrue,
+    );
+  });
+
+  test('the motd showcase exercises the links and the ping extras', () {
+    final GlossMotdDoc doc = buildShowcaseGlossMotd();
+    expect(doc.links, isNotEmpty);
+    expect(doc.links.length, lessThanOrEqualTo(glossMotdMaxLinks));
+    expect(
+      doc.links.any((GlossMotdLink link) => link.type != null),
+      isTrue,
+      reason: 'one link should teach the client-labelled form',
+    );
+    expect(
+      doc.links.any((GlossMotdLink link) => link.isLabelled),
+      isTrue,
+      reason: 'one link should teach the authored label',
+    );
+    expect(
+      doc.entries.any((GlossMotdEntry entry) => entry.sample.isNotEmpty),
+      isTrue,
+    );
+    expect(
+      doc.entries.any(
+        (GlossMotdEntry entry) => entry.online != null && entry.max != null,
+      ),
+      isTrue,
+    );
+    expect(
+      doc.entries.any((GlossMotdEntry entry) => entry.version != null),
       isTrue,
     );
   });

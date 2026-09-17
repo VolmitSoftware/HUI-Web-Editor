@@ -4,7 +4,7 @@ library;
 import '../model/gloss_doc.dart';
 import '../model/gloss_tablist.dart';
 import 'gloss_text.dart';
-import 'preview_expr.dart';
+import 'gloss_condition_validation.dart';
 import 'validation.dart';
 import 'gloss_show.dart';
 
@@ -232,39 +232,5 @@ void _danglingRefs(
   }
 }
 
-void _validateCondition(String source, String path, List<HuiIssue> issues) {
-  try {
-    final PExpr expression = parsePreviewExpr(source);
-    if (isConstantExpr(expression)) {
-      final Object value = evalPreviewExpr(expression, _EmptyConditionScope());
-      if (value is! bool) {
-        issues.add(
-          HuiIssue(
-            severity: HuiSeverity.error,
-            path: path,
-            message: 'A condition must evaluate to true or false.',
-            fix: 'Use a boolean comparison or boolean literal.',
-          ),
-        );
-      }
-    }
-  } on PExprException catch (error) {
-    issues.add(
-      HuiIssue(
-        severity: HuiSeverity.error,
-        path: path,
-        message: 'Invalid condition: {error}',
-        messageArguments: <String, Object?>{'error': error.message},
-        fix: 'Correct the boolean expression.',
-      ),
-    );
-  }
-}
-
-final class _EmptyConditionScope extends PExprScope {
-  @override
-  Object? call(String name, List<Object?> args) => null;
-
-  @override
-  Object? variable(String dottedName) => null;
-}
+void _validateCondition(String source, String path, List<HuiIssue> issues) =>
+    issues.addAll(glossConditionIssues(source, path));

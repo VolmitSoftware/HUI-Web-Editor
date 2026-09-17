@@ -15,7 +15,10 @@ bool looksLikeScoreboardDoc(Object? json) {
   if (json.containsKey('anchor') ||
       json.containsKey('frames') ||
       json.containsKey('components') ||
-      json.containsKey('elements')) {
+      json.containsKey('elements') ||
+      // A surface document carries the same select/presentation/variants
+      // triple; its `surface` discriminator is what tells the two apart.
+      json.containsKey('surface')) {
     return false;
   }
   return json.containsKey('select') &&

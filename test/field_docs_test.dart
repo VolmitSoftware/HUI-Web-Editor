@@ -41,6 +41,16 @@ const List<String> _handWrittenKeys = <String>[
   'button.hoverEasing',
   'component.id',
   'component.offset',
+  'connections.audience',
+  'connections.enabled',
+  'connections.id',
+  'connections.join',
+  'connections.leave',
+  'connections.switch',
+  'connections.text',
+  'connections.variants',
+  'connections.variants.priority',
+  'connections.variants.when',
   'emoji.emoji',
   'emoji.enabled',
   'emoji.id',
@@ -97,8 +107,18 @@ const List<String> _handWrittenKeys = <String>[
   'menu.maxDistance',
   'menu.offset',
   'motd.entries',
+  'motd.entries.favicon',
+  'motd.entries.max',
+  'motd.entries.online',
+  'motd.entries.sample',
+  'motd.entries.version',
+  'motd.favicon',
   'motd.id',
   'motd.lines',
+  'motd.links',
+  'motd.links.label',
+  'motd.links.type',
+  'motd.links.url',
   'panel.follow.mode',
   'panel.follow.rotation',
   'panel.follow.targetPlayerUuid',
@@ -118,6 +138,23 @@ const List<String> _handWrittenKeys = <String>[
   'scoreboard.presentation.hideNumbers',
   'scoreboard.presentation.lines',
   'scoreboard.presentation.title',
+  'surface.id',
+  'surface.presentation.color',
+  'surface.presentation.fadeInTicks',
+  'surface.presentation.fadeOutTicks',
+  'surface.presentation.priority',
+  'surface.presentation.progress',
+  'surface.presentation.repeatTicks',
+  'surface.presentation.slots',
+  'surface.presentation.stayTicks',
+  'surface.presentation.style',
+  'surface.presentation.subtitle',
+  'surface.presentation.text',
+  'surface.presentation.title',
+  'surface.presentation.trigger',
+  'surface.presentation.ttlTicks',
+  'surface.select.priority',
+  'surface.surface',
   'tablist.headerFooter.enabled',
   'tablist.headerFooter.presentation.footer',
   'tablist.headerFooter.presentation.header',
@@ -444,6 +481,35 @@ void main() {
 
     test('panel rotation is silently wrapped by the server', () {
       expect(body('panel.transform.rotation'), contains('-180 to 180'));
+    });
+
+    test('the MOTD icon rule is a PNG rule, not only a size rule', () {
+      for (final String key in <String>[
+        'motd.favicon',
+        'motd.entries.favicon',
+      ]) {
+        expect(body(key), contains('PNG'), reason: key);
+        expect(body(key), contains('64x64'), reason: key);
+      }
+    });
+
+    test('the ping extras name the Paper event the server edition needs', () {
+      for (final String key in <String>[
+        'motd.entries.sample',
+        'motd.entries.online',
+        'motd.entries.version',
+      ]) {
+        expect(body(key), contains('Paper'), reason: key);
+      }
+      // `max` is plain Bukkit, so it is the one that also works on Spigot.
+      expect(body('motd.entries.max'), contains('Spigot'));
+    });
+
+    test('a link needs a known type or its own label', () {
+      expect(body('motd.links.type'), contains('label'));
+      expect(body('motd.links.label'), contains('type'));
+      expect(body('motd.links.url'), contains('https'));
+      expect(body('motd.links'), contains('16'));
     });
 
     test('a hidden panel still costs work every tick', () {
