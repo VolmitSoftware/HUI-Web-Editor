@@ -150,7 +150,7 @@ class _ParticleLayerCard extends StatelessWidget {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: 'green-glow',
-          onChanged: (String value) =>
+          onChange: (String value) =>
               _edit('particle layer id', (GlossParticleLayer edited) {
                 edited.id = value;
               }),
@@ -217,7 +217,7 @@ class _ParticleLayerCard extends StatelessWidget {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: 'highlight',
-          onChanged: (String value) =>
+          onChange: (String value) =>
               _edit('particle span name', (GlossParticleLayer edited) {
                 edited.target.name = value;
               }),
@@ -235,7 +235,7 @@ class _ParticleLayerCard extends StatelessWidget {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: 'title',
-          onChanged: (String value) =>
+          onChange: (String value) =>
               _edit('particle component id', (GlossParticleLayer edited) {
                 edited.target.component = value;
               }),
@@ -502,7 +502,7 @@ class _ParticleLayerCard extends StatelessWidget {
           size: ComponentSize.sm,
           fullWidth: true,
           placeholder: 'minecraft:dust',
-          onChanged: _setParticleKey,
+          onChange: _setParticleKey,
           styles: huiTechnicalInputStyles,
           attributes: huiTechnicalInputAttributes,
         ),
@@ -643,7 +643,7 @@ class _ParticleLayerCard extends StatelessWidget {
         for (final String option in values)
           ArcaneSelectOption(label: labels[option] ?? option, value: option),
       ],
-      onChanged: onChanged,
+      onChange: onChanged,
     ),
   );
 

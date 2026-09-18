@@ -103,7 +103,7 @@ class _PanelViewState extends State<PanelView> {
             ArcaneSelect(
               value: panel.scopeFolderId ?? _allFoldersValue,
               size: ComponentSize.sm,
-              onChanged: (String value) => _setScope(panel, value),
+              onChange: (String value) => _setScope(panel, value),
               options: <ArcaneSelectOption>[
                 ArcaneSelectOption(
                   label: huiText('All workspace folders'),

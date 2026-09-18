@@ -242,7 +242,7 @@ class _ImportDialogState extends State<ImportDialog> {
           fullWidth: true,
           styles: huiTechnicalInputStyles,
           placeholder: huiText('{ "offset": [0, 1.7, 2.5], "components": [] }'),
-          onChanged: _onText,
+          onChange: _onText,
         ),
       ],
     ),

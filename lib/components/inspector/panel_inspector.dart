@@ -377,7 +377,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
                   value: menu.runtimeId!,
                 ),
             ],
-            onChanged: (String value) =>
+            onChange: (String value) =>
                 _changeDraft(draft.copyWith(rootMenuId: value)),
           ),
         ),
@@ -416,7 +416,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           label: huiText('World key'),
           control: TextInput(
             value: transform.worldKey,
-            onChanged: (String value) => _changeDraft(
+            onChange: (String value) => _changeDraft(
               draft.copyWith(transform: transform.copyWith(worldKey: value)),
             ),
           ),
@@ -425,7 +425,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
           label: huiText('World UUID'),
           control: TextInput(
             value: transform.worldUuid,
-            onChanged: (String value) => _changeDraft(
+            onChange: (String value) => _changeDraft(
               draft.copyWith(transform: transform.copyWith(worldUuid: value)),
             ),
           ),
@@ -563,7 +563,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
                 value: 'player',
               ),
             ],
-            onChanged: (String value) => _setFollowMode(draft, value),
+            onChange: (String value) => _setFollowMode(draft, value),
           ),
         ),
         if (follow.mode == RuntimePanelFollowMode.player) ...<Widget>[
@@ -580,7 +580,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
               size: ComponentSize.sm,
               fullWidth: true,
               placeholder: '00000000-0000-4000-8000-000000000000',
-              onChanged: (String value) => _changeDraft(
+              onChange: (String value) => _changeDraft(
                 draft.copyWith(
                   follow: RuntimePanelFollow(
                     mode: RuntimePanelFollowMode.player,
@@ -618,7 +618,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
                   value: 'full',
                 ),
               ],
-              onChanged: (String value) => _setFollowRotation(draft, value),
+              onChange: (String value) => _setFollowRotation(draft, value),
             ),
           ),
         ],
@@ -657,7 +657,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
               ),
               ArcaneSelectOption(label: huiText('Hidden'), value: 'hidden'),
             ],
-            onChanged: (String value) => _setVisibilityMode(draft, value),
+            onChange: (String value) => _setVisibilityMode(draft, value),
           ),
         ),
         if (visibility.mode == RuntimePanelVisibilityMode.permission)
@@ -876,7 +876,7 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
     size: ComponentSize.sm,
     fullWidth: true,
     placeholder: huiText('myserver.gloss.panel'),
-    onChanged: (String raw) => onChanged(_optionalText(raw)),
+    onChange: (String raw) => onChanged(_optionalText(raw)),
     attributes: const <String, String>{
       'autocomplete': 'off',
       'spellcheck': 'false',

@@ -650,7 +650,7 @@ class RealDropAnimationInspector extends StatelessWidget {
       size: ComponentSize.sm,
       fullWidth: true,
       styles: huiTechnicalInputStyles,
-      onChanged: changed,
+      onChange: changed,
       attributes: huiTechnicalInputAttributes,
     ),
   );
@@ -680,7 +680,7 @@ class RealDropAnimationInspector extends StatelessWidget {
       value: value,
       fullWidth: true,
       size: ComponentSize.sm,
-      onChanged: changed,
+      onChange: changed,
       options: <ArcaneSelectOption>[
         for (final ({String label, String value}) option in options)
           ArcaneSelectOption(label: option.label, value: option.value),

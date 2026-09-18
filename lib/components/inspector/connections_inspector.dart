@@ -248,7 +248,7 @@ class _ConnectionsInspectorState extends State<ConnectionsInspector> {
             value: '${variant.priority}',
             size: ComponentSize.sm,
             fullWidth: true,
-            onChanged: (String raw) {
+            onChange: (String raw) {
               final int? parsed = int.tryParse(raw);
               if (parsed == null) return;
               _store.mutateConnections(
@@ -275,7 +275,7 @@ class _ConnectionsInspectorState extends State<ConnectionsInspector> {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: huiText("inGroup('subject', 'staff')"),
-            onChanged: (String value) => _store.mutateConnections(
+            onChange: (String value) => _store.mutateConnections(
               'connection message variant condition',
               (GlossConnectionsDoc edited) =>
                   edited.section(key).variants[index].when = value,
@@ -311,7 +311,7 @@ class _ConnectionsInspectorState extends State<ConnectionsInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: huiText(r'&a+ &f{{ subject.name }} &7joined'),
-        onChanged: onChanged,
+        onChange: onChanged,
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
       ),

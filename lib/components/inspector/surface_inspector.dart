@@ -228,7 +228,7 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
             value: variant.id,
             size: ComponentSize.sm,
             fullWidth: true,
-            onChanged: (String value) => _store.mutateSurface(
+            onChange: (String value) => _store.mutateSurface(
               'surface variant id',
               (GlossSurfaceDoc edited) => edited.variants[index].id = value,
             ),
@@ -490,7 +490,7 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: placeholder,
-        onChanged: onChanged,
+        onChange: onChanged,
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
       ),
@@ -543,7 +543,7 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
           for (final String option in allowed)
             ArcaneSelectOption(value: option, label: option),
         ],
-        onChanged: (String next) => onChanged(next.isEmpty ? null : next),
+        onChange: (String next) => onChanged(next.isEmpty ? null : next),
       ),
       HuiInlineIssues(_issuesFor(path)),
     ]),
@@ -571,7 +571,7 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
         value: value == null ? '' : '$value',
         size: ComponentSize.sm,
         fullWidth: true,
-        onChanged: (String raw) {
+        onChange: (String raw) {
           if (raw.trim().isEmpty) {
             onChanged(null);
             return;
@@ -603,7 +603,7 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
         value: '$value',
         size: ComponentSize.sm,
         fullWidth: true,
-        onChanged: (String raw) {
+        onChange: (String raw) {
           final int? parsed = int.tryParse(raw);
           if (parsed != null) onChanged(parsed);
         },
@@ -631,7 +631,7 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: huiText("viewer.world == 'world'"),
-        onChanged: onChanged,
+        onChange: onChanged,
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
       ),

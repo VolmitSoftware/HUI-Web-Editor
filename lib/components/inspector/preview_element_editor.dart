@@ -323,7 +323,7 @@ class PreviewElementEditor extends StatelessWidget {
                 size: ComponentSize.sm,
                 fullWidth: true,
                 placeholder: huiText('i'),
-                onChanged: (String value) => _mutate(
+                onChange: (String value) => _mutate(
                   'repeat var',
                   (HuiPreviewElement e) => e.repeat?.varName = value,
                 ),

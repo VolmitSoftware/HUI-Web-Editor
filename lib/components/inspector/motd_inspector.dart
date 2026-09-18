@@ -127,7 +127,7 @@ class _MotdInspectorState extends State<MotdInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: huiText('server.png'),
-        onChanged: (String value) => _store.mutateMotd(
+        onChange: (String value) => _store.mutateMotd(
           'server icon',
           (GlossMotdDoc edited) =>
               edited.favicon = value.isEmpty ? null : value,
@@ -180,7 +180,7 @@ class _MotdInspectorState extends State<MotdInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: huiText('event.png'),
-        onChanged: (String value) =>
+        onChange: (String value) =>
             _store.mutateMotd('entry icon', (GlossMotdDoc edited) {
               if (index < edited.entries.length) {
                 edited.entries[index].favicon = value.isEmpty ? null : value;
@@ -298,7 +298,7 @@ class _MotdInspectorState extends State<MotdInspector> {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: huiText('https://example.net'),
-            onChanged: (String value) =>
+            onChange: (String value) =>
                 _store.mutateMotd('link address', (GlossMotdDoc edited) {
                   if (index < edited.links.length) {
                     edited.links[index].url = value;
@@ -323,7 +323,7 @@ class _MotdInspectorState extends State<MotdInspector> {
           for (final String type in glossMotdLinkTypes)
             ArcaneSelectOption(value: type, label: type),
         ],
-        onChanged: (String value) =>
+        onChange: (String value) =>
             _store.mutateMotd('link type', (GlossMotdDoc edited) {
               if (index < edited.links.length) {
                 edited.links[index].type = value;
@@ -343,7 +343,7 @@ class _MotdInspectorState extends State<MotdInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: huiText('&bStore'),
-        onChanged: (String value) =>
+        onChange: (String value) =>
             _store.mutateMotd('link label', (GlossMotdDoc edited) {
               if (index < edited.links.length) {
                 edited.links[index].label = value;
@@ -515,7 +515,7 @@ class _MotdInspectorState extends State<MotdInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: placeholder,
-        onChanged: (String next) =>
+        onChange: (String next) =>
             _store.mutateMotd(historyLabel, (GlossMotdDoc edited) {
               if (index < edited.entries.length) {
                 apply(edited, next.isEmpty ? null : next);

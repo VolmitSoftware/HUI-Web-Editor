@@ -293,7 +293,7 @@ class ComponentInspector extends StatelessWidget {
                   value: value.jsonValue,
                 ),
             ],
-            onChanged: (String next) => _editHover(
+            onChange: (String next) => _editHover(
               'hover easing',
               easing: HuiHoverEasing.fromJson(next),
             ),
@@ -518,7 +518,7 @@ class ComponentInspector extends StatelessWidget {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: huiText('%essentials_fly%'),
-            onChanged: (String value) => store.editComponent(
+            onChange: (String value) => store.editComponent(
               _id,
               'toggle condition',
               (HuiComponent edited) {
@@ -543,7 +543,7 @@ class ComponentInspector extends StatelessWidget {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: huiText('true'),
-            onChanged: (String value) => store.editComponent(
+            onChange: (String value) => store.editComponent(
               _id,
               'toggle expected value',
               (HuiComponent edited) {
@@ -802,9 +802,9 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
                 fullWidth: true,
                 placeholder: huiText('component-id'),
                 prefix: Text(huiText('id'), color: TextColor.muted),
-                onChanged: (String value) => setState(() => _draft = value),
+                onChange: (String value) => setState(() => _draft = value),
                 onBlur: _commit,
-                onSubmitted: (String _) => _commit(),
+                onSubmit: (String _) => _commit(),
                 // Fixed id: a canvas double-click pulls focus here through
                 // `hui-inspector-focus`, which can only address the DOM.
                 attributes: <String, String>{

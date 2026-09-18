@@ -4,7 +4,7 @@
 /// `type: number`. The editing text is local state: an unparseable or empty
 /// entry is never committed, and it reverts to the last good value on blur, so
 /// the document can never receive NaN. The framework's renderer already reads
-/// the DOM value for us (`onChanged` receives the string), so no `package:web`
+/// the DOM value for us (`onChange` receives the string), so no `package:web`
 /// import is needed here.
 library;
 
@@ -171,7 +171,7 @@ class _HuiNumberFieldState extends State<HuiNumberField> {
     final Widget input = TextInput(
       type: TextInputType.number,
       value: _text,
-      onChanged: _onInput,
+      onChange: _onInput,
       onBlur: _onBlur,
       disabled: component.disabled,
       size: component.size,

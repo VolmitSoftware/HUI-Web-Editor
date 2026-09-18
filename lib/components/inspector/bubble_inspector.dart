@@ -136,7 +136,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: '&7',
-            onChanged: (String value) => _store.mutateBubbleStyle(
+            onChange: (String value) => _store.mutateBubbleStyle(
               'bubble prefix',
               (GlossBubbleStyleDoc edited) {
                 edited.prefix = value;
@@ -681,7 +681,7 @@ class _BubbleInspectorState extends State<BubbleInspector> {
                 placeholder: huiText(
                   "viewer.world == 'world' && inGroup('viewer', 'vip')",
                 ),
-                onChanged: (String value) => _store.mutateBubbleStyle(
+                onChange: (String value) => _store.mutateBubbleStyle(
                   'select condition',
                   (GlossBubbleStyleDoc edited) {
                     final GlossBubbleSelect? live = edited.select;

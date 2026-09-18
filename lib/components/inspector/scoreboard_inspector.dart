@@ -181,7 +181,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
             value: variant.id,
             size: ComponentSize.sm,
             fullWidth: true,
-            onChanged: (String value) => _store.mutateScoreboard(
+            onChange: (String value) => _store.mutateScoreboard(
               'scoreboard variant id',
               (GlossScoreboardDoc edited) => edited.variants[index].id = value,
             ),
@@ -241,7 +241,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
             size: ComponentSize.sm,
             fullWidth: true,
             placeholder: huiText('&d&lGloss'),
-            onChanged: (String value) =>
+            onChange: (String value) =>
                 mutate((GlossScoreboardPresentation edited) {
                   edited.title = value;
                 }),
@@ -325,7 +325,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
         value: '$value',
         size: ComponentSize.sm,
         fullWidth: true,
-        onChanged: (String raw) {
+        onChange: (String raw) {
           final int? parsed = int.tryParse(raw);
           if (parsed != null) onChanged(parsed);
         },
@@ -353,7 +353,7 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: huiText("viewer.world == 'world'"),
-        onChanged: onChanged,
+        onChange: onChanged,
         styles: huiTechnicalInputStyles,
         attributes: huiTechnicalInputAttributes,
       ),

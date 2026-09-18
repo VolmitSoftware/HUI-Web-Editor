@@ -168,7 +168,7 @@ class _RealDropExprFieldState extends State<RealDropExprField> {
       fullWidth: true,
       placeholder: component.placeholder,
       error: _syntaxError?.call(),
-      onChanged: _onInput,
+      onChange: _onInput,
       attributes: const <String, String>{
         'autocomplete': 'off',
         'autocapitalize': 'off',
