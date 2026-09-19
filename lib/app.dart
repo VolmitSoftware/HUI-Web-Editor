@@ -7,6 +7,8 @@ import 'components/canvas/canvas.dart';
 import 'components/panel/panel.dart';
 import 'components/code_editor/code_editor_view.dart';
 import 'components/dialogs/dialogs.dart';
+import 'components/dialogs/new_document_dialog.dart';
+import 'components/common/hui_action_menu.dart';
 import 'components/animation/animation_view.dart';
 import 'components/bubble/bubble_view.dart';
 import 'components/damage_indicators/damage_indicator_view.dart';
@@ -48,7 +50,16 @@ import 'state/workspace_bundle.dart';
 import 'state/workspace_route.dart';
 import 'theme/theme_state.dart';
 
-enum _EditorDialog { none, import, export, images, templates, settings, help }
+enum _EditorDialog {
+  none,
+  import,
+  export,
+  images,
+  templates,
+  settings,
+  help,
+  newDocument,
+}
 
 /// Shadcn with every remote asset stripped out.
 ///
@@ -89,6 +100,7 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> {
+  ValueChanged<DocumentTypeAdapter>? _createNewDocument;
   Brightness _brightness = Brightness.dark;
   late String _activeLocale;
   bool _localeLoading = false;
@@ -222,7 +234,26 @@ class _AppState extends State<App> {
     _dialog = dialog;
   });
 
+  void _openNewDocumentDialog(ValueChanged<DocumentTypeAdapter> create) {
+    _createNewDocument = create;
+    _openDialog(_EditorDialog.newDocument);
+    context.binding.addPostFrameCallback(() {
+      if (mounted && _dialog == _EditorDialog.newDocument) {
+        focusHuiActionMenu(NewDocumentDialog.firstChoiceId);
+      }
+    });
+  }
+
+  void _restoreNewDocumentFocus() {
+    if (_dialog != _EditorDialog.newDocument) return;
+    _createNewDocument = null;
+    context.binding.addPostFrameCallback(() {
+      if (mounted) focusHuiActionMenu(NewDocumentDialog.triggerId);
+    });
+  }
+
   void _closeDialog() => setState(() {
+    _restoreNewDocumentFocus();
     _pendingCanvasMedia = null;
     _dialog = _EditorDialog.none;
   });
@@ -273,6 +304,7 @@ class _AppState extends State<App> {
   }
 
   void _closeOverlay() => setState(() {
+    _restoreNewDocumentFocus();
     _pendingCanvasMedia = null;
     _dialog = _EditorDialog.none;
     _validationOpen = false;
@@ -847,9 +879,8 @@ class _AppState extends State<App> {
   void _restoreHistoryVersion(SyncHistoryVersion version, String json) {
     if (_store.menuId != version.id) {
       setState(
-        () => _historyFailure = () => huiText(
-          'Open that document before restoring one of its versions.',
-        ),
+        () => _historyFailure = () =>
+            huiText('Open that document before restoring one of its versions.'),
       );
       return;
     }
@@ -917,8 +948,7 @@ class _AppState extends State<App> {
             ? null
             : () => setState(() => _historyOpen = !_historyOpen),
         serverProblemCount:
-            _syncProblems.all.length +
-            (_syncSession?.conflicts.length ?? 0),
+            _syncProblems.all.length + (_syncSession?.conflicts.length ?? 0),
         serverHistoryCount: _syncHistory.documents.length,
         onCloseOverlay: _closeOverlay,
         syncControls: _syncBinding == null
@@ -937,6 +967,8 @@ class _AppState extends State<App> {
               ),
         rail: EditorRail(
           store: _store,
+          onNewDocument: _openNewDocumentDialog,
+          newDocumentDialogOpen: _dialog == _EditorDialog.newDocument,
           contents: ComponentsRail(store: _store),
           syncBinding: _syncBinding,
           isDarkMode: _brightness == Brightness.dark,
@@ -1048,6 +1080,14 @@ class _AppState extends State<App> {
         ),
         codeEditor: CodeEditorView(store: _store),
         overlays: <Widget>[
+          if (_dialog == _EditorDialog.newDocument)
+            NewDocumentDialog(
+              onClose: _closeDialog,
+              onCreate: (DocumentTypeAdapter type) {
+                _createNewDocument?.call(type);
+                _closeDialog();
+              },
+            ),
           ImportDialog(
             store: _store,
             isOpen: _dialog == _EditorDialog.import,

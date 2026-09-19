@@ -1683,3 +1683,67 @@
   justify-content: flex-end;
   padding: var(--hui-space-2) 0 0;
 }
+
+[data-arcane-surface="dialog"][data-arcane-id="hui-new-document-dialog"] {
+  padding: 0 !important;
+  height: 100dvh;
+  box-sizing: border-box;
+}
+
+[data-arcane-id="hui-new-document-dialog"] .arcane-dialog {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  border: 0 !important;
+  box-sizing: border-box;
+}
+
+[data-arcane-id="hui-new-document-dialog"] .arcane-dialog-header {
+  min-height: 72px;
+  box-sizing: border-box;
+  padding-top: max(24px, env(safe-area-inset-top)) !important;
+  padding-right: max(72px, env(safe-area-inset-right)) !important;
+  padding-left: max(22px, env(safe-area-inset-left)) !important;
+}
+
+[data-arcane-id="hui-new-document-dialog"] .arcane-dialog-close {
+  min-width: 44px;
+  min-height: 44px;
+  top: max(12px, env(safe-area-inset-top)) !important;
+  right: max(12px, env(safe-area-inset-right)) !important;
+}
+
+[data-arcane-id="hui-new-document-dialog"] .arcane-dialog-body {
+  min-height: 0;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+[data-arcane-id="hui-new-document-dialog"] .arcane-dialog-footer {
+  padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
+}
+
+.hui-new-document-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+
+.hui-new-document-grid button {
+  min-width: 0;
+  min-height: 72px;
+  height: auto !important;
+  justify-content: flex-start !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  text-align: left;
+  padding: 16px !important;
+}
+
+[data-arcane-id="hui-new-document-dialog"] .arcane-dialog-footer button {
+  min-height: 44px;
+}
