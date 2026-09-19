@@ -126,7 +126,7 @@ class InventoryView extends StatelessWidget {
         ]),
         dom.div(
           classes: 'hui-inventory-grid',
-          styles: Styles(
+          styles: dom.Styles(
             raw: <String, String>{
               'grid-template-columns': 'repeat(${doc.width}, 1fr)',
             },
