@@ -160,6 +160,38 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
           'The saved document "{title}" was unreadable ({error}) and was replaced with blank real-drop settings.',
           arguments,
         ),
+        WorkspaceDocKind.dialog => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank dialog.',
+          arguments,
+        ),
+        WorkspaceDocKind.inventory => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank inventory.',
+          arguments,
+        ),
+        WorkspaceDocKind.nameplate => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank nameplate.',
+          arguments,
+        ),
+        WorkspaceDocKind.nametag => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank nametag.',
+          arguments,
+        ),
+        WorkspaceDocKind.motion => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank motion clip.',
+          arguments,
+        ),
+        WorkspaceDocKind.rig => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank rig.',
+          arguments,
+        ),
+        WorkspaceDocKind.marker => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank marker.',
+          arguments,
+        ),
+        WorkspaceDocKind.zone => huiText(
+          'The saved document "{title}" was unreadable ({error}) and was replaced with a blank zone.',
+          arguments,
+        ),
         WorkspaceDocKind.menu ||
         WorkspaceDocKind.containerPreview ||
         WorkspaceDocKind.panel => throw StateError(
@@ -214,6 +246,38 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
       ),
       WorkspaceDocKind.realDrops => huiText(
         'The saved document "{title}" was unreadable and was replaced with blank real-drop settings.',
+        arguments,
+      ),
+      WorkspaceDocKind.dialog => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank dialog.',
+        arguments,
+      ),
+      WorkspaceDocKind.inventory => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank inventory.',
+        arguments,
+      ),
+      WorkspaceDocKind.nameplate => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank nameplate.',
+        arguments,
+      ),
+      WorkspaceDocKind.nametag => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank nametag.',
+        arguments,
+      ),
+      WorkspaceDocKind.motion => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank motion clip.',
+        arguments,
+      ),
+      WorkspaceDocKind.rig => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank rig.',
+        arguments,
+      ),
+      WorkspaceDocKind.marker => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank marker.',
+        arguments,
+      ),
+      WorkspaceDocKind.zone => huiText(
+        'The saved document "{title}" was unreadable and was replaced with a blank zone.',
         arguments,
       ),
       WorkspaceDocKind.menu ||

@@ -5600,6 +5600,8 @@ const Set<String> _invariantUnitLocations = <String>{
   'messages["Packard Mill Cobble"]',
   'messages["Roadhouse 45"]',
   'messages["(text, textImage, animatedTextImage, item, block, customItem, entity, "]',
+  'messages["9x3"]',
+  'messages["9x6"]',
 };
 
 void _validateEnglishResidue(

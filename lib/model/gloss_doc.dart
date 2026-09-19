@@ -122,3 +122,41 @@ List<String> glossReadStringList(Object? raw) => <String>[
         ? entry
         : entry.toString(),
 ];
+
+/// `select.priority` plus `select.when` — the board-model offer used by
+/// dialogs, inventories, nameplates and nametags.
+final class GlossPrioritySelect {
+  GlossPrioritySelect({
+    this.priority = 0,
+    this.when = 'false',
+    Map<String, dynamic>? extras,
+  }) : extras = extras ?? <String, dynamic>{};
+
+  int priority;
+  String when;
+  Map<String, dynamic> extras;
+
+  static GlossPrioritySelect fromJson(
+    Object? raw, {
+    String path = r'$.select',
+    String fallbackWhen = 'false',
+  }) {
+    final Map<String, dynamic> map = huiReadObject(raw, path);
+    return GlossPrioritySelect(
+      priority: huiReadInt(map, 'priority'),
+      when: huiReadString(map, 'when', fallback: fallbackWhen),
+      extras: huiCollectExtras(map, const <String>{'priority', 'when'}),
+    );
+  }
+
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'priority': priority,
+    'when': when,
+  }, extras);
+
+  GlossPrioritySelect copy() => GlossPrioritySelect(
+    priority: priority,
+    when: when,
+    extras: huiDeepCopyMap(extras),
+  );
+}

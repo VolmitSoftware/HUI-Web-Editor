@@ -8,14 +8,18 @@ void main() {
       'menu': <String, Object>{'components': <Object>[]},
       'preview': <String, Object>{'elements': <Object>[]},
       'hologram': <String, Object>{
-        'schemaVersion': 2,
-        'anchor': <String, Object>{},
+        'schemaVersion': 3,
+        'anchor': <String, Object>{
+          'world': 'world',
+          'position': <num>[0, 64, 0],
+        },
+        'lines': <Object>[],
       },
       'animation': <String, Object>{'schemaVersion': 1, 'frames': <Object>[]},
       'scoreboard': <String, Object>{
         'schemaVersion': 2,
         'select': <String, Object>{},
-        'presentation': <String, Object>{},
+        'presentation': <String, Object>{'title': '&dBoard'},
         'variants': <Object>[],
       },
       'surface': <String, Object>{
@@ -45,6 +49,50 @@ void main() {
         'damage': <String, Object>{},
         'healing': <String, Object>{},
         'audience': <String, Object>{'when': 'true'},
+      },
+      'dialog': <String, Object>{
+        'schemaVersion': 1,
+        'type': 'notice',
+        'title': 'Hi',
+      },
+      'inventory': <String, Object>{
+        'schemaVersion': 1,
+        'resolution': '9x3',
+        'mask': <String>['###'],
+      },
+      'nameplate': <String, Object>{
+        'schemaVersion': 1,
+        'select': <String, Object>{},
+        'presentation': <String, Object>{
+          'lines': <Object>[
+            <String, Object>{'text': 'name'},
+          ],
+        },
+        'variants': <Object>[],
+      },
+      'nametag': <String, Object>{
+        'schemaVersion': 1,
+        'select': <String, Object>{},
+        'presentation': <String, Object>{'prefix': '&7'},
+        'variants': <Object>[],
+      },
+      'motion': <String, Object>{
+        'schemaVersion': 1,
+        'tracks': <Object>[],
+      },
+      'rig': <String, Object>{
+        'schemaVersion': 1,
+        'bones': <Object>[],
+        'parts': <Object>[],
+      },
+      'marker': <String, Object>{
+        'schemaVersion': 1,
+        'anchor': <String, Object>{'world': 'world', 'x': 0, 'y': 64, 'z': 0},
+        'label': 'pin',
+      },
+      'zone': <String, Object>{
+        'schemaVersion': 1,
+        'shape': <String, Object>{'type': 'cuboid'},
       },
     };
 

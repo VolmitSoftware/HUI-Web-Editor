@@ -15,10 +15,24 @@ const int glossHologramCurrentSchemaVersion = 3;
 /// full checking is `validateHologramDoc`'s job.
 bool looksLikeHologramDoc(Object? json) {
   if (json is! Map) return false;
-  return json['schemaVersion'] is num &&
-      json['anchor'] is Map &&
-      !json.containsKey('components') &&
-      !json.containsKey('elements');
+  if (json['schemaVersion'] is! num || json['anchor'] is! Map) return false;
+  if (json.containsKey('components') || json.containsKey('elements')) {
+    return false;
+  }
+  if (json.containsKey('beam') ||
+      json.containsKey('waypoint') ||
+      json.containsKey('hideWithin')) {
+    return false;
+  }
+  final Object? anchor = json['anchor'];
+  if (anchor is Map &&
+      (anchor.containsKey('entity') ||
+          anchor.containsKey('player') ||
+          (anchor.containsKey('x') && !anchor.containsKey('position')))) {
+    return false;
+  }
+  return json.containsKey('lines') ||
+      (anchor is Map && anchor.containsKey('position'));
 }
 
 GlossHologramDoc decodeGlossHologramDoc(String json) {

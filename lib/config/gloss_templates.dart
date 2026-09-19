@@ -1356,3 +1356,358 @@ GlossTablistDoc buildDefaultGlossTablist() =>
 
 GlossTablistDoc buildShowcaseGlossTablist() =>
     decodeGlossTablistDoc(kGlossTablistShowcaseJson);
+
+const String kGlossDialogBlankJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "false",
+  "type": "notice",
+  "title": "&6Notice",
+  "canCloseWithEscape": true,
+  "pause": false,
+  "afterAction": "close",
+  "body": [
+    {
+      "type": "text",
+      "text": "&7A short notice for {{ viewer.name }}.",
+      "width": 220
+    }
+  ],
+  "buttons": [
+    { "label": "&aOK", "actions": [] }
+  ],
+  "columns": 1,
+  "variants": []
+}
+''';
+
+const String kGlossInventoryBlankJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "false",
+  "title": "&8Chest",
+  "resolution": "9x3",
+  "mask": [
+    "#########",
+    "#.......#",
+    "#########"
+  ],
+  "keys": {
+    "#": {
+      "type": "decoration",
+      "icon": { "type": "item", "item": "minecraft:gray_stained_glass_pane", "name": " " }
+    }
+  },
+  "slots": {},
+  "closeOnTeleport": true,
+  "variants": []
+}
+''';
+
+const String kGlossMarkerDefaultJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "true",
+  "anchor": { "world": "world", "x": 0, "y": 64, "z": 0 },
+  "label": "&6Waypoint",
+  "color": "#FFAA00",
+  "hideWithin": 4,
+  "maxDistance": 256,
+  "beam": { "enabled": true, "height": 48, "width": 0.25, "material": "minecraft:yellow_stained_glass" },
+  "edge": { "enabled": false, "margin": 0.8, "arrow": "&6>" },
+  "trail": { "enabled": false, "particle": "minecraft:end_rod", "spacing": 2, "maxPoints": 48 },
+  "lifetimeTicks": 0,
+  "waypoint": false
+}
+''';
+
+const String kGlossZoneDefaultJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "true",
+  "shape": { "type": "cuboid", "world": "world", "min": [0, 64, 0], "max": [16, 80, 16] },
+  "render": {
+    "mode": "particles",
+    "particle": "minecraft:dust",
+    "color": "#55FFFF",
+    "spacing": 0.75,
+    "wallMaterial": "minecraft:light_blue_stained_glass",
+    "facingOnly": true,
+    "edgesOnly": false
+  },
+  "ambience": { "enabled": false, "particle": "minecraft:ash", "perViewerPerTick": 4, "radius": 12, "when": "true" },
+  "toggle": "gloss.zones.toggle"
+}
+''';
+
+GlossDialogDoc buildBlankGlossDialog() =>
+    decodeGlossDialogDoc(kGlossDialogBlankJson);
+
+GlossDialogDoc buildShowcaseGlossDialog() =>
+    decodeGlossDialogDoc(kGlossDialogExampleJson);
+
+GlossInventoryDoc buildBlankGlossInventory() =>
+    decodeGlossInventoryDoc(kGlossInventoryBlankJson);
+
+GlossInventoryDoc buildShowcaseGlossInventory() =>
+    decodeGlossInventoryDoc(kGlossInventoryExampleJson);
+
+GlossNameplateDoc buildDefaultGlossNameplate() =>
+    decodeGlossNameplateDoc(kGlossNameplateDefaultJson);
+
+GlossNametagDoc buildDefaultGlossNametag() =>
+    decodeGlossNametagDoc(kGlossNametagDefaultJson);
+
+GlossMotionDoc buildDefaultGlossMotion() =>
+    decodeGlossMotionDoc(kGlossMotionBreatheJson);
+
+GlossMotionDoc buildShowcaseGlossMotion() =>
+    decodeGlossMotionDoc(kGlossMotionSpinJson);
+
+GlossRigDoc buildDefaultGlossRig() => decodeGlossRigDoc(kGlossRigPedestalJson);
+
+GlossMarkerDoc buildDefaultGlossMarker() =>
+    decodeGlossMarkerDoc(kGlossMarkerDefaultJson);
+
+GlossZoneDoc buildDefaultGlossZone() =>
+    decodeGlossZoneDoc(kGlossZoneDefaultJson);
+
+const String kGlossDialogExampleJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "false",
+  "type": "multi_action",
+  "title": "&6Trader",
+  "externalTitle": "Trader",
+  "canCloseWithEscape": true,
+  "pause": false,
+  "afterAction": "close",
+  "body": [
+    {
+      "type": "text",
+      "text": "Pick a trade, {{ viewer.name }}.",
+      "width": 220
+    },
+    {
+      "type": "item",
+      "item": { "type": "item", "item": "minecraft:emerald" },
+      "description": "&aEmeralds accepted",
+      "showTooltip": true,
+      "showDecorations": true,
+      "width": 220,
+      "height": 20
+    }
+  ],
+  "inputs": [
+    { "type": "number", "key": "qty", "label": "Quantity", "start": 1, "end": 64, "step": 1, "initial": 1, "width": 200 },
+    { "type": "option", "key": "color", "label": "Color", "options": [
+      { "id": "red", "label": "Red" },
+      { "id": "blue", "label": "Blue", "initial": true }
+    ] },
+    { "type": "bool", "key": "gift", "label": "Gift wrap", "initial": false },
+    { "type": "text", "key": "note", "label": "Note", "initial": "", "maxLength": 32, "multiline": { "maxLines": 2, "height": 40 } }
+  ],
+  "buttons": [
+    {
+      "label": "&aBuy",
+      "tooltip": "Buys {{ input.qty }} {{ input.color }}",
+      "width": 150,
+      "actions": [
+        { "type": "economy", "op": "withdraw", "amount": "{{ input.qty }} * 10", "denyMessage": "&cNot enough coins." },
+        { "type": "message", "message": "&aBought {{ input.qty }} {{ input.color }}." }
+      ]
+    },
+    { "label": "&7Later", "actions": [] }
+  ],
+  "exit": { "label": "Close" },
+  "columns": 2,
+  "fallback": { "inventory": "example" },
+  "variants": []
+}
+''';
+
+const String kGlossInventoryExampleJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "false",
+  "title": "&8Shop &7- {{ viewer.name }}",
+  "resolution": "9x6",
+  "mask": [
+    "#########",
+    "#.......#",
+    "#.......#",
+    "#.......#",
+    "#.......#",
+    "#<##X##>#"
+  ],
+  "keys": {
+    "#": { "type": "decoration", "icon": { "type": "item", "item": "minecraft:gray_stained_glass_pane", "name": " " } },
+    "<": { "type": "button", "icon": { "type": "item", "item": "minecraft:arrow", "name": "&7Previous" },
+           "actions": [ { "type": "navigate", "mode": "page", "target": "prev" } ] },
+    ">": { "type": "button", "icon": { "type": "item", "item": "minecraft:arrow", "name": "&7Next" },
+           "actions": [ { "type": "navigate", "mode": "page", "target": "next" } ] },
+    "X": { "type": "button", "icon": { "type": "item", "item": "minecraft:barrier", "name": "&cClose" },
+           "actions": [ { "type": "close" } ] }
+  },
+  "slots": {
+    "10": {
+      "type": "button",
+      "icon": { "type": "item", "item": "minecraft:diamond_sword", "name": "&bSword", "lore": ["&7100 coins"] },
+      "show": "viewer.level >= 5",
+      "actions": [
+        { "type": "message", "message": "&aThe shop is an example; edit inventories/example.json." }
+      ]
+    }
+  },
+  "list": {
+    "area": ".",
+    "var": "entry",
+    "source": "['stone','dirt','oak_log']",
+    "pageSize": 28,
+    "template": {
+      "type": "button",
+      "icon": { "type": "item", "item": "minecraft:stone", "name": "&f{{ entry }}" },
+      "actions": [ { "type": "message", "message": "&7You picked &f{{ entry }}&7." } ]
+    }
+  },
+  "closeOnTeleport": true,
+  "variants": []
+}
+''';
+
+const String kGlossNameplateDefaultJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "true",
+  "select": {
+    "priority": 0,
+    "when": "true"
+  },
+  "presentation": {
+    "lines": [
+      {
+        "text": "&7[{{ subject.group }}] &f{{ subject.name }}",
+        "show": "true"
+      },
+      {
+        "text": "{{ bar(subject.health, subject.maxHealth, 10, '&c|', '&8|') }}",
+        "show": "subject.health < subject.maxHealth"
+      }
+    ],
+    "offset": 0.3,
+    "hideSneaking": true,
+    "relations": [
+      {
+        "when": "hasPermission('subject', 'server.staff')",
+        "color": "&c"
+      }
+    ]
+  },
+  "variants": []
+}
+''';
+
+const String kGlossNametagDefaultJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "true",
+  "select": { "priority": 0, "when": "false" },
+  "presentation": { "prefix": "&7[{{ subject.group }}] ", "suffix": "", "color": "white", "nameTagVisibility": "always", "collision": "always" },
+  "variants": [
+    { "id": "staff", "priority": 10, "when": "hasPermission('subject', 'server.staff')",
+      "presentation": { "prefix": "&c[Staff] ", "suffix": " &c*", "color": "red", "nameTagVisibility": "always", "collision": "never" } }
+  ]
+}
+''';
+
+const String kGlossMotionBreatheJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "durationTicks": 40,
+  "loop": "pingpong",
+  "fps": 30,
+  "tracks": [
+    {
+      "bone": "root",
+      "channel": "translation.y",
+      "blend": "add",
+      "keyframes": [
+        { "tick": 0, "value": 0, "easing": "ease_in_out" },
+        { "tick": 40, "value": 0.15, "easing": "ease_in_out" }
+      ]
+    },
+    {
+      "bone": "root",
+      "channel": "scale.y",
+      "blend": "multiply",
+      "keyframes": [
+        { "tick": 0, "value": 1 },
+        { "tick": 40, "value": 1.04, "easing": "ease_in_out" }
+      ]
+    }
+  ]
+}
+''';
+
+const String kGlossMotionSpinJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "durationTicks": 80,
+  "loop": "loop",
+  "fps": 30,
+  "tracks": [
+    {
+      "bone": "root",
+      "channel": "rotation.y",
+      "blend": "add",
+      "keyframes": [
+        { "tick": 0, "value": 0 },
+        { "tick": 80, "value": 360 }
+      ]
+    }
+  ]
+}
+''';
+
+const String kGlossRigPedestalJson = r'''
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "true",
+  "bones": [
+    { "id": "root", "parent": null, "rest": { "translation": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] } },
+    { "id": "lid", "parent": "root", "rest": { "translation": [0, 0.9, -0.45], "rotation": [0, 0, 0], "scale": [1, 1, 1] } }
+  ],
+  "parts": [
+    { "id": "base", "bone": "root", "type": "block", "block": "minecraft:chiseled_stone_bricks", "transform": { "translation": [-0.5, 0, -0.5], "scale": [1, 0.9, 1] }, "brightness": 15 },
+    { "id": "lidPart", "bone": "lid", "type": "item", "item": { "type": "item", "item": "minecraft:oak_trapdoor" }, "transform": { "translation": [0, 0, 0.45], "scale": [1, 0.1, 1] } },
+    { "id": "label", "bone": "root", "type": "text", "text": "&6{{ rig.state }}", "transform": { "translation": [0, 1.4, 0] }, "billboard": "vertical" }
+  ],
+  "clips": { "idle": "breathe", "open": { "motion": "spin", "loop": "once" } },
+  "graph": {
+    "initial": "idle",
+    "states": { "idle": { "clip": "idle" }, "open": { "clip": "open", "then": "idle" } },
+    "transitions": [
+      { "from": "idle", "to": "open", "when": "rig.var.opened == true" },
+      { "from": "open", "to": "idle", "when": "rig.var.opened == false" }
+    ]
+  },
+  "hitboxes": [
+    { "part": "base", "size": [1, 1, 1], "actions": [
+      { "type": "setRig", "var": "opened", "value": "rig.var.opened != true", "trigger": "right_click" }
+    ] }
+  ],
+  "lod": { "reducedAt": 32, "minimalAt": 64, "cullAt": 96, "minimalPart": "base" },
+  "audience": { "when": "true" }
+}
+''';

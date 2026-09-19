@@ -167,6 +167,14 @@ enum DocumentSurface {
   entityOverlays,
   tablist,
   realDrops,
+  dialog,
+  inventory,
+  nameplate,
+  nametag,
+  motion,
+  rig,
+  marker,
+  zone,
 }
 
 /// One heading-plus-grid section of a kind's template tab.

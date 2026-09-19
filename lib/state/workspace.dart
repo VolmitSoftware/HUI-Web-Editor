@@ -35,7 +35,15 @@ enum WorkspaceDocKind {
   damageIndicators,
   entityOverlays,
   tablist,
-  realDrops;
+  realDrops,
+  dialog,
+  inventory,
+  nameplate,
+  nametag,
+  motion,
+  rig,
+  marker,
+  zone;
 
   bool get hasRuntimeId => this != WorkspaceDocKind.panel;
 

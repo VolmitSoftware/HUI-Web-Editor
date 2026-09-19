@@ -21,9 +21,28 @@ bool looksLikeScoreboardDoc(Object? json) {
       json.containsKey('surface')) {
     return false;
   }
-  return json.containsKey('select') &&
-      json.containsKey('presentation') &&
-      json.containsKey('variants');
+  if (!json.containsKey('select') ||
+      !json.containsKey('presentation') ||
+      !json.containsKey('variants')) {
+    return false;
+  }
+  final Object? presentation = json['presentation'];
+  if (presentation is! Map) return false;
+  if (presentation.containsKey('prefix') ||
+      presentation.containsKey('suffix') ||
+      presentation.containsKey('nameTagVisibility') ||
+      presentation.containsKey('offset') ||
+      presentation.containsKey('hideSneaking') ||
+      presentation.containsKey('relations')) {
+    return false;
+  }
+  if (presentation.containsKey('title') ||
+      presentation.containsKey('hideNumbers')) {
+    return true;
+  }
+  final Object? lines = presentation['lines'];
+  if (lines is! List || lines.isEmpty) return false;
+  return lines.first is String || lines.first is num;
 }
 
 GlossScoreboardDoc decodeGlossScoreboardDoc(String json) {
