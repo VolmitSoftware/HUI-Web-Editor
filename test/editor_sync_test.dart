@@ -62,7 +62,6 @@ void main() {
       'connections',
       'container-preview',
       'damage-indicators',
-      'dialog',
       'emoji',
       'entity-overlays',
       'hologram',
@@ -70,16 +69,13 @@ void main() {
       'marker',
       'menu',
       'motd',
-      'motion',
       'nameplate',
       'nametag',
       'panel',
       'real-drops',
-      'rig',
       'scoreboard',
       'surface',
       'tablist',
-      'zone',
     ]);
     expect(DocumentTypes.containerPreview.syncWireKind, 'container-preview');
   });

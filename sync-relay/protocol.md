@@ -67,7 +67,6 @@ kind a newer server adds shows up here rather than being quietly dropped.
 | `connections` | `connections.json` | SINGLE | yes | `ConnectionsDoc.KIND` |
 | `container-preview` | `previews` | FOLDER | no | - |
 | `damage-indicators` | `damage-indicators` | FOLDER | yes | `default` |
-| `dialog` | `dialogs` | FOLDER | yes | - |
 | `emoji` | `emoji` | FOLDER | yes | - |
 | `entity-overlays` | `entity-overlays` | FOLDER | yes | `default` |
 | `glyph` | `glyphs` | FOLDER | yes | - |
@@ -77,19 +76,15 @@ kind a newer server adds shows up here rather than being quietly dropped.
 | `marker` | `markers` | FOLDER | yes | - |
 | `menu` | `menus` | TREE | no | - |
 | `motd` | `motd.json` | SINGLE | yes | `motd` |
-| `motion` | `motion` | FOLDER | yes | - |
 | `nameplate` | `nameplates` | FOLDER | yes | - |
 | `nametag` | `nametags` | FOLDER | yes | - |
 | `panel` | `panels` | TREE | yes | - |
 | `real-drops` | `real-drops` | REAL_DROPS | yes | `default` |
-| `rig` | `rigs` | FOLDER | yes | - |
-| `rig-instance` | `rig-instances` | FOLDER | yes | - |
 | `scoreboard` | `boards` | FOLDER | yes | - |
 | `strings` | `strings` | FOLDER | yes | - |
 | `surface` | `surfaces` | FOLDER | yes | - |
 | `tablist` | `tablist.json` | SINGLE | yes | `tablist` |
 | `waypoint` | `waypoints` | FOLDER | yes | - |
-| `zone` | `zones` | FOLDER | yes | - |
 
 Each document entry has `kind`, `id`, JSON source text and an optional
 `baseRevision`. Unversioned kinds omit `revision`; versioned kinds require an

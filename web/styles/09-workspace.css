@@ -474,14 +474,10 @@
 .hui-center > .hui-split-cell.is-damage-indicators,
 .hui-center > .hui-split-cell.is-entity-overlays,
 .hui-center > .hui-split-cell.is-real-drops,
-.hui-center > .hui-split-cell.is-dialog,
 .hui-center > .hui-split-cell.is-inventory,
 .hui-center > .hui-split-cell.is-nameplate,
 .hui-center > .hui-split-cell.is-nametag,
-.hui-center > .hui-split-cell.is-motion,
-.hui-center > .hui-split-cell.is-rig,
-.hui-center > .hui-split-cell.is-marker,
-.hui-center > .hui-split-cell.is-zone { display: block; border-left: 0; }
+.hui-center > .hui-split-cell.is-marker { display: block; border-left: 0; }
 
 .hui-board {
   display: flex;

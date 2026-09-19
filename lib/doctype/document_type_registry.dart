@@ -7,7 +7,6 @@ import 'bubble_style_document_type.dart';
 import 'connections_document_type.dart';
 import 'container_preview_document_type.dart';
 import 'damage_indicators_document_type.dart';
-import 'dialog_document_type.dart';
 import 'document_type.dart';
 import 'emoji_document_type.dart';
 import 'entity_overlays_document_type.dart';
@@ -16,17 +15,14 @@ import 'hologram_document_type.dart';
 import 'inventory_document_type.dart';
 import 'marker_document_type.dart';
 import 'menu_document_type.dart';
-import 'motion_document_type.dart';
 import 'motd_document_type.dart';
 import 'nameplate_document_type.dart';
 import 'nametag_document_type.dart';
 import 'panel_document_type.dart';
 import 'real_drop_document_type.dart';
-import 'rig_document_type.dart';
 import 'scoreboard_document_type.dart';
 import 'surface_document_type.dart';
 import 'tablist_document_type.dart';
-import 'zone_document_type.dart';
 
 /// The const adapter instances, one per [WorkspaceDocKind].
 abstract final class DocumentTypes {
@@ -48,14 +44,10 @@ abstract final class DocumentTypes {
       EntityOverlaysDocumentType();
   static const TablistDocumentType tablist = TablistDocumentType();
   static const RealDropDocumentType realDrops = RealDropDocumentType();
-  static const DialogDocumentType dialog = DialogDocumentType();
   static const InventoryDocumentType inventory = InventoryDocumentType();
   static const NameplateDocumentType nameplate = NameplateDocumentType();
   static const NametagDocumentType nametag = NametagDocumentType();
-  static const MotionDocumentType motion = MotionDocumentType();
-  static const RigDocumentType rig = RigDocumentType();
   static const MarkerDocumentType marker = MarkerDocumentType();
-  static const ZoneDocumentType zone = ZoneDocumentType();
 }
 
 /// The closed set of adapters.
@@ -79,14 +71,10 @@ abstract final class DocumentTypeRegistry {
         WorkspaceDocKind.entityOverlays: DocumentTypes.entityOverlays,
         WorkspaceDocKind.tablist: DocumentTypes.tablist,
         WorkspaceDocKind.realDrops: DocumentTypes.realDrops,
-        WorkspaceDocKind.dialog: DocumentTypes.dialog,
         WorkspaceDocKind.inventory: DocumentTypes.inventory,
         WorkspaceDocKind.nameplate: DocumentTypes.nameplate,
         WorkspaceDocKind.nametag: DocumentTypes.nametag,
-        WorkspaceDocKind.motion: DocumentTypes.motion,
-        WorkspaceDocKind.rig: DocumentTypes.rig,
         WorkspaceDocKind.marker: DocumentTypes.marker,
-        WorkspaceDocKind.zone: DocumentTypes.zone,
       };
 
   /// Every adapter, in workspace-rail order.
@@ -106,14 +94,10 @@ abstract final class DocumentTypeRegistry {
     DocumentTypes.entityOverlays,
     DocumentTypes.tablist,
     DocumentTypes.realDrops,
-    DocumentTypes.dialog,
     DocumentTypes.inventory,
     DocumentTypes.nameplate,
     DocumentTypes.nametag,
-    DocumentTypes.motion,
-    DocumentTypes.rig,
     DocumentTypes.marker,
-    DocumentTypes.zone,
   ];
 
   /// Every adapter in mode-tab order, which is [DocumentTypeAdapter.tabOrder]

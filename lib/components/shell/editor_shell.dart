@@ -734,14 +734,10 @@ class _CenterArea extends StatelessWidget {
     DocumentSurface.entityOverlays => 'is-entity-overlays',
     DocumentSurface.tablist => 'is-tablist',
     DocumentSurface.realDrops => 'is-real-drops',
-    DocumentSurface.dialog => 'is-dialog',
     DocumentSurface.inventory => 'is-inventory',
     DocumentSurface.nameplate => 'is-nameplate',
     DocumentSurface.nametag => 'is-nametag',
-    DocumentSurface.motion => 'is-motion',
-    DocumentSurface.rig => 'is-rig',
     DocumentSurface.marker => 'is-marker',
-    DocumentSurface.zone => 'is-zone',
   };
 
   /// A slot the owner did not supply. Reachable only from a wiring mistake, so

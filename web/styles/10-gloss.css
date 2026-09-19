@@ -1440,14 +1440,10 @@
 .hui-entity-overlay-text { position: relative; }
 .hui-entity-overlay-text .hui-mc-span { text-shadow: inherit; }
 
-.hui-dialog-stage,
 .hui-inventory-stage,
 .hui-nameplate-stage,
 .hui-nametag-stage,
-.hui-motion-stage,
-.hui-rig-stage,
-.hui-marker-stage,
-.hui-zone-stage {
+.hui-marker-stage {
   display: flex;
   width: 100%;
   height: 100%;
@@ -1458,7 +1454,6 @@
   padding: 24px;
 }
 
-.hui-dialog-screen,
 .hui-inventory-screen {
   display: flex;
   flex-direction: column;
@@ -1469,16 +1464,7 @@
   background: color-mix(in srgb, var(--hui-panel) 92%, black);
 }
 
-.hui-dialog-title,
 .hui-inventory-title { font-size: 1.05rem; font-weight: 650; }
-
-.hui-dialog-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.hui-dialog-button {
-  padding: 6px 12px;
-  border: 1px solid var(--hui-border);
-  background: var(--hui-bg);
-}
 
 .hui-inventory-grid {
   display: grid;
@@ -1499,20 +1485,11 @@
 
 .hui-nameplate-stack,
 .hui-nametag-line,
-.hui-marker-pin,
-.hui-zone-readout,
-.hui-motion-readout,
-.hui-rig-readout {
+.hui-marker-pin {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
   border: 1px solid var(--hui-border-soft);
   background: color-mix(in srgb, var(--hui-panel) 88%, transparent);
-}
-
-.hui-motion-track,
-.hui-rig-part {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 0.78rem;
 }

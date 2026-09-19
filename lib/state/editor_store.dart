@@ -384,11 +384,6 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     return doc is GlossRealDropSettingsDoc ? doc : null;
   }
 
-  GlossDialogDoc? get dialogDoc {
-    final GlossDoc? doc = _glossDoc;
-    return doc is GlossDialogDoc ? doc : null;
-  }
-
   GlossInventoryDoc? get inventoryDoc {
     final GlossDoc? doc = _glossDoc;
     return doc is GlossInventoryDoc ? doc : null;
@@ -404,24 +399,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     return doc is GlossNametagDoc ? doc : null;
   }
 
-  GlossMotionDoc? get motionDoc {
-    final GlossDoc? doc = _glossDoc;
-    return doc is GlossMotionDoc ? doc : null;
-  }
-
-  GlossRigDoc? get rigDoc {
-    final GlossDoc? doc = _glossDoc;
-    return doc is GlossRigDoc ? doc : null;
-  }
-
   GlossMarkerDoc? get markerDoc {
     final GlossDoc? doc = _glossDoc;
     return doc is GlossMarkerDoc ? doc : null;
-  }
-
-  GlossZoneDoc? get zoneDoc {
-    final GlossDoc? doc = _glossDoc;
-    return doc is GlossZoneDoc ? doc : null;
   }
 
   /// Monotonic counter over every change to [glossDoc] — an edit, an undo, a
@@ -1395,12 +1375,6 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     mutateGloss(label, (GlossDoc _) => fn(doc));
   }
 
-  void mutateDialog(String label, void Function(GlossDialogDoc doc) fn) {
-    final GlossDialogDoc? doc = dialogDoc;
-    if (doc == null) return;
-    mutateGloss(label, (GlossDoc _) => fn(doc));
-  }
-
   void mutateInventory(String label, void Function(GlossInventoryDoc doc) fn) {
     final GlossInventoryDoc? doc = inventoryDoc;
     if (doc == null) return;
@@ -1419,26 +1393,8 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     mutateGloss(label, (GlossDoc _) => fn(doc));
   }
 
-  void mutateMotion(String label, void Function(GlossMotionDoc doc) fn) {
-    final GlossMotionDoc? doc = motionDoc;
-    if (doc == null) return;
-    mutateGloss(label, (GlossDoc _) => fn(doc));
-  }
-
-  void mutateRig(String label, void Function(GlossRigDoc doc) fn) {
-    final GlossRigDoc? doc = rigDoc;
-    if (doc == null) return;
-    mutateGloss(label, (GlossDoc _) => fn(doc));
-  }
-
   void mutateMarker(String label, void Function(GlossMarkerDoc doc) fn) {
     final GlossMarkerDoc? doc = markerDoc;
-    if (doc == null) return;
-    mutateGloss(label, (GlossDoc _) => fn(doc));
-  }
-
-  void mutateZone(String label, void Function(GlossZoneDoc doc) fn) {
-    final GlossZoneDoc? doc = zoneDoc;
     if (doc == null) return;
     mutateGloss(label, (GlossDoc _) => fn(doc));
   }

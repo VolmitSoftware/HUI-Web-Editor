@@ -28,14 +28,10 @@ const String huiDamageIndicatorsFile =
     '${huiPluginFolder}damage-indicators/default.json';
 const String huiEntityOverlaysFile =
     '${huiPluginFolder}entity-overlays/default.json';
-const String huiDialogFolder = '${huiPluginFolder}dialogs/';
 const String huiInventoryFolder = '${huiPluginFolder}inventories/';
 const String huiNameplateFolder = '${huiPluginFolder}nameplates/';
 const String huiNametagFolder = '${huiPluginFolder}nametags/';
-const String huiMotionFolder = '${huiPluginFolder}motion/';
-const String huiRigFolder = '${huiPluginFolder}rigs/';
 const String huiMarkerFolder = '${huiPluginFolder}markers/';
-const String huiZoneFolder = '${huiPluginFolder}zones/';
 
 /// One external destination in the help dialog's link grid.
 class HuiLink {

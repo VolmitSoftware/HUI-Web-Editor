@@ -97,7 +97,6 @@ void main() {
       DocumentTypes.containerPreview.syncWireKind,
       'container-preview',
     );
-    expect(DocumentTypeRegistry.byWireKind('dialog'), DocumentTypes.dialog);
     expect(
       DocumentTypeRegistry.byWireKind('inventory'),
       DocumentTypes.inventory,
@@ -107,10 +106,7 @@ void main() {
       DocumentTypes.nameplate,
     );
     expect(DocumentTypeRegistry.byWireKind('nametag'), DocumentTypes.nametag);
-    expect(DocumentTypeRegistry.byWireKind('motion'), DocumentTypes.motion);
-    expect(DocumentTypeRegistry.byWireKind('rig'), DocumentTypes.rig);
     expect(DocumentTypeRegistry.byWireKind('marker'), DocumentTypes.marker);
-    expect(DocumentTypeRegistry.byWireKind('zone'), DocumentTypes.zone);
   });
 
   test('every kind offers the four modes, or says why not', () {

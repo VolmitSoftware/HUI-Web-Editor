@@ -78,14 +78,10 @@ final Map<WorkspaceDocKind, DocumentInspectorBuilder> _builders =
       DocumentTypes.entityOverlays.kind: _entityOverlaysBody,
       DocumentTypes.tablist.kind: _tablistBody,
       DocumentTypes.realDrops.kind: _realDropBody,
-      DocumentTypes.dialog.kind: _dialogBody,
       DocumentTypes.inventory.kind: _inventoryBody,
       DocumentTypes.nameplate.kind: _nameplateBody,
       DocumentTypes.nametag.kind: _nametagBody,
-      DocumentTypes.motion.kind: _motionBody,
-      DocumentTypes.rig.kind: _rigBody,
       DocumentTypes.marker.kind: _markerBody,
-      DocumentTypes.zone.kind: _zoneBody,
     };
 
 /// The inspector body for the active document kind.
@@ -150,10 +146,6 @@ List<Widget> _realDropBody(DocumentInspectorScope scope) => <Widget>[
   RealDropInspector(store: scope.store),
 ];
 
-List<Widget> _dialogBody(DocumentInspectorScope scope) => <Widget>[
-  DialogInspector(store: scope.store),
-];
-
 List<Widget> _inventoryBody(DocumentInspectorScope scope) => <Widget>[
   InventoryInspector(store: scope.store),
 ];
@@ -166,20 +158,8 @@ List<Widget> _nametagBody(DocumentInspectorScope scope) => <Widget>[
   NametagInspector(store: scope.store),
 ];
 
-List<Widget> _motionBody(DocumentInspectorScope scope) => <Widget>[
-  MotionInspector(store: scope.store),
-];
-
-List<Widget> _rigBody(DocumentInspectorScope scope) => <Widget>[
-  RigInspector(store: scope.store),
-];
-
 List<Widget> _markerBody(DocumentInspectorScope scope) => <Widget>[
   MarkerInspector(store: scope.store),
-];
-
-List<Widget> _zoneBody(DocumentInspectorScope scope) => <Widget>[
-  ZoneInspector(store: scope.store),
 ];
 
 List<Widget> _previewBody(DocumentInspectorScope scope) {

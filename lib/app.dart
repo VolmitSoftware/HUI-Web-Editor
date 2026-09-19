@@ -968,14 +968,10 @@ class _AppState extends State<App> {
           DocumentSurface.entityOverlays: EntityOverlayView(store: _store),
           DocumentSurface.tablist: TablistView(store: _store),
           DocumentSurface.realDrops: RealDropsView(store: _store),
-          DocumentSurface.dialog: DialogView(store: _store),
           DocumentSurface.inventory: InventoryView(store: _store),
           DocumentSurface.nameplate: NameplateView(store: _store),
           DocumentSurface.nametag: NametagView(store: _store),
-          DocumentSurface.motion: MotionView(store: _store),
-          DocumentSurface.rig: RigView(store: _store),
           DocumentSurface.marker: MarkerView(store: _store),
-          DocumentSurface.zone: ZoneView(store: _store),
         },
         // The preview mode's in-game renderings. The menu's is the 3D stage;
         // every other kind renders through its own surface asked for game
@@ -1031,7 +1027,6 @@ class _AppState extends State<App> {
             store: _store,
             gameContext: true,
           ),
-          DocumentSurface.dialog: DialogView(store: _store, gameContext: true),
           DocumentSurface.inventory: InventoryView(
             store: _store,
             gameContext: true,
@@ -1044,10 +1039,7 @@ class _AppState extends State<App> {
             store: _store,
             gameContext: true,
           ),
-          DocumentSurface.motion: MotionView(store: _store, gameContext: true),
-          DocumentSurface.rig: RigView(store: _store, gameContext: true),
           DocumentSurface.marker: MarkerView(store: _store, gameContext: true),
-          DocumentSurface.zone: ZoneView(store: _store, gameContext: true),
         },
         inspector: InspectorPane(
           store: _store,

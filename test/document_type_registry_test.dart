@@ -50,11 +50,6 @@ void main() {
         'healing': <String, Object>{},
         'audience': <String, Object>{'when': 'true'},
       },
-      'dialog': <String, Object>{
-        'schemaVersion': 1,
-        'type': 'notice',
-        'title': 'Hi',
-      },
       'inventory': <String, Object>{
         'schemaVersion': 1,
         'resolution': '9x3',
@@ -76,23 +71,10 @@ void main() {
         'presentation': <String, Object>{'prefix': '&7'},
         'variants': <Object>[],
       },
-      'motion': <String, Object>{
-        'schemaVersion': 1,
-        'tracks': <Object>[],
-      },
-      'rig': <String, Object>{
-        'schemaVersion': 1,
-        'bones': <Object>[],
-        'parts': <Object>[],
-      },
       'marker': <String, Object>{
         'schemaVersion': 1,
         'anchor': <String, Object>{'world': 'world', 'x': 0, 'y': 64, 'z': 0},
         'label': 'pin',
-      },
-      'zone': <String, Object>{
-        'schemaVersion': 1,
-        'shape': <String, Object>{'type': 'cuboid'},
       },
     };
 

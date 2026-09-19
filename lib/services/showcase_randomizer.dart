@@ -110,11 +110,6 @@ bool randomizeShowcaseDocument(
         'Randomize entity overlays',
         buildRandomEntityOverlayShowcase(store.entityOverlaysDoc!, source),
       );
-    case DialogDocumentType():
-      store.replaceGlossDoc(
-        'Randomize dialog',
-        buildRandomDialogShowcase(store.dialogDoc!, source),
-      );
     case InventoryDocumentType():
       store.replaceGlossDoc(
         'Randomize inventory',
@@ -130,25 +125,10 @@ bool randomizeShowcaseDocument(
         'Randomize nametag',
         buildRandomNametagShowcase(store.nametagDoc!, source),
       );
-    case MotionDocumentType():
-      store.replaceGlossDoc(
-        'Randomize motion',
-        buildRandomMotionShowcase(store.motionDoc!, source),
-      );
-    case RigDocumentType():
-      store.replaceGlossDoc(
-        'Randomize rig',
-        buildRandomRigShowcase(store.rigDoc!, source),
-      );
     case MarkerDocumentType():
       store.replaceGlossDoc(
         'Randomize marker',
         buildRandomMarkerShowcase(store.markerDoc!, source),
-      );
-    case ZoneDocumentType():
-      store.replaceGlossDoc(
-        'Randomize zone',
-        buildRandomZoneShowcase(store.zoneDoc!, source),
       );
     case PanelDocumentType():
       final WorkspacePanelData? panel = store.activePanel?.data;
@@ -5111,21 +5091,6 @@ const List<_PreviewFurnaceTheme> _previewFurnaceThemes = <_PreviewFurnaceTheme>[
 
 double _round(double value) => (value * 100).roundToDouble() / 100;
 
-GlossDialogDoc buildRandomDialogShowcase(
-  GlossDialogDoc current,
-  math.Random random,
-) {
-  final GlossDialogDoc doc = cloneGlossDialogDoc(buildShowcaseGlossDialog());
-  doc.revision = current.revision;
-  doc.title = '&6${showcasePick(random, showcaseServerNames)}';
-  doc.externalTitle = showcasePick(random, showcaseServerNames);
-  if (doc.body.isNotEmpty) {
-    doc.body.first.text =
-        '&7${showcasePick(random, showcaseHeadlines)}, {{ viewer.name }}.';
-  }
-  return doc;
-}
-
 GlossInventoryDoc buildRandomInventoryShowcase(
   GlossInventoryDoc current,
   math.Random random,
@@ -5166,29 +5131,6 @@ GlossNametagDoc buildRandomNametagShowcase(
   return doc;
 }
 
-GlossMotionDoc buildRandomMotionShowcase(
-  GlossMotionDoc current,
-  math.Random random,
-) {
-  final GlossMotionDoc doc = cloneGlossMotionDoc(
-    random.nextBool()
-        ? buildDefaultGlossMotion()
-        : buildShowcaseGlossMotion(),
-  );
-  doc.revision = current.revision;
-  doc.fps = 20 + random.nextInt(11);
-  return doc;
-}
-
-GlossRigDoc buildRandomRigShowcase(GlossRigDoc current, math.Random random) {
-  final GlossRigDoc doc = cloneGlossRigDoc(buildDefaultGlossRig());
-  doc.revision = current.revision;
-  if (doc.parts.isNotEmpty && doc.parts.last.type == 'text') {
-    doc.parts.last.text = '&6${showcasePick(random, showcaseServerNames)}';
-  }
-  return doc;
-}
-
 GlossMarkerDoc buildRandomMarkerShowcase(
   GlossMarkerDoc current,
   math.Random random,
@@ -5199,15 +5141,5 @@ GlossMarkerDoc buildRandomMarkerShowcase(
   doc.anchor.x = (random.nextInt(200) - 100).toDouble();
   doc.anchor.z = (random.nextInt(200) - 100).toDouble();
   doc.beam.enabled = random.nextBool();
-  return doc;
-}
-
-GlossZoneDoc buildRandomZoneShowcase(GlossZoneDoc current, math.Random random) {
-  final GlossZoneDoc doc = cloneGlossZoneDoc(buildDefaultGlossZone());
-  doc.revision = current.revision;
-  final double origin = (random.nextInt(40) - 20).toDouble();
-  doc.shape.min = <double>[origin, 64, origin];
-  doc.shape.max = <double>[origin + 16, 80, origin + 16];
-  doc.render.mode = showcasePick(random, glossZoneRenderModes);
   return doc;
 }

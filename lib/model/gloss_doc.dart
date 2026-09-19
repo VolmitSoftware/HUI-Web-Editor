@@ -124,7 +124,7 @@ List<String> glossReadStringList(Object? raw) => <String>[
 ];
 
 /// `select.priority` plus `select.when` — the board-model offer used by
-/// dialogs, inventories, nameplates and nametags.
+/// inventories, nameplates and nametags.
 final class GlossPrioritySelect {
   GlossPrioritySelect({
     this.priority = 0,

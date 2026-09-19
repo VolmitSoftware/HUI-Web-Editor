@@ -95,14 +95,10 @@ class _ExportDialogState extends State<ExportDialog> {
     'real-drops' => huiRealDropsFile,
     'damage-indicators' => huiDamageIndicatorsFile,
     'entity-overlays' => huiEntityOverlaysFile,
-    'dialog' => '$huiDialogFolder$_fileName',
     'inventory' => '$huiInventoryFolder$_fileName',
     'nameplate' => '$huiNameplateFolder$_fileName',
     'nametag' => '$huiNametagFolder$_fileName',
-    'motion' => '$huiMotionFolder$_fileName',
-    'rig' => '$huiRigFolder$_fileName',
     'marker' => '$huiMarkerFolder$_fileName',
-    'zone' => '$huiZoneFolder$_fileName',
     _ => '$huiPreviewFolder$_fileName',
   };
 

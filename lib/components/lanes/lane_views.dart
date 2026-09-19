@@ -34,64 +34,6 @@ class _LaneStage extends StatelessWidget {
   }
 }
 
-class DialogView extends StatelessWidget {
-  const DialogView({required this.store, this.gameContext = false, super.key});
-
-  final EditorStore store;
-  final bool gameContext;
-
-  @override
-  Widget build(BuildContext context) {
-    final GlossDialogDoc? doc = store.dialogDoc;
-    if (doc == null) {
-      return const dom.div(classes: 'hui-dialog-stage is-empty', <Widget>[]);
-    }
-    return _LaneStage(
-      gameContext: gameContext,
-      anchor: GlossGameAnchor.screen,
-      label: huiText('Dialog screen'),
-      stageClass: 'hui-dialog',
-      child: dom.div(classes: 'hui-dialog-screen', <Widget>[
-        dom.div(classes: 'hui-dialog-title', <Widget>[
-          GlossTextLine(
-            render: renderGlossLine(
-              doc.title,
-              richText: true,
-              animations: store.workspaceAnimations,
-              emoji: store.workspaceEmoji,
-            ),
-          ),
-        ]),
-        for (final GlossDialogBody block in doc.body)
-          if (block.text.trim().isNotEmpty)
-            dom.div(classes: 'hui-dialog-body', <Widget>[
-              GlossTextLine(
-                render: renderGlossLine(
-                  block.text,
-                  richText: true,
-                  animations: store.workspaceAnimations,
-                  emoji: store.workspaceEmoji,
-                ),
-              ),
-            ]),
-        dom.div(classes: 'hui-dialog-buttons', <Widget>[
-          for (final GlossDialogButton button in doc.buttons)
-            dom.span(classes: 'hui-dialog-button', <Widget>[
-              GlossTextLine(
-                render: renderGlossLine(
-                  button.label,
-                  richText: true,
-                  animations: store.workspaceAnimations,
-                  emoji: store.workspaceEmoji,
-                ),
-              ),
-            ]),
-        ]),
-      ]),
-    );
-  }
-}
-
 class InventoryView extends StatelessWidget {
   const InventoryView({
     required this.store,
@@ -211,72 +153,6 @@ class NametagView extends StatelessWidget {
   }
 }
 
-class MotionView extends StatelessWidget {
-  const MotionView({required this.store, this.gameContext = false, super.key});
-
-  final EditorStore store;
-  final bool gameContext;
-
-  @override
-  Widget build(BuildContext context) {
-    final GlossMotionDoc? doc = store.motionDoc;
-    if (doc == null) {
-      return const dom.div(classes: 'hui-motion-stage is-empty', <Widget>[]);
-    }
-    return _LaneStage(
-      gameContext: gameContext,
-      anchor: GlossGameAnchor.world,
-      label: huiText('Motion clip'),
-      stageClass: 'hui-motion',
-      child: dom.div(classes: 'hui-motion-readout', <Widget>[
-        dom.p(<Widget>[
-          Text(
-            huiText(
-              '{count} tracks, {loop}, {fps} fps',
-              <String, Object?>{
-                'count': doc.tracks.length,
-                'loop': doc.loop,
-                'fps': doc.fps,
-              },
-            ),
-          ),
-        ]),
-        for (final GlossMotionTrack track in doc.tracks)
-          dom.div(classes: 'hui-motion-track', <Widget>[
-            Text('${track.bone} / ${track.channel} (${track.keyframes.length})'),
-          ]),
-      ]),
-    );
-  }
-}
-
-class RigView extends StatelessWidget {
-  const RigView({required this.store, this.gameContext = false, super.key});
-
-  final EditorStore store;
-  final bool gameContext;
-
-  @override
-  Widget build(BuildContext context) {
-    final GlossRigDoc? doc = store.rigDoc;
-    if (doc == null) {
-      return const dom.div(classes: 'hui-rig-stage is-empty', <Widget>[]);
-    }
-    return _LaneStage(
-      gameContext: gameContext,
-      anchor: GlossGameAnchor.world,
-      label: huiText('Rig'),
-      stageClass: 'hui-rig',
-      child: dom.div(classes: 'hui-rig-readout', <Widget>[
-        for (final GlossRigPart part in doc.parts)
-          dom.div(classes: 'hui-rig-part', <Widget>[
-            Text('${part.id} · ${part.type} · ${part.bone}'),
-          ]),
-      ]),
-    );
-  }
-}
-
 class MarkerView extends StatelessWidget {
   const MarkerView({required this.store, this.gameContext = false, super.key});
 
@@ -306,30 +182,6 @@ class MarkerView extends StatelessWidget {
         Text(
           '${doc.anchor.world ?? ''} ${doc.anchor.x ?? 0}, ${doc.anchor.y ?? 0}, ${doc.anchor.z ?? 0}',
         ),
-      ]),
-    );
-  }
-}
-
-class ZoneView extends StatelessWidget {
-  const ZoneView({required this.store, this.gameContext = false, super.key});
-
-  final EditorStore store;
-  final bool gameContext;
-
-  @override
-  Widget build(BuildContext context) {
-    final GlossZoneDoc? doc = store.zoneDoc;
-    if (doc == null) {
-      return const dom.div(classes: 'hui-zone-stage is-empty', <Widget>[]);
-    }
-    return _LaneStage(
-      gameContext: gameContext,
-      anchor: GlossGameAnchor.world,
-      label: huiText('Zone'),
-      stageClass: 'hui-zone',
-      child: dom.div(classes: 'hui-zone-readout', <Widget>[
-        Text('${doc.shape.type} · ${doc.render.mode} · ${doc.shape.world}'),
       ]),
     );
   }
