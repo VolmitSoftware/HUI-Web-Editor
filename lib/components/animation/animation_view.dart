@@ -60,8 +60,8 @@ class _AnimationViewState extends State<AnimationView> {
   }
 
   @override
-  void didUpdateComponent(covariant AnimationView oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant AnimationView oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);

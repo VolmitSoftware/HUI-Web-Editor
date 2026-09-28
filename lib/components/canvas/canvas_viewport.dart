@@ -253,8 +253,8 @@ class _CanvasViewportState extends State<CanvasViewport> {
   }
 
   @override
-  void didUpdateComponent(CanvasViewport oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(CanvasViewport oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);

@@ -46,8 +46,8 @@ class _TemplatesDialogState extends State<TemplatesDialog> {
       <DocumentTypeAdapter, String>{};
 
   @override
-  void didUpdateComponent(TemplatesDialog oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(TemplatesDialog oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!oldComponent.isOpen && component.isOpen) {
       // Opening on top of a document whose kind has templates starts the
       // picker on the matching tab: another kind's template would just create

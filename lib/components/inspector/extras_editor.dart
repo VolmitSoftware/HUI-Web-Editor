@@ -55,8 +55,8 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
   String Function()? _newKeyError;
 
   @override
-  void didUpdateComponent(ExtrasEditor oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(ExtrasEditor oldComponent) {
+    super.didUpdateWidget(oldComponent);
     // Undo, redo and a document swap all rewrite extras behind us. Drop the
     // draft for any key whose committed value moved, and for keys that left.
     final Map<String, dynamic> next = component.extras;

@@ -14,7 +14,7 @@ List<HuiIssue> validateInventoryDoc(GlossInventoryDoc doc) {
   final List<HuiIssue> issues = _envelope(doc, doc.extras['show']);
   if (!glossInventoryResolutions.contains(doc.resolution)) {
     issues.add(
-      HuiIssue(
+      const HuiIssue(
         severity: HuiSeverity.error,
         path: r'$.resolution',
         message: 'Inventory resolution must be one of 9x1-9x6, 5x1 or 3x3.',
@@ -88,7 +88,7 @@ List<HuiIssue> validateNameplateDoc(GlossNameplateDoc doc) {
   final List<HuiIssue> issues = _envelope(doc, doc.extras['show']);
   if (doc.presentation.lines.length > glossNameplateMaxLines) {
     issues.add(
-      HuiIssue(
+      const HuiIssue(
         severity: HuiSeverity.error,
         path: r'$.presentation.lines',
         message: 'A nameplate may declare at most {maximum} lines.',

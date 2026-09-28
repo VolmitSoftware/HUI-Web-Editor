@@ -60,8 +60,8 @@ class _ImageManagerDialogState extends State<ImageManagerDialog> {
   ImageLibrary get _library => component.images;
 
   @override
-  void didUpdateComponent(ImageManagerDialog oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(ImageManagerDialog oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!oldComponent.isOpen && component.isOpen) {
       _drafts.clear();
       _errors.clear();

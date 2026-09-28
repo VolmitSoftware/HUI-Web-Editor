@@ -70,8 +70,8 @@ class _MotdViewState extends State<MotdView> {
   }
 
   @override
-  void didUpdateComponent(covariant MotdView oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant MotdView oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);

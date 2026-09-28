@@ -844,8 +844,8 @@ class _PreviewVarsRowsState extends State<_PreviewVarsRows> {
   String Function()? _newKeyError;
 
   @override
-  void didUpdateComponent(_PreviewVarsRows oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(_PreviewVarsRows oldComponent) {
+    super.didUpdateWidget(oldComponent);
     // Undo, redo and a code-view commit all rewrite `vars` behind this
     // widget's back (mirrors `ExtrasEditor`'s own resync). Without this, a
     // key whose committed value moved kept showing its stale draft, and the

@@ -100,8 +100,8 @@ class _DamageIndicatorViewState extends State<DamageIndicatorView> {
   String? _spriteFor(McSceneNode node) => mcCatalogSpriteFor(_store.catalogs, node);
 
   @override
-  void didUpdateComponent(covariant DamageIndicatorView oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant DamageIndicatorView oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);

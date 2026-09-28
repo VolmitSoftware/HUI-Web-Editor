@@ -144,8 +144,8 @@ class _RuntimePanelEditorState extends State<_RuntimePanelEditor> {
   }
 
   @override
-  void didUpdateComponent(_RuntimePanelEditor oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(_RuntimePanelEditor oldComponent) {
+    super.didUpdateWidget(oldComponent);
     final String source = _encode(component.panel.runtimeBoard!);
     if (source != _source && _text == _source && !_typedDirty) {
       _adopt();

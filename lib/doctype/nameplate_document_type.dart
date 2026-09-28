@@ -91,7 +91,7 @@ final class NameplateDocumentType extends GlossDocumentTypeAdapter {
                   'Shipped default',
               highlights: const <String>['Shipped default', 'Health bar'],
               create: (EditorStore store) {
-                final String runtimeId = 'default';
+                const String runtimeId = 'default';
                 store.newGlossDocument(
                   this,
                   name: runtimeId,

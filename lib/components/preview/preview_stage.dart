@@ -230,8 +230,8 @@ class _PreviewStageState extends State<PreviewStage>
   }
 
   @override
-  void didUpdateComponent(PreviewStage oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(PreviewStage oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);

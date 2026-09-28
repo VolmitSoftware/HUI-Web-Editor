@@ -218,7 +218,7 @@ final class GlossNameplateVariant {
   }
 
   static GlossNameplateVariant fromJson(Object? raw, int index) {
-    final String path = r'$.variants[' + '$index]';
+    final String path = r'$.variants[' '$index]';
     final Map<String, dynamic> map = huiReadObject(raw, path);
     return GlossNameplateVariant(
       id: huiReadString(map, 'id'),

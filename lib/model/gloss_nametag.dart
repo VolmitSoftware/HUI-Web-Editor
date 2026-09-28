@@ -139,7 +139,7 @@ final class GlossNametagVariant {
   }
 
   static GlossNametagVariant fromJson(Object? raw, int index) {
-    final String path = r'$.variants[' + '$index]';
+    final String path = r'$.variants[' '$index]';
     final Map<String, dynamic> map = huiReadObject(raw, path);
     return GlossNametagVariant(
       id: huiReadString(map, 'id'),

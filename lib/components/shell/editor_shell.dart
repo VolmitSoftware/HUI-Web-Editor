@@ -227,8 +227,8 @@ class _EditorShellState extends State<EditorShell> {
   }
 
   @override
-  void didUpdateComponent(covariant EditorShell oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant EditorShell oldComponent) {
+    super.didUpdateWidget(oldComponent);
     final EditorStore? store = _store;
     if (store != null) _intents = _buildIntents(store);
   }

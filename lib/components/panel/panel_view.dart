@@ -30,8 +30,8 @@ class _PanelViewState extends State<PanelView> {
   ]);
 
   @override
-  void didUpdateComponent(PanelView oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(PanelView oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) _sources = null;
   }
 

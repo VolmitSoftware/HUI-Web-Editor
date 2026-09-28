@@ -175,8 +175,8 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   }
 
   @override
-  void didUpdateComponent(PreviewCardViewport oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(PreviewCardViewport oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);

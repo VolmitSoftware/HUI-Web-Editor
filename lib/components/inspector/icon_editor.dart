@@ -926,8 +926,8 @@ class _AnimatedIconPreviewState extends State<AnimatedIconPreview> {
   }
 
   @override
-  void didUpdateComponent(AnimatedIconPreview oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(AnimatedIconPreview oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (oldComponent.speed != component.speed ||
         oldComponent.frames.length != component.frames.length) {
       _restart();

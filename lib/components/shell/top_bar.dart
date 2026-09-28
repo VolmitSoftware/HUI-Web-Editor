@@ -69,8 +69,8 @@ class _TopBarState extends State<TopBar> {
       _sources ??= Listenable.merge(<Listenable?>[_store, _store.workspace]);
 
   @override
-  void didUpdateComponent(covariant TopBar oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant TopBar oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.intents.store, component.intents.store)) {
       _sources = null;
     }

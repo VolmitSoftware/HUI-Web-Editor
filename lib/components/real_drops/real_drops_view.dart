@@ -188,8 +188,8 @@ class _RealDropsViewState extends State<RealDropsView> {
   }
 
   @override
-  void didUpdateComponent(covariant RealDropsView oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant RealDropsView oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);

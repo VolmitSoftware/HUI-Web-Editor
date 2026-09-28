@@ -54,8 +54,8 @@ class _EmojiViewState extends State<EmojiView> {
   }
 
   @override
-  void didUpdateComponent(covariant EmojiView oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant EmojiView oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);

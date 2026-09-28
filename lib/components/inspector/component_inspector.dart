@@ -738,8 +738,8 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
   }
 
   @override
-  void didUpdateComponent(_ComponentHeader oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(_ComponentHeader oldComponent) {
+    super.didUpdateWidget(oldComponent);
     // Only follow the document when the id actually changed elsewhere, so a
     // rename round trip never fights what is being typed.
     if (oldComponent.target.id != component.target.id &&

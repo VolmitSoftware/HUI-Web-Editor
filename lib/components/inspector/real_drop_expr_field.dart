@@ -99,8 +99,8 @@ class _RealDropExprFieldState extends State<RealDropExprField> {
   }
 
   @override
-  void didUpdateComponent(RealDropExprField oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(RealDropExprField oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (component.value == _lastCommitted) return;
     _lastCommitted = component.value;
     _text = component.value;

@@ -51,8 +51,8 @@ class _ExportDialogState extends State<ExportDialog> {
   }
 
   @override
-  void didUpdateComponent(ExportDialog oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(ExportDialog oldComponent) {
+    super.didUpdateWidget(oldComponent);
     // Reopening always shows the document's current id, never a stale edit.
     if (!oldComponent.isOpen && component.isOpen) {
       _name = _store.menuId;

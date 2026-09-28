@@ -77,8 +77,8 @@ class _HuiNumberFieldState extends State<HuiNumberField> {
   }
 
   @override
-  void didUpdateComponent(HuiNumberField oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(HuiNumberField oldComponent) {
+    super.didUpdateWidget(oldComponent);
     // Only overwrite what the user is typing when the incoming value genuinely
     // differs from it, so a commit round trip never fights the caret.
     final double? parsed = _parse(_text);

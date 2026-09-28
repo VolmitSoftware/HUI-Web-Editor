@@ -91,7 +91,7 @@ final class NametagDocumentType extends GlossDocumentTypeAdapter {
                   'Shipped default',
               highlights: const <String>['Shipped default', 'Staff variant'],
               create: (EditorStore store) {
-                final String runtimeId = 'default';
+                const String runtimeId = 'default';
                 store.newGlossDocument(
                   this,
                   name: runtimeId,

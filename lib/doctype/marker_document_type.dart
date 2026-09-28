@@ -90,7 +90,7 @@ final class MarkerDocumentType extends GlossDocumentTypeAdapter {
                   'Shipped default',
               highlights: const <String>['Position', 'Beam'],
               create: (EditorStore store) {
-                final String runtimeId = 'pin';
+                const String runtimeId = 'pin';
                 store.newGlossDocument(
                   this,
                   name: runtimeId,

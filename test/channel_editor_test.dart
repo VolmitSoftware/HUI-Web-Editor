@@ -10,6 +10,8 @@ import 'package:gloss_editor/state/editor_store.dart';
 import 'package:gloss_editor/state/workspace.dart';
 import 'package:test/test.dart';
 
+import 'support/gloss_repository.dart';
+
 void main() {
   test(
     'channels preserve optional blocks and unknown mention fields through export',
@@ -98,7 +100,7 @@ void main() {
 
   test('shipped global channel renders group, player and hover card', () {
     final File source = File(
-      '../Gloss/src/main/resources/defaults/channels/global.json',
+      glossRepositoryFilePath('src/main/resources/defaults/channels/global.json'),
     );
     final GlossChannelDoc doc = decodeGlossChannelDoc(
       source.readAsStringSync(),

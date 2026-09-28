@@ -92,8 +92,8 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
   }
 
   @override
-  void didUpdateComponent(covariant EntityOverlayView oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant EntityOverlayView oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_changed);
       component.store.addListener(_changed);

@@ -222,8 +222,8 @@ class _CodeEditorViewState extends State<CodeEditorView> {
   }
 
   @override
-  void didUpdateComponent(CodeEditorView oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(CodeEditorView oldComponent) {
+    super.didUpdateWidget(oldComponent);
     final String locale = huiLocalizations.activeLocale;
     if (_renderedLocale != locale) {
       _renderedLocale = locale;

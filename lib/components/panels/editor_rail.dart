@@ -120,8 +120,8 @@ class _EditorRailState extends State<EditorRail> {
   }
 
   @override
-  void didUpdateComponent(EditorRail oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(EditorRail oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (identical(oldComponent.store, component.store)) return;
     oldComponent.store.removeListener(_onChanged);
     oldComponent.store.workspace.removeListener(_onChanged);

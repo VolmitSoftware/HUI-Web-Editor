@@ -118,8 +118,8 @@ class _McStageState extends State<McStage> {
   }
 
   @override
-  void didUpdateComponent(McStage oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(McStage oldComponent) {
+    super.didUpdateWidget(oldComponent);
     // A parent rebuild changes only the DOM layer; the canvas follows the
     // controller, so a swapped controller is the one rebuild that draws.
     if (!identical(oldComponent.controller, component.controller)) {

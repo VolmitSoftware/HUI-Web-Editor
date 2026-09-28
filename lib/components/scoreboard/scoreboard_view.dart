@@ -69,8 +69,8 @@ class _ScoreboardViewState extends State<ScoreboardView> {
   }
 
   @override
-  void didUpdateComponent(covariant ScoreboardView oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant ScoreboardView oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onStoreChanged);
       component.store.addListener(_onStoreChanged);

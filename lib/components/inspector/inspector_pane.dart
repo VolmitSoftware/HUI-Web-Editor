@@ -63,8 +63,8 @@ class _InspectorPaneState extends State<InspectorPane> {
   }
 
   @override
-  void didUpdateComponent(InspectorPane oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(InspectorPane oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.store, component.store)) {
       oldComponent.store.removeListener(_onChanged);
       component.store.addListener(_onChanged);

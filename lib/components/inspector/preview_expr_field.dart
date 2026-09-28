@@ -135,8 +135,8 @@ class _PreviewExprFieldState extends State<PreviewExprField> {
   }
 
   @override
-  void didUpdateComponent(PreviewExprField oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(PreviewExprField oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (component.raw == _lastCommitted) return;
     _lastCommitted = component.raw;
     _text = _format(component.raw);

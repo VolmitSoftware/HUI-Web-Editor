@@ -36,8 +36,8 @@ class _StoreSelectorState<T> extends State<StoreSelector<T>> {
   }
 
   @override
-  void didUpdateComponent(covariant StoreSelector<T> oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(covariant StoreSelector<T> oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!identical(oldComponent.listenable, component.listenable)) {
       oldComponent.listenable.removeListener(_onChanged);
       component.listenable.addListener(_onChanged);

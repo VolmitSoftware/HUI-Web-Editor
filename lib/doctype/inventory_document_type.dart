@@ -91,7 +91,7 @@ final class InventoryDocumentType extends GlossDocumentTypeAdapter {
                   'Shipped default',
               highlights: const <String>['9x3', 'Border'],
               create: (EditorStore store) {
-                final String runtimeId = 'chest';
+                const String runtimeId = 'chest';
                 store.newGlossDocument(
                   this,
                   name: runtimeId,
@@ -106,7 +106,7 @@ final class InventoryDocumentType extends GlossDocumentTypeAdapter {
                   'Shipped example',
               highlights: const <String>['Shipped example', '9x6', 'List'],
               create: (EditorStore store) {
-                final String runtimeId = 'example';
+                const String runtimeId = 'example';
                 store.newGlossDocument(
                   this,
                   name: runtimeId,

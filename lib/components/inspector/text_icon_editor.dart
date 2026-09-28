@@ -77,8 +77,8 @@ class _TextIconEditorState extends State<TextIconEditor> {
   }
 
   @override
-  void didUpdateComponent(TextIconEditor oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(TextIconEditor oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (oldComponent.fieldId != component.fieldId) {
       // Callers key this editor by field id, so the id only moves under a
       // reused state when one of them forgets. This runs before the DOM is

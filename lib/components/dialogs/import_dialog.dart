@@ -72,8 +72,8 @@ class _ImportDialogState extends State<ImportDialog> {
   EditorStore get _store => component.store;
 
   @override
-  void didUpdateComponent(ImportDialog oldComponent) {
-    super.didUpdateComponent(oldComponent);
+  void didUpdateWidget(ImportDialog oldComponent) {
+    super.didUpdateWidget(oldComponent);
     if (!oldComponent.isOpen && component.isOpen) {
       _reset();
     }
