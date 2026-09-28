@@ -136,6 +136,18 @@ final class GlossPrioritySelect {
   String when;
   Map<String, dynamic> extras;
 
+  String get permission => extras['permission'] is String
+      ? extras['permission'] as String
+      : '';
+
+  set permission(String value) {
+    if (value.trim().isEmpty) {
+      extras.remove('permission');
+    } else {
+      extras['permission'] = value.trim();
+    }
+  }
+
   static GlossPrioritySelect fromJson(
     Object? raw, {
     String path = r'$.select',

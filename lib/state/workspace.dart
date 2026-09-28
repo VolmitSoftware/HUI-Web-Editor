@@ -30,6 +30,7 @@ enum WorkspaceDocKind {
   surface,
   motd,
   connections,
+  channel,
   emoji,
   bubbleStyle,
   damageIndicators,

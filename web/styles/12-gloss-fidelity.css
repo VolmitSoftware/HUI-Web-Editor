@@ -309,6 +309,27 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 24px);
+  padding: 8px;
+  border: 1px solid var(--hui-border);
+  border-radius: 6px;
+  background: var(--hui-panel);
+  color: var(--hui-text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  text-shadow: none;
+}
+
+.hui-gloss-game-controls :is(button, input, select),
+.hui-identity-rules :is(button, input, select) {
+  color: var(--hui-text);
+}
+
+.hui-gloss-game-controls :is(button, input, select):focus-visible,
+.hui-identity-rules :is(button, input, select):focus-visible {
+  outline: 2px solid var(--hui-text);
+  outline-offset: 2px;
 }
 
 /* --- scoreboard: preview controls and the selection simulator ------------- */
@@ -480,6 +501,21 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
+  min-width: 0;
+}
+
+.hui-gloss-game .hui-connections-chat {
+  gap: 0;
+  width: 100%;
+}
+
+.hui-gloss-game .hui-connections-line {
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow-wrap: anywhere;
+}
+
+.hui-gloss-game .hui-connections-line > * {
   min-width: 0;
 }
 

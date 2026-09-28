@@ -1471,12 +1471,13 @@ const String kGlossNameplateDefaultJson = r'''
   "show": "true",
   "select": {
     "priority": 0,
-    "when": "true"
+    "when": "true",
+    "permission": ""
   },
   "presentation": {
     "lines": [
       {
-        "text": "&7[{{ subject.group }}] &f{{ subject.name }}",
+        "text": "{{ subject.name }}",
         "show": "true"
       },
       {
@@ -1502,11 +1503,32 @@ const String kGlossNametagDefaultJson = r'''
   "schemaVersion": 1,
   "revision": 1,
   "show": "true",
-  "select": { "priority": 0, "when": "false" },
-  "presentation": { "prefix": "&7[{{ subject.group }}] ", "suffix": "", "color": "white", "nameTagVisibility": "always", "collision": "always" },
+  "select": {
+    "priority": 0,
+    "when": "true",
+    "permission": "gloss.nametag.default"
+  },
+  "presentation": {
+    "prefix": "&7[{{ subject.group }}] ",
+    "suffix": "",
+    "color": "white",
+    "nameTagVisibility": "always",
+    "collision": "always"
+  },
   "variants": [
-    { "id": "staff", "priority": 10, "when": "hasPermission('subject', 'server.staff')",
-      "presentation": { "prefix": "&c[Staff] ", "suffix": " &c*", "color": "red", "nameTagVisibility": "always", "collision": "never" } }
+    {
+      "id": "staff",
+      "priority": 10,
+      "when": "true",
+      "presentation": {
+        "prefix": "&c[Staff] ",
+        "suffix": " &c*",
+        "color": "red",
+        "nameTagVisibility": "always",
+        "collision": "never"
+      },
+      "permission": "gloss.nametag.staff"
+    }
   ]
 }
 ''';

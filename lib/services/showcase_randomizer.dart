@@ -70,6 +70,15 @@ bool randomizeShowcaseDocument(
         'Randomize MOTD',
         buildRandomMotdShowcase(store.motdDoc!, source),
       );
+    case ChannelDocumentType():
+      final GlossChannelDoc doc = GlossChannelDoc.fromJson(store.glossDoc!.toJson());
+      final List<String> colors = <String>['yellow', 'green', 'aqua', 'light_purple', 'gold'];
+      final String color = colors[source.nextInt(colors.length)];
+      doc.mentions.enabled = true;
+      doc.mentions.render = '<$color><bold>@{{ mention.name }}</bold></$color>';
+      doc.mentions.messageFormat = '<$color>[Mention] {{ sender.name }}: {{ message }}</$color>';
+      doc.mentions.sound = <String>['minecraft:block.note_block.bell', 'minecraft:entity.experience_orb.pickup', 'minecraft:block.note_block.chime'][source.nextInt(3)];
+      store.replaceGlossDoc('Randomize chat channel', doc);
     case ConnectionsDocumentType():
       store.replaceGlossDoc(
         'Randomize connection messages',
@@ -5111,11 +5120,22 @@ GlossNameplateDoc buildRandomNameplateShowcase(
     buildDefaultGlossNameplate(),
   );
   doc.revision = current.revision;
-  if (doc.presentation.lines.isNotEmpty) {
-    doc.presentation.lines.first.text =
-        '&7[${showcasePick(random, showcaseServerNames)}] &f{{ subject.name }}';
-  }
+  final String color = showcasePick(random, <String>['&a', '&b', '&6', '&d', '&e']);
+  doc.presentation.lines = <GlossNameplateLine>[
+    GlossNameplateLine(text: '$color${showcasePick(random, showcaseServerNames)}'),
+    GlossNameplateLine(text: '&f{{ subject.name }}'),
+    GlossNameplateLine(text: "{{ bar(subject.health, subject.maxHealth, 10, '&c|', '&8|') }}",
+      show: 'subject.health < subject.maxHealth'),
+  ];
   doc.presentation.offset = 0.2 + random.nextInt(6) * 0.1;
+  doc.variants = <GlossNameplateVariant>[
+    GlossNameplateVariant(id: 'staff', priority: 10,
+      presentation: doc.presentation.copy()
+        ..lines = <GlossNameplateLine>[
+          GlossNameplateLine(text: '&c[Staff] &f{{ subject.name }}'),
+          GlossNameplateLine(text: '&7${showcasePick(random, showcaseStatusWords)}'),
+        ])..permission = 'gloss.nameplate.staff',
+  ];
   return doc;
 }
 
@@ -5125,9 +5145,11 @@ GlossNametagDoc buildRandomNametagShowcase(
 ) {
   final GlossNametagDoc doc = cloneGlossNametagDoc(buildDefaultGlossNametag());
   doc.revision = current.revision;
+  doc.presentation.color = showcasePick(random, <String>['aqua', 'gold', 'green', 'light_purple', 'yellow']);
   doc.presentation.prefix =
-      '&7[${showcasePick(random, showcaseStatusWords)}] ';
-  doc.presentation.suffix = random.nextBool() ? ' &8*' : '';
+      '${showcasePick(random, <String>['&a', '&b', '&6', '&d'])}[${showcasePick(random, showcaseStatusWords)}] ';
+  doc.presentation.suffix = random.nextBool() ? ' &7| Builder' : '';
+  doc.variants.first.presentation.prefix = '&c[${showcasePick(random, <String>['Staff', 'Guide', 'Mod'])}] ';
   return doc;
 }
 

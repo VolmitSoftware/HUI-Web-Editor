@@ -924,6 +924,8 @@ final class GlossTextExpressionScope extends PExprScope {
       case 'time.ticks':
         return nowMs / 50.0;
       case 'player.name':
+      case 'player.displayName':
+      case 'player.username':
         return viewerAware ? samples.placeholders['player_name'] : null;
       case 'player.ping':
         return viewerAware ? _sampleNumber('player_ping') : null;

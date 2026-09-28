@@ -242,7 +242,7 @@ class HuiColorField extends StatelessWidget {
             placeholder:
                 placeholder ??
                 (format == HuiColorFormat.argb ? '#FFFFFFFF' : '#FFFFFF'),
-            onChange: onChanged,
+            onChanged: onChanged,
             attributes: const <String, String>{...huiTechnicalInputAttributes},
           ),
         ],

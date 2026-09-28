@@ -20,6 +20,7 @@ import '../components/inspector/hologram_inspector.dart';
 import '../components/inspector/inspector_session.dart';
 import '../components/inspector/menu_inspector.dart';
 import '../components/inspector/connections_inspector.dart';
+import '../components/inspector/channel_inspector.dart';
 import '../components/inspector/motd_inspector.dart';
 import '../components/inspector/panel_inspector.dart';
 import '../components/inspector/preview_element_editor.dart';
@@ -71,6 +72,7 @@ final Map<WorkspaceDocKind, DocumentInspectorBuilder> _builders =
       DocumentTypes.scoreboard.kind: _scoreboardBody,
       DocumentTypes.surface.kind: _surfaceBody,
       DocumentTypes.motd.kind: _motdBody,
+      DocumentTypes.channel.kind: (DocumentInspectorScope scope) => <Widget>[ChannelInspector(store: scope.store)],
       DocumentTypes.connections.kind: _connectionsBody,
       DocumentTypes.emoji.kind: _emojiBody,
       DocumentTypes.bubbleStyle.kind: _bubbleBody,

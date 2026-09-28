@@ -728,6 +728,7 @@ class _CenterArea extends StatelessWidget {
     DocumentSurface.hud => 'is-hud',
     DocumentSurface.motd => 'is-motd',
     DocumentSurface.connections => 'is-connections',
+    DocumentSurface.channel => 'is-connections',
     DocumentSurface.emoji => 'is-emoji',
     DocumentSurface.bubble => 'is-bubble',
     DocumentSurface.damageIndicators => 'is-damage-indicators',

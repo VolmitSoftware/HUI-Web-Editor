@@ -115,7 +115,7 @@ final class GlossNametagVariant {
   GlossNametagVariant({
     this.id = '',
     this.priority = 0,
-    this.when = 'false',
+    this.when = 'true',
     GlossNametagPresentation? presentation,
     Map<String, dynamic>? extras,
   }) : presentation = presentation ?? GlossNametagPresentation(),
@@ -127,13 +127,24 @@ final class GlossNametagVariant {
   GlossNametagPresentation presentation;
   Map<String, dynamic> extras;
 
+  String get permission =>
+      extras['permission'] is String ? extras['permission'] as String : '';
+
+  set permission(String value) {
+    if (value.trim().isEmpty) {
+      extras.remove('permission');
+    } else {
+      extras['permission'] = value.trim();
+    }
+  }
+
   static GlossNametagVariant fromJson(Object? raw, int index) {
     final String path = r'$.variants[' + '$index]';
     final Map<String, dynamic> map = huiReadObject(raw, path);
     return GlossNametagVariant(
       id: huiReadString(map, 'id'),
       priority: huiReadInt(map, 'priority'),
-      when: huiReadString(map, 'when', fallback: 'false'),
+      when: huiReadString(map, 'when', fallback: 'true'),
       presentation: GlossNametagPresentation.fromJson(
         map['presentation'],
         '$path.presentation',
@@ -171,7 +182,7 @@ final class GlossNametagDoc extends GlossDoc {
     GlossNametagPresentation? presentation,
     List<GlossNametagVariant>? variants,
     Map<String, dynamic>? extras,
-  }) : select = select ?? GlossPrioritySelect(),
+  }) : select = select ?? GlossPrioritySelect(when: 'true'),
        presentation = presentation ?? GlossNametagPresentation(),
        variants = variants ?? <GlossNametagVariant>[],
        extras = extras ?? <String, dynamic>{};
@@ -188,8 +199,8 @@ final class GlossNametagDoc extends GlossDoc {
       schemaVersion: glossCurrentSchemaVersion,
       revision: glossReadRevision(map),
       select: map['select'] == null
-          ? GlossPrioritySelect()
-          : GlossPrioritySelect.fromJson(map['select']),
+          ? GlossPrioritySelect(when: 'true')
+          : GlossPrioritySelect.fromJson(map['select'], fallbackWhen: 'true'),
       presentation: GlossNametagPresentation.fromJson(
         map['presentation'],
         r'$.presentation',

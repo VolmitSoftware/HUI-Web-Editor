@@ -59,6 +59,7 @@ void main() {
     expect(huiEditorSyncDocumentKinds, <String>[
       'animation',
       'bubble-style',
+      'channel',
       'connections',
       'container-preview',
       'damage-indicators',

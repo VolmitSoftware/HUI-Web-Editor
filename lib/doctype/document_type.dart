@@ -161,6 +161,7 @@ enum DocumentSurface {
   hud,
   motd,
   connections,
+  channel,
   emoji,
   bubble,
   damageIndicators,

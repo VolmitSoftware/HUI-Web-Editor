@@ -95,7 +95,12 @@ class _ConnectionsViewState extends State<ConnectionsView> {
       return GlossGameScreen(
         anchor: GlossGameAnchor.chat,
         label: huiText('Connection messages in chat'),
-        controls: <Widget>[_refresh()],
+        controls: <Widget>[
+          dom.span(classes: 'hui-connections-reader', <Widget>[
+            Text(_readout(doc)),
+          ]),
+          _refresh(),
+        ],
         child: chat,
       );
     }
@@ -129,6 +134,7 @@ class _ConnectionsViewState extends State<ConnectionsView> {
     final GlossConnectionsSection section = doc.section(key);
     final String label = key == 'leave' ? huiText('Leave') : huiText('Join');
     if (!glossConnectionsSectionBroadcasts(doc, key, nowMs: _sampledAtMs)) {
+      if (component.gameContext) return const dom.span(<Widget>[]);
       return dom.div(classes: 'hui-connections-line is-silent', <Widget>[
         dom.span(classes: 'hui-connections-event', <Widget>[Text(label)]),
         Text(_silentReason(doc, section)),
@@ -137,16 +143,19 @@ class _ConnectionsViewState extends State<ConnectionsView> {
     final GlossConnectionsPresentation resolved =
         glossResolveConnectionsPresentation(doc, key);
     if (resolved.text.trim().isEmpty) {
+      if (component.gameContext) return const dom.span(<Widget>[]);
       return dom.div(classes: 'hui-connections-line is-silent', <Widget>[
         dom.span(classes: 'hui-connections-event', <Widget>[Text(label)]),
         Text(huiText('No text, so nothing is sent.')),
       ]);
     }
     return dom.div(classes: 'hui-connections-line', <Widget>[
-      dom.span(classes: 'hui-connections-event', <Widget>[Text(label)]),
+      if (!component.gameContext)
+        dom.span(classes: 'hui-connections-event', <Widget>[Text(label)]),
       GlossTextLine(
         render: renderGlossLine(
           resolved.text,
+          richText: true,
           animations: _store.workspaceAnimations,
           emoji: _store.workspaceEmoji,
           nowMs: _sampledAtMs,
@@ -187,12 +196,8 @@ class _ConnectionsViewState extends State<ConnectionsView> {
         if (glossConnectionsSectionBroadcasts(doc, key, nowMs: _sampledAtMs))
           key,
     ].length;
-    return <String>[
-      huiText('{live} of 2 messages broadcast', <String, Object?>{
-        'live': live,
-      }),
-      huiText('rendered once per reader, not once per event'),
-      huiText('subject is the player who connected, viewer is the one reading'),
-    ].join(' · ');
+    return huiText('{live} of 2 messages broadcast', <String, Object?>{
+      'live': live,
+    });
   }
 }

@@ -221,7 +221,7 @@ class _HologramInspectorState extends State<HologramInspector> {
               size: ComponentSize.sm,
               fullWidth: true,
               placeholder: huiText('world'),
-              onChange: (String value) => _store.mutateHologram(
+              onChanged: (String value) => _store.mutateHologram(
                 'hologram world',
                 (GlossHologramDoc edited) => edited.anchor.world = value,
               ),

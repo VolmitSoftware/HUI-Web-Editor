@@ -12,6 +12,7 @@ import '../common/common.dart';
 import 'gloss_visibility_editor.dart';
 import 'inspector_widgets.dart';
 import 'line_list_section.dart';
+import 'identity_rules_editor.dart';
 
 Widget _header({
   required String eyebrow,
@@ -67,7 +68,7 @@ class InventoryInspector extends StatelessWidget {
           value: doc.title,
           size: ComponentSize.sm,
           fullWidth: true,
-          onChange: (String value) => store.mutateInventory(
+          onChanged: (String value) => store.mutateInventory(
             'title',
             (GlossInventoryDoc edited) => edited.title = value,
           ),
@@ -79,7 +80,7 @@ class InventoryInspector extends StatelessWidget {
           value: doc.resolution,
           size: ComponentSize.sm,
           options: _options(glossInventoryResolutions),
-          onChange: (String value) => store.mutateInventory(
+          onChanged: (String value) => store.mutateInventory(
             'resolution',
             (GlossInventoryDoc edited) => edited.resolution = value,
           ),
@@ -90,7 +91,7 @@ class InventoryInspector extends StatelessWidget {
         help: huiText('Mask'),
         control: TextArea(
           value: doc.mask.join('\n'),
-          onChange: (String value) => store.mutateInventory(
+          onChanged: (String value) => store.mutateInventory(
             'mask',
             (GlossInventoryDoc edited) => edited.mask = value.split('\n'),
           ),
@@ -135,38 +136,37 @@ class NameplateInspector extends StatelessWidget {
           (GlossNameplateDoc edited) => setGlossShow(edited.extras, value),
         ),
       ),
+      IdentityRulesEditor(store: store),
+      const dom.h3(<Widget>[Text('Default presentation')]),
       HuiLineListSection(
         title: huiText('Lines'),
         addLabel: huiText('Add line'),
         emptyBody: huiText('Nothing here yet'),
         itemCount: doc.presentation.lines.length,
-        onAdd: () => store.mutateNameplate('add line', (GlossNameplateDoc edited) {
-          edited.presentation.lines.add(
-            GlossNameplateLine(text: '&f{{ subject.name }}'),
-          );
-        }),
+        onAdd: () =>
+            store.mutateNameplate('add line', (GlossNameplateDoc edited) {
+              edited.presentation.lines.add(
+                GlossNameplateLine(text: '&f{{ subject.name }}'),
+              );
+            }),
         itemBuilder: (int index) => HuiLineRow(
           value: doc.presentation.lines[index].text,
           placeholder: huiText('Nameplate line'),
           removeLabel: huiText('Delete line {number}', <String, Object?>{
             'number': index + 1,
           }),
-          onChanged: (String value) => store.mutateNameplate(
-            'line',
-            (GlossNameplateDoc edited) {
-              if (index < edited.presentation.lines.length) {
-                edited.presentation.lines[index].text = value;
-              }
-            },
-          ),
-          onRemove: () => store.mutateNameplate(
-            'remove line',
-            (GlossNameplateDoc edited) {
-              if (index < edited.presentation.lines.length) {
-                edited.presentation.lines.removeAt(index);
-              }
-            },
-          ),
+          onChanged: (String value) =>
+              store.mutateNameplate('line', (GlossNameplateDoc edited) {
+                if (index < edited.presentation.lines.length) {
+                  edited.presentation.lines[index].text = value;
+                }
+              }),
+          onRemove: () =>
+              store.mutateNameplate('remove line', (GlossNameplateDoc edited) {
+                if (index < edited.presentation.lines.length) {
+                  edited.presentation.lines.removeAt(index);
+                }
+              }),
         ),
       ),
       HuiField(
@@ -187,7 +187,8 @@ class NameplateInspector extends StatelessWidget {
         value: doc.presentation.hideSneaking,
         onChanged: (bool value) => store.mutateNameplate(
           'hide sneaking',
-          (GlossNameplateDoc edited) => edited.presentation.hideSneaking = value,
+          (GlossNameplateDoc edited) =>
+              edited.presentation.hideSneaking = value,
         ),
       ),
     ]);
@@ -221,13 +222,15 @@ class NametagInspector extends StatelessWidget {
           (GlossNametagDoc edited) => setGlossShow(edited.extras, value),
         ),
       ),
+      IdentityRulesEditor(store: store),
+      const dom.h3(<Widget>[Text('Default presentation')]),
       HuiField(
         label: huiText('Prefix'),
         control: TextInput(
           value: doc.presentation.prefix,
           size: ComponentSize.sm,
           fullWidth: true,
-          onChange: (String value) => store.mutateNametag(
+          onChanged: (String value) => store.mutateNametag(
             'prefix',
             (GlossNametagDoc edited) => edited.presentation.prefix = value,
           ),
@@ -239,7 +242,7 @@ class NametagInspector extends StatelessWidget {
           value: doc.presentation.suffix,
           size: ComponentSize.sm,
           fullWidth: true,
-          onChange: (String value) => store.mutateNametag(
+          onChanged: (String value) => store.mutateNametag(
             'suffix',
             (GlossNametagDoc edited) => edited.presentation.suffix = value,
           ),
@@ -251,7 +254,7 @@ class NametagInspector extends StatelessWidget {
           value: doc.presentation.color,
           size: ComponentSize.sm,
           fullWidth: true,
-          onChange: (String value) => store.mutateNametag(
+          onChanged: (String value) => store.mutateNametag(
             'color',
             (GlossNametagDoc edited) => edited.presentation.color = value,
           ),
@@ -263,7 +266,7 @@ class NametagInspector extends StatelessWidget {
           value: doc.presentation.nameTagVisibility,
           size: ComponentSize.sm,
           options: _options(glossNametagVisibilities),
-          onChange: (String value) => store.mutateNametag(
+          onChanged: (String value) => store.mutateNametag(
             'visibility rule',
             (GlossNametagDoc edited) =>
                 edited.presentation.nameTagVisibility = value,
@@ -276,7 +279,7 @@ class NametagInspector extends StatelessWidget {
           value: doc.presentation.collision,
           size: ComponentSize.sm,
           options: _options(glossNametagCollisions),
-          onChange: (String value) => store.mutateNametag(
+          onChanged: (String value) => store.mutateNametag(
             'collision',
             (GlossNametagDoc edited) => edited.presentation.collision = value,
           ),
@@ -319,7 +322,7 @@ class MarkerInspector extends StatelessWidget {
           value: doc.label,
           size: ComponentSize.sm,
           fullWidth: true,
-          onChange: (String value) => store.mutateMarker(
+          onChanged: (String value) => store.mutateMarker(
             'label',
             (GlossMarkerDoc edited) => edited.label = value,
           ),
@@ -341,7 +344,7 @@ class MarkerInspector extends StatelessWidget {
         control: TextInput(
           value: doc.anchor.world ?? '',
           size: ComponentSize.sm,
-          onChange: (String value) => store.mutateMarker(
+          onChanged: (String value) => store.mutateMarker(
             'world',
             (GlossMarkerDoc edited) =>
                 edited.anchor.world = value.trim().isEmpty ? null : value,
@@ -350,13 +353,12 @@ class MarkerInspector extends StatelessWidget {
       ),
       HuiVec3Field(
         value: Vec3(doc.anchor.x ?? 0, doc.anchor.y ?? 64, doc.anchor.z ?? 0),
-        onChanged: (Vec3 value) => store.mutateMarker('position', (
-          GlossMarkerDoc edited,
-        ) {
-          edited.anchor.x = value.x;
-          edited.anchor.y = value.y;
-          edited.anchor.z = value.z;
-        }),
+        onChanged: (Vec3 value) =>
+            store.mutateMarker('position', (GlossMarkerDoc edited) {
+              edited.anchor.x = value.x;
+              edited.anchor.y = value.y;
+              edited.anchor.z = value.z;
+            }),
       ),
       HuiField(
         label: huiText('Hide within (blocks)'),

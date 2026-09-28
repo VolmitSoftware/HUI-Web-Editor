@@ -107,10 +107,8 @@ final class GlossNameplateRelation {
     );
   }
 
-  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
-    'when': when,
-    'color': color,
-  }, extras);
+  Map<String, dynamic> toJson() =>
+      huiMergeExtras(<String, dynamic>{'when': when, 'color': color}, extras);
 
   GlossNameplateRelation copy() => GlossNameplateRelation(
     when: when,
@@ -207,6 +205,17 @@ final class GlossNameplateVariant {
   String when;
   GlossNameplatePresentation presentation;
   Map<String, dynamic> extras;
+
+  String get permission =>
+      extras['permission'] is String ? extras['permission'] as String : '';
+
+  set permission(String value) {
+    if (value.trim().isEmpty) {
+      extras.remove('permission');
+    } else {
+      extras['permission'] = value.trim();
+    }
+  }
 
   static GlossNameplateVariant fromJson(Object? raw, int index) {
     final String path = r'$.variants[' + '$index]';

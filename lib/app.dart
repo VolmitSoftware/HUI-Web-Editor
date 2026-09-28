@@ -15,6 +15,7 @@ import 'components/damage_indicators/damage_indicator_view.dart';
 import 'components/emoji/emoji_view.dart';
 import 'components/entity_overlays/entity_overlay_view.dart';
 import 'components/connections/connections_view.dart';
+import 'components/channel/channel_view.dart';
 import 'components/motd/motd_view.dart';
 import 'components/scoreboard/scoreboard_view.dart';
 import 'components/surface/surface_view.dart';
@@ -988,22 +989,56 @@ class _AppState extends State<App> {
         ),
         surfaces: <DocumentSurface, Widget>{
           DocumentSurface.panel: PanelView(store: _store),
-          DocumentSurface.hologram: HologramView(store: _store),
-          DocumentSurface.animation: AnimationView(store: _store),
-          DocumentSurface.scoreboard: ScoreboardView(store: _store),
-          DocumentSurface.hud: SurfaceView(store: _store),
-          DocumentSurface.motd: MotdView(store: _store),
-          DocumentSurface.connections: ConnectionsView(store: _store),
-          DocumentSurface.emoji: EmojiView(store: _store),
-          DocumentSurface.bubble: BubbleView(store: _store),
-          DocumentSurface.damageIndicators: DamageIndicatorView(store: _store),
-          DocumentSurface.entityOverlays: EntityOverlayView(store: _store),
-          DocumentSurface.tablist: TablistView(store: _store),
-          DocumentSurface.realDrops: RealDropsView(store: _store),
-          DocumentSurface.inventory: InventoryView(store: _store),
-          DocumentSurface.nameplate: NameplateView(store: _store),
-          DocumentSurface.nametag: NametagView(store: _store),
-          DocumentSurface.marker: MarkerView(store: _store),
+          DocumentSurface.hologram: HologramView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.animation: AnimationView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.scoreboard: ScoreboardView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.hud: SurfaceView(store: _store, gameContext: true),
+          DocumentSurface.motd: MotdView(store: _store, gameContext: true),
+          DocumentSurface.channel: ChannelView(store: _store, gameContext: true),
+          DocumentSurface.connections: ConnectionsView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.emoji: EmojiView(store: _store, gameContext: true),
+          DocumentSurface.bubble: BubbleView(store: _store, gameContext: true),
+          DocumentSurface.damageIndicators: DamageIndicatorView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.entityOverlays: EntityOverlayView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.tablist: TablistView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.realDrops: RealDropsView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.inventory: InventoryView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.nameplate: PlayerIdentityView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.nametag: PlayerIdentityView(
+            store: _store,
+            gameContext: true,
+          ),
+          DocumentSurface.marker: MarkerView(store: _store, gameContext: true),
         },
         // The preview mode's in-game renderings. The menu's is the 3D stage;
         // every other kind renders through its own surface asked for game
@@ -1037,6 +1072,7 @@ class _AppState extends State<App> {
           ),
           DocumentSurface.hud: SurfaceView(store: _store, gameContext: true),
           DocumentSurface.motd: MotdView(store: _store, gameContext: true),
+          DocumentSurface.channel: ChannelView(store: _store, gameContext: true),
           DocumentSurface.connections: ConnectionsView(
             store: _store,
             gameContext: true,
@@ -1063,11 +1099,11 @@ class _AppState extends State<App> {
             store: _store,
             gameContext: true,
           ),
-          DocumentSurface.nameplate: NameplateView(
+          DocumentSurface.nameplate: PlayerIdentityView(
             store: _store,
             gameContext: true,
           ),
-          DocumentSurface.nametag: NametagView(
+          DocumentSurface.nametag: PlayerIdentityView(
             store: _store,
             gameContext: true,
           ),

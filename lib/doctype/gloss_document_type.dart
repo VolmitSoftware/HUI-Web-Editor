@@ -132,6 +132,7 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
           'The saved document "{title}" was unreadable ({error}) and was replaced with a blank MOTD.',
           arguments,
         ),
+        WorkspaceDocKind.channel => huiText('The saved chat channel "{title}" was unreadable ({error}) and was replaced with a blank channel.', arguments),
         WorkspaceDocKind.connections => huiText(
           'The saved document "{title}" was unreadable ({error}) and was replaced with blank connection messages.',
           arguments,
@@ -204,6 +205,7 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
         'The saved document "{title}" was unreadable and was replaced with a blank MOTD.',
         arguments,
       ),
+      WorkspaceDocKind.channel => huiText('The saved chat channel "{title}" was unreadable and was replaced with a blank channel.', arguments),
       WorkspaceDocKind.connections => huiText(
         'The saved document "{title}" was unreadable and was replaced with blank connection messages.',
         arguments,

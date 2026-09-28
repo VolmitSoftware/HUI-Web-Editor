@@ -1460,11 +1460,13 @@
   gap: 12px;
   min-width: min(420px, 100%);
   padding: 16px 18px;
-  border: 1px solid var(--hui-border);
-  background: color-mix(in srgb, var(--hui-panel) 92%, black);
+  border: 3px solid #373737;
+  background: #c6c6c6;
+  box-shadow: inset 2px 2px #fff, inset -2px -2px #555;
+  color: #3f3f3f;
 }
 
-.hui-inventory-title { font-size: 1.05rem; font-weight: 650; }
+.hui-inventory-title { font-family: var(--hui-mc-font); font-size: 18px; }
 
 .hui-inventory-grid {
   display: grid;
@@ -1472,16 +1474,22 @@
 }
 
 .hui-inventory-slot {
+  position: relative;
   display: flex;
-  min-width: 28px;
-  min-height: 28px;
+  min-width: 0;
+  aspect-ratio: 1;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--hui-border-soft);
-  background: color-mix(in srgb, var(--hui-bg) 80%, black);
-  font-family: var(--font-mono, ui-monospace, monospace);
+  border: 2px solid #565656;
+  background: #8b8b8b;
+  box-shadow: inset -1px -1px #fff;
+  font-family: var(--hui-mc-font);
   font-size: 0.72rem;
 }
+
+.hui-inventory-slot img { width: 80%; height: 80%; object-fit: contain; image-rendering: pixelated; }
+.hui-inventory-count { position: absolute; right: 2px; bottom: 0; color: #fff; font-size: 16px; text-shadow: 2px 2px #333; }
+.hui-inventory-missing { padding: 2px; overflow-wrap: anywhere; font-size: 9px; }
 
 .hui-nameplate-stack,
 .hui-nametag-line,
@@ -1492,4 +1500,44 @@
   padding: 12px 14px;
   border: 1px solid var(--hui-border-soft);
   background: color-mix(in srgb, var(--hui-panel) 88%, transparent);
+}
+
+.hui-identity-billboard {
+  font-family: var(--hui-mc-font);
+  font-size: 19.2px;
+  line-height: 24px;
+  text-align: center;
+  white-space: pre;
+  color: white;
+  text-shadow: 2px 2px #0009;
+}
+
+.hui-identity-billboard > div {
+  width: fit-content;
+  margin-inline: auto;
+  padding-inline: 2px;
+  background: #0006;
+}
+
+.hui-identity-rules,
+.hui-identity-variant {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hui-identity-variant {
+  padding: 12px;
+  border: 1px solid var(--hui-border);
+  border-radius: 6px;
+}
+
+.hui-gloss-game-controls:has([aria-label="Preview permissions"]) {
+  flex-wrap: wrap;
+  max-width: calc(100% - 24px);
+}
+
+.hui-gloss-game-controls [aria-label="Preview permissions"] {
+  width: min(260px, 100%);
 }

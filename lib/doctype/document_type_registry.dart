@@ -5,6 +5,7 @@ import '../state/workspace.dart';
 import 'animation_document_type.dart';
 import 'bubble_style_document_type.dart';
 import 'connections_document_type.dart';
+import 'channel_document_type.dart';
 import 'container_preview_document_type.dart';
 import 'damage_indicators_document_type.dart';
 import 'document_type.dart';
@@ -35,6 +36,7 @@ abstract final class DocumentTypes {
   static const ScoreboardDocumentType scoreboard = ScoreboardDocumentType();
   static const SurfaceDocumentType surface = SurfaceDocumentType();
   static const MotdDocumentType motd = MotdDocumentType();
+  static const ChannelDocumentType channel = ChannelDocumentType();
   static const ConnectionsDocumentType connections = ConnectionsDocumentType();
   static const EmojiDocumentType emoji = EmojiDocumentType();
   static const BubbleStyleDocumentType bubbleStyle = BubbleStyleDocumentType();
@@ -64,6 +66,7 @@ abstract final class DocumentTypeRegistry {
         WorkspaceDocKind.scoreboard: DocumentTypes.scoreboard,
         WorkspaceDocKind.surface: DocumentTypes.surface,
         WorkspaceDocKind.motd: DocumentTypes.motd,
+        WorkspaceDocKind.channel: DocumentTypes.channel,
         WorkspaceDocKind.connections: DocumentTypes.connections,
         WorkspaceDocKind.emoji: DocumentTypes.emoji,
         WorkspaceDocKind.bubbleStyle: DocumentTypes.bubbleStyle,
@@ -88,6 +91,7 @@ abstract final class DocumentTypeRegistry {
     DocumentTypes.surface,
     DocumentTypes.motd,
     DocumentTypes.connections,
+    DocumentTypes.channel,
     DocumentTypes.emoji,
     DocumentTypes.bubbleStyle,
     DocumentTypes.damageIndicators,

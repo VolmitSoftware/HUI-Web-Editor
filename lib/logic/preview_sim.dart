@@ -119,6 +119,8 @@ const List<String> previewStandardVariableNames = <String>[
   'server.maxPlayers',
   'server.tps',
   'player.name',
+  'player.displayName',
+  'player.username',
   'player.ping',
   'player.health',
   'player.level',

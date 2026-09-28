@@ -111,7 +111,7 @@ class HuiLineRow extends StatelessWidget {
         size: ComponentSize.sm,
         fullWidth: true,
         placeholder: placeholder,
-        onChange: onChanged,
+        onChanged: onChanged,
         onFocus: onFocus,
         attributes: const <String, String>{
           'autocomplete': 'off',

@@ -24,3 +24,5 @@ export 'json_codec.dart';
 export 'particle_layer.dart';
 export 'preview_doc.dart';
 export 'vec3.dart';
+
+export 'gloss_channel.dart';
