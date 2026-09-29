@@ -482,8 +482,8 @@ class _MotdInspectorState extends State<MotdInspector> {
           label: huiText('Version label'),
           docKey: 'motd.entries.version',
           help: huiText(
-            'Shown where the ping bars sit, and only when the player\'s '
-            'client is on another protocol. Needs Paper.',
+            'Shown only to clients with an incompatible protocol. '
+            'Does not replace ping bars or change compatibility. Needs Paper.',
           ),
           placeholder: huiText('&cOutdated'),
           value: entry.version,

@@ -212,8 +212,7 @@ final class GlossMotdEntry {
   /// The slot count the ping reports, same rule as [online].
   String? max;
 
-  /// The version label the client shows in place of the ping bars when the
-  /// protocol does not match.
+  /// The version label shown when the client protocol does not match.
   String? version;
 
   Map<String, dynamic> extras;

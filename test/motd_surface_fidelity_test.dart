@@ -61,14 +61,14 @@ void main() {
     expect(source, contains('_sampledAtMs = DateTime.now()'));
   });
 
-  test('the row draws the counts, the version slot and the hover sample', () {
+  test('the compatible row draws counts, ping bars and a floating sample', () {
     expect(source, contains('glossMotdPlayerCount('));
-    expect(source, contains('glossMotdVersionLabel('));
     expect(source, contains('glossMotdSampleLines('));
-    expect(source, contains('hui-motd-version'));
+    expect(source, contains('hui-motd-ping'));
+    expect(source, isNot(contains('hui-motd-version')));
+    expect(source, contains('ArcaneTooltip.custom('));
     expect(source, contains('hui-motd-sample'));
-    // The sample is markup the stylesheet reveals on hover, never a node the
-    // preview only builds while hovered: a screenshot has no pointer.
+    // The floating tooltip owns hover state; the MOTD supplies its content.
     expect(source, isNot(contains('_hoveringSample')));
     expect(source, isNot(contains("'mouseenter'")));
   });
@@ -155,13 +155,6 @@ void main() {
         ),
         hasLength(glossMotdMaxSampleLines),
       );
-    });
-
-    test('the version label is the rendered text, or nothing when blank', () {
-      expect(glossMotdVersionLabel(entry(version: '&cOutdated')), '&cOutdated');
-      expect(glossMotdVersionLabel(entry(version: '  ')), isNull);
-      expect(glossMotdVersionLabel(entry()), isNull);
-      expect(glossMotdVersionLabel(null), isNull);
     });
   });
 }

@@ -13,11 +13,10 @@
 ///
 /// The rest of `applyExtras` draws too, through `motd_preview.dart`: the
 /// counts read `online/max` when the entry authors them and the sampled figure
-/// when it does not, the version label takes the ping-bar slot the client
-/// gives it when a protocol does not match, and the hover sample is markup the
-/// stylesheet reveals under the count. The bars and the sampled count are
-/// cosmetic — the client fills those, never the plugin — and nothing here can
-/// know whether the server runs Paper, so all four draw regardless.
+/// when it does not, and the hover sample uses the floating tooltip surface.
+/// The preview represents a compatible client, so a version label does not
+/// replace the player count or ping bars. The bars and the sampled count are
+/// cosmetic. Counts and samples assume Paper's ping-field support.
 ///
 /// With `gameContext` the server row mounts into the shared game-screen frame
 /// as the multiplayer GUI screen it already looks like — no HUD behind it,
@@ -134,7 +133,6 @@ class _MotdViewState extends State<MotdView> {
         ? const <String>[]
         : ping.lines.take(glossMotdMaxLinesPerEntry).toList();
     final List<String> sample = glossMotdSampleLines(ping);
-    final String? version = glossMotdVersionLabel(ping);
 
     final Widget row = dom.div(classes: 'hui-motd-row', <Widget>[
       _icon(entry == null ? null : doc.faviconFor(entry)),
@@ -144,53 +142,14 @@ class _MotdViewState extends State<MotdView> {
             Text(huiText('My Server')),
           ]),
           dom.span(classes: 'hui-motd-row-status', <Widget>[
-            dom.div(classes: 'hui-motd-count', <Widget>[
-              dom.span(classes: 'hui-motd-players', <Widget>[
-                Text(
-                  glossMotdPlayerCount(
-                    ping,
-                    animations: animations,
-                    emoji: _store.workspaceEmoji,
-                    nowMs: nowMs,
-                  ),
+            _playerCount(ping, sample, animations, nowMs),
+            dom.span(classes: 'hui-motd-ping', <Widget>[
+              for (int bar = 0; bar < 5; bar++)
+                dom.span(
+                  classes: 'hui-motd-ping-bar${bar < 4 ? ' is-filled' : ''}',
+                  const <Widget>[],
                 ),
-              ]),
-              if (sample.isNotEmpty)
-                dom.div(classes: 'hui-motd-sample', <Widget>[
-                  for (final String line in sample)
-                    dom.div(classes: 'hui-motd-sample-line', <Widget>[
-                      GlossTextLine(
-                        render: renderGlossLine(
-                          line,
-                          animations: animations,
-                          emoji: _store.workspaceEmoji,
-                          nowMs: nowMs,
-                          viewerAware: false,
-                        ),
-                      ),
-                    ]),
-                ]),
             ]),
-            if (version != null)
-              dom.span(classes: 'hui-motd-version', <Widget>[
-                GlossTextLine(
-                  render: renderGlossLine(
-                    version,
-                    animations: animations,
-                    emoji: _store.workspaceEmoji,
-                    nowMs: nowMs,
-                    viewerAware: false,
-                  ),
-                ),
-              ])
-            else
-              dom.span(classes: 'hui-motd-ping', <Widget>[
-                for (int bar = 0; bar < 5; bar++)
-                  dom.span(
-                    classes: 'hui-motd-ping-bar${bar < 4 ? ' is-filled' : ''}',
-                    const <Widget>[],
-                  ),
-              ]),
           ]),
         ]),
         if (entry == null)
@@ -261,6 +220,49 @@ class _MotdViewState extends State<MotdView> {
         Text(_readout(doc, entry, shown)),
       ]),
     ]);
+  }
+
+  Widget _playerCount(
+    GlossMotdEntry? entry,
+    List<String> sample,
+    GlossAnimationResolver animations,
+    int nowMs,
+  ) {
+    final Widget count = dom.span(
+      classes: 'hui-motd-count',
+      attributes: <String, String>{if (sample.isNotEmpty) 'tabindex': '0'},
+      <Widget>[
+        dom.span(classes: 'hui-motd-players', <Widget>[
+          Text(
+            glossMotdPlayerCount(
+              entry,
+              animations: animations,
+              emoji: _store.workspaceEmoji,
+              nowMs: nowMs,
+            ),
+          ),
+        ]),
+      ],
+    );
+    if (sample.isEmpty) return count;
+    return ArcaneTooltip.custom(
+      position: FloatingPosition.bottomEnd,
+      child: count,
+      content: dom.div(classes: 'hui-motd-sample', <Widget>[
+        for (final String line in sample)
+          dom.div(classes: 'hui-motd-sample-line', <Widget>[
+            GlossTextLine(
+              render: renderGlossLine(
+                line,
+                animations: animations,
+                emoji: _store.workspaceEmoji,
+                nowMs: nowMs,
+                viewerAware: false,
+              ),
+            ),
+          ]),
+      ]),
+    );
   }
 
   /// The 64x64 server-list slot. The image library already holds every

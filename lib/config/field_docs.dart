@@ -1084,8 +1084,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
   'motd.entries.version': HuiFieldDoc(
     title: 'Version label',
     body:
-        'Free text the client draws where the ping bars usually sit, and only '
-        'when its protocol does not match the server. It is not a protocol '
+        'Free text shown only when the client protocol does not match the '
+        'server. Ping bars remain client-controlled. It is not a protocol '
         'number and changes nothing about who may join; Paper carries it, so '
         'a Spigot server sends nothing here.',
     citation: 'MotdService.java:170-172',

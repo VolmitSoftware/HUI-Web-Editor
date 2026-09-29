@@ -601,8 +601,8 @@ const GlossJsonObject _motdEntryNode = GlossJsonObject(
       type: GlossJsonType.string,
       title: 'Version label',
       summary:
-          'Shown where the ping bars sit when the protocol does not match. '
-          'Paper only.',
+          'Shown only to clients with an incompatible protocol. '
+          'Does not replace ping bars or change compatibility. Needs Paper.',
       docKey: 'motd.entries.version',
     ),
   ],
