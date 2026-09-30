@@ -30,10 +30,7 @@ void main() {
   final DropStageTimeline timeline = DropStageTimeline(
     doc,
     drop,
-    environment: const DropStageEnvironment(
-      water: false,
-      useItemDisplayNames: false,
-    ),
+    environment: const DropStageEnvironment(),
   );
 
   test('the shadow is one disc lying on the ground plane', () {

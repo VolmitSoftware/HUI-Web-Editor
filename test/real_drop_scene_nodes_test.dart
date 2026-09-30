@@ -22,7 +22,7 @@ DropStageTimeline _timeline(ShowcaseDrop drop, {bool water = false}) {
   return DropStageTimeline(
     doc,
     drop,
-    environment: DropStageEnvironment(water: water, useItemDisplayNames: false),
+    environment: DropStageEnvironment(water: water),
   );
 }
 

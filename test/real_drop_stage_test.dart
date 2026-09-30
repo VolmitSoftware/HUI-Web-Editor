@@ -303,30 +303,47 @@ void main() {
     );
   });
 
-  test('single-item labels use the material name by default', () {
+  test('a single item still renders its count, as the server does', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-    final ShowcaseDrop drop = _drop('cobblestone');
-    expect(DropStageTimeline(doc, drop).label, '&7cobblestone');
-  });
-
-  test('multi-item labels retain the shipped count format', () {
-    final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-    final ShowcaseDrop drop = _drop('cookie');
-    expect(DropStageTimeline(doc, drop).label, '&7${drop.amount}x cookie');
-  });
-
-  test('renamed item labels require explicit preview opt-in', () {
-    final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-    final ShowcaseDrop drop = _drop('diamond_pickaxe');
     expect(
-      DropStageTimeline(
-        doc,
-        drop,
-        environment: const DropStageEnvironment(useItemDisplayNames: true),
-      ).label,
-      '&7${drop.displayName}',
+      DropStageTimeline(doc, _drop('cobblestone')).label,
+      '&71x Cobblestone',
     );
   });
+
+  test('multi-item labels use the shipped format and Title Case names', () {
+    final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+    expect(DropStageTimeline(doc, _drop('cookie')).label, '&73x Cookie');
+    expect(
+      DropStageTimeline(doc, _drop('diamond_pickaxe')).label,
+      '&71x Diamond Pickaxe',
+    );
+  });
+
+  test('the selected presentation decides the label text', () {
+    final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+    doc.presentation.labels.format = '{type} &8({count})';
+    doc.presentation.labels.names['cobblestone '] = '&fCobble';
+    expect(
+      DropStageTimeline(doc, _drop('cobblestone')).label,
+      '&fCobble &8(1)',
+    );
+    expect(DropStageTimeline(doc, _drop('oak_slab')).label, 'Oak Slab &8(2)');
+  });
+
+  test(
+    'item display names replace the type only when the document opts in',
+    () {
+      final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+      final ShowcaseDrop drop = _drop('diamond_pickaxe');
+      doc.presentation.labels.names['DIAMOND_PICKAXE'] = 'Pick';
+      expect(DropStageTimeline(doc, drop).label, '&71x Pick');
+      doc.presentation.labels.useItemDisplayNames = true;
+      final DropStageTimeline renamed = DropStageTimeline(doc, drop);
+      expect(renamed.label, '&71x ${drop.displayName}');
+      expect(renamed.usesItemDisplayName, isTrue);
+    },
+  );
 
   test('the scale family and ground clearance follow the material', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();

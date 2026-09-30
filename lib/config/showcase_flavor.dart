@@ -344,8 +344,8 @@ const List<ShowcaseMood> showcaseMoods = <ShowcaseMood>[
 ///
 /// [block] is `Material.isBlock()`, which no browser catalog carries and
 /// `RealDropModel.modelKind` needs, so each entry states it. [displayName] is
-/// the sample item-meta name the plugin can prefer over the registry name when
-/// the opt-in `drops.useItemDisplayNames` setting is on.
+/// the sample item-meta name the plugin prefers over the material name when
+/// the presentation's `labels.useItemDisplayNames` is on.
 final class ShowcaseDrop {
   const ShowcaseDrop({
     required this.material,

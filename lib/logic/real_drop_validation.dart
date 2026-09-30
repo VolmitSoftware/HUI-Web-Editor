@@ -184,6 +184,14 @@ List<HuiIssue> _validatePresentation(GlossRealDropPresentation doc) {
     'UPRIGHT',
   });
   _range(issues, r'$.labels.yOffset', doc.labels.yOffset, -4, 16);
+  _labelNames(issues, doc.labels.names);
+  _range(
+    issues,
+    r'$.labels.bundle.entryLimit',
+    doc.labels.bundle.entryLimit,
+    1,
+    10,
+  );
   issues.addAll(
     validateIconDisplayStyle(doc.labels.style, path: r'$.labels.style'),
   );
@@ -395,6 +403,24 @@ void _error(
       fix: 'Correct the animation contract before exporting this document.',
     ),
   );
+}
+
+/// `labels.names` entries the server drops at load: a blank material or a
+/// blank name never reaches a label.
+void _labelNames(List<HuiIssue> issues, Map<String, String> names) {
+  names.forEach((String material, String name) {
+    if (material.trim().isNotEmpty && name.trim().isNotEmpty) return;
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.warning,
+        path: material.trim().isEmpty
+            ? r'$.labels.names'
+            : '\$.labels.names.$material',
+        message: 'Gloss ignores a name entry with a blank material or name.',
+        fix: 'Fill in both the material and the name, or remove the entry.',
+      ),
+    );
+  });
 }
 
 /// The physics block's four clamps. Warnings, like every other clamp in this

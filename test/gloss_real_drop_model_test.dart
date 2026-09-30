@@ -138,6 +138,101 @@ void main() {
     expect(validateRealDropSettingsDoc(restored), isEmpty);
   });
 
+  test('label text fields default to the shipped runtime values', () {
+    final GlossRealDropLabels labels = GlossRealDropLabels.fromJson(
+      <String, Object?>{},
+    );
+    expect(labels.format, '&7{count}x {type}');
+    expect(labels.useItemDisplayNames, isFalse);
+    expect(labels.names, isEmpty);
+    expect(
+      labels.bundle.format,
+      '&7Bundle &8(&7{total} items&8): &7{contents}',
+    );
+    expect(labels.bundle.entryLimit, 3);
+    expect(labels.bundle.vertical, isTrue);
+    expect(labels.bundle.headerFormat, '&eBundle &8(&e{total} items&8)');
+    expect(labels.bundle.entryFormat, '&7- &f{count}x {type}');
+    expect(labels.bundle.moreFormat, '&8+{remaining} more');
+    expect(labels.extras, isEmpty);
+  });
+
+  test('label text, names and bundle round-trip in file order', () {
+    final GlossRealDropSettingsDoc doc = decodeGlossRealDropSettingsDoc('''
+{
+  "schemaVersion": 4,
+  "revision": 1,
+  "presentation": {
+    "labels": {
+      "format": "{type} &8x{count}",
+      "useItemDisplayNames": true,
+      "names": {"STONE": "&7Rock", "COBBLESTONE": "&7Cobble", "dirt": "Soil"},
+      "bundle": {
+        "format": "{contents}",
+        "entryLimit": 6,
+        "vertical": false,
+        "headerFormat": "{total}",
+        "entryFormat": "{type}",
+        "moreFormat": "+{remaining}",
+        "futureBundleKey": 1
+      }
+    }
+  },
+  "variants": [],
+  "audience": {"when": "true"}
+}
+''');
+    final GlossRealDropLabels labels = doc.presentation.labels;
+    expect(labels.format, '{type} &8x{count}');
+    expect(labels.useItemDisplayNames, isTrue);
+    expect(labels.names.keys, <String>['STONE', 'COBBLESTONE', 'dirt']);
+    expect(labels.bundle.entryLimit, 6);
+    expect(labels.bundle.vertical, isFalse);
+    expect(labels.extras, isEmpty);
+
+    final Map<String, Object?> json = decodeGlossRealDropSettingsDoc(
+      encodeGlossRealDropSettingsDoc(doc),
+    ).presentation.labels.toJson();
+    expect(json.keys, <String>[
+      'enabled',
+      'yOffset',
+      'format',
+      'useItemDisplayNames',
+      'names',
+      'bundle',
+      'style',
+      'box',
+    ]);
+    expect(json['names'], <String, String>{
+      'STONE': '&7Rock',
+      'COBBLESTONE': '&7Cobble',
+      'dirt': 'Soil',
+    });
+    expect(json['bundle'], <String, Object?>{
+      'format': '{contents}',
+      'entryLimit': 6,
+      'vertical': false,
+      'headerFormat': '{total}',
+      'entryFormat': '{type}',
+      'moreFormat': '+{remaining}',
+      'futureBundleKey': 1,
+    });
+  });
+
+  test('label entries the server clamps or drops are reported', () {
+    final GlossRealDropSettingsDoc doc = GlossRealDropSettingsDoc();
+    doc.presentation.labels.bundle.entryLimit = 12;
+    doc.presentation.labels.names['STONE'] = ' ';
+    final List<String> paths = <String>[
+      for (final HuiIssue issue in validateRealDropSettingsDoc(doc))
+        if (issue.severity == HuiSeverity.warning) issue.path,
+    ];
+    expect(paths, <String>[
+      r'$.presentation.labels.names.STONE',
+      r'$.presentation.labels.bundle.entryLimit',
+    ]);
+  });
+
   test('unsupported schema is rejected', () {
     expect(
       () => decodeGlossRealDropSettingsDoc('''

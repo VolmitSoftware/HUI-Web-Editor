@@ -74,6 +74,7 @@ const Map<String, Map<String, String>> namespaces =
         'motion': 'realDrops.motion',
         'landing': 'realDrops.landing',
         'labels': 'realDrops.labels',
+        'labelBundle': 'realDrops.labels.bundle',
         'filters': 'realDrops.filters',
         'physics': 'realDrops.physics',
         'script': 'realDrops.script',

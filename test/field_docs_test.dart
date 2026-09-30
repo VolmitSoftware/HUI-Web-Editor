@@ -207,6 +207,16 @@ const List<String> _generatedOnlyKeys = <String>[
   'preview.variant.entities',
   'preview.variant.vars',
   'preview.vars',
+  'realDrops.labels.bundle',
+  'realDrops.labels.bundle.entryFormat',
+  'realDrops.labels.bundle.entryLimit',
+  'realDrops.labels.bundle.format',
+  'realDrops.labels.bundle.headerFormat',
+  'realDrops.labels.bundle.moreFormat',
+  'realDrops.labels.bundle.vertical',
+  'realDrops.labels.format',
+  'realDrops.labels.names',
+  'realDrops.labels.useItemDisplayNames',
 ];
 
 /// `File.java:12` or `File.java:12-34`, nothing else.

@@ -16,6 +16,7 @@ import '../config/gloss_templates.dart';
 import '../config/showcase_flavor.dart';
 import '../doctype/doctype.dart';
 import '../logic/canvas_scene.dart' show huiIsBlockLikeMaterial;
+import '../logic/real_drop_labels.dart';
 import '../logic/real_drop_model.dart';
 import '../model/model.dart';
 import '../model/runtime_panel_definition.dart';
@@ -3307,6 +3308,7 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
     ..yOffset = _round2(0.2 + random.nextDouble() * 1.1)
     ..style = labelStyle
     ..box = showcaseBox(random, mood);
+  _randomizeDropLabelText(presentation.labels, random, mood);
 
   presentation.filters
     ..onlyPlayerDrops = random.nextInt(4) == 0
@@ -3358,6 +3360,7 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
             );
       variant.labels.style = showcaseDisplayStyle(random, mood);
       variant.labels.box = showcaseBox(random, mood);
+      _randomizeDropLabelText(variant.labels, random, mood);
       variant.scale.defaultScale = _band(random, (0.1, 1.8), 2);
       variant.physics = _buildDropPhysics(
         showcasePick(random, RealDropShowcaseArchetype.values),
@@ -3390,6 +3393,85 @@ GlossRealDropSettingsDoc buildRandomRealDropShowcase(
   );
 
   return doc;
+}
+
+/// Label wording for one presentation. Layout, colour, per-material names and
+/// bundle lines are drawn from the same mood so a press reads as one voice.
+void _randomizeDropLabelText(
+  GlossRealDropLabels labels,
+  math.Random random,
+  ShowcaseMood mood,
+) {
+  labels
+    ..format = _randomDropLabelFormat(random, mood)
+    ..useItemDisplayNames = random.nextInt(3) == 0
+    ..names = _randomDropLabelNames(random, mood)
+    ..bundle = _randomDropLabelBundle(random, mood);
+}
+
+String _randomDropLabelFormat(math.Random random, ShowcaseMood mood) {
+  final String glyph = showcasePick(random, mood.glyphs);
+  return switch (random.nextInt(9)) {
+    0 => glossRealDropLabelFormatDefault,
+    1 => '&f{type} &8x{count}',
+    2 => '${mood.legacy}{type} &8({count})',
+    3 => '${mood.legacy}$glyph &f{type} &7x{count}',
+    4 =>
+      '<gradient:${mood.primary}:${mood.secondary}>{type}</gradient> &7x{count}',
+    5 => '&f{count} &7{type}',
+    6 => '${showcaseColorEffect(random, mood).text}{type} &8· &7{count}',
+    7 => '<bold><${mood.primary}>{count}</${mood.primary}></bold> &f{type}',
+    _ => '${mood.legacy}&l{type}&r &7x{count}',
+  };
+}
+
+Map<String, String> _randomDropLabelNames(
+  math.Random random,
+  ShowcaseMood mood,
+) {
+  final List<ShowcaseDrop> drops = List<ShowcaseDrop>.of(showcaseDrops)
+    ..shuffle(random);
+  return <String, String>{
+    for (final ShowcaseDrop drop in drops.take(random.nextInt(4)))
+      drop.registryName: switch (random.nextInt(3)) {
+        0 => drop.displayName,
+        1 => '${mood.legacy}${drop.displayName}',
+        _ =>
+          '${mood.legacy}${showcasePick(random, mood.glyphs)} '
+              '&f${glossDropMaterialName(drop.registryName)}',
+      },
+  };
+}
+
+GlossRealDropLabelBundle _randomDropLabelBundle(
+  math.Random random,
+  ShowcaseMood mood,
+) {
+  final String glyph = showcasePick(random, mood.glyphs);
+  return GlossRealDropLabelBundle(
+    format: showcasePick(random, <String>[
+      glossRealDropBundleFormatDefault,
+      '${mood.legacy}Bundle &8[&7{total}&8] &7{contents}',
+      '&f{total} items&8: &7{contents}',
+    ]),
+    entryLimit: 1 + random.nextInt(5),
+    vertical: random.nextInt(4) != 0,
+    headerFormat: showcasePick(random, <String>[
+      glossRealDropBundleHeaderFormatDefault,
+      '${mood.legacy}&lBundle &7· {total}',
+      '${mood.legacy}$glyph &f{total} items',
+    ]),
+    entryFormat: showcasePick(random, <String>[
+      glossRealDropBundleEntryFormatDefault,
+      '&8› &f{type} &7x{count}',
+      '${mood.legacy}{count} &f{type}',
+    ]),
+    moreFormat: showcasePick(random, <String>[
+      glossRealDropBundleMoreFormatDefault,
+      '&8…and {remaining} more',
+      '&7+{remaining}',
+    ]),
+  );
 }
 
 void _extendDropAnimation(

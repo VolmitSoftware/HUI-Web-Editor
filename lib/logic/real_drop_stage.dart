@@ -46,7 +46,9 @@ import 'dart:math' as math;
 import '../config/showcase_flavor.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
+import 'mc_text.dart';
 import 'real_drop_animation.dart';
+import 'real_drop_labels.dart';
 import 'real_drop_model.dart';
 import 'real_drop_script.dart';
 
@@ -195,15 +197,10 @@ ShowcaseDrop dropStageRotationDrop(int cycle) {
 /// `height` and the velocities are *not* in this list: the stage genuinely
 /// knows them, because it owns the arc that produces them.
 final class DropStageEnvironment {
-  const DropStageEnvironment({
-    this.water = false,
-    this.useItemDisplayNames = false,
-  });
+  const DropStageEnvironment({this.water = false});
 
   /// Whether the stage is flooded to [dropStageWaterLevel].
   final bool water;
-
-  final bool useItemDisplayNames;
 
   /// Block light level fed to the script. Full, and simulated.
   static const int blockLight = 15;
@@ -467,13 +464,29 @@ final class DropStageTimeline {
   /// that matters, that nothing built on it flickers between frames.
   double get random => (_unit(drop.registryName.hashCode) + 1) / 2;
 
-  String get displayType => environment.useItemDisplayNames
-      ? drop.displayName
-      : drop.registryName.toLowerCase().replaceAll('_', ' ');
+  /// Whether `{type}` is the sample's own item-meta name, because the
+  /// presentation's `labels.useItemDisplayNames` is on.
+  bool get usesItemDisplayName =>
+      doc.presentation.labels.useItemDisplayNames &&
+      drop.displayName.trim().isNotEmpty;
 
-  /// The label the plugin's default `drops.name-format` writes for this stack.
-  String get label =>
-      drop.amount == 1 ? '&7$displayType' : '&7${drop.amount}x $displayType';
+  /// The `{type}` this stack's label renders with.
+  late final String typeName = glossDropTypeName(
+    doc.presentation.labels,
+    drop.registryName,
+    displayName: drop.displayName,
+  );
+
+  /// [typeName] without its colour and format codes, for the readout.
+  late final String plainTypeName = parseMcText(typeName).plainText;
+
+  /// The label the presentation's `labels.format` renders for this stack.
+  late final String label = glossDropLabel(
+    doc.presentation.labels,
+    material: drop.registryName,
+    count: drop.amount,
+    displayName: drop.displayName,
+  );
 
   DropStageFrame frameAt(int ms) {
     final double tick = (ms % cycleMs) / 50.0;

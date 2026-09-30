@@ -321,19 +321,112 @@ HuiIconStyle defaultRealDropLabelStyle() => HuiIconStyle(
   scaleZ: 0.85,
 );
 
+const String glossRealDropLabelFormatDefault = '&7{count}x {type}';
+const String glossRealDropBundleFormatDefault =
+    '&7Bundle &8(&7{total} items&8): &7{contents}';
+const String glossRealDropBundleHeaderFormatDefault =
+    '&eBundle &8(&e{total} items&8)';
+const String glossRealDropBundleEntryFormatDefault = '&7- &f{count}x {type}';
+const String glossRealDropBundleMoreFormatDefault = '&8+{remaining} more';
+
+/// `RealDropSettingsDoc.LabelBundle`: the label text of a dropped bundle that
+/// carries stacks. The editor stores what the author typed; the server swaps
+/// a blank format for its default and clamps [entryLimit] to 1..10.
+final class GlossRealDropLabelBundle {
+  GlossRealDropLabelBundle({
+    this.format = glossRealDropBundleFormatDefault,
+    this.entryLimit = 3,
+    this.vertical = true,
+    this.headerFormat = glossRealDropBundleHeaderFormatDefault,
+    this.entryFormat = glossRealDropBundleEntryFormatDefault,
+    this.moreFormat = glossRealDropBundleMoreFormatDefault,
+    Map<String, Object?>? extras,
+  }) : extras = extras ?? <String, Object?>{};
+
+  String format;
+  int entryLimit;
+  bool vertical;
+  String headerFormat;
+  String entryFormat;
+  String moreFormat;
+  Map<String, Object?> extras;
+
+  static GlossRealDropLabelBundle fromJson(Object? raw) {
+    if (raw == null) return GlossRealDropLabelBundle();
+    final Map<String, Object?> map = huiReadObject(raw, r'$.labels.bundle');
+    return GlossRealDropLabelBundle(
+      format: huiReadString(
+        map,
+        'format',
+        fallback: glossRealDropBundleFormatDefault,
+      ),
+      entryLimit: huiReadInt(map, 'entryLimit', fallback: 3),
+      vertical: map['vertical'] == null ? true : huiReadBool(map, 'vertical'),
+      headerFormat: huiReadString(
+        map,
+        'headerFormat',
+        fallback: glossRealDropBundleHeaderFormatDefault,
+      ),
+      entryFormat: huiReadString(
+        map,
+        'entryFormat',
+        fallback: glossRealDropBundleEntryFormatDefault,
+      ),
+      moreFormat: huiReadString(
+        map,
+        'moreFormat',
+        fallback: glossRealDropBundleMoreFormatDefault,
+      ),
+      extras: huiCollectExtras(map, const <String>{
+        'format',
+        'entryLimit',
+        'vertical',
+        'headerFormat',
+        'entryFormat',
+        'moreFormat',
+      }),
+    );
+  }
+
+  Map<String, Object?> toJson() => huiMergeExtras(<String, Object?>{
+    'format': format,
+    'entryLimit': entryLimit,
+    'vertical': vertical,
+    'headerFormat': headerFormat,
+    'entryFormat': entryFormat,
+    'moreFormat': moreFormat,
+  }, extras);
+
+  GlossRealDropLabelBundle copy() =>
+      GlossRealDropLabelBundle.fromJson(toJson());
+}
+
 final class GlossRealDropLabels {
   GlossRealDropLabels({
     this.enabled = true,
     this.yOffset = 0.55,
+    this.format = glossRealDropLabelFormatDefault,
+    this.useItemDisplayNames = false,
+    Map<String, String>? names,
+    GlossRealDropLabelBundle? bundle,
     HuiIconStyle? style,
     GlossHologramBox? box,
     Map<String, Object?>? extras,
-  }) : style = style ?? defaultRealDropLabelStyle(),
+  }) : names = names ?? <String, String>{},
+       bundle = bundle ?? GlossRealDropLabelBundle(),
+       style = style ?? defaultRealDropLabelStyle(),
        box = box ?? GlossHologramBox(),
        extras = extras ?? <String, Object?>{};
 
   bool enabled;
   double yOffset;
+  String format;
+  bool useItemDisplayNames;
+
+  /// Material to `{type}` name, in file order. Kept as typed; the server trims
+  /// and upper-cases each key and drops entries with a blank name.
+  Map<String, String> names;
+  GlossRealDropLabelBundle bundle;
   HuiIconStyle style;
   GlossHologramBox box;
   Map<String, Object?> extras;
@@ -344,20 +437,45 @@ final class GlossRealDropLabels {
     return GlossRealDropLabels(
       enabled: map['enabled'] == null ? true : huiReadBool(map, 'enabled'),
       yOffset: huiReadDouble(map, 'yOffset', fallback: 0.55),
+      format: huiReadString(
+        map,
+        'format',
+        fallback: glossRealDropLabelFormatDefault,
+      ),
+      useItemDisplayNames: huiReadBool(map, 'useItemDisplayNames'),
+      names: _readNames(map['names']),
+      bundle: GlossRealDropLabelBundle.fromJson(map['bundle']),
       style: HuiIconStyle.fromJsonOrNull(map['style'], path: r'$.labels.style'),
       box: GlossHologramBox.fromJson(map['box']),
       extras: huiCollectExtras(map, const <String>{
         'enabled',
         'yOffset',
+        'format',
+        'useItemDisplayNames',
+        'names',
+        'bundle',
         'style',
         'box',
       }),
     );
   }
 
+  static Map<String, String> _readNames(Object? raw) {
+    if (raw == null) return <String, String>{};
+    final Map<String, Object?> map = huiReadObject(raw, r'$.labels.names');
+    return <String, String>{
+      for (final MapEntry<String, Object?> entry in map.entries)
+        entry.key: huiReadString(map, entry.key),
+    };
+  }
+
   Map<String, Object?> toJson() => huiMergeExtras(<String, Object?>{
     'enabled': enabled,
     'yOffset': yOffset,
+    'format': format,
+    'useItemDisplayNames': useItemDisplayNames,
+    'names': Map<String, String>.of(names),
+    'bundle': bundle.toJson(),
     'style': style.toJson(),
     'box': box.toJson(),
   }, extras);

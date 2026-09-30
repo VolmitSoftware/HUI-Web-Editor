@@ -7,9 +7,9 @@
 /// stack size, their places from the offset table, their size from the scale
 /// family the material belongs to, their pose from the configured tumble
 /// rates and the settled landing mode, their lift off the ground from the
-/// authored Y offsets, and the label from `drops.name-format` with the
-/// shipped `&7{count}x {type}`. Changing any field in the inspector changes
-/// the stage the way it changes the server.
+/// authored Y offsets, and the label from the presentation's `labels.format`,
+/// `labels.names` and `labels.useItemDisplayNames`. Changing any field in the
+/// inspector changes the stage the way it changes the server.
 ///
 /// Left alone, the stage rotates through one stack per model family — a cube,
 /// a flat item and a slab — changing on every completed drop, so a viewer sees
@@ -166,14 +166,12 @@ class _RealDropsViewState extends State<RealDropsView> {
   /// buoyancy setting that only does something underwater would otherwise be
   /// untestable. Off by default, and the readout says so either way.
   bool _water = false;
-  bool _itemDisplayNames = false;
 
   /// Timeline memo, rebuilt when the document, the stack or the water changes.
   DropStageTimeline? _timeline;
   int _timelineRevision = -1;
   ShowcaseDrop? _timelineDrop;
   bool _timelineWater = false;
-  bool _timelineItemDisplayNames = false;
 
   EditorStore get _store => component.store;
 
@@ -309,20 +307,15 @@ class _RealDropsViewState extends State<RealDropsView> {
     if (_timeline == null ||
         _timelineRevision != _store.glossRevision ||
         !identical(_timelineDrop, drop) ||
-        _timelineWater != _water ||
-        _timelineItemDisplayNames != _itemDisplayNames) {
+        _timelineWater != _water) {
       _timeline = DropStageTimeline(
         doc,
         drop,
-        environment: DropStageEnvironment(
-          water: _water,
-          useItemDisplayNames: _itemDisplayNames,
-        ),
+        environment: DropStageEnvironment(water: _water),
       );
       _timelineRevision = _store.glossRevision;
       _timelineDrop = drop;
       _timelineWater = _water;
-      _timelineItemDisplayNames = _itemDisplayNames;
     }
     return _timeline!;
   }
@@ -364,7 +357,7 @@ class _RealDropsViewState extends State<RealDropsView> {
         'drop.inWater': _water,
         'drop.inLava': false,
         'drop.playerDropped': true,
-        'drop.customNamed': _itemDisplayNames,
+        'drop.customNamed': false,
         'source.present': true,
         'source.type': 'player',
         'subject.world': 'world',
@@ -425,7 +418,6 @@ class _RealDropsViewState extends State<RealDropsView> {
         _playPause(),
         _sampleButton(drop),
         _waterButton(),
-        _itemDisplayNameButton(),
         _resetButton(),
         _timelineControl(timeline, frame, nowMs),
         dom.span(classes: 'hui-real-drops-readout-inline', <Widget>[
@@ -503,29 +495,6 @@ class _RealDropsViewState extends State<RealDropsView> {
             ),
     },
     icon: ArcaneIcon.droplet(size: IconSize.sm),
-  );
-
-  Widget _itemDisplayNameButton() => Button(
-    variant: _itemDisplayNames
-        ? ButtonVariant.secondary
-        : ButtonVariant.outline,
-    size: ButtonSize.iconSm,
-    onPressed: () => setState(() => _itemDisplayNames = !_itemDisplayNames),
-    attributes: <String, String>{
-      'aria-label': _itemDisplayNames
-          ? huiText('Use material names in labels')
-          : huiText('Use renamed item names in labels'),
-      'title': _itemDisplayNames
-          ? huiText(
-              'Preview [drops] useItemDisplayNames = true; click for the '
-              'default material-name labels',
-            )
-          : huiText(
-              'Preview renamed item labels; [drops] useItemDisplayNames is '
-              'false by default',
-            ),
-    },
-    icon: ArcaneIcon.typeIcon(size: IconSize.sm),
   );
 
   Widget _resetButton() => Button(
@@ -947,9 +916,9 @@ class _RealDropsViewState extends State<RealDropsView> {
   }
 
   String _displayType(DropStageTimeline timeline) =>
-      timeline.environment.useItemDisplayNames
+      timeline.usesItemDisplayName
       ? huiText(timeline.drop.displayName)
-      : timeline.displayType;
+      : timeline.plainTypeName;
 
   String _phaseLabel(DropAnimationPhase phase) => switch (phase) {
     DropAnimationPhase.airborne => huiText('airborne'),

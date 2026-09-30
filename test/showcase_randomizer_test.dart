@@ -14,6 +14,7 @@ import 'package:gloss_editor/logic/preview_card_edit.dart';
 import 'package:gloss_editor/logic/preview_card_scene.dart';
 import 'package:gloss_editor/logic/preview_sim.dart';
 import 'package:gloss_editor/logic/preview_variant_resolver.dart';
+import 'package:gloss_editor/logic/real_drop_labels.dart';
 import 'package:gloss_editor/logic/real_drop_stage.dart';
 import 'package:gloss_editor/logic/real_drop_validation.dart';
 import 'package:gloss_editor/logic/tablist_validation.dart';
@@ -924,6 +925,12 @@ void main() {
     final Set<bool> tumbles = <bool>{};
     final Set<bool> labelled = <bool>{};
     final Set<String> billboards = <String>{};
+    final Set<String> formats = <String>{};
+    final Set<String> bundleEntries = <String>{};
+    final Set<bool> verticalBundles = <bool>{};
+    final Set<bool> itemDisplayNames = <bool>{};
+    final Set<String> renamed = <String>{};
+    final Set<String> variantFormats = <String>{};
     for (int seed = 0; seed < 128; seed++) {
       final GlossRealDropSettingsDoc doc = buildRandomRealDropShowcase(
         buildDefaultGlossRealDrops(),
@@ -947,12 +954,38 @@ void main() {
       tumbles.add(doc.presentation.motion.tumble);
       labelled.add(doc.presentation.labels.enabled);
       billboards.add(doc.presentation.labels.style.billboard);
+      final GlossRealDropLabels labels = doc.presentation.labels;
+      formats.add(labels.format);
+      bundleEntries.add(labels.bundle.entryFormat);
+      verticalBundles.add(labels.bundle.vertical);
+      itemDisplayNames.add(labels.useItemDisplayNames);
+      renamed.addAll(labels.names.keys);
+      for (final GlossRealDropVariant variant in doc.variants) {
+        variantFormats.add(variant.presentation.labels.format);
+      }
+      final String label = glossDropLabel(
+        labels,
+        material: showcaseDrops.first.registryName,
+        count: 2,
+      );
+      expect(label, isNot(contains('{type}')), reason: 'seed $seed');
+      expect(label, isNot(contains('{count}')), reason: 'seed $seed');
     }
     expect(encoded.length, greaterThan(120), reason: 'every press differs');
     expect(landings, containsAll(<String>['NATURAL', 'FLAT', 'UPRIGHT']));
     expect(tumbles, <bool>{true, false});
     expect(labelled, <bool>{true, false});
     expect(billboards.length, greaterThan(2));
+    expect(formats.length, greaterThan(5), reason: 'label wording varies');
+    expect(bundleEntries.length, greaterThan(2));
+    expect(verticalBundles, <bool>{true, false});
+    expect(itemDisplayNames, <bool>{true, false});
+    expect(renamed.length, greaterThan(3), reason: 'per-material names vary');
+    expect(
+      variantFormats.difference(formats),
+      isNot(isEmpty),
+      reason: 'variants word their own labels',
+    );
   });
 
   test('real-drop archetypes generate distinct complete behavior graphs', () {

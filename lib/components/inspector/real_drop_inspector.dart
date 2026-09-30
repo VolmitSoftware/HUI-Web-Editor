@@ -11,6 +11,7 @@ import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'real_drop_expr_field.dart';
+import 'real_drop_label_names_editor.dart';
 import 'real_drop_animation_inspector.dart';
 import 'reorder_list.dart';
 import 'particle_layers_editor.dart';
@@ -638,6 +639,37 @@ class _RealDropInspectorState extends State<RealDropInspector> {
           (GlossRealDropPresentation edited) => edited.labels.yOffset = value,
         ),
       ),
+      _text(
+        label: huiText('Format'),
+        docKey: 'realDrops.labels.format',
+        path: r'$.presentation.labels.format',
+        value: doc.labels.format,
+        fallback: glossRealDropLabelFormatDefault,
+        onChanged: (String value) => _mutatePresentation(
+          'label format',
+          (GlossRealDropPresentation edited) => edited.labels.format = value,
+        ),
+      ),
+      HuiSwitchRow(
+        label: huiText('Use item display names'),
+        value: doc.labels.useItemDisplayNames,
+        trailing: const HuiFieldHelp('realDrops.labels.useItemDisplayNames'),
+        onChanged: (bool value) => _mutatePresentation(
+          'label item display names',
+          (GlossRealDropPresentation edited) =>
+              edited.labels.useItemDisplayNames = value,
+        ),
+      ),
+      RealDropLabelNamesEditor(
+        names: doc.labels.names,
+        issues: _issuesFor(r'$.presentation.labels.names'),
+        onChanged: (String label, Map<String, String> next) =>
+            _mutatePresentation(
+              label,
+              (GlossRealDropPresentation edited) => edited.labels.names = next,
+            ),
+      ),
+      _bundle(doc.labels.bundle),
       DisplayStyleEditor(
         style: doc.labels.style,
         defaults: defaultRealDropLabelStyle(),
@@ -660,6 +692,84 @@ class _RealDropInspectorState extends State<RealDropInspector> {
       ),
     ],
   );
+
+  /// `labels.bundle`: the label of a dropped bundle that carries stacks.
+  Widget _bundle(GlossRealDropLabelBundle bundle) =>
+      dom.div(classes: 'hui-drop-subgroup', <Widget>[
+        dom.div(classes: 'hui-drop-subhead', <Widget>[
+          Text(huiText('Bundle')),
+          const HuiFieldHelp('realDrops.labels.bundle'),
+        ]),
+        _text(
+          label: huiText('Single-line format'),
+          docKey: 'realDrops.labels.bundle.format',
+          path: r'$.presentation.labels.bundle.format',
+          value: bundle.format,
+          fallback: glossRealDropBundleFormatDefault,
+          onChanged: (String value) => _mutatePresentation(
+            'bundle label format',
+            (GlossRealDropPresentation edited) =>
+                edited.labels.bundle.format = value,
+          ),
+        ),
+        _integer(
+          label: huiText('Entry limit'),
+          docKey: 'realDrops.labels.bundle.entryLimit',
+          path: r'$.presentation.labels.bundle.entryLimit',
+          value: bundle.entryLimit,
+          onChanged: (int value) => _mutatePresentation(
+            'bundle label entry limit',
+            (GlossRealDropPresentation edited) =>
+                edited.labels.bundle.entryLimit = value,
+          ),
+        ),
+        HuiSwitchRow(
+          label: huiText('One line per material'),
+          value: bundle.vertical,
+          trailing: const HuiFieldHelp('realDrops.labels.bundle.vertical'),
+          onChanged: (bool value) => _mutatePresentation(
+            'bundle label lines',
+            (GlossRealDropPresentation edited) =>
+                edited.labels.bundle.vertical = value,
+          ),
+        ),
+        _text(
+          label: huiText('Header format'),
+          docKey: 'realDrops.labels.bundle.headerFormat',
+          path: r'$.presentation.labels.bundle.headerFormat',
+          value: bundle.headerFormat,
+          fallback: glossRealDropBundleHeaderFormatDefault,
+          onChanged: (String value) => _mutatePresentation(
+            'bundle label header format',
+            (GlossRealDropPresentation edited) =>
+                edited.labels.bundle.headerFormat = value,
+          ),
+        ),
+        _text(
+          label: huiText('Entry format'),
+          docKey: 'realDrops.labels.bundle.entryFormat',
+          path: r'$.presentation.labels.bundle.entryFormat',
+          value: bundle.entryFormat,
+          fallback: glossRealDropBundleEntryFormatDefault,
+          onChanged: (String value) => _mutatePresentation(
+            'bundle label entry format',
+            (GlossRealDropPresentation edited) =>
+                edited.labels.bundle.entryFormat = value,
+          ),
+        ),
+        _text(
+          label: huiText('More format'),
+          docKey: 'realDrops.labels.bundle.moreFormat',
+          path: r'$.presentation.labels.bundle.moreFormat',
+          value: bundle.moreFormat,
+          fallback: glossRealDropBundleMoreFormatDefault,
+          onChanged: (String value) => _mutatePresentation(
+            'bundle label more format',
+            (GlossRealDropPresentation edited) =>
+                edited.labels.bundle.moreFormat = value,
+          ),
+        ),
+      ]);
 
   Widget _filters(GlossRealDropPresentation doc) => InspectorSection(
     title: huiText('Filters'),
@@ -1073,13 +1183,15 @@ class _RealDropInspectorState extends State<RealDropInspector> {
 
   Widget _integer({
     required String label,
-    required String help,
     required String path,
     required int value,
     required void Function(int value) onChanged,
+    String? help,
+    String? docKey,
   }) => HuiField(
     label: label,
     help: help,
+    trailing: docKey == null ? null : HuiFieldHelp(docKey),
     control: dom.div(<Widget>[
       HuiNumberField(
         value: value.toDouble(),
@@ -1107,6 +1219,55 @@ class _RealDropInspectorState extends State<RealDropInspector> {
         value: value,
         step: step,
         decimals: 2,
+        onChanged: onChanged,
+      ),
+      HuiInlineIssues(_issuesFor(path)),
+    ]),
+  );
+
+  /// One label text field. A blank value is what the server swaps for
+  /// [fallback], so the placeholder shows it and the reset restores it. The
+  /// formats are too long for the header's default chip, so the reset stands
+  /// alone beside the help.
+  Widget _text({
+    required String label,
+    required String docKey,
+    required String path,
+    required String value,
+    required String fallback,
+    required void Function(String value) onChanged,
+  }) => HuiField(
+    label: label,
+    trailing: dom.div(classes: 'hui-field-trailing', <Widget>[
+      ArcaneTooltip(
+        text: huiText('Reset {label} to {defaultValue}', <String, Object?>{
+          'label': label,
+          'defaultValue': fallback,
+        }),
+        child: Button(
+          variant: ButtonVariant.ghost,
+          size: ButtonSize.iconSm,
+          disabled: value == fallback,
+          onPressed: () => onChanged(fallback),
+          attributes: <String, String>{
+            'aria-label': huiText(
+              'Reset {label} to {defaultValue}',
+              <String, Object?>{'label': label, 'defaultValue': fallback},
+            ),
+          },
+          icon: ArcaneIcon.rotateCcw(size: IconSize.sm),
+        ),
+      ),
+      HuiFieldHelp(docKey),
+    ]),
+    control: dom.div(<Widget>[
+      TextInput(
+        value: value,
+        size: ComponentSize.sm,
+        fullWidth: true,
+        placeholder: fallback,
+        styles: huiTechnicalInputStyles,
+        attributes: huiTechnicalInputAttributes,
         onChanged: onChanged,
       ),
       HuiInlineIssues(_issuesFor(path)),

@@ -39,6 +39,14 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'underscore, and hyphen are accepted.',
     citation: 'gloss.schema.json#/\$defs/connectAction/properties/server',
   ),
+  'action.cooldownTicks': HuiFieldDoc(
+    title: 'Cooldown ticks',
+    body:
+        'Optional per-player cooldown in ticks after this action runs; '
+        'while it is active the action is skipped and the list continues. '
+        'Omitted or 0 means no cooldown. Minimum 0.',
+    citation: 'gloss.schema.json#/\$defs/action/properties/cooldownTicks',
+  ),
   'action.message.message': HuiFieldDoc(
     title: 'Message',
     body:
@@ -53,6 +61,14 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'Changes the current viewer\'s native menu page stack. Navigation '
         'is terminal for actions matching the current click trigger.',
     citation: 'gloss.schema.json#/\$defs/navigationAction',
+  ),
+  'action.navigation.list': HuiFieldDoc(
+    title: 'List',
+    body:
+        'Id of the list a page navigation targets. Menus name a list '
+        'component; a chest menu has one list, so this may be omitted '
+        'there.',
+    citation: 'gloss.schema.json#/\$defs/navigationAction/properties/list',
   ),
   'action.navigation.mode': HuiFieldDoc(
     title: 'Mode',
@@ -136,8 +152,20 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Type',
     body:
         'Defines the type of action. Accepted values: command, sound, '
-        'message, teleport, connect, navigate.',
+        'message, teleport, connect, navigate, title, actionbar, bossbar, '
+        'close, inventory, setSession, prompt, book, give, take, economy, '
+        'delay, sequence, parallel, repeat, if, switch, chance, cooldown, '
+        'emit, broadcast, effect, particle, stop, setState, addState, '
+        'clearState, sky, camera, glow.',
     citation: 'gloss.schema.json#/\$defs/action/properties/type',
+  ),
+  'action.when': HuiFieldDoc(
+    title: 'When',
+    body:
+        'Optional condition evaluated for the clicking player each time '
+        'the action would run; false skips this action and continues with '
+        'the next. Same syntax as show conditions.',
+    citation: 'gloss.schema.json#/\$defs/action/properties/when',
   ),
   'button.actions': HuiFieldDoc(
     title: 'Actions',
@@ -180,6 +208,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     body: 'Defines the visual part of the component.',
     citation: 'gloss.schema.json#/\$defs/buttonComponent/properties/icon',
   ),
+  'button.tooltip': HuiFieldDoc(
+    title: 'Tooltip',
+    body:
+        'Secondary pane shown after the viewer has hovered this button '
+        'for delayTicks.',
+    citation: 'gloss.schema.json#/\$defs/buttonComponent/properties/tooltip',
+  ),
   'component.data': HuiFieldDoc(
     title: 'Data',
     body: 'The type and associated data of the object.',
@@ -204,7 +239,7 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Type',
     body:
         'Defines the type of component. Accepted values: button, '
-        'decoration, toggle.',
+        'decoration, toggle, list, slider, field, tabs.',
     citation: 'gloss.schema.json#/\$defs/componentData/properties/type',
   ),
   'decoration.icon': HuiFieldDoc(
@@ -545,6 +580,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Show',
     body: 'Boolean or expression controlling visibility of the menu.',
     citation: 'gloss.schema.json#/properties/show',
+  ),
+  'menu.vars': HuiFieldDoc(
+    title: 'Vars',
+    body:
+        'Starting values for session.<name>. Each value is a constant '
+        'expression; anything that needs live state is ignored.',
+    citation: 'gloss.schema.json#/properties/vars',
   ),
   'preview.card': HuiFieldDoc(
     title: 'Card',
@@ -1050,12 +1092,96 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'parts count against the chunk display budget.',
     citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/box',
   ),
+  'realDrops.labels.bundle': HuiFieldDoc(
+    title: 'Bundle',
+    body:
+        'Label text for dropped bundles that carry stacks. An empty '
+        'bundle uses format.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/bundle',
+  ),
+  'realDrops.labels.bundle.entryFormat': HuiFieldDoc(
+    title: 'Entry format',
+    body:
+        'One vertical line per material. {count} and {type} are replaced, '
+        'with {type} named the same way as the stack label. A blank value '
+        'uses the default. Omitted, this is &7- &f{count}x {type}.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labelBundle/properties/entryFormat',
+  ),
+  'realDrops.labels.bundle.entryLimit': HuiFieldDoc(
+    title: 'Entry limit',
+    body:
+        'Content entries shown before the rest collapse into a +N more '
+        'entry, clamped to 1 through 10. Accepted range: 1 through 10. '
+        'Omitted, this is 3.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labelBundle/properties/entryLimit',
+  ),
+  'realDrops.labels.bundle.format': HuiFieldDoc(
+    title: 'Format',
+    body:
+        'Single-line bundle label and the native item name. {total} is '
+        'the item count across all stacks and {contents} lists the '
+        'largest entries. A blank value uses the default. Omitted, this '
+        'is &7Bundle &8(&7{total} items&8): &7{contents}.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labelBundle/properties/format',
+  ),
+  'realDrops.labels.bundle.headerFormat': HuiFieldDoc(
+    title: 'Header format',
+    body:
+        'First line of a vertical bundle label. {total} is replaced. A '
+        'blank value uses the default. Omitted, this is &eBundle '
+        '&8(&e{total} items&8).',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labelBundle/properties/headerFormat',
+  ),
+  'realDrops.labels.bundle.moreFormat': HuiFieldDoc(
+    title: 'More format',
+    body:
+        'Last vertical line when materials are hidden. {remaining} is the '
+        'number of hidden materials. A blank value uses the default. '
+        'Omitted, this is &8+{remaining} more.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labelBundle/properties/moreFormat',
+  ),
+  'realDrops.labels.bundle.vertical': HuiFieldDoc(
+    title: 'Vertical',
+    body:
+        'Draws the bundle label as one line per material using '
+        'headerFormat, entryFormat and moreFormat. Omitted, this is true.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labelBundle/properties/vertical',
+  ),
   'realDrops.labels.enabled': HuiFieldDoc(
     title: 'Enabled',
     body:
         'Shows the item label through the shared Gloss text engine. '
         'Omitted, this is true.',
     citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/enabled',
+  ),
+  'realDrops.labels.format': HuiFieldDoc(
+    title: 'Format',
+    body:
+        'Label text for a dropped stack. {count} is the stack size and '
+        '{type} is the item name: the per-material name from names when '
+        'one is set, otherwise the material name in Title Case (OAK_LOG '
+        'becomes Oak Log), or the item\'s own display name when '
+        'useItemDisplayNames is on. Color codes, emoji, |function| calls, '
+        '%placeholders% and {{ expressions }} work as in any Gloss text. '
+        'A blank value uses the default. Omitted, this is &7{count}x '
+        '{type}.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/format',
+  ),
+  'realDrops.labels.names': HuiFieldDoc(
+    title: 'Names',
+    body:
+        'Per-material names used as {type}, written as a material to name '
+        'map such as {"COBBLESTONE": "&7Cobble"}. Keys are Bukkit '
+        'material names and are matched without regard to case. Entries '
+        'with a blank name are ignored. Applies to bundle contents too. '
+        'Omitted, this is {}.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/names',
   ),
   'realDrops.labels.style': HuiFieldDoc(
     title: 'Style',
@@ -1065,6 +1191,14 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'view range 0.5, and scale 0.85 on every axis. Fields omitted '
         'from an explicit style use native IconDisplayStyle defaults.',
     citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/style',
+  ),
+  'realDrops.labels.useItemDisplayNames': HuiFieldDoc(
+    title: 'Use item display names',
+    body:
+        'Uses the item\'s own display name, such as an anvil rename, as '
+        '{type} when it has one. Omitted, this is false.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/useItemDisplayNames',
   ),
   'realDrops.labels.yOffset': HuiFieldDoc(
     title: 'Y offset',

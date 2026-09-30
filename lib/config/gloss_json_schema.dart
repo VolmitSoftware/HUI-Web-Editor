@@ -1505,8 +1505,100 @@ final GlossJsonObject _realDropLabelsNode = GlossJsonObject(
       summary: 'Blocks above the stack the label floats. Clamped to -4..16.',
       defaultLiteral: '0.55',
     ),
+    const GlossJsonField(
+      key: 'format',
+      type: GlossJsonType.string,
+      title: 'Format',
+      summary: 'Stack label text; {count} and {type} are replaced.',
+      docKey: 'realDrops.labels.format',
+      defaultLiteral: '"&7{count}x {type}"',
+    ),
+    const GlossJsonField(
+      key: 'useItemDisplayNames',
+      type: GlossJsonType.boolean,
+      title: 'Use item display names',
+      summary: 'A renamed item shows its own name as {type}.',
+      docKey: 'realDrops.labels.useItemDisplayNames',
+      defaultLiteral: 'false',
+    ),
+    const GlossJsonField(
+      key: 'names',
+      type: GlossJsonType.object,
+      title: 'Names',
+      summary: 'Per-material {type} names, keyed by Bukkit material.',
+      docKey: 'realDrops.labels.names',
+      defaultLiteral: '{}',
+      node: _realDropLabelNamesNode,
+    ),
+    const GlossJsonField(
+      key: 'bundle',
+      type: GlossJsonType.object,
+      title: 'Bundle',
+      summary: 'Label text for a dropped bundle that carries stacks.',
+      docKey: 'realDrops.labels.bundle',
+      node: _realDropLabelBundleNode,
+    ),
     glossDisplayStyleField,
     glossHologramBoxField,
+  ],
+);
+
+const GlossJsonObject _realDropLabelNamesNode = GlossJsonObject(
+  openKeyType: GlossJsonType.string,
+  openKeyTitle: 'Material name',
+  openKeySummary: 'The {type} text for this material.',
+);
+
+const GlossJsonObject _realDropLabelBundleNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'format',
+      type: GlossJsonType.string,
+      title: 'Format',
+      summary: 'Single-line label; {total} and {contents} are replaced.',
+      docKey: 'realDrops.labels.bundle.format',
+      defaultLiteral: '"&7Bundle &8(&7{total} items&8): &7{contents}"',
+    ),
+    GlossJsonField(
+      key: 'entryLimit',
+      type: GlossJsonType.integer,
+      title: 'Entry limit',
+      summary: 'Materials listed before +N more. Clamped to 1..10.',
+      docKey: 'realDrops.labels.bundle.entryLimit',
+      defaultLiteral: '3',
+    ),
+    GlossJsonField(
+      key: 'vertical',
+      type: GlossJsonType.boolean,
+      title: 'Vertical',
+      summary: 'One line per material instead of a single line.',
+      docKey: 'realDrops.labels.bundle.vertical',
+      defaultLiteral: 'true',
+    ),
+    GlossJsonField(
+      key: 'headerFormat',
+      type: GlossJsonType.string,
+      title: 'Header format',
+      summary: 'First vertical line; {total} is replaced.',
+      docKey: 'realDrops.labels.bundle.headerFormat',
+      defaultLiteral: '"&eBundle &8(&e{total} items&8)"',
+    ),
+    GlossJsonField(
+      key: 'entryFormat',
+      type: GlossJsonType.string,
+      title: 'Entry format',
+      summary: 'One vertical line per material; {count} and {type}.',
+      docKey: 'realDrops.labels.bundle.entryFormat',
+      defaultLiteral: '"&7- &f{count}x {type}"',
+    ),
+    GlossJsonField(
+      key: 'moreFormat',
+      type: GlossJsonType.string,
+      title: 'More format',
+      summary: 'Last vertical line when materials are hidden; {remaining}.',
+      docKey: 'realDrops.labels.bundle.moreFormat',
+      defaultLiteral: '"&8+{remaining} more"',
+    ),
   ],
 );
 

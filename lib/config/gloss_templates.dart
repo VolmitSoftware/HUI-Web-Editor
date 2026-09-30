@@ -241,6 +241,17 @@ const String kGlossRealDropsDefaultJson = r'''
     "labels": {
       "enabled": true,
       "yOffset": 0.55,
+      "format": "&7{count}x {type}",
+      "useItemDisplayNames": false,
+      "names": {},
+      "bundle": {
+        "format": "&7Bundle &8(&7{total} items&8): &7{contents}",
+        "entryLimit": 3,
+        "vertical": true,
+        "headerFormat": "&eBundle &8(&e{total} items&8)",
+        "entryFormat": "&7- &f{count}x {type}",
+        "moreFormat": "&8+{remaining} more"
+      },
       "style": {
         "billboard": "center",
         "shadow": true,
