@@ -594,6 +594,7 @@ class _PreviewCardViewportState extends State<PreviewCardViewport> {
   /// field on this widget.
   void _syncSim(HuiPreviewDoc doc, int revision) {
     component.store.previewSim.sync(doc, revision, _lang());
+    component.store.previewSim.sim.names = component.store.workspaceNames;
     // Cheap even when nothing changed (a couple of field reads); the panel's
     // "force ticking" latch can flip with no document or category change at
     // all, so this cannot be gated on the same memo `sync` uses internally.

@@ -166,6 +166,7 @@ class ComponentInspector extends StatelessWidget {
       return <Widget>[
         ExtrasEditor(
           title: huiText('Component'),
+          extensionKeys: false,
           extras: data.toJson()..remove('type'),
           onChanged: (String label, Map<String, dynamic> next) =>
               store.editComponent(_id, label, (HuiComponent edited) {

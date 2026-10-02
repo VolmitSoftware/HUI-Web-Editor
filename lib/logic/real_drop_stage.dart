@@ -46,6 +46,7 @@ import 'dart:math' as math;
 import '../config/showcase_flavor.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
+import '../model/gloss_names.dart';
 import 'mc_text.dart';
 import 'real_drop_animation.dart';
 import 'real_drop_labels.dart';
@@ -390,6 +391,7 @@ final class DropStageTimeline {
     this.doc,
     this.drop, {
     this.environment = const DropStageEnvironment(),
+    this.names = const GlossNamesCatalog(),
   }) : modelKind = realDropModelKind(drop.registryName, block: drop.block),
        _spin = <DropAngles>[] {
     _flight = _flightFor(doc, water: environment.water);
@@ -436,6 +438,7 @@ final class DropStageTimeline {
 
   /// What the stage supplies for the variables it cannot observe.
   final DropStageEnvironment environment;
+  final GlossNamesCatalog names;
 
   late final double _scale;
   late final int _visualCount;
@@ -475,6 +478,7 @@ final class DropStageTimeline {
     doc.presentation.labels,
     drop.registryName,
     displayName: drop.displayName,
+    names: names,
   );
 
   /// [typeName] without its colour and format codes, for the readout.
@@ -486,6 +490,7 @@ final class DropStageTimeline {
     material: drop.registryName,
     count: drop.amount,
     displayName: drop.displayName,
+    names: names,
   );
 
   DropStageFrame frameAt(int ms) {

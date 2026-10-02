@@ -284,8 +284,9 @@ void main() {
     });
 
     test('every editable kind has a model and the editor-only ones do not', () {
-      expect(glossJsonSchemas.keys, hasLength(13));
+      expect(glossJsonSchemas.keys, hasLength(14));
       for (final String kind in <String>[
+        'names',
         'menu',
         'hologram',
         'animation',

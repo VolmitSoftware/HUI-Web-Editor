@@ -209,6 +209,7 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
     final EntityOverlayPreview preview = resolveEntityOverlayPreview(
       doc,
       sample,
+      names: component.store.workspaceNames,
       animations: component.store.workspaceAnimations,
       emoji: component.store.workspaceEmoji,
       nowMs: _clock.elapsedMilliseconds,

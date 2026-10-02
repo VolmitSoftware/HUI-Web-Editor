@@ -169,6 +169,7 @@ class _RealDropsViewState extends State<RealDropsView> {
 
   /// Timeline memo, rebuilt when the document, the stack or the water changes.
   DropStageTimeline? _timeline;
+  GlossNamesCatalog? _timelineNames;
   int _timelineRevision = -1;
   ShowcaseDrop? _timelineDrop;
   bool _timelineWater = false;
@@ -305,6 +306,7 @@ class _RealDropsViewState extends State<RealDropsView> {
     ShowcaseDrop drop,
   ) {
     if (_timeline == null ||
+        !identical(_timelineNames, _store.workspaceNames) ||
         _timelineRevision != _store.glossRevision ||
         !identical(_timelineDrop, drop) ||
         _timelineWater != _water) {
@@ -312,8 +314,10 @@ class _RealDropsViewState extends State<RealDropsView> {
         doc,
         drop,
         environment: DropStageEnvironment(water: _water),
+        names: _store.workspaceNames,
       );
       _timelineRevision = _store.glossRevision;
+      _timelineNames = _store.workspaceNames;
       _timelineDrop = drop;
       _timelineWater = _water;
     }

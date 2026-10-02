@@ -40,6 +40,8 @@
 /// deterministic under an injected clock.
 library;
 
+import '../model/gloss_names.dart';
+
 import 'gloss_show.dart';
 import '../l10n/hui_localizations.dart';
 import '../model/gloss_animation.dart';
@@ -823,6 +825,7 @@ final class GlossTextExpressionSamples {
     this.placeholders = _defaultExpressionPlaceholders,
     this.metrics = _defaultExpressionMetrics,
     this.serverTps = 19.8,
+    this.names = const GlossNamesCatalog(),
     this.bedrockViewer = false,
     this.values = const <String, Object>{},
   });
@@ -830,6 +833,7 @@ final class GlossTextExpressionSamples {
   final Map<String, Object> placeholders;
   final Map<String, double> metrics;
   final double serverTps;
+  final GlossNamesCatalog names;
 
   /// What `player.bedrock` answers for the sampled viewer. The browser has no
   /// Geyser to ask, so the simulated viewer is a Java client unless a surface
@@ -916,6 +920,8 @@ final class GlossTextExpressionScope extends PExprScope {
   Object? variable(String dottedName) {
     final Object? supplied = samples.values[dottedName];
     if (supplied != null) return supplied;
+    final String? readable = _nameVariable(dottedName);
+    if (readable != null) return readable;
     switch (dottedName) {
       case 'time.ms':
         return nowMs.toDouble();
@@ -946,9 +952,39 @@ final class GlossTextExpressionScope extends PExprScope {
     }
   }
 
+  String? _nameVariable(String key) {
+    if (key == 'world.displayName') {
+      return samples.names.name(GlossNameCategory.worlds, '${samples.values['world.name'] ?? 'world'}');
+    }
+    if (key == 'world.environmentName') {
+      return samples.names.name(GlossNameCategory.dimensions, '${samples.values['world.environment'] ?? 'overworld'}');
+    }
+    for (final (String suffix, GlossNameCategory category, String fallback) in <(String, GlossNameCategory, String)>[
+      ('.worldName', GlossNameCategory.worlds, 'world'),
+      ('.gameModeName', GlossNameCategory.gameModes, 'survival'),
+      ('.groupName', GlossNameCategory.groups, ''),
+      ('.typeName', GlossNameCategory.entities, 'player'),
+      ('.materialName', GlossNameCategory.materials, ''),
+      ('.causeName', GlossNameCategory.damageCauses, ''),
+      ('.directSourceTypeName', GlossNameCategory.entities, ''),
+    ]) {
+      if (!key.endsWith(suffix)) continue;
+      if (!viewerAware && (key.startsWith('player.') || key.startsWith('viewer.'))) return null;
+      final String rawKey = key.substring(0, key.length - 4);
+      return samples.names.name(category, '${samples.values[rawKey] ?? fallback}');
+    }
+    return null;
+  }
+
   @override
   Object? call(String name, List<Object?> args) {
     switch (name) {
+      case 'name':
+        if (args.length != 2 || args[0] is! String || args[1] is! String) return null;
+        for (final GlossNameCategory category in GlossNameCategory.values) {
+          if (category.name == args[0]) return samples.names.name(category, args[1]! as String);
+        }
+        return null;
       case 'papi':
         return _papi(args, false);
       case 'papiNumber':

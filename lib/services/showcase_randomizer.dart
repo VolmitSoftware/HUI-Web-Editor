@@ -30,7 +30,7 @@ import 'showcase_features.dart';
 bool canRandomizeShowcase(
   DocumentTypeAdapter type, {
   bool linkedPanel = false,
-}) => type is! PanelDocumentType || linkedPanel;
+}) => type is! NamesDocumentType && (type is! PanelDocumentType || linkedPanel);
 
 bool randomizeShowcaseDocument(
   EditorStore store,

@@ -371,12 +371,12 @@ void main() {
       );
     });
 
-    test('readable follows Java split, dropping only trailing empties', () {
+    test('readable normalizes namespaces and separators', () {
       expect(previewReadable('IRON_ORE'), 'Iron Ore');
       expect(evalStr("readable('_')"), '');
       expect(evalStr("readable('__')"), '');
       expect(evalStr("readable('a_b_')"), 'A B');
-      expect(evalStr("readable('_a_')"), ' A');
+      expect(evalStr("readable('_a_')"), 'A');
       expect(evalStr("readable('123_abc')"), '123 Abc');
     });
 

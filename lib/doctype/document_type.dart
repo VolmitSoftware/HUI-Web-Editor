@@ -172,6 +172,7 @@ enum DocumentSurface {
   nameplate,
   nametag,
   marker,
+  names,
 }
 
 /// One heading-plus-grid section of a kind's template tab.

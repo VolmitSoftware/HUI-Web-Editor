@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import '../l10n/hui_localizations.dart';
 import '../model/gloss_entity_overlays.dart';
+import '../model/gloss_names.dart';
 import '../model/preview_doc.dart';
 import 'gloss_particle_text.dart';
 import 'gloss_text.dart';
@@ -18,6 +19,7 @@ const List<String> entityOverlayVariables = <String>[
   'entity.name',
   'entity.named',
   'entity.type',
+  'entity.typeName',
   'entity.damage',
   'entity.damaged',
   'entity.attack',
@@ -105,12 +107,14 @@ final class EntityOverlayPreview {
 
 GlossTextExpressionSamples entityOverlayExpressionSamples(
   GlossEntityOverlaysDoc doc,
-  EntityOverlaySample sample,
-) {
+  EntityOverlaySample sample, {
+  GlossNamesCatalog names = const GlossNamesCatalog(),
+}) {
   final bool hit =
       sample.damage > 0 &&
       sample.sinceHitMs < doc.hitHighlightMs.clamp(0, 10000);
   return GlossTextExpressionSamples(
+    names: names,
     values: <String, Object>{
       'entity.health': sample.health.clamp(0, sample.maxHealth),
       'entity.maxHealth': sample.maxHealth,
@@ -145,6 +149,7 @@ EntityOverlayPreview resolveEntityOverlayPreview(
   GlossAnimationResolver animations = const GlossNoAnimations(),
   GlossEmojiResolver emoji = const GlossNoEmoji(),
   int nowMs = 0,
+  GlossNamesCatalog names = const GlossNamesCatalog(),
 }) {
   final String? hidden = _hiddenReason(doc, sample);
   if (hidden != null) {
@@ -156,6 +161,7 @@ EntityOverlayPreview resolveEntityOverlayPreview(
   final GlossTextExpressionSamples samples = entityOverlayExpressionSamples(
     doc,
     sample,
+    names: names,
   );
   final GlossTextExpressionScope scope = GlossTextExpressionScope(
     nowMs,
@@ -184,7 +190,7 @@ EntityOverlayPreview resolveEntityOverlayPreview(
   final List<String> details = sample.adapt && sample.insight
       ? sample.insightDetails ??
             <String>[
-              '&b${sample.player ? 'Player' : sample.entityType.toLowerCase().split('_').map((String part) => '${part[0].toUpperCase()}${part.substring(1)}').join(' ')}',
+              '&b${names.name(GlossNameCategory.entities, sample.player ? 'player' : sample.entityType)}',
               '&7Speed &f0.23 &8| &7Jump &f0.42',
               '&7Toughness &f0 &8| &7Knockback resistance &f0 &8| &7Detection range &f35',
             ]

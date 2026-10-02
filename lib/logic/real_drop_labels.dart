@@ -3,42 +3,10 @@
 library;
 
 import '../model/gloss_real_drops.dart';
+import '../model/gloss_names.dart';
 
-const Set<String> _joiningWords = <String>{
-  'a',
-  'an',
-  'and',
-  'in',
-  'o',
-  'of',
-  'on',
-  'the',
-  'with',
-};
-
-final Map<String, String> _materialNames = <String, String>{};
-
-/// `DropNameFormatter.materialName`: `OAK_LOG` is `Oak Log`, and the joining
-/// words stay lower-case unless they open the name (`Heart of the Sea`).
-String glossDropMaterialName(String materialKey) =>
-    _materialNames.putIfAbsent(materialKey, () => _titleCase(materialKey));
-
-String _titleCase(String materialKey) {
-  final StringBuffer name = StringBuffer();
-  for (final String word in materialKey.toLowerCase().split('_')) {
-    if (word.isEmpty) continue;
-    if (name.isEmpty) {
-      name.write(_capitalized(word));
-      continue;
-    }
-    name.write(' ');
-    name.write(_joiningWords.contains(word) ? word : _capitalized(word));
-  }
-  return name.toString();
-}
-
-String _capitalized(String word) =>
-    '${word.substring(0, 1).toUpperCase()}${word.substring(1)}';
+String glossDropMaterialName(String materialKey, {GlossNamesCatalog names = const GlossNamesCatalog()}) =>
+    names.name(GlossNameCategory.materials, materialKey);
 
 /// `RealDropSettingsDoc.cleanNames`: keys trimmed and upper-cased, entries
 /// with a blank key or a blank name dropped, file order kept.
@@ -57,6 +25,7 @@ String glossDropTypeName(
   GlossRealDropLabels labels,
   String material, {
   String? displayName,
+  GlossNamesCatalog names = const GlossNamesCatalog(),
 }) {
   if (labels.useItemDisplayNames &&
       displayName != null &&
@@ -64,7 +33,7 @@ String glossDropTypeName(
     return displayName;
   }
   final String key = material.toUpperCase();
-  return glossDropLabelNames(labels.names)[key] ?? glossDropMaterialName(key);
+  return glossDropLabelNames(labels.names)[key] ?? glossDropMaterialName(key, names: names);
 }
 
 /// The raw label the server renders for a stack: [GlossRealDropLabels.format],
@@ -75,6 +44,7 @@ String glossDropLabel(
   required String material,
   required int count,
   String? displayName,
+  GlossNamesCatalog names = const GlossNamesCatalog(),
 }) {
   final String format = labels.format.trim().isEmpty
       ? glossRealDropLabelFormatDefault
@@ -83,6 +53,6 @@ String glossDropLabel(
       .replaceAll('{count}', '$count')
       .replaceAll(
         '{type}',
-        glossDropTypeName(labels, material, displayName: displayName),
+        glossDropTypeName(labels, material, displayName: displayName, names: names),
       );
 }

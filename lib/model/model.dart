@@ -26,3 +26,5 @@ export 'preview_doc.dart';
 export 'vec3.dart';
 
 export 'gloss_channel.dart';
+
+export 'gloss_names.dart';

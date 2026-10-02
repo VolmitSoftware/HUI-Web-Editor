@@ -16,6 +16,7 @@ library;
 import 'dart:math' as math;
 
 import 'preview_expr.dart';
+import '../model/gloss_names.dart';
 
 final BigInt _javaLongMax = BigInt.parse('9223372036854775807');
 final BigInt _javaLongMin = BigInt.parse('-9223372036854775808');
@@ -939,35 +940,11 @@ final RegExp _legacyCode = RegExp(r'&[0-9A-Fa-fK-Ok-oRr]');
 
 /// Turns an enum-style id into display text: `IRON_ORE` becomes `Iron Ore`.
 ///
-/// Splitting follows Java's `String.split("_")`, which drops trailing empty
-/// parts but keeps leading and interior ones: `IRON_` is `Iron`, `_IRON` is
-/// ` Iron`, `IRON__ORE` is `Iron  Ore`.
-String previewReadable(String value) {
-  final List<String> words = _javaSplit(value.toLowerCase(), '_');
-  final StringBuffer out = StringBuffer();
-  for (int index = 0; index < words.length; index++) {
-    if (index > 0) {
-      out.write(' ');
-    }
-    final String word = words[index];
-    out.write(word.isEmpty ? word : word[0].toUpperCase() + word.substring(1));
-  }
-  return out.toString();
-}
+/// Registry namespaces are omitted and separators collapse to one space.
+/// Joining words stay lowercase after the first word.
+String previewReadable(String value) => glossReadableName(value);
 
-/// Java `String.split(literal)`: no match returns the whole input, a match
-/// drops trailing empty parts.
-List<String> _javaSplit(String value, String separator) {
-  if (!value.contains(separator)) {
-    return <String>[value];
-  }
-  final List<String> parts = value.split(separator);
-  int end = parts.length;
-  while (end > 0 && parts[end - 1].isEmpty) {
-    end--;
-  }
-  return parts.sublist(0, end);
-}
+
 
 // ---------------------------------------------------------------------------
 // Argument helpers

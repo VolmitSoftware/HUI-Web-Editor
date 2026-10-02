@@ -15,7 +15,7 @@
   },
   "card": {
     "show": true,
-    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, readable(blockType))))",
+    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, blockTypeName)))",
     "accent": "vars.accent"
   },
   "elements": [

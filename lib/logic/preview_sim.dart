@@ -32,6 +32,7 @@ import 'dart:convert';
 import 'gloss_text.dart'
     show GlossTextExpressionSamples, GlossTextExpressionScope;
 import 'preview_expr.dart';
+import '../model/gloss_names.dart';
 import 'preview_expr_functions.dart';
 
 /// Every simulated category, in the order a picker should list them.
@@ -82,6 +83,10 @@ const Map<String, List<String>> previewSimGroupVariables =
         'world.time',
         'blockType',
         'customName',
+        'world.displayName',
+        'world.environmentName',
+        'blockTypeName',
+        'entityTypeName',
       ],
       'inventory': <String>['inventory.size', 'inventory.occupied'],
       'furnace': <String>[
@@ -366,6 +371,7 @@ class PreviewSim implements PExprScope {
     PreviewLangCatalog? lang,
     this.expressionSamples = const GlossTextExpressionSamples(),
     this.viewerAware = true,
+    this.names = const GlossNamesCatalog(),
   }) : lang = lang ?? PreviewLangCatalog.empty {
     reset();
   }
@@ -386,6 +392,7 @@ class PreviewSim implements PExprScope {
   /// False models console/static validation: player variables are unresolved,
   /// while time/server/native-server aliases remain available.
   bool viewerAware;
+  GlossNamesCatalog names;
 
   /// Values the simulation panel pinned by hand. A pinned name keeps its value
   /// through [tick]; removing it hands the name back to the simulation. Only
@@ -538,6 +545,14 @@ class PreviewSim implements PExprScope {
         return _slotItem(name, args) != null;
       case 'item':
         return _slotItem(name, args)?.material ?? '';
+      case 'itemName':
+        return names.name(GlossNameCategory.materials, _slotItem(name, args)?.material ?? '');
+      case 'name':
+        if (args.length != 2 || args[0] is! String || args[1] is! String) return null;
+        for (final GlossNameCategory category in GlossNameCategory.values) {
+          if (category.name == args[0]) return names.name(category, args[1]! as String);
+        }
+        return null;
       default:
         return _standardScope.call(name, args);
     }
@@ -559,6 +574,14 @@ class PreviewSim implements PExprScope {
         return time;
       case 'world.name':
         return worldName;
+      case 'world.displayName':
+        return names.name(GlossNameCategory.worlds, worldName);
+      case 'world.environmentName':
+        return names.name(GlossNameCategory.dimensions, 'overworld');
+      case 'blockTypeName':
+        return names.name(GlossNameCategory.materials, blockType);
+      case 'entityTypeName':
+        return names.name(GlossNameCategory.entities, category == 'entity' ? 'minecart' : '');
       case 'world.time':
         return worldTime;
       case 'blockType':

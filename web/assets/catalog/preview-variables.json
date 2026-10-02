@@ -1,89 +1,387 @@
 {
   "categories": {
     "universal": {
-      "time": { "type": "number", "description": "Current world game time in ticks (a wall-clock tick count when the target has no world)." },
-      "world.name": { "type": "string", "description": "Name of the preview target's world; empty when the context has no target world." },
-      "world.time": { "type": "number", "description": "Time of day in the preview target's world, from 0 to 23999 ticks; zero when the context has no target world." },
-      "blockType": { "type": "string", "description": "Material name of the previewed block, or the material an entity maps to; empty when neither is present." },
-      "customName": { "type": "string", "description": "Player-given name of the previewed container or entity, or empty when unset." }
+      "time": {
+        "type": "number",
+        "description": "Current world game time in ticks (a wall-clock tick count when the target has no world)."
+      },
+      "world.name": {
+        "type": "string",
+        "description": "Name of the preview target's world; empty when the context has no target world."
+      },
+      "world.time": {
+        "type": "number",
+        "description": "Time of day in the preview target's world, from 0 to 23999 ticks; zero when the context has no target world."
+      },
+      "blockType": {
+        "type": "string",
+        "description": "Material name of the previewed block, or the material an entity maps to; empty when neither is present."
+      },
+      "customName": {
+        "type": "string",
+        "description": "Player-given name of the previewed container or entity, or empty when unset."
+      },
+      "world.displayName": {
+        "type": "string",
+        "description": "World display name from the names catalog."
+      },
+      "world.environmentName": {
+        "type": "string",
+        "description": "Dimension display name from the names catalog."
+      },
+      "blockTypeName": {
+        "type": "string",
+        "description": "Material display name from the names catalog."
+      },
+      "entityTypeName": {
+        "type": "string",
+        "description": "Entity type display name from the names catalog."
+      }
     },
     "inventory": {
-      "inventory.size": { "type": "number", "description": "Number of slots in the previewed inventory." },
-      "inventory.occupied": { "type": "number", "description": "Number of non-empty slots in the previewed inventory." }
+      "inventory.size": {
+        "type": "number",
+        "description": "Number of slots in the previewed inventory."
+      },
+      "inventory.occupied": {
+        "type": "number",
+        "description": "Number of non-empty slots in the previewed inventory."
+      }
     },
     "furnace": {
-      "cookTime": { "type": "number", "description": "Ticks the current smelt has been cooking." },
-      "cookTimeTotal": { "type": "number", "description": "Ticks required to finish the current smelt." },
-      "burnTime": { "type": "number", "description": "Ticks of fuel remaining in the furnace." },
-      "fuelSeconds": { "type": "number", "description": "Fuel remaining in whole seconds (burnTime divided by 20)." },
-      "bankedXp": { "type": "number", "description": "Total experience banked from recipes used, or -1 on a server without getRecipesUsed." },
-      "lit": { "type": "boolean", "description": "True while the furnace has fuel burning." },
-      "surge.active": { "type": "boolean", "description": "True while a detected speed-up (e.g. a hopper-fed boost) is still within its hold window." },
-      "surge.gain": { "type": "number", "description": "Seconds of cook-time progress gained beyond real elapsed time during the last detected surge." }
+      "cookTime": {
+        "type": "number",
+        "description": "Ticks the current smelt has been cooking."
+      },
+      "cookTimeTotal": {
+        "type": "number",
+        "description": "Ticks required to finish the current smelt."
+      },
+      "burnTime": {
+        "type": "number",
+        "description": "Ticks of fuel remaining in the furnace."
+      },
+      "fuelSeconds": {
+        "type": "number",
+        "description": "Fuel remaining in whole seconds (burnTime divided by 20)."
+      },
+      "bankedXp": {
+        "type": "number",
+        "description": "Total experience banked from recipes used, or -1 on a server without getRecipesUsed."
+      },
+      "lit": {
+        "type": "boolean",
+        "description": "True while the furnace has fuel burning."
+      },
+      "surge.active": {
+        "type": "boolean",
+        "description": "True while a detected speed-up (e.g. a hopper-fed boost) is still within its hold window."
+      },
+      "surge.gain": {
+        "type": "number",
+        "description": "Seconds of cook-time progress gained beyond real elapsed time during the last detected surge."
+      }
     },
     "brewing": {
-      "brewTime": { "type": "number", "description": "Ticks remaining until the current brew finishes." },
-      "brewTotal": { "type": "number", "description": "Fixed total tick length of a brew (400)." },
-      "fuelLevel": { "type": "number", "description": "Blaze powder charges remaining in the brewing stand." },
-      "maxFuel": { "type": "number", "description": "Maximum blaze powder charge level (20)." },
-      "surge.active": { "type": "boolean", "description": "True while a detected speed-up is still within its hold window." },
-      "surge.gain": { "type": "number", "description": "Seconds of brew-time progress gained beyond real elapsed time during the last detected surge." }
+      "brewTime": {
+        "type": "number",
+        "description": "Ticks remaining until the current brew finishes."
+      },
+      "brewTotal": {
+        "type": "number",
+        "description": "Fixed total tick length of a brew (400)."
+      },
+      "fuelLevel": {
+        "type": "number",
+        "description": "Blaze powder charges remaining in the brewing stand."
+      },
+      "maxFuel": {
+        "type": "number",
+        "description": "Maximum blaze powder charge level (20)."
+      },
+      "surge.active": {
+        "type": "boolean",
+        "description": "True while a detected speed-up is still within its hold window."
+      },
+      "surge.gain": {
+        "type": "number",
+        "description": "Seconds of brew-time progress gained beyond real elapsed time during the last detected surge."
+      }
     },
     "beehive": {
-      "bees": { "type": "number", "description": "Bees currently inside the hive." },
-      "maxBees": { "type": "number", "description": "Maximum bee occupancy of the hive." },
-      "honey": { "type": "number", "description": "Current honey level of the hive." },
-      "maxHoney": { "type": "number", "description": "Maximum honey level of the hive." }
+      "bees": {
+        "type": "number",
+        "description": "Bees currently inside the hive."
+      },
+      "maxBees": {
+        "type": "number",
+        "description": "Maximum bee occupancy of the hive."
+      },
+      "honey": {
+        "type": "number",
+        "description": "Current honey level of the hive."
+      },
+      "maxHoney": {
+        "type": "number",
+        "description": "Maximum honey level of the hive."
+      }
     },
     "cauldron": {
-      "level": { "type": "number", "description": "Current fluid level of the cauldron." },
-      "maxLevel": { "type": "number", "description": "Maximum fluid level of the cauldron." },
-      "fluid": { "type": "string", "description": "Fluid the cauldron holds: empty, water, lava, or powder_snow." }
+      "level": {
+        "type": "number",
+        "description": "Current fluid level of the cauldron."
+      },
+      "maxLevel": {
+        "type": "number",
+        "description": "Maximum fluid level of the cauldron."
+      },
+      "fluid": {
+        "type": "string",
+        "description": "Fluid the cauldron holds: empty, water, lava, or powder_snow."
+      }
     },
     "jukebox": {
-      "playing": { "type": "boolean", "description": "True while a loaded record is playing." },
-      "record": { "type": "string", "description": "Readable name of the loaded record, or empty when none is loaded." }
+      "playing": {
+        "type": "boolean",
+        "description": "True while a loaded record is playing."
+      },
+      "record": {
+        "type": "string",
+        "description": "Readable name of the loaded record, or empty when none is loaded."
+      }
     },
     "poweredMinecart": {
-      "fuelTicks": { "type": "number", "description": "Ticks of fuel remaining in the furnace minecart." },
-      "fuelSeconds": { "type": "number", "description": "Fuel remaining in whole seconds (fuelTicks divided by 20)." },
-      "powered": { "type": "boolean", "description": "True while the furnace minecart has fuel." }
+      "fuelTicks": {
+        "type": "number",
+        "description": "Ticks of fuel remaining in the furnace minecart."
+      },
+      "fuelSeconds": {
+        "type": "number",
+        "description": "Fuel remaining in whole seconds (fuelTicks divided by 20)."
+      },
+      "powered": {
+        "type": "boolean",
+        "description": "True while the furnace minecart has fuel."
+      }
     }
   },
   "standardVariables": {
-    "time.ms": { "type": "number", "description": "Current wall-clock time in milliseconds." },
-    "time.seconds": { "type": "number", "description": "Current wall-clock time in seconds." },
-    "time.ticks": { "type": "number", "description": "Current wall-clock time in 50 millisecond ticks." },
-    "server.online": { "type": "number", "description": "Current online player count; available with or without a viewer." },
-    "server.maxPlayers": { "type": "number", "description": "Configured maximum player count; available with or without a viewer." },
-    "server.tps": { "type": "number", "description": "Current server TPS sample; available with or without a viewer." },
-    "player.name": { "type": "string", "description": "Viewing player's selected nametag identity; unresolved when the surface has no viewer." },
-    "player.displayName": { "type": "string", "description": "Viewing player's selected nametag identity; unresolved when the surface has no viewer." },
-    "player.username": { "type": "string", "description": "Viewing player's unformatted account name; unresolved when the surface has no viewer." },
-    "player.ping": { "type": "number", "description": "Viewing player's current ping; unresolved when the surface has no viewer." },
-    "player.health": { "type": "number", "description": "Viewing player's current health; unresolved when the surface has no viewer." },
-    "player.level": { "type": "number", "description": "Viewing player's current experience level; unresolved when the surface has no viewer." },
-    "player.bedrock": { "type": "boolean", "description": "True when the viewing player joined through Geyser (a Bedrock client); unresolved when the surface has no viewer." }
+    "time.ms": {
+      "type": "number",
+      "description": "Current wall-clock time in milliseconds."
+    },
+    "time.seconds": {
+      "type": "number",
+      "description": "Current wall-clock time in seconds."
+    },
+    "time.ticks": {
+      "type": "number",
+      "description": "Current wall-clock time in 50 millisecond ticks."
+    },
+    "server.online": {
+      "type": "number",
+      "description": "Current online player count; available with or without a viewer."
+    },
+    "server.maxPlayers": {
+      "type": "number",
+      "description": "Configured maximum player count; available with or without a viewer."
+    },
+    "server.tps": {
+      "type": "number",
+      "description": "Current server TPS sample; available with or without a viewer."
+    },
+    "player.name": {
+      "type": "string",
+      "description": "Viewing player's selected nametag identity; unresolved when the surface has no viewer."
+    },
+    "player.displayName": {
+      "type": "string",
+      "description": "Viewing player's selected nametag identity; unresolved when the surface has no viewer."
+    },
+    "player.username": {
+      "type": "string",
+      "description": "Viewing player's unformatted account name; unresolved when the surface has no viewer."
+    },
+    "player.ping": {
+      "type": "number",
+      "description": "Viewing player's current ping; unresolved when the surface has no viewer."
+    },
+    "player.health": {
+      "type": "number",
+      "description": "Viewing player's current health; unresolved when the surface has no viewer."
+    },
+    "player.level": {
+      "type": "number",
+      "description": "Viewing player's current experience level; unresolved when the surface has no viewer."
+    },
+    "player.bedrock": {
+      "type": "boolean",
+      "description": "True when the viewing player joined through Geyser (a Bedrock client); unresolved when the surface has no viewer."
+    }
   },
   "functions": {
-    "lang": { "args": ["key: string", "...args: any"], "returns": "string", "description": "Resolves a localization key, binding positional arguments onto its placeholder names in order." },
-    "count": { "args": ["slot: number"], "returns": "number", "description": "Item count in the given inventory slot, or 0 when empty, out of range, or there is no inventory." },
-    "occupied": { "args": ["slot: number"], "returns": "boolean", "description": "True when the given inventory slot holds a non-empty item stack." },
-    "item": { "args": ["slot: number"], "returns": "string", "description": "Material id in the given inventory slot, or empty string when empty, out of range, or there is no inventory." },
-    "papi": { "args": ["key: string", "fallback?: string"], "returns": "string", "description": "Resolves PlaceholderAPI with Gloss native player and server fallbacks where available." },
-    "papiNumber": { "args": ["key: string", "fallback?: number"], "returns": "number", "description": "Resolves a numeric PlaceholderAPI value with Gloss native player and server fallbacks where available." },
-    "metric": { "args": ["key: string", "fallback?: number"], "returns": "number", "description": "Reads a numeric integration metric, using the optional fallback while unavailable." },
-    "plain": { "args": ["text: string"], "returns": "string", "description": "Strips legacy '&' color and format codes from text, leaving everything else untouched." },
-    "readable": { "args": ["id: string"], "returns": "string", "description": "Converts an ENUM_STYLE id into Title Case display text, e.g. IRON_ORE becomes Iron Ore." },
-    "align": { "args": ["text: string", "width: number", "mode: string"], "returns": "string", "description": "Pads visible text to a requested character-cell width using left, center, middle, or right alignment without truncating longer content." },
-    "marquee": { "args": ["text: string", "width: number", "step: number"], "returns": "string", "description": "Scrolls plain single-line text left through a fixed-width window." },
-    "timeline": { "args": ["steps: [[text, seconds], ...]", "elapsedSeconds: number"], "returns": "string", "description": "Loops through text scenes with an independent positive duration for each scene." },
-    "typewriter": { "args": ["text: string", "step: number", "holdSteps: number"], "returns": "string", "description": "Types, holds, and erases plain single-line text." },
-    "flash": { "args": ["first: string", "second: string", "step: number"], "returns": "string", "description": "Alternates between two complete text snippets." },
-    "wipe": { "args": ["text: string", "step: number"], "returns": "string", "description": "Reveals and hides plain single-line text while preserving its width." },
-    "scanner": { "args": ["text: string", "baseStyle: string", "highlightStyle: string", "step: number"], "returns": "string", "description": "Moves one formatting highlight across plain single-line text." },
-    "scramble": { "args": ["text: string", "step: number"], "returns": "string", "description": "Deterministically resolves randomized glyphs into plain single-line text." },
-    "odometer": { "args": ["from: number", "to: number", "progress: number", "digits: number"], "returns": "string", "description": "Interpolates between two safe whole-number endpoints and zero-pads the result." },
-    "wave": { "args": ["text: string", "styles: [string, ...]", "step: number"], "returns": "string", "description": "Chases a bounded list of formatting styles across plain single-line text." }
+    "lang": {
+      "args": [
+        "key: string",
+        "...args: any"
+      ],
+      "returns": "string",
+      "description": "Resolves a localization key, binding positional arguments onto its placeholder names in order."
+    },
+    "count": {
+      "args": [
+        "slot: number"
+      ],
+      "returns": "number",
+      "description": "Item count in the given inventory slot, or 0 when empty, out of range, or there is no inventory."
+    },
+    "occupied": {
+      "args": [
+        "slot: number"
+      ],
+      "returns": "boolean",
+      "description": "True when the given inventory slot holds a non-empty item stack."
+    },
+    "item": {
+      "args": [
+        "slot: number"
+      ],
+      "returns": "string",
+      "description": "Material id in the given inventory slot, or empty string when empty, out of range, or there is no inventory."
+    },
+    "papi": {
+      "args": [
+        "key: string",
+        "fallback?: string"
+      ],
+      "returns": "string",
+      "description": "Resolves PlaceholderAPI with Gloss native player and server fallbacks where available."
+    },
+    "papiNumber": {
+      "args": [
+        "key: string",
+        "fallback?: number"
+      ],
+      "returns": "number",
+      "description": "Resolves a numeric PlaceholderAPI value with Gloss native player and server fallbacks where available."
+    },
+    "metric": {
+      "args": [
+        "key: string",
+        "fallback?: number"
+      ],
+      "returns": "number",
+      "description": "Reads a numeric integration metric, using the optional fallback while unavailable."
+    },
+    "plain": {
+      "args": [
+        "text: string"
+      ],
+      "returns": "string",
+      "description": "Strips legacy '&' color and format codes from text, leaving everything else untouched."
+    },
+    "readable": {
+      "args": [
+        "id: string"
+      ],
+      "returns": "string",
+      "description": "Converts an ENUM_STYLE id into Title Case display text, e.g. IRON_ORE becomes Iron Ore."
+    },
+    "align": {
+      "args": [
+        "text: string",
+        "width: number",
+        "mode: string"
+      ],
+      "returns": "string",
+      "description": "Pads visible text to a requested character-cell width using left, center, middle, or right alignment without truncating longer content."
+    },
+    "marquee": {
+      "args": [
+        "text: string",
+        "width: number",
+        "step: number"
+      ],
+      "returns": "string",
+      "description": "Scrolls plain single-line text left through a fixed-width window."
+    },
+    "timeline": {
+      "args": [
+        "steps: [[text, seconds], ...]",
+        "elapsedSeconds: number"
+      ],
+      "returns": "string",
+      "description": "Loops through text scenes with an independent positive duration for each scene."
+    },
+    "typewriter": {
+      "args": [
+        "text: string",
+        "step: number",
+        "holdSteps: number"
+      ],
+      "returns": "string",
+      "description": "Types, holds, and erases plain single-line text."
+    },
+    "flash": {
+      "args": [
+        "first: string",
+        "second: string",
+        "step: number"
+      ],
+      "returns": "string",
+      "description": "Alternates between two complete text snippets."
+    },
+    "wipe": {
+      "args": [
+        "text: string",
+        "step: number"
+      ],
+      "returns": "string",
+      "description": "Reveals and hides plain single-line text while preserving its width."
+    },
+    "scanner": {
+      "args": [
+        "text: string",
+        "baseStyle: string",
+        "highlightStyle: string",
+        "step: number"
+      ],
+      "returns": "string",
+      "description": "Moves one formatting highlight across plain single-line text."
+    },
+    "scramble": {
+      "args": [
+        "text: string",
+        "step: number"
+      ],
+      "returns": "string",
+      "description": "Deterministically resolves randomized glyphs into plain single-line text."
+    },
+    "odometer": {
+      "args": [
+        "from: number",
+        "to: number",
+        "progress: number",
+        "digits: number"
+      ],
+      "returns": "string",
+      "description": "Interpolates between two safe whole-number endpoints and zero-pads the result."
+    },
+    "wave": {
+      "args": [
+        "text: string",
+        "styles: [string, ...]",
+        "step: number"
+      ],
+      "returns": "string",
+      "description": "Chases a bounded list of formatting styles across plain single-line text."
+    },
+    "itemName": {
+      "args": [
+        "slot: number"
+      ],
+      "returns": "string",
+      "description": "Material display name of the item in an inventory slot."
+    }
   }
 }

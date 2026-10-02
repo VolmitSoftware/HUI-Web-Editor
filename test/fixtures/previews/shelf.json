@@ -10,7 +10,7 @@
   },
   "card": {
     "show": true,
-    "title": "'&f&l' + plain(lang(vars.titleKey, readable(blockType)))",
+    "title": "'&f&l' + plain(lang(vars.titleKey, blockTypeName))",
     "accent": "vars.accent"
   },
   "elements": [

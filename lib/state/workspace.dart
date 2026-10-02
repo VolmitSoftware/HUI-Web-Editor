@@ -40,7 +40,8 @@ enum WorkspaceDocKind {
   inventory,
   nameplate,
   nametag,
-  marker;
+  marker,
+  names;
 
   bool get hasRuntimeId => this != WorkspaceDocKind.panel;
 

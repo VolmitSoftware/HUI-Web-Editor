@@ -41,6 +41,7 @@ import 'services/page_lifecycle.dart';
 import 'services/workspace_location.dart';
 import 'state/editor_scope.dart';
 import 'doctype/doctype.dart';
+import 'components/inspector/names_inspector.dart';
 import 'l10n/hui_locale_loader.dart';
 import 'l10n/hui_locale_preferences.dart';
 import 'l10n/hui_localizations.dart';
@@ -988,6 +989,7 @@ class _AppState extends State<App> {
           status: _status,
         ),
         surfaces: <DocumentSurface, Widget>{
+          DocumentSurface.names: NamesView(store: _store),
           DocumentSurface.panel: PanelView(store: _store),
           DocumentSurface.hologram: HologramView(
             store: _store,

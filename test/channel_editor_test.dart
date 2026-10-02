@@ -110,9 +110,9 @@ void main() {
       message: 'Hello',
       viewer: 'Morgan',
     );
-    expect(preview.render.plainText, '[member] Alex: Hello');
+    expect(preview.render.plainText, '[Member] Alex: Hello');
     expect(preview.hoverText, contains('Alex'));
-    expect(preview.hoverText, contains('World world'));
+    expect(preview.hoverText, contains('World World'));
     expect(preview.render.expressionErrors, isEmpty);
     expect(preview.render.plainText, isNot(contains('<hover')));
   });

@@ -421,6 +421,7 @@ class ActionsEditor extends StatelessWidget {
         },
         ExtrasEditor(
           title: huiText('Action'),
+          extensionKeys: action is! HuiRuntimeAction,
           extras: action.extras,
           onChanged: (String label, Map<String, dynamic> next) =>
               _edit(label, (List<HuiAction> list) {

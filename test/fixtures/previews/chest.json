@@ -95,7 +95,7 @@
   ],
   "card": {
     "show": true,
-    "title": "'&f&l' + (customName != '' ? customName : (plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) != '' ? plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) : readable(blockType)))",
+    "title": "'&f&l' + (customName != '' ? customName : (plain(lang(vars.titleKey, vars.titleArg == '' ? blockTypeName : vars.titleArg)) != '' ? plain(lang(vars.titleKey, vars.titleArg == '' ? blockTypeName : vars.titleArg)) : blockTypeName))",
     "accent": "vars.accent"
   },
   "elements": [

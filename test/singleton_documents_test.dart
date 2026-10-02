@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 
 void main() {
   for (final GlossDocumentTypeAdapter type in <GlossDocumentTypeAdapter>[
+    DocumentTypes.names,
     DocumentTypes.damageIndicators,
     DocumentTypes.entityOverlays,
     DocumentTypes.realDrops,

@@ -22,6 +22,8 @@ class ExtrasEditor extends StatefulWidget {
     required this.extras,
     required this.onChanged,
     this.knownKeys = const <String>{},
+    this.extensionKeys = true,
+    this.stringsOnly = false,
     super.key,
   });
 
@@ -34,6 +36,8 @@ class ExtrasEditor extends StatefulWidget {
 
   final void Function(String label, Map<String, dynamic> next) onChanged;
   final Set<String> knownKeys;
+  final bool extensionKeys;
+  final bool stringsOnly;
 
   @override
   State<ExtrasEditor> createState() => _ExtrasEditorState();
@@ -72,14 +76,14 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
   }
 
   String _valueText(String key) =>
-      _drafts[key] ?? formatJsonValue(component.extras[key]);
+      _drafts[key] ?? (component.stringsOnly ? '${component.extras[key] ?? ''}' : formatJsonValue(component.extras[key]));
 
   void _commit(String label, Map<String, dynamic> next) =>
       component.onChanged('${component.title.toLowerCase()} $label', next);
 
   void _editValue(String key, String raw) {
     _drafts[key] = raw;
-    final JsonParseResult parsed = parseJsonValue(raw);
+    final JsonParseResult parsed = component.stringsOnly ? JsonParseResult.value(raw) : parseJsonValue(raw);
     setState(() {
       if (parsed.ok) {
         _errors.remove(key);
@@ -178,7 +182,7 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
       },
     ),
     <Widget>[
-      _note(),
+      if (component.extensionKeys) _note(),
       if (_unknownKeys.isEmpty)
         _empty()
       else
@@ -220,14 +224,14 @@ class _ExtrasEditorState extends State<ExtrasEditor> {
         'color': 'var(--muted-foreground)',
       },
     ),
-    <Widget>[Text(huiText('No extra keys on this object.'))],
+    <Widget>[Text(component.extensionKeys ? huiText('No extra keys on this object.') : huiText('Nothing here yet'))],
   );
 
   Widget _row(String key) => HuiField(
     label: key,
     classes: 'hui-extras-row',
     error: _errors[key]?.error,
-    help: huiText(
+    help: component.stringsOnly ? null : huiText(
       'Bare text is a string; quote it to keep a literal like true or 7.',
     ),
     trailing: Button(

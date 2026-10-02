@@ -109,6 +109,8 @@ const List<String> previewExpressionFunctionNames = <String>[
   'count',
   'occupied',
   'item',
+  'itemName',
+  'name',
   'papi',
   'papiNumber',
   'metric',

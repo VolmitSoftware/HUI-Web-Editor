@@ -16,6 +16,7 @@ import 'hologram_document_type.dart';
 import 'inventory_document_type.dart';
 import 'marker_document_type.dart';
 import 'menu_document_type.dart';
+import 'names_document_type.dart';
 import 'motd_document_type.dart';
 import 'nameplate_document_type.dart';
 import 'nametag_document_type.dart';
@@ -27,6 +28,7 @@ import 'tablist_document_type.dart';
 
 /// The const adapter instances, one per [WorkspaceDocKind].
 abstract final class DocumentTypes {
+  static const NamesDocumentType names = NamesDocumentType();
   static const MenuDocumentType menu = MenuDocumentType();
   static const ContainerPreviewDocumentType containerPreview =
       ContainerPreviewDocumentType();
@@ -58,6 +60,7 @@ abstract final class DocumentTypeRegistry {
   /// coverage so a new enum value cannot ship without an adapter.
   static const Map<WorkspaceDocKind, DocumentTypeAdapter> _byKind =
       <WorkspaceDocKind, DocumentTypeAdapter>{
+        WorkspaceDocKind.names: DocumentTypes.names,
         WorkspaceDocKind.menu: DocumentTypes.menu,
         WorkspaceDocKind.containerPreview: DocumentTypes.containerPreview,
         WorkspaceDocKind.panel: DocumentTypes.panel,
@@ -82,6 +85,7 @@ abstract final class DocumentTypeRegistry {
 
   /// Every adapter, in workspace-rail order.
   static const List<DocumentTypeAdapter> all = <DocumentTypeAdapter>[
+    DocumentTypes.names,
     DocumentTypes.menu,
     DocumentTypes.containerPreview,
     DocumentTypes.panel,

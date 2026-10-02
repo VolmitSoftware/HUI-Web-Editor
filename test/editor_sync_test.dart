@@ -71,6 +71,7 @@ void main() {
       'menu',
       'motd',
       'nameplate',
+      'names',
       'nametag',
       'panel',
       'real-drops',

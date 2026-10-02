@@ -77,6 +77,7 @@ kind a newer server adds shows up here rather than being quietly dropped.
 | `menu` | `menus` | TREE | no | - |
 | `motd` | `motd.json` | SINGLE | yes | `motd` |
 | `nameplate` | `nameplates` | FOLDER | yes | - |
+| `names` | `names.json` | SINGLE | yes | `names` |
 | `nametag` | `nametags` | FOLDER | yes | - |
 | `panel` | `panels` | TREE | yes | - |
 | `real-drops` | `real-drops` | REAL_DROPS | yes | `default` |

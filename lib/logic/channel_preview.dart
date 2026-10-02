@@ -2,6 +2,7 @@ library;
 
 import '../components/scoreboard/scoreboard_selection.dart';
 import '../model/gloss_channel.dart';
+import '../model/gloss_names.dart';
 import '../model/preview_doc.dart';
 import 'gloss_show.dart';
 import 'gloss_text.dart';
@@ -27,6 +28,7 @@ ChannelPreview channelPreview(
   String sender = 'Alex',
   String viewer = 'Steve',
   String senderGroup = 'member',
+  GlossNamesCatalog names = const GlossNamesCatalog(),
   bool allowed = true,
   Set<String> senderPermissions = const <String>{},
   GlossAnimationResolver animations = const GlossNoAnimations(),
@@ -37,6 +39,8 @@ ChannelPreview channelPreview(
     'sender.name': sender,
     'sender.username': sender,
     'sender.group': senderGroup,
+    'sender.groupName': names.name(GlossNameCategory.groups, senderGroup),
+    'sender.worldName': names.name(GlossNameCategory.worlds, 'world'),
     'sender.world': 'world',
     'source.name': sender,
     'viewer.name': viewer,
@@ -99,6 +103,7 @@ ChannelPreview channelPreview(
       : _format(doc, scope);
   final GlossTextExpressionSamples samples = GlossTextExpressionSamples(
     values: values,
+    names: names,
   );
   final String card = doc.card.join('<newline>');
   final String hoverText = renderGlossLine(

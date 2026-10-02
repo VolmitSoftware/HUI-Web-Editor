@@ -47,6 +47,7 @@ class _ChannelViewState extends State<ChannelView> {
       message: _message,
       viewer: _viewer,
       allowed: _allowed,
+      names: component.store.workspaceNames,
       animations: component.store.workspaceAnimations,
       emoji: component.store.workspaceEmoji,
     );

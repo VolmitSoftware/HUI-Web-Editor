@@ -13,7 +13,7 @@ void main() {
       ('HEART_OF_THE_SEA', 'Heart of the Sea'),
       ('MUSIC_DISC_13', 'Music Disc 13'),
       ('LILY_OF_THE_VALLEY', 'Lily of the Valley'),
-      ('JACK_O_LANTERN', "Jack o Lantern"),
+      ('JACK_O_LANTERN', "Jack o'Lantern"),
     ]) {
       test('$material is $name', () {
         expect(glossDropMaterialName(material), name);

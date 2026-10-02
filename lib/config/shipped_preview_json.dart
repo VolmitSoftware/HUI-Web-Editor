@@ -288,7 +288,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   ],
   "card": {
     "show": true,
-    "title": "'&f&l' + (customName != '' ? customName : (plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) != '' ? plain(lang(vars.titleKey, vars.titleArg == '' ? readable(blockType) : vars.titleArg)) : readable(blockType)))",
+    "title": "'&f&l' + (customName != '' ? customName : (plain(lang(vars.titleKey, vars.titleArg == '' ? blockTypeName : vars.titleArg)) != '' ? plain(lang(vars.titleKey, vars.titleArg == '' ? blockTypeName : vars.titleArg)) : blockTypeName))",
     "accent": "vars.accent"
   },
   "elements": [
@@ -533,7 +533,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "show": true,
       "x": 0,
       "y": -32,
-      "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? readable(item(0)) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('gloss.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('gloss.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('gloss.preview.state.no_input') : '&7' + lang('gloss.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
+      "text": "(cookTime > 0 && cookTimeTotal > 0 ? vars.stateColor + lang(occupied(0) ? vars.activeItemKey : vars.activeKey, occupied(0) ? itemName(0) : round(cookTime * 100 / cookTimeTotal), round(cookTime * 100 / cookTimeTotal)) : (burnTime > 0 && occupied(0) ? '&e' + lang('gloss.preview.state.heating') : (occupied(0) && !occupied(1) ? '&c' + lang('gloss.preview.state.needs_fuel') : (!occupied(0) ? '&7' + lang('gloss.preview.state.no_input') : '&7' + lang('gloss.preview.state.waiting'))))) + (surge.active ? vars.surgeColor + lang('gloss.preview.state.surge_suffix', surge.gain == floor(surge.gain) ? str(surge.gain) : fixed(surge.gain, 1)) : '')"
     },
     {
       "type": "label",
@@ -563,7 +563,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   },
   "card": {
     "show": true,
-    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, readable(blockType))))",
+    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, blockTypeName)))",
     "accent": "vars.accent"
   },
   "elements": [
@@ -698,7 +698,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   ],
   "card": {
     "show": true,
-    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, readable(blockType))))",
+    "title": "'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey, blockTypeName)))",
     "accent": "vars.accent"
   },
   "elements": [
@@ -739,7 +739,7 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   },
   "card": {
     "show": true,
-    "title": "'&f&l' + plain(lang(vars.titleKey, readable(blockType)))",
+    "title": "'&f&l' + plain(lang(vars.titleKey, blockTypeName))",
     "accent": "vars.accent"
   },
   "elements": [

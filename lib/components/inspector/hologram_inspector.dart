@@ -302,6 +302,7 @@ class _HologramInspectorState extends State<HologramInspector> {
     if (raw is Map && !raw.containsKey('text')) {
       return ExtrasEditor(
         title: '${huiText('Line')} ${index + 1}',
+        extensionKeys: false,
         extras: huiReadObject(raw, '\$.lines[$index]'),
         onChanged: (String label, Map<String, dynamic> next) =>
             _store.mutateHologram(label, (GlossHologramDoc edited) {

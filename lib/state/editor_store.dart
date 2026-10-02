@@ -315,6 +315,26 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   bool get isGlossDoc => _docType is GlossDocumentTypeAdapter;
 
   /// The active hologram, or null while another kind is open.
+  GlossNamesCatalog? _namesCache;
+
+  GlossNamesCatalog get workspaceNames {
+    final GlossNamesCatalog? cached = _namesCache;
+    if (cached != null) return cached;
+    final GlossDoc? active = glossDoc;
+    if (active is GlossNamesDoc) return _namesCache = active.catalog;
+    for (final WorkspaceDoc doc in workspace.docs) {
+      if (doc.kind != DocumentTypes.names.kind) continue;
+      try {
+        return _namesCache = decodeGlossNamesDoc(doc.json).catalog;
+      } on FormatException {
+        return const GlossNamesCatalog();
+      } on HuiFormatException {
+        return const GlossNamesCatalog();
+      }
+    }
+    return const GlossNamesCatalog();
+  }
+
   GlossHologramDoc? get hologramDoc {
     final GlossDoc? doc = _glossDoc;
     return doc is GlossHologramDoc ? doc : null;
@@ -990,6 +1010,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     // The emoji resolver folds the catalog in, so its memo dies with the old
     // catalog snapshot.
     _emojiCache = null;
+    _namesCache = null;
     _refreshIssues();
     _notify();
   }
@@ -1263,6 +1284,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _glossRevision++;
     _animationCache = null;
     _emojiCache = null;
+    _namesCache = null;
     _pushUndo(label, before);
     _afterChange();
   }
@@ -1406,6 +1428,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _setGlossDoc(next);
     _animationCache = null;
     _emojiCache = null;
+    _namesCache = null;
     _pushUndo(label, before, coalesce: false);
     _afterChange();
   }
@@ -2228,6 +2251,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _setGlossDoc(parsed);
     _animationCache = null;
     _emojiCache = null;
+    _namesCache = null;
     _menuId = importedId;
     _coerceView();
     _afterChange();
@@ -2513,6 +2537,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _setGlossDoc(parsed);
     _animationCache = null;
     _emojiCache = null;
+    _namesCache = null;
     _pushUndo('code edit', before);
     _afterChange();
     return true;
@@ -3006,6 +3031,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       _setGlossDoc(model);
       _animationCache = null;
       _emojiCache = null;
+    _namesCache = null;
     }
   }
 
@@ -3068,6 +3094,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     // surface renders through.
     _animationCache = null;
     _emojiCache = null;
+    _namesCache = null;
     final bool saved = _finishPendingDocumentSave();
     if (saved) {
       _lastSavedAt = DateTime.now();
@@ -3144,6 +3171,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _setGlossDoc(null);
     _animationCache = null;
     _emojiCache = null;
+    _namesCache = null;
     _selection.clear();
     _previewSelection = null;
     _togglePreviewState.clear();
@@ -3195,6 +3223,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _setGlossDoc(model is GlossDoc ? model : null);
     _animationCache = null;
     _emojiCache = null;
+    _namesCache = null;
     _menuId = adopted.editorId;
     _selection.clear();
     _previewSelection = null;

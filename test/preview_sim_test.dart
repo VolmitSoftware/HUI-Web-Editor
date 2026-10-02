@@ -38,6 +38,7 @@ const Map<String, List<Object?>> functionSampleArgs = <String, List<Object?>>{
   'metric': <Object?>['react.tps'],
   'plain': <Object?>['&aHi'],
   'readable': <Object?>['IRON_ORE'],
+  'itemName': <Object?>[0.0],
   'align': <Object?>['GLOSS', 8.0, 'center'],
   'marquee': <Object?>['GLOSS', 5.0, 1.0],
   'timeline': <Object?>[
@@ -326,6 +327,10 @@ void main() {
         'world.time',
         'blockType',
         'customName',
+        'world.displayName',
+        'world.environmentName',
+        'blockTypeName',
+        'entityTypeName',
         ...previewStandardVariableNames,
       ]);
       expect(sim.variable('blockType'), '');

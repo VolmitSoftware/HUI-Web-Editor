@@ -24,6 +24,7 @@ import '../model/gloss_damage_indicators.dart';
 import '../model/gloss_entity_overlays.dart';
 import '../model/gloss_hologram.dart';
 import '../model/gloss_motd.dart';
+import '../model/gloss_names.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
 import '../model/gloss_scoreboard.dart';
@@ -2525,6 +2526,30 @@ final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
     glossParticleLayersField,
   ],
 );
+final GlossJsonObject glossNamesJsonSchema = GlossJsonObject(
+  fields: <GlossJsonField>[
+    _schemaVersionField(1),
+    _revisionField,
+    for (final GlossNameCategory category in GlossNameCategory.values)
+      GlossJsonField(
+        key: category.name,
+        type: GlossJsonType.object,
+        title: switch (category) {
+          GlossNameCategory.materials => 'Materials',
+          GlossNameCategory.entities => 'Entities',
+          GlossNameCategory.worlds => 'World',
+          GlossNameCategory.gameModes => 'Game modes',
+          GlossNameCategory.dimensions => 'Dimensions',
+          GlossNameCategory.damageCauses => 'Damage causes',
+          GlossNameCategory.effects => 'Effects',
+          GlossNameCategory.groups => 'Groups',
+        },
+        summary: 'Names',
+        node: const GlossJsonObject(fields: <GlossJsonField>[], openKeyType: GlossJsonType.string),
+      ),
+  ],
+);
+
 // --- registry ---------------------------------------------------------------
 
 /// Every kind this model covers, keyed by the workspace kind enum's `name`.
@@ -2533,6 +2558,7 @@ final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
 /// map with no code view at all, and `containerPreview`, whose format is the
 /// preview schema rather than a Gloss runtime document.
 final Map<String, GlossJsonObject> glossJsonSchemas = <String, GlossJsonObject>{
+  'names': glossNamesJsonSchema,
   'menu': glossMenuJsonSchema,
   'hologram': glossHologramJsonSchema,
   'animation': glossAnimationJsonSchema,

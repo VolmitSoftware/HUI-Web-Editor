@@ -24,3 +24,5 @@ export 'scoreboard_document_type.dart';
 export 'tablist_document_type.dart';
 
 export 'channel_document_type.dart';
+
+export 'names_document_type.dart';
