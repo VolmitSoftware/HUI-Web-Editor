@@ -53,6 +53,22 @@ String encodeGlossHologramDoc(GlossHologramDoc doc) =>
 GlossHologramDoc cloneGlossHologramDoc(GlossHologramDoc doc) =>
     GlossHologramDoc.fromJson(huiDeepCopy(doc.toJson()));
 
+List<Object?> glossReadHologramLines(Object? raw) => <Object?>[
+  for (final Object? line in huiReadList(raw))
+    line is Map
+        ? huiDeepCopyMap(huiReadObject(line, r'$.lines'))
+        : line?.toString() ?? '',
+];
+
+String glossHologramLineText(Object? line) {
+  if (line is String) return line;
+  if (line is Map) {
+    final Object? text = line['text'];
+    return text is String ? text : '';
+  }
+  return '';
+}
+
 const Set<String> _docKnown = <String>{
   'schemaVersion',
   'revision',
@@ -168,7 +184,7 @@ final class GlossHologramDoc extends GlossDoc {
     super.schemaVersion = glossHologramCurrentSchemaVersion,
     super.revision = glossInitialRevision,
     GlossHologramAnchor? anchor,
-    List<String>? lines,
+    List<Object?>? lines,
     HuiIconStyle? style,
     GlossHologramBox? box,
     this.yaw = 0,
@@ -179,7 +195,7 @@ final class GlossHologramDoc extends GlossDoc {
   }) : style = style ?? defaultHologramDisplayStyle(),
        box = box ?? GlossHologramBox(),
        anchor = anchor ?? GlossHologramAnchor(),
-       lines = lines ?? <String>[],
+       lines = lines == null ? <Object?>[] : glossReadHologramLines(lines),
        particleLayers = particleLayers ?? <GlossParticleLayer>[],
        extras = extras ?? <String, dynamic>{},
        absentKeys = absentKeys ?? <String>{};
@@ -190,7 +206,9 @@ final class GlossHologramDoc extends GlossDoc {
   /// a single `TextDisplay` (`PersistentHologram.java:594-609`) after running
   /// each through the text pipeline. May legally be empty
   /// (`HologramDoc.copyLines` accepts null as an empty list).
-  List<String> lines;
+  List<Object?> lines;
+
+  List<String> get textLines => lines.map(glossHologramLineText).toList();
   bool stylePresent = true;
   bool boxPresent = true;
   HuiIconStyle style;
@@ -227,7 +245,7 @@ final class GlossHologramDoc extends GlossDoc {
       schemaVersion: glossHologramCurrentSchemaVersion,
       revision: glossReadRevision(map),
       anchor: GlossHologramAnchor.fromJson(anchorRaw),
-      lines: glossReadStringList(map['lines']),
+      lines: glossReadHologramLines(map['lines']),
       style:
           HuiIconStyle.fromJsonOrNull(map['style']) ??
           defaultHologramDisplayStyle(),
@@ -257,7 +275,7 @@ final class GlossHologramDoc extends GlossDoc {
       if (!absentKeys.contains('revision')) 'revision': revision,
       if (anchorPresent) 'anchor': anchor.toJson(),
       if (!absentKeys.contains('lines') || lines.isNotEmpty)
-        'lines': List<String>.of(lines),
+        'lines': lines.map(huiDeepCopy).toList(),
       if (stylePresent ||
           jsonEncode(style.toJson()) !=
               jsonEncode(defaultHologramDisplayStyle().toJson()))
@@ -278,7 +296,7 @@ final class GlossHologramDoc extends GlossDoc {
       schemaVersion: schemaVersion,
       revision: revision,
       anchor: anchor.copy(),
-      lines: List<String>.of(lines),
+      lines: lines.map(huiDeepCopy).toList(),
       style: style.copy(),
       box: box.copy(),
       yaw: yaw,

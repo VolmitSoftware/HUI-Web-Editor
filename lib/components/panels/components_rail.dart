@@ -880,6 +880,8 @@ class _ComponentsRailState extends State<ComponentsRail> {
   };
 
   String _summary(HuiComponentData data) => switch (data) {
+    HuiRuntimeComponentData() => data.type,
+
     HuiButtonData(
       icon: final HuiIcon? icon,
       actions: final List<HuiAction> a,

@@ -239,7 +239,7 @@ extension _CanvasInteractions on _CanvasViewportState {
     final HuiHitbox? hitbox = switch (data) {
       HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
       HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
-      HuiDecorationData() => null,
+      HuiDecorationData() || HuiRuntimeComponentData() => null,
     };
     if (hitbox?.anchor != HuiHitboxAnchor.menu) {
       return false;
@@ -269,7 +269,7 @@ extension _CanvasInteractions on _CanvasViewportState {
     final HuiHitbox? hitbox = switch (data) {
       HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
       HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
-      HuiDecorationData() => null,
+      HuiDecorationData() || HuiRuntimeComponentData() => null,
     };
     if (hitbox == null) return;
     _dragMode = _DragMode.hitbox;

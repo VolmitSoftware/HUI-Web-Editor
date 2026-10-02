@@ -162,6 +162,21 @@ class ComponentInspector extends StatelessWidget {
         _iconEditor(IconSlot.icon),
       ];
     }
+    if (data is HuiRuntimeComponentData) {
+      return <Widget>[
+        ExtrasEditor(
+          title: huiText('Component'),
+          extras: data.toJson()..remove('type'),
+          onChanged: (String label, Map<String, dynamic> next) =>
+              store.editComponent(_id, label, (HuiComponent edited) {
+                edited.data = HuiComponentData.fromJson(<String, Object?>{
+                  ...next,
+                  'type': data.type,
+                });
+              }),
+        ),
+      ];
+    }
     final HuiToggleData toggle = data as HuiToggleData;
     return <Widget>[
       _condition(toggle),
@@ -201,17 +216,19 @@ class ComponentInspector extends StatelessWidget {
     final double value = switch (data) {
       HuiButtonData(:final double highlightModifier) => highlightModifier,
       HuiToggleData(:final double highlightModifier) => highlightModifier,
-      HuiDecorationData() => 0,
+      HuiDecorationData() || HuiRuntimeComponentData() => 0,
     };
     final int duration = switch (data) {
       HuiButtonData(:final int hoverDurationTicks) => hoverDurationTicks,
       HuiToggleData(:final int hoverDurationTicks) => hoverDurationTicks,
-      HuiDecorationData() => huiRuntimeDefaultHoverDurationTicks,
+      HuiDecorationData() ||
+      HuiRuntimeComponentData() => huiRuntimeDefaultHoverDurationTicks,
     };
     final HuiHoverEasing easing = switch (data) {
       HuiButtonData(:final HuiHoverEasing hoverEasing) => hoverEasing,
       HuiToggleData(:final HuiHoverEasing hoverEasing) => hoverEasing,
-      HuiDecorationData() => huiRuntimeDefaultHoverEasing,
+      HuiDecorationData() ||
+      HuiRuntimeComponentData() => huiRuntimeDefaultHoverEasing,
     };
     return InspectorSection(
       title: huiText('Highlight'),
@@ -311,6 +328,9 @@ class ComponentInspector extends StatelessWidget {
   }) {
     store.editComponent(_id, label, (HuiComponent edited) {
       switch (edited.data) {
+        case HuiRuntimeComponentData():
+          break;
+
         case final HuiButtonData data:
           if (modifier != null) data.highlightModifier = modifier;
           if (duration != null) data.hoverDurationTicks = duration;
@@ -329,7 +349,7 @@ class ComponentInspector extends StatelessWidget {
     final HuiHitbox? hitbox = switch (data) {
       HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
       HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
-      HuiDecorationData() => null,
+      HuiDecorationData() || HuiRuntimeComponentData() => null,
     };
     return InspectorSection(
       title: huiText('Hitbox'),
@@ -385,7 +405,7 @@ class ComponentInspector extends StatelessWidget {
               final HuiHitbox? existing = switch (editedData) {
                 HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
                 HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
-                HuiDecorationData() => null,
+                HuiDecorationData() || HuiRuntimeComponentData() => null,
               };
               if (editedData is! HuiDecorationData) {
                 final HuiHitbox editedHitbox = existing ?? HuiHitbox();
@@ -396,6 +416,9 @@ class ComponentInspector extends StatelessWidget {
                     ? null
                     : editedHitbox;
                 switch (editedData) {
+                  case HuiRuntimeComponentData():
+                    break;
+
                   case HuiButtonData():
                     editedData.hitbox = next;
                   case HuiToggleData():
@@ -470,7 +493,7 @@ class ComponentInspector extends StatelessWidget {
       final HuiHitbox? hitbox = switch (data) {
         HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
         HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
-        HuiDecorationData() => null,
+        HuiDecorationData() || HuiRuntimeComponentData() => null,
       };
       if (hitbox != null) {
         edit(hitbox);
@@ -771,6 +794,8 @@ class _ComponentHeaderState extends State<_ComponentHeader> {
   }
 
   String get _typeLabel => switch (component.target.data) {
+    HuiRuntimeComponentData() => component.target.data.type,
+
     HuiButtonData() => huiText('Button'),
     HuiDecorationData() => huiText('Decoration'),
     HuiToggleData() => huiText('Toggle'),

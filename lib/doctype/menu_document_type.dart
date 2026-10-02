@@ -167,7 +167,8 @@ final class MenuDocumentType extends DocumentTypeAdapter {
           toggle.trueActions,
           toggle.falseActions,
         ],
-        HuiDecorationData() => const <List<HuiAction>>[],
+        HuiDecorationData() ||
+        HuiRuntimeComponentData() => const <List<HuiAction>>[],
       };
       for (final List<HuiAction> actions in branches) {
         for (final HuiAction action in actions) {

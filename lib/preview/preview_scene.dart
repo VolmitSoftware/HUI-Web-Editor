@@ -361,17 +361,18 @@ String? nearestClickableId({
 double _highlightModifier(HuiComponentData data) => switch (data) {
   HuiButtonData() => data.highlightModifier,
   HuiToggleData() => data.highlightModifier,
-  HuiDecorationData() => 0,
+  HuiDecorationData() || HuiRuntimeComponentData() => 0,
 };
 
 int _hoverDuration(HuiComponentData data) => switch (data) {
   HuiButtonData() => data.hoverDurationTicks,
   HuiToggleData() => data.hoverDurationTicks,
-  HuiDecorationData() => 0,
+  HuiDecorationData() || HuiRuntimeComponentData() => 0,
 };
 
 HuiHoverEasing _hoverEasing(HuiComponentData data) => switch (data) {
   HuiButtonData() => data.hoverEasing,
   HuiToggleData() => data.hoverEasing,
-  HuiDecorationData() => huiRuntimeDefaultHoverEasing,
+  HuiDecorationData() ||
+  HuiRuntimeComponentData() => huiRuntimeDefaultHoverEasing,
 };

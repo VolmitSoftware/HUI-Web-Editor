@@ -735,7 +735,7 @@ final GlossJsonObject glossActionNode = GlossJsonObject(
       title: 'Action type',
       summary: 'Which action runs. Mandatory; an unknown type kills the file.',
       docKey: 'action.type',
-      values: _values(huiEditorActionTypes),
+      values: _values(huiActionTypes),
     ),
     GlossJsonField(
       key: 'trigger',
@@ -960,7 +960,7 @@ final GlossJsonObject glossComponentDataNode = GlossJsonObject(
       title: 'Component type',
       summary: 'Which component this is. Mandatory.',
       docKey: 'component.type',
-      values: _values(huiEditorComponentTypes),
+      values: _values(huiComponentTypes),
     ),
   ],
   variants: <String, List<GlossJsonField>>{

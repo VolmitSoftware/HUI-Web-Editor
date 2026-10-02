@@ -520,6 +520,8 @@ CanvasItem _resolveItem({
   final bool isToggle = data is HuiToggleData;
   final bool showsTrue = isToggle && togglePreview(component.id);
   final HuiIcon? icon = switch (data) {
+    HuiRuntimeComponentData() => null,
+
     HuiButtonData() => data.icon,
     HuiDecorationData() => data.icon,
     HuiToggleData() => showsTrue ? data.trueIcon : data.falseIcon,

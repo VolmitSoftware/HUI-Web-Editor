@@ -290,6 +290,10 @@ class _PreviewLogViewState extends State<PreviewLogView> {
       ]);
 
   Widget _action(LoggedAction action) => switch (action) {
+    LoggedRuntimeAction() => dom.div(
+      classes: 'hui-preview-log-action',
+      <Widget>[Component.text(describeLoggedAction(action))],
+    ),
     LoggedCommand() => _command(action),
     LoggedSound() => _sound(action),
     LoggedMessage() => _message(action),

@@ -131,7 +131,11 @@ final GlossJsonObject glossHologramJsonSchema = GlossJsonObject(
       title: 'Lines',
       summary: 'Hologram text, joined with newlines into one text display.',
       docKey: 'hologram.lines',
-      node: _textLinesNode,
+      node: GlossJsonArray(
+        itemType: GlossJsonType.any,
+        itemTitle: 'Line',
+        itemSummary: 'Line',
+      ),
     ),
     glossDisplayStyleField,
     glossHologramBoxField,

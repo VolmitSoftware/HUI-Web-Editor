@@ -88,6 +88,9 @@ EditorStore _resourceStore() {
 Iterable<HuiIcon> _menuIcons(HuiMenu menu) sync* {
   for (final HuiComponent component in menu.components) {
     switch (component.data) {
+      case HuiRuntimeComponentData():
+        break;
+
       case final HuiButtonData button:
         if (button.icon != null) yield button.icon!;
       case final HuiDecorationData decoration:
@@ -135,7 +138,7 @@ void _expectMenuBudget(HuiMenu menu, String reason) {
     final int actions = switch (data) {
       HuiButtonData() => data.actions.length,
       HuiToggleData() => data.trueActions.length + data.falseActions.length,
-      HuiDecorationData() => 0,
+      HuiDecorationData() || HuiRuntimeComponentData() => 0,
     };
     expect(actions, lessThanOrEqualTo(6), reason: reason);
   }
@@ -443,7 +446,8 @@ void main() {
             ...toggle.trueActions,
             ...toggle.falseActions,
           ],
-          HuiDecorationData() => const <HuiAction>[],
+          HuiDecorationData() ||
+          HuiRuntimeComponentData() => const <HuiAction>[],
         };
         for (final HuiAction action in actions) {
           actionTypes.add(action.type);
@@ -453,6 +457,9 @@ void main() {
           if (action is HuiNavigateAction) navigationModes.add(action.mode);
         }
         switch (component.data) {
+          case HuiRuntimeComponentData():
+            break;
+
           case final HuiButtonData button:
             easings.add(button.hoverEasing);
             if (button.hitbox != null) anchors.add(button.hitbox!.anchor);

@@ -55,6 +55,8 @@ extension IconSlotNames on IconSlot {
 
 /// Reads the icon a slot currently holds.
 HuiIcon? readIconSlot(HuiComponentData data, IconSlot slot) => switch (data) {
+  HuiRuntimeComponentData() => null,
+
   final HuiButtonData button => button.icon,
   final HuiDecorationData decoration => decoration.icon,
   final HuiToggleData toggle =>

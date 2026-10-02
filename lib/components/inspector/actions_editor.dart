@@ -287,6 +287,8 @@ class ActionsEditor extends StatelessWidget {
           value: action.type,
           onChanged: (String type) => _convert(index, type),
           segments: <HuiSegment>[
+            if (action is HuiRuntimeAction)
+              HuiSegment(value: action.type, label: action.type),
             HuiSegment(
               value: 'command',
               label: huiText('Command'),
@@ -408,6 +410,7 @@ class ActionsEditor extends StatelessWidget {
             onChanged: (String label, HuiAction next) =>
                 _replace(index, label, next),
           ),
+          HuiRuntimeAction() => const dom.div(<Widget>[]),
           final HuiNavigateAction navigation => _NavigateActionFields(
             action: navigation,
             store: store,
@@ -506,6 +509,8 @@ class _CommandActionFields extends StatelessWidget {
           onChanged: (String value) =>
               onChanged('command source', _with(source: value)),
           segments: <HuiSegment>[
+            if (action is HuiRuntimeAction)
+              HuiSegment(value: action.type, label: action.type),
             HuiSegment(
               value: 'player',
               label: huiText('Player'),

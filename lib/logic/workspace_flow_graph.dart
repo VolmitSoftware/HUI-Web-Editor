@@ -263,6 +263,9 @@ WorkspaceFlowEdge _edge(
 Iterable<_NavigationReference> _navigationReferences(HuiMenu menu) sync* {
   for (final HuiComponent component in menu.components) {
     switch (component.data) {
+      case HuiRuntimeComponentData():
+        break;
+
       case final HuiButtonData button:
         yield* _branchNavigationReferences(
           component.id,

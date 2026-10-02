@@ -707,6 +707,9 @@ class _Validator {
     }
 
     switch (component.data) {
+      case HuiRuntimeComponentData():
+        break;
+
       case final HuiButtonData data:
         _validateHighlight(data.highlightModifier, '$path.data');
         _validateHoverDuration(data.hoverDurationTicks, '$path.data');
@@ -1381,6 +1384,9 @@ class _Validator {
         );
       }
       switch (action) {
+        case HuiRuntimeAction():
+          break;
+
         case final HuiCommandAction command:
           _validateCommand(command, actionPath);
         case final HuiSoundAction sound:

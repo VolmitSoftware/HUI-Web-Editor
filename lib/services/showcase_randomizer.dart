@@ -168,6 +168,7 @@ bool randomizeMenuComponent(
   final math.Random source = random ?? math.Random();
   store.editComponent(componentId, 'Randomize component', (HuiComponent item) {
     item.data = switch (item.data) {
+      HuiRuntimeComponentData() => item.data,
       HuiButtonData() => _randomButtonData(
         store,
         source,

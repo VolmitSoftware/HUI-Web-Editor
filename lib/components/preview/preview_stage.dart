@@ -863,6 +863,9 @@ class _PreviewStageState extends State<PreviewStage>
         ..write(item.id)
         ..write(':');
       switch (item.data) {
+        case HuiRuntimeComponentData():
+          break;
+
         case HuiButtonData(
           :final double highlightModifier,
           :final int hoverDurationTicks,
@@ -896,6 +899,9 @@ class _PreviewStageState extends State<PreviewStage>
     for (final HuiAction action in actions) {
       buffer.write('~');
       switch (action) {
+        case HuiRuntimeAction():
+          break;
+
         case HuiCommandAction():
           buffer
             ..write('c')

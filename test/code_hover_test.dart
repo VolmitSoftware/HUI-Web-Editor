@@ -125,7 +125,7 @@ void main() {
         source: source,
         offset: source.indexOf('"type"', 20) + 1,
       );
-      expect(doc!.detail, 'string · one of "button", "decoration", "toggle"');
+      expect(doc!.detail, 'string · one of "button", "decoration", "toggle", "list", "slider", "field", and 1 more');
     });
 
     test('counts the rest when a set is longer than a tooltip', () {

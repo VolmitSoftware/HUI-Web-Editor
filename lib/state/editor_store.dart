@@ -1894,6 +1894,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       hitbox.offset = offset.copy();
       final HuiHitbox? next = hitbox.isDefault ? null : hitbox;
       switch (rawData) {
+        case HuiRuntimeComponentData():
+          break;
+
         case HuiButtonData():
           rawData.hitbox = next;
         case HuiToggleData():
@@ -1935,6 +1938,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
           ..anchor = anchor
           ..offset = Vec3.zero();
         switch (editedData) {
+          case HuiRuntimeComponentData():
+            break;
+
           case HuiButtonData():
             editedData.hitbox = hitbox;
           case HuiToggleData():
@@ -1952,6 +1958,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
         }
         if (hitbox.isDefault) {
           switch (editedData) {
+            case HuiRuntimeComponentData():
+              break;
+
             case HuiButtonData():
               editedData.hitbox = null;
             case HuiToggleData():

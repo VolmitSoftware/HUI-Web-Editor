@@ -18,6 +18,7 @@ import '../../state/editor_store.dart';
 import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
+import 'extras_editor.dart';
 import 'inspector_widgets.dart';
 import 'display_style_editor.dart';
 import 'hologram_box_editor.dart';
@@ -290,14 +291,25 @@ class _HologramInspectorState extends State<HologramInspector> {
     ],
     onReorder: (int from, int to) =>
         _store.mutateHologram('reorder line', (GlossHologramDoc edited) {
-          final String moved = edited.lines.removeAt(from);
+          final Object? moved = edited.lines.removeAt(from);
           edited.lines.insert(to, moved);
         }),
     itemBuilder: (int index) => _lineRow(doc, index),
   );
 
   Widget _lineRow(GlossHologramDoc doc, int index) {
-    final String line = doc.lines[index];
+    final Object? raw = doc.lines[index];
+    if (raw is Map && !raw.containsKey('text')) {
+      return ExtrasEditor(
+        title: '${huiText('Line')} ${index + 1}',
+        extras: huiReadObject(raw, '\$.lines[$index]'),
+        onChanged: (String label, Map<String, dynamic> next) =>
+            _store.mutateHologram(label, (GlossHologramDoc edited) {
+              if (index < edited.lines.length) edited.lines[index] = next;
+            }),
+      );
+    }
+    final String line = glossHologramLineText(raw);
     return HuiLineRow(
       value: line,
       placeholder: huiText('&fText, %papi%, |animation.id|, {{ expression }}'),
@@ -323,13 +335,25 @@ class _HologramInspectorState extends State<HologramInspector> {
 
   void _editLine(int index, String value) =>
       _store.mutateHologram('edit line', (GlossHologramDoc edited) {
-        if (index < edited.lines.length) edited.lines[index] = value;
+        if (index >= edited.lines.length) return;
+        final Object? line = edited.lines[index];
+        if (line is Map && line.containsKey('text')) {
+          edited.lines[index] = <String, Object?>{
+            ...huiReadObject(line, '\$.lines[$index]'),
+            'text': value,
+          };
+        } else if (line is String) {
+          edited.lines[index] = value;
+        }
       });
 
   void _insertPlaceholder(String token) {
     final GlossHologramDoc? doc = _doc;
     if (doc == null || doc.lines.isEmpty) return;
     final int index = _focusedLine.clamp(0, doc.lines.length - 1);
-    _editLine(index, doc.lines[index] + token);
+    final Object? line = doc.lines[index];
+    if (line is String || (line is Map && line.containsKey('text'))) {
+      _editLine(index, glossHologramLineText(line) + token);
+    }
   }
 }

@@ -235,7 +235,7 @@ void main() {
     test('offers the variant tags of a discriminated object', () {
       expect(
         _labels(_offer('menu', '{"components": [{"data": {"type": |}}]}')),
-        <String>['button', 'decoration', 'toggle'],
+        <String>['button', 'decoration', 'toggle', 'list', 'slider', 'field', 'tabs'],
       );
     });
 

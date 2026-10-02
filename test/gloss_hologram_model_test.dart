@@ -101,6 +101,62 @@ void main() {
   });
 
   group('round-trip', () {
+    test('mixed object lines survive editing cloning and saving', () {
+      final List<Object?> lines = <Object?>[
+        '&fWelcome',
+        <String, Object?>{
+          'text': '&aConditional',
+          'show': 'player.online',
+          'scale': 1.5,
+        },
+        <String, Object?>{
+          'item': <String, Object?>{
+            'type': 'item',
+            'material': 'minecraft:diamond_sword',
+            'customModelValue': 3,
+          },
+          'scale': 0.5,
+        },
+        <String, Object?>{'head': 'Alex', 'scale': 0.75},
+        <String, Object?>{'block': 'minecraft:oak_log'},
+        <String, Object?>{'entity': 'minecraft:zombie'},
+      ];
+      final Map<String, Object?> source =
+          jsonDecode(_baseline) as Map<String, Object?>;
+      source['lines'] = lines;
+      final GlossHologramDoc doc = decodeGlossHologramDoc(jsonEncode(source));
+      doc.anchor.world = 'world';
+      doc.lines[0] = '&eEdited';
+      final GlossHologramDoc copied = doc.copy();
+      final GlossHologramDoc cloned = cloneGlossHologramDoc(doc);
+      for (final GlossHologramDoc result in <GlossHologramDoc>[
+        doc,
+        copied,
+        cloned,
+      ]) {
+        final Map<String, Object?> output =
+            jsonDecode(encodeGlossHologramDoc(result)) as Map<String, Object?>;
+        expect((output['lines']! as List<Object?>).skip(1), lines.skip(1));
+        expect(result.textLines, <String>[
+          '&eEdited',
+          '&aConditional',
+          '',
+          '',
+          '',
+          '',
+        ]);
+      }
+      final Map<String, Object?> copiedItem =
+          copied.lines[2]! as Map<String, Object?>;
+      (copiedItem['item']! as Map<String, Object?>)['material'] =
+          'minecraft:stone';
+      expect(
+        ((doc.lines[2]! as Map<String, Object?>)['item']!
+            as Map<String, Object?>)['material'],
+        'minecraft:diamond_sword',
+      );
+    });
+
     test('decode-encode is stable on the canonical shape', () {
       final GlossHologramDoc doc = decodeGlossHologramDoc(_baseline);
       final String encoded = encodeGlossHologramDoc(doc);

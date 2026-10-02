@@ -20,7 +20,7 @@ const List<String> huiComponentTypes = <String>[
   'tabs',
 ];
 
-/// The component types this editor parses, edits, validates and re-encodes.
+/// The component types with dedicated authoring controls and local simulation.
 const List<String> huiEditorComponentTypes = <String>[
   'button',
   'decoration',
@@ -46,6 +46,15 @@ sealed class HuiComponentData {
         return HuiDecorationData.fromMap(map, path);
       case 'toggle':
         return HuiToggleData.fromMap(map, path);
+      case 'list':
+        return HuiListData.fromMap(map, path);
+      case 'slider':
+        return HuiSliderData.fromMap(map, path);
+      case 'field':
+        return HuiFieldData.fromMap(map, path);
+      case 'tabs':
+        return HuiTabsData.fromMap(map, path);
+
       default:
         huiUnknownType(type, path);
     }
@@ -368,5 +377,242 @@ class HuiComponent {
       )
       ..extras = huiCollectExtras(map, _known)
       ..absentKeys = <String>{if (map['offset'] == null) 'offset'};
+  }
+}
+
+sealed class HuiRuntimeComponentData extends HuiComponentData {}
+
+final class HuiListData extends HuiRuntimeComponentData {
+  HuiListData({
+    this.variable,
+    this.source,
+    this.pageSize,
+    this.flow,
+    this.template,
+  });
+
+  String? variable;
+  String? source;
+  int? pageSize;
+  Map<String, Object?>? flow;
+  HuiComponentData? template;
+
+  @override
+  String get type => 'list';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': type,
+    if (variable != null) 'var': variable,
+    if (source != null) 'source': source,
+    if (pageSize != null) 'pageSize': pageSize,
+    if (flow != null) 'flow': huiDeepCopy(flow),
+    if (template != null) 'template': template!.toJson(),
+  }, extras);
+
+  @override
+  HuiListData copy() => HuiListData.fromMap(toJson(), 'data');
+
+  static HuiListData fromMap(Map<String, dynamic> map, String path) =>
+      HuiListData(
+          variable: map['var'] == null ? null : huiReadString(map, 'var'),
+          source: map['source'] == null ? null : huiReadString(map, 'source'),
+          pageSize: map['pageSize'] == null
+              ? null
+              : huiReadInt(map, 'pageSize'),
+          flow: map['flow'] == null
+              ? null
+              : huiDeepCopyMap(huiReadObject(map['flow'], '$path.flow')),
+          template: map['template'] == null
+              ? null
+              : HuiComponentData.fromJson(
+                  map['template'],
+                  path: '$path.template',
+                ),
+        )
+        ..extras = huiCollectExtras(map, const <String>{
+          'type',
+          'var',
+          'source',
+          'pageSize',
+          'flow',
+          'template',
+        });
+}
+
+final class HuiSliderData extends HuiRuntimeComponentData {
+  HuiSliderData({
+    this.variable,
+    this.min,
+    this.max,
+    this.step,
+    this.width,
+    this.label,
+    this.style,
+  });
+
+  String? variable;
+  double? min;
+  double? max;
+  double? step;
+  double? width;
+  String? label;
+  HuiIconStyle? style;
+
+  @override
+  String get type => 'slider';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': type,
+    if (variable != null) 'var': variable,
+    if (min != null) 'min': min,
+    if (max != null) 'max': max,
+    if (step != null) 'step': step,
+    if (width != null) 'width': width,
+    if (label != null) 'label': label,
+    if (style != null) 'style': style!.toJson(),
+  }, extras);
+
+  @override
+  HuiSliderData copy() => HuiSliderData.fromMap(toJson(), 'data');
+
+  static HuiSliderData fromMap(Map<String, dynamic> map, String path) =>
+      HuiSliderData(
+          variable: map['var'] == null ? null : huiReadString(map, 'var'),
+          min: huiReadDoubleOrNull(map, 'min'),
+          max: huiReadDoubleOrNull(map, 'max'),
+          step: huiReadDoubleOrNull(map, 'step'),
+          width: huiReadDoubleOrNull(map, 'width'),
+          label: map['label'] == null ? null : huiReadString(map, 'label'),
+          style: HuiIconStyle.fromJsonOrNull(map['style']),
+        )
+        ..extras = huiCollectExtras(map, const <String>{
+          'type',
+          'var',
+          'min',
+          'max',
+          'step',
+          'width',
+          'label',
+          'style',
+        });
+}
+
+final class HuiFieldData extends HuiRuntimeComponentData {
+  HuiFieldData({
+    this.variable,
+    this.prompt,
+    this.label,
+    this.initial,
+    this.style,
+  });
+
+  String? variable;
+  String? prompt;
+  String? label;
+  String? initial;
+  HuiIconStyle? style;
+
+  @override
+  String get type => 'field';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': type,
+    if (variable != null) 'var': variable,
+    if (prompt != null) 'prompt': prompt,
+    if (label != null) 'label': label,
+    if (initial != null) 'initial': initial,
+    if (style != null) 'style': style!.toJson(),
+  }, extras);
+
+  @override
+  HuiFieldData copy() => HuiFieldData.fromMap(toJson(), 'data');
+
+  static HuiFieldData fromMap(Map<String, dynamic> map, String path) =>
+      HuiFieldData(
+          variable: map['var'] == null ? null : huiReadString(map, 'var'),
+          prompt: map['prompt'] == null ? null : huiReadString(map, 'prompt'),
+          label: map['label'] == null ? null : huiReadString(map, 'label'),
+          initial: map['initial'] == null
+              ? null
+              : huiReadString(map, 'initial'),
+          style: HuiIconStyle.fromJsonOrNull(map['style']),
+        )
+        ..extras = huiCollectExtras(map, const <String>{
+          'type',
+          'var',
+          'prompt',
+          'label',
+          'initial',
+          'style',
+        });
+}
+
+final class HuiTabsData extends HuiRuntimeComponentData {
+  HuiTabsData({this.variable, this.tabs, this.spacing, this.style});
+
+  String? variable;
+  List<HuiTab>? tabs;
+  double? spacing;
+  HuiIconStyle? style;
+
+  @override
+  String get type => 'tabs';
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': type,
+    if (variable != null) 'var': variable,
+    if (tabs != null) 'tabs': tabs!.map((HuiTab tab) => tab.toJson()).toList(),
+    if (spacing != null) 'spacing': spacing,
+    if (style != null) 'style': style!.toJson(),
+  }, extras);
+
+  @override
+  HuiTabsData copy() => HuiTabsData.fromMap(toJson(), 'data');
+
+  static HuiTabsData fromMap(Map<String, dynamic> map, String path) =>
+      HuiTabsData(
+          variable: map['var'] == null ? null : huiReadString(map, 'var'),
+          tabs: map['tabs'] == null
+              ? null
+              : huiReadList(map['tabs'])
+                    .map((Object? raw) => HuiTab.fromJson(raw, '$path.tabs'))
+                    .toList(),
+          spacing: huiReadDoubleOrNull(map, 'spacing'),
+          style: HuiIconStyle.fromJsonOrNull(map['style']),
+        )
+        ..extras = huiCollectExtras(map, const <String>{
+          'type',
+          'var',
+          'tabs',
+          'spacing',
+          'style',
+        });
+}
+
+final class HuiTab {
+  HuiTab({required this.id, this.label, Map<String, Object?>? extras})
+    : extras = extras ?? <String, Object?>{};
+
+  String id;
+  String? label;
+  Map<String, Object?> extras;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    ...extras,
+    'id': id,
+    if (label != null) 'label': label,
+  };
+
+  static HuiTab fromJson(Object? raw, String path) {
+    final Map<String, Object?> map = huiReadObject(raw, path);
+    return HuiTab(
+      id: huiReadString(map, 'id'),
+      label: map['label'] == null ? null : huiReadString(map, 'label'),
+      extras: huiCollectExtras(map, const <String>{'id', 'label'}),
+    );
   }
 }

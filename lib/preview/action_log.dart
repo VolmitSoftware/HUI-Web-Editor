@@ -22,6 +22,12 @@ sealed class LoggedAction {
 }
 
 /// A `command` action as `CommandMenuAction.execute` would run it.
+final class LoggedRuntimeAction extends LoggedAction {
+  const LoggedRuntimeAction(this.type);
+
+  final String type;
+}
+
 class LoggedCommand extends LoggedAction {
   LoggedCommand({
     required String command,
@@ -214,6 +220,7 @@ LoggedAction loggedActionFrom(
   HuiTeleportAction() => LoggedTeleport.from(action),
   HuiConnectAction() => LoggedConnect.from(action),
   HuiNavigateAction() => LoggedNavigation.from(action),
+  HuiRuntimeAction() => LoggedRuntimeAction(action.type),
 };
 
 List<LoggedAction> loggedActionsFrom(
@@ -274,6 +281,7 @@ bool _hasUsableTeleport(HuiTeleportAction action) =>
 bool _hasUsableServer(String server) => _loggedServerName.hasMatch(server);
 
 String describeLoggedAction(LoggedAction action) => switch (action) {
+  LoggedRuntimeAction() => '${action.type} action (server execution)',
   LoggedCommand() => _describeCommand(action),
   LoggedSound() => _describeSound(action),
   LoggedMessage() =>

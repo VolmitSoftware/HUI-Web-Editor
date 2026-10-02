@@ -107,7 +107,7 @@ List<HuiIssue> validateHologramDoc(
   }
 
   final String? particleSpanError = glossParticleTextSyntaxError(
-    doc.lines.join('\n'),
+    doc.textLines.join('\n'),
   );
   if (particleSpanError != null) {
     issues.add(
@@ -123,7 +123,7 @@ List<HuiIssue> validateHologramDoc(
 
   for (int index = 0; index < doc.lines.length; index++) {
     for (final String reference in glossLineMissingAnimationRefs(
-      doc.lines[index],
+      glossHologramLineText(doc.lines[index]),
       animations,
     )) {
       issues.add(
@@ -141,12 +141,12 @@ List<HuiIssue> validateHologramDoc(
     }
   }
 
-  final HuiIssue? metrics = glossMetricInfo(doc.lines);
+  final HuiIssue? metrics = glossMetricInfo(doc.textLines);
   if (metrics != null) issues.add(metrics);
   issues.addAll(
     glossTextExpressionIssues(<({String path, String text})>[
       for (int index = 0; index < doc.lines.length; index++)
-        (path: 'lines[$index]', text: doc.lines[index]),
+        (path: 'lines[$index]', text: glossHologramLineText(doc.lines[index])),
     ]),
   );
 

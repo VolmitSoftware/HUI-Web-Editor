@@ -178,6 +178,9 @@ Set<String> huiUsedImagePaths(HuiMenu menu) {
 
   for (final HuiComponent entry in menu.components) {
     switch (entry.data) {
+      case HuiRuntimeComponentData():
+        break;
+
       case final HuiButtonData data:
         collect(data.icon);
       case final HuiDecorationData data:
@@ -226,6 +229,9 @@ bool huiRepointImagePaths(HuiMenu menu, String from, String to) {
 
   for (final HuiComponent entry in menu.components) {
     switch (entry.data) {
+      case HuiRuntimeComponentData():
+        break;
+
       case final HuiButtonData data:
         repoint(data.icon);
       case final HuiDecorationData data:

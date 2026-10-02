@@ -18,7 +18,8 @@ import '../model/hui_component.dart'
         HuiDecorationData,
         HuiHitbox,
         HuiHitboxAnchor,
-        HuiToggleData;
+        HuiToggleData,
+        HuiRuntimeComponentData;
 import '../model/vec3.dart' show Vec3;
 import 'viewport_math.dart' show WorldBounds, WorldPoint;
 
@@ -529,7 +530,7 @@ double hitboxDepthFor({
   final HuiHitbox? hitbox = switch (data) {
     HuiButtonData(:final HuiHitbox? hitbox) => hitbox,
     HuiToggleData(:final HuiHitbox? hitbox) => hitbox,
-    HuiDecorationData() => null,
+    HuiDecorationData() || HuiRuntimeComponentData() => null,
   };
   if (hitbox == null) {
     return depthFor(

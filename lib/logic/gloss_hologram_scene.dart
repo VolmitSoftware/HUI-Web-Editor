@@ -418,7 +418,7 @@ List<GlossLineRender> hologramRenderedLines(
   int nowMs = 0,
 }) => <GlossLineRender>[
   if (glossShowMatches(doc.extras['show'], nowMs: nowMs))
-    for (final String line in doc.lines)
+    for (final String line in doc.textLines)
       renderGlossLine(
         line,
         animations: animations,
@@ -433,7 +433,7 @@ bool hologramIsAnimated(
   GlossHologramDoc doc,
   GlossAnimationResolver animations,
 ) {
-  for (final String line in doc.lines) {
+  for (final String line in doc.textLines) {
     if (renderGlossLine(line, animations: animations).isAnimated) return true;
   }
   return false;

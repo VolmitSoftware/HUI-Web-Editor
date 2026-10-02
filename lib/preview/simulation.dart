@@ -372,6 +372,9 @@ class PreviewSimulation {
     for (final HuiComponent component in menu.components) {
       if (!ids.add(component.id)) continue;
       switch (component.data) {
+        case HuiRuntimeComponentData():
+          break;
+
         case HuiButtonData(
           :final double highlightModifier,
           :final int hoverDurationTicks,

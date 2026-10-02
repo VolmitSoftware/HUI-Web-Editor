@@ -290,6 +290,8 @@ void main() {
       for (final HuiComponent component in menu.components) {
         componentTypes.add(component.data.type);
         final List<HuiIcon> icons = switch (component.data) {
+          HuiRuntimeComponentData() => const <HuiIcon>[],
+
           final HuiButtonData button => <HuiIcon>[?button.icon],
           final HuiDecorationData decoration => <HuiIcon>[?decoration.icon],
           final HuiToggleData toggle => <HuiIcon>[
@@ -312,7 +314,8 @@ void main() {
             ...toggle.trueActions,
             ...toggle.falseActions,
           ],
-          HuiDecorationData() => const <HuiAction>[],
+          HuiDecorationData() ||
+          HuiRuntimeComponentData() => const <HuiAction>[],
         };
         actionTypes.addAll(actions.map((HuiAction action) => action.type));
         expect(
@@ -333,7 +336,7 @@ void main() {
         final HuiHitbox? hitbox = switch (component.data) {
           final HuiButtonData button => button.hitbox,
           final HuiToggleData toggle => toggle.hitbox,
-          HuiDecorationData() => null,
+          HuiDecorationData() || HuiRuntimeComponentData() => null,
         };
         expect(hitbox, isNotNull, reason: '${archetype.name}:${component.id}');
         expect(hitbox!.anchor, HuiHitboxAnchor.button);

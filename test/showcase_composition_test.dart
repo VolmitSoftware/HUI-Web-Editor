@@ -68,6 +68,8 @@ EditorStore _store() {
 }
 
 Iterable<HuiIcon> _icons(HuiComponentData data) => switch (data) {
+  HuiRuntimeComponentData() => const <HuiIcon>[],
+
   HuiButtonData() => <HuiIcon>[?data.icon],
   HuiDecorationData() => <HuiIcon>[?data.icon],
   HuiToggleData() => <HuiIcon>[?data.trueIcon, ?data.falseIcon],
@@ -75,7 +77,7 @@ Iterable<HuiIcon> _icons(HuiComponentData data) => switch (data) {
 
 Iterable<HuiAction> _actions(HuiComponentData data) => switch (data) {
   HuiButtonData() => data.actions,
-  HuiDecorationData() => const <HuiAction>[],
+  HuiDecorationData() || HuiRuntimeComponentData() => const <HuiAction>[],
   HuiToggleData() => <HuiAction>[...data.trueActions, ...data.falseActions],
 };
 
@@ -163,6 +165,9 @@ void main() {
             if (action is HuiNavigateAction) navigation.add(action.mode);
           }
           switch (component.data) {
+            case HuiRuntimeComponentData():
+              break;
+
             case final HuiButtonData button:
               easing.add(button.hoverEasing);
             case final HuiToggleData toggle:

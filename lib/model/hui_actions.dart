@@ -4,8 +4,8 @@ import 'json_codec.dart';
 ///
 /// This is the wire contract, not this build's authoring surface: the runtime
 /// accepts all of them, while [huiEditorActionTypes] is the subset the editor
-/// models end to end. Menus using the rest are Gloss-valid and still open in
-/// the plugin; the editor rejects them until each grows a typed action.
+/// models end to end. Other runtime actions preserve their authored payload
+/// and can be edited as JSON.
 const List<String> huiActionTypes = <String>[
   'command',
   'sound',
@@ -45,7 +45,7 @@ const List<String> huiActionTypes = <String>[
   'glow',
 ];
 
-/// The action types this editor parses, edits, validates and re-encodes.
+/// The action types with dedicated authoring controls and local simulation.
 ///
 /// Everything that creates an action — the inspector rows, the presets, the
 /// showcase randomizer, the JSON schema value list — works from this list, so
@@ -127,6 +127,7 @@ sealed class HuiAction {
       case 'navigate':
         return HuiNavigateAction.fromMap(map);
       default:
+        if (huiActionTypes.contains(type)) return HuiRuntimeAction.fromMap(map);
         huiUnknownType(type, path);
     }
   }
@@ -451,4 +452,29 @@ class HuiConnectAction extends HuiAction {
   static HuiConnectAction fromMap(Map<String, dynamic> map) =>
       HuiConnectAction(huiReadString(map, 'server'), HuiAction.readTrigger(map))
         ..extras = huiCollectExtras(map, _known);
+}
+
+final class HuiRuntimeAction extends HuiAction {
+  HuiRuntimeAction._(this.type, super.trigger);
+
+  @override
+  final String type;
+
+  bool triggerPresent = false;
+
+  static HuiRuntimeAction fromMap(Map<String, dynamic> map) =>
+      HuiRuntimeAction._(huiReadString(map, 'type'), HuiAction.readTrigger(map))
+        ..triggerPresent = map.containsKey('trigger')
+        ..extras = huiCollectExtras(map, const <String>{'type', 'trigger'});
+
+  @override
+  Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'type': type,
+    if (triggerPresent || trigger != 'any') 'trigger': trigger,
+  }, extras);
+
+  @override
+  HuiRuntimeAction copy() => HuiRuntimeAction._(type, trigger)
+    ..triggerPresent = triggerPresent
+    ..extras = huiDeepCopyMap(extras);
 }
