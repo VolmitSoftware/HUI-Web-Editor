@@ -1,7 +1,11 @@
 {
   "show": true,
   "match": {
-    "blocks": ["CHEST", "TRAPPED_CHEST", "BARREL"],
+    "blocks": [
+      "CHEST",
+      "TRAPPED_CHEST",
+      "BARREL"
+    ],
     "priority": 10,
     "vars": {
       "cols": 9,
@@ -13,84 +17,201 @@
   },
   "variants": [
     {
-      "blocks": ["TRAPPED_CHEST"],
-      "vars": { "titleKey": "gloss.preview.theme.title.trapped_chest", "accent": "#EC6464" }
+      "blocks": [
+        "TRAPPED_CHEST"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.trapped_chest",
+        "accent": "#EC6464"
+      }
     },
     {
-      "blocks": ["BARREL"],
-      "vars": { "titleKey": "gloss.preview.theme.title.barrel", "accent": "#F2D451" }
+      "blocks": [
+        "BARREL"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.barrel",
+        "accent": "#F2D451"
+      }
     },
     {
-      "blocks": ["*COPPER_CHEST"],
-      "vars": { "titleKey": "gloss.preview.theme.title.copper_chest", "accent": "#F2A535" }
+      "blocks": [
+        "*COPPER_CHEST"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.copper_chest",
+        "accent": "#F2A535"
+      }
     },
     {
-      "blocks": ["WHITE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "White", "accent": "#CBD0D9" }
+      "blocks": [
+        "WHITE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "White",
+        "accent": "#CBD0D9"
+      }
     },
     {
-      "blocks": ["ORANGE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Orange", "accent": "#F2A535" }
+      "blocks": [
+        "ORANGE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Orange",
+        "accent": "#F2A535"
+      }
     },
     {
-      "blocks": ["MAGENTA_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Magenta", "accent": "#EC88EC" }
+      "blocks": [
+        "MAGENTA_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Magenta",
+        "accent": "#EC88EC"
+      }
     },
     {
-      "blocks": ["LIGHT_BLUE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Light Blue", "accent": "#6FEAEA" }
+      "blocks": [
+        "LIGHT_BLUE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Light Blue",
+        "accent": "#6FEAEA"
+      }
     },
     {
-      "blocks": ["YELLOW_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Yellow", "accent": "#F2D451" }
+      "blocks": [
+        "YELLOW_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Yellow",
+        "accent": "#F2D451"
+      }
     },
     {
-      "blocks": ["LIME_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Lime", "accent": "#6FE06F" }
+      "blocks": [
+        "LIME_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Lime",
+        "accent": "#6FE06F"
+      }
     },
     {
-      "blocks": ["PINK_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Pink", "accent": "#EC88EC" }
+      "blocks": [
+        "PINK_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Pink",
+        "accent": "#EC88EC"
+      }
     },
     {
-      "blocks": ["GRAY_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Gray", "accent": "#6E747E" }
+      "blocks": [
+        "GRAY_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Gray",
+        "accent": "#6E747E"
+      }
     },
     {
-      "blocks": ["LIGHT_GRAY_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Light Gray", "accent": "#A6ACB6" }
+      "blocks": [
+        "LIGHT_GRAY_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Light Gray",
+        "accent": "#A6ACB6"
+      }
     },
     {
-      "blocks": ["CYAN_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Cyan", "accent": "#3AC4C4" }
+      "blocks": [
+        "CYAN_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Cyan",
+        "accent": "#3AC4C4"
+      }
     },
     {
-      "blocks": ["PURPLE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
+      "blocks": [
+        "PURPLE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Purple",
+        "accent": "#B152DA"
+      }
     },
     {
-      "blocks": ["BLUE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Blue", "accent": "#5E82FF" }
+      "blocks": [
+        "BLUE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Blue",
+        "accent": "#5E82FF"
+      }
     },
     {
-      "blocks": ["BROWN_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Brown", "accent": "#F2A535" }
+      "blocks": [
+        "BROWN_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Brown",
+        "accent": "#F2A535"
+      }
     },
     {
-      "blocks": ["GREEN_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Green", "accent": "#3FB84F" }
+      "blocks": [
+        "GREEN_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Green",
+        "accent": "#3FB84F"
+      }
     },
     {
-      "blocks": ["RED_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Red", "accent": "#EC6464" }
+      "blocks": [
+        "RED_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Red",
+        "accent": "#EC6464"
+      }
     },
     {
-      "blocks": ["BLACK_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Black", "accent": "#202028" }
+      "blocks": [
+        "BLACK_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Black",
+        "accent": "#202028"
+      }
     },
     {
-      "blocks": ["SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
+      "blocks": [
+        "SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Purple",
+        "accent": "#B152DA"
+      }
     }
   ],
   "card": {
@@ -111,5 +232,7 @@
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }

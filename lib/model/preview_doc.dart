@@ -589,6 +589,7 @@ class HuiPreviewElement {
 // ---------------------------------------------------------------------
 
 const Set<String> _docKnown = <String>{
+  'scale', 'viewDistance',
   'show',
   'match',
   'variants',
@@ -601,6 +602,8 @@ const Set<String> _docKnown = <String>{
 
 /// Root of one container-preview JSON document.
 class HuiPreviewDoc {
+  double scale;
+  double viewDistance;
   HuiRawExpr show;
   HuiIconStyle? textStyle;
   HuiIconStyle? itemStyle;
@@ -613,6 +616,8 @@ class HuiPreviewDoc {
   Map<String, dynamic> extras = <String, dynamic>{};
 
   HuiPreviewDoc({
+    this.scale = 0.65,
+    this.viewDistance = 10,
     this.show,
     this.textStyle,
     this.itemStyle,
@@ -628,6 +633,8 @@ class HuiPreviewDoc {
 
   HuiPreviewDoc copy() {
     final HuiPreviewDoc copied = HuiPreviewDoc(
+      scale: scale,
+      viewDistance: viewDistance,
       show: huiDeepCopy(show),
       textStyle: textStyle?.copy(),
       itemStyle: itemStyle?.copy(),
@@ -643,7 +650,7 @@ class HuiPreviewDoc {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> out = <String, dynamic>{};
+    final Map<String, dynamic> out = <String, dynamic>{'scale': scale, 'viewDistance': viewDistance};
     if (show != null) out['show'] = show;
     if (textStyle != null) out['textStyle'] = textStyle!.toJson();
     if (itemStyle != null) out['itemStyle'] = itemStyle!.toJson();
@@ -684,6 +691,8 @@ class HuiPreviewDoc {
       elements.add(HuiPreviewElement.fromJson(entry, path: 'elements[$i]'));
     }
     final HuiPreviewDoc doc = HuiPreviewDoc(
+      scale: huiReadDouble(map, 'scale', fallback: 0.65),
+      viewDistance: huiReadDouble(map, 'viewDistance', fallback: 10),
       show: huiDeepCopy(map['show']),
       textStyle: HuiIconStyle.fromJsonOrNull(
         map['textStyle'],

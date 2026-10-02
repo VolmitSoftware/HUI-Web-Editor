@@ -116,6 +116,9 @@ const GlossJsonObject _hologramAnchorNode = GlossJsonObject(
 
 final GlossJsonObject glossHologramJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
+    const GlossJsonField(key: 'viewDistance', type: GlossJsonType.number, title: 'View range', summary: 'View range', defaultLiteral: '48'),
+    const GlossJsonField(key: 'refreshTicks', type: GlossJsonType.integer, title: 'Refresh ticks', summary: 'Refresh ticks', defaultLiteral: '10'),
+
     _schemaVersionField(glossHologramCurrentSchemaVersion),
     _revisionField,
     glossShowField,
@@ -1013,6 +1016,11 @@ const GlossJsonObject _bubbleSelectNode = GlossJsonObject(
 
 final GlossJsonObject glossBubbleStyleJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
+    const GlossJsonField(key: 'stackDistance', type: GlossJsonType.number, title: 'Stack spread', summary: 'Stack spread', defaultLiteral: '0.26'),
+    const GlossJsonField(key: 'maxPerSender', type: GlossJsonType.integer, title: 'Count', summary: 'Count', defaultLiteral: '4'),
+    const GlossJsonField(key: 'blacklistWorlds', type: GlossJsonType.array, title: 'World', summary: 'World', defaultLiteral: '[]'),
+    const GlossJsonField(key: 'format', type: GlossJsonType.string, title: 'Format', summary: 'Format', defaultLiteral: '"{message}"'),
+
     _schemaVersionField(glossBubbleCurrentSchemaVersion),
     _revisionField,
     glossDisplayStyleField,
@@ -1496,6 +1504,9 @@ const GlossJsonObject _realDropLandingNode = GlossJsonObject(
 
 final GlossJsonObject _realDropLabelsNode = GlossJsonObject(
   fields: <GlossJsonField>[
+    const GlossJsonField(key: 'show', type: GlossJsonType.any, title: 'Show condition', summary: 'Show condition', defaultLiteral: 'true'),
+    const GlossJsonField(key: 'preserveCustomNames', type: GlossJsonType.boolean, title: 'Custom name', summary: 'Custom name', defaultLiteral: 'true'),
+
     const GlossJsonField(
       key: 'enabled',
       type: GlossJsonType.boolean,
@@ -2127,6 +2138,9 @@ final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
 
 const GlossJsonObject _damageIndicatorLimitsNode = GlossJsonObject(
   fields: <GlossJsonField>[
+    GlossJsonField(key: 'viewRange', type: GlossJsonType.number, title: 'View range', summary: 'View range', defaultLiteral: '48'),
+    GlossJsonField(key: 'debounceMs', type: GlossJsonType.integer, title: 'Lifetime', summary: 'Lifetime', defaultLiteral: '150'),
+
     GlossJsonField(
       key: 'maxPerSecond',
       type: GlossJsonType.integer,

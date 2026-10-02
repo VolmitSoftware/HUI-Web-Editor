@@ -1,7 +1,9 @@
 {
   "show": true,
   "match": {
-    "blocks": ["ENDER_CHEST"],
+    "blocks": [
+      "ENDER_CHEST"
+    ],
     "special": "enderChest",
     "priority": 10,
     "vars": {
@@ -29,5 +31,7 @@
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }

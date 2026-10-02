@@ -23,6 +23,12 @@ List<HuiIssue> validateHologramDoc(
     ...validateGlossShow(doc.extras['show']),
   ];
 
+  for (final HuiIssue? issue in <HuiIssue?>[
+    runtimeRangeIssue(r'$.viewDistance', doc.viewDistance, 4, 128),
+    runtimeRangeIssue(r'$.refreshTicks', doc.refreshTicks, 1, 200),
+  ]) {
+    if (issue != null) issues.add(issue);
+  }
   issues.addAll(validateIconDisplayStyle(doc.style, path: r'$.style'));
   issues.addAll(validateHologramBox(doc.box));
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);

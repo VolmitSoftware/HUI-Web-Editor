@@ -1,7 +1,9 @@
 {
   "show": true,
   "match": {
-    "blocks": ["JUKEBOX"],
+    "blocks": [
+      "JUKEBOX"
+    ],
     "priority": 10,
     "vars": {
       "titleKey": "gloss.preview.theme.title.jukebox",
@@ -14,7 +16,14 @@
     "accent": "vars.accent"
   },
   "elements": [
-    { "show": true, "type": "slot", "x": 0, "y": 0, "size": 18, "index": 0 },
+    {
+      "show": true,
+      "type": "slot",
+      "x": 0,
+      "y": 0,
+      "size": 18,
+      "index": 0
+    },
     {
       "type": "label",
       "show": true,
@@ -22,5 +31,7 @@
       "y": -21,
       "text": "record != '' ? (playing ? '&a' + lang('gloss.preview.state.disc_playing', record) : '&7' + lang('gloss.preview.state.disc_loaded', record)) : '&8' + lang('gloss.preview.state.no_disc')"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }

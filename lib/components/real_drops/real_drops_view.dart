@@ -79,6 +79,7 @@ import '../../logic/gloss_text.dart';
 import '../../logic/gloss_particle_preview.dart';
 import '../../logic/gloss_particle_text.dart';
 import '../../logic/real_drop_model.dart';
+import '../../logic/gloss_show.dart';
 import '../../logic/real_drop_scene_nodes.dart';
 import '../../logic/real_drop_selection.dart';
 import '../../logic/real_drop_stage.dart';
@@ -614,7 +615,7 @@ class _RealDropsViewState extends State<RealDropsView> {
     ];
     return <Widget>[
       if (carried.isNotEmpty) _carrierParticles(carried, frame, nowMs),
-      if (labels.enabled)
+      if (labels.enabled && glossShowMatches(labels.show, nowMs: nowMs))
         _label(labels, frame, nowMs, doc.presentation.particleLayers),
     ];
   }

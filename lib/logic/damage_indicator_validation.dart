@@ -18,6 +18,8 @@ List<HuiIssue> validateDamageIndicatorsDoc(GlossDamageIndicatorsDoc doc) {
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) issues.add(revisionIssue);
 
+  _range(issues, r'$.limits.viewRange', doc.limits.viewRange, 4, 128);
+  _range(issues, r'$.limits.debounceMs', doc.limits.debounceMs, 0, 60000);
   _range(issues, r'$.limits.maxPerSecond', doc.limits.maxPerSecond, 1, 1000);
   _range(issues, r'$.limits.lifetimeMs', doc.limits.lifetimeMs, 250, 30000);
   _range(issues, r'$.limits.minimumDelta', doc.limits.minimumDelta, 0, 1000);

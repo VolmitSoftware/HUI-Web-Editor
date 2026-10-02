@@ -16,6 +16,7 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../config/links.dart';
 import '../../logic/validation.dart';
 import '../../model/preview_doc.dart';
+import '../../model/json_codec.dart';
 import '../../model/particle_layer.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
@@ -67,7 +68,18 @@ class PreviewMatchEditor extends StatelessWidget {
     BuildContext context,
   ) => dom.div(classes: 'hui-inspector-body is-menu', <Widget>[
     _header(),
-    _matchSection(),
+    ExtrasEditor(
+        title: huiText('Settings'),
+        extensionKeys: false,
+        extras: <String, Object?>{'scale': _doc.scale, 'viewDistance': _doc.viewDistance},
+        onChanged: (String label, Map<String, dynamic> next) => _mutate(
+          label, (HuiPreviewDoc edited) {
+            edited.scale = huiReadDouble(next, 'scale', fallback: 0.65);
+            edited.viewDistance = huiReadDouble(next, 'viewDistance', fallback: 10);
+          },
+        ),
+      ),
+      _matchSection(),
     _variantsSection(),
     _cardSection(),
     DisplayStyleEditor(

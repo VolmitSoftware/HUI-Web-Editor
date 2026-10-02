@@ -10,7 +10,10 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
 {
   "show": true,
   "match": {
-    "blocks": ["BEEHIVE", "BEE_NEST"],
+    "blocks": [
+      "BEEHIVE",
+      "BEE_NEST"
+    ],
     "priority": 10,
     "vars": {
       "cells": 3,
@@ -22,8 +25,12 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   },
   "variants": [
     {
-      "blocks": ["BEE_NEST"],
-      "vars": { "titleKey": "gloss.preview.theme.title.bee_nest" }
+      "blocks": [
+        "BEE_NEST"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.bee_nest"
+      }
     }
   ],
   "card": {
@@ -35,7 +42,10 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.cells", "var": "i" },
+      "repeat": {
+        "count": "vars.cells",
+        "var": "i"
+      },
       "x": "round((i - (vars.cells - 1) / 2) * 20)",
       "y": 0,
       "size": 18,
@@ -48,14 +58,18 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "y": 21,
       "text": "'&6' + lang('gloss.preview.stat.bees_and_honey', bees, maxBees, honey, maxHoney)"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'brewing_stand': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["BREWING_STAND"],
+    "blocks": [
+      "BREWING_STAND"
+    ],
     "priority": 10,
     "vars": {
       "segments": 6,
@@ -79,12 +93,29 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "accent": "vars.accent"
   },
   "elements": [
-    { "show": true, "type": "slot", "x": 0, "y": 16, "size": 18, "index": 3 },
-    { "show": true, "type": "slot", "x": -44, "y": 16, "size": 18, "index": 4 },
+    {
+      "show": true,
+      "type": "slot",
+      "x": 0,
+      "y": 16,
+      "size": 18,
+      "index": 3
+    },
+    {
+      "show": true,
+      "type": "slot",
+      "x": -44,
+      "y": 16,
+      "size": 18,
+      "index": 4
+    },
     {
       "type": "slot",
       "show": true,
-      "repeat": { "count": "vars.bottleSlots", "var": "bottle" },
+      "repeat": {
+        "count": "vars.bottleSlots",
+        "var": "bottle"
+      },
       "x": "(bottle - 1) * 24",
       "y": -12,
       "size": 18,
@@ -93,7 +124,10 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.segments", "var": "i" },
+      "repeat": {
+        "count": "vars.segments",
+        "var": "i"
+      },
       "x": 44,
       "y": "18 - i * 7",
       "size": 5,
@@ -102,7 +136,10 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.fuelCells", "var": "i" },
+      "repeat": {
+        "count": "vars.fuelCells",
+        "var": "i"
+      },
       "x": -44,
       "y": "-12 + i * 7",
       "size": 5,
@@ -120,16 +157,23 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "show": true,
       "x": 0,
       "y": -46,
-      "text": "(fuelLevel > 0 ? '&e' + lang('gloss.preview.stat.fuel_level', fuelLevel, maxFuel) : '&8' + lang('gloss.preview.stat.no_fuel')) + '<dark_gray>  •  </dark_gray>' + ((occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0) > 0 ? '<light_purple>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</light_purple>' : '<dark_gray>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</dark_gray>')"
+      "text": "(fuelLevel > 0 ? '&e' + lang('gloss.preview.stat.fuel_level', fuelLevel, maxFuel) : '&8' + lang('gloss.preview.stat.no_fuel')) + '<dark_gray>  \u2022  </dark_gray>' + ((occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0) > 0 ? '<light_purple>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</light_purple>' : '<dark_gray>' + lang('gloss.preview.stat.bottles', (occupied(0) ? 1 : 0) + (occupied(1) ? 1 : 0) + (occupied(2) ? 1 : 0), vars.bottleSlots) + '</dark_gray>')"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'cauldron': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["CAULDRON", "WATER_CAULDRON", "LAVA_CAULDRON", "POWDER_SNOW_CAULDRON"],
+    "blocks": [
+      "CAULDRON",
+      "WATER_CAULDRON",
+      "LAVA_CAULDRON",
+      "POWDER_SNOW_CAULDRON"
+    ],
     "priority": 10,
     "vars": {
       "cells": 3,
@@ -141,7 +185,9 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   },
   "variants": [
     {
-      "blocks": ["WATER_CAULDRON"],
+      "blocks": [
+        "WATER_CAULDRON"
+      ],
       "vars": {
         "fluidColor": "#FF2E5E8C",
         "titleKey": "gloss.preview.theme.title.water_cauldron",
@@ -149,7 +195,9 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       }
     },
     {
-      "blocks": ["LAVA_CAULDRON"],
+      "blocks": [
+        "LAVA_CAULDRON"
+      ],
       "vars": {
         "fluidColor": "#FFA14C16",
         "titleKey": "gloss.preview.theme.title.lava_cauldron",
@@ -157,7 +205,9 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       }
     },
     {
-      "blocks": ["POWDER_SNOW_CAULDRON"],
+      "blocks": [
+        "POWDER_SNOW_CAULDRON"
+      ],
       "vars": {
         "fluidColor": "#FFD8E5EF",
         "titleKey": "gloss.preview.theme.title.powder_snow_cauldron",
@@ -174,7 +224,10 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.cells", "var": "i" },
+      "repeat": {
+        "count": "vars.cells",
+        "var": "i"
+      },
       "x": "round((i - (vars.cells - 1) / 2) * 20)",
       "y": 0,
       "size": 18,
@@ -187,14 +240,20 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "y": 21,
       "text": "level <= 0 ? '&7' + lang('gloss.preview.stat.cauldron_empty', level, maxLevel) : '&b' + lang('gloss.preview.stat.cauldron_level', level, maxLevel)"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'chest': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["CHEST", "TRAPPED_CHEST", "BARREL"],
+    "blocks": [
+      "CHEST",
+      "TRAPPED_CHEST",
+      "BARREL"
+    ],
     "priority": 10,
     "vars": {
       "cols": 9,
@@ -206,84 +265,201 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   },
   "variants": [
     {
-      "blocks": ["TRAPPED_CHEST"],
-      "vars": { "titleKey": "gloss.preview.theme.title.trapped_chest", "accent": "#EC6464" }
+      "blocks": [
+        "TRAPPED_CHEST"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.trapped_chest",
+        "accent": "#EC6464"
+      }
     },
     {
-      "blocks": ["BARREL"],
-      "vars": { "titleKey": "gloss.preview.theme.title.barrel", "accent": "#F2D451" }
+      "blocks": [
+        "BARREL"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.barrel",
+        "accent": "#F2D451"
+      }
     },
     {
-      "blocks": ["*COPPER_CHEST"],
-      "vars": { "titleKey": "gloss.preview.theme.title.copper_chest", "accent": "#F2A535" }
+      "blocks": [
+        "*COPPER_CHEST"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.copper_chest",
+        "accent": "#F2A535"
+      }
     },
     {
-      "blocks": ["WHITE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "White", "accent": "#CBD0D9" }
+      "blocks": [
+        "WHITE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "White",
+        "accent": "#CBD0D9"
+      }
     },
     {
-      "blocks": ["ORANGE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Orange", "accent": "#F2A535" }
+      "blocks": [
+        "ORANGE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Orange",
+        "accent": "#F2A535"
+      }
     },
     {
-      "blocks": ["MAGENTA_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Magenta", "accent": "#EC88EC" }
+      "blocks": [
+        "MAGENTA_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Magenta",
+        "accent": "#EC88EC"
+      }
     },
     {
-      "blocks": ["LIGHT_BLUE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Light Blue", "accent": "#6FEAEA" }
+      "blocks": [
+        "LIGHT_BLUE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Light Blue",
+        "accent": "#6FEAEA"
+      }
     },
     {
-      "blocks": ["YELLOW_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Yellow", "accent": "#F2D451" }
+      "blocks": [
+        "YELLOW_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Yellow",
+        "accent": "#F2D451"
+      }
     },
     {
-      "blocks": ["LIME_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Lime", "accent": "#6FE06F" }
+      "blocks": [
+        "LIME_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Lime",
+        "accent": "#6FE06F"
+      }
     },
     {
-      "blocks": ["PINK_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Pink", "accent": "#EC88EC" }
+      "blocks": [
+        "PINK_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Pink",
+        "accent": "#EC88EC"
+      }
     },
     {
-      "blocks": ["GRAY_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Gray", "accent": "#6E747E" }
+      "blocks": [
+        "GRAY_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Gray",
+        "accent": "#6E747E"
+      }
     },
     {
-      "blocks": ["LIGHT_GRAY_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Light Gray", "accent": "#A6ACB6" }
+      "blocks": [
+        "LIGHT_GRAY_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Light Gray",
+        "accent": "#A6ACB6"
+      }
     },
     {
-      "blocks": ["CYAN_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Cyan", "accent": "#3AC4C4" }
+      "blocks": [
+        "CYAN_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Cyan",
+        "accent": "#3AC4C4"
+      }
     },
     {
-      "blocks": ["PURPLE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
+      "blocks": [
+        "PURPLE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Purple",
+        "accent": "#B152DA"
+      }
     },
     {
-      "blocks": ["BLUE_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Blue", "accent": "#5E82FF" }
+      "blocks": [
+        "BLUE_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Blue",
+        "accent": "#5E82FF"
+      }
     },
     {
-      "blocks": ["BROWN_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Brown", "accent": "#F2A535" }
+      "blocks": [
+        "BROWN_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Brown",
+        "accent": "#F2A535"
+      }
     },
     {
-      "blocks": ["GREEN_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Green", "accent": "#3FB84F" }
+      "blocks": [
+        "GREEN_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Green",
+        "accent": "#3FB84F"
+      }
     },
     {
-      "blocks": ["RED_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Red", "accent": "#EC6464" }
+      "blocks": [
+        "RED_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Red",
+        "accent": "#EC6464"
+      }
     },
     {
-      "blocks": ["BLACK_SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Black", "accent": "#202028" }
+      "blocks": [
+        "BLACK_SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Black",
+        "accent": "#202028"
+      }
     },
     {
-      "blocks": ["SHULKER_BOX"],
-      "vars": { "titleKey": "gloss.preview.theme.title.shulker", "titleArg": "Purple", "accent": "#B152DA" }
+      "blocks": [
+        "SHULKER_BOX"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.shulker",
+        "titleArg": "Purple",
+        "accent": "#B152DA"
+      }
     }
   ],
   "card": {
@@ -304,14 +480,18 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'chiseled_bookshelf': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["CHISELED_BOOKSHELF"],
+    "blocks": [
+      "CHISELED_BOOKSHELF"
+    ],
     "priority": 10,
     "vars": {
       "cols": 3,
@@ -329,20 +509,28 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "slot",
       "show": true,
-      "repeat": { "count": "min(vars.cols * vars.rows, inventory.size)", "var": "i" },
+      "repeat": {
+        "count": "min(vars.cols * vars.rows, inventory.size)",
+        "var": "i"
+      },
       "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
       "y": "round(((vars.rows - 1) / 2 - floor(i / vars.cols)) * 20)",
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'dispenser': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["DISPENSER", "DROPPER"],
+    "blocks": [
+      "DISPENSER",
+      "DROPPER"
+    ],
     "priority": 10,
     "vars": {
       "cols": 3,
@@ -353,7 +541,9 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   },
   "variants": [
     {
-      "blocks": ["DROPPER"],
+      "blocks": [
+        "DROPPER"
+      ],
       "vars": {
         "titleKey": "gloss.preview.theme.title.dropper",
         "accent": "#6E747E"
@@ -369,20 +559,27 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "slot",
       "show": true,
-      "repeat": { "count": "min(vars.cols * vars.rows, inventory.size)", "var": "i" },
+      "repeat": {
+        "count": "min(vars.cols * vars.rows, inventory.size)",
+        "var": "i"
+      },
       "x": "round((mod(i, vars.cols) - (vars.cols - 1) / 2) * 20)",
       "y": "round(((vars.rows - 1) / 2 - floor(i / vars.cols)) * 20)",
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'ender_chest': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["ENDER_CHEST"],
+    "blocks": [
+      "ENDER_CHEST"
+    ],
     "special": "enderChest",
     "priority": 10,
     "vars": {
@@ -410,14 +607,20 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'furnace': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["FURNACE", "BLAST_FURNACE", "SMOKER"],
+    "blocks": [
+      "FURNACE",
+      "BLAST_FURNACE",
+      "SMOKER"
+    ],
     "priority": 10,
     "vars": {
       "style": "furnace",
@@ -444,7 +647,9 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   },
   "variants": [
     {
-      "blocks": ["BLAST_FURNACE"],
+      "blocks": [
+        "BLAST_FURNACE"
+      ],
       "vars": {
         "style": "blast",
         "fill": "#FF6FB8E8",
@@ -464,7 +669,9 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       }
     },
     {
-      "blocks": ["SMOKER"],
+      "blocks": [
+        "SMOKER"
+      ],
       "vars": {
         "style": "smoker",
         "fill": "#FFC8893A",
@@ -490,13 +697,37 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "accent": "vars.accent"
   },
   "elements": [
-    { "show": true, "type": "slot", "x": -40, "y": 10, "size": 18, "index": 0 },
-    { "show": true, "type": "slot", "x": -40, "y": -10, "size": 18, "index": 1 },
-    { "show": true, "type": "slot", "x": 40, "y": 10, "size": 18, "index": 2 },
+    {
+      "show": true,
+      "type": "slot",
+      "x": -40,
+      "y": 10,
+      "size": 18,
+      "index": 0
+    },
+    {
+      "show": true,
+      "type": "slot",
+      "x": -40,
+      "y": -10,
+      "size": 18,
+      "index": 1
+    },
+    {
+      "show": true,
+      "type": "slot",
+      "x": 40,
+      "y": 10,
+      "size": 18,
+      "index": 2
+    },
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.segments", "var": "i" },
+      "repeat": {
+        "count": "vars.segments",
+        "var": "i"
+      },
       "x": "-24 + i * 7",
       "y": 10,
       "size": 5,
@@ -513,7 +744,10 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "cell",
       "show": "vars.style == 'blast'",
-      "repeat": { "count": 3, "var": "vent" },
+      "repeat": {
+        "count": 3,
+        "var": "vent"
+      },
       "x": "-20 + vent * 8",
       "y": -10,
       "size": 6,
@@ -522,7 +756,10 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "cell",
       "show": "vars.style == 'smoker'",
-      "repeat": { "count": 2, "var": "wisp" },
+      "repeat": {
+        "count": 2,
+        "var": "wisp"
+      },
       "x": "wisp == 0 ? -8 : 2",
       "y": -10,
       "size": "wisp == 0 ? 8 : 6",
@@ -540,16 +777,20 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "show": true,
       "x": 0,
       "y": -46,
-      "text": "(burnTime > 0 ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('gloss.preview.stat.fuel_ready') : '&8' + lang('gloss.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('gloss.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('gloss.preview.stat.xp_zero') + '</dark_gray>') : '')"
+      "text": "(burnTime > 0 ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('gloss.preview.stat.fuel_ready') : '&8' + lang('gloss.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  \u2022  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('gloss.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('gloss.preview.stat.xp_zero') + '</dark_gray>') : '')"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'furnace_minecart': r'''
 {
   "show": true,
   "match": {
-    "entities": ["FURNACE_MINECART"],
+    "entities": [
+      "FURNACE_MINECART"
+    ],
     "priority": 10,
     "vars": {
       "cells": 7,
@@ -570,7 +811,10 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.cells", "var": "i" },
+      "repeat": {
+        "count": "vars.cells",
+        "var": "i"
+      },
       "x": "round((i - (vars.cells - 1) / 2) * 10)",
       "y": 0,
       "size": 8,
@@ -583,14 +827,18 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "y": -19,
       "text": "powered ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : '&8' + lang('gloss.preview.stat.no_fuel')"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'hopper': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["HOPPER"],
+    "blocks": [
+      "HOPPER"
+    ],
     "priority": 10,
     "vars": {
       "slots": 5,
@@ -607,20 +855,27 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "slot",
       "show": true,
-      "repeat": { "count": "min(vars.slots, inventory.size)", "var": "i" },
+      "repeat": {
+        "count": "min(vars.slots, inventory.size)",
+        "var": "i"
+      },
       "x": "round((i - (vars.slots - 1) / 2) * 20)",
       "y": 0,
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'jukebox': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["JUKEBOX"],
+    "blocks": [
+      "JUKEBOX"
+    ],
     "priority": 10,
     "vars": {
       "titleKey": "gloss.preview.theme.title.jukebox",
@@ -633,7 +888,14 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "accent": "vars.accent"
   },
   "elements": [
-    { "show": true, "type": "slot", "x": 0, "y": 0, "size": 18, "index": 0 },
+    {
+      "show": true,
+      "type": "slot",
+      "x": 0,
+      "y": 0,
+      "size": 18,
+      "index": 0
+    },
     {
       "type": "label",
       "show": true,
@@ -641,7 +903,9 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "y": -21,
       "text": "record != '' ? (playing ? '&a' + lang('gloss.preview.state.disc_playing', record) : '&7' + lang('gloss.preview.state.disc_loaded', record)) : '&8' + lang('gloss.preview.state.no_disc')"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'locked': r'''
@@ -656,18 +920,57 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     "framed": false
   },
   "elements": [
-    { "show": true, "type": "cell", "x": 0, "y": 10, "z": 4, "size": 16, "color": "#FFFFB000" },
-    { "show": true, "type": "cell", "x": 0, "y": 10, "z": 6, "size": 8, "color": "#FF21170A" },
-    { "show": true, "type": "cell", "x": 0, "y": -4, "z": 7, "size": 24, "color": "#FFFFB000" },
-    { "show": true, "type": "cell", "x": 0, "y": -4, "z": 8, "size": 5, "color": "#FF21170A" }
-  ]
+    {
+      "show": true,
+      "type": "cell",
+      "x": 0,
+      "y": 10,
+      "z": 4,
+      "size": 16,
+      "color": "#FFFFB000"
+    },
+    {
+      "show": true,
+      "type": "cell",
+      "x": 0,
+      "y": 10,
+      "z": 6,
+      "size": 8,
+      "color": "#FF21170A"
+    },
+    {
+      "show": true,
+      "type": "cell",
+      "x": 0,
+      "y": -4,
+      "z": 7,
+      "size": 24,
+      "color": "#FFFFB000"
+    },
+    {
+      "show": true,
+      "type": "cell",
+      "x": 0,
+      "y": -4,
+      "z": 8,
+      "size": 5,
+      "color": "#FF21170A"
+    }
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'minecart': r'''
 {
   "show": true,
   "match": {
-    "entities": ["CHEST_MINECART", "HOPPER_MINECART", "*_CHEST_BOAT", "*_CHEST_RAFT"],
+    "entities": [
+      "CHEST_MINECART",
+      "HOPPER_MINECART",
+      "*_CHEST_BOAT",
+      "*_CHEST_RAFT"
+    ],
     "special": "anyInventoryHolder",
     "priority": 10,
     "vars": {
@@ -681,7 +984,9 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
   },
   "variants": [
     {
-      "entities": ["HOPPER_MINECART"],
+      "entities": [
+        "HOPPER_MINECART"
+      ],
       "vars": {
         "row": true,
         "titleKey": "gloss.preview.theme.title.hopper_minecart",
@@ -689,7 +994,9 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       }
     },
     {
-      "entities": ["CHEST_MINECART"],
+      "entities": [
+        "CHEST_MINECART"
+      ],
       "vars": {
         "titleKey": "gloss.preview.theme.title.chest_minecart",
         "accent": "#F2A535"
@@ -705,7 +1012,10 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "slot",
       "show": "vars.row",
-      "repeat": { "count": "min(vars.slots, inventory.size)", "var": "i" },
+      "repeat": {
+        "count": "min(vars.slots, inventory.size)",
+        "var": "i"
+      },
       "x": "round((i - (min(vars.slots, inventory.size) - 1) / 2) * 20)",
       "y": 0,
       "size": 18,
@@ -723,14 +1033,18 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
   'shelf': r'''
 {
   "show": true,
   "match": {
-    "blocks": ["*_SHELF"],
+    "blocks": [
+      "*_SHELF"
+    ],
     "priority": 10,
     "vars": {
       "titleKey": "gloss.preview.theme.title.shelf",
@@ -746,13 +1060,18 @@ const Map<String, String> kShippedPreviewJson = <String, String>{
     {
       "type": "slot",
       "show": true,
-      "repeat": { "count": "inventory.size", "var": "i" },
+      "repeat": {
+        "count": "inventory.size",
+        "var": "i"
+      },
       "x": "round((i - (inventory.size - 1) / 2) * 20)",
       "y": 0,
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }
 ''',
 };

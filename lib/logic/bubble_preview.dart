@@ -42,7 +42,8 @@ final class GlossBubblePreviewBubble {
 final class GlossBubblePreviewTimeline {
   GlossBubblePreviewTimeline(GlossBubbleStyleDoc style, {double? spread})
     : _show = style.extras['show'],
-      _spread = spread ?? glossBubbleDefaultStackSpread,
+      _spread = spread ?? style.stackDistance.clamp(0.05, 2),
+      _maxPerSender = style.maxPerSender.clamp(1, 64),
       _maxAliveMs = style.effectiveMaxAliveMs,
       _prefix = style.effectivePrefix,
       _motion = _compileMotion(style.motion),
@@ -51,7 +52,7 @@ final class GlossBubblePreviewTimeline {
     int sequence = 0;
     for (final String message in glossBubblePreviewMessages) {
       final String text = glossBubbleWrap(
-        message,
+        style.format.replaceAll('{message}', message),
         style.effectiveWordWrapChars,
       );
       final int lineCount = glossBubbleWrappedLineCount(text);
@@ -78,6 +79,7 @@ final class GlossBubblePreviewTimeline {
   final List<_BubbleSpawn> _spawns = <_BubbleSpawn>[];
   final double _spread;
   final int _maxAliveMs;
+  final int _maxPerSender;
   final String _prefix;
   final GlossBubbleMotionProgram? _motion;
   final GlossBubbleShimmer _shimmer;
@@ -94,6 +96,9 @@ final class GlossBubblePreviewTimeline {
       for (final _BubbleSpawn spawn in _spawns)
         if (cycle >= spawn.at && cycle < spawn.at + _maxAliveMs) spawn,
     ];
+    if (live.length > _maxPerSender) {
+      live.removeRange(0, live.length - _maxPerSender);
+    }
     final List<int> lineCounts = <int>[
       for (final _BubbleSpawn spawn in live) spawn.lineCount,
     ];

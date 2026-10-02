@@ -13,6 +13,7 @@ import '../common/common.dart';
 import '../gloss/gloss_text_line.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'extras_editor.dart';
 import 'display_style_editor.dart';
 import 'hologram_box_editor.dart';
 import '../../model/gloss_hologram_box.dart';
@@ -46,6 +47,13 @@ class DamageIndicatorInspector extends StatelessWidget {
           (GlossDamageIndicatorsDoc edited) =>
               setGlossShow(edited.extras, value),
         ),
+      ),
+      ExtrasEditor(
+        title: huiText('Limits'), extensionKeys: false,
+        extras: doc.limits.toJson(),
+        onChanged: (String label, Map<String, dynamic> next) => _mutate(label, (GlossDamageIndicatorsDoc edited) {
+          edited.limits = GlossDamageIndicatorLimits.fromJson(next);
+        }),
       ),
       _limits(doc),
       _style(doc, doc.damage, healing: false),

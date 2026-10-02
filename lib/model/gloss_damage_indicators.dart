@@ -45,6 +45,7 @@ const Set<String> _docKnown = <String>{
   'audience',
 };
 const Set<String> _limitsKnown = <String>{
+  'viewRange', 'debounceMs',
   'maxPerSecond',
   'lifetimeMs',
   'minimumDelta',
@@ -81,6 +82,8 @@ const Set<String> _audienceKnown = <String>{'when'};
 
 final class GlossDamageIndicatorLimits {
   GlossDamageIndicatorLimits({
+    this.viewRange = 48,
+    this.debounceMs = 150,
     this.maxPerSecond = 40,
     this.lifetimeMs = 3000,
     this.minimumDelta = 0.009,
@@ -88,6 +91,8 @@ final class GlossDamageIndicatorLimits {
     Map<String, dynamic>? extras,
   }) : extras = extras ?? <String, dynamic>{};
 
+  double viewRange;
+  int debounceMs;
   int maxPerSecond;
   int lifetimeMs;
   double minimumDelta;
@@ -98,6 +103,8 @@ final class GlossDamageIndicatorLimits {
     if (raw == null) return GlossDamageIndicatorLimits();
     final Map<String, dynamic> map = huiReadObject(raw, r'$.limits');
     return GlossDamageIndicatorLimits(
+      viewRange: huiReadDouble(map, 'viewRange', fallback: 48),
+      debounceMs: huiReadInt(map, 'debounceMs', fallback: 150),
       maxPerSecond: huiReadInt(map, 'maxPerSecond', fallback: 40),
       lifetimeMs: huiReadInt(map, 'lifetimeMs', fallback: 3000),
       minimumDelta: huiReadDouble(map, 'minimumDelta', fallback: 0.009),
@@ -107,6 +114,8 @@ final class GlossDamageIndicatorLimits {
   }
 
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'viewRange': viewRange,
+    'debounceMs': debounceMs,
     'maxPerSecond': maxPerSecond,
     'lifetimeMs': lifetimeMs,
     'minimumDelta': minimumDelta,

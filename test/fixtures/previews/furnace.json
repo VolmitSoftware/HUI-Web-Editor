@@ -1,7 +1,11 @@
 {
   "show": true,
   "match": {
-    "blocks": ["FURNACE", "BLAST_FURNACE", "SMOKER"],
+    "blocks": [
+      "FURNACE",
+      "BLAST_FURNACE",
+      "SMOKER"
+    ],
     "priority": 10,
     "vars": {
       "style": "furnace",
@@ -28,7 +32,9 @@
   },
   "variants": [
     {
-      "blocks": ["BLAST_FURNACE"],
+      "blocks": [
+        "BLAST_FURNACE"
+      ],
       "vars": {
         "style": "blast",
         "fill": "#FF6FB8E8",
@@ -48,7 +54,9 @@
       }
     },
     {
-      "blocks": ["SMOKER"],
+      "blocks": [
+        "SMOKER"
+      ],
       "vars": {
         "style": "smoker",
         "fill": "#FFC8893A",
@@ -74,13 +82,37 @@
     "accent": "vars.accent"
   },
   "elements": [
-    { "show": true, "type": "slot", "x": -40, "y": 10, "size": 18, "index": 0 },
-    { "show": true, "type": "slot", "x": -40, "y": -10, "size": 18, "index": 1 },
-    { "show": true, "type": "slot", "x": 40, "y": 10, "size": 18, "index": 2 },
+    {
+      "show": true,
+      "type": "slot",
+      "x": -40,
+      "y": 10,
+      "size": 18,
+      "index": 0
+    },
+    {
+      "show": true,
+      "type": "slot",
+      "x": -40,
+      "y": -10,
+      "size": 18,
+      "index": 1
+    },
+    {
+      "show": true,
+      "type": "slot",
+      "x": 40,
+      "y": 10,
+      "size": 18,
+      "index": 2
+    },
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.segments", "var": "i" },
+      "repeat": {
+        "count": "vars.segments",
+        "var": "i"
+      },
       "x": "-24 + i * 7",
       "y": 10,
       "size": 5,
@@ -97,7 +129,10 @@
     {
       "type": "cell",
       "show": "vars.style == 'blast'",
-      "repeat": { "count": 3, "var": "vent" },
+      "repeat": {
+        "count": 3,
+        "var": "vent"
+      },
       "x": "-20 + vent * 8",
       "y": -10,
       "size": 6,
@@ -106,7 +141,10 @@
     {
       "type": "cell",
       "show": "vars.style == 'smoker'",
-      "repeat": { "count": 2, "var": "wisp" },
+      "repeat": {
+        "count": 2,
+        "var": "wisp"
+      },
       "x": "wisp == 0 ? -8 : 2",
       "y": -10,
       "size": "wisp == 0 ? 8 : 6",
@@ -124,7 +162,9 @@
       "show": true,
       "x": 0,
       "y": -46,
-      "text": "(burnTime > 0 ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('gloss.preview.stat.fuel_ready') : '&8' + lang('gloss.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  •  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('gloss.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('gloss.preview.stat.xp_zero') + '</dark_gray>') : '')"
+      "text": "(burnTime > 0 ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : (occupied(1) ? '&7' + lang('gloss.preview.stat.fuel_ready') : '&8' + lang('gloss.preview.stat.no_fuel'))) + (bankedXp >= 0 ? '<dark_gray>  \u2022  </dark_gray>' + (bankedXp > 0 ? '<green>' + lang('gloss.preview.stat.xp_gain', bankedXp == floor(bankedXp) ? str(bankedXp) : fixed(bankedXp, 1)) + '</green>' : '<dark_gray>' + lang('gloss.preview.stat.xp_zero') + '</dark_gray>') : '')"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }

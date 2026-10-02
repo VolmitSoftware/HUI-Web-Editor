@@ -13,6 +13,7 @@ import 'package:web/web.dart' as web;
 import '../../l10n/hui_localizations.dart';
 import '../../logic/canvas_scene.dart';
 import '../../logic/gloss_particle_preview.dart';
+import '../../logic/gloss_show.dart';
 import '../../logic/gloss_particle_text.dart';
 import '../../logic/hui_geometry.dart';
 import '../../logic/multi_select.dart';
@@ -171,6 +172,7 @@ class CanvasPainter {
     if (scene.particleLayers.isEmpty) return;
     brush.save();
     for (final GlossParticleLayer layer in scene.particleLayers) {
+      if (!glossShowMatches(layer.show, nowMs: options.particleTick * 50)) continue;
       if (layer.placement.layer != placement) continue;
       final List<GlossParticleRect> targets = _particleTargets(scene, layer);
       if (layer.target.scope != 'local' && targets.isEmpty) continue;

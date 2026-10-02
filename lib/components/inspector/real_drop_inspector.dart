@@ -10,6 +10,7 @@ import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'extras_editor.dart';
 import 'real_drop_expr_field.dart';
 import 'real_drop_label_names_editor.dart';
 import 'real_drop_animation_inspector.dart';
@@ -621,6 +622,13 @@ class _RealDropInspectorState extends State<RealDropInspector> {
     title: huiText('Labels'),
     sectionKey: 'realDrops.labels',
     children: <Widget>[
+      ExtrasEditor(title: huiText('Settings'), extensionKeys: false,
+        extras: <String, Object?>{'show': doc.labels.show, 'preserveCustomNames': doc.labels.preserveCustomNames},
+        onChanged: (String label, Map<String, dynamic> next) => _mutatePresentation(label, (GlossRealDropPresentation edited) {
+          edited.labels.show = huiDeepCopy(next['show'] ?? true);
+          edited.labels.preserveCustomNames = next['preserveCustomNames'] == null || huiReadBool(next, 'preserveCustomNames');
+        }),
+      ),
       HuiSwitchRow(
         label: huiText('Enabled'),
         value: doc.labels.enabled,

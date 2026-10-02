@@ -53,5 +53,9 @@
     "borderWidth": 1,
     "backgroundArgb": "#B31B1B22",
     "borderArgb": "#FFAAAAAA"
-  }
+  },
+  "stackDistance": 0.26,
+  "blacklistWorlds": [],
+  "maxPerSender": 4,
+  "format": "{message}"
 }

@@ -6,6 +6,7 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import '../../logic/gloss_particle_preview.dart';
+import '../../logic/gloss_show.dart';
 import '../../logic/gloss_particle_text.dart';
 import '../../model/model.dart';
 
@@ -52,6 +53,7 @@ class GlossParticleOverlay extends StatelessWidget {
   }
 
   List<Vec3> _points(GlossParticleLayer layer) {
+    if (!glossShowMatches(layer.show, nowMs: tick * 50)) return const <Vec3>[];
     final List<GlossParticleRect> targets = _targets(layer);
     if (layer.target.scope != 'local' && targets.isEmpty) {
       return const <Vec3>[];

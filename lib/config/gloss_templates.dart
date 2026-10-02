@@ -17,7 +17,9 @@ const String kGlossDamageIndicatorsDefaultJson = r'''
     "maxPerSecond": 40,
     "lifetimeMs": 3000,
     "minimumDelta": 0.009,
-    "decimals": 0
+    "decimals": 0,
+    "viewRange": 48,
+    "debounceMs": 150
   },
   "damage": {
     "when": "true",
@@ -278,7 +280,9 @@ const String kGlossRealDropsDefaultJson = r'''
         "borderWidth": 1,
         "backgroundArgb": "#B31B1B22",
         "borderArgb": "#FFAAAAAA"
-      }
+      },
+      "show": true,
+      "preserveCustomNames": true
     },
     "filters": {
       "disabledWorlds": [],
@@ -1201,7 +1205,11 @@ const String kGlossBubbleDefaultJson = r'''
     "borderWidth": 1,
     "backgroundArgb": "#B31B1B22",
     "borderArgb": "#FFAAAAAA"
-  }
+  },
+  "stackDistance": 0.26,
+  "blacklistWorlds": [],
+  "maxPerSender": 4,
+  "format": "{message}"
 }
 ''';
 

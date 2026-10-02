@@ -76,6 +76,7 @@ const Set<String> _docKnown = <String>{
   'lines',
   'style',
   'box',
+  'viewDistance', 'refreshTicks',
   'yaw',
   'pitch',
   'particleLayers',
@@ -187,6 +188,8 @@ final class GlossHologramDoc extends GlossDoc {
     List<Object?>? lines,
     HuiIconStyle? style,
     GlossHologramBox? box,
+    this.viewDistance = 48,
+    this.refreshTicks = 10,
     this.yaw = 0,
     this.pitch = 0,
     List<GlossParticleLayer>? particleLayers,
@@ -217,6 +220,8 @@ final class GlossHologramDoc extends GlossDoc {
   /// Entity yaw in degrees, -180 to 180, in Minecraft's convention: 0 faces
   /// south (+Z) and increasing yaw turns clockwise seen from above. Ignored
   /// on the axes the [style.billboard] mode turns.
+  double viewDistance;
+  int refreshTicks;
   double yaw;
 
   /// Entity pitch in degrees, -90 to 90, positive tipping the face downward.
@@ -250,6 +255,8 @@ final class GlossHologramDoc extends GlossDoc {
           HuiIconStyle.fromJsonOrNull(map['style']) ??
           defaultHologramDisplayStyle(),
       box: GlossHologramBox.fromJson(map['box']),
+      viewDistance: huiReadDouble(map, 'viewDistance', fallback: 48),
+      refreshTicks: huiReadInt(map, 'refreshTicks', fallback: 10),
       yaw: huiReadDouble(map, 'yaw'),
       pitch: huiReadDouble(map, 'pitch'),
       particleLayers: glossReadParticleLayers(map['particleLayers']),
@@ -283,6 +290,8 @@ final class GlossHologramDoc extends GlossDoc {
       if (boxPresent ||
           jsonEncode(box.toJson()) != jsonEncode(GlossHologramBox().toJson()))
         'box': box.toJson(),
+      if (viewDistance != 48) 'viewDistance': viewDistance,
+      if (refreshTicks != 10) 'refreshTicks': refreshTicks,
       if (!absentKeys.contains('yaw') || yaw != 0) 'yaw': yaw,
       if (!absentKeys.contains('pitch') || pitch != 0) 'pitch': pitch,
       if (particleLayersPresent || particleLayers.isNotEmpty)
@@ -299,6 +308,8 @@ final class GlossHologramDoc extends GlossDoc {
       lines: lines.map(huiDeepCopy).toList(),
       style: style.copy(),
       box: box.copy(),
+      viewDistance: viewDistance,
+      refreshTicks: refreshTicks,
       yaw: yaw,
       pitch: pitch,
       particleLayers: glossCopyParticleLayers(particleLayers),

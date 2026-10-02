@@ -19,6 +19,7 @@ import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 import 'support/java_source.dart';
+import 'support/gloss_repository.dart';
 
 const String _enumPackage = 'src/main/java/art/arcane/gloss/enums';
 const String _iconPackage = 'src/main/java/art/arcane/gloss/api';
@@ -393,23 +394,9 @@ void main() {
   });
 
   group('bubble stacking matches the plugin', () {
-    test('the default spread is the config default stackDistance', () {
-      expect(
-        glossBubbleDefaultStackSpread,
-        closeTo(
-          constantNumber(
-            readGlossJava(
-              'src/main/java/art/arcane/gloss/config/GlossConfigFile.java',
-            ),
-            'stackDistance',
-          ),
-          _epsilon,
-        ),
-        reason: _refresh(
-          'lib/logic/bubble_stack_math.dart',
-          'GlossConfigFile.java',
-        ),
-      );
+    test('the default spread matches the bubble document', () {
+      final GlossBubbleStyleDoc doc = decodeGlossBubbleStyleDoc(File(glossRepositoryFilePath('src/main/resources/defaults/bubbles/default.json')).readAsStringSync());
+      expect(glossBubbleDefaultStackSpread, doc.stackDistance);
     });
   });
 

@@ -23,6 +23,12 @@ List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
     ...validateGlossShow(doc.extras['show']),
   ];
 
+  for (final HuiIssue? issue in <HuiIssue?>[
+    runtimeRangeIssue(r'$.stackDistance', doc.stackDistance, 0.05, 2),
+    runtimeRangeIssue(r'$.maxPerSender', doc.maxPerSender, 1, 64),
+  ]) {
+    if (issue != null) issues.add(issue);
+  }
   issues.addAll(validateIconDisplayStyle(doc.style, path: r'$.style'));
   issues.addAll(validateHologramBox(doc.box));
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);

@@ -127,6 +127,7 @@ const Set<String> _docKnown = <String>{
   'revision',
   'prefix',
   'offset',
+  'stackDistance', 'blacklistWorlds', 'maxPerSender', 'format',
   'wordWrapChars',
   'maxAliveMs',
   'motion',
@@ -440,6 +441,10 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     this.offsetRaw,
     this.wordWrapChars = 0,
     this.maxAliveMs = 0,
+    this.stackDistance = 0.26,
+    this.maxPerSender = 4,
+    this.format = '{message}',
+    List<String>? blacklistWorlds,
     GlossBubbleMotion? motion,
     GlossBubbleShimmer? shimmer,
     this.followPlayer = false,
@@ -450,7 +455,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     List<GlossParticleLayer>? particleLayers,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
-  }) : style = style ?? defaultHologramDisplayStyle(),
+  }) : blacklistWorlds = blacklistWorlds ?? <String>[],
+       style = style ?? defaultHologramDisplayStyle(),
        box = box ?? GlossHologramBox(),
        motion = motion ?? GlossBubbleMotion.runtimeDefaults(),
        shimmer = shimmer ?? GlossBubbleShimmer(),
@@ -470,6 +476,10 @@ final class GlossBubbleStyleDoc extends GlossDoc {
   /// As written; see the `effective*` getters for the silent clamps.
   int wordWrapChars;
   int maxAliveMs;
+  double stackDistance;
+  int maxPerSender;
+  String format;
+  List<String> blacklistWorlds;
 
   GlossBubbleMotion motion;
   GlossBubbleShimmer shimmer;
@@ -551,6 +561,10 @@ final class GlossBubbleStyleDoc extends GlossDoc {
       offsetRaw: huiDeepCopy(map['offset']),
       wordWrapChars: huiReadInt(map, 'wordWrapChars'),
       maxAliveMs: huiReadInt(map, 'maxAliveMs'),
+      stackDistance: huiReadDouble(map, 'stackDistance', fallback: 0.26),
+      maxPerSender: huiReadInt(map, 'maxPerSender', fallback: 4),
+      format: huiReadString(map, 'format', fallback: '{message}'),
+      blacklistWorlds: huiReadList(map['blacklistWorlds']).map((Object? value) => value.toString()).toList(),
       motion: GlossBubbleMotion.fromJson(map['motion']),
       shimmer: GlossBubbleShimmer.fromJson(map['shimmer']),
       followPlayer: huiReadBool(map, 'followPlayer'),
@@ -591,6 +605,10 @@ final class GlossBubbleStyleDoc extends GlossDoc {
         'wordWrapChars': wordWrapChars,
       if (!absentKeys.contains('maxAliveMs') || maxAliveMs != 0)
         'maxAliveMs': maxAliveMs,
+      if (stackDistance != 0.26) 'stackDistance': stackDistance,
+      if (maxPerSender != 4) 'maxPerSender': maxPerSender,
+      if (format != '{message}') 'format': format,
+      if (blacklistWorlds.isNotEmpty) 'blacklistWorlds': List<String>.of(blacklistWorlds),
       'motion': motion.toJson(),
       'shimmer': shimmer.toJson(),
       if (!absentKeys.contains('followPlayer') || followPlayer)
@@ -618,6 +636,10 @@ final class GlossBubbleStyleDoc extends GlossDoc {
       offsetRaw: huiDeepCopy(offsetRaw),
       wordWrapChars: wordWrapChars,
       maxAliveMs: maxAliveMs,
+      stackDistance: stackDistance,
+      maxPerSender: maxPerSender,
+      format: format,
+      blacklistWorlds: List<String>.of(blacklistWorlds),
       motion: motion.copy(),
       shimmer: shimmer.copy(),
       followPlayer: followPlayer,

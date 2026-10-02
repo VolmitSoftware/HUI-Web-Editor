@@ -1,7 +1,9 @@
 {
   "show": true,
   "match": {
-    "entities": ["FURNACE_MINECART"],
+    "entities": [
+      "FURNACE_MINECART"
+    ],
     "priority": 10,
     "vars": {
       "cells": 7,
@@ -22,7 +24,10 @@
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.cells", "var": "i" },
+      "repeat": {
+        "count": "vars.cells",
+        "var": "i"
+      },
       "x": "round((i - (vars.cells - 1) / 2) * 10)",
       "y": 0,
       "size": 8,
@@ -35,5 +40,7 @@
       "y": -19,
       "text": "powered ? '&e' + lang('gloss.preview.stat.fuel_seconds', fuelSeconds) : '&8' + lang('gloss.preview.stat.no_fuel')"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }

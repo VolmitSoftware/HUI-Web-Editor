@@ -46,6 +46,7 @@ const Set<String> _layerKnown = <String>{
   'placement',
   'particle',
   'emission',
+  'viewDistance', 'show',
   'priority',
 };
 const Set<String> _targetKnown = <String>{'scope', 'name', 'component', 'line'};
@@ -61,7 +62,7 @@ const Set<String> _geometryKnown = <String>{
   'spacing',
 };
 const Set<String> _placementKnown = <String>{'layer', 'depth', 'offset'};
-const Set<String> _particleKnown = <String>{'key', 'color', 'size'};
+const Set<String> _particleKnown = <String>{'key', 'color', 'size', 'count', 'spread', 'speed'};
 const Set<String> _emissionKnown = <String>{
   'intervalTicks',
   'pattern',
@@ -244,12 +245,19 @@ final class GlossParticleSpec {
     this.key = 'minecraft:dust',
     this.color = '#ffffff',
     this.size = 1,
+    this.count = 1,
+    this.speed = 0,
+    Vec3? spread,
     Map<String, dynamic>? extras,
-  }) : extras = extras ?? <String, dynamic>{};
+  }) : spread = spread ?? Vec3.zero(),
+       extras = extras ?? <String, dynamic>{};
 
   String key;
   String? color;
   double? size;
+  int count;
+  double speed;
+  Vec3 spread;
   Map<String, dynamic> extras;
 
   static GlossParticleSpec fromJson(Object? raw, String path) {
@@ -261,6 +269,9 @@ final class GlossParticleSpec {
     final bool dust = key.trim().toLowerCase() == 'minecraft:dust';
     return GlossParticleSpec(
       key: key,
+      count: huiReadInt(map, 'count', fallback: 1),
+      speed: huiReadDouble(map, 'speed'),
+      spread: Vec3.fromJson(map['spread'], path: '$path.spread'),
       color: map['color'] == null
           ? dust
                 ? '#ffffff'
@@ -277,12 +288,18 @@ final class GlossParticleSpec {
 
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
     'key': key,
+    if (count != 1) 'count': count,
+    if (spread != Vec3.zero()) 'spread': spread.toJson(),
+    if (speed != 0) 'speed': speed,
     if (color != null) 'color': color,
     if (size != null) 'size': size,
   }, extras);
 
   GlossParticleSpec copy() => GlossParticleSpec(
     key: key,
+    count: count,
+    spread: spread.copy(),
+    speed: speed,
     color: color,
     size: size,
     extras: huiDeepCopyMap(extras),
@@ -341,6 +358,8 @@ final class GlossParticleLayer {
     GlossParticleSpec? particle,
     GlossParticleEmission? emission,
     this.priority = 0,
+    this.viewDistance = 48,
+    this.show = true,
     Map<String, dynamic>? extras,
   }) : target = target ?? GlossParticleTarget(),
        geometry = geometry ?? GlossParticleGeometry(),
@@ -356,6 +375,8 @@ final class GlossParticleLayer {
   GlossParticleSpec particle;
   GlossParticleEmission emission;
   int priority;
+  double viewDistance;
+  Object? show;
   Map<String, dynamic> extras;
 
   static GlossParticleLayer fromJson(Object? raw, int index) {
@@ -378,6 +399,8 @@ final class GlossParticleLayer {
         '$path.emission',
       ),
       priority: huiReadInt(map, 'priority'),
+      viewDistance: huiReadDouble(map, 'viewDistance', fallback: 48),
+      show: huiDeepCopy(map['show'] ?? true),
       extras: huiCollectExtras(map, _layerKnown),
     );
   }
@@ -390,6 +413,8 @@ final class GlossParticleLayer {
     'particle': particle.toJson(),
     'emission': emission.toJson(),
     'priority': priority,
+    if (viewDistance != 48) 'viewDistance': viewDistance,
+    if (show != true) 'show': huiDeepCopy(show),
   }, extras);
 
   GlossParticleLayer copy() => GlossParticleLayer(
@@ -400,6 +425,8 @@ final class GlossParticleLayer {
     particle: particle.copy(),
     emission: emission.copy(),
     priority: priority,
+    viewDistance: viewDistance,
+    show: huiDeepCopy(show),
     extras: huiDeepCopyMap(extras),
   );
 }

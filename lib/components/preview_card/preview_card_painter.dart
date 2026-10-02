@@ -20,6 +20,7 @@ import '../../logic/preview_card_edit.dart';
 import '../../logic/preview_card_scene.dart';
 import '../../logic/preview_sim.dart';
 import '../../logic/gloss_particle_preview.dart';
+import '../../logic/gloss_show.dart';
 import '../../logic/gloss_particle_text.dart';
 import '../../logic/mc_text.dart';
 import '../../model/model.dart';
@@ -182,6 +183,7 @@ class PreviewCardPainter {
     if (scene.particleLayers.isEmpty) return;
     ctx.save();
     for (final GlossParticleLayer layer in scene.particleLayers) {
+      if (!glossShowMatches(layer.show, nowMs: options.particleTick * 50)) continue;
       if (layer.placement.layer != placement) continue;
       final List<GlossParticleRect> targets = _particleTargets(scene, layer);
       if (layer.target.scope != 'local' && targets.isEmpty) continue;

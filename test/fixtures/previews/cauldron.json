@@ -1,7 +1,12 @@
 {
   "show": true,
   "match": {
-    "blocks": ["CAULDRON", "WATER_CAULDRON", "LAVA_CAULDRON", "POWDER_SNOW_CAULDRON"],
+    "blocks": [
+      "CAULDRON",
+      "WATER_CAULDRON",
+      "LAVA_CAULDRON",
+      "POWDER_SNOW_CAULDRON"
+    ],
     "priority": 10,
     "vars": {
       "cells": 3,
@@ -13,7 +18,9 @@
   },
   "variants": [
     {
-      "blocks": ["WATER_CAULDRON"],
+      "blocks": [
+        "WATER_CAULDRON"
+      ],
       "vars": {
         "fluidColor": "#FF2E5E8C",
         "titleKey": "gloss.preview.theme.title.water_cauldron",
@@ -21,7 +28,9 @@
       }
     },
     {
-      "blocks": ["LAVA_CAULDRON"],
+      "blocks": [
+        "LAVA_CAULDRON"
+      ],
       "vars": {
         "fluidColor": "#FFA14C16",
         "titleKey": "gloss.preview.theme.title.lava_cauldron",
@@ -29,7 +38,9 @@
       }
     },
     {
-      "blocks": ["POWDER_SNOW_CAULDRON"],
+      "blocks": [
+        "POWDER_SNOW_CAULDRON"
+      ],
       "vars": {
         "fluidColor": "#FFD8E5EF",
         "titleKey": "gloss.preview.theme.title.powder_snow_cauldron",
@@ -46,7 +57,10 @@
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.cells", "var": "i" },
+      "repeat": {
+        "count": "vars.cells",
+        "var": "i"
+      },
       "x": "round((i - (vars.cells - 1) / 2) * 20)",
       "y": 0,
       "size": 18,
@@ -59,5 +73,7 @@
       "y": 21,
       "text": "level <= 0 ? '&7' + lang('gloss.preview.stat.cauldron_empty', level, maxLevel) : '&b' + lang('gloss.preview.stat.cauldron_level', level, maxLevel)"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }

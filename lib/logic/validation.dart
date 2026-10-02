@@ -1679,3 +1679,14 @@ class _Validator {
     return catalog.contains('minecraft:$key');
   }
 }
+
+HuiIssue? runtimeRangeIssue(String path, num value, num minimum, num maximum) {
+  if (value.isFinite && value >= minimum && value <= maximum) return null;
+  return HuiIssue(
+    severity: HuiSeverity.warning,
+    path: path,
+    message: 'Gloss clamps {value} to the supported {minimum}..{maximum} range.',
+    messageArguments: <String, Object?>{'value': value, 'minimum': minimum, 'maximum': maximum},
+    fix: 'Choose a value inside the runtime range.',
+  );
+}

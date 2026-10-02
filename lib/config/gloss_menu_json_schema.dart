@@ -169,6 +169,10 @@ final GlossJsonObject glossParticlePlacementNode = GlossJsonObject(
 
 const GlossJsonObject glossParticleSpecNode = GlossJsonObject(
   fields: <GlossJsonField>[
+    GlossJsonField(key: 'count', type: GlossJsonType.integer, title: 'Count', summary: 'Count', defaultLiteral: '1'),
+    GlossJsonField(key: 'spread', type: GlossJsonType.array, title: 'Spread', summary: 'Spread', defaultLiteral: '[0, 0, 0]'),
+    GlossJsonField(key: 'speed', type: GlossJsonType.number, title: 'Speed', summary: 'Speed', defaultLiteral: '0'),
+
     GlossJsonField(
       key: 'key',
       type: GlossJsonType.string,
@@ -229,6 +233,9 @@ final GlossJsonObject glossParticleEmissionNode = GlossJsonObject(
 
 final GlossJsonObject glossParticleLayerNode = GlossJsonObject(
   fields: <GlossJsonField>[
+    const GlossJsonField(key: 'viewDistance', type: GlossJsonType.number, title: 'View range', summary: 'View range', defaultLiteral: '48'),
+    const GlossJsonField(key: 'show', type: GlossJsonType.any, title: 'Show condition', summary: 'Show condition', defaultLiteral: 'true'),
+
     const GlossJsonField(
       key: 'id',
       type: GlossJsonType.string,

@@ -4,9 +4,11 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import '../../model/particle_layer.dart';
+import '../../model/json_codec.dart';
 import '../../model/vec3.dart';
 import '../common/common.dart';
 import 'inspector_widgets.dart';
+import 'extras_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 typedef ParticleLayersMutation =
@@ -158,10 +160,27 @@ class _ParticleLayerCard extends StatelessWidget {
           attributes: huiTechnicalInputAttributes,
         ),
       ),
+      ExtrasEditor(
+        title: huiText('Settings'),
+        extensionKeys: false,
+        extras: <String, Object?>{'viewDistance': layer.viewDistance, 'show': layer.show},
+        onChanged: (String label, Map<String, dynamic> next) => _edit(
+          label, (GlossParticleLayer edited) {
+            edited.viewDistance = huiReadDouble(next, 'viewDistance', fallback: 48);
+            edited.show = huiDeepCopy(next['show'] ?? true);
+          },
+        ),
+      ),
       _targetFields(),
       _geometryFields(),
       _placementFields(),
       _particleFields(),
+      ExtrasEditor(title: huiText('Settings'), extensionKeys: false,
+        extras: layer.particle.toJson(),
+        onChanged: (String label, Map<String, dynamic> next) => _edit(label, (GlossParticleLayer edited) {
+          edited.particle = GlossParticleSpec.fromJson(next, 'particle');
+        }),
+      ),
       _emissionFields(),
       HuiField(
         label: huiText('Priority'),

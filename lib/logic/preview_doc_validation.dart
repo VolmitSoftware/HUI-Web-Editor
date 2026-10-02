@@ -34,6 +34,12 @@ import '../model/preview_doc.dart';
 /// ever parsed.
 List<HuiIssue> parseCheckPreviewDoc(HuiPreviewDoc doc) {
   final List<HuiIssue> issues = <HuiIssue>[];
+  for (final HuiIssue? issue in <HuiIssue?>[
+    runtimeRangeIssue(r'$.scale', doc.scale, 0.25, 4),
+    runtimeRangeIssue(r'$.viewDistance', doc.viewDistance, 1, 24),
+  ]) {
+    if (issue != null) issues.add(issue);
+  }
   issues.addAll(validateParticleLayers(doc.particleLayers));
 
   void check(Object? raw, String path) {

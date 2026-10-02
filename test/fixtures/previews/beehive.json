@@ -1,7 +1,10 @@
 {
   "show": true,
   "match": {
-    "blocks": ["BEEHIVE", "BEE_NEST"],
+    "blocks": [
+      "BEEHIVE",
+      "BEE_NEST"
+    ],
     "priority": 10,
     "vars": {
       "cells": 3,
@@ -13,8 +16,12 @@
   },
   "variants": [
     {
-      "blocks": ["BEE_NEST"],
-      "vars": { "titleKey": "gloss.preview.theme.title.bee_nest" }
+      "blocks": [
+        "BEE_NEST"
+      ],
+      "vars": {
+        "titleKey": "gloss.preview.theme.title.bee_nest"
+      }
     }
   ],
   "card": {
@@ -26,7 +33,10 @@
     {
       "type": "cell",
       "show": true,
-      "repeat": { "count": "vars.cells", "var": "i" },
+      "repeat": {
+        "count": "vars.cells",
+        "var": "i"
+      },
       "x": "round((i - (vars.cells - 1) / 2) * 20)",
       "y": 0,
       "size": 18,
@@ -39,5 +49,7 @@
       "y": 21,
       "text": "'&6' + lang('gloss.preview.stat.bees_and_honey', bees, maxBees, honey, maxHoney)"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }

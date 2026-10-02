@@ -1,7 +1,9 @@
 {
   "show": true,
   "match": {
-    "blocks": ["HOPPER"],
+    "blocks": [
+      "HOPPER"
+    ],
     "priority": 10,
     "vars": {
       "slots": 5,
@@ -18,11 +20,16 @@
     {
       "type": "slot",
       "show": true,
-      "repeat": { "count": "min(vars.slots, inventory.size)", "var": "i" },
+      "repeat": {
+        "count": "min(vars.slots, inventory.size)",
+        "var": "i"
+      },
       "x": "round((i - (vars.slots - 1) / 2) * 20)",
       "y": 0,
       "size": 18,
       "index": "i"
     }
-  ]
+  ],
+  "scale": 0.65,
+  "viewDistance": 10
 }

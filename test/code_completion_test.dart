@@ -50,6 +50,8 @@ void main() {
   group('key candidates', () {
     test('offers the root keys of the open kind', () {
       expect(_labels(_offer('hologram', '{\n  |\n}')), <String>[
+        'viewDistance',
+        'refreshTicks',
         'schemaVersion',
         'revision',
         'show',

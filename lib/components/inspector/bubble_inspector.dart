@@ -15,6 +15,7 @@ import '../../logic/gloss_text.dart';
 import '../../logic/bubble_motion.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
+import 'extras_editor.dart';
 import 'display_style_editor.dart';
 import 'hologram_box_editor.dart';
 import '../../model/gloss_hologram_box.dart';
@@ -79,6 +80,19 @@ class _BubbleInspectorState extends State<BubbleInspector> {
               label,
               (GlossBubbleStyleDoc edited) => edit(edited.box),
             ),
+      ),
+      ExtrasEditor(
+        title: huiText('Settings'),
+        extensionKeys: false,
+        extras: <String, Object?>{'stackDistance': doc.stackDistance, 'maxPerSender': doc.maxPerSender, 'format': doc.format, 'blacklistWorlds': doc.blacklistWorlds},
+        onChanged: (String label, Map<String, dynamic> next) => _store.mutateBubbleStyle(
+          label, (GlossBubbleStyleDoc edited) {
+            edited.stackDistance = huiReadDouble(next, 'stackDistance', fallback: 0.26);
+            edited.maxPerSender = huiReadInt(next, 'maxPerSender', fallback: 4);
+            edited.format = huiReadString(next, 'format', fallback: '{message}');
+            edited.blacklistWorlds = huiReadList(next['blacklistWorlds']).map((Object? value) => value.toString()).toList();
+          },
+        ),
       ),
       _look(doc),
       ParticleLayersEditor(

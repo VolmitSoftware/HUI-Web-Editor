@@ -407,6 +407,8 @@ final class GlossRealDropLabels {
     this.yOffset = 0.55,
     this.format = glossRealDropLabelFormatDefault,
     this.useItemDisplayNames = false,
+    this.preserveCustomNames = true,
+    this.show = true,
     Map<String, String>? names,
     GlossRealDropLabelBundle? bundle,
     HuiIconStyle? style,
@@ -422,6 +424,8 @@ final class GlossRealDropLabels {
   double yOffset;
   String format;
   bool useItemDisplayNames;
+  bool preserveCustomNames;
+  Object? show;
 
   /// Material to `{type}` name, in file order. Kept as typed; the server trims
   /// and upper-cases each key and drops entries with a blank name.
@@ -443,6 +447,8 @@ final class GlossRealDropLabels {
         fallback: glossRealDropLabelFormatDefault,
       ),
       useItemDisplayNames: huiReadBool(map, 'useItemDisplayNames'),
+      preserveCustomNames: map['preserveCustomNames'] == null || huiReadBool(map, 'preserveCustomNames'),
+      show: huiDeepCopy(map['show'] ?? true),
       names: _readNames(map['names']),
       bundle: GlossRealDropLabelBundle.fromJson(map['bundle']),
       style: HuiIconStyle.fromJsonOrNull(map['style'], path: r'$.labels.style'),
@@ -451,7 +457,7 @@ final class GlossRealDropLabels {
         'enabled',
         'yOffset',
         'format',
-        'useItemDisplayNames',
+        'useItemDisplayNames', 'preserveCustomNames', 'show',
         'names',
         'bundle',
         'style',
@@ -474,6 +480,8 @@ final class GlossRealDropLabels {
     'yOffset': yOffset,
     'format': format,
     'useItemDisplayNames': useItemDisplayNames,
+    if (!preserveCustomNames) 'preserveCustomNames': preserveCustomNames,
+    if (show != true) 'show': huiDeepCopy(show),
     'names': Map<String, String>.of(names),
     'bundle': bundle.toJson(),
     'style': style.toJson(),

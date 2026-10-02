@@ -3,6 +3,7 @@ library;
 import '../model/particle_layer.dart';
 import '../model/vec3.dart';
 import 'validation.dart';
+import 'gloss_show.dart';
 
 final RegExp _idPattern = RegExp(r'^[a-z0-9][a-z0-9._-]*$');
 final RegExp _keyPattern = RegExp(r'^[a-z0-9._-]+:[a-z0-9/._-]+$');
@@ -42,6 +43,8 @@ List<HuiIssue> validateParticleLayers(
       );
     }
 
+    _range(issues, '$layerPath.viewDistance', layer.viewDistance, 4, 128);
+    issues.addAll(validateGlossShow(layer.show, path: '$layerPath.show'));
     _target(issues, '$layerPath.target', layer.target);
     _geometry(issues, '$layerPath.geometry', layer.geometry);
     _placement(issues, '$layerPath.placement', layer.placement);
@@ -157,6 +160,11 @@ void _placement(
 }
 
 void _particle(List<HuiIssue> issues, String path, GlossParticleSpec particle) {
+  _range(issues, '$path.count', particle.count.toDouble(), 1, 64);
+  _range(issues, '$path.speed', particle.speed, 0, 10);
+  _range(issues, '$path.spread[0]', particle.spread.x, 0, 16);
+  _range(issues, '$path.spread[1]', particle.spread.y, 0, 16);
+  _range(issues, '$path.spread[2]', particle.spread.z, 0, 16);
   final String key = particle.key.trim().toLowerCase();
   if (!_keyPattern.hasMatch(key)) {
     _error(

@@ -61,6 +61,17 @@ class _HologramInspectorState extends State<HologramInspector> {
     final GlossHologramDoc? doc = _doc;
     if (doc == null) return const dom.div(<Widget>[]);
     return dom.div(classes: 'hui-inspector-body is-hologram', <Widget>[
+      ExtrasEditor(
+        title: huiText('Settings'),
+        extensionKeys: false,
+        extras: <String, Object?>{'viewDistance': doc.viewDistance, 'refreshTicks': doc.refreshTicks},
+        onChanged: (String label, Map<String, dynamic> next) => _store.mutateHologram(
+          label, (GlossHologramDoc edited) {
+            edited.viewDistance = huiReadDouble(next, 'viewDistance', fallback: 48);
+            edited.refreshTicks = huiReadInt(next, 'refreshTicks', fallback: 10);
+          },
+        ),
+      ),
       _header(doc),
       GlossVisibilityEditor(
         raw: doc.extras['show'],

@@ -64,6 +64,7 @@ List<HuiIssue> _atPresentation(
 List<HuiIssue> _validatePresentation(GlossRealDropPresentation doc) {
   final List<HuiIssue> issues = <HuiIssue>[];
   issues.addAll(validateParticleLayers(doc.particleLayers));
+  issues.addAll(validateGlossShow(doc.labels.show, path: r'$.labels.show'));
 
   _range(
     issues,
