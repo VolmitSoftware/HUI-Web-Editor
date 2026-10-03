@@ -14,6 +14,7 @@ import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'extras_editor.dart';
+import 'menu_variants_editor.dart';
 import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'gloss_visibility_editor.dart';
@@ -57,6 +58,7 @@ class MenuInspector extends StatelessWidget {
       mutate: (String label, void Function(List<GlossParticleLayer>) edit) =>
           store.mutate(label, (HuiMenu menu) => edit(menu.particleLayers)),
     ),
+    MenuVariantsEditor(store: store),
     _lifetime(),
     _install(),
     _extras(),

@@ -28,6 +28,9 @@ import 'package:jaspr/dom.dart' as dom;
 
 import '../../logic/gloss_text.dart';
 import '../../logic/tablist_selection.dart';
+import '../../logic/tablist_layout_preview.dart';
+import '../../logic/gloss_show.dart';
+import '../../logic/preview_expr.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../scoreboard/scoreboard_selection.dart';
@@ -229,37 +232,107 @@ class _TablistViewState extends State<TablistView> {
         ]),
     ];
 
+    final GlossTabLayout? layout = doc.layout;
+    final bool layoutVisible =
+        layout != null &&
+        layout.enabled &&
+        glossShowMatches(layout.show, scope: viewerContext, nowMs: nowMs);
+    final List<_MockPlayer> listed = <_MockPlayer>[
+      for (final _MockPlayer player in _players)
+        if (!layoutVisible ||
+            layout.players == null ||
+            glossShowMatches(
+              layout.players!.filter,
+              scope: _conditionContext(
+                subjectName: player.name,
+                subjectGroup: player.group,
+                subjectOp: player.op,
+              ),
+              nowMs: nowMs,
+            ))
+          player,
+    ];
+    if (layoutVisible) {
+      final Map<String, double> weights = <String, double>{};
+      final Object? sort = doc.extras['sort'];
+      if (sort is Map && sort['enabled'] == true && sort['weight'] is String) {
+        try {
+          final PExpr expression = parsePreviewExpr(sort['weight'] as String);
+          for (final _MockPlayer player in listed) {
+            weights[player.name] = evalNumber(
+              expression,
+              _conditionContext(
+                subjectName: player.name,
+                subjectGroup: player.group,
+                subjectOp: player.op,
+              ),
+            );
+          }
+        } on PExprException {
+          weights.clear();
+        }
+      }
+      listed.sort((_MockPlayer a, _MockPlayer b) {
+        final int order = (weights[b.name] ?? 0).compareTo(
+          weights[a.name] ?? 0,
+        );
+        return order != 0
+            ? order
+            : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    }
+    final List<GlossTabPreviewCell> playerCells = <GlossTabPreviewCell>[
+      for (final _MockPlayer player in listed)
+        GlossTabPreviewCell(_listNameRaw(doc, player), player.pingBars),
+    ];
+    final List<GlossTabPreviewCell> cells = layoutVisible
+        ? glossTabLayoutCells(layout, playerCells)
+        : playerCells;
     final Widget screen = dom.div(classes: 'hui-tablist-screen', <Widget>[
       if (glossTablistHeaderFooterVisible(doc, viewerContext, nowMs: nowMs))
         dom.div(
           classes: 'hui-tablist-header',
           pipelineLines(headerFooter.header),
         ),
-      dom.div(classes: 'hui-tablist-grid', <Widget>[
-        for (final _MockPlayer player in _players)
-          dom.div(classes: 'hui-tablist-row', <Widget>[
-            const dom.span(classes: 'hui-tablist-row-face', <Widget>[]),
-            dom.span(classes: 'hui-tablist-row-name', <Widget>[
-              GlossTextLine(
-                render: renderGlossLine(
-                  _listNameRaw(doc, player),
-                  animations: animations,
-                  emoji: emoji,
-                  nowMs: nowMs,
+      dom.div(
+        classes: 'hui-tablist-grid',
+        styles: layoutVisible
+            ? dom.Styles(
+                raw: <String, String>{
+                  'grid-auto-flow': 'column',
+                  'grid-template-rows':
+                      'repeat(${layout.rows.clamp(1, 20)}, auto)',
+                  'grid-template-columns':
+                      'repeat(${layout.columns.clamp(1, 4)}, minmax(0, 1fr))',
+                },
+              )
+            : null,
+        <Widget>[
+          for (final GlossTabPreviewCell cell in cells)
+            dom.div(classes: 'hui-tablist-row', <Widget>[
+              const dom.span(classes: 'hui-tablist-row-face', <Widget>[]),
+              dom.span(classes: 'hui-tablist-row-name', <Widget>[
+                GlossTextLine(
+                  render: renderGlossLine(
+                    cell.text,
+                    animations: animations,
+                    emoji: emoji,
+                    nowMs: nowMs,
+                  ),
                 ),
-              ),
+              ]),
+              dom.span(classes: 'hui-tablist-row-ping', <Widget>[
+                for (int bar = 0; bar < 5; bar++)
+                  dom.span(
+                    classes:
+                        'hui-tablist-ping-bar'
+                        '${bar < cell.pingBars ? ' is-filled' : ''}',
+                    const <Widget>[],
+                  ),
+              ]),
             ]),
-            dom.span(classes: 'hui-tablist-row-ping', <Widget>[
-              for (int bar = 0; bar < 5; bar++)
-                dom.span(
-                  classes:
-                      'hui-tablist-ping-bar'
-                      '${bar < player.pingBars ? ' is-filled' : ''}',
-                  const <Widget>[],
-                ),
-            ]),
-          ]),
-      ]),
+        ],
+      ),
       if (glossTablistHeaderFooterVisible(doc, viewerContext, nowMs: nowMs))
         dom.div(
           classes: 'hui-tablist-footer',
@@ -348,6 +421,7 @@ class _TablistViewState extends State<TablistView> {
         'viewer.world': _world,
         'world.name': _world,
         'viewer.op': false,
+        'viewer.bedrock': false,
         'viewer.ping': 42.0,
         'subject.name': subjectName,
         'subject.op': subjectOp,

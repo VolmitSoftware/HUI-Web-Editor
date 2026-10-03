@@ -41,7 +41,9 @@ enum WorkspaceDocKind {
   nameplate,
   nametag,
   marker,
-  names;
+  names,
+  strings,
+  waypoint;
 
   bool get hasRuntimeId => this != WorkspaceDocKind.panel;
 

@@ -1,12 +1,14 @@
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
+import 'package:gloss_editor/l10n/hui_localizations.dart';
 import 'package:jaspr/dom.dart' as dom;
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'gloss_visibility_editor.dart';
 import 'inspector_widgets.dart';
+import 'channel_fields_editor.dart';
 
 class ChannelInspector extends StatelessWidget {
   const ChannelInspector({required this.store, super.key});
@@ -23,8 +25,8 @@ class ChannelInspector extends StatelessWidget {
     void Function(GlossChannelDoc, String) edit, {
     String? help,
   }) => HuiField(
-    label: label,
-    help: help,
+    label: huiText(label),
+    help: help == null ? null : huiText(help),
     control: TextInput(
       value: value,
       size: ComponentSize.sm,
@@ -34,7 +36,7 @@ class ChannelInspector extends StatelessWidget {
       styles: huiTechnicalInputStyles,
       attributes: <String, String>{
         ...huiTechnicalInputAttributes,
-        'aria-label': label,
+        'aria-label': huiText(label),
       },
     ),
   );
@@ -46,7 +48,7 @@ class ChannelInspector extends StatelessWidget {
     final GlossChannelDoc doc = active;
     return dom.div(classes: 'hui-inspector-body is-channel', <Widget>[
       InspectorSection(
-        title: 'Chat channel',
+        title: huiText('Chat channel'),
         children: <Widget>[
           HuiRevisionRow(revision: doc.revision),
           _text(
@@ -55,7 +57,7 @@ class ChannelInspector extends StatelessWidget {
             (GlossChannelDoc doc, String value) => doc.channel.name = value,
           ),
           HuiSwitchRow(
-            label: 'Default chat channel',
+            label: huiText('Default chat channel'),
             value: doc.channel.defaultChannel,
             onChanged: (bool value) => _edit(
               'default channel',
@@ -72,7 +74,7 @@ class ChannelInspector extends StatelessWidget {
                 .toList(),
           ),
           HuiField(
-            label: 'Audience',
+            label: huiText('Audience'),
             control: HuiSegmented(
               value: doc.channel.scope,
               segments: <HuiSegment>[
@@ -83,7 +85,7 @@ class ChannelInspector extends StatelessWidget {
                   'permission',
                   'direct',
                 ])
-                  HuiSegment(value: scope, label: scope),
+                  HuiSegment(value: scope, label: huiText(scope)),
               ],
               onChanged: (String value) => _edit(
                 'channel audience',
@@ -125,10 +127,10 @@ class ChannelInspector extends StatelessWidget {
         ),
       ),
       InspectorSection(
-        title: 'Player mentions',
+        title: huiText('Player mentions'),
         children: <Widget>[
           HuiSwitchRow(
-            label: 'Enable @mentions',
+            label: huiText('Enable @mentions'),
             value: doc.mentions.enabled,
             onChanged: (bool value) => _edit(
               'mentions enabled',
@@ -145,13 +147,15 @@ class ChannelInspector extends StatelessWidget {
             'Mention pattern',
             doc.mentions.pattern,
             (GlossChannelDoc doc, String value) => doc.mentions.pattern = value,
-            help: 'Include {name} once. Matching uses the account name.',
+            help: huiText(
+              'Include {name} once. Matching uses the account name.',
+            ),
           ),
           _text(
             'Tagged name style',
             doc.mentions.render,
             (GlossChannelDoc doc, String value) => doc.mentions.render = value,
-            help: '{{ mention.name }} is the tagged player.',
+            help: huiText('{{ mention.name }} is the tagged player.'),
           ),
           _text(
             'Tagged message format',
@@ -165,11 +169,98 @@ class ChannelInspector extends StatelessWidget {
             'Mention sound',
             doc.mentions.sound,
             (GlossChannelDoc doc, String value) => doc.mentions.sound = value,
-            help: 'Minecraft sound key. Leave blank for silent mentions.',
+            help: huiText(
+              'Minecraft sound key. Leave blank for silent mentions.',
+            ),
+          ),
+        ],
+      ),
+      ChannelFieldsEditor(
+        value: doc.toJson(),
+        mentions: false,
+        onChanged: (Map<String, Object?> value) =>
+            _edit('channel settings', (GlossChannelDoc edited) {
+              final GlossChannelDoc next = GlossChannelDoc.fromJson(value);
+              edited.card = next.card;
+              edited.items = next.items;
+              edited.links = next.links;
+              edited.filters = next.filters;
+              edited.throttle = next.throttle;
+            }),
+      ),
+      InspectorSection(
+        title: huiText('Conditional variants'),
+        children: <Widget>[
+          for (int index = 0; index < doc.variants.length; index++)
+            _variant(doc, index),
+          Button(
+            label: huiText('Add variant'),
+            variant: ButtonVariant.outline,
+            size: ButtonSize.sm,
+            onPressed: () => _edit('add channel variant', (
+              GlossChannelDoc edited,
+            ) {
+              int suffix = edited.variants.length + 1;
+              while (edited.variants.any(
+                (GlossChannelVariant variant) =>
+                    variant.id == 'variant-$suffix',
+              )) {
+                suffix++;
+              }
+              edited.variants.add(GlossChannelVariant(id: 'variant-$suffix'));
+            }),
           ),
         ],
       ),
       HuiInlineIssues(store.issues),
     ]);
+  }
+
+  Widget _variant(GlossChannelDoc doc, int index) {
+    final GlossChannelVariant variant = doc.variants[index];
+    return InspectorSection(
+      title: variant.id,
+      sectionKey: 'channel.variant.$index',
+      children: <Widget>[
+        _text(
+          'Variant id',
+          variant.id,
+          (GlossChannelDoc edited, String value) =>
+              edited.variants[index].id = value,
+        ),
+        _text('Priority', '${variant.priority}', (
+          GlossChannelDoc edited,
+          String value,
+        ) {
+          final int? priority = int.tryParse(value);
+          if (priority != null) edited.variants[index].priority = priority;
+        }),
+        _text(
+          'Condition',
+          variant.when,
+          (GlossChannelDoc edited, String value) =>
+              edited.variants[index].when = value,
+        ),
+        ChannelFieldsEditor(
+          value: variant.toJson(),
+          fallback: doc.toJson(),
+          inherited: true,
+          onChanged: (Map<String, Object?> value) => _edit(
+            'channel variant settings',
+            (GlossChannelDoc edited) =>
+                edited.variants[index] = GlossChannelVariant.fromJson(value),
+          ),
+        ),
+        Button(
+          label: huiText('Remove variant'),
+          variant: ButtonVariant.ghost,
+          size: ButtonSize.sm,
+          onPressed: () => _edit(
+            'remove channel variant',
+            (GlossChannelDoc edited) => edited.variants.removeAt(index),
+          ),
+        ),
+      ],
+    );
   }
 }

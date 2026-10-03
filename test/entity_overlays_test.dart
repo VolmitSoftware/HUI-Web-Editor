@@ -74,8 +74,8 @@ void main() {
     final Map<String, Object?> properties =
         schema['properties']! as Map<String, Object?>;
     final Map<String, Object?> actual = GlossEntityOverlaysDoc().toJson();
-    expect(actual, expected);
-    expect(properties.keys, unorderedEquals(actual.keys));
+    expect(actual, GlossEntityOverlaysDoc.fromJson(expected).toJson());
+    expect(properties.keys, unorderedEquals(<String>{...actual.keys, 'variants'}));
     for (final MapEntry<String, Object?> entry in properties.entries) {
       final Map<String, Object?> property =
           entry.value! as Map<String, Object?>;

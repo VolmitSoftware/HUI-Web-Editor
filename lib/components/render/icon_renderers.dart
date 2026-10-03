@@ -271,6 +271,7 @@ class IconRenderers {
     required double fontPixel,
     required double horizontalRatio,
     required HuiIconStyle style,
+    double? baselineOverride,
   }) {
     if (spans.isEmpty) return;
     final double centerY = textLineCenterY(
@@ -281,7 +282,7 @@ class IconRenderers {
       trueRender: trueRender,
       scaleY: style.scaleY,
     );
-    final double baselineY =
+    final double baselineY = baselineOverride ??
         brush.sy(centerY) + huiBaselineOffsetPixels * fontPixel;
 
     final List<double> advances = <double>[];
@@ -614,11 +615,15 @@ class IconRenderers {
     brush.fill = '#ffffff';
     final double baseline =
         brush.sy(labelY) + huiBaselineOffsetPixels * fontPixel;
-    final String text = '${item.itemCount}';
-    final double x = brush.sx(item.anchor.x);
-    brush.fillTextPx(text, x, baseline);
-    // The plugin draws this label bold, which in Minecraft is a 1 px re-draw.
-    brush.fillTextPx(text, x + fontPixel, baseline);
+    brush.textAlign = 'left';
+    final McTextResult parsed = parseMcText(itemCountLabel(item));
+    for (int line = 0; line < parsed.lines.length; line++) {
+      _paintTextLine(item: item, spans: parsed.lines[line], lineIndex: line,
+        lineCount: parsed.lines.length, fontSize: metrics.fontSizeFor(fontPixel),
+        fontPixel: fontPixel, horizontalRatio: horizontalRatio, style: style,
+        baselineOverride: baseline + line * brush.px(huiLineHeight * uiScale * style.scaleY),
+      );
+    }
     brush.restore();
   }
 }

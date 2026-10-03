@@ -3,6 +3,9 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_health_bar.dart';
+import 'hui_icons.dart';
+import 'gloss_hologram_box.dart';
 import 'json_codec.dart';
 
 const int glossNameplateMaxLines = 16;
@@ -122,21 +125,33 @@ final class GlossNameplatePresentation {
     List<GlossNameplateLine>? lines,
     this.offset = glossNameplateDefaultOffset,
     this.hideSneaking = true,
+    GlossHealthBar? healthBar,
+    HuiIconStyle? style,
+    GlossHologramBox? box,
     List<GlossNameplateRelation>? relations,
     Map<String, dynamic>? extras,
-  }) : lines = lines ?? <GlossNameplateLine>[],
+  }) : healthBar = healthBar ?? GlossHealthBar(),
+       style = style ?? defaultHologramDisplayStyle(),
+       box = box ?? GlossHologramBox(),
+       lines = lines ?? <GlossNameplateLine>[],
        relations = relations ?? <GlossNameplateRelation>[],
        extras = extras ?? <String, dynamic>{};
 
   List<GlossNameplateLine> lines;
   double offset;
   bool hideSneaking;
+  GlossHealthBar healthBar;
+  HuiIconStyle style;
+  GlossHologramBox box;
   List<GlossNameplateRelation> relations;
   Map<String, dynamic> extras;
 
   static GlossNameplatePresentation fromJson(Object? raw, String path) {
     final Map<String, dynamic> map = huiReadObject(raw, path);
     return GlossNameplatePresentation(
+      healthBar: GlossHealthBar.fromJson(map['healthBar']),
+      style: HuiIconStyle.fromJsonOrNull(map['style']),
+      box: GlossHologramBox.fromJson(map['box']),
       lines: <GlossNameplateLine>[
         for (final (int index, Object? line) in huiReadList(
           map['lines'],
@@ -156,6 +171,7 @@ final class GlossNameplatePresentation {
           GlossNameplateRelation.fromJson(relation, '$path.relations[$index]'),
       ],
       extras: huiCollectExtras(map, const <String>{
+        'healthBar', 'style', 'box',
         'lines',
         'offset',
         'hideSneaking',
@@ -168,6 +184,9 @@ final class GlossNameplatePresentation {
     'lines': <Map<String, dynamic>>[
       for (final GlossNameplateLine line in lines) line.toJson(),
     ],
+    'healthBar': healthBar.toJson(),
+    'style': style.toJson(),
+    'box': box.toJson(),
     'offset': offset,
     'hideSneaking': hideSneaking,
     if (relations.isNotEmpty)
@@ -181,6 +200,9 @@ final class GlossNameplatePresentation {
     lines: <GlossNameplateLine>[
       for (final GlossNameplateLine line in lines) line.copy(),
     ],
+    healthBar: healthBar.copy(),
+    style: style.copy(),
+    box: box.copy(),
     offset: offset,
     hideSneaking: hideSneaking,
     relations: <GlossNameplateRelation>[

@@ -51,7 +51,132 @@ class _TablistInspectorState extends State<TablistInspector> {
       ),
       _headerFooter(doc),
       _listNames(doc),
+      _layout(doc),
     ]);
+  }
+
+  Widget _layout(GlossTablistDoc doc) {
+    final GlossTabLayout? layout = doc.layout;
+    void change(void Function(GlossTabLayout) apply) =>
+        _store.mutateTablist('layout', (GlossTablistDoc edited) {
+          edited.layout ??= GlossTabLayout();
+          apply(edited.layout!);
+        });
+    Widget number(
+      String label,
+      int value,
+      void Function(GlossTabLayout, int) apply,
+    ) => HuiField(
+      label: huiText(label),
+      control: TextInput(
+        value: '$value',
+        size: ComponentSize.sm,
+        fullWidth: true,
+        onChanged: (String raw) {
+          final int? parsed = int.tryParse(raw);
+          if (parsed != null) {
+            change((GlossTabLayout edited) => apply(edited, parsed));
+          }
+        },
+      ),
+    );
+    final GlossTabPlayers? players = layout?.players;
+    return InspectorSection(
+      title: huiText('Layout'),
+      children: <Widget>[
+        HuiSwitchRow(
+          label: huiText('Enabled'),
+          value: layout?.enabled ?? false,
+          onChanged: (bool value) =>
+              change((GlossTabLayout edited) => edited.enabled = value),
+        ),
+        if (layout != null) ...<Widget>[
+          number(
+            'Columns',
+            layout.columns,
+            (GlossTabLayout edited, int value) => edited.columns = value,
+          ),
+          number(
+            'Rows',
+            layout.rows,
+            (GlossTabLayout edited, int value) => edited.rows = value,
+          ),
+          GlossVisibilityEditor(
+            raw: layout.show,
+            onChanged: (Object? value) =>
+                change((GlossTabLayout edited) => edited.show = value),
+          ),
+          HuiSwitchRow(
+            label: huiText('Players'),
+            value: players != null,
+            onChanged: (bool enabled) => change(
+              (GlossTabLayout edited) => edited.players = enabled
+                  ? GlossTabPlayers(rows: edited.rows)
+                  : null,
+            ),
+          ),
+          if (players != null) ...<Widget>[
+            number(
+              'Column',
+              players.column,
+              (GlossTabLayout edited, int value) =>
+                  edited.players!.column = value,
+            ),
+            number(
+              'Columns',
+              players.columns,
+              (GlossTabLayout edited, int value) =>
+                  edited.players!.columns = value,
+            ),
+            number(
+              'Rows',
+              players.rows,
+              (GlossTabLayout edited, int value) =>
+                  edited.players!.rows = value,
+            ),
+            HuiField(
+              label: huiText('Filter'),
+              control: TextInput(
+                value: players.filter,
+                size: ComponentSize.sm,
+                fullWidth: true,
+                onChanged: (String value) => change(
+                  (GlossTabLayout edited) => edited.players!.filter = value,
+                ),
+              ),
+            ),
+            HuiField(
+              label: huiText('Overflow'),
+              control: HuiSegmented(
+                value: players.overflow,
+                segments: <HuiSegment>[
+                  HuiSegment(value: 'hide', label: huiText('Hide')),
+                  HuiSegment(value: 'count', label: huiText('Count')),
+                ],
+                onChanged: (String value) => change(
+                  (GlossTabLayout edited) => edited.players!.overflow = value,
+                ),
+              ),
+            ),
+            HuiField(
+              label: huiText('Format'),
+              control: TextInput(
+                value: players.overflowFormat,
+                size: ComponentSize.sm,
+                fullWidth: true,
+                attributes: const <String, String>{
+                  'aria-label': 'Overflow format',
+                },
+                onChanged: (String value) => change(
+                  (GlossTabLayout edited) =>
+                      edited.players!.overflowFormat = value,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
   }
 
   Widget _header(GlossTablistDoc doc) =>

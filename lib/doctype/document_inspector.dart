@@ -20,6 +20,7 @@ import '../components/inspector/hologram_inspector.dart';
 import '../components/inspector/inspector_session.dart';
 import '../components/inspector/menu_inspector.dart';
 import '../components/inspector/names_inspector.dart';
+import '../components/inspector/catalog_document_inspector.dart';
 import '../components/inspector/connections_inspector.dart';
 import '../components/inspector/channel_inspector.dart';
 import '../components/inspector/motd_inspector.dart';
@@ -65,6 +66,8 @@ typedef DocumentInspectorBuilder =
 
 final Map<WorkspaceDocKind, DocumentInspectorBuilder> _builders =
     <WorkspaceDocKind, DocumentInspectorBuilder>{
+      DocumentTypes.strings.kind: (DocumentInspectorScope scope) => <Widget>[StringsInspector(store: scope.store)],
+      DocumentTypes.waypoint.kind: (DocumentInspectorScope scope) => <Widget>[WaypointInspector(store: scope.store)],
       DocumentTypes.names.kind: (DocumentInspectorScope scope) => <Widget>[NamesInspector(store: scope.store)],
       DocumentTypes.menu.kind: _menuBody,
       DocumentTypes.containerPreview.kind: _previewBody,

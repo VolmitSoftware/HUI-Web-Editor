@@ -169,9 +169,27 @@ final GlossJsonObject glossParticlePlacementNode = GlossJsonObject(
 
 const GlossJsonObject glossParticleSpecNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    GlossJsonField(key: 'count', type: GlossJsonType.integer, title: 'Count', summary: 'Count', defaultLiteral: '1'),
-    GlossJsonField(key: 'spread', type: GlossJsonType.array, title: 'Spread', summary: 'Spread', defaultLiteral: '[0, 0, 0]'),
-    GlossJsonField(key: 'speed', type: GlossJsonType.number, title: 'Speed', summary: 'Speed', defaultLiteral: '0'),
+    GlossJsonField(
+      key: 'count',
+      type: GlossJsonType.integer,
+      title: 'Count',
+      summary: 'Count',
+      defaultLiteral: '1',
+    ),
+    GlossJsonField(
+      key: 'spread',
+      type: GlossJsonType.array,
+      title: 'Spread',
+      summary: 'Spread',
+      defaultLiteral: '[0, 0, 0]',
+    ),
+    GlossJsonField(
+      key: 'speed',
+      type: GlossJsonType.number,
+      title: 'Speed',
+      summary: 'Speed',
+      defaultLiteral: '0',
+    ),
 
     GlossJsonField(
       key: 'key',
@@ -233,8 +251,20 @@ final GlossJsonObject glossParticleEmissionNode = GlossJsonObject(
 
 final GlossJsonObject glossParticleLayerNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    const GlossJsonField(key: 'viewDistance', type: GlossJsonType.number, title: 'View range', summary: 'View range', defaultLiteral: '48'),
-    const GlossJsonField(key: 'show', type: GlossJsonType.any, title: 'Show condition', summary: 'Show condition', defaultLiteral: 'true'),
+    const GlossJsonField(
+      key: 'viewDistance',
+      type: GlossJsonType.number,
+      title: 'View range',
+      summary: 'View range',
+      defaultLiteral: '48',
+    ),
+    const GlossJsonField(
+      key: 'show',
+      type: GlossJsonType.any,
+      title: 'Show condition',
+      summary: 'Show condition',
+      defaultLiteral: 'true',
+    ),
 
     const GlossJsonField(
       key: 'id',
@@ -587,6 +617,26 @@ final GlossJsonObject glossIconNode = GlossJsonObject(
     ],
     'item': <GlossJsonField>[
       const GlossJsonField(
+        key: 'name',
+        type: GlossJsonType.string,
+        title: 'Name',
+        summary: 'Name',
+      ),
+      const GlossJsonField(
+        key: 'lore',
+        type: GlossJsonType.array,
+        title: 'Lore',
+        summary: 'Lore',
+      ),
+      const GlossJsonField(
+        key: 'countFormat',
+        type: GlossJsonType.string,
+        title: 'Format',
+        summary: 'Format',
+        defaultLiteral: '"&f&l{count}"',
+      ),
+
+      const GlossJsonField(
         key: 'item',
         type: GlossJsonType.string,
         title: 'Item',
@@ -621,6 +671,19 @@ final GlossJsonObject glossIconNode = GlossJsonObject(
     ],
     'block': <GlossJsonField>[
       const GlossJsonField(
+        key: 'name',
+        type: GlossJsonType.string,
+        title: 'Name',
+        summary: 'Name',
+      ),
+      const GlossJsonField(
+        key: 'lore',
+        type: GlossJsonType.array,
+        title: 'Lore',
+        summary: 'Lore',
+      ),
+
+      const GlossJsonField(
         key: 'block',
         type: GlossJsonType.string,
         title: 'Block',
@@ -631,6 +694,26 @@ final GlossJsonObject glossIconNode = GlossJsonObject(
       _styleField,
     ],
     'customItem': <GlossJsonField>[
+      const GlossJsonField(
+        key: 'name',
+        type: GlossJsonType.string,
+        title: 'Name',
+        summary: 'Name',
+      ),
+      const GlossJsonField(
+        key: 'lore',
+        type: GlossJsonType.array,
+        title: 'Lore',
+        summary: 'Lore',
+      ),
+      const GlossJsonField(
+        key: 'countFormat',
+        type: GlossJsonType.string,
+        title: 'Format',
+        summary: 'Format',
+        defaultLiteral: '"&f&l{count}"',
+      ),
+
       GlossJsonField(
         key: 'provider',
         type: GlossJsonType.string,
@@ -659,6 +742,35 @@ final GlossJsonObject glossIconNode = GlossJsonObject(
         summary: 'Stack size. 0 and 1 mean the same stack.',
         docKey: 'icon.customItem.count',
         defaultLiteral: '1',
+      ),
+      _styleField,
+    ],
+    'playerHead': <GlossJsonField>[
+      const GlossJsonField(
+        key: 'name',
+        type: GlossJsonType.string,
+        title: 'Name',
+        summary: 'Name',
+      ),
+      const GlossJsonField(
+        key: 'lore',
+        type: GlossJsonType.array,
+        title: 'Lore',
+        summary: 'Lore',
+      ),
+
+      const GlossJsonField(
+        key: 'player',
+        type: GlossJsonType.string,
+        title: 'Player',
+        summary: 'Player',
+      ),
+      const GlossJsonField(
+        key: 'refreshTicks',
+        type: GlossJsonType.integer,
+        title: 'Refresh ticks',
+        summary: 'Refresh ticks',
+        defaultLiteral: '20',
       ),
       _styleField,
     ],
@@ -972,6 +1084,38 @@ final GlossJsonObject glossComponentDataNode = GlossJsonObject(
   ],
   variants: <String, List<GlossJsonField>>{
     'button': <GlossJsonField>[
+      GlossJsonField(
+        key: 'tooltip',
+        type: GlossJsonType.object,
+        title: 'Tooltip',
+        summary: 'Tooltip',
+        node: GlossJsonObject(
+          fields: <GlossJsonField>[
+            const GlossJsonField(
+              key: 'delayTicks',
+              type: GlossJsonType.integer,
+              title: 'Delay',
+              summary: 'Delay',
+              defaultLiteral: '10',
+            ),
+            const GlossJsonField(
+              key: 'lines',
+              type: GlossJsonType.array,
+              title: 'Lines',
+              summary: 'Lines',
+            ),
+            _styleField,
+            const GlossJsonField(
+              key: 'box',
+              type: GlossJsonType.object,
+              title: 'Box decoration',
+              summary: 'Box decoration',
+              node: glossHologramBoxNode,
+            ),
+          ],
+        ),
+      ),
+
       _highlightModifierField,
       _hitboxField,
       _hoverDurationField,
@@ -1178,6 +1322,53 @@ final GlossJsonObject glossMenuJsonSchema = GlossJsonObject(
       summary: 'Closes the session on any teleport.',
       docKey: 'menu.closeOnTeleport',
       defaultLiteral: 'false',
+    ),
+    GlossJsonField(
+      key: 'variants',
+      type: GlossJsonType.array,
+      title: 'Variants',
+      summary:
+          'Up to 32 conditional component sets; highest priority then id wins.',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.object,
+        itemTitle: 'Variant',
+        itemSummary: 'Components selected by a viewer or session condition.',
+        item: GlossJsonObject(
+          fields: <GlossJsonField>[
+            const GlossJsonField(
+              key: 'id',
+              type: GlossJsonType.string,
+              title: 'Id',
+              summary: 'Unique variant id.',
+            ),
+            const GlossJsonField(
+              key: 'priority',
+              type: GlossJsonType.integer,
+              title: 'Priority',
+              summary: 'Higher priorities win.',
+            ),
+            const GlossJsonField(
+              key: 'when',
+              type: GlossJsonType.any,
+              title: 'Condition',
+              summary: 'Viewer or session condition.',
+            ),
+            GlossJsonField(
+              key: 'components',
+              type: GlossJsonType.array,
+              title: 'Components',
+              summary: 'Replacement component list.',
+              node: GlossJsonArray(
+                item: glossComponentNode,
+                itemType: GlossJsonType.object,
+                itemTitle: 'Component',
+                itemSummary: 'One component.',
+              ),
+            ),
+            glossParticleLayersField,
+          ],
+        ),
+      ),
     ),
     GlossJsonField(
       key: 'components',

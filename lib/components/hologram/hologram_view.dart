@@ -196,7 +196,7 @@ class _HologramViewState extends State<HologramView> {
 
   @override
   Widget build(BuildContext context) {
-    final GlossHologramDoc? doc = _store.hologramDoc;
+    GlossHologramDoc? doc = _store.hologramDoc;
     if (doc == null) {
       _syncTicker(false);
       if (component.gameContext) {
@@ -211,9 +211,12 @@ class _HologramViewState extends State<HologramView> {
     final bool animated =
         hologramIsAnimated(doc, animations) ||
         doc.particleLayers.isNotEmpty ||
+        doc.variants.isNotEmpty ||
+        doc.extras.containsKey('pages') ||
         doc.extras['show'] is String;
     _syncTicker(animated);
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
+    doc = resolveHologramPreview(doc, nowMs: nowMs);
 
     // Viewport size only centres a projection, so the fallback before the
     // stage's first measure changes none of the numbers read below.

@@ -25,6 +25,7 @@ import '../model/gloss_entity_overlays.dart';
 import '../model/gloss_hologram.dart';
 import '../model/gloss_motd.dart';
 import '../model/gloss_names.dart';
+import 'catalog_document_schema.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
 import '../model/gloss_scoreboard.dart';
@@ -114,10 +115,168 @@ const GlossJsonObject _hologramAnchorNode = GlossJsonObject(
   ],
 );
 
+GlossJsonField _displayVariantsField({bool overlay = false}) => GlossJsonField(
+  key: 'variants',
+  type: GlossJsonType.array,
+  title: 'Conditional variants',
+  summary: 'Conditional variants',
+  node: GlossJsonArray(
+    itemType: GlossJsonType.object,
+    itemTitle: 'Variant',
+    itemSummary: 'Variant',
+    item: GlossJsonObject(
+      fields: <GlossJsonField>[
+        const GlossJsonField(
+          key: 'id',
+          type: GlossJsonType.string,
+          title: 'Id',
+          summary: 'Id',
+        ),
+        const GlossJsonField(
+          key: 'priority',
+          type: GlossJsonType.integer,
+          title: 'Priority',
+          summary: 'Priority',
+          defaultLiteral: '0',
+        ),
+        const GlossJsonField(
+          key: 'when',
+          type: GlossJsonType.any,
+          title: 'Condition',
+          summary: 'Condition',
+          defaultLiteral: '"true"',
+        ),
+        GlossJsonField(
+          key: 'presentation',
+          type: GlossJsonType.object,
+          title: 'Presentation',
+          summary: 'Presentation',
+          node: GlossJsonObject(
+            fields: <GlossJsonField>[
+              const GlossJsonField(
+                key: 'lines',
+                type: GlossJsonType.array,
+                title: 'Lines',
+                summary: 'Lines',
+              ),
+              glossDisplayStyleField,
+              glossHologramBoxField,
+              glossParticleLayersField,
+              if (overlay) ...<GlossJsonField>[
+                const GlossJsonField(
+                  key: 'verticalOffset',
+                  type: GlossJsonType.number,
+                  title: 'Vertical offset',
+                  summary: 'Vertical offset',
+                ),
+                const GlossJsonField(
+                  key: 'healthSegments',
+                  type: GlossJsonType.integer,
+                  title: 'Health segments',
+                  summary: 'Health segments',
+                ),
+                const GlossJsonField(
+                  key: 'healthBar',
+                  type: GlossJsonType.object,
+                  title: 'Health and placement',
+                  summary: 'Health and placement',
+                  node: glossHealthBarNode,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    ),
+  ),
+);
+
 final GlossJsonObject glossHologramJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
-    const GlossJsonField(key: 'viewDistance', type: GlossJsonType.number, title: 'View range', summary: 'View range', defaultLiteral: '48'),
-    const GlossJsonField(key: 'refreshTicks', type: GlossJsonType.integer, title: 'Refresh ticks', summary: 'Refresh ticks', defaultLiteral: '10'),
+    _displayVariantsField(),
+    const GlossJsonField(
+      key: 'pages',
+      type: GlossJsonType.array,
+      title: 'Pages',
+      summary: 'Pages',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.object,
+        itemTitle: 'Page',
+        itemSummary: 'Page',
+        item: GlossJsonObject(
+          fields: <GlossJsonField>[
+            GlossJsonField(
+              key: 'id',
+              type: GlossJsonType.string,
+              title: 'Id',
+              summary: 'Id',
+            ),
+            GlossJsonField(
+              key: 'lines',
+              type: GlossJsonType.array,
+              title: 'Lines',
+              summary: 'Lines',
+            ),
+            glossShowField,
+          ],
+        ),
+      ),
+    ),
+    GlossJsonField(
+      key: 'actions',
+      type: GlossJsonType.array,
+      title: 'Actions',
+      summary: 'Actions',
+      node: GlossJsonArray(
+        item: glossActionNode,
+        itemType: GlossJsonType.object,
+        itemTitle: 'Action',
+        itemSummary: 'Action',
+      ),
+    ),
+    const GlossJsonField(
+      key: 'hitbox',
+      type: GlossJsonType.object,
+      title: 'Hitbox',
+      summary: 'Hitbox',
+      node: GlossJsonObject(
+        fields: <GlossJsonField>[
+          GlossJsonField(
+            key: 'width',
+            type: GlossJsonType.number,
+            title: 'Width',
+            summary: 'Width',
+          ),
+          GlossJsonField(
+            key: 'height',
+            type: GlossJsonType.number,
+            title: 'Height',
+            summary: 'Height',
+          ),
+          GlossJsonField(
+            key: 'perLine',
+            type: GlossJsonType.boolean,
+            title: 'Lines',
+            summary: 'Lines',
+          ),
+        ],
+      ),
+    ),
+
+    const GlossJsonField(
+      key: 'viewDistance',
+      type: GlossJsonType.number,
+      title: 'View range',
+      summary: 'View range',
+      defaultLiteral: '48',
+    ),
+    const GlossJsonField(
+      key: 'refreshTicks',
+      type: GlossJsonType.integer,
+      title: 'Refresh ticks',
+      summary: 'Refresh ticks',
+      defaultLiteral: '10',
+    ),
 
     _schemaVersionField(glossHologramCurrentSchemaVersion),
     _revisionField,
@@ -563,6 +722,14 @@ final GlossJsonObject glossSurfaceJsonSchema = GlossJsonObject(
 
 const GlossJsonObject _motdEntryNode = GlossJsonObject(
   fields: <GlossJsonField>[
+    glossShowField,
+    GlossJsonField(
+      key: 'weight',
+      type: GlossJsonType.integer,
+      title: 'Weight',
+      summary: 'Relative chance among visible entries, from 1 to 1000000.',
+      defaultLiteral: '1',
+    ),
     GlossJsonField(
       key: 'lines',
       type: GlossJsonType.array,
@@ -805,6 +972,14 @@ final GlossJsonObject glossConnectionsJsonSchema = GlossJsonObject(
     _revisionField,
     glossShowField,
     const GlossJsonField(
+      key: 'firstJoin',
+      type: GlossJsonType.object,
+      title: 'First join message',
+      summary:
+          'Server only: replaces join for a player joining this server for the first time.',
+      node: _connectionsSectionNode,
+    ),
+    const GlossJsonField(
       key: 'join',
       type: GlossJsonType.object,
       title: 'Join message',
@@ -1016,10 +1191,34 @@ const GlossJsonObject _bubbleSelectNode = GlossJsonObject(
 
 final GlossJsonObject glossBubbleStyleJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
-    const GlossJsonField(key: 'stackDistance', type: GlossJsonType.number, title: 'Stack spread', summary: 'Stack spread', defaultLiteral: '0.26'),
-    const GlossJsonField(key: 'maxPerSender', type: GlossJsonType.integer, title: 'Count', summary: 'Count', defaultLiteral: '4'),
-    const GlossJsonField(key: 'blacklistWorlds', type: GlossJsonType.array, title: 'World', summary: 'World', defaultLiteral: '[]'),
-    const GlossJsonField(key: 'format', type: GlossJsonType.string, title: 'Format', summary: 'Format', defaultLiteral: '"{message}"'),
+    const GlossJsonField(
+      key: 'stackDistance',
+      type: GlossJsonType.number,
+      title: 'Stack spread',
+      summary: 'Stack spread',
+      defaultLiteral: '0.26',
+    ),
+    const GlossJsonField(
+      key: 'maxPerSender',
+      type: GlossJsonType.integer,
+      title: 'Count',
+      summary: 'Count',
+      defaultLiteral: '4',
+    ),
+    const GlossJsonField(
+      key: 'blacklistWorlds',
+      type: GlossJsonType.array,
+      title: 'World',
+      summary: 'World',
+      defaultLiteral: '[]',
+    ),
+    const GlossJsonField(
+      key: 'format',
+      type: GlossJsonType.string,
+      title: 'Format',
+      summary: 'Format',
+      defaultLiteral: '"{message}"',
+    ),
 
     _schemaVersionField(glossBubbleCurrentSchemaVersion),
     _revisionField,
@@ -1269,6 +1468,100 @@ final GlossJsonObject glossTablistJsonSchema = GlossJsonObject(
     _revisionField,
     glossShowField,
     const GlossJsonField(
+      key: 'layout',
+      type: GlossJsonType.object,
+      title: 'Layout',
+      summary: 'Layout',
+      node: GlossJsonObject(
+        fields: <GlossJsonField>[
+          GlossJsonField(
+            key: 'enabled',
+            type: GlossJsonType.boolean,
+            title: 'Enabled',
+            summary: 'Enabled',
+          ),
+          GlossJsonField(
+            key: 'columns',
+            type: GlossJsonType.integer,
+            title: 'Columns',
+            summary: 'Columns',
+          ),
+          GlossJsonField(
+            key: 'rows',
+            type: GlossJsonType.integer,
+            title: 'Rows',
+            summary: 'Rows',
+          ),
+          GlossJsonField(
+            key: 'show',
+            type: GlossJsonType.any,
+            title: 'Visibility',
+            summary: 'Visibility',
+          ),
+          GlossJsonField(
+            key: 'slots',
+            type: GlossJsonType.array,
+            title: 'Slots',
+            summary: 'Slots',
+            node: GlossJsonArray(
+              item: GlossJsonObject(openKeyType: GlossJsonType.any),
+            ),
+          ),
+          GlossJsonField(
+            key: 'players',
+            type: GlossJsonType.object,
+            title: 'Players',
+            summary: 'Players',
+            node: GlossJsonObject(
+              fields: <GlossJsonField>[
+                GlossJsonField(
+                  key: 'column',
+                  type: GlossJsonType.integer,
+                  title: 'Column',
+                  summary: 'Column',
+                ),
+                GlossJsonField(
+                  key: 'columns',
+                  type: GlossJsonType.integer,
+                  title: 'Columns',
+                  summary: 'Columns',
+                ),
+                GlossJsonField(
+                  key: 'rows',
+                  type: GlossJsonType.integer,
+                  title: 'Rows',
+                  summary: 'Rows',
+                ),
+                GlossJsonField(
+                  key: 'filter',
+                  type: GlossJsonType.string,
+                  title: 'Filter',
+                  summary: 'Filter',
+                ),
+                GlossJsonField(
+                  key: 'overflow',
+                  type: GlossJsonType.string,
+                  title: 'Overflow',
+                  summary: 'Overflow',
+                  values: <GlossJsonValue>[
+                    GlossJsonValue('"hide"'),
+                    GlossJsonValue('"count"'),
+                  ],
+                ),
+                GlossJsonField(
+                  key: 'overflowFormat',
+                  type: GlossJsonType.string,
+                  title: 'Format',
+                  summary: 'Format',
+                  defaultLiteral: '"+{count}"',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+    const GlossJsonField(
       key: 'headerFooter',
       type: GlossJsonType.object,
       title: 'Header and footer',
@@ -1504,8 +1797,20 @@ const GlossJsonObject _realDropLandingNode = GlossJsonObject(
 
 final GlossJsonObject _realDropLabelsNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    const GlossJsonField(key: 'show', type: GlossJsonType.any, title: 'Show condition', summary: 'Show condition', defaultLiteral: 'true'),
-    const GlossJsonField(key: 'preserveCustomNames', type: GlossJsonType.boolean, title: 'Custom name', summary: 'Custom name', defaultLiteral: 'true'),
+    const GlossJsonField(
+      key: 'show',
+      type: GlossJsonType.any,
+      title: 'Show condition',
+      summary: 'Show condition',
+      defaultLiteral: 'true',
+    ),
+    const GlossJsonField(
+      key: 'preserveCustomNames',
+      type: GlossJsonType.boolean,
+      title: 'Custom name',
+      summary: 'Custom name',
+      defaultLiteral: 'true',
+    ),
 
     const GlossJsonField(
       key: 'enabled',
@@ -2138,8 +2443,20 @@ final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
 
 const GlossJsonObject _damageIndicatorLimitsNode = GlossJsonObject(
   fields: <GlossJsonField>[
-    GlossJsonField(key: 'viewRange', type: GlossJsonType.number, title: 'View range', summary: 'View range', defaultLiteral: '48'),
-    GlossJsonField(key: 'debounceMs', type: GlossJsonType.integer, title: 'Lifetime', summary: 'Lifetime', defaultLiteral: '150'),
+    GlossJsonField(
+      key: 'viewRange',
+      type: GlossJsonType.number,
+      title: 'View range',
+      summary: 'View range',
+      defaultLiteral: '48',
+    ),
+    GlossJsonField(
+      key: 'debounceMs',
+      type: GlossJsonType.integer,
+      title: 'Lifetime',
+      summary: 'Lifetime',
+      defaultLiteral: '150',
+    ),
 
     GlossJsonField(
       key: 'maxPerSecond',
@@ -2406,8 +2723,91 @@ final GlossJsonObject _entityOverlayLineNode = GlossJsonObject(
   ],
 );
 
+const GlossJsonObject glossHealthBarNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'glyph',
+      type: GlossJsonType.string,
+      title: 'Text',
+      summary: 'Text',
+      defaultLiteral: '"|"',
+    ),
+    GlossJsonField(
+      key: 'emptyGlyph',
+      type: GlossJsonType.string,
+      title: 'Text',
+      summary: 'Text',
+      defaultLiteral: '"|"',
+    ),
+    GlossJsonField(
+      key: 'healthyColor',
+      type: GlossJsonType.string,
+      title: 'Color',
+      summary: 'Color',
+      defaultLiteral: '"&a"',
+    ),
+    GlossJsonField(
+      key: 'warningColor',
+      type: GlossJsonType.string,
+      title: 'Color',
+      summary: 'Color',
+      defaultLiteral: '"&e"',
+    ),
+    GlossJsonField(
+      key: 'criticalColor',
+      type: GlossJsonType.string,
+      title: 'Color',
+      summary: 'Color',
+      defaultLiteral: '"&c"',
+    ),
+    GlossJsonField(
+      key: 'damageColor',
+      type: GlossJsonType.string,
+      title: 'Color',
+      summary: 'Color',
+      defaultLiteral: '"&c"',
+    ),
+    GlossJsonField(
+      key: 'emptyColor',
+      type: GlossJsonType.string,
+      title: 'Color',
+      summary: 'Color',
+      defaultLiteral: '"&8"',
+    ),
+    GlossJsonField(
+      key: 'warningThreshold',
+      type: GlossJsonType.number,
+      title: 'Health',
+      summary: 'Health',
+      defaultLiteral: '0.5',
+    ),
+    GlossJsonField(
+      key: 'criticalThreshold',
+      type: GlossJsonType.number,
+      title: 'Health',
+      summary: 'Health',
+      defaultLiteral: '0.25',
+    ),
+    GlossJsonField(
+      key: 'decimals',
+      type: GlossJsonType.integer,
+      title: 'Decimals',
+      summary: 'Decimals',
+      defaultLiteral: '1',
+    ),
+  ],
+);
+
 final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
+    _displayVariantsField(overlay: true),
+    const GlossJsonField(
+      key: 'healthBar',
+      type: GlossJsonType.object,
+      title: 'Health and placement',
+      summary: 'Health and placement',
+      node: glossHealthBarNode,
+    ),
     _schemaVersionField(glossEntityOverlaysCurrentSchemaVersion),
     _revisionField,
     const GlossJsonField(
@@ -2559,8 +2959,499 @@ final GlossJsonObject glossNamesJsonSchema = GlossJsonObject(
           GlossNameCategory.groups => 'Groups',
         },
         summary: 'Names',
-        node: const GlossJsonObject(fields: <GlossJsonField>[], openKeyType: GlossJsonType.string),
+        node: const GlossJsonObject(
+          fields: <GlossJsonField>[],
+          openKeyType: GlossJsonType.string,
+        ),
       ),
+  ],
+);
+
+const GlossJsonObject glossChannelJsonSchema = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'schemaVersion',
+      type: GlossJsonType.integer,
+      title: 'schemaVersion',
+      summary: 'schemaVersion',
+    ),
+    GlossJsonField(
+      key: 'revision',
+      type: GlossJsonType.integer,
+      title: 'revision',
+      summary: 'revision',
+    ),
+    GlossJsonField(
+      key: 'show',
+      type: GlossJsonType.any,
+      title: 'show',
+      summary:
+          'Boolean expression gating whether a sender may talk in this channel.',
+    ),
+    GlossJsonField(
+      key: 'channel',
+      type: GlossJsonType.object,
+      title: 'channel',
+      summary: 'channel',
+      node: GlossJsonObject(
+        fields: <GlossJsonField>[
+          GlossJsonField(
+            key: 'name',
+            type: GlossJsonType.string,
+            title: 'name',
+            summary: 'name',
+          ),
+          GlossJsonField(
+            key: 'aliases',
+            type: GlossJsonType.array,
+            title: 'aliases',
+            summary: 'aliases',
+            node: GlossJsonArray(
+              itemType: GlossJsonType.string,
+              itemTitle: 'Entry',
+              itemSummary: 'Entry',
+            ),
+          ),
+          GlossJsonField(
+            key: 'default',
+            type: GlossJsonType.boolean,
+            title: 'default',
+            summary:
+                'The channel new players talk in; lowest priority wins when several are marked.',
+          ),
+          GlossJsonField(
+            key: 'scope',
+            type: GlossJsonType.string,
+            title: 'scope',
+            summary:
+                'party is reserved and resolves to global until a party SPI exists.',
+          ),
+          GlossJsonField(
+            key: 'radius',
+            type: GlossJsonType.integer,
+            title: 'radius',
+            summary: 'Required and positive when scope is radius.',
+          ),
+          GlossJsonField(
+            key: 'permission',
+            type: GlossJsonType.string,
+            title: 'permission',
+            summary:
+                'Gates sending; with scope permission it also gates hearing. Required for that scope.',
+          ),
+          GlossJsonField(
+            key: 'priority',
+            type: GlossJsonType.integer,
+            title: 'priority',
+            summary: 'priority',
+          ),
+          GlossJsonField(
+            key: 'cooldownTicks',
+            type: GlossJsonType.integer,
+            title: 'cooldownTicks',
+            summary: 'cooldownTicks',
+          ),
+        ],
+      ),
+    ),
+    GlossJsonField(
+      key: 'format',
+      type: GlossJsonType.string,
+      title: 'format',
+      summary:
+          'The per-viewer line. Reads sender.*, viewer.*, message, card and channel.*.',
+    ),
+    GlossJsonField(
+      key: 'card',
+      type: GlossJsonType.array,
+      title: 'card',
+      summary:
+          'Hover-card lines rendered per viewer and joined with newlines into {{ card }}.',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.string,
+        itemTitle: 'Entry',
+        itemSummary: 'Entry',
+      ),
+    ),
+    GlossJsonField(
+      key: 'mentions',
+      type: GlossJsonType.object,
+      title: 'mentions',
+      summary: 'mentions',
+      node: GlossJsonObject(
+        fields: <GlossJsonField>[
+          GlossJsonField(
+            key: 'enabled',
+            type: GlossJsonType.boolean,
+            title: 'enabled',
+            summary: 'enabled',
+          ),
+          GlossJsonField(
+            key: 'pattern',
+            type: GlossJsonType.string,
+            title: 'pattern',
+            summary:
+                'Must contain {name}; the literal halves may carry regex metacharacters.',
+          ),
+          GlossJsonField(
+            key: 'render',
+            type: GlossJsonType.string,
+            title: 'render',
+            summary:
+                'Rendered only for the mentioned viewer. mention.name is the selected nametag identity; mention.username is the typed account name.',
+          ),
+          GlossJsonField(
+            key: 'messageFormat',
+            type: GlossJsonType.string,
+            title: 'messageFormat',
+            summary:
+                'Complete message format shown to the mentioned recipient. Uses the ordinary channel format variables.',
+          ),
+          GlossJsonField(
+            key: 'sound',
+            type: GlossJsonType.string,
+            title: 'sound',
+            summary:
+                'Namespaced sound played to the mentioned viewer; empty plays nothing.',
+          ),
+          GlossJsonField(
+            key: 'permission',
+            type: GlossJsonType.string,
+            title: 'permission',
+            summary: 'permission',
+          ),
+        ],
+      ),
+    ),
+    GlossJsonField(
+      key: 'items',
+      type: GlossJsonType.object,
+      title: 'items',
+      summary: 'items',
+      node: GlossJsonObject(
+        fields: <GlossJsonField>[
+          GlossJsonField(
+            key: 'enabled',
+            type: GlossJsonType.boolean,
+            title: 'enabled',
+            summary: 'enabled',
+          ),
+          GlossJsonField(
+            key: 'token',
+            type: GlossJsonType.string,
+            title: 'token',
+            summary: 'token',
+          ),
+          GlossJsonField(
+            key: 'permission',
+            type: GlossJsonType.string,
+            title: 'permission',
+            summary: 'permission',
+          ),
+          GlossJsonField(
+            key: 'render',
+            type: GlossJsonType.string,
+            title: 'render',
+            summary:
+                'Item label template with {{ item.name }}, {{ item.amount }}, {{ item.id }} and {{ item.countSuffix }}.',
+          ),
+        ],
+      ),
+    ),
+    GlossJsonField(
+      key: 'links',
+      type: GlossJsonType.object,
+      title: 'links',
+      summary: 'links',
+      node: GlossJsonObject(
+        fields: <GlossJsonField>[
+          GlossJsonField(
+            key: 'enabled',
+            type: GlossJsonType.boolean,
+            title: 'enabled',
+            summary: 'enabled',
+          ),
+          GlossJsonField(
+            key: 'render',
+            type: GlossJsonType.string,
+            title: 'render',
+            summary: 'Reads link.host and link.url.',
+          ),
+        ],
+      ),
+    ),
+    GlossJsonField(
+      key: 'filters',
+      type: GlossJsonType.array,
+      title: 'filters',
+      summary:
+          'Applied in order to the plain message; a match that empties it cancels the message.',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.object,
+        itemTitle: 'Entry',
+        itemSummary: 'Entry',
+        item: GlossJsonObject(
+          fields: <GlossJsonField>[
+            GlossJsonField(
+              key: 'match',
+              type: GlossJsonType.string,
+              title: 'match',
+              summary: 'match',
+            ),
+            GlossJsonField(
+              key: 'replace',
+              type: GlossJsonType.string,
+              title: 'replace',
+              summary: 'replace',
+            ),
+          ],
+        ),
+      ),
+    ),
+    GlossJsonField(
+      key: 'throttle',
+      type: GlossJsonType.object,
+      title: 'throttle',
+      summary: 'throttle',
+      node: GlossJsonObject(
+        fields: <GlossJsonField>[
+          GlossJsonField(
+            key: 'repeatWindowTicks',
+            type: GlossJsonType.integer,
+            title: 'repeatWindowTicks',
+            summary: 'repeatWindowTicks',
+          ),
+          GlossJsonField(
+            key: 'maxRepeats',
+            type: GlossJsonType.integer,
+            title: 'maxRepeats',
+            summary: 'maxRepeats',
+          ),
+          GlossJsonField(
+            key: 'minIntervalTicks',
+            type: GlossJsonType.integer,
+            title: 'minIntervalTicks',
+            summary: 'minIntervalTicks',
+          ),
+        ],
+      ),
+    ),
+    GlossJsonField(
+      key: 'variants',
+      type: GlossJsonType.array,
+      title: 'variants',
+      summary:
+          'Highest priority matching variant replaces each provided block; omitted blocks inherit. Filters and throttle use sender conditions; presentation uses each viewer.',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.object,
+        itemTitle: 'Entry',
+        itemSummary: 'Entry',
+        item: GlossJsonObject(
+          fields: <GlossJsonField>[
+            GlossJsonField(
+              key: 'id',
+              type: GlossJsonType.string,
+              title: 'id',
+              summary: 'id',
+            ),
+            GlossJsonField(
+              key: 'priority',
+              type: GlossJsonType.integer,
+              title: 'priority',
+              summary: 'priority',
+            ),
+            GlossJsonField(
+              key: 'when',
+              type: GlossJsonType.string,
+              title: 'when',
+              summary: 'when',
+            ),
+            GlossJsonField(
+              key: 'format',
+              type: GlossJsonType.string,
+              title: 'format',
+              summary:
+                  'The per-viewer line. Reads sender.*, viewer.*, message, card and channel.*.',
+            ),
+            GlossJsonField(
+              key: 'card',
+              type: GlossJsonType.array,
+              title: 'card',
+              summary:
+                  'Hover-card lines rendered per viewer and joined with newlines into {{ card }}.',
+              node: GlossJsonArray(
+                itemType: GlossJsonType.string,
+                itemTitle: 'Entry',
+                itemSummary: 'Entry',
+              ),
+            ),
+            GlossJsonField(
+              key: 'mentions',
+              type: GlossJsonType.object,
+              title: 'mentions',
+              summary: 'mentions',
+              node: GlossJsonObject(
+                fields: <GlossJsonField>[
+                  GlossJsonField(
+                    key: 'enabled',
+                    type: GlossJsonType.boolean,
+                    title: 'enabled',
+                    summary: 'enabled',
+                  ),
+                  GlossJsonField(
+                    key: 'pattern',
+                    type: GlossJsonType.string,
+                    title: 'pattern',
+                    summary:
+                        'Must contain {name}; the literal halves may carry regex metacharacters.',
+                  ),
+                  GlossJsonField(
+                    key: 'render',
+                    type: GlossJsonType.string,
+                    title: 'render',
+                    summary:
+                        'Rendered only for the mentioned viewer. mention.name is the selected nametag identity; mention.username is the typed account name.',
+                  ),
+                  GlossJsonField(
+                    key: 'messageFormat',
+                    type: GlossJsonType.string,
+                    title: 'messageFormat',
+                    summary:
+                        'Complete message format shown to the mentioned recipient. Uses the ordinary channel format variables.',
+                  ),
+                  GlossJsonField(
+                    key: 'sound',
+                    type: GlossJsonType.string,
+                    title: 'sound',
+                    summary:
+                        'Namespaced sound played to the mentioned viewer; empty plays nothing.',
+                  ),
+                  GlossJsonField(
+                    key: 'permission',
+                    type: GlossJsonType.string,
+                    title: 'permission',
+                    summary: 'permission',
+                  ),
+                ],
+              ),
+            ),
+            GlossJsonField(
+              key: 'items',
+              type: GlossJsonType.object,
+              title: 'items',
+              summary: 'items',
+              node: GlossJsonObject(
+                fields: <GlossJsonField>[
+                  GlossJsonField(
+                    key: 'enabled',
+                    type: GlossJsonType.boolean,
+                    title: 'enabled',
+                    summary: 'enabled',
+                  ),
+                  GlossJsonField(
+                    key: 'token',
+                    type: GlossJsonType.string,
+                    title: 'token',
+                    summary: 'token',
+                  ),
+                  GlossJsonField(
+                    key: 'permission',
+                    type: GlossJsonType.string,
+                    title: 'permission',
+                    summary: 'permission',
+                  ),
+                  GlossJsonField(
+                    key: 'render',
+                    type: GlossJsonType.string,
+                    title: 'render',
+                    summary:
+                        'Item label template with {{ item.name }}, {{ item.amount }}, {{ item.id }} and {{ item.countSuffix }}.',
+                  ),
+                ],
+              ),
+            ),
+            GlossJsonField(
+              key: 'links',
+              type: GlossJsonType.object,
+              title: 'links',
+              summary: 'links',
+              node: GlossJsonObject(
+                fields: <GlossJsonField>[
+                  GlossJsonField(
+                    key: 'enabled',
+                    type: GlossJsonType.boolean,
+                    title: 'enabled',
+                    summary: 'enabled',
+                  ),
+                  GlossJsonField(
+                    key: 'render',
+                    type: GlossJsonType.string,
+                    title: 'render',
+                    summary: 'Reads link.host and link.url.',
+                  ),
+                ],
+              ),
+            ),
+            GlossJsonField(
+              key: 'filters',
+              type: GlossJsonType.array,
+              title: 'filters',
+              summary:
+                  'Applied in order to the plain message; a match that empties it cancels the message.',
+              node: GlossJsonArray(
+                itemType: GlossJsonType.object,
+                itemTitle: 'Entry',
+                itemSummary: 'Entry',
+                item: GlossJsonObject(
+                  fields: <GlossJsonField>[
+                    GlossJsonField(
+                      key: 'match',
+                      type: GlossJsonType.string,
+                      title: 'match',
+                      summary: 'match',
+                    ),
+                    GlossJsonField(
+                      key: 'replace',
+                      type: GlossJsonType.string,
+                      title: 'replace',
+                      summary: 'replace',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            GlossJsonField(
+              key: 'throttle',
+              type: GlossJsonType.object,
+              title: 'throttle',
+              summary: 'throttle',
+              node: GlossJsonObject(
+                fields: <GlossJsonField>[
+                  GlossJsonField(
+                    key: 'repeatWindowTicks',
+                    type: GlossJsonType.integer,
+                    title: 'repeatWindowTicks',
+                    summary: 'repeatWindowTicks',
+                  ),
+                  GlossJsonField(
+                    key: 'maxRepeats',
+                    type: GlossJsonType.integer,
+                    title: 'maxRepeats',
+                    summary: 'maxRepeats',
+                  ),
+                  GlossJsonField(
+                    key: 'minIntervalTicks',
+                    type: GlossJsonType.integer,
+                    title: 'minIntervalTicks',
+                    summary: 'minIntervalTicks',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
   ],
 );
 
@@ -2572,7 +3463,10 @@ final GlossJsonObject glossNamesJsonSchema = GlossJsonObject(
 /// map with no code view at all, and `containerPreview`, whose format is the
 /// preview schema rather than a Gloss runtime document.
 final Map<String, GlossJsonObject> glossJsonSchemas = <String, GlossJsonObject>{
+  'channel': glossChannelJsonSchema,
   'names': glossNamesJsonSchema,
+  'strings': glossStringsJsonSchema,
+  'waypoint': glossWaypointJsonSchema,
   'menu': glossMenuJsonSchema,
   'hologram': glossHologramJsonSchema,
   'animation': glossAnimationJsonSchema,

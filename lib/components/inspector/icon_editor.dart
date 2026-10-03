@@ -409,9 +409,26 @@ class IconEditor extends StatelessWidget {
             .toList(),
         onChanged: _writeStyle,
       ),
+    if (icon is HuiItemIcon || icon is HuiCustomItemIcon || icon is HuiPlayerHeadIcon || icon is HuiBlockIcon)
+      ExtrasEditor(
+        title: huiText('Presentation'), extensionKeys: false,
+        extras: <String, Object?>{
+          'name': icon!.extras['name'] ?? '',
+          'lore': icon!.extras['lore'] ?? <String>[],
+          if (icon is HuiItemIcon || icon is HuiCustomItemIcon) 'countFormat': icon!.extras['countFormat'] ?? '&f&l{count}',
+        },
+        onChanged: (String label, Map<String, dynamic> next) {
+          final HuiIcon edited = icon!.copy();
+          for (final String key in <String>['name', 'lore', 'countFormat']) {
+            if (next.containsKey(key)) { edited.extras[key] = huiDeepCopy(next[key]); }
+          }
+          _write(label, edited);
+        },
+      ),
     ExtrasEditor(
       title: huiText('Icon'),
       extras: icon!.extras,
+      knownKeys: const <String>{'name', 'lore', 'countFormat'},
       onChanged: _writeExtras,
     ),
   ];

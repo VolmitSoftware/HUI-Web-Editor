@@ -7,6 +7,8 @@ import '../../l10n/hui_localizations.dart';
 import '../../logic/entity_overlay_preview.dart';
 import '../../logic/validation.dart';
 import '../../model/gloss_entity_overlays.dart';
+import '../../model/gloss_health_bar.dart';
+import '../../model/gloss_presentation_variant.dart';
 import '../../model/gloss_hologram_box.dart';
 import '../../model/hui_icons.dart';
 import '../../model/particle_layer.dart';
@@ -15,6 +17,7 @@ import '../common/common.dart';
 import 'animation_reference_picker.dart';
 import 'display_style_editor.dart';
 import 'inspector_widgets.dart';
+import 'extras_editor.dart';
 import 'hologram_box_editor.dart';
 import 'particle_layers_editor.dart';
 import 'preview_expr_field.dart';
@@ -44,6 +47,17 @@ class _EntityOverlayInspectorState extends State<EntityOverlayInspector> {
         dom.h2(classes: 'hui-inspector-title', <Widget>[Text(_store.menuId)]),
         HuiRevisionRow(revision: doc.revision),
       ]),
+      ExtrasEditor(title: huiText('Health and placement'), extensionKeys: false,
+        extras: doc.healthBar.toJson(),
+        onChanged: (String label, Map<String, dynamic> next) => _store.mutateEntityOverlays(label, (GlossEntityOverlaysDoc edited) {
+          edited.healthBar = GlossHealthBar.fromJson(next);
+        }),
+      ),
+      ExtrasEditor(title: huiText('Conditional variants'), extensionKeys: false,
+        extras: <String, Object?>{'variants': doc.variants.map((GlossPresentationVariant variant) => variant.toJson()).toList()},
+        onChanged: (String label, Map<String, dynamic> next) => _store.replaceGlossDoc(label,
+          GlossEntityOverlaysDoc.fromJson(<String, Object?>{...doc.toJson(), ...next})),
+      ),
       _lines(doc),
       _box(doc),
       DisplayStyleEditor(

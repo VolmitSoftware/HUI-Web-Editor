@@ -129,6 +129,13 @@ class ComponentInspector extends StatelessWidget {
         _iconEditor(IconSlot.icon),
         _highlight(data),
         _hitbox(data),
+        ExtrasEditor(title: huiText('Tooltip'), extensionKeys: false,
+          extras: huiReadObject(data.extras['tooltip'] ?? <String, Object?>{'delayTicks': 10, 'lines': <String>[], 'style': <String, Object?>{}, 'box': <String, Object?>{}}, 'tooltip'),
+          onChanged: (String label, Map<String, dynamic> next) => store.editComponent(_id, label, (HuiComponent edited) {
+            edited.data.extras['tooltip'] = huiDeepCopyMap(next);
+          }),
+        ),
+
         ActionsEditor(
           store: store,
           catalogs: catalogs,

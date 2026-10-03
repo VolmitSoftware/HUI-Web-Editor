@@ -3,6 +3,8 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'hui_icons.dart';
+import 'gloss_hologram_box.dart';
 import 'json_codec.dart';
 
 const double glossMarkerDefaultMaxDistance = 256;
@@ -101,6 +103,7 @@ final class GlossMarkerAnchor {
 final class GlossMarkerBeam {
   GlossMarkerBeam({
     this.enabled = false,
+    this.glowColor,
     this.height = 48,
     this.width = 0.25,
     this.material = 'minecraft:white_stained_glass',
@@ -108,6 +111,7 @@ final class GlossMarkerBeam {
   }) : extras = extras ?? <String, dynamic>{};
 
   bool enabled;
+  String? glowColor;
   double height;
   double width;
   String material;
@@ -116,6 +120,7 @@ final class GlossMarkerBeam {
   static GlossMarkerBeam fromJson(Object? raw, String path) {
     final Map<String, dynamic> map = huiReadObject(raw, path);
     return GlossMarkerBeam(
+      glowColor: map['glowColor'] as String?,
       enabled: huiReadBool(map, 'enabled'),
       height: map['height'] == null ? 48 : huiReadDouble(map, 'height', fallback: 48),
       width: map['width'] == null ? 0.25 : huiReadDouble(map, 'width', fallback: 0.25),
@@ -125,7 +130,7 @@ final class GlossMarkerBeam {
         fallback: 'minecraft:white_stained_glass',
       ),
       extras: huiCollectExtras(map, const <String>{
-        'enabled',
+        'enabled', 'glowColor',
         'height',
         'width',
         'material',
@@ -134,6 +139,7 @@ final class GlossMarkerBeam {
   }
 
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    if (glowColor != null) 'glowColor': glowColor,
     'enabled': enabled,
     'height': height,
     'width': width,
@@ -141,6 +147,7 @@ final class GlossMarkerBeam {
   }, extras);
 
   GlossMarkerBeam copy() => GlossMarkerBeam(
+    glowColor: glowColor,
     enabled: enabled,
     height: height,
     width: width,
@@ -195,6 +202,7 @@ final class GlossMarkerEdge {
 final class GlossMarkerTrail {
   GlossMarkerTrail({
     this.enabled = false,
+    this.color = '#ffffff',
     this.particle = 'minecraft:end_rod',
     this.spacing = 2,
     this.maxPoints = 48,
@@ -202,6 +210,7 @@ final class GlossMarkerTrail {
   }) : extras = extras ?? <String, dynamic>{};
 
   bool enabled;
+  String color;
   String particle;
   double spacing;
   int maxPoints;
@@ -210,6 +219,7 @@ final class GlossMarkerTrail {
   static GlossMarkerTrail fromJson(Object? raw, String path) {
     final Map<String, dynamic> map = huiReadObject(raw, path);
     return GlossMarkerTrail(
+      color: huiReadString(map, 'color', fallback: '#ffffff'),
       enabled: huiReadBool(map, 'enabled'),
       particle: huiReadString(
         map,
@@ -223,7 +233,7 @@ final class GlossMarkerTrail {
           ? 48
           : huiReadInt(map, 'maxPoints', fallback: 48),
       extras: huiCollectExtras(map, const <String>{
-        'enabled',
+        'enabled', 'color',
         'particle',
         'spacing',
         'maxPoints',
@@ -232,6 +242,7 @@ final class GlossMarkerTrail {
   }
 
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
+    'color': color,
     'enabled': enabled,
     'particle': particle,
     'spacing': spacing,
@@ -239,6 +250,7 @@ final class GlossMarkerTrail {
   }, extras);
 
   GlossMarkerTrail copy() => GlossMarkerTrail(
+    color: color,
     enabled: enabled,
     particle: particle,
     spacing: spacing,
@@ -253,6 +265,8 @@ final class GlossMarkerDoc extends GlossDoc {
     super.revision = glossInitialRevision,
     GlossMarkerAnchor? anchor,
     this.label = '',
+    HuiIconStyle? style,
+    GlossHologramBox? box,
     this.color = '#FFFFFF',
     this.distanceScale,
     this.hideWithin = 0,
@@ -263,7 +277,9 @@ final class GlossMarkerDoc extends GlossDoc {
     this.lifetimeTicks = 0,
     this.waypoint = false,
     Map<String, dynamic>? extras,
-  }) : anchor = anchor ?? GlossMarkerAnchor(world: 'world', x: 0, y: 64, z: 0),
+  }) : style = style ?? defaultHologramDisplayStyle(),
+       box = box ?? GlossHologramBox(),
+       anchor = anchor ?? GlossMarkerAnchor(world: 'world', x: 0, y: 64, z: 0),
        beam = beam ?? GlossMarkerBeam(),
        edge = edge ?? GlossMarkerEdge(),
        trail = trail ?? GlossMarkerTrail(),
@@ -271,6 +287,8 @@ final class GlossMarkerDoc extends GlossDoc {
 
   GlossMarkerAnchor anchor;
   String label;
+  HuiIconStyle style;
+  GlossHologramBox box;
   String color;
   String? distanceScale;
   double hideWithin;
@@ -290,6 +308,8 @@ final class GlossMarkerDoc extends GlossDoc {
       revision: glossReadRevision(map),
       anchor: GlossMarkerAnchor.fromJson(map['anchor'], r'$.anchor'),
       label: huiReadString(map, 'label'),
+      style: HuiIconStyle.fromJsonOrNull(map['style']),
+      box: GlossHologramBox.fromJson(map['box']),
       color: huiReadString(map, 'color', fallback: '#FFFFFF'),
       distanceScale: map['distanceScale'] is String
           ? map['distanceScale'] as String
@@ -317,7 +337,7 @@ final class GlossMarkerDoc extends GlossDoc {
         'schemaVersion',
         'revision',
         'anchor',
-        'label',
+        'label', 'style', 'box',
         'color',
         'distanceScale',
         'hideWithin',
@@ -337,6 +357,8 @@ final class GlossMarkerDoc extends GlossDoc {
     'revision': revision,
     'anchor': anchor.toJson(),
     'label': label,
+    'style': style.toJson(),
+    'box': box.toJson(),
     'color': color,
     if (distanceScale != null && distanceScale!.trim().isNotEmpty)
       'distanceScale': distanceScale,

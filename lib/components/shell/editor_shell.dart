@@ -720,6 +720,8 @@ class _CenterArea extends StatelessWidget {
   /// The world panel kept its pre-Gloss cell name; the rest are their own.
   static String _surfaceCellClass(DocumentSurface surface) => switch (surface) {
     DocumentSurface.names => 'is-names',
+    DocumentSurface.strings => 'is-strings',
+    DocumentSurface.waypoint => 'is-waypoint',
     DocumentSurface.canvas => 'is-canvas',
     DocumentSurface.previewCard => 'is-preview-card',
     DocumentSurface.panel => 'is-board',

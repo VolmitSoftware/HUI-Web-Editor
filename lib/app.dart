@@ -42,6 +42,7 @@ import 'services/workspace_location.dart';
 import 'state/editor_scope.dart';
 import 'doctype/doctype.dart';
 import 'components/inspector/names_inspector.dart';
+import 'components/inspector/catalog_document_inspector.dart';
 import 'l10n/hui_locale_loader.dart';
 import 'l10n/hui_locale_preferences.dart';
 import 'l10n/hui_localizations.dart';
@@ -989,6 +990,8 @@ class _AppState extends State<App> {
           status: _status,
         ),
         surfaces: <DocumentSurface, Widget>{
+          DocumentSurface.strings: CatalogDocumentView(store: _store),
+          DocumentSurface.waypoint: CatalogDocumentView(store: _store),
           DocumentSurface.names: NamesView(store: _store),
           DocumentSurface.panel: PanelView(store: _store),
           DocumentSurface.hologram: HologramView(

@@ -100,7 +100,9 @@ void main() {
 
   test('shipped global channel renders group, player and hover card', () {
     final File source = File(
-      glossRepositoryFilePath('src/main/resources/defaults/channels/global.json'),
+      glossRepositoryFilePath(
+        'src/main/resources/defaults/channels/global.json',
+      ),
     );
     final GlossChannelDoc doc = decodeGlossChannelDoc(
       source.readAsStringSync(),
@@ -121,22 +123,20 @@ void main() {
     'imported variants use sender conditions and tagged format takes priority',
     () {
       final GlossChannelDoc doc = GlossChannelDoc(
-        extras: <String, Object?>{
-          'variants': <Object?>[
-            <String, Object?>{
-              'id': 'z',
-              'priority': 10,
-              'when': "hasPermission('sender', 'server.staff')",
-              'format': 'Staff {{ sender.name }}: {{ message }}',
-            },
-            <String, Object?>{
-              'id': 'a',
-              'priority': 9,
-              'when': 'true',
-              'format': 'First {{ sender.name }}: {{ message }}',
-            },
-          ],
-        },
+        variants: <GlossChannelVariant>[
+          GlossChannelVariant(
+            id: 'z',
+            priority: 10,
+            when: "hasPermission('sender', 'server.staff')",
+            format: 'Staff {{ sender.name }}: {{ message }}',
+          ),
+          GlossChannelVariant(
+            id: 'a',
+            priority: 9,
+            when: 'true',
+            format: 'First {{ sender.name }}: {{ message }}',
+          ),
+        ],
       );
       expect(
         channelPreview(

@@ -73,6 +73,11 @@ class _HologramInspectorState extends State<HologramInspector> {
         ),
       ),
       _header(doc),
+      ExtrasEditor(title: huiText('Contents'), extensionKeys: false,
+        extras: <String, Object?>{'pages': doc.extras['pages'] ?? <Object?>[], 'actions': doc.extras['actions'] ?? <Object?>[], 'hitbox': doc.extras['hitbox'] ?? <String, Object?>{}, 'variants': doc.variants.map((GlossPresentationVariant variant) => variant.toJson()).toList()},
+        onChanged: (String label, Map<String, dynamic> next) => _store.replaceGlossDoc(label,
+          GlossHologramDoc.fromJson(<String, Object?>{...doc.toJson(), ...next})),
+      ),
       GlossVisibilityEditor(
         raw: doc.extras['show'],
         sectionKey: 'hologram.visibility',

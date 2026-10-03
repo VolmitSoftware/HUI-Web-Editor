@@ -3,6 +3,7 @@ library;
 
 import '../model/gloss_doc.dart';
 import '../model/gloss_tablist.dart';
+import '../model/gloss_tab_layout.dart';
 import 'gloss_text.dart';
 import 'gloss_condition_validation.dart';
 import 'validation.dart';
@@ -40,6 +41,41 @@ List<HuiIssue> validateTablistDoc(
     animations,
   );
   _validateListNameVariants(doc, issues, animations);
+
+  final GlossTabLayout? layout = doc.layout;
+  if (layout != null) {
+    issues.addAll(validateGlossShow(layout.show, path: r'$.layout.show'));
+    void error(String path) => issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: path,
+        message: 'Value is outside the layout bounds.',
+      ),
+    );
+    if (layout.enabled && (layout.columns < 1 || layout.columns > 4)) {
+      error(r'$.layout.columns');
+    }
+    if (layout.enabled && (layout.rows < 1 || layout.rows > 20)) {
+      error(r'$.layout.rows');
+    }
+    final GlossTabPlayers? players = layout.players;
+    if (players != null) {
+      issues.addAll(
+        validateGlossShow(players.filter, path: r'$.layout.players.filter'),
+      );
+      if (players.column < 0 ||
+          players.columns < 1 ||
+          players.column + players.columns > layout.columns) {
+        error(r'$.layout.players.columns');
+      }
+      if (players.rows < 1 || players.rows > layout.rows) {
+        error(r'$.layout.players.rows');
+      }
+      if (players.overflow != 'hide' && players.overflow != 'count') {
+        error(r'$.layout.players.overflow');
+      }
+    }
+  }
 
   final List<String> allText = <String>[
     doc.headerFooter.presentation.header,

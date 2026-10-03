@@ -20,6 +20,7 @@ import '../services/catalogs.dart';
 import '../services/image_library.dart';
 import 'gloss_text.dart'
     show
+        renderGlossLine,
         GlossAnimationResolver,
         GlossEmojiResolver,
         GlossNoAnimations,
@@ -33,6 +34,7 @@ import 'gloss_particle_text.dart'
 import 'hui_geometry.dart';
 import 'mc_text.dart';
 import 'viewport_math.dart';
+import 'preview_expr.dart';
 
 /// One animation tick is one Minecraft tick.
 const Duration huiAnimationTick = Duration(milliseconds: 50);
@@ -212,6 +214,13 @@ HuiRect spriteExtentFor(
 
 /// The bold `xN` label under a stack of more than one, as the renderer draws
 /// it: on the anchor in true-render mode, tucked under the icon otherwise.
+String itemCountLabel(CanvasItem item) => renderGlossLine(
+  ((item.icon?.extras['countFormat'] as String?) ?? '&f&l{count}').replaceAll(
+    '{count}',
+    '${item.itemCount}',
+  ),
+).renderedText;
+
 HuiRect _countLabelRect(
   CanvasItem item,
   double uiScale,
@@ -230,7 +239,19 @@ HuiRect _countLabelRect(
           )
         : icon.bottom - lineHeight * 0.6,
     // Two digits at the glyph advance, with slack for a three-digit stack.
-    w: math.max(icon.w, huiTextCharWidth * uiScale * style.scaleX * 4),
+    w: math.max(
+      icon.w,
+      huiTextCharWidth *
+          uiScale *
+          style.scaleX *
+          math.max(
+            1,
+            parseMcText(itemCountLabel(item)).plainLines.fold<int>(
+              0,
+              (int longest, String line) => math.max(longest, line.length),
+            ),
+          ),
+    ),
     h: lineHeight * 2,
   );
 }
@@ -442,6 +463,33 @@ CanvasScene buildCanvasScene({
   int animationTicks = 0,
 }) {
   final List<CanvasItem> items = <CanvasItem>[];
+  final Object? declared = menu.extras['vars'];
+  if (declared is Map) {
+    final Map<String, Object> variables = <String, Object>{};
+    final GlossTextExpressionScope initialScope = GlossTextExpressionScope(
+      0,
+      expressionSamples,
+    );
+    for (final MapEntry<Object?, Object?> entry in declared.entries) {
+      if (entry.key is! String || entry.value is! String) continue;
+      try {
+        final PExpr expression = parsePreviewExpr(entry.value as String);
+        if (!isConstantExpr(expression)) continue;
+        final Object value = evalPreviewExpr(expression, initialScope);
+        variables['session.${entry.key}'] = value;
+      } on PExprException {
+        continue;
+      }
+    }
+    expressionSamples = GlossTextExpressionSamples(
+      placeholders: expressionSamples.placeholders,
+      metrics: expressionSamples.metrics,
+      serverTps: expressionSamples.serverTps,
+      names: expressionSamples.names,
+      bedrockViewer: expressionSamples.bedrockViewer,
+      values: <String, Object>{...variables, ...expressionSamples.values},
+    );
+  }
   final GlossTextExpressionScope showScope = GlossTextExpressionScope(
     animationTicks * 50,
     expressionSamples,
@@ -451,11 +499,29 @@ CanvasScene buildCanvasScene({
     scope: showScope,
     nowMs: animationTicks * 50,
   );
-  for (int index = 0; index < menu.components.length; index++) {
+  List<HuiComponent> components = menu.components;
+  if (trueRender && menu.variants.isNotEmpty) {
+    final List<HuiMenuVariant> variants = List<HuiMenuVariant>.of(menu.variants)
+      ..sort((HuiMenuVariant first, HuiMenuVariant second) {
+        final int priority = second.priority.compareTo(first.priority);
+        return priority != 0 ? priority : first.id.compareTo(second.id);
+      });
+    for (final HuiMenuVariant variant in variants) {
+      if (glossShowMatches(
+        variant.when,
+        scope: showScope,
+        nowMs: animationTicks * 50,
+      )) {
+        components = variant.components;
+        break;
+      }
+    }
+  }
+  for (int index = 0; index < components.length; index++) {
     if (trueRender &&
         (!menuVisible ||
             !glossShowMatches(
-              menu.components[index].extras['show'],
+              components[index].extras['show'],
               scope: showScope,
               nowMs: animationTicks * 50,
             ))) {
@@ -463,7 +529,7 @@ CanvasScene buildCanvasScene({
     }
     items.add(
       _resolveItem(
-        component: menu.components[index],
+        component: components[index],
         index: index,
         menuOffset: menu.offset,
         uiScale: uiScale,

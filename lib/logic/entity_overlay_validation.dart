@@ -5,14 +5,18 @@ import '../model/gloss_entity_overlays.dart';
 import 'particle_layer_validation.dart';
 import 'gloss_show.dart';
 import 'validation.dart';
+import 'health_bar_validation.dart';
+import 'presentation_variants.dart';
 
 List<HuiIssue> validateEntityOverlaysDoc(GlossEntityOverlaysDoc doc) {
   final HuiIssue? revision = glossRevisionIssue(doc.revision);
   final List<HuiIssue> issues = <HuiIssue>[
     ?revision,
+    ...validateHealthBar(doc.healthBar),
     ...validateIconDisplayStyle(doc.style, path: r'$.style'),
     ...validateParticleLayers(doc.particleLayers, path: r'$.particleLayers'),
   ];
+  issues.addAll(validatePresentationVariants(doc.variants));
   final Map<String, (num, num, num)> ranges = <String, (num, num, num)>{
     'range': (doc.range, 1, 64),
     'updateIntervalTicks': (doc.updateIntervalTicks, 1, 40),

@@ -49,5 +49,41 @@ List<HuiIssue> validateChannelDoc(GlossChannelDoc doc) {
       'The mention pattern must contain exactly one {name}.',
     );
   }
+  final Set<String> ids = <String>{};
+  if (doc.variants.length > 32) {
+    error(r'$.variants', 'A channel supports at most 32 variants.');
+  }
+  for (int index = 0; index < doc.variants.length; index++) {
+    final GlossChannelVariant variant = doc.variants[index];
+    final String path = '\$.variants[$index]';
+    if (variant.id.trim().isEmpty || !ids.add(variant.id)) {
+      error('$path.id', 'Use a unique, nonempty variant id.');
+    }
+    if (variant.when.trim().isEmpty) {
+      error('$path.when', 'A variant requires a condition.');
+    }
+    issues.addAll(validateGlossShow(variant.when, path: '$path.when'));
+    for (final HuiIssue issue in validateChannelDoc(variant.apply(doc))) {
+      issues.add(
+        HuiIssue(
+          severity: issue.severity,
+          path: '$path${issue.path.substring(1)}',
+          message: issue.message,
+        ),
+      );
+    }
+  }
+  if (doc.card.length > 16) {
+    error(r'$.card', 'A hover card supports at most 16 lines.');
+  }
+  if (doc.filters.length > 64) {
+    error(r'$.filters', 'A channel supports at most 64 filters.');
+  }
+  for (int index = 0; index < doc.filters.length; index++) {
+    final GlossChannelFilter filter = doc.filters[index];
+    if (filter.match.trim().isEmpty) {
+      error('\$.filters[$index].match', 'A filter requires a match pattern.');
+    }
+  }
   return issues;
 }

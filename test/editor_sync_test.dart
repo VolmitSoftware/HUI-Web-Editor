@@ -76,8 +76,10 @@ void main() {
       'panel',
       'real-drops',
       'scoreboard',
+      'strings',
       'surface',
       'tablist',
+      'waypoint',
     ]);
     expect(DocumentTypes.containerPreview.syncWireKind, 'container-preview');
   });

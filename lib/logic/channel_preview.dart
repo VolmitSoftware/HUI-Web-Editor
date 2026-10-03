@@ -58,6 +58,31 @@ ChannelPreview channelPreview(
     ),
   );
   final bool visible = _matches(doc.show, scope);
+  final _ChannelScope sendingScope = _ChannelScope(
+    GlossConditionContext(
+      variables: <String, Object>{
+        ...values,
+        'viewer.name': sender,
+        'viewer.username': sender,
+      },
+      permissionsByRole: <String, Set<String>>{'source': senderPermissions},
+      groupsByRole: <String, Set<String>>{
+        'source': <String>{senderGroup},
+      },
+    ),
+  );
+  final GlossChannelDoc sending = _selected(doc, sendingScope);
+  for (final GlossChannelFilter filter in sending.filters) {
+    try {
+      message = message.replaceAllMapped(
+        RegExp(filter.match),
+        (Match match) => _filterReplacement(filter.replace, match),
+      );
+    } on FormatException {
+      continue;
+    }
+  }
+  doc = _selected(doc, scope);
   final List<String> literals = <String>[];
   String literal(String value) {
     final int index = literals.length;
@@ -67,40 +92,72 @@ ChannelPreview channelPreview(
 
   final String pattern = doc.mentions.pattern;
   final int token = pattern.indexOf('{name}');
-  bool mentioned = false;
-  String body = '';
-  if (visible && doc.mentions.enabled && allowed && token >= 0) {
-    final RegExp scanner = RegExp(
-      r'https?://[^\s<>]+|www\.[^\s<>]+|(^|[^A-Za-z0-9_@])' +
+  final GlossChannelItems items = doc.items ?? GlossChannelItems();
+  final GlossChannelLinks links = doc.links ?? GlossChannelLinks();
+  final List<String> scans = <String>[
+    r'(?<url>https?://[^\s<>]+|www\.[^\s<>]+)',
+  ];
+  final bool scanItems =
+      visible && items.enabled && allowed && items.token.isNotEmpty;
+  final bool scanMentions =
+      visible && doc.mentions.enabled && allowed && token >= 0;
+  if (scanItems) {
+    scans.add('(?<item>${RegExp.escape(items.token)})');
+  }
+  if (scanMentions) {
+    scans.add(
+      r'(?<prefix>^|[^A-Za-z0-9_@])' +
           RegExp.escape(pattern.substring(0, token)) +
-          r'([A-Za-z0-9_]{1,16})' +
+          r'(?<mention>[A-Za-z0-9_]{1,16})' +
           RegExp.escape(pattern.substring(token + 6)) +
           r'(?![A-Za-z0-9_])',
     );
-    int cursor = 0;
-    final StringBuffer output = StringBuffer();
-    for (final RegExpMatch match in scanner.allMatches(message)) {
-      if (match.group(2)?.toLowerCase() != viewer.toLowerCase()) continue;
-      output.write(
-        literal(message.substring(cursor, match.start) + match.group(1)!),
-      );
-      output.write(
-        doc.mentions.render.replaceAll(
-          RegExp(r'\{\{\s*mention\.(name|username)\s*\}\}'),
-          match.group(2)!,
-        ),
-      );
-      mentioned = true;
-      cursor = match.end;
-    }
-    output.write(literal(message.substring(cursor)));
-    body = output.toString();
-  } else {
-    body = literal(message);
   }
-  final String format = mentioned
-      ? doc.mentions.messageFormat
-      : _format(doc, scope);
+  bool mentioned = false;
+  int cursor = 0;
+  final StringBuffer output = StringBuffer();
+  for (final RegExpMatch match in RegExp(scans.join('|')).allMatches(message)) {
+    final String? mention = scanMentions ? match.namedGroup('mention') : null;
+    final String? url = match.namedGroup('url');
+    final String? item = scanItems ? match.namedGroup('item') : null;
+    String? replacement;
+    if (url != null && links.enabled) {
+      final Uri? parsed = Uri.tryParse(
+        url.startsWith('www.') ? 'https://$url' : url,
+      );
+      replacement = links.render
+          .replaceAll(
+            RegExp(r'\{\{\s*link\.host\s*\}\}'),
+            literal(parsed?.host ?? url),
+          )
+          .replaceAll(RegExp(r'\{\{\s*link\.url\s*\}\}'), literal(url));
+    } else if (item != null) {
+      replacement = items.render;
+      values.addAll(<String, Object>{
+        'item.name': names.name(GlossNameCategory.materials, 'diamond'),
+        'item.material': 'diamond',
+        'item.materialName': names.name(GlossNameCategory.materials, 'diamond'),
+        'item.count': 1.0,
+        'item.amount': 1.0,
+        'item.countSuffix': '',
+      });
+    } else if (mention?.toLowerCase() == viewer.toLowerCase()) {
+      replacement =
+          literal(match.namedGroup('prefix') ?? '') +
+          doc.mentions.render.replaceAll(
+            RegExp(r'\{\{\s*mention\.(name|username)\s*\}\}'),
+            mention!,
+          );
+      mentioned = true;
+    }
+    if (replacement == null) continue;
+    output.write(literal(message.substring(cursor, match.start)));
+    output.write(replacement);
+    cursor = match.end;
+  }
+  output.write(literal(message.substring(cursor)));
+  final String body = output.toString();
+  final String format = mentioned ? doc.mentions.messageFormat : doc.format;
   final GlossTextExpressionSamples samples = GlossTextExpressionSamples(
     values: values,
     names: names,
@@ -153,6 +210,49 @@ ChannelPreview channelPreview(
   );
 }
 
+String _filterReplacement(String replacement, Match match) {
+  final StringBuffer result = StringBuffer();
+  for (int index = 0; index < replacement.length; index++) {
+    final String character = replacement[index];
+    if (character == r'\') {
+      if (++index >= replacement.length) {
+        throw const FormatException();
+      }
+      result.write(replacement[index]);
+    } else if (character == r'$') {
+      if (++index >= replacement.length) {
+        throw const FormatException();
+      }
+      if (replacement[index] == '{') {
+        final int end = replacement.indexOf('}', index + 1);
+        if (end < 0 || match is! RegExpMatch) {
+          throw const FormatException();
+        }
+        final String name = replacement.substring(index + 1, end);
+        if (!match.groupNames.contains(name)) throw const FormatException();
+        result.write(match.namedGroup(name) ?? '');
+        index = end;
+      } else {
+        final int? first = int.tryParse(replacement[index]);
+        if (first == null || first > match.groupCount) {
+          throw const FormatException();
+        }
+        int group = first;
+        while (index + 1 < replacement.length) {
+          final int? digit = int.tryParse(replacement[index + 1]);
+          if (digit == null || group * 10 + digit > match.groupCount) break;
+          group = group * 10 + digit;
+          index++;
+        }
+        result.write(match.group(group) ?? '');
+      }
+    } else {
+      result.write(character);
+    }
+  }
+  return result.toString();
+}
+
 bool _matches(Object? raw, _ChannelScope scope) {
   if (raw == null) return true;
   if (raw is bool) return raw;
@@ -167,32 +267,17 @@ bool _matches(Object? raw, _ChannelScope scope) {
   }
 }
 
-String _format(GlossChannelDoc doc, _ChannelScope scope) {
-  final Object? raw = doc.extras['variants'];
-  if (raw is! List) return doc.format;
-  final List<Map<String, Object?>> variants =
-      <Map<String, Object?>>[
-        for (final Object? value in raw)
-          if (value is Map<String, Object?> &&
-              value['when'] is String &&
-              value['format'] is String)
-            value,
-      ]..sort((Map<String, Object?> first, Map<String, Object?> second) {
-        final int priority =
-            (second['priority'] is num ? second['priority']! as num : 0)
-                .compareTo(
-                  first['priority'] is num ? first['priority']! as num : 0,
-                );
-        return priority != 0
-            ? priority
-            : '${first['id']}'.compareTo('${second['id']}');
-      });
-  for (final Map<String, Object?> variant in variants) {
-    if (_matches(variant['when'], scope)) {
-      return variant['format']! as String;
-    }
+GlossChannelDoc _selected(GlossChannelDoc doc, _ChannelScope scope) {
+  final List<GlossChannelVariant> variants =
+      List<GlossChannelVariant>.of(doc.variants)
+        ..sort((GlossChannelVariant first, GlossChannelVariant second) {
+          final int priority = second.priority.compareTo(first.priority);
+          return priority != 0 ? priority : first.id.compareTo(second.id);
+        });
+  for (final GlossChannelVariant variant in variants) {
+    if (_matches(variant.when, scope)) return variant.apply(doc);
   }
-  return doc.format;
+  return doc;
 }
 
 String _withoutInteractions(String source) => source.replaceAll(

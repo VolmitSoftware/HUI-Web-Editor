@@ -4,6 +4,8 @@ import 'gloss_hologram_box.dart';
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_presentation_variant.dart';
+import 'gloss_health_bar.dart';
 import 'hui_icons.dart';
 import 'json_codec.dart';
 import 'particle_layer.dart';
@@ -122,6 +124,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
     this.includePlayers = true,
     this.verticalOffset = 0.35,
     this.healthSegments = 10,
+    GlossHealthBar? healthBar,
     this.hitHighlightMs = 750,
     List<String>? blacklistWorlds,
     List<String>? excludedEntityTypes,
@@ -130,13 +133,16 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
     HuiIconStyle? style,
     GlossHologramBox? box,
     List<GlossParticleLayer>? particleLayers,
+    List<GlossPresentationVariant>? variants,
     Map<String, Object?>? extras,
-  }) : blacklistWorlds = blacklistWorlds ?? <String>[],
+  }) : healthBar = healthBar ?? GlossHealthBar(),
+       blacklistWorlds = blacklistWorlds ?? <String>[],
        excludedEntityTypes = excludedEntityTypes ?? <String>['ARMOR_STAND'],
        lines = lines ?? defaultEntityOverlayLines(),
        style = style ?? defaultEntityOverlayStyle(),
        box = box ?? GlossHologramBox(),
        particleLayers = particleLayers ?? <GlossParticleLayer>[],
+       variants = variants ?? <GlossPresentationVariant>[],
        extras = extras ?? <String, Object?>{};
 
   bool enabled;
@@ -147,6 +153,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
   bool includePlayers;
   double verticalOffset;
   int healthSegments;
+  GlossHealthBar healthBar;
   int hitHighlightMs;
   List<String> blacklistWorlds;
   List<String> excludedEntityTypes;
@@ -155,6 +162,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
   HuiIconStyle style;
   GlossHologramBox box;
   List<GlossParticleLayer> particleLayers;
+  List<GlossPresentationVariant> variants;
   Map<String, Object?> extras;
 
   static GlossEntityOverlaysDoc fromJson(Object? raw) {
@@ -183,6 +191,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
           map['includePlayers'] == null || huiReadBool(map, 'includePlayers'),
       verticalOffset: huiReadDouble(map, 'verticalOffset', fallback: 0.35),
       healthSegments: huiReadInt(map, 'healthSegments', fallback: 10),
+      healthBar: GlossHealthBar.fromJson(map['healthBar']),
       hitHighlightMs: huiReadInt(map, 'hitHighlightMs', fallback: 750),
       blacklistWorlds: _strings(
         map['blacklistWorlds'],
@@ -207,8 +216,10 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
           : HuiIconStyle.fromJsonOrNull(map['style'], path: r'$.style'),
       box: GlossHologramBox.fromJson(map['box']),
       particleLayers: glossReadParticleLayers(map['particleLayers']),
+      variants: <GlossPresentationVariant>[for (final (int index, Object? raw) in huiReadList(map['variants']).indexed) GlossPresentationVariant.fromJson(raw, '\$.variants[$index]')],
       extras: huiCollectExtras(map, <String>{
         ...GlossEntityOverlaysDoc().toJson().keys,
+        'variants',
       }),
     );
   }
@@ -227,6 +238,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
 
   @override
   Map<String, Object?> toJson() => huiMergeExtras(<String, Object?>{
+    'variants': variants.map((GlossPresentationVariant variant) => variant.toJson()).toList(),
     'schemaVersion': schemaVersion,
     'revision': revision,
     'enabled': enabled,
@@ -237,6 +249,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
     'includePlayers': includePlayers,
     'verticalOffset': verticalOffset,
     'healthSegments': healthSegments,
+    'healthBar': healthBar.toJson(),
     'hitHighlightMs': hitHighlightMs,
     'blacklistWorlds': blacklistWorlds,
     'excludedEntityTypes': excludedEntityTypes,

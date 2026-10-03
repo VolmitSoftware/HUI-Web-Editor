@@ -18,7 +18,7 @@ const Map<String, Object> glossScopedSampleValues = <String, Object>{
   'viewer.healthPercent': 90.0,
   'viewer.level': 27.0,
   'viewer.ping': 42.0,
-  'viewer.gameMode': 'SURVIVAL',
+  'viewer.gameMode': 'survival',
   'subject.name': 'Builder',
   'subject.world': 'world',
   'source.name': 'Builder',

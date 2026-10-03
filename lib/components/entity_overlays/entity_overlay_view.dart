@@ -188,7 +188,7 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
 
   @override
   Widget build(BuildContext context) {
-    final GlossEntityOverlaysDoc? doc = component.store.entityOverlaysDoc;
+    GlossEntityOverlaysDoc? doc = component.store.entityOverlaysDoc;
     if (doc == null) return const dom.div(<Widget>[]);
     final EntityOverlaySample sample = EntityOverlaySample(
       name: _name,
@@ -206,6 +206,7 @@ class _EntityOverlayViewState extends State<EntityOverlayView> {
       player: _player,
       entityType: _player ? 'PLAYER' : 'ZOMBIE',
     );
+    doc = resolveEntityOverlayDocument(doc, sample, nowMs: _clock.elapsedMilliseconds, names: component.store.workspaceNames);
     final EntityOverlayPreview preview = resolveEntityOverlayPreview(
       doc,
       sample,

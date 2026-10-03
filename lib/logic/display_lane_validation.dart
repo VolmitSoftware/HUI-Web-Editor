@@ -4,6 +4,8 @@ import '../model/model.dart';
 import 'gloss_condition_validation.dart';
 import 'gloss_show.dart';
 import 'validation.dart';
+import 'health_bar_validation.dart';
+import 'hologram_box_validation.dart';
 
 List<HuiIssue> _envelope(GlossDoc doc, Object? show) => <HuiIssue>[
   ...validateGlossShow(show),
@@ -86,6 +88,9 @@ List<HuiIssue> validateInventoryDoc(GlossInventoryDoc doc) {
 
 List<HuiIssue> validateNameplateDoc(GlossNameplateDoc doc) {
   final List<HuiIssue> issues = _envelope(doc, doc.extras['show']);
+  issues.addAll(validateHealthBar(doc.presentation.healthBar, path: r'$.presentation.healthBar'));
+  issues.addAll(validateIconDisplayStyle(doc.presentation.style, path: r'$.presentation.style'));
+  issues.addAll(validateHologramBox(doc.presentation.box, path: r'$.presentation.box'));
   if (doc.presentation.lines.length > glossNameplateMaxLines) {
     issues.add(
       const HuiIssue(
@@ -99,6 +104,7 @@ List<HuiIssue> validateNameplateDoc(GlossNameplateDoc doc) {
   }
   issues.addAll(glossConditionIssues(doc.select.when, r'$.select.when'));
   for (int index = 0; index < doc.variants.length; index++) {
+    issues.addAll(validateHealthBar(doc.variants[index].presentation.healthBar, path: '\$.variants[$index].presentation.healthBar'));
     issues.addAll(
       glossConditionIssues(
         doc.variants[index].when,

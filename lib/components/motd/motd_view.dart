@@ -126,7 +126,8 @@ class _MotdViewState extends State<MotdView> {
               doc.extras['show'],
               nowMs: nowMs,
               viewerAware: false,
-            )
+            ) &&
+            glossShowMatches(entry.show, nowMs: nowMs, viewerAware: false)
         ? entry
         : null;
     final List<String> lines = ping == null

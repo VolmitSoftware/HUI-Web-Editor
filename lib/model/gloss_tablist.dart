@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'gloss_doc.dart';
 import 'json_codec.dart';
+import 'gloss_tab_layout.dart';
 
 const int glossTablistCurrentSchemaVersion = 2;
 const String glossTablistFallbackFormat = r'$player';
@@ -43,6 +44,7 @@ const Set<String> _docKnown = <String>{
   'revision',
   'headerFooter',
   'listNames',
+  'layout',
 };
 const Set<String> _sectionKnown = <String>{
   'enabled',
@@ -346,11 +348,13 @@ final class GlossTablistDoc extends GlossDoc {
     super.revision = glossInitialRevision,
     GlossTablistHeaderFooter? headerFooter,
     GlossTablistListNames? listNames,
+    this.layout,
     Map<String, dynamic>? extras,
   }) : headerFooter = headerFooter ?? GlossTablistHeaderFooter(),
        listNames = listNames ?? GlossTablistListNames(),
        extras = extras ?? <String, dynamic>{};
 
+  GlossTabLayout? layout;
   GlossTablistHeaderFooter headerFooter;
   GlossTablistListNames listNames;
   Map<String, dynamic> extras;
@@ -367,6 +371,9 @@ final class GlossTablistDoc extends GlossDoc {
       revision: glossReadRevision(map),
       headerFooter: GlossTablistHeaderFooter.fromJson(map['headerFooter']),
       listNames: GlossTablistListNames.fromJson(map['listNames']),
+      layout: map['layout'] == null
+          ? null
+          : GlossTabLayout.fromJson(map['layout']),
       extras: huiCollectExtras(map, _docKnown),
     );
   }
@@ -377,6 +384,7 @@ final class GlossTablistDoc extends GlossDoc {
     'revision': revision,
     'headerFooter': headerFooter.toJson(),
     'listNames': listNames.toJson(),
+    if (layout != null) 'layout': layout!.toJson(),
   }, extras);
 
   GlossTablistDoc copy() => GlossTablistDoc(
@@ -384,6 +392,7 @@ final class GlossTablistDoc extends GlossDoc {
     revision: revision,
     headerFooter: headerFooter.copy(),
     listNames: listNames.copy(),
+    layout: layout?.copy(),
     extras: huiDeepCopyMap(extras),
   );
 }

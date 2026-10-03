@@ -11,6 +11,7 @@ import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'gloss_visibility_editor.dart';
 import 'inspector_widgets.dart';
+import 'extras_editor.dart';
 import 'line_list_section.dart';
 import 'identity_rules_editor.dart';
 
@@ -50,6 +51,11 @@ class InventoryInspector extends StatelessWidget {
         title: store.menuId,
         lede: huiText('Chest window'),
         revision: doc.revision,
+      ),
+      ExtrasEditor(title: huiText('Contents'), extensionKeys: false,
+        extras: <String, Object?>{'slots': doc.slots, 'list': doc.toJson()['list'], 'variants': doc.variants},
+        onChanged: (String label, Map<String, dynamic> next) => store.replaceGlossDoc(label,
+          GlossInventoryDoc.fromJson(<String, Object?>{...doc.toJson(), ...next})),
       ),
       GlossVisibilityEditor(
         raw: doc.extras['show'],
@@ -124,6 +130,12 @@ class NameplateInspector extends StatelessWidget {
         title: store.menuId,
         lede: huiText('Over player'),
         revision: doc.revision,
+      ),
+      ExtrasEditor(title: huiText('Presentation'), extensionKeys: false,
+        extras: doc.presentation.toJson(),
+        onChanged: (String label, Map<String, dynamic> next) => store.mutateNameplate(label, (GlossNameplateDoc edited) {
+          edited.presentation = GlossNameplatePresentation.fromJson(next, r'$.presentation');
+        }),
       ),
       GlossVisibilityEditor(
         raw: doc.extras['show'],
@@ -304,6 +316,15 @@ class MarkerInspector extends StatelessWidget {
         title: store.menuId,
         lede: huiText('World pin'),
         revision: doc.revision,
+      ),
+      ExtrasEditor(title: huiText('Settings'), extensionKeys: false,
+        extras: <String, Object?>{
+          'anchor': doc.anchor.toJson(), 'beam': doc.beam.toJson(), 'edge': doc.edge.toJson(), 'trail': doc.trail.toJson(),
+          'style': doc.style.toJson(), 'box': doc.box.toJson(), 'icon': doc.extras['icon'],
+          'lifetimeTicks': doc.lifetimeTicks,
+        },
+        onChanged: (String label, Map<String, dynamic> next) => store.replaceGlossDoc(label,
+          GlossMarkerDoc.fromJson(<String, Object?>{...doc.toJson(), ...next})),
       ),
       GlossVisibilityEditor(
         raw: doc.extras['show'],

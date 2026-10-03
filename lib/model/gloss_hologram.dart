@@ -3,6 +3,7 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_presentation_variant.dart';
 import 'gloss_hologram_box.dart';
 import 'hui_icons.dart';
 import 'json_codec.dart';
@@ -70,6 +71,7 @@ String glossHologramLineText(Object? line) {
 }
 
 const Set<String> _docKnown = <String>{
+  'variants',
   'schemaVersion',
   'revision',
   'anchor',
@@ -193,6 +195,7 @@ final class GlossHologramDoc extends GlossDoc {
     this.yaw = 0,
     this.pitch = 0,
     List<GlossParticleLayer>? particleLayers,
+    List<GlossPresentationVariant>? variants,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
   }) : style = style ?? defaultHologramDisplayStyle(),
@@ -200,6 +203,7 @@ final class GlossHologramDoc extends GlossDoc {
        anchor = anchor ?? GlossHologramAnchor(),
        lines = lines == null ? <Object?>[] : glossReadHologramLines(lines),
        particleLayers = particleLayers ?? <GlossParticleLayer>[],
+       variants = variants ?? <GlossPresentationVariant>[],
        extras = extras ?? <String, dynamic>{},
        absentKeys = absentKeys ?? <String>{};
 
@@ -228,6 +232,7 @@ final class GlossHologramDoc extends GlossDoc {
   /// Ignored on the axes the [style.billboard] mode turns.
   double pitch;
   List<GlossParticleLayer> particleLayers;
+  List<GlossPresentationVariant> variants;
   bool particleLayersPresent = false;
 
   /// True when the document carried an `anchor` object at all — Gson leaves
@@ -260,6 +265,7 @@ final class GlossHologramDoc extends GlossDoc {
       yaw: huiReadDouble(map, 'yaw'),
       pitch: huiReadDouble(map, 'pitch'),
       particleLayers: glossReadParticleLayers(map['particleLayers']),
+      variants: <GlossPresentationVariant>[for (final (int index, Object? raw) in huiReadList(map['variants']).indexed) GlossPresentationVariant.fromJson(raw, '\$.variants[$index]')],
       extras: huiCollectExtras(map, _docKnown),
       absentKeys: <String>{
         if (map['revision'] == null) 'revision',
@@ -278,6 +284,7 @@ final class GlossHologramDoc extends GlossDoc {
   @override
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> out = <String, dynamic>{
+      if (variants.isNotEmpty) 'variants': variants.map((GlossPresentationVariant variant) => variant.toJson()).toList(),
       'schemaVersion': schemaVersion,
       if (!absentKeys.contains('revision')) 'revision': revision,
       if (anchorPresent) 'anchor': anchor.toJson(),
@@ -313,6 +320,7 @@ final class GlossHologramDoc extends GlossDoc {
       yaw: yaw,
       pitch: pitch,
       particleLayers: glossCopyParticleLayers(particleLayers),
+      variants: variants.map((GlossPresentationVariant variant) => variant.copy()).toList(),
       extras: huiDeepCopyMap(extras),
       absentKeys: Set<String>.of(absentKeys),
     );

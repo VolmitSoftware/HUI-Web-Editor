@@ -620,6 +620,35 @@ class _Validator {
       _componentId = component.id.isEmpty ? null : component.id;
       _validateComponent(component, 'components[$i]', seen);
     }
+    final Set<String> variantIds = <String>{};
+    if (menu.variants.length > 32) {
+      _add(
+        HuiSeverity.error,
+        'variants',
+        'A menu supports at most 32 variants',
+      );
+    }
+    for (int index = 0; index < menu.variants.length; index++) {
+      final HuiMenuVariant variant = menu.variants[index];
+      final String path = 'variants[$index]';
+      if (variant.id.trim().isEmpty || !variantIds.add(variant.id)) {
+        _add(
+          HuiSeverity.error,
+          '$path.id',
+          'Use a unique, nonempty variant id',
+        );
+      }
+      if (variant.when == null) {
+        _add(HuiSeverity.error, '$path.when', 'A variant requires a condition');
+      }
+      issues.addAll(validateGlossShow(variant.when, path: '$path.when'));
+      final Set<String> componentIds = <String>{};
+      for (int item = 0; item < variant.components.length; item++) {
+        final HuiComponent component = variant.components[item];
+        _componentId = component.id;
+        _validateComponent(component, '$path.components[$item]', componentIds);
+      }
+    }
     _componentId = null;
     _validateOverlaps(menu);
   }
@@ -854,7 +883,9 @@ class _Validator {
     }
     switch (icon) {
       case final HuiTextIcon text:
-        if (text.box != null) issues.addAll(validateHologramBox(text.box!, path: '$path.box'));
+        if (text.box != null) {
+          issues.addAll(validateHologramBox(text.box!, path: '$path.box'));
+        }
         _validateText(
           text.text,
           '$path.text',
@@ -1685,8 +1716,13 @@ HuiIssue? runtimeRangeIssue(String path, num value, num minimum, num maximum) {
   return HuiIssue(
     severity: HuiSeverity.warning,
     path: path,
-    message: 'Gloss clamps {value} to the supported {minimum}..{maximum} range.',
-    messageArguments: <String, Object?>{'value': value, 'minimum': minimum, 'maximum': maximum},
+    message:
+        'Gloss clamps {value} to the supported {minimum}..{maximum} range.',
+    messageArguments: <String, Object?>{
+      'value': value,
+      'minimum': minimum,
+      'maximum': maximum,
+    },
     fix: 'Choose a value inside the runtime range.',
   );
 }

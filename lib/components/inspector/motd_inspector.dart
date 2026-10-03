@@ -102,11 +102,7 @@ class _MotdInspectorState extends State<MotdInspector> {
           ]),
         ]),
         dom.p(classes: 'hui-inspector-lede', <Widget>[
-          Text(
-            huiText(
-              'The server-list text. Every ping picks one entry at random.',
-            ),
-          ),
+          Text(huiText('Each ping chooses a visible entry using its weight.')),
         ]),
         HuiRevisionRow(revision: doc.revision),
       ]);
@@ -612,6 +608,39 @@ class _MotdInspectorState extends State<MotdInspector> {
           }),
           label: huiText('Add second line'),
         ),
+      GlossVisibilityEditor(
+        raw: entry.show,
+        sectionKey: 'motd.entries.$index.visibility',
+        issues: _issuesFor('entries[$index].show'),
+        onChanged: (Object? value) => _store.mutateMotd(
+          'entry visibility',
+          (GlossMotdDoc edited) => edited.entries[index].show = value,
+        ),
+      ),
+      HuiField(
+        label: huiText('Weight'),
+        help: huiText(
+          'Relative chance among entries whose visibility condition passes.',
+        ),
+        control: TextInput(
+          value: entry.weight.toString(),
+          size: ComponentSize.sm,
+          fullWidth: true,
+          onChanged: (String value) {
+            final int? weight = int.tryParse(value);
+            if (weight != null) {
+              _store.mutateMotd(
+                'entry weight',
+                (GlossMotdDoc edited) => edited.entries[index].weight = weight,
+              );
+            }
+          },
+          attributes: const <String, String>{
+            'inputmode': 'numeric',
+            'aria-label': 'Entry weight',
+          },
+        ),
+      ),
       _entryFavicon(entry, index),
       _sample(entry, index),
       _pingExtras(entry, index),

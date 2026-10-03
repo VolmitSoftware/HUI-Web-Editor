@@ -219,10 +219,27 @@ String glossApplyEmoji(
     final bool hasToken = out.contains(entry.token);
     final bool hasTrigger = entry.hasTrigger && out.contains(entry.trigger);
     if (!hasToken && !hasTrigger) continue;
-    if (hasTrigger) out = out.replaceAll(entry.trigger, entry.glyph);
+    if (hasTrigger) out = glossReplaceEmojiTrigger(out, entry.trigger, entry.glyph);
     if (hasToken) out = out.replaceAll(entry.token, entry.glyph);
   }
   return out;
+}
+
+String glossReplaceEmojiTrigger(String input, String trigger, String replacement) {
+  if (trigger.isEmpty || input.isEmpty) return input;
+  final RegExp word = RegExp(r'^[\p{L}\p{Nd}\p{Mn}\p{Mc}_]$', unicode: true);
+  bool wordAt(String text, int index) {
+    if (index < 0 || index >= text.length) return false;
+    if (text.codeUnitAt(index) >= 0xDC00 && text.codeUnitAt(index) <= 0xDFFF && index > 0) index--;
+    final int length = text.codeUnitAt(index) >= 0xD800 && text.codeUnitAt(index) <= 0xDBFF && index + 1 < text.length ? 2 : 1;
+    return word.hasMatch(text.substring(index, index + length));
+  }
+  final bool leading = wordAt(trigger, 0);
+  final bool trailing = wordAt(trigger, trigger.length - 1);
+  return input.replaceAllMapped(RegExp(RegExp.escape(trigger)), (Match match) {
+    if (leading && wordAt(input, match.start - 1) || trailing && wordAt(input, match.end)) return match.group(0)!;
+    return replacement;
+  });
 }
 
 /// One styled run or placeholder chip of a rendered line.

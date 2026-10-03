@@ -17,6 +17,8 @@ import 'inventory_document_type.dart';
 import 'marker_document_type.dart';
 import 'menu_document_type.dart';
 import 'names_document_type.dart';
+import 'strings_document_type.dart';
+import 'waypoint_document_type.dart';
 import 'motd_document_type.dart';
 import 'nameplate_document_type.dart';
 import 'nametag_document_type.dart';
@@ -28,6 +30,8 @@ import 'tablist_document_type.dart';
 
 /// The const adapter instances, one per [WorkspaceDocKind].
 abstract final class DocumentTypes {
+  static const StringsDocumentType strings = StringsDocumentType();
+  static const WaypointDocumentType waypoint = WaypointDocumentType();
   static const NamesDocumentType names = NamesDocumentType();
   static const MenuDocumentType menu = MenuDocumentType();
   static const ContainerPreviewDocumentType containerPreview =
@@ -60,6 +64,8 @@ abstract final class DocumentTypeRegistry {
   /// coverage so a new enum value cannot ship without an adapter.
   static const Map<WorkspaceDocKind, DocumentTypeAdapter> _byKind =
       <WorkspaceDocKind, DocumentTypeAdapter>{
+        WorkspaceDocKind.strings: DocumentTypes.strings,
+        WorkspaceDocKind.waypoint: DocumentTypes.waypoint,
         WorkspaceDocKind.names: DocumentTypes.names,
         WorkspaceDocKind.menu: DocumentTypes.menu,
         WorkspaceDocKind.containerPreview: DocumentTypes.containerPreview,
@@ -85,6 +91,8 @@ abstract final class DocumentTypeRegistry {
 
   /// Every adapter, in workspace-rail order.
   static const List<DocumentTypeAdapter> all = <DocumentTypeAdapter>[
+    DocumentTypes.strings,
+    DocumentTypes.waypoint,
     DocumentTypes.names,
     DocumentTypes.menu,
     DocumentTypes.containerPreview,

@@ -32,6 +32,9 @@
 library;
 
 import 'gloss_show.dart';
+import 'presentation_variants.dart';
+import '../model/gloss_presentation_variant.dart';
+import '../model/json_codec.dart';
 import 'dart:math' as math;
 
 import 'package:gloss_editor/l10n/hui_localizations.dart';
@@ -411,6 +414,27 @@ String hologramBillboardNote(String billboard) => switch (billboard) {
 /// Every line rendered through the Gloss text pipeline at [nowMs], in
 /// document order — index 0 is the TOP of the stack, exactly like the joined
 /// `TextDisplay` string.
+GlossHologramDoc resolveHologramPreview(GlossHologramDoc doc, {int nowMs = 0}) {
+  final GlossPresentationVariant? variant = resolvePresentationVariant(doc.variants, nowMs: nowMs);
+  final Map<String, Object?> resolved = <String, Object?>{...doc.toJson(), ...?variant?.presentation, 'variants': <Object?>[]};
+  if (variant?.presentation.containsKey('lines') != true && doc.extras['pages'] is List) {
+    resolved['lines'] = <Object?>[];
+    for (final Object? raw in huiReadList(doc.extras['pages'])) {
+      final Map<String, Object?> page = huiReadObject(raw, 'pages');
+      if (glossShowMatches(page['show'], nowMs: nowMs)) {
+        resolved['lines'] = page['lines'];
+        break;
+      }
+    }
+  }
+  resolved.remove('pages');
+  resolved['lines'] = <Object?>[
+    for (final Object? raw in huiReadList(resolved['lines']))
+      if (raw is! Map || glossShowMatches(raw['show'], nowMs: nowMs)) raw,
+  ];
+  return GlossHologramDoc.fromJson(resolved);
+}
+
 List<GlossLineRender> hologramRenderedLines(
   GlossHologramDoc doc, {
   GlossAnimationResolver animations = const GlossNoAnimations(),
@@ -418,14 +442,8 @@ List<GlossLineRender> hologramRenderedLines(
   int nowMs = 0,
 }) => <GlossLineRender>[
   if (glossShowMatches(doc.extras['show'], nowMs: nowMs))
-    for (final String line in doc.textLines)
-      renderGlossLine(
-        line,
-        animations: animations,
-        emoji: emoji,
-        nowMs: nowMs,
-        richText: true,
-      ),
+    for (final String line in resolveHologramPreview(doc, nowMs: nowMs).textLines)
+      renderGlossLine(line, animations: animations, emoji: emoji, nowMs: nowMs, richText: true),
 ];
 
 /// True when any line plays an animation — the surface's ticker gate.

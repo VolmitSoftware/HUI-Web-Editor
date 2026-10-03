@@ -160,7 +160,10 @@ final class MenuDocumentType extends DocumentTypeAdapter {
 
   int _rewriteNavigationTargets(HuiMenu menu, String previous, String next) {
     int changed = 0;
-    for (final HuiComponent component in menu.components) {
+    for (final HuiComponent component in <HuiComponent>[
+      ...menu.components,
+      for (final HuiMenuVariant variant in menu.variants) ...variant.components,
+    ]) {
       final List<List<HuiAction>> branches = switch (component.data) {
         final HuiButtonData button => <List<HuiAction>>[button.actions],
         final HuiToggleData toggle => <List<HuiAction>>[

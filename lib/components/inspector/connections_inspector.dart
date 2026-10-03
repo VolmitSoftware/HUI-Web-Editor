@@ -85,8 +85,11 @@ class _ConnectionsInspectorState extends State<ConnectionsInspector> {
         HuiRevisionRow(revision: doc.revision),
       ]);
 
-  String _sectionTitle(String key) =>
-      key == 'leave' ? huiText('Leave message') : huiText('Join message');
+  String _sectionTitle(String key) => switch (key) {
+    'leave' => huiText('Leave message'),
+    'firstJoin' => huiText('First join message'),
+    _ => huiText('Join message'),
+  };
 
   Widget _section(GlossConnectionsDoc doc, String key) {
     final GlossConnectionsSection section = doc.section(key);

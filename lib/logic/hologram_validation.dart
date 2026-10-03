@@ -8,10 +8,12 @@ library;
 
 import '../model/gloss_doc.dart';
 import '../model/gloss_hologram.dart';
+import '../model/json_codec.dart';
 import 'gloss_text.dart';
 import 'gloss_particle_text.dart';
 import 'particle_layer_validation.dart';
 import 'validation.dart';
+import 'presentation_variants.dart';
 import 'hologram_box_validation.dart';
 import 'gloss_show.dart';
 
@@ -22,6 +24,18 @@ List<HuiIssue> validateHologramDoc(
   final List<HuiIssue> issues = <HuiIssue>[
     ...validateGlossShow(doc.extras['show']),
   ];
+
+  issues.addAll(validatePresentationVariants(doc.variants));
+  for (final (int index, Object? line) in doc.lines.indexed) {
+    if (line is Map) issues.addAll(validateGlossShow(line['show'], path: '\$.lines[$index].show'));
+  }
+  for (final (int index, Object? raw) in huiReadList(doc.extras['pages']).indexed) {
+    if (raw is! Map) continue;
+    issues.addAll(validateGlossShow(raw['show'], path: '\$.pages[$index].show'));
+    for (final (int lineIndex, Object? line) in huiReadList(raw['lines']).indexed) {
+      if (line is Map) issues.addAll(validateGlossShow(line['show'], path: '\$.pages[$index].lines[$lineIndex].show'));
+    }
+  }
 
   for (final HuiIssue? issue in <HuiIssue?>[
     runtimeRangeIssue(r'$.viewDistance', doc.viewDistance, 4, 128),

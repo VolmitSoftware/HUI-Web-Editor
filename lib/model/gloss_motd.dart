@@ -105,6 +105,8 @@ const Set<String> _entryKnown = <String>{
   'online',
   'max',
   'version',
+  'show',
+  'weight',
 };
 
 const Set<String> _linkKnown = <String>{'type', 'label', 'url'};
@@ -190,6 +192,8 @@ final class GlossMotdEntry {
     this.online,
     this.max,
     this.version,
+    this.show = true,
+    this.weight = 1,
     Map<String, dynamic>? extras,
   }) : lines = lines ?? <String>[],
        sample = sample ?? <String>[],
@@ -214,6 +218,8 @@ final class GlossMotdEntry {
 
   /// The version label shown when the client protocol does not match.
   String? version;
+  Object? show;
+  int weight;
 
   Map<String, dynamic> extras;
 
@@ -229,6 +235,8 @@ final class GlossMotdEntry {
       online: _readTrimmable(map['online']),
       max: _readTrimmable(map['max']),
       version: _readTrimmable(map['version']),
+      show: map['show'] ?? true,
+      weight: huiReadInt(map, 'weight', fallback: 1),
       extras: huiCollectExtras(map, _entryKnown),
     );
   }
@@ -240,6 +248,8 @@ final class GlossMotdEntry {
     if (_emitTrimmable(online)) 'online': online,
     if (_emitTrimmable(max)) 'max': max,
     if (_emitTrimmable(version)) 'version': version,
+    if (show != true) 'show': show,
+    if (weight != 1) 'weight': weight,
   }, extras);
 
   GlossMotdEntry copy() => GlossMotdEntry(
@@ -249,6 +259,8 @@ final class GlossMotdEntry {
     online: online,
     max: max,
     version: version,
+    show: show,
+    weight: weight,
     extras: huiDeepCopyMap(extras),
   );
 }

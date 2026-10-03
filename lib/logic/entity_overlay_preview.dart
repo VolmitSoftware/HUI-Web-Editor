@@ -1,11 +1,12 @@
 library;
 
 import 'gloss_show.dart';
-import 'dart:math' as math;
 
 import '../l10n/hui_localizations.dart';
 import '../model/gloss_entity_overlays.dart';
 import '../model/gloss_names.dart';
+import '../model/gloss_presentation_variant.dart';
+import 'presentation_variants.dart';
 import '../model/preview_doc.dart';
 import 'gloss_particle_text.dart';
 import 'gloss_text.dart';
@@ -143,6 +144,12 @@ GlossTextExpressionSamples entityOverlayExpressionSamples(
   );
 }
 
+GlossEntityOverlaysDoc resolveEntityOverlayDocument(GlossEntityOverlaysDoc doc, EntityOverlaySample sample, {int nowMs = 0, GlossNamesCatalog names = const GlossNamesCatalog()}) {
+  final GlossTextExpressionScope scope = GlossTextExpressionScope(nowMs, entityOverlayExpressionSamples(doc, sample, names: names));
+  final GlossPresentationVariant? variant = resolvePresentationVariant(doc.variants, scope: scope, nowMs: nowMs);
+  return variant == null ? doc : GlossEntityOverlaysDoc.fromJson(<String, Object?>{...doc.toJson(), ...variant.presentation, 'variants': <Object?>[]});
+}
+
 EntityOverlayPreview resolveEntityOverlayPreview(
   GlossEntityOverlaysDoc doc,
   EntityOverlaySample sample, {
@@ -167,6 +174,10 @@ EntityOverlayPreview resolveEntityOverlayPreview(
     nowMs,
     samples,
   );
+  final GlossPresentationVariant? variant = resolvePresentationVariant(doc.variants, scope: scope, nowMs: nowMs);
+  if (variant != null) {
+    doc = GlossEntityOverlaysDoc.fromJson(<String, Object?>{...doc.toJson(), ...variant.presentation, 'variants': <Object?>[]});
+  }
   final List<String> errors = <String>[];
   if (!_shown(doc.show, scope, errors)) {
     return EntityOverlayPreview(
@@ -178,14 +189,14 @@ EntityOverlayPreview resolveEntityOverlayPreview(
   final bool hit = samples.values['entity.damaged']! as bool;
   final Map<String, String> tokens = <String, String>{
     'bar': _bar(doc, sample, hit),
-    'health': _number(sample.health.clamp(0, sample.maxHealth)),
-    'max_health': _number(sample.maxHealth),
-    'count': _number(samples.values['entity.stackCount']! as double),
-    'attack': _number(sample.attack),
-    'armor': _number(sample.armor),
-    'damage': _number(hit ? sample.damage : 0),
+    'health': doc.healthBar.number(sample.health.clamp(0, sample.maxHealth)),
+    'max_health': doc.healthBar.number(sample.maxHealth),
+    'count': doc.healthBar.number(samples.values['entity.stackCount']! as double),
+    'attack': doc.healthBar.number(sample.attack),
+    'armor': doc.healthBar.number(sample.armor),
+    'damage': doc.healthBar.number(hit ? sample.damage : 0),
     'type': sample.entityType.toLowerCase(),
-    'distance': _number(sample.distance),
+    'distance': doc.healthBar.number(sample.distance),
   };
   final List<String> details = sample.adapt && sample.insight
       ? sample.insightDetails ??
@@ -408,30 +419,11 @@ String? _hiddenReason(GlossEntityOverlaysDoc doc, EntityOverlaySample sample) {
   return null;
 }
 
-String _bar(GlossEntityOverlaysDoc doc, EntityOverlaySample sample, bool hit) {
-  final int segments = doc.healthSegments.clamp(1, 40);
-  final double ratio = (sample.health / sample.maxHealth).clamp(0, 1);
-  final int filled = (ratio * segments).ceil();
-  final int previous = hit
-      ? math.min(
-          segments,
-          ((sample.health + sample.damage) / sample.maxHealth * segments)
-              .ceil(),
-        )
-      : filled;
-  final String color = ratio >= 0.5
-      ? '&a'
-      : ratio >= 0.25
-      ? '&e'
-      : '&c';
-  return '$color${'|' * filled}&c${'|' * math.max(0, previous - filled)}&8${'|' * (segments - math.max(filled, previous))}';
-}
+String _bar(GlossEntityOverlaysDoc doc, EntityOverlaySample sample, bool hit) =>
+    doc.healthBar.render(doc.healthSegments, sample.health, sample.maxHealth, sample.health + (hit ? sample.damage : 0));
 
 String _format(String source, Map<String, String> tokens) =>
     source.replaceAllMapped(
       RegExp(r'(?<!\{)\{([a-z_]+)\}(?!\})'),
       (Match match) => tokens[match.group(1)] ?? match.group(0)!,
     );
-
-String _number(double value) =>
-    value.toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '');

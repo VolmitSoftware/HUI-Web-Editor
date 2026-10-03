@@ -132,7 +132,11 @@ class _ConnectionsViewState extends State<ConnectionsView> {
   /// stays silent.
   Widget _row(GlossConnectionsDoc doc, String key) {
     final GlossConnectionsSection section = doc.section(key);
-    final String label = key == 'leave' ? huiText('Leave') : huiText('Join');
+    final String label = switch (key) {
+      'leave' => huiText('Leave'),
+      'firstJoin' => huiText('First join'),
+      _ => huiText('Join'),
+    };
     if (!glossConnectionsSectionBroadcasts(doc, key, nowMs: _sampledAtMs)) {
       if (component.gameContext) return const dom.span(<Widget>[]);
       return dom.div(classes: 'hui-connections-line is-silent', <Widget>[

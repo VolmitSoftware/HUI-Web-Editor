@@ -28,3 +28,12 @@ export 'vec3.dart';
 export 'gloss_channel.dart';
 
 export 'gloss_names.dart';
+
+export 'gloss_strings.dart';
+export 'gloss_waypoint.dart';
+
+export 'gloss_health_bar.dart';
+
+export 'gloss_presentation_variant.dart';
+
+export 'gloss_tab_layout.dart';

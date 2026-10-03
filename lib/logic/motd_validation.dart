@@ -64,6 +64,16 @@ List<HuiIssue> validateMotdDoc(
   for (int index = 0; index < doc.entries.length; index++) {
     final GlossMotdEntry entry = doc.entries[index];
     final String path = 'entries[$index]';
+    issues.addAll(validateGlossShow(entry.show, path: '$path.show'));
+    if (entry.weight < 1 || entry.weight > 1000000) {
+      issues.add(
+        HuiIssue(
+          severity: HuiSeverity.error,
+          path: '$path.weight',
+          message: 'Weight must be between 1 and 1000000.',
+        ),
+      );
+    }
     issues.addAll(
       _faviconIssues(entry.favicon, '$path.favicon', knownImagePaths),
     );

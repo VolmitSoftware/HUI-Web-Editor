@@ -4,10 +4,13 @@ import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
 
 import '../../model/model.dart';
+import '../../model/gloss_hologram_box.dart';
 import '../../logic/player_identity_preview.dart';
 import '../../state/editor_store.dart';
 import '../common/common.dart';
 import 'inspector_widgets.dart';
+import 'extras_editor.dart';
+import '../../l10n/hui_localizations.dart';
 
 class IdentityRulesEditor extends StatelessWidget {
   const IdentityRulesEditor({required this.store, super.key});
@@ -91,6 +94,15 @@ class IdentityRulesEditor extends StatelessWidget {
   ];
 
   List<Widget> _nameplate(GlossNameplatePresentation value) => <Widget>[
+    ExtrasEditor(title: huiText('Presentation'), extensionKeys: false,
+      extras: <String, Object?>{'healthBar': value.healthBar.toJson(), 'style': value.style.toJson(), 'box': value.box.toJson(), 'relations': value.relations.map((GlossNameplateRelation relation) => relation.toJson()).toList()},
+      onChanged: (String label, Map<String, dynamic> next) => _change(label, () {
+        value.healthBar = GlossHealthBar.fromJson(next['healthBar']);
+        value.style = HuiIconStyle.fromJsonOrNull(next['style']) ?? defaultHologramDisplayStyle();
+        value.box = GlossHologramBox.fromJson(next['box']);
+        value.relations = <GlossNameplateRelation>[for (final Object? raw in huiReadList(next['relations'])) GlossNameplateRelation.fromJson(raw, 'relations')];
+      }),
+    ),
     for (int index = 0; index < value.lines.length; index++) ...<Widget>[
       _text(
         'Line ${index + 1}',

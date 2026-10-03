@@ -177,7 +177,7 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
           'The saved document "{title}" was unreadable ({error}) and was replaced with a blank marker.',
           arguments,
         ),
-        WorkspaceDocKind.names => 'Names: $title ($resolvedError)',
+        WorkspaceDocKind.names || WorkspaceDocKind.strings || WorkspaceDocKind.waypoint => '$noun: $title ($resolvedError)',
         WorkspaceDocKind.menu ||
         WorkspaceDocKind.containerPreview ||
         WorkspaceDocKind.panel => throw StateError(
@@ -251,7 +251,7 @@ abstract class GlossDocumentTypeAdapter extends DocumentTypeAdapter {
         'The saved document "{title}" was unreadable and was replaced with a blank marker.',
         arguments,
       ),
-      WorkspaceDocKind.names => 'Names: $title',
+      WorkspaceDocKind.names || WorkspaceDocKind.strings || WorkspaceDocKind.waypoint => '$noun: $title',
       WorkspaceDocKind.menu ||
       WorkspaceDocKind.containerPreview ||
       WorkspaceDocKind.panel => throw StateError(

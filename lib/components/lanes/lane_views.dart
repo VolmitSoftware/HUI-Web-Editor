@@ -261,7 +261,12 @@ class _PlayerIdentityViewState extends State<PlayerIdentityView> {
         }
         for (final GlossNameplateLine line in presentation.lines) {
           if (glossShowMatches(line.show, scope: scope)) {
-            lines.add('$relationColor${line.text}');
+            final double health = (scope.variable('subject.health') as num?)?.toDouble() ?? 18;
+            final double maximum = (scope.variable('subject.maxHealth') as num?)?.toDouble() ?? 20;
+            final String text = line.text.replaceAll('{bar}', presentation.healthBar.render(10, health, maximum, health))
+                .replaceAll('{health}', presentation.healthBar.number(health))
+                .replaceAll('{max_health}', presentation.healthBar.number(maximum));
+            lines.add('$relationColor$text');
           }
         }
       }

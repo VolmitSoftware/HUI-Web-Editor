@@ -173,6 +173,8 @@ enum DocumentSurface {
   nametag,
   marker,
   names,
+  strings,
+  waypoint,
 }
 
 /// One heading-plus-grid section of a kind's template tab.

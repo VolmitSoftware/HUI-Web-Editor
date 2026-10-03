@@ -18,6 +18,7 @@ class HuiMenu {
   bool closeOnDeath;
   bool closeOnTeleport;
   List<HuiComponent> components;
+  List<HuiMenuVariant> variants;
   List<GlossParticleLayer> particleLayers;
   bool particleLayersPresent = false;
   Map<String, dynamic> extras = <String, dynamic>{};
@@ -37,9 +38,11 @@ class HuiMenu {
     this.closeOnDeath = false,
     this.closeOnTeleport = false,
     List<HuiComponent>? components,
+    List<HuiMenuVariant>? variants,
     List<GlossParticleLayer>? particleLayers,
   }) : offset = offset ?? Vec3.zero(),
        components = components ?? <HuiComponent>[],
+       variants = variants ?? <HuiMenuVariant>[],
        particleLayers = particleLayers ?? <GlossParticleLayer>[];
 
   HuiComponent? componentById(String id) {
@@ -62,6 +65,9 @@ class HuiMenu {
       closeOnTeleport: closeOnTeleport,
       components: components.map((HuiComponent c) => c.copy()).toList(),
       particleLayers: glossCopyParticleLayers(particleLayers),
+      variants: <HuiMenuVariant>[
+        for (final HuiMenuVariant variant in variants) variant.copy(),
+      ],
     );
     copied.extras = huiDeepCopyMap(extras);
     copied.particleLayersPresent = particleLayersPresent;
@@ -78,6 +84,11 @@ class HuiMenu {
     out['closeOnDeath'] = closeOnDeath;
     out['closeOnTeleport'] = closeOnTeleport;
     out['components'] = components.map((HuiComponent c) => c.toJson()).toList();
+    if (variants.isNotEmpty) {
+      out['variants'] = <Map<String, Object?>>[
+        for (final HuiMenuVariant variant in variants) variant.toJson(),
+      ];
+    }
     if (particleLayersPresent || particleLayers.isNotEmpty) {
       out['particleLayers'] = glossWriteParticleLayers(particleLayers);
     }
@@ -94,6 +105,7 @@ class HuiMenu {
     'closeOnDeath',
     'closeOnTeleport',
     'components',
+    'variants',
     'particleLayers',
     'id',
   };
@@ -115,6 +127,10 @@ class HuiMenu {
       closeOnDeath: huiReadBool(map, 'closeOnDeath'),
       closeOnTeleport: huiReadBool(map, 'closeOnTeleport'),
       components: components,
+      variants: <HuiMenuVariant>[
+        for (final Object? variant in huiReadList(map['variants']))
+          HuiMenuVariant.fromJson(variant),
+      ],
       particleLayers: glossReadParticleLayers(map['particleLayers']),
     );
     menu.extras = huiCollectExtras(map, _known);
@@ -125,4 +141,58 @@ class HuiMenu {
     menu.particleLayersPresent = map.containsKey('particleLayers');
     return menu;
   }
+}
+
+class HuiMenuVariant {
+  HuiMenuVariant({
+    this.id = '',
+    this.priority = 0,
+    this.when = 'true',
+    List<HuiComponent>? components,
+    this.particleLayers,
+    Map<String, Object?>? extras,
+  }) : components = components ?? <HuiComponent>[],
+       extras = extras ?? <String, Object?>{};
+  String id;
+  int priority;
+  Object? when;
+  List<HuiComponent> components;
+  List<GlossParticleLayer>? particleLayers;
+  Map<String, Object?> extras;
+
+  static HuiMenuVariant fromJson(Object? raw) {
+    final Map<String, Object?> map = huiReadObject(raw, r'$');
+    return HuiMenuVariant(
+      id: huiReadString(map, 'id'),
+      priority: huiReadInt(map, 'priority'),
+      when: map['when'],
+      components: <HuiComponent>[
+        for (final Object? component in huiReadList(map['components']))
+          HuiComponent.fromJson(component),
+      ],
+      particleLayers: map['particleLayers'] == null
+          ? null
+          : glossReadParticleLayers(map['particleLayers']),
+      extras: huiCollectExtras(map, <String>{
+        'id',
+        'priority',
+        'when',
+        'components',
+        'particleLayers',
+      }),
+    );
+  }
+
+  Map<String, Object?> toJson() => huiMergeExtras(<String, Object?>{
+    'id': id,
+    'priority': priority,
+    'when': when,
+    'components': <Map<String, Object?>>[
+      for (final HuiComponent component in components) component.toJson(),
+    ],
+    if (particleLayers != null)
+      'particleLayers': glossWriteParticleLayers(particleLayers!),
+  }, extras);
+
+  HuiMenuVariant copy() => HuiMenuVariant.fromJson(huiDeepCopy(toJson()));
 }

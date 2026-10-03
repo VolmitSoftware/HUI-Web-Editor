@@ -47,7 +47,11 @@ const List<String> glossConnectionsAudiences = <String>[
 ];
 
 /// The two sections a standalone server broadcasts, in file order.
-const List<String> glossConnectionsSectionKeys = <String>['join', 'leave'];
+const List<String> glossConnectionsSectionKeys = <String>[
+  'join',
+  'firstJoin',
+  'leave',
+];
 
 /// True when [json] has the shape of a connections document. Routing only —
 /// full checking is `validateConnectionsDoc`'s job.
@@ -65,6 +69,7 @@ bool looksLikeConnectionsDoc(Object? json) {
   }
   return json.containsKey('join') ||
       json.containsKey('leave') ||
+      json.containsKey('firstJoin') ||
       json.containsKey('switch');
 }
 
@@ -91,6 +96,7 @@ const Set<String> _docKnown = <String>{
   'revision',
   'join',
   'leave',
+  'firstJoin',
 };
 
 const Set<String> _sectionKnown = <String>{
@@ -257,15 +263,18 @@ final class GlossConnectionsDoc extends GlossDoc {
     super.revision = glossInitialRevision,
     GlossConnectionsSection? join,
     GlossConnectionsSection? leave,
+    GlossConnectionsSection? firstJoin,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
   }) : join = join ?? GlossConnectionsSection(),
        leave = leave ?? GlossConnectionsSection(),
+       firstJoin = firstJoin ?? GlossConnectionsSection.absent(),
        extras = extras ?? <String, dynamic>{},
        absentKeys = absentKeys ?? <String>{};
 
   GlossConnectionsSection join;
   GlossConnectionsSection leave;
+  GlossConnectionsSection firstJoin;
 
   /// Carries the document `show` the way every other Gloss kind does, plus
   /// the proxy's `switch` block.
@@ -274,7 +283,11 @@ final class GlossConnectionsDoc extends GlossDoc {
   Set<String> absentKeys;
 
   /// The section named by [key], for the inspector and the preview.
-  GlossConnectionsSection section(String key) => key == 'leave' ? leave : join;
+  GlossConnectionsSection section(String key) => switch (key) {
+    'leave' => leave,
+    'firstJoin' => firstJoin,
+    _ => join,
+  };
 
   static GlossConnectionsDoc fromJson(Object? raw) {
     final Map<String, dynamic> map = huiReadObject(raw, r'$');
@@ -284,6 +297,10 @@ final class GlossConnectionsDoc extends GlossDoc {
       revision: glossReadRevision(map),
       join: GlossConnectionsSection.fromJson(map['join'], r'$.join'),
       leave: GlossConnectionsSection.fromJson(map['leave'], r'$.leave'),
+      firstJoin: GlossConnectionsSection.fromJson(
+        map['firstJoin'],
+        r'$.firstJoin',
+      ),
       extras: huiCollectExtras(map, _docKnown),
       absentKeys: <String>{if (map['revision'] == null) 'revision'},
     );
@@ -296,6 +313,7 @@ final class GlossConnectionsDoc extends GlossDoc {
       if (!absentKeys.contains('revision')) 'revision': revision,
       if (join.present) 'join': join.toJson(),
       if (leave.present) 'leave': leave.toJson(),
+      if (firstJoin.present) 'firstJoin': firstJoin.toJson(),
     };
     return huiMergeExtras(out, extras);
   }
@@ -305,6 +323,7 @@ final class GlossConnectionsDoc extends GlossDoc {
     revision: revision,
     join: join.copy(),
     leave: leave.copy(),
+    firstJoin: firstJoin.copy(),
     extras: huiDeepCopyMap(extras),
     absentKeys: Set<String>.of(absentKeys),
   );
