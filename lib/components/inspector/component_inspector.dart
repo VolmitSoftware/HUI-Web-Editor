@@ -82,6 +82,143 @@ class ComponentInspector extends StatelessWidget {
         _extras(),
       ]);
 
+  void _editForm(String key, Object? value) {
+    store.editComponent(_id, key, (HuiComponent edited) {
+      final Map<String, Object?> json = edited.data.toJson();
+      json[key] = value;
+      edited.data = HuiComponentData.fromJson(json);
+    });
+  }
+
+  Widget _formText(
+    String label,
+    String key,
+    String value, {
+    bool multiline = false,
+  }) => HuiField(
+    label: huiText(label),
+    control: multiline
+        ? TextArea(
+            value: value,
+            rows: 2,
+            onChanged: (String next) => _editForm(key, next),
+          )
+        : TextInput(
+            value: value,
+            fullWidth: true,
+            onChanged: (String next) => _editForm(key, next),
+          ),
+  );
+
+  Widget _formNumber(
+    String label,
+    String key,
+    double value, {
+    bool integer = false,
+  }) => HuiField(
+    label: huiText(label),
+    control: HuiNumberField(
+      value: value,
+      integer: integer,
+      onChanged: (double next) => _editForm(key, integer ? next.toInt() : next),
+    ),
+  );
+
+  Widget _formControls(HuiRuntimeComponentData data) {
+    final Map<String, Object?> json = data.toJson();
+    return InspectorSection(
+      title: huiText('Component'),
+      children: <Widget>[
+        _formText(
+          huiText('Session variable'),
+          'var',
+          json['var'] as String? ?? '',
+        ),
+        if (data is HuiSliderData) ...<Widget>[
+          _formText('Label', 'label', data.label ?? '', multiline: true),
+          _formNumber(huiText('Minimum'), 'min', data.min ?? 0),
+          _formNumber(huiText('Maximum'), 'max', data.max ?? 100),
+          _formNumber('Step', 'step', data.step ?? 1),
+          _formNumber('Click width', 'width', data.width ?? 2),
+        ],
+        if (data is HuiFieldData) ...<Widget>[
+          _formText('Label', 'label', data.label ?? '', multiline: true),
+          _formText(huiText('Initial value'), 'initial', data.initial ?? ''),
+          HuiField(
+            label: huiText('Type'),
+            control: ArcaneSelect(
+              value: data.prompt ?? 'sign',
+              fullWidth: true,
+              size: ComponentSize.sm,
+              options: <ArcaneSelectOption>[
+                for (final String prompt in <String>['sign', 'anvil', 'chat'])
+                  ArcaneSelectOption(label: prompt, value: prompt),
+              ],
+              onChanged: (String next) => _editForm('prompt', next),
+            ),
+          ),
+        ],
+        if (data is HuiTabsData) ...<Widget>[
+          _formNumber('Spacing', 'spacing', data.spacing ?? 1),
+          for (
+            int index = 0;
+            index < (data.tabs?.length ?? 0);
+            index++
+          ) ...<Widget>[
+            HuiField(
+              label: huiText('Name'),
+              control: TextInput(
+                value: data.tabs![index].id,
+                fullWidth: true,
+                onChanged: (String value) => _editTab(data, index, 'id', value),
+              ),
+            ),
+            HuiField(
+              label: huiText('Label'),
+              control: TextInput(
+                value: data.tabs![index].label ?? data.tabs![index].id,
+                fullWidth: true,
+                onChanged: (String value) =>
+                    _editTab(data, index, 'label', value),
+              ),
+            ),
+          ],
+          Button(
+            label: huiText('Add'),
+            variant: ButtonVariant.outline,
+            onPressed: () {
+              final List<Object?> tabs = <Object?>[
+                for (final HuiTab tab in data.tabs ?? <HuiTab>[]) tab.toJson(),
+              ];
+              tabs.add(<String, Object?>{
+                'id': 'tab-${tabs.length + 1}',
+                'label': 'New tab',
+              });
+              _editForm('tabs', tabs);
+            },
+          ),
+        ],
+        if (data is HuiListData) ...<Widget>[
+          _formText(huiText('Source expression'), 'source', data.source ?? ''),
+          _formNumber(
+            'Page size',
+            'pageSize',
+            (data.pageSize ?? 6).toDouble(),
+            integer: true,
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _editTab(HuiTabsData data, int index, String key, String value) {
+    final List<Object?> tabs = data.tabs!
+        .map((HuiTab tab) => tab.toJson())
+        .toList();
+    (tabs[index] as Map<String, Object?>)[key] = value;
+    _editForm('tabs', tabs);
+  }
+
   Widget _placement() => InspectorSection(
     title: huiText('Offset'),
     children: <Widget>[
@@ -129,11 +266,23 @@ class ComponentInspector extends StatelessWidget {
         _iconEditor(IconSlot.icon),
         _highlight(data),
         _hitbox(data),
-        ExtrasEditor(title: huiText('Tooltip'), extensionKeys: false,
-          extras: huiReadObject(data.extras['tooltip'] ?? <String, Object?>{'delayTicks': 10, 'lines': <String>[], 'style': <String, Object?>{}, 'box': <String, Object?>{}}, 'tooltip'),
-          onChanged: (String label, Map<String, dynamic> next) => store.editComponent(_id, label, (HuiComponent edited) {
-            edited.data.extras['tooltip'] = huiDeepCopyMap(next);
-          }),
+        ExtrasEditor(
+          title: huiText('Tooltip'),
+          extensionKeys: false,
+          extras: huiReadObject(
+            data.extras['tooltip'] ??
+                <String, Object?>{
+                  'delayTicks': 10,
+                  'lines': <String>[],
+                  'style': <String, Object?>{},
+                  'box': <String, Object?>{},
+                },
+            'tooltip',
+          ),
+          onChanged: (String label, Map<String, dynamic> next) =>
+              store.editComponent(_id, label, (HuiComponent edited) {
+                edited.data.extras['tooltip'] = huiDeepCopyMap(next);
+              }),
         ),
 
         ActionsEditor(
@@ -171,6 +320,7 @@ class ComponentInspector extends StatelessWidget {
     }
     if (data is HuiRuntimeComponentData) {
       return <Widget>[
+        _formControls(data),
         ExtrasEditor(
           title: huiText('Component'),
           extensionKeys: false,

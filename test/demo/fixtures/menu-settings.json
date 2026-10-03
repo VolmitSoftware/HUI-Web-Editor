@@ -1,0 +1,161 @@
+{
+  "offset": [0, 1.7, 2.5],
+  "lockPosition": false,
+  "followPlayer": true,
+  "closeOnDeath": true,
+  "closeOnTeleport": true,
+  "components": [
+    {
+      "id": "title",
+      "offset": [0, 0.95, 0],
+      "data": {
+        "type": "decoration",
+        "icon": {
+          "type": "text",
+          "text": "&d&lPlayer Settings\n&7Click a row to switch it"
+        }
+      }
+    },
+    {
+      "id": "flight",
+      "offset": [0, 0.4, 0],
+      "data": {
+        "type": "toggle",
+        "highlightModifier": 0.05,
+        "condition": "%essentials_fly%",
+        "expectedValue": "true",
+        "hitbox": {
+          "width": 1.5,
+          "height": 0.3
+        },
+        "hoverDurationTicks": 6,
+        "hoverEasing": "ease_in_out_cubic",
+        "trueIcon": {
+          "type": "text",
+          "text": "&a[ON]  &fFlight"
+        },
+        "falseIcon": {
+          "type": "text",
+          "text": "&8[OFF] &7Flight"
+        },
+        "trueActions": [
+          {
+            "type": "command",
+            "source": "player",
+            "command": "/fly on"
+          },
+          {
+            "type": "sound",
+            "sound": "block.note_block.harp",
+            "source": "master",
+            "volume": 1,
+            "pitch": 1.5
+          }
+        ],
+        "falseActions": [
+          {
+            "type": "command",
+            "source": "player",
+            "command": "/fly off"
+          },
+          {
+            "type": "sound",
+            "sound": "block.note_block.harp",
+            "source": "master",
+            "volume": 1,
+            "pitch": 0.8
+          }
+        ]
+      }
+    },
+    {
+      "id": "godmode",
+      "offset": [0, 0.1, 0],
+      "data": {
+        "type": "toggle",
+        "highlightModifier": 0.05,
+        "condition": "%essentials_godmode%",
+        "expectedValue": "true",
+        "hitbox": {
+          "width": 1.5,
+          "height": 0.3
+        },
+        "hoverDurationTicks": 3,
+        "hoverEasing": "back_out",
+        "trueIcon": {
+          "type": "text",
+          "text": "&a[ON]  &fGod mode"
+        },
+        "falseIcon": {
+          "type": "text",
+          "text": "&8[OFF] &7God mode"
+        },
+        "trueActions": [
+          {
+            "type": "command",
+            "source": "player",
+            "command": "/god on"
+          },
+          {
+            "type": "sound",
+            "sound": "block.note_block.harp",
+            "source": "master",
+            "volume": 1,
+            "pitch": 1.5
+          }
+        ],
+        "falseActions": [
+          {
+            "type": "command",
+            "source": "player",
+            "command": "/god off"
+          },
+          {
+            "type": "sound",
+            "sound": "block.note_block.harp",
+            "source": "master",
+            "volume": 1,
+            "pitch": 0.8
+          }
+        ]
+      }
+    },
+    {
+      "id": "note",
+      "offset": [0, -0.3, 0],
+      "data": {
+        "type": "decoration",
+        "icon": {
+          "type": "text",
+          "text": "&7Conditions are read once, when the menu opens.\n&8Requires EssentialsX and the PAPI Essentials expansion."
+        }
+      }
+    },
+    {
+      "id": "close",
+      "offset": [0, -0.8, 0],
+      "data": {
+        "type": "button",
+        "highlightModifier": 0.05,
+        "icon": {
+          "type": "text",
+          "text": "&c[ Close ]"
+        },
+        "actions": [
+          {
+            "type": "command",
+            "source": "player",
+            "command": "/gloss menu close"
+          },
+          {
+            "type": "sound",
+            "sound": "block.note_block.bass",
+            "source": "master",
+            "volume": 1,
+            "pitch": 1
+          }
+        ]
+      }
+    }
+  ]
+}

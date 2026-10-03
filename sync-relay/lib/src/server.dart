@@ -31,7 +31,8 @@ final class GlossSyncRelay {
       <String, List<DateTime>>{};
   final Map<String, List<DateTime>> _createsByPrincipal =
       <String, List<DateTime>>{};
-  final Map<String, _HistoryExchange> _historyExchanges = <String, _HistoryExchange>{};
+  final Map<String, _HistoryExchange> _historyExchanges =
+      <String, _HistoryExchange>{};
   Future<void> _sessionCreationTail = Future<void>.value();
   Timer? _cleanupTimer;
   Future<void>? _cleanupTask;
@@ -392,9 +393,7 @@ final class GlossSyncRelay {
       key.token,
       () => _HistoryExchange(key),
     );
-    final Map<String, Object?>? answer = await exchange.wait(
-      _historyTimeout,
-    );
+    final Map<String, Object?>? answer = await exchange.wait(_historyTimeout);
     if (identical(_historyExchanges[key.token], exchange) && exchange.settled) {
       _historyExchanges.remove(key.token);
     }
@@ -705,6 +704,7 @@ final class GlossSyncRelay {
       final Object? id = entry['id'];
       final Object? json = entry['json'];
       final Object? revision = entry['revision'];
+      final Object? baseRevision = entry['baseRevision'];
       if (entryKind is! String ||
           !relayKindSlug.hasMatch(entryKind) ||
           id is! String ||
@@ -712,6 +712,9 @@ final class GlossSyncRelay {
           id.length > relayMaximumDocumentIdChars ||
           json is! String ||
           json.isEmpty ||
+          (entry.containsKey('baseRevision') &&
+              (baseRevision is! String ||
+                  !relayRevisionPattern.hasMatch(baseRevision))) ||
           (revision != null &&
               (revision is! int ||
                   revision < 1 ||
@@ -721,6 +724,7 @@ final class GlossSyncRelay {
                 key != 'kind' &&
                 key != 'id' &&
                 key != 'revision' &&
+                key != 'baseRevision' &&
                 key != 'json',
           )) {
         throw const RelayProblem(400, 'invalid_project_documents');
@@ -987,6 +991,7 @@ final class _HistoryExchange {
         test: (Object error) => error is TimeoutException,
       );
 }
+
 const String _missingCreateTokenHash =
     '0000000000000000000000000000000000000000000000000000000000000000';
 

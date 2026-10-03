@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "title": "&8Chest",
+  "resolution": "9x3",
+  "mask": [
+    "#########",
+    "#.......#",
+    "#########"
+  ],
+  "keys": {
+    "#": {
+      "type": "decoration",
+      "icon": {
+        "type": "item",
+        "item": "minecraft:gray_stained_glass_pane",
+        "name": " "
+      }
+    }
+  },
+  "closeOnTeleport": true,
+  "select": {
+    "priority": 0,
+    "when": "true"
+  },
+  "variants": [],
+  "show": true
+}

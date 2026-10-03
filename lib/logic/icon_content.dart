@@ -12,6 +12,7 @@ library;
 import '../model/model.dart';
 import 'canvas_scene.dart';
 import 'mc_text.dart';
+import 'gloss_particle_text.dart';
 
 /// Cache key for the bitmap of [item] at a given rasterization scale.
 ///
@@ -40,7 +41,19 @@ String spriteCacheKey(
       final HuiIcon? icon = item.icon;
       key
         ..write('|')
-        ..write(icon is HuiTextIcon ? icon.text : '');
+        ..write(
+          item.text?.renderedText ?? (icon is HuiTextIcon ? icon.text : ''),
+        );
+      for (final GlossParticleTextSpan span
+          in item.text?.particleSpans ?? const <GlossParticleTextSpan>[]) {
+        key
+          ..write('|p')
+          ..write(span.name)
+          ..write(':')
+          ..write(span.start)
+          ..write(':')
+          ..write(span.end);
+      }
       if (_hasObfuscatedSpan(item.text)) {
         key
           ..write('|o')

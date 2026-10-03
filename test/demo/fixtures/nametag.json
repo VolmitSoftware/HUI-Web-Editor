@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "select": {
+    "priority": 0,
+    "when": "true",
+    "permission": "gloss.nametag.default"
+  },
+  "presentation": {
+    "prefix": "&7[{{ subject.group }}] ",
+    "suffix": "",
+    "color": "white",
+    "nameTagVisibility": "always",
+    "collision": "always"
+  },
+  "variants": [
+    {
+      "id": "staff",
+      "priority": 10,
+      "when": "true",
+      "presentation": {
+        "prefix": "&c[Staff] ",
+        "suffix": " &c*",
+        "color": "red",
+        "nameTagVisibility": "always",
+        "collision": "never"
+      },
+      "permission": "gloss.nametag.staff"
+    }
+  ],
+  "show": "true"
+}

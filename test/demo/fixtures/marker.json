@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "anchor": {
+    "world": "world",
+    "x": 0,
+    "y": 64,
+    "z": 0
+  },
+  "label": "&6Waypoint",
+  "style": {
+    "billboard": "center",
+    "shadow": false,
+    "seeThrough": true,
+    "textAlignment": "center",
+    "backgroundArgb": "#00000000",
+    "textOpacity": 255,
+    "lineWidth": 16384,
+    "viewRange": 1,
+    "shadowRadius": 0,
+    "shadowStrength": 0,
+    "cullingWidth": 0,
+    "cullingHeight": 0,
+    "scaleX": 1,
+    "scaleY": 1,
+    "scaleZ": 1
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
+  },
+  "color": "#FFAA00",
+  "hideWithin": 4,
+  "maxDistance": 256,
+  "beam": {
+    "enabled": true,
+    "height": 48,
+    "width": 0.25,
+    "material": "minecraft:yellow_stained_glass"
+  },
+  "edge": {
+    "enabled": false,
+    "margin": 0.8,
+    "arrow": "&6>"
+  },
+  "trail": {
+    "color": "#ffffff",
+    "enabled": false,
+    "particle": "minecraft:end_rod",
+    "spacing": 2,
+    "maxPoints": 48
+  },
+  "lifetimeTicks": 0,
+  "waypoint": false,
+  "show": "true"
+}

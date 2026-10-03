@@ -31,19 +31,24 @@ enum McBillboardMode {
   horizontal,
   center;
 
-  static McBillboardMode parse(String value) => switch (value.trim().toUpperCase()) {
-    'VERTICAL' => McBillboardMode.vertical,
-    'HORIZONTAL' => McBillboardMode.horizontal,
-    'CENTER' => McBillboardMode.center,
-    _ => McBillboardMode.fixed,
-  };
+  static McBillboardMode parse(String value) =>
+      switch (value.trim().toUpperCase()) {
+        'VERTICAL' => McBillboardMode.vertical,
+        'HORIZONTAL' => McBillboardMode.horizontal,
+        'CENTER' => McBillboardMode.center,
+        _ => McBillboardMode.fixed,
+      };
 }
 
 String mcDomCameraTransform(
   McCamera camera, {
   double perspectivePx = huiPreviewPerspectivePx,
   double pxPerBlock = huiPreviewPxPerBlock,
-}) => mcCssCameraMatrix(camera, perspectivePx: perspectivePx, pxPerBlock: pxPerBlock);
+}) => mcCssCameraMatrix(
+  camera,
+  perspectivePx: perspectivePx,
+  pxPerBlock: pxPerBlock,
+);
 
 String mcDomAnchorTransform({
   required McCamera camera,
@@ -77,7 +82,7 @@ List<double> mcDomAnchorMatrix({
   double pitchDeg = 0,
   double pxPerBlock = huiPreviewPxPerBlock,
 }) => cssPlaneMatrix(
-  _anchorAim(
+  mcAnchorAim(
     camera: camera,
     position: position,
     billboard: billboard,
@@ -90,7 +95,7 @@ List<double> mcDomAnchorMatrix({
 /// A plate is readable by a viewer whose forward is `f` when its normal is
 /// `-f`, its right `up × normal` and its up `normal × right` — a right-handed
 /// basis whose +X lands on that viewer's right.
-PlaneAim _anchorAim({
+PlaneAim mcAnchorAim({
   required McCamera camera,
   required McVec3 position,
   required McBillboardMode billboard,
@@ -114,7 +119,8 @@ PlaneAim _anchorAim({
           : flat.normalized;
       final McVec3 right = McVec3.up.cross(facing).normalized;
       final double pitch = pitchDeg * _degToRad;
-      final McVec3 normal = facing * math.cos(pitch) - McVec3.up * math.sin(pitch);
+      final McVec3 normal =
+          facing * math.cos(pitch) - McVec3.up * math.sin(pitch);
       return _aim(position, normal, right, normal.cross(right));
 
     // Keeps the document's yaw and pitches toward the viewer about it.
@@ -151,9 +157,10 @@ McVec3 _horizontalRight(McVec3 normal) {
   return right.length <= 1e-9 ? const McVec3(1, 0, 0) : right.normalized;
 }
 
-PlaneAim _aim(McVec3 center, McVec3 normal, McVec3 right, McVec3 up) => PlaneAim(
-  center: PVec3(center.x, center.y, center.z),
-  normal: PVec3(normal.x, normal.y, normal.z),
-  right: PVec3(right.x, right.y, right.z),
-  up: PVec3(up.x, up.y, up.z),
-);
+PlaneAim _aim(McVec3 center, McVec3 normal, McVec3 right, McVec3 up) =>
+    PlaneAim(
+      center: PVec3(center.x, center.y, center.z),
+      normal: PVec3(normal.x, normal.y, normal.z),
+      right: PVec3(right.x, right.y, right.z),
+      up: PVec3(up.x, up.y, up.z),
+    );

@@ -22,6 +22,49 @@ const String _validPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==';
 
 void main() {
+  test('focused sync import and refresh adopt the already active document', () async {
+    final Workspace workspace = Workspace(autoLoad: false);
+    final ImageLibrary images = ImageLibrary(autoLoad: false);
+    final EditorStore store = EditorStore(workspace: workspace, images: images);
+    store.newDocument();
+    final String localId = workspace.activeId!;
+    store.mutate('local draft', (HuiMenu menu) => menu.offset.x = 7);
+    store.flushAutosave();
+    final EditorSyncProject first = EditorSyncProject.decode(_focusedProject(
+      kind: 'hologram', id: 'showcase', json: jsonEncode(GlossHologramDoc(lines: <Object?>['Initial'], anchor: GlossHologramAnchor(world: 'world'), extras: <String, dynamic>{'show': false}).toJson()), revision: 1,
+    ));
+    final EditorSyncBinding binding = await importEditorSyncProject(
+      capability: _binding(), project: first, workspace: workspace, images: images,
+    );
+    final String importedId = binding.firstDocumentId!;
+    expect(workspace.activeId, importedId);
+    expect(store.openDocument(importedId, refresh: true), isTrue);
+    expect(store.docKind, WorkspaceDocKind.hologram);
+    expect(store.hologramDoc!.lines, <String>['Initial']);
+    final EditorSyncProject updated = EditorSyncProject.decode(_focusedProject(
+      kind: 'hologram', id: 'showcase', json: jsonEncode(GlossHologramDoc(revision: 2, lines: <Object?>['Updated'], anchor: GlossHologramAnchor(world: 'world'), extras: <String, dynamic>{'show': true}).toJson()), revision: 2,
+    ));
+    store.mutateHologram('unsent draft', (GlossHologramDoc doc) => doc.lines = <Object?>['Local draft']);
+    store.flushAutosave();
+    final EditorSyncAppliedResolution pending = await resolveEditorSyncApplied(
+      binding: binding.copyWith(pendingContentRevision: first.baseRevision),
+      serverProject: updated, workspace: workspace, images: images,
+    );
+    expect(pending.decision, EditorSyncAppliedDecision.preserveLocalConflict);
+    expect(store.hologramDoc!.lines, <String>['Local draft']);
+    final EditorSyncBinding refreshed = await refreshEditorSyncProject(
+      binding: binding, project: updated, workspace: workspace, images: images,
+    );
+    expect(refreshed.baseRevision, updated.baseRevision);
+    expect(refreshed.baseRevision, isNot(binding.baseRevision));
+    expect(store.openDocument(importedId, refresh: true), isTrue);
+    expect(store.hologramDoc!.lines, <String>['Updated']);
+    expect(store.hologramDoc!.revision, 2);
+    store.openDocument(localId);
+    expect(store.menu.offset.x, 7);
+    store.dispose();
+  });
+
   test('v3 route accepts HTTPS and localhost relay endpoints', () {
     for (final Uri relay in <Uri>[
       Uri.parse('https://sync.gloss.volmitsoftware.com/v3'),

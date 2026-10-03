@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "select": {
+    "priority": 0,
+    "when": "true",
+    "permission": ""
+  },
+  "presentation": {
+    "lines": [
+      {
+        "text": "{{ subject.name }}",
+        "show": "true"
+      },
+      {
+        "text": "{{ bar(subject.health, subject.maxHealth, 10, '&c|', '&8|') }}",
+        "show": "subject.health < subject.maxHealth"
+      }
+    ],
+    "healthBar": {
+      "glyph": "|",
+      "emptyGlyph": "|",
+      "healthyColor": "&a",
+      "warningColor": "&e",
+      "criticalColor": "&c",
+      "damageColor": "&c",
+      "emptyColor": "&8",
+      "warningThreshold": 0.5,
+      "criticalThreshold": 0.25,
+      "decimals": 1
+    },
+    "style": {
+      "billboard": "center",
+      "shadow": false,
+      "seeThrough": true,
+      "textAlignment": "center",
+      "backgroundArgb": "#00000000",
+      "textOpacity": 255,
+      "lineWidth": 16384,
+      "viewRange": 1,
+      "shadowRadius": 0,
+      "shadowStrength": 0,
+      "cullingWidth": 0,
+      "cullingHeight": 0,
+      "scaleX": 1,
+      "scaleY": 1,
+      "scaleZ": 1
+    },
+    "box": {
+      "enabled": false,
+      "padding": 4,
+      "borderWidth": 1,
+      "backgroundArgb": "#B31B1B22",
+      "borderArgb": "#FFAAAAAA"
+    },
+    "offset": 0.3,
+    "hideSneaking": true,
+    "relations": [
+      {
+        "when": "hasPermission('subject', 'server.staff')",
+        "color": "&c"
+      }
+    ]
+  },
+  "variants": [],
+  "show": "true"
+}

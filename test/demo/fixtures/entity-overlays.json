@@ -1,0 +1,94 @@
+{
+  "variants": [],
+  "schemaVersion": 2,
+  "revision": 1,
+  "enabled": true,
+  "range": 16,
+  "updateIntervalTicks": 5,
+  "maxEntitiesPerViewer": 16,
+  "maxActiveOverlays": 1024,
+  "includePlayers": true,
+  "verticalOffset": 0.35,
+  "healthSegments": 10,
+  "healthBar": {
+    "glyph": "|",
+    "emptyGlyph": "|",
+    "healthyColor": "&a",
+    "warningColor": "&e",
+    "criticalColor": "&c",
+    "damageColor": "&c",
+    "emptyColor": "&8",
+    "warningThreshold": 0.5,
+    "criticalThreshold": 0.25,
+    "decimals": 1
+  },
+  "hitHighlightMs": 750,
+  "blacklistWorlds": [],
+  "excludedEntityTypes": [
+    "ARMOR_STAND"
+  ],
+  "show": true,
+  "lines": [
+    {
+      "id": "name",
+      "type": "text",
+      "text": "&f{name}",
+      "show": "entity.named"
+    },
+    {
+      "id": "health",
+      "type": "text",
+      "text": "{bar} &f{health}&7/{max_health}",
+      "show": true
+    },
+    {
+      "id": "stack",
+      "type": "text",
+      "text": "&7x{count}",
+      "show": "entity.stackCount > 1"
+    },
+    {
+      "id": "damage",
+      "type": "text",
+      "text": "&c-{damage}",
+      "show": "entity.damaged"
+    },
+    {
+      "id": "insight",
+      "type": "insight",
+      "text": "{insight}",
+      "show": true
+    },
+    {
+      "id": "stats",
+      "type": "text",
+      "text": "&7ATK &f{attack} &8| &7ARM &f{armor}",
+      "show": true
+    }
+  ],
+  "style": {
+    "billboard": "center",
+    "shadow": false,
+    "seeThrough": false,
+    "textAlignment": "center",
+    "backgroundArgb": "#00000000",
+    "textOpacity": 255,
+    "lineWidth": 16384,
+    "viewRange": 1,
+    "shadowRadius": 0,
+    "shadowStrength": 0,
+    "cullingWidth": 0,
+    "cullingHeight": 0,
+    "scaleX": 0.75,
+    "scaleY": 0.75,
+    "scaleZ": 0.75
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
+  },
+  "particleLayers": []
+}

@@ -1,0 +1,122 @@
+{
+  "show": true,
+  "schemaVersion": 4,
+  "revision": 1,
+  "presentation": {
+    "limits": {
+      "updateIntervalTicks": 2,
+      "settledPollIntervalTicks": 20,
+      "maxVisualsPerStack": 3,
+      "maxVisualsPerChunk": 128,
+      "viewRange": 32,
+      "spread": 0.18
+    },
+    "scale": {
+      "defaultScale": 0.4,
+      "flatItems": 0.65,
+      "thinBlocks": 0.45
+    },
+    "motion": {
+      "tumble": true,
+      "speedMultiplier": 1.35,
+      "degreesPerSecondX": 160,
+      "degreesPerSecondY": 120,
+      "degreesPerSecondZ": 100,
+      "variance": 0.2,
+      "changeOnBounce": true,
+      "velocityInfluence": 0.35,
+      "submergedSpinMultiplier": 0.35,
+      "groundRollMultiplier": 1
+    },
+    "landing": {
+      "mode": "NATURAL",
+      "tiltDegrees": 10,
+      "randomYaw": true,
+      "transitionTicks": 4,
+      "faceAttraction": 0.55,
+      "movingFaceAttraction": 0.15,
+      "alignmentDegrees": 0.5,
+      "settleDelayTicks": 4
+    },
+    "labels": {
+      "enabled": true,
+      "yOffset": 0.55,
+      "format": "&7{count}x {type}",
+      "useItemDisplayNames": false,
+      "names": {},
+      "bundle": {
+        "format": "&7Bundle &8(&7{total} items&8): &7{contents}",
+        "entryLimit": 3,
+        "vertical": true,
+        "headerFormat": "&eBundle &8(&e{total} items&8)",
+        "entryFormat": "&7- &f{count}x {type}",
+        "moreFormat": "&8+{remaining} more"
+      },
+      "style": {
+        "billboard": "center",
+        "shadow": true,
+        "seeThrough": true,
+        "textAlignment": "center",
+        "backgroundArgb": "#50000000",
+        "textOpacity": 255,
+        "lineWidth": 16384,
+        "viewRange": 0.5,
+        "shadowRadius": 0,
+        "shadowStrength": 0,
+        "cullingWidth": 0,
+        "cullingHeight": 0,
+        "scaleX": 0.85,
+        "scaleY": 0.85,
+        "scaleZ": 0.85
+      },
+      "box": {
+        "enabled": false,
+        "padding": 4,
+        "borderWidth": 1,
+        "backgroundArgb": "#B31B1B22",
+        "borderArgb": "#FFAAAAAA"
+      }
+    },
+    "filters": {
+      "disabledWorlds": [],
+      "materialBlacklist": [
+        "BEDROCK",
+        "BARRIER"
+      ],
+      "onlyPlayerDrops": false
+    },
+    "physics": {
+      "enabled": false,
+      "gravityMultiplier": 1,
+      "bounce": 0,
+      "waterBuoyancy": 0,
+      "waterDrag": 0
+    },
+    "script": {
+      "enabled": false,
+      "vars": {},
+      "offset": {
+        "x": "0",
+        "y": "0",
+        "z": "0"
+      },
+      "rotation": {
+        "x": "0",
+        "y": "0",
+        "z": "0"
+      },
+      "scale": {
+        "x": "1",
+        "y": "1",
+        "z": "1"
+      },
+      "glow": "",
+      "visible": "true"
+    },
+    "particleLayers": []
+  },
+  "variants": [],
+  "audience": {
+    "when": "true"
+  }
+}

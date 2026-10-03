@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "locale": "en_US",
+  "fallback": "",
+  "entries": {
+    "welcome": "Welcome, {player}",
+    "shop": "Market"
+  }
+}

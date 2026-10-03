@@ -1,5 +1,6 @@
 import 'package:arcane_jaspr/arcane_jaspr.dart';
 import 'package:jaspr/dom.dart' as dom;
+import 'package:jaspr/jaspr.dart' show ListenableBuilder;
 
 import '../../l10n/hui_localizations.dart';
 import '../../model/model.dart';
@@ -217,7 +218,12 @@ class CatalogDocumentView extends StatelessWidget {
   final EditorStore store;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: store,
+    builder: (BuildContext context) => _content(),
+  );
+
+  Widget _content() {
     final GlossDoc? doc = store.glossDoc;
     return dom.div(classes: 'hui-inspector-body', <Widget>[
       if (doc is GlossStringsDoc)

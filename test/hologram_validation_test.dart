@@ -95,6 +95,25 @@ void main() {
   });
 
   group('warnings — loads but misbehaves', () {
+    test('page-only text and object lines do not report an empty hologram', () {
+      final GlossHologramDoc doc = _valid()..lines.clear();
+      doc.extras['pages'] = <Object?>[
+        <String, Object?>{'id': 'empty', 'lines': <Object?>[]},
+        <String, Object?>{
+          'id': 'mixed',
+          'lines': <Object?>[
+            'Title',
+            <String, Object?>{'block': 'minecraft:amethyst_block'},
+          ],
+        },
+      ];
+      expect(_warnings(validateHologramDoc(doc)), isNot(contains(r'$.lines')));
+      doc.extras['pages'] = <Object?>[
+        <String, Object?>{'id': 'empty', 'lines': <Object?>[]},
+      ];
+      expect(_warnings(validateHologramDoc(doc)), contains(r'$.lines'));
+    });
+
     test('no lines renders nothing', () {
       final GlossHologramDoc doc = _valid()..lines.clear();
       final List<HuiIssue> issues = validateHologramDoc(doc);

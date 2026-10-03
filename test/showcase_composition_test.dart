@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:gloss_editor/config/showcase_flavor.dart';
 import 'package:gloss_editor/doctype/doctype.dart';
 import 'package:gloss_editor/logic/entity_overlay_preview.dart';
+import 'package:gloss_editor/logic/canvas_scene.dart';
+import 'package:gloss_editor/logic/hui_geometry.dart';
 import 'package:gloss_editor/logic/entity_overlay_validation.dart';
 import 'package:gloss_editor/logic/particle_layer_validation.dart';
 import 'package:gloss_editor/logic/preview_doc_validation.dart';
@@ -82,6 +84,37 @@ Iterable<HuiAction> _actions(HuiComponentData data) => switch (data) {
 };
 
 void main() {
+  test('composed menu bounds separate every generated component', () {
+    final EditorStore store = _store();
+    for (int seed = 0; seed < 128; seed++) {
+      final HuiMenu menu = buildRandomMenuShowcase(store, math.Random(seed));
+      menu.extras.remove('show');
+      for (final HuiComponent component in menu.components) {
+        component.extras.remove('show');
+      }
+      final Map<String, HuiRect> bounds = <String, HuiRect>{};
+      for (final bool toggled in <bool>[false, true]) {
+        final CanvasScene scene = buildCanvasScene(menu: menu, uiScale: 1,
+          trueRender: true, togglePreview: (String id) => toggled,
+          textCache: McTextCache(), images: store.images, catalogs: store.catalogs);
+        for (final CanvasItem item in scene.items) {
+          final HuiRect rect = spriteExtentFor(item, uiScale: 1, trueRender: true)
+              .translate(item.anchor.x, item.anchor.y);
+          final HuiRect? existing = bounds[item.selectionId];
+          bounds[item.selectionId] = existing == null ? rect : existing.union(rect);
+        }
+      }
+      final List<MapEntry<String, HuiRect>> entries = bounds.entries.toList();
+      for (int first = 0; first < entries.length; first++) {
+        for (int second = first + 1; second < entries.length; second++) {
+          expect(entries[first].value.overlaps(entries[second].value), isFalse,
+            reason: 'seed $seed: ${entries[first].key} overlaps ${entries[second].key}');
+        }
+      }
+    }
+    store.dispose();
+  });
+
   test(
     'typewriter uses the bounded native function for long and quoted text',
     () {

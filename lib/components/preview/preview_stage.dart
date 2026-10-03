@@ -35,6 +35,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:js_interop';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -313,7 +314,53 @@ class _PreviewStageState extends State<PreviewStage>
   @override
   Widget build(BuildContext context) {
     _schedulePostFrame();
-    return _stageTree;
+    return dom.div(
+      styles: const dom.Styles(raw: <String, String>{'display': 'contents'}),
+      <Widget>[
+        _stageTree,
+        ArcaneDialog(
+          id: 'hui-preview-field-dialog',
+          isOpen: _sim.pendingField != null,
+          onClose: () {
+            _sim.cancelField();
+            setState(() {});
+          },
+          title: huiText('Preview'),
+          maxWidth: 480,
+          actions: <Widget>[
+            Button(
+              variant: ButtonVariant.outline,
+              label: huiText('Cancel'),
+              onPressed: () {
+                _sim.cancelField();
+                setState(() {});
+              },
+            ),
+            Button(
+              label: huiText('Save'),
+              onPressed: () {
+                _sim.answerField(_fieldAnswer);
+                _canvasDirty = true;
+                _wake();
+                _markDirty();
+                setState(() {});
+              },
+            ),
+          ],
+          children: <Widget>[
+            Text(
+              '${huiText('Preview')} (${_sim.pendingField?.prompt ?? 'sign'})',
+            ),
+            TextInput(
+              value: _fieldAnswer,
+              onChanged: (String value) => _fieldAnswer = value,
+              placeholder: huiText('Value'),
+              fullWidth: true,
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   // --- PreviewStageController ------------------------------------------------
@@ -782,6 +829,9 @@ class _PreviewStageState extends State<PreviewStage>
         charCache: _charCache,
         animations: store.workspaceAnimations,
         emoji: store.workspaceEmoji,
+        expressionSamples: GlossTextExpressionSamples(
+          values: _sim.sessionValues,
+        ),
         animationTicks: _animationTicks,
       );
       _measureSceneClocks(canvas);
@@ -856,7 +906,8 @@ class _PreviewStageState extends State<PreviewStage>
       ..write('|')
       ..write(menu.followPlayer)
       ..write('|')
-      ..write(menu.lockPosition);
+      ..write(menu.lockPosition)
+      ..write(jsonEncode(menu.extras['vars']));
     for (final HuiComponent item in menu.components) {
       buffer
         ..write('|')
@@ -864,6 +915,7 @@ class _PreviewStageState extends State<PreviewStage>
         ..write(':');
       switch (item.data) {
         case HuiRuntimeComponentData():
+          buffer.write(jsonEncode(item.toJson()));
           break;
 
         case HuiButtonData(
@@ -1118,6 +1170,8 @@ class _PreviewStageState extends State<PreviewStage>
     _markDirty();
   }
 
+  String _fieldAnswer = '';
+
   void _fireClick(String trigger) {
     final List<ActionLogEntry> fired = _sim.click(
       trigger: trigger,
@@ -1125,6 +1179,10 @@ class _PreviewStageState extends State<PreviewStage>
     );
     if (fired.isEmpty) return;
     _pose.log.addAll(fired);
+    if (_sim.pendingField != null) {
+      _fieldAnswer = _sim.fieldInitial;
+      setState(() {});
+    }
     // A toggle just swapped its icon; the scene resolves toggle faces through
     // the simulation, so it has to be re-laid out.
     _canvasDirty = true;
@@ -1609,7 +1667,7 @@ class _PreviewStageState extends State<PreviewStage>
         'Left or right click fires the nearest hitbox',
       );
       web.document.getElementById(_axisHintId)?.textContent = huiText(
-        '+X is the player\'s RIGHT: Gloss negates the JSON x at load (MenuSession.java:70), so the menu is mirrored relative to the numbers in the file.',
+        '+X moves right; +Y moves up.',
       );
     }
     final String text = _playerMode

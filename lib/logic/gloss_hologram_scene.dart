@@ -10,7 +10,7 @@
 ///
 ///  * one text pixel is 1/40 block (`VANILLA_TEXT_BLOCKS_PER_PIXEL`, the same
 ///    constant `hui_geometry.dart` builds on),
-///  * a line advances 10 px — 8 px of glyph plus 1 px above and below — so
+///  * a line advances 10 px — 8 px of glyph plus spacing — so
 ///    one line is 0.25 blocks tall at display scale 1,
 ///  * the text block sits bottom-anchored just above the entity position and
 ///    grows upward, with vanilla's default 0x40000000 background behind it.
@@ -58,6 +58,12 @@ const double glossHologramViewRangeBaseBlocks = 64;
 
 /// Half-extent of the drawn ground grid, in blocks around the anchor.
 const int glossHologramGridRadiusBlocks = 8;
+
+double hologramBoxInsetBlocks(GlossHologramDoc doc) => doc.box.enabled
+    ? (doc.box.padding.clamp(0, 64) + doc.box.borderWidth.clamp(0, 16)) *
+          glossTextBlocksPerPixel *
+          doc.style.scaleY
+    : 0;
 
 /// Where the anchor lands on screen, and how large one block is there.
 final class HologramBillboardPlacement {
@@ -415,9 +421,17 @@ String hologramBillboardNote(String billboard) => switch (billboard) {
 /// document order — index 0 is the TOP of the stack, exactly like the joined
 /// `TextDisplay` string.
 GlossHologramDoc resolveHologramPreview(GlossHologramDoc doc, {int nowMs = 0}) {
-  final GlossPresentationVariant? variant = resolvePresentationVariant(doc.variants, nowMs: nowMs);
-  final Map<String, Object?> resolved = <String, Object?>{...doc.toJson(), ...?variant?.presentation, 'variants': <Object?>[]};
-  if (variant?.presentation.containsKey('lines') != true && doc.extras['pages'] is List) {
+  final GlossPresentationVariant? variant = resolvePresentationVariant(
+    doc.variants,
+    nowMs: nowMs,
+  );
+  final Map<String, Object?> resolved = <String, Object?>{
+    ...doc.toJson(),
+    ...?variant?.presentation,
+    'variants': <Object?>[],
+  };
+  if (variant?.presentation.containsKey('lines') != true &&
+      doc.extras['pages'] is List) {
     resolved['lines'] = <Object?>[];
     for (final Object? raw in huiReadList(doc.extras['pages'])) {
       final Map<String, Object?> page = huiReadObject(raw, 'pages');
@@ -435,15 +449,126 @@ GlossHologramDoc resolveHologramPreview(GlossHologramDoc doc, {int nowMs = 0}) {
   return GlossHologramDoc.fromJson(resolved);
 }
 
+final class HologramPreviewLine {
+  const HologramPreviewLine({
+    required this.source,
+    required this.kind,
+    required this.rows,
+    required this.height,
+    required this.centerY,
+  });
+  final Object? source;
+  final String kind;
+  final int rows;
+  final double height;
+  final double centerY;
+  bool get isText => kind == 'text';
+  String get value =>
+      source is Map ? (source as Map)[kind]?.toString() ?? '' : '';
+  double get scale => source is Map && (source as Map)['scale'] is num
+      ? ((source as Map)['scale'] as num).toDouble()
+      : 1;
+}
+
+List<HologramPreviewLine> hologramPreviewLines(
+  GlossHologramDoc doc, {
+  int nowMs = 0,
+  double Function(String entity)? entityHeight,
+  double Function(String entity)? entityWidth,
+}) {
+  if (!glossShowMatches(doc.extras['show'], nowMs: nowMs)) {
+    return const <HologramPreviewLine>[];
+  }
+  final GlossHologramDoc resolved = resolveHologramPreview(doc, nowMs: nowMs);
+  final double rowHeight = math.max(
+    .0001,
+    glossHologramLineHeightBlocks * resolved.style.scaleY,
+  );
+  final List<({Object? source, String kind, int rows, double height})>
+  measured = <({Object? source, String kind, int rows, double height})>[];
+  int totalRows = 0;
+  for (final Object? source in resolved.lines) {
+    final String kind = source is Map
+        ? <String>[
+            'text',
+            'item',
+            'head',
+            'block',
+            'entity',
+          ].firstWhere(source.containsKey, orElse: () => 'text')
+        : 'text';
+    final double scale = source is Map && source['scale'] is num
+        ? (source['scale'] as num).toDouble()
+        : 1;
+    final double height = kind == 'entity'
+        ? (entityHeight?.call((source as Map)['entity'].toString()) ?? 1) *
+              scale.clamp(.0625, 16)
+        : scale;
+    final double width = kind == 'entity'
+        ? (entityWidth?.call((source as Map)['entity'].toString()) ?? 0) *
+              scale.clamp(.0625, 16)
+        : 0;
+    final double reservedHeight = kind == 'entity'
+        ? math.sqrt(height * height + 2 * width * width)
+        : height;
+    final int rows = kind == 'text'
+        ? glossHologramLineText(source).split('\n').length
+        : math.max(1, (reservedHeight / rowHeight).ceil());
+    totalRows += rows;
+    measured.add((source: source, kind: kind, rows: rows, height: height));
+  }
+  double offset = totalRows * rowHeight;
+  return <HologramPreviewLine>[
+    for (final ({Object? source, String kind, int rows, double height}) line
+        in measured)
+      (() {
+        final double reserved = line.rows * rowHeight;
+        offset -= reserved / 2;
+        final HologramPreviewLine result = HologramPreviewLine(
+          source: line.source,
+          kind: line.kind,
+          rows: line.rows,
+          height: line.height,
+          centerY: offset,
+        );
+        offset -= reserved / 2;
+        return result;
+      })(),
+  ];
+}
+
 List<GlossLineRender> hologramRenderedLines(
   GlossHologramDoc doc, {
   GlossAnimationResolver animations = const GlossNoAnimations(),
   GlossEmojiResolver emoji = const GlossNoEmoji(),
   int nowMs = 0,
+  double Function(String entity)? entityHeight,
+  double Function(String entity)? entityWidth,
 }) => <GlossLineRender>[
-  if (glossShowMatches(doc.extras['show'], nowMs: nowMs))
-    for (final String line in resolveHologramPreview(doc, nowMs: nowMs).textLines)
-      renderGlossLine(line, animations: animations, emoji: emoji, nowMs: nowMs, richText: true),
+  for (final HologramPreviewLine line in hologramPreviewLines(
+    doc,
+    nowMs: nowMs,
+    entityHeight: entityHeight,
+    entityWidth: entityWidth,
+  ))
+    if (line.isText)
+      for (final String text in glossHologramLineText(line.source).split('\n'))
+        renderGlossLine(
+          text,
+          animations: animations,
+          emoji: emoji,
+          nowMs: nowMs,
+          richText: true,
+        )
+    else
+      for (int row = 0; row < line.rows; row++)
+        renderGlossLine(
+          '',
+          animations: animations,
+          emoji: emoji,
+          nowMs: nowMs,
+          richText: true,
+        ),
 ];
 
 /// True when any line plays an animation — the surface's ticker gate.

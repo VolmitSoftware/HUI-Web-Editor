@@ -197,25 +197,35 @@ extension _CanvasInteractions on _CanvasViewportState {
   ) {
     final EditorStore store = component.store;
     if (pointer.shiftKey) {
-      store.toggleInSelection(hit.id);
+      store.toggleInSelection(hit.selectionId);
       // A shift-click that REMOVED the component must not then drag it.
-      if (!store.isSelected(hit.id)) {
+      if (!store.isSelected(hit.selectionId)) {
         _dragMode = _DragMode.none;
         return;
       }
-    } else if (store.isSelected(hit.id)) {
+    } else if (store.isSelected(hit.selectionId)) {
       // Grabbing a member of a group keeps the group and re-primaries it, so
       // the inspector follows the pointer without the group collapsing.
-      store.addToSelection(hit.id);
+      store.addToSelection(hit.selectionId);
     } else {
-      store.select(hit.id);
+      store.select(hit.selectionId);
     }
 
     _dragMode = _DragMode.component;
-    _dragComponentId = hit.id;
+    _dragComponentId = hit.selectionId;
     // Preserve the grab point so the component does not jump to the cursor.
-    _grabOffsetX = world.x - hit.anchor.x;
-    _grabOffsetY = world.y - hit.anchor.y;
+    _grabOffsetX =
+        world.x -
+        ((store.menu.componentById(hit.selectionId)?.offset.x ??
+                    hit.component.offset.x) *
+                store.previewUiScale +
+            store.menu.offset.x);
+    _grabOffsetY =
+        world.y -
+        ((store.menu.componentById(hit.selectionId)?.offset.y ??
+                    hit.component.offset.y) *
+                store.previewUiScale +
+            store.menu.offset.y);
     // Deferred to the first pointer move: an alt-CLICK must not leave a
     // coincident copy behind, and the copies land exactly on their sources so
     // the grab point stays valid when it does happen.
@@ -260,10 +270,10 @@ extension _CanvasInteractions on _CanvasViewportState {
 
   void _beginHitboxDrag(CanvasItem hit, WorldPoint world) {
     final EditorStore store = component.store;
-    if (store.isSelected(hit.id)) {
-      store.addToSelection(hit.id);
+    if (store.isSelected(hit.selectionId)) {
+      store.addToSelection(hit.selectionId);
     } else {
-      store.select(hit.id);
+      store.select(hit.selectionId);
     }
     final HuiComponentData data = hit.component.data;
     final HuiHitbox? hitbox = switch (data) {
@@ -273,7 +283,7 @@ extension _CanvasInteractions on _CanvasViewportState {
     };
     if (hitbox == null) return;
     _dragMode = _DragMode.hitbox;
-    _dragComponentId = hit.id;
+    _dragComponentId = hit.selectionId;
     _grabOffsetX = world.x - hit.hitbox.x;
     _grabOffsetY = world.y - hit.hitbox.y;
     _hitboxDragStart = hitbox.offset.copy();
@@ -533,10 +543,10 @@ extension _CanvasInteractions on _CanvasViewportState {
     event.preventDefault();
     // Re-primary rather than replace when it is already a member: double-click
     // means "edit this one", not "throw away the group I just built".
-    if (component.store.isSelected(hit.id)) {
-      component.store.addToSelection(hit.id);
+    if (component.store.isSelected(hit.selectionId)) {
+      component.store.addToSelection(hit.selectionId);
     } else {
-      component.store.select(hit.id);
+      component.store.select(hit.selectionId);
     }
     // Advisory: the inspector may listen for this to pull focus. Nothing
     // depends on anyone handling it.

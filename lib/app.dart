@@ -520,6 +520,7 @@ class _AppState extends State<App> {
     final EditorSyncBinding? capability = _syncImportCapability;
     final EditorSyncSession? session = _syncImportSession;
     if (capability == null || session == null) return;
+    _store.flushAutosave();
     try {
       final EditorSyncBinding binding = await importEditorSyncProject(
         capability: capability,
@@ -536,7 +537,7 @@ class _AppState extends State<App> {
         _syncError = null;
       });
       final String? first = binding.firstDocumentId;
-      if (first != null) _store.openDocument(first);
+      if (first != null) _store.openDocument(first, refresh: true);
       if (durable) {
         _syncWorkspaceHash(replace: true);
       } else {
@@ -582,6 +583,9 @@ class _AppState extends State<App> {
       EditorSyncBinding next = captured;
       if (session.status == EditorSyncStatus.applied &&
           session.baseRevision != captured.baseRevision) {
+        _store.flushAutosave();
+        await _store.workspace.writesSettled;
+        if (!mounted || !_syncPollGate.shouldApply(captured, _syncBinding)) return;
         final EditorSyncAppliedResolution resolution =
             await resolveEditorSyncApplied(
               binding: captured,
@@ -591,6 +595,10 @@ class _AppState extends State<App> {
             );
         if (resolution.decision == EditorSyncAppliedDecision.reconcile) {
           next = resolution.binding;
+          final String? active = _store.workspace.activeId;
+          if (active != null && next.documentIds.values.contains(active)) {
+            _store.openDocument(active, refresh: true);
+          }
           _persistSyncBinding(next);
         } else {
           setState(() {
@@ -779,6 +787,7 @@ class _AppState extends State<App> {
     final EditorSyncBinding? binding = _syncBinding;
     final EditorSyncSession? session = _syncSession;
     if (binding == null || session == null) return;
+    _store.flushAutosave();
     try {
       final EditorSyncBinding refreshed = await refreshEditorSyncProject(
         binding: binding.copyWith(baseRevision: session.baseRevision),
@@ -786,6 +795,10 @@ class _AppState extends State<App> {
         workspace: _store.workspace,
         images: _images,
       );
+      final String? active = _store.workspace.activeId;
+      if (active != null && refreshed.documentIds.values.contains(active)) {
+        _store.openDocument(active, refresh: true);
+      }
       _persistSyncBinding(refreshed);
       setState(() {
         _syncBinding = refreshed;

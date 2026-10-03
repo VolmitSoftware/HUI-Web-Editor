@@ -201,7 +201,7 @@ GroupDrag resolveGroupDrag({
     ),
     others: <CanvasItem>[
       for (final CanvasItem item in scene.items)
-        if (!startOffsets.containsKey(item.id)) item,
+        if (!startOffsets.containsKey(item.selectionId)) item,
     ],
     thresholdBlocks: guideThresholdBlocks,
   );
@@ -225,7 +225,7 @@ GroupDrag resolveGroupDrag({
 Set<String> idsInMarquee(CanvasScene scene, HuiRect marquee) {
   final Set<String> ids = <String>{};
   for (final CanvasItem item in scene.items) {
-    if (_touches(marquee, item.outline)) ids.add(item.id);
+    if (_touches(marquee, item.outline)) ids.add(item.selectionId);
   }
   return ids;
 }
@@ -267,7 +267,7 @@ Map<String, Vec3> alignOffsets({
       HuiAlign.middleY => (minBottom + maxTop) / 2 - rect.y,
       HuiAlign.bottom => minBottom - rect.bottom,
     };
-    out[item.id] = _shift(scene, item, delta, _isHorizontal(align));
+    out[item.selectionId] = _shift(scene, item, delta, _isHorizontal(align));
   }
   return out;
 }
@@ -311,7 +311,12 @@ Map<String, Vec3> distributeOffsets({
   final Map<String, Vec3> out = <String, Vec3>{};
   double cursor = spanLow;
   for (final CanvasItem item in ordered) {
-    out[item.id] = _shift(scene, item, cursor - lowOf(item), horizontal);
+    out[item.selectionId] = _shift(
+      scene,
+      item,
+      cursor - lowOf(item),
+      horizontal,
+    );
     cursor += sizeOf(item) + gap;
   }
   return out;
@@ -391,7 +396,7 @@ Map<String, Vec3> zOrderOffsets({
     // Authored offset z, not the scene depth: the two order identically for a
     // positive uiScale, and the offset is what gets written back.
     final double z = item.component.offset.z;
-    if (ids.contains(item.id)) {
+    if (ids.contains(item.selectionId)) {
       selected.add(item);
       minSelected = math.min(minSelected, z);
       maxSelected = math.max(maxSelected, z);
@@ -420,7 +425,7 @@ Map<String, Vec3> zOrderOffsets({
   final Map<String, Vec3> out = <String, Vec3>{};
   for (final CanvasItem item in selected) {
     final Vec3 offset = item.component.offset;
-    out[item.id] = Vec3(offset.x, offset.y, _round4(offset.z + delta));
+    out[item.selectionId] = Vec3(offset.x, offset.y, _round4(offset.z + delta));
   }
   return out;
 }
@@ -588,7 +593,9 @@ List<AlignmentGuide> _buildGuides(
       highs.add(movedHigh);
       slot = positions.length - 1;
     }
-    if (!ids[slot].contains(hit.item.id)) ids[slot].add(hit.item.id);
+    if (!ids[slot].contains(hit.item.selectionId)) {
+      ids[slot].add(hit.item.selectionId);
+    }
     final HuiRect rect = hit.item.outline;
     lows[slot] = math.min(lows[slot], vertical ? rect.bottom : rect.left);
     highs[slot] = math.max(highs[slot], vertical ? rect.top : rect.right);

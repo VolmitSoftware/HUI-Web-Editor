@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 3,
+  "offset": [
+    0,
+    3,
+    3.5
+  ],
+  "lockPosition": false,
+  "followPlayer": false,
+  "maxDistance": 12,
+  "closeOnDeath": false,
+  "closeOnTeleport": false,
+  "vars": {
+    "amount": "2",
+    "name": "'Builder'",
+    "page": "'shop'"
+  },
+  "components": [
+    {
+      "id": "title",
+      "offset": [
+        0,
+        1.4,
+        0
+      ],
+      "data": {
+        "type": "decoration",
+        "icon": {
+          "type": "text",
+          "text": "&6&lMarket Preferences"
+        }
+      }
+    },
+    {
+      "id": "pages",
+      "offset": [
+        0,
+        0.8,
+        0
+      ],
+      "data": {
+        "type": "tabs",
+        "var": "page",
+        "spacing": 1.7,
+        "tabs": [
+          {
+            "id": "shop",
+            "label": "&aShop"
+          },
+          {
+            "id": "help",
+            "label": "&bHelp"
+          }
+        ]
+      }
+    },
+    {
+      "id": "amount",
+      "offset": [
+        0,
+        0.1,
+        0
+      ],
+      "data": {
+        "type": "slider",
+        "var": "amount",
+        "min": 0,
+        "max": 10,
+        "step": 1,
+        "width": 3,
+        "label": "&aQuantity: {{session.amount}}"
+      }
+    },
+    {
+      "id": "name",
+      "offset": [
+        0,
+        -0.6,
+        0
+      ],
+      "data": {
+        "type": "field",
+        "var": "name",
+        "prompt": "anvil",
+        "initial": "Builder",
+        "label": "&bName: {{session.name}}"
+      }
+    },
+    {
+      "id": "stock",
+      "offset": [
+        -1.6,
+        -1.3,
+        0
+      ],
+      "data": {
+        "type": "list",
+        "var": "entry",
+        "source": "['Oak', 'Birch', 'Spruce']",
+        "pageSize": 3,
+        "flow": {
+          "columns": 3,
+          "spacingX": 1.6,
+          "spacingY": 0.5
+        },
+        "template": {
+          "type": "button",
+          "highlightModifier": 0.05,
+          "icon": {
+            "type": "text",
+            "text": "&f{{entry}}"
+          },
+          "actions": [
+            {
+              "type": "message",
+              "message": "&aSelected {{entry}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "details",
+      "offset": [
+        0,
+        -0.95,
+        0
+      ],
+      "data": {
+        "type": "decoration",
+        "icon": {
+          "type": "text",
+          "text": "&7Page: {{session.page}}"
+        }
+      }
+    }
+  ]
+}

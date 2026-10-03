@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 3,
+  "revision": 1,
+  "anchor": {
+    "world": "world",
+    "position": [
+      0,
+      0,
+      0
+    ]
+  },
+  "lines": [
+    "&6Market",
+    "&7Trade supplies here"
+  ],
+  "style": {
+    "billboard": "center",
+    "shadow": false,
+    "seeThrough": true,
+    "textAlignment": "center",
+    "backgroundArgb": "#00000000",
+    "textOpacity": 255,
+    "lineWidth": 16384,
+    "viewRange": 1,
+    "shadowRadius": 0,
+    "shadowStrength": 0,
+    "cullingWidth": 0,
+    "cullingHeight": 0,
+    "scaleX": 1,
+    "scaleY": 1,
+    "scaleZ": 1
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
+  },
+  "particleLayers": []
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "show": "true",
+  "channel": {
+    "name": "global",
+    "default": true,
+    "scope": "global",
+    "permission": "",
+    "radius": 0,
+    "priority": 0,
+    "cooldownTicks": 0,
+    "aliases": []
+  },
+  "format": "&f{{ sender.name }}&8: &f{{ message }}",
+  "card": [],
+  "mentions": {
+    "enabled": true,
+    "pattern": "@{name}",
+    "render": "<gold><bold>@{{ mention.name }}</bold></gold>",
+    "messageFormat": "<yellow>{{ sender.name }}: {{ message }}</yellow>",
+    "sound": "minecraft:block.note_block.bell",
+    "permission": "gloss.chat.mention"
+  }
+}

@@ -27,13 +27,30 @@ List<HuiIssue> validateHologramDoc(
 
   issues.addAll(validatePresentationVariants(doc.variants));
   for (final (int index, Object? line) in doc.lines.indexed) {
-    if (line is Map) issues.addAll(validateGlossShow(line['show'], path: '\$.lines[$index].show'));
+    if (line is Map) {
+      issues.addAll(
+        validateGlossShow(line['show'], path: '\$.lines[$index].show'),
+      );
+    }
   }
-  for (final (int index, Object? raw) in huiReadList(doc.extras['pages']).indexed) {
+  for (final (int index, Object? raw) in huiReadList(
+    doc.extras['pages'],
+  ).indexed) {
     if (raw is! Map) continue;
-    issues.addAll(validateGlossShow(raw['show'], path: '\$.pages[$index].show'));
-    for (final (int lineIndex, Object? line) in huiReadList(raw['lines']).indexed) {
-      if (line is Map) issues.addAll(validateGlossShow(line['show'], path: '\$.pages[$index].lines[$lineIndex].show'));
+    issues.addAll(
+      validateGlossShow(raw['show'], path: '\$.pages[$index].show'),
+    );
+    for (final (int lineIndex, Object? line) in huiReadList(
+      raw['lines'],
+    ).indexed) {
+      if (line is Map) {
+        issues.addAll(
+          validateGlossShow(
+            line['show'],
+            path: '\$.pages[$index].lines[$lineIndex].show',
+          ),
+        );
+      }
     }
   }
 
@@ -113,7 +130,16 @@ List<HuiIssue> validateHologramDoc(
     );
   }
 
-  if (doc.lines.isEmpty) {
+  final Object? pages = doc.extras['pages'];
+  final bool hasPageLines =
+      pages is List &&
+      pages.any(
+        (Object? page) =>
+            page is Map &&
+            page['lines'] is List &&
+            (page['lines'] as List).isNotEmpty,
+      );
+  if (doc.lines.isEmpty && !hasPageLines) {
     issues.add(
       const HuiIssue(
         severity: HuiSeverity.warning,

@@ -66,6 +66,10 @@ const Map<String, String> huiComponentTypeDescriptions = <String, String>{
   'decoration': 'Display only. Draws an icon but cannot be clicked.',
   'toggle':
       'Two states. Picks an icon from a placeholder value checked once at open.',
+  'list': 'Write the list source.',
+  'slider': 'Step',
+  'field': 'Text',
+  'tabs': 'Pages',
 };
 
 const Map<String, String> huiIconTypeDescriptions = <String, String>{
@@ -235,6 +239,39 @@ HuiComponentData createDefaultComponentData(String type) {
         <HuiAction>[],
         HuiTextIcon('&aOn'),
         HuiTextIcon('&cOff'),
+      );
+    case 'list':
+      return HuiListData(
+        variable: 'entry',
+        source: "['Oak', 'Birch', 'Spruce']",
+        pageSize: 6,
+        flow: <String, Object?>{'columns': 3, 'spacingX': 1.5, 'spacingY': 0.5},
+        template: HuiDecorationData(HuiTextIcon('&f{{entry}}')),
+      );
+    case 'slider':
+      return HuiSliderData(
+        variable: 'amount',
+        min: 0,
+        max: 100,
+        step: 1,
+        width: 2,
+        label: 'Value',
+      );
+    case 'field':
+      return HuiFieldData(
+        variable: 'name',
+        prompt: 'sign',
+        initial: '',
+        label: 'Name',
+      );
+    case 'tabs':
+      return HuiTabsData(
+        variable: 'page',
+        spacing: 1.5,
+        tabs: <HuiTab>[
+          HuiTab(id: 'shop', label: 'Shop'),
+          HuiTab(id: 'help', label: 'Help'),
+        ],
       );
     case 'decoration':
     default:

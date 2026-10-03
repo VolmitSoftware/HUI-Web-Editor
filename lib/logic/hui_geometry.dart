@@ -19,6 +19,7 @@ import '../model/hui_component.dart'
         HuiHitbox,
         HuiHitboxAnchor,
         HuiToggleData,
+        HuiSliderData,
         HuiRuntimeComponentData;
 import '../model/vec3.dart' show Vec3;
 import 'viewport_math.dart' show WorldBounds, WorldPoint;
@@ -486,6 +487,14 @@ HuiRect hitboxFor({
     scaleX: scaleX,
     scaleY: scaleY,
   );
+  if (component.data case HuiSliderData(:final double? width)) {
+    return HuiRect(
+      x: automatic.x,
+      y: automatic.y,
+      w: ((width ?? 2) > 0 ? width ?? 2 : 2) * _safeScale(uiScale),
+      h: automatic.h,
+    );
+  }
   if (hitbox == null) return automatic;
   final double scale = _safeScale(uiScale);
   if (hitbox.anchor == HuiHitboxAnchor.menu) {

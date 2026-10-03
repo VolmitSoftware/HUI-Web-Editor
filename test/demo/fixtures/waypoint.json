@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "anchor": {
+    "world": "world",
+    "x": 0,
+    "y": 64,
+    "z": 0
+  },
+  "color": "#ffffff",
+  "style": "default",
+  "range": 0,
+  "show": true,
+  "audience": {
+    "when": true
+  }
+}

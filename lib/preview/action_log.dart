@@ -181,10 +181,12 @@ class LoggedNavigation extends LoggedAction {
 enum ActionLogTrigger {
   button,
   toggleToTrue,
-  toggleToFalse;
+  toggleToFalse,
+  form;
 
   String get label => switch (this) {
     ActionLogTrigger.button => huiText('click'),
+    ActionLogTrigger.form => huiText('click'),
     ActionLogTrigger.toggleToTrue => huiText('toggle → true'),
     ActionLogTrigger.toggleToFalse => huiText('toggle → false'),
   };

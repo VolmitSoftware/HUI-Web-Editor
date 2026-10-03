@@ -11,6 +11,8 @@
 /// from each movement event before the next scene is built.
 library;
 
+import '../logic/menu_component_expansion.dart';
+import '../logic/gloss_text.dart';
 import '../model/hui_actions.dart';
 import '../model/hui_component.dart';
 import '../model/hui_menu.dart';
@@ -22,7 +24,7 @@ import 'projection.dart';
 /// — `DecoComponent` is not a `ClickableComponent`, so it never highlights and
 /// never fires, while `MenuComponent.java:62-67` still ticks its icon and its
 /// animation keeps running.
-enum SimClickableKind { button, toggle }
+enum SimClickableKind { button, toggle, form }
 
 /// One clickable, flattened out of the document in declaration order.
 class SimClickable {
@@ -35,10 +37,14 @@ class SimClickable {
     required this.actions,
     required this.trueActions,
     required this.falseActions,
+    this.formData,
+    this.values = const <String, Object>{},
   });
 
   final String id;
   final SimClickableKind kind;
+  final HuiRuntimeComponentData? formData;
+  final Map<String, Object> values;
 
   /// Raw, unclamped: Gson writes the field directly, so the Java API's 0..1
   /// clamp never runs on a parsed value and `ClickableComponent.java:63-65`
@@ -112,6 +118,7 @@ class PreviewSimulation {
        followPlayer = menu.followPlayer,
        lockPosition = menu.lockPosition,
        _clickables = List<SimClickable>.unmodifiable(_collectClickables(menu)) {
+    _sessionValues.addAll(menuExpressionSamples(menu).values);
     _anchorFeet = openFeet;
     _facingYawDeg = openYawDeg.isFinite ? openYawDeg : 0;
     _center = _menuCenter(_anchorFeet, _facingYawDeg);
@@ -144,6 +151,27 @@ class PreviewSimulation {
   final List<SimClickable> _clickables;
   final List<bool?> _toggleStates = <bool?>[];
   final Map<String, double> _highlightById = <String, double>{};
+  final Map<String, Object> _sessionValues = <String, Object>{};
+  HuiFieldData? _pendingField;
+
+  Map<String, Object> get sessionValues =>
+      Map<String, Object>.unmodifiable(_sessionValues);
+  HuiFieldData? get pendingField => _pendingField;
+  String get fieldInitial =>
+      _sessionValues['session.${_pendingField?.variable}']?.toString() ??
+      _pendingField?.initial ??
+      '';
+
+  void answerField(String value) {
+    final String? variable = _pendingField?.variable;
+    if (variable != null) _sessionValues['session.$variable'] = value;
+    _pendingField = null;
+  }
+
+  void cancelField() {
+    _pendingField = null;
+  }
+
   final Map<String, int> _hoverTicks = <String, int>{};
 
   late PVec3 _center;
@@ -265,6 +293,38 @@ class PreviewSimulation {
       if (clickable.id != target) continue;
 
       switch (clickable.kind) {
+        case SimClickableKind.form:
+          final HuiRuntimeComponentData? data = clickable.formData;
+          if (data is HuiSliderData && data.variable != null) {
+            final String key = 'session.${data.variable}';
+            final double min = data.min ?? 0;
+            final double max = data.max ?? 100;
+            final Object? value = _sessionValues[key];
+            final double current = value is num ? value.toDouble() : min;
+            final double step = (data.step ?? 1) > 0 ? data.step ?? 1 : 1;
+            final double delta =
+                step *
+                (trigger.startsWith('shift_') ? 5 : 1) *
+                (trigger.endsWith('right_click') ? -1 : 1);
+            _sessionValues[key] = (current + delta).clamp(min, max);
+          } else if (data is HuiTabsData && data.variable != null) {
+            final int index = int.tryParse(clickable.id.split('#').last) ?? 0;
+            final List<HuiTab> tabs = data.tabs ?? <HuiTab>[];
+            if (index < tabs.length) {
+              _sessionValues['session.${data.variable}'] = tabs[index].id;
+            }
+          } else if (data is HuiFieldData) {
+            _pendingField = data;
+          }
+          return <ActionLogEntry>[
+            ActionLogEntry(
+              tick: _tickCount,
+              componentId: clickable.id,
+              trigger: ActionLogTrigger.form,
+              clickTrigger: trigger,
+              actions: const <LoggedAction>[],
+            ),
+          ];
         case SimClickableKind.button:
           return <ActionLogEntry>[
             ActionLogEntry(
@@ -272,21 +332,17 @@ class PreviewSimulation {
               componentId: clickable.id,
               trigger: ActionLogTrigger.button,
               clickTrigger: trigger,
-              actions: loggedActionsFrom(
-                clickable.actions,
-                clickTrigger: trigger,
-                clickerName: clickerName,
-              ),
+              actions: _loggedActions(clickable, clickable.actions, trigger),
             ),
           ];
         case SimClickableKind.toggle:
           // ToggleComponent.java:52-61 fires the list named for the state it is
           // moving INTO, then swaps the icon and stores the new state.
           final bool next = !(_toggleStates[i] ?? false);
-          final List<LoggedAction> actions = loggedActionsFrom(
+          final List<LoggedAction> actions = _loggedActions(
+            clickable,
             next ? clickable.trueActions : clickable.falseActions,
-            clickTrigger: trigger,
-            clickerName: clickerName,
+            trigger,
           );
           if (actions.isEmpty || actions.last is! LoggedNavigation) {
             _toggleStates[i] = next;
@@ -305,6 +361,37 @@ class PreviewSimulation {
       }
     }
     return const <ActionLogEntry>[];
+  }
+
+  List<LoggedAction> _loggedActions(
+    SimClickable clickable,
+    List<HuiAction> actions,
+    String trigger,
+  ) {
+    final GlossTextExpressionSamples samples = GlossTextExpressionSamples(
+      values: <String, Object>{..._sessionValues, ...clickable.values},
+    );
+    final List<HuiAction> resolved = <HuiAction>[];
+    for (final HuiAction source in actions) {
+      final HuiAction action = source.copy();
+      if (action is HuiCommandAction && action.command.contains('{{')) {
+        action.command = renderGlossLine(
+          action.command,
+          expressionSamples: samples,
+        ).renderedText;
+      } else if (action is HuiMessageAction && action.message.contains('{{')) {
+        action.message = renderGlossLine(
+          action.message,
+          expressionSamples: samples,
+        ).renderedText;
+      }
+      resolved.add(action);
+    }
+    return loggedActionsFrom(
+      resolved,
+      clickTrigger: trigger,
+      clickerName: clickerName,
+    );
   }
 
   void _advanceHover(Set<String> requested) {
@@ -369,10 +456,29 @@ class PreviewSimulation {
   static List<SimClickable> _collectClickables(HuiMenu menu) {
     final List<SimClickable> out = <SimClickable>[];
     final Set<String> ids = <String>{};
-    for (final HuiComponent component in menu.components) {
+    for (final ExpandedMenuComponent expanded in expandMenuComponents(
+      menu.components,
+      samples: menuExpressionSamples(menu),
+    )) {
+      final HuiComponent component = expanded.component;
       if (!ids.add(component.id)) continue;
       switch (component.data) {
         case HuiRuntimeComponentData():
+          if (component.data is HuiListData) break;
+          out.add(
+            SimClickable(
+              id: component.id,
+              values: expanded.values,
+              kind: SimClickableKind.form,
+              highlightModifier: 0,
+              hoverDurationTicks: 0,
+              hoverEasing: huiRuntimeDefaultHoverEasing,
+              actions: const <HuiAction>[],
+              trueActions: const <HuiAction>[],
+              falseActions: const <HuiAction>[],
+              formData: component.data as HuiRuntimeComponentData,
+            ),
+          );
           break;
 
         case HuiButtonData(
@@ -384,6 +490,7 @@ class PreviewSimulation {
           out.add(
             SimClickable(
               id: component.id,
+              values: expanded.values,
               kind: SimClickableKind.button,
               highlightModifier: highlightModifier,
               hoverDurationTicks: hoverDurationTicks,
@@ -403,6 +510,7 @@ class PreviewSimulation {
           out.add(
             SimClickable(
               id: component.id,
+              values: expanded.values,
               kind: SimClickableKind.toggle,
               highlightModifier: highlightModifier,
               hoverDurationTicks: hoverDurationTicks,

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 3,
+  "revision": 1,
+  "anchor": {
+    "world": "world",
+    "position": [
+      0,
+      0,
+      0
+    ]
+  },
+  "lines": [
+    "&6Mixed displays",
+    {
+      "item": {
+        "type": "item",
+        "item": "diamond"
+      },
+      "scale": 0.3
+    },
+    {
+      "head": "Builder",
+      "scale": 0.3
+    },
+    {
+      "block": "minecraft:gold_block",
+      "scale": 0.3
+    },
+    {
+      "entity": "minecraft:zombie",
+      "scale": 0.25
+    },
+    "&7Trade supplies"
+  ],
+  "style": {
+    "billboard": "center",
+    "shadow": false,
+    "seeThrough": true,
+    "textAlignment": "center",
+    "backgroundArgb": "#00000000",
+    "textOpacity": 255,
+    "lineWidth": 16384,
+    "viewRange": 1,
+    "shadowRadius": 0,
+    "shadowStrength": 0,
+    "cullingWidth": 0,
+    "cullingHeight": 0,
+    "scaleX": 1,
+    "scaleY": 1,
+    "scaleZ": 1
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
+  },
+  "particleLayers": []
+}

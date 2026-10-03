@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "materials": {
+    "stone": "Stone",
+    "diamond": "Diamond"
+  },
+  "entities": {},
+  "worlds": {},
+  "gameModes": {},
+  "dimensions": {
+    "overworld": "Overworld",
+    "the_nether": "The Nether",
+    "the_end": "The End"
+  },
+  "damageCauses": {},
+  "effects": {},
+  "groups": {}
+}

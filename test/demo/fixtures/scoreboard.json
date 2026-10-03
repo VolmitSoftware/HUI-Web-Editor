@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 2,
+  "revision": 1,
+  "select": {
+    "priority": 0,
+    "when": "true"
+  },
+  "presentation": {
+    "title": "&6&lMarket",
+    "lines": [
+      "&fWelcome, {{ player.name }}",
+      "&7Coins: &e128",
+      "&7Market open"
+    ],
+    "hideNumbers": false
+  },
+  "variants": [],
+  "show": true
+}

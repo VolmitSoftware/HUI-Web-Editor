@@ -1,0 +1,11 @@
+# Editor demonstrations
+
+`fixtures/` contains editable Gloss documents. `shots.json` specifies actual authoring controls, preview interactions and exported values for each recording. The fixture import establishes the initial document; the recorded sequence edits it through the editor.
+
+Build the production editor with `dart run jaspr_cli:jaspr build`, then serve `build/jaspr` on loopback port 8098. Run `node test/demo/capture.cjs <shot-id> ...` with Playwright available through `PLAYWRIGHT_MODULE` and ffmpeg through `FFMPEG`. `EDITOR_URL` overrides the loopback URL. Raw frames, screenshots, clips and metrics stay under ignored `.qa/demo/captures/`.
+
+Capture uses native 1920×1080 Chromium frames and their compositor timestamps. Clips contain continuous cursor movement, typing and preview actions, are silent 30fps WebM, and must remain below 25MB. Each take checks its exported document and browser errors; ffmpeg decodes the entire output. `node test/demo/verify.cjs <shot-id> ...` additionally checks real Chromium video playback, advancing decoded frames and middle/end seeking.
+
+These clips demonstrate browser authoring and local previews. Local form fields use a browser dialog; commands and external actions appear in the action log. They do not execute server commands or prove native Minecraft rendering. Player heads use the bundled preview skin, and entity types without a shipped rig use approximate catalog sprites. Server-connected sessions require a real editor connection.
+
+For a server-connected take, run the local relay with an authenticated create capability, configure the owned test server to use that relay and editor URL, then create a genuine `/gloss web edit hologram showcase` session. Store its capabilities outside source control and set `EDITOR_SESSION_FILE` to that private JSON file (`sessionId`, `editorToken`, `endpoint`, `builder`). `node test/demo/live-sync.cjs` connects through the editor UI, records the first-page text and visibility edits, and writes `.qa/demo/live-sync-ready` once staged. It waits for `.qa/demo/live-sync-publish` before clicking Publish to Server. Start the actual native recording after staging and before creating that coordination file. The script requires the server's Applied acknowledgement before accepting the browser take; the native recording proves the resulting world display separately.

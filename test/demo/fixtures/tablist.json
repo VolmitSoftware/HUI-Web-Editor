@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "revision": 1,
+  "headerFooter": {
+    "enabled": true,
+    "presentation": {
+      "header": "&6&lMarket",
+      "footer": "&7Trade and explore"
+    },
+    "variants": [],
+    "show": true
+  },
+  "listNames": {
+    "enabled": true,
+    "presentation": {
+      "format": "$player"
+    },
+    "variants": [
+      {
+        "id": "operator",
+        "priority": 100,
+        "when": "subject.op",
+        "presentation": {
+          "format": "&6$player"
+        }
+      }
+    ],
+    "show": true
+  },
+  "show": true
+}

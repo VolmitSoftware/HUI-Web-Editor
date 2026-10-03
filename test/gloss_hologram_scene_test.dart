@@ -42,6 +42,68 @@ void main() {
     expect(glossHologramViewRangeBaseBlocks, 64);
   });
 
+  test('mixed object lines reserve native rows without changing wire data', () {
+    final GlossHologramDoc doc = _doc();
+    doc.lines = <Object?>[
+      'One\nTwo',
+      <String, Object?>{'block': 'minecraft:gold_block', 'scale': .5},
+      <String, Object?>{'entity': 'minecraft:zombie', 'scale': .5},
+      'End',
+      <String, Object?>{'head': 'Builder', 'show': false},
+    ];
+    final Map<String, dynamic> before = doc.toJson();
+    final List<HologramPreviewLine> lines = hologramPreviewLines(
+      doc,
+      entityHeight: (_) => 1.95,
+      entityWidth: (_) => .6,
+    );
+    expect(lines.map((HologramPreviewLine line) => line.rows), <int>[
+      2,
+      2,
+      5,
+      1,
+    ]);
+    expect(lines[1].centerY, closeTo(2.5 - .5 - .5 / 2, 1e-9));
+    expect(lines[2].height, .975);
+    final List<GlossLineRender> text = hologramRenderedLines(
+      doc,
+      entityHeight: (_) => 1.95,
+      entityWidth: (_) => .6,
+    );
+    expect(text, hasLength(10));
+    expect(text[0].plainText, 'One');
+    expect(text[1].plainText, 'Two');
+    expect(text.last.plainText, 'End');
+    expect(doc.toJson(), before);
+  });
+
+  test(
+    'scaled box padding expands outside unchanged mixed row coordinates',
+    () {
+      final GlossHologramDoc doc = _doc();
+      doc.style.scaleY = 1.5;
+      doc.lines = <Object?>[
+        'Title',
+        <String, Object?>{'block': 'minecraft:amethyst_block', 'scale': .6},
+        'End',
+      ];
+      final List<HologramPreviewLine> before = hologramPreviewLines(doc);
+      doc.box.enabled = true;
+      doc.box.padding = 6;
+      doc.box.borderWidth = 1;
+      expect(hologramBoxInsetBlocks(doc), closeTo(.2625, 1e-9));
+      final List<HologramPreviewLine> boxed = hologramPreviewLines(doc);
+      expect(
+        boxed.map((HologramPreviewLine line) => line.centerY),
+        before.map((HologramPreviewLine line) => line.centerY),
+      );
+      expect(boxed[1].centerY - boxed[1].height / 2, greaterThan(.375));
+      expect(boxed[1].centerY + boxed[1].height / 2, lessThan(1.125));
+      doc.box.enabled = false;
+      expect(hologramBoxInsetBlocks(doc), 0);
+    },
+  );
+
   group('billboard placement', () {
     test('an anchor dead ahead lands at the viewport centre', () {
       final HologramBillboardPlacement? placement = hologramBillboardPlacement(

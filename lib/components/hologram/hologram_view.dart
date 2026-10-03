@@ -32,6 +32,7 @@
 library;
 
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
@@ -48,6 +49,10 @@ import '../../mc/scene/mc_camera.dart';
 import '../../mc/scene/mc_math.dart';
 import '../../mc/scene/mc_projection_bridge.dart';
 import '../../mc/scene/mc_scene.dart';
+import '../../mc/assets/mc_display_pose.dart';
+import '../../mc/assets/mc_ids.dart';
+import '../../mc/rigs/mc_rig.dart';
+import '../../mc/rigs/mc_rigs.dart';
 import '../../model/model.dart';
 import '../../preview/projection.dart';
 import '../../state/editor_store.dart';
@@ -100,7 +105,6 @@ class _HologramViewState extends State<HologramView> {
   /// The block-grid overlay is this view's own toggle, off by default: a
   /// hologram stands on the world, and the grid is a measuring aid.
   bool _showGrid = false;
-  bool? _gridVisible;
 
   EditorStore get _store => component.store;
 
@@ -114,7 +118,8 @@ class _HologramViewState extends State<HologramView> {
   }
 
   /// The no-WebGL sprite for a node, off the catalogs the store holds now.
-  String? _spriteFor(McSceneNode node) => mcCatalogSpriteFor(_store.catalogs, node);
+  String? _spriteFor(McSceneNode node) =>
+      mcCatalogSpriteFor(_store.catalogs, node);
 
   @override
   void didUpdateWidget(covariant HologramView oldComponent) {
@@ -150,22 +155,188 @@ class _HologramViewState extends State<HologramView> {
   /// stack (the game frame keeps the client's eye), and the block grid follows
   /// this view's toggle.
   void _syncStage() {
-    if (!component.gameContext) _stage.homePivot = _pivotFor(_store.hologramDoc);
+    if (!component.gameContext) {
+      _stage.homePivot = _pivotFor(_store.hologramDoc);
+    }
     final bool grid = _showGrid;
-    if (grid == _gridVisible) return;
-    _gridVisible = grid;
-    _stage.scene = McScene(const <McSceneNode>[], gridVisible: grid);
+    _stage.scene = McScene(_objectNodes(_store.hologramDoc), gridVisible: grid);
   }
 
   /// The anchor at half the stack height, in stage blocks: the framing the
   /// home camera centres on.
   static McVec3 _pivotFor(GlossHologramDoc? doc) {
-    final int lines = doc?.lines.length ?? 1;
+    final int lines = doc == null
+        ? 1
+        : hologramPreviewLines(
+            doc,
+            entityHeight: _entityHeight,
+            entityWidth: _entityWidth,
+          ).fold<int>(
+            0,
+            (int rows, HologramPreviewLine line) => rows + line.rows,
+          );
     return McVec3(
       _stageAnchor.x,
       lines * glossHologramLineHeightBlocks / 2,
       _stageAnchor.z,
     );
+  }
+
+  static double _entityHeight(String type) {
+    final String? rig = mcRigForEntityType(type);
+    return rig == null ? 1 : mcRigById(rig, slim: false)?.heightBlocks ?? 1;
+  }
+
+  static double _entityWidth(String type) => switch (mcRigForEntityType(type)) {
+    'cow' || 'pig' || 'sheep' => .9,
+    'player' || 'zombie' || 'skeleton' || 'creeper' => .6,
+    _ => 1,
+  };
+
+  List<McSceneNode> _objectNodes(GlossHologramDoc? doc) {
+    if (doc == null) return const <McSceneNode>[];
+    final PlaneAim aim = mcAnchorAim(
+      camera: _stage.camera,
+      position: _stageAnchor,
+      billboard: _billboardMode(doc.style.billboard),
+      yawDeg: doc.yaw,
+      pitchDeg: doc.pitch,
+    );
+    final McMat4 origin = McMat4(
+      Float64List.fromList(<double>[
+        aim.right.x,
+        aim.right.y,
+        aim.right.z,
+        0,
+        aim.up.x,
+        aim.up.y,
+        aim.up.z,
+        0,
+        aim.normal.x,
+        aim.normal.y,
+        aim.normal.z,
+        0,
+        _stageAnchor.x,
+        _stageAnchor.y,
+        _stageAnchor.z,
+        1,
+      ]),
+    );
+    final List<McSceneNode> nodes = <McSceneNode>[];
+    int index = 0;
+    for (final HologramPreviewLine line in hologramPreviewLines(
+      doc,
+      nowMs: DateTime.now().millisecondsSinceEpoch,
+      entityHeight: _entityHeight,
+      entityWidth: _entityWidth,
+    )) {
+      final String key = 'hologram-object-${index++}';
+      if (line.isText) continue;
+      final double scale = line.scale;
+      final double entityWidth =
+          _entityWidth(line.value) * scale.clamp(.0625, 16);
+      final double entityDepth =
+          entityWidth / 2 * (aim.normal.x.abs() + aim.normal.z.abs()) +
+          line.height / 2 * aim.normal.y.abs() +
+          .02;
+      final McVec3 entityCenter = origin.transformPoint(
+        McVec3(0, line.centerY, entityDepth),
+      );
+      final McMat4 center = origin.multiply(
+        McMat4.translation(0, line.centerY, scale / 2 + .02),
+      );
+      final McMat4 transform = center
+          .multiply(McMat4.scale(scale, scale, scale))
+          .multiply(McMat4.translation(-.5, -.5, -.5));
+      switch (line.kind) {
+        case 'block':
+          nodes.add(
+            McBlockModelNode(
+              key: key,
+              blockId: mcBlockId(line.value),
+              transform: transform,
+            ),
+          );
+        case 'item':
+          final Object? raw = (line.source as Map)['item'];
+          final HuiIcon icon = HuiIcon.fromJson(raw);
+          final String item = switch (icon) {
+            HuiItemIcon() => icon.item,
+            HuiCustomItemIcon() =>
+              _store.catalogs.customItems
+                      .entry(icon.provider, icon.item)
+                      ?.material ??
+                  'barrier',
+            _ => 'barrier',
+          };
+          nodes.add(
+            McItemModelNode(
+              key: key,
+              itemId: mcItemId(item),
+              pose: McDisplayPose.none,
+              transform: transform,
+            ),
+          );
+        case 'head':
+          final McRig rig = mcRigById('player_head', slim: false)!;
+          nodes.add(
+            McRigNode(
+              key: key,
+              rigId: 'player_head',
+              textureId: 'player',
+              transform: center
+                  .multiply(
+                    McMat4.translation(0, -scale * rig.heightBlocks / 2, 0),
+                  )
+                  .multiply(McMat4.scale(scale, scale, scale)),
+              poseTimeMs: 0,
+              hurt: 0,
+            ),
+          );
+        case 'entity':
+          final String? id = mcRigForEntityType(line.value);
+          final double entityScale = scale.clamp(.0625, 16);
+          if (id != null) {
+            nodes.add(
+              McRigNode(
+                key: key,
+                rigId: id,
+                textureId: id,
+                transform:
+                    McMat4.translation(
+                          entityCenter.x,
+                          entityCenter.y - line.height / 2,
+                          entityCenter.z,
+                        )
+                        .multiply(McMat4.rotationY(-_stage.camera.yawDeg))
+                        .multiply(
+                          McMat4.scale(entityScale, entityScale, entityScale),
+                        ),
+                poseTimeMs: 0,
+                hurt: 0,
+              ),
+            );
+          } else {
+            final String? texture = _store.catalogs.entityTextureFor(
+              line.value,
+            );
+            if (texture != null) {
+              nodes.add(
+                McBillboardNode(
+                  key: key,
+                  textureUrl: texture,
+                  position:
+                      _stageAnchor +
+                      McVec3(0, line.centerY - line.height / 2, .02),
+                  widthBlocks: line.height,
+                  heightBlocks: line.height,
+                ),
+              );
+            }
+          }
+      }
+    }
+    return nodes;
   }
 
   void _syncTicker(bool animated) {
@@ -217,6 +388,7 @@ class _HologramViewState extends State<HologramView> {
     _syncTicker(animated);
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
     doc = resolveHologramPreview(doc, nowMs: nowMs);
+    _stage.scene = McScene(_objectNodes(doc), gridVisible: _showGrid);
 
     // Viewport size only centres a projection, so the fallback before the
     // stage's first measure changes none of the numbers read below.
@@ -235,6 +407,8 @@ class _HologramViewState extends State<HologramView> {
       animations: animations,
       emoji: _store.workspaceEmoji,
       nowMs: nowMs,
+      entityHeight: _entityHeight,
+      entityWidth: _entityWidth,
     );
     final HologramPlaneTransform plane = placement == null
         ? HologramPlaneTransform.identity
@@ -396,7 +570,7 @@ class _HologramViewState extends State<HologramView> {
   ) {
     final double linePx =
         glossHologramLineHeightBlocks * huiPreviewPxPerBlock * doc.style.scaleY;
-    final double fontPx = linePx * 0.8;
+    final double fontPx = linePx * 8 / 10;
     final double plateScaleX = doc.style.scaleY == 0
         ? 1
         : doc.style.scaleX / doc.style.scaleY;
@@ -411,7 +585,8 @@ class _HologramViewState extends State<HologramView> {
           'font-size': '${fontPx.toStringAsFixed(2)}px',
           'line-height': '${linePx.toStringAsFixed(2)}px',
           'transform-origin': '50% 100%',
-          'transform': 'scaleX(${plateScaleX.toStringAsFixed(5)})',
+          'transform':
+              'translateY(${(hologramBoxInsetBlocks(doc) * huiPreviewPxPerBlock).toStringAsFixed(5)}px) scaleX(${plateScaleX.toStringAsFixed(5)})',
         },
       ),
       <Widget>[
@@ -426,12 +601,21 @@ class _HologramViewState extends State<HologramView> {
           style: doc.style,
           box: doc.box,
           pixelsPerFontPixel: linePx / 10,
-          child: dom.div(<Widget>[
-            for (final GlossLineRender line in lines)
-              dom.div(classes: 'hui-hologram-line', <Widget>[
-                GlossTextLine(render: line),
-              ]),
-          ]),
+          child: dom.div(
+            styles: const dom.Styles(
+              raw: <String, String>{'padding-bottom': '0'},
+            ),
+            <Widget>[
+              for (final GlossLineRender line in lines)
+                dom.div(
+                  classes: 'hui-hologram-line',
+                  styles: dom.Styles(
+                    raw: <String, String>{'min-height': '${linePx}px'},
+                  ),
+                  <Widget>[GlossTextLine(render: line)],
+                ),
+            ],
+          ),
         ),
       ],
     );

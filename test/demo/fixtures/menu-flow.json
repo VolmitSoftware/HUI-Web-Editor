@@ -1,0 +1,50 @@
+{
+  "offset": [
+    0,
+    1.7,
+    2.5
+  ],
+  "lockPosition": false,
+  "followPlayer": true,
+  "closeOnDeath": true,
+  "closeOnTeleport": true,
+  "components": [
+    {
+      "id": "title",
+      "offset": [
+        0,
+        1.25,
+        0
+      ],
+      "data": {
+        "type": "decoration",
+        "icon": {
+          "type": "text",
+          "text": "&6&lVillage Store\n&7Click an item to buy one"
+        }
+      }
+    },
+    {
+      "id": "home",
+      "offset": [
+        0,
+        0,
+        0
+      ],
+      "data": {
+        "type": "button",
+        "icon": {
+          "type": "text",
+          "text": "&bReturn to welcome"
+        },
+        "actions": [
+          {
+            "type": "navigate",
+            "target": "my-menu",
+            "mode": "push"
+          }
+        ]
+      }
+    }
+  ]
+}

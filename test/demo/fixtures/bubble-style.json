@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 5,
+  "revision": 1,
+  "prefix": "&7",
+  "offset": [
+    0,
+    0.3,
+    0
+  ],
+  "wordWrapChars": 32,
+  "maxAliveMs": 5000,
+  "motion": {
+    "translation": {
+      "x": "0",
+      "y": "10 * pow(clamp((ageMs - lifetimeMs + 2000) / 2000, 0, 1), 16)",
+      "z": "0"
+    },
+    "scale": {
+      "x": "1",
+      "y": "1",
+      "z": "1"
+    },
+    "rotation": {
+      "x": "0",
+      "y": "0",
+      "z": "0"
+    },
+    "opacity": "1"
+  },
+  "shimmer": {
+    "spawn": true,
+    "flyAway": true,
+    "color": "#ffffff",
+    "width": 3,
+    "durationMs": 700,
+    "spawnDelayMs": 400,
+    "flyAwayLeadMs": 700
+  },
+  "followPlayer": true,
+  "hideOwn": true,
+  "style": {
+    "billboard": "center",
+    "shadow": false,
+    "seeThrough": true,
+    "textAlignment": "center",
+    "backgroundArgb": "#00000000",
+    "textOpacity": 255,
+    "lineWidth": 16384,
+    "viewRange": 1,
+    "shadowRadius": 0,
+    "shadowStrength": 0,
+    "cullingWidth": 0,
+    "cullingHeight": 0,
+    "scaleX": 1,
+    "scaleY": 1,
+    "scaleZ": 1
+  },
+  "box": {
+    "enabled": false,
+    "padding": 4,
+    "borderWidth": 1,
+    "backgroundArgb": "#B31B1B22",
+    "borderArgb": "#FFAAAAAA"
+  },
+  "particleLayers": [],
+  "show": true
+}

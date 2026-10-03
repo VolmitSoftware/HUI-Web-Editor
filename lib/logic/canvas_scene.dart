@@ -13,6 +13,7 @@
 library;
 
 import 'gloss_show.dart';
+import 'menu_component_expansion.dart';
 import 'dart:math' as math;
 
 import '../model/model.dart';
@@ -34,7 +35,6 @@ import 'gloss_particle_text.dart'
 import 'hui_geometry.dart';
 import 'mc_text.dart';
 import 'viewport_math.dart';
-import 'preview_expr.dart';
 
 /// One animation tick is one Minecraft tick.
 const Duration huiAnimationTick = Duration(milliseconds: 50);
@@ -73,6 +73,7 @@ class CanvasItem {
     required this.clickable,
     required this.isToggle,
     required this.toggleShowsTrue,
+    this.authoringId,
     this.icon,
     this.text,
     this.imagePath,
@@ -89,6 +90,8 @@ class CanvasItem {
   });
 
   final HuiComponent component;
+  final String? authoringId;
+  String get selectionId => authoringId ?? id;
 
   /// Position in `menu.components`; the equal-distance click and render-depth
   /// tie-break.
@@ -305,7 +308,7 @@ class CanvasScene {
 
   CanvasItem? byId(String id) {
     for (final CanvasItem item in items) {
-      if (item.id == id) return item;
+      if (item.id == id || item.selectionId == id) return item;
     }
     return null;
   }
@@ -463,33 +466,7 @@ CanvasScene buildCanvasScene({
   int animationTicks = 0,
 }) {
   final List<CanvasItem> items = <CanvasItem>[];
-  final Object? declared = menu.extras['vars'];
-  if (declared is Map) {
-    final Map<String, Object> variables = <String, Object>{};
-    final GlossTextExpressionScope initialScope = GlossTextExpressionScope(
-      0,
-      expressionSamples,
-    );
-    for (final MapEntry<Object?, Object?> entry in declared.entries) {
-      if (entry.key is! String || entry.value is! String) continue;
-      try {
-        final PExpr expression = parsePreviewExpr(entry.value as String);
-        if (!isConstantExpr(expression)) continue;
-        final Object value = evalPreviewExpr(expression, initialScope);
-        variables['session.${entry.key}'] = value;
-      } on PExprException {
-        continue;
-      }
-    }
-    expressionSamples = GlossTextExpressionSamples(
-      placeholders: expressionSamples.placeholders,
-      metrics: expressionSamples.metrics,
-      serverTps: expressionSamples.serverTps,
-      names: expressionSamples.names,
-      bedrockViewer: expressionSamples.bedrockViewer,
-      values: <String, Object>{...variables, ...expressionSamples.values},
-    );
-  }
+  expressionSamples = menuExpressionSamples(menu, samples: expressionSamples);
   final GlossTextExpressionScope showScope = GlossTextExpressionScope(
     animationTicks * 50,
     expressionSamples,
@@ -517,19 +494,29 @@ CanvasScene buildCanvasScene({
       }
     }
   }
-  for (int index = 0; index < components.length; index++) {
+  final List<ExpandedMenuComponent> expanded = expandMenuComponents(
+    components,
+    samples: expressionSamples,
+  );
+  for (int index = 0; index < expanded.length; index++) {
+    final HuiComponent component = expanded[index].component;
+    final GlossTextExpressionSamples itemSamples = withMenuSampleValues(
+      expressionSamples,
+      expanded[index].values,
+    );
     if (trueRender &&
         (!menuVisible ||
             !glossShowMatches(
-              components[index].extras['show'],
-              scope: showScope,
+              component.extras['show'],
+              scope: GlossTextExpressionScope(animationTicks * 50, itemSamples),
               nowMs: animationTicks * 50,
             ))) {
       continue;
     }
     items.add(
       _resolveItem(
-        component: components[index],
+        component: component,
+        authoringId: expanded[index].authoringId,
         index: index,
         menuOffset: menu.offset,
         uiScale: uiScale,
@@ -541,7 +528,7 @@ CanvasScene buildCanvasScene({
         charCache: charCache,
         animations: animations,
         emoji: emoji,
-        expressionSamples: expressionSamples,
+        expressionSamples: itemSamples,
         animationTicks: animationTicks,
       ),
     );
@@ -568,6 +555,7 @@ CanvasScene buildCanvasScene({
 
 CanvasItem _resolveItem({
   required HuiComponent component,
+  required String authoringId,
   required int index,
   required Vec3 menuOffset,
   required double uiScale,
@@ -586,13 +574,18 @@ CanvasItem _resolveItem({
   final bool isToggle = data is HuiToggleData;
   final bool showsTrue = isToggle && togglePreview(component.id);
   final HuiIcon? icon = switch (data) {
-    HuiRuntimeComponentData() => null,
+    HuiRuntimeComponentData() => menuFormIcon(data, component.id),
 
     HuiButtonData() => data.icon,
     HuiDecorationData() => data.icon,
     HuiToggleData() => showsTrue ? data.trueIcon : data.falseIcon,
   };
-  final bool clickable = data is HuiButtonData || data is HuiToggleData;
+  final bool clickable =
+      data is HuiButtonData ||
+      data is HuiToggleData ||
+      data is HuiSliderData ||
+      data is HuiFieldData ||
+      data is HuiTabsData;
   final double iconScaleX = icon?.style?.scaleX ?? 1;
   final double iconScaleY = icon?.style?.scaleY ?? 1;
 
@@ -774,6 +767,7 @@ CanvasItem _resolveItem({
   );
   return CanvasItem(
     component: component,
+    authoringId: authoringId,
     index: index,
     kind: kind,
     shape: shape,

@@ -27,6 +27,66 @@ void main() {
 
   tearDown(() => relay.close());
 
+  test(
+    'canonical server create fixture preserves document base revisions',
+    () async {
+      await relay.close();
+      relay = GlossSyncRelay(
+        config: RelayConfig(
+          dataDirectory: Directory.systemTemp,
+          createTokenHashes: <String>{tokenHash(_createToken)},
+        ),
+        store: store,
+        clock: () => now,
+      );
+      await relay.start();
+      final Map<String, Object?> request =
+          (jsonDecode(
+                await File('fixtures/create-request-v3.json').readAsString(),
+              )
+              as Map<String, Object?>);
+      final Map<String, Object?> project =
+          request['snapshot']! as Map<String, Object?>;
+      final Response created = await _createResponse(
+        relay,
+        project,
+        headers: <String, String>{'authorization': 'Bearer $_createToken'},
+      );
+      expect(created.statusCode, 201);
+      final Map<String, Object?> session = await _responseJson(created);
+      final Response fetched = await _jsonRequest(
+        relay,
+        'GET',
+        '/v3/sessions/${session['sessionId']}',
+        <String, Object?>{},
+        token: session['editorToken']! as String,
+      );
+      final Map<String, Object?> snapshot =
+          (await _responseJson(fetched))['snapshot']! as Map<String, Object?>;
+      expect(snapshot['documents'], project['documents']);
+      expect(snapshot['baseRevision'], project['baseRevision']);
+      final List<Object?> documents = project['documents']! as List<Object?>;
+      final Map<String, Object?> document =
+          documents.single! as Map<String, Object?>;
+      expect(document['baseRevision'], isNot(project['baseRevision']));
+      for (final Object? invalid in <Object?>[
+        null,
+        7,
+        'sha256:bad',
+        _revisionA.toUpperCase(),
+      ]) {
+        document['baseRevision'] = invalid;
+        final Response rejected = await _createResponse(
+          relay,
+          project,
+          headers: <String, String>{'authorization': 'Bearer $_createToken'},
+        );
+        expect(rejected.statusCode, 400);
+        expect(await _errorCode(rejected), 'invalid_project_documents');
+      }
+    },
+  );
+
   test('kind slugs are validated but never interpreted', () async {
     // A future kind must work against this relay with no redeploy: only the
     // slug grammar and transport bounds are checked.

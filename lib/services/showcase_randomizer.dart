@@ -13,9 +13,11 @@ library;
 import 'dart:math' as math;
 
 import '../config/gloss_templates.dart';
+import '../config/defaults.dart';
 import '../config/showcase_flavor.dart';
 import '../doctype/doctype.dart';
-import '../logic/canvas_scene.dart' show huiIsBlockLikeMaterial;
+import '../logic/canvas_scene.dart' show CanvasItem, CanvasScene, McTextCache, buildCanvasScene, spriteExtentFor, huiIsBlockLikeMaterial;
+import '../logic/hui_geometry.dart' show HuiRect;
 import '../logic/real_drop_labels.dart';
 import '../logic/real_drop_model.dart';
 import '../model/model.dart';
@@ -30,7 +32,11 @@ import 'showcase_features.dart';
 bool canRandomizeShowcase(
   DocumentTypeAdapter type, {
   bool linkedPanel = false,
-}) => type is! NamesDocumentType && type is! StringsDocumentType && type is! WaypointDocumentType && (type is! PanelDocumentType || linkedPanel);
+}) =>
+    type is! NamesDocumentType &&
+    type is! StringsDocumentType &&
+    type is! WaypointDocumentType &&
+    (type is! PanelDocumentType || linkedPanel);
 
 bool randomizeShowcaseDocument(
   EditorStore store,
@@ -72,13 +78,26 @@ bool randomizeShowcaseDocument(
         buildRandomMotdShowcase(store.motdDoc!, source),
       );
     case ChannelDocumentType():
-      final GlossChannelDoc doc = GlossChannelDoc.fromJson(store.glossDoc!.toJson());
-      final List<String> colors = <String>['yellow', 'green', 'aqua', 'light_purple', 'gold'];
+      final GlossChannelDoc doc = GlossChannelDoc.fromJson(
+        store.glossDoc!.toJson(),
+      );
+      final List<String> colors = <String>[
+        'yellow',
+        'green',
+        'aqua',
+        'light_purple',
+        'gold',
+      ];
       final String color = colors[source.nextInt(colors.length)];
       doc.mentions.enabled = true;
       doc.mentions.render = '<$color><bold>@{{ mention.name }}</bold></$color>';
-      doc.mentions.messageFormat = '<$color>[Mention] {{ sender.name }}: {{ message }}</$color>';
-      doc.mentions.sound = <String>['minecraft:block.note_block.bell', 'minecraft:entity.experience_orb.pickup', 'minecraft:block.note_block.chime'][source.nextInt(3)];
+      doc.mentions.messageFormat =
+          '<$color>[Mention] {{ sender.name }}: {{ message }}</$color>';
+      doc.mentions.sound = <String>[
+        'minecraft:block.note_block.bell',
+        'minecraft:entity.experience_orb.pickup',
+        'minecraft:block.note_block.chime',
+      ][source.nextInt(3)];
       store.replaceGlossDoc('Randomize chat channel', doc);
     case ConnectionsDocumentType():
       store.replaceGlossDoc(
@@ -398,7 +417,9 @@ HuiMenu buildRandomMenuShowcase(
   math.Random random, {
   MenuShowcaseArchetype? archetype,
 }) {
-  if (archetype == null) return _buildComposedMenu(store, random);
+  if (archetype == null) {
+    return _withMenuForms(_buildComposedMenu(store, random), store);
+  }
   final MenuShowcaseArchetype selectedArchetype = archetype;
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
   final _MenuShowcaseContext context = _MenuShowcaseContext(
@@ -412,17 +433,91 @@ HuiMenu buildRandomMenuShowcase(
         : '#66${mood.primary.substring(1)}',
     soundPitch: _round2(0.9 + random.nextDouble() * 0.2),
   );
-  return switch (selectedArchetype) {
+  return _withMenuForms(switch (selectedArchetype) {
     MenuShowcaseArchetype.networkHub => _buildNetworkHubMenu(context),
     MenuShowcaseArchetype.wayfinder => _buildWayfinderMenu(context),
     MenuShowcaseArchetype.playerTools => _buildPlayerToolsMenu(context),
     MenuShowcaseArchetype.menuNavigator => _buildMenuNavigator(context),
-  };
+  }, store);
+}
+
+Map<String, HuiRect> _menuShowcaseBounds(HuiMenu menu, EditorStore store) {
+  final HuiMenu measured = HuiMenu.fromJson(menu.toJson())..offset = Vec3.zero();
+  measured.extras.remove('show');
+  measured.variants.clear();
+  for (final HuiComponent component in measured.components) {
+    component.extras.remove('show');
+  }
+  final Map<String, HuiRect> bounds = <String, HuiRect>{};
+  for (final bool toggled in <bool>[false, true]) {
+    final CanvasScene scene = buildCanvasScene(
+      menu: measured, uiScale: 1, trueRender: true,
+      togglePreview: (String id) => toggled, textCache: McTextCache(),
+      images: store.images, catalogs: store.catalogs,
+    );
+    for (final CanvasItem item in scene.items) {
+      final HuiRect rect = spriteExtentFor(item, uiScale: 1, trueRender: true).translate(item.anchor.x, item.anchor.y);
+      final HuiRect? existing = bounds[item.selectionId];
+      bounds[item.selectionId] = existing == null ? rect : existing.union(rect);
+    }
+  }
+  return bounds;
+}
+
+HuiMenu _withMenuForms(HuiMenu menu, EditorStore store) {
+  double bottom = _menuShowcaseBounds(menu, store).values.fold<double>(
+    0, (double edge, HuiRect rect) => math.min(edge, rect.bottom),
+  ) - 0.4;
+  for (int index = 0; index < 4; index++) {
+    final String type = <String>['list', 'slider', 'field', 'tabs'][index];
+    final HuiComponent component = HuiComponent(
+      'form-$type', Vec3.zero(), createDefaultComponentData(type),
+    );
+    menu.components.add(component);
+    final HuiRect rect = _menuShowcaseBounds(menu, store)[component.id]!;
+    component.offset.x = -rect.x;
+    component.offset.y = bottom - rect.top;
+    bottom -= rect.h + 0.4;
+  }
+  return menu;
+}
+
+void _spaceComposedMenu(HuiMenu menu, EditorStore store, int columns) {
+  final Map<String, HuiRect> bounds = _menuShowcaseBounds(menu, store);
+  final List<HuiComponent> features = menu.components.skip(1).toList();
+  final int rows = (features.length / columns).ceil();
+  final List<double> widths = List<double>.filled(columns, 0);
+  final List<double> heights = List<double>.filled(rows, 0);
+  for (int index = 0; index < features.length; index++) {
+    final HuiRect rect = bounds[features[index].id]!;
+    widths[index % columns] = math.max(widths[index % columns], rect.w);
+    heights[index ~/ columns] = math.max(heights[index ~/ columns], rect.h);
+  }
+  final double totalWidth = widths.fold<double>(0, (double sum, double width) => sum + width) + (columns - 1) * 0.5;
+  final double totalHeight = heights.fold<double>(0, (double sum, double height) => sum + height) + (rows - 1) * 0.5;
+  double rowTop = totalHeight / 2;
+  for (int row = 0; row < rows; row++) {
+    double left = -totalWidth / 2;
+    for (int column = 0; column < columns; column++) {
+      final int index = row * columns + column;
+      if (index >= features.length) break;
+      final HuiComponent component = features[index];
+      final HuiRect rect = bounds[component.id]!;
+      component.offset.x += left + widths[column] / 2 - rect.x;
+      component.offset.y += rowTop - heights[row] / 2 - rect.y;
+      left += widths[column] + 0.5;
+    }
+    rowTop -= heights[row] + 0.5;
+  }
+  final HuiComponent title = menu.components.first;
+  final HuiRect titleBounds = bounds[title.id]!;
+  title.offset.x -= titleBounds.x;
+  title.offset.y += totalHeight / 2 + 0.5 - titleBounds.bottom;
 }
 
 HuiMenu _buildComposedMenu(EditorStore store, math.Random random) {
   final ShowcaseMood mood = showcasePick(random, showcaseMoods);
-  final int columns = 2 + random.nextInt(4);
+  final int columns = 2 + random.nextInt(3);
   final int rows = 2 + random.nextInt(3);
   final double spacingX = _band(random, (0.8, 1.6), 2);
   final double spacingY = _band(random, (0.65, 1.1), 2);
@@ -484,7 +579,7 @@ HuiMenu _buildComposedMenu(EditorStore store, math.Random random) {
         ..extras['show'] = showcaseShow(random, allowHidden: true),
     );
   }
-  return HuiMenu(
+  final HuiMenu menu = HuiMenu(
     offset: Vec3(
       _band(random, (-0.3, 0.3), 2),
       _band(random, (1.2, 2.2), 2),
@@ -510,6 +605,8 @@ HuiMenu _buildComposedMenu(EditorStore store, math.Random random) {
       componentId: 'showcase-title',
     ),
   )..extras['show'] = showcaseShow(random, viewerAware: true);
+  _spaceComposedMenu(menu, store, columns);
+  return menu;
 }
 
 HuiMenu _buildNetworkHubMenu(_MenuShowcaseContext context) {
@@ -5203,21 +5300,36 @@ GlossNameplateDoc buildRandomNameplateShowcase(
     buildDefaultGlossNameplate(),
   );
   doc.revision = current.revision;
-  final String color = showcasePick(random, <String>['&a', '&b', '&6', '&d', '&e']);
+  final String color = showcasePick(random, <String>[
+    '&a',
+    '&b',
+    '&6',
+    '&d',
+    '&e',
+  ]);
   doc.presentation.lines = <GlossNameplateLine>[
-    GlossNameplateLine(text: '$color${showcasePick(random, showcaseServerNames)}'),
+    GlossNameplateLine(
+      text: '$color${showcasePick(random, showcaseServerNames)}',
+    ),
     GlossNameplateLine(text: '&f{{ subject.name }}'),
-    GlossNameplateLine(text: "{{ bar(subject.health, subject.maxHealth, 10, '&c|', '&8|') }}",
-      show: 'subject.health < subject.maxHealth'),
+    GlossNameplateLine(
+      text: "{{ bar(subject.health, subject.maxHealth, 10, '&c|', '&8|') }}",
+      show: 'subject.health < subject.maxHealth',
+    ),
   ];
   doc.presentation.offset = 0.2 + random.nextInt(6) * 0.1;
   doc.variants = <GlossNameplateVariant>[
-    GlossNameplateVariant(id: 'staff', priority: 10,
+    GlossNameplateVariant(
+      id: 'staff',
+      priority: 10,
       presentation: doc.presentation.copy()
         ..lines = <GlossNameplateLine>[
           GlossNameplateLine(text: '&c[Staff] &f{{ subject.name }}'),
-          GlossNameplateLine(text: '&7${showcasePick(random, showcaseStatusWords)}'),
-        ])..permission = 'gloss.nameplate.staff',
+          GlossNameplateLine(
+            text: '&7${showcasePick(random, showcaseStatusWords)}',
+          ),
+        ],
+    )..permission = 'gloss.nameplate.staff',
   ];
   return doc;
 }
@@ -5228,11 +5340,18 @@ GlossNametagDoc buildRandomNametagShowcase(
 ) {
   final GlossNametagDoc doc = cloneGlossNametagDoc(buildDefaultGlossNametag());
   doc.revision = current.revision;
-  doc.presentation.color = showcasePick(random, <String>['aqua', 'gold', 'green', 'light_purple', 'yellow']);
+  doc.presentation.color = showcasePick(random, <String>[
+    'aqua',
+    'gold',
+    'green',
+    'light_purple',
+    'yellow',
+  ]);
   doc.presentation.prefix =
       '${showcasePick(random, <String>['&a', '&b', '&6', '&d'])}[${showcasePick(random, showcaseStatusWords)}] ';
   doc.presentation.suffix = random.nextBool() ? ' &7| Builder' : '';
-  doc.variants.first.presentation.prefix = '&c[${showcasePick(random, <String>['Staff', 'Guide', 'Mod'])}] ';
+  doc.variants.first.presentation.prefix =
+      '&c[${showcasePick(random, <String>['Staff', 'Guide', 'Mod'])}] ';
   return doc;
 }
 

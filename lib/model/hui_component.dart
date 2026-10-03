@@ -6,10 +6,7 @@ import 'vec3.dart';
 /// Every `MenuComponentType` Gloss declares, in declaration order,
 /// case-sensitive.
 ///
-/// The wire contract, not this build's authoring surface: list, slider, field
-/// and tabs are runtime component types the editor has no stage for yet, so
-/// [huiEditorComponentTypes] is what anything that creates a component works
-/// from.
+/// All types can be authored and rendered on the canvas and local preview.
 const List<String> huiComponentTypes = <String>[
   'button',
   'decoration',
@@ -25,6 +22,10 @@ const List<String> huiEditorComponentTypes = <String>[
   'button',
   'decoration',
   'toggle',
+  'list',
+  'slider',
+  'field',
+  'tabs',
 ];
 
 sealed class HuiComponentData {

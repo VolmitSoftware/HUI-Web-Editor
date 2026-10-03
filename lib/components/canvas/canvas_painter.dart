@@ -172,7 +172,9 @@ class CanvasPainter {
     if (scene.particleLayers.isEmpty) return;
     brush.save();
     for (final GlossParticleLayer layer in scene.particleLayers) {
-      if (!glossShowMatches(layer.show, nowMs: options.particleTick * 50)) continue;
+      if (!glossShowMatches(layer.show, nowMs: options.particleTick * 50)) {
+        continue;
+      }
       if (layer.placement.layer != placement) continue;
       final List<GlossParticleRect> targets = _particleTargets(scene, layer);
       if (layer.target.scope != 'local' && targets.isEmpty) continue;
@@ -231,7 +233,9 @@ class CanvasPainter {
     final List<GlossParticleRect> targets = <GlossParticleRect>[];
     for (final CanvasItem item in scene.items) {
       final String? component = layer.target.component;
-      if (component != null && component != item.id.toLowerCase()) continue;
+      if (component != null && component != item.selectionId.toLowerCase()) {
+        continue;
+      }
       if (scope == 'component') {
         targets.add(_particleRect(item.hitbox, item.hitboxDepth));
         continue;
@@ -492,14 +496,14 @@ class CanvasPainter {
     CanvasFrameOptions options,
   ) {
     for (final CanvasItem item in scene.drawOrder) {
-      final bool selected = options.selectedIds.contains(item.id);
-      final bool hovered = item.id == options.hoveredId;
+      final bool selected = options.selectedIds.contains(item.selectionId);
+      final bool hovered = item.selectionId == options.hoveredId;
       if (!options.showAllIds && !selected && !hovered) continue;
       final HuiRect box = item.outline;
       brush.setUiFont(10.5, bold: true);
       final double maxWidth = math.max(56, brush.px(box.w) + 48);
       brush.chip(
-        brush.ellipsize(item.id, maxWidth),
+        brush.ellipsize(item.selectionId, maxWidth),
         brush.sx(box.left),
         brush.sy(box.top) - 11,
         color: selected ? brush.palette.selection : brush.palette.label,
@@ -525,9 +529,9 @@ class CanvasPainter {
     brush.save();
     _armSelectionDash(brush, options);
     for (final CanvasItem item in scene.drawOrder) {
-      if (!options.selectedIds.contains(item.id)) continue;
+      if (!options.selectedIds.contains(item.selectionId)) continue;
       final HuiRect box = item.outline;
-      if (item.id == primaryId) {
+      if (item.selectionId == primaryId) {
         primaryBox = box;
         continue;
       }

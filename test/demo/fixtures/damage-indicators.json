@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 4,
+  "revision": 1,
+  "limits": {
+    "viewRange": 48,
+    "debounceMs": 150,
+    "maxPerSecond": 40,
+    "lifetimeMs": 3000,
+    "minimumDelta": 0.009,
+    "decimals": 0
+  },
+  "damage": {
+    "when": "true",
+    "presentation": {
+      "format": "&c&l{amount}",
+      "offset": [
+        0,
+        0.7,
+        0
+      ],
+      "motion": {
+        "horizontalSpeed": 0.8,
+        "verticalSpeed": 1.3,
+        "verticalAcceleration": -0.93,
+        "spinDegreesPerSecond": 0
+      },
+      "transform": {
+        "startScale": 1,
+        "endScale": 0.82,
+        "fadeStartFraction": 0.68
+      },
+      "style": {
+        "billboard": "center",
+        "shadow": false,
+        "seeThrough": true,
+        "textAlignment": "center",
+        "backgroundArgb": "#00000000",
+        "textOpacity": 255,
+        "lineWidth": 16384,
+        "viewRange": 1,
+        "shadowRadius": 0,
+        "shadowStrength": 0,
+        "cullingWidth": 0,
+        "cullingHeight": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "scaleZ": 1
+      },
+      "box": {
+        "enabled": false,
+        "padding": 4,
+        "borderWidth": 1,
+        "backgroundArgb": "#B31B1B22",
+        "borderArgb": "#FFAAAAAA"
+      },
+      "particleLayers": []
+    },
+    "variants": []
+  },
+  "healing": {
+    "when": "true",
+    "presentation": {
+      "format": "&a&l{amount}",
+      "offset": [
+        0,
+        -0.1,
+        0
+      ],
+      "motion": {
+        "horizontalSpeed": 0.45,
+        "verticalSpeed": 0.65,
+        "verticalAcceleration": 0.05,
+        "spinDegreesPerSecond": 0
+      },
+      "transform": {
+        "startScale": 1,
+        "endScale": 1.1,
+        "fadeStartFraction": 0.62
+      },
+      "style": {
+        "billboard": "center",
+        "shadow": false,
+        "seeThrough": true,
+        "textAlignment": "center",
+        "backgroundArgb": "#00000000",
+        "textOpacity": 255,
+        "lineWidth": 16384,
+        "viewRange": 1,
+        "shadowRadius": 0,
+        "shadowStrength": 0,
+        "cullingWidth": 0,
+        "cullingHeight": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "scaleZ": 1
+      },
+      "box": {
+        "enabled": false,
+        "padding": 4,
+        "borderWidth": 1,
+        "backgroundArgb": "#B31B1B22",
+        "borderArgb": "#FFAAAAAA"
+      },
+      "particleLayers": []
+    },
+    "variants": []
+  },
+  "audience": {
+    "when": "hasPermission('viewer', 'gloss.indicators.show')"
+  },
+  "show": true
+}

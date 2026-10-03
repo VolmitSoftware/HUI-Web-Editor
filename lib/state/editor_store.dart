@@ -2785,11 +2785,14 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   void createDocumentFromPreview(String name, HuiPreviewDoc template) =>
       newPreviewDocument(name: name, from: template);
 
-  bool openDocument(String docId) {
+  bool openDocument(String docId, {bool refresh = false}) {
     final WorkspaceDoc? target = workspace.byId(docId);
     if (target == null) return false;
-    if (docId == workspace.activeId) return true;
-    flushAutosave();
+    if (docId == workspace.activeId) {
+      if (refresh) _adoptActiveDocument();
+      return true;
+    }
+    if (!refresh) flushAutosave();
     if (!workspace.switchTo(docId)) return false;
     _adoptActiveDocument();
     return true;

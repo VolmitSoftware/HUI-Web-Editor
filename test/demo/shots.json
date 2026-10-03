@@ -1,0 +1,1215 @@
+[
+  {
+    "id": "scoreboard",
+    "create": "New scoreboard",
+    "fixture": "scoreboard",
+    "coverage": [
+      "sidebar title",
+      "formatted lines",
+      "expression text",
+      "score visibility",
+      "JSON export"
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "selector": "input[placeholder='&d&lGloss']",
+        "value": "&6&lMarket Board"
+      },
+      {
+        "kind": "input",
+        "selector": "input[placeholder='&fText or {{ expression }}']",
+        "index": 1,
+        "value": "&7Coins: &a256"
+      }
+    ],
+    "assertions": {
+      "presentation.title": "&6&lMarket Board",
+      "presentation.lines.1": "&7Coins: &a256"
+    }
+  },
+  {
+    "id": "hologram",
+    "create": "New hologram",
+    "fixture": "hologram",
+    "operations": [
+      {
+        "kind": "input",
+        "selector": "input[placeholder='&fText, %papi%, |animation.id|, {{ expression }}']",
+        "value": "&6&lMarket Hall",
+        "index": 0
+      },
+      {
+        "kind": "extras",
+        "section": "Contents",
+        "key": "hitbox",
+        "value": {
+          "width": 2.5,
+          "height": 1.2
+        }
+      },
+      {
+        "kind": "extras",
+        "section": "Contents",
+        "key": "pages",
+        "value": [
+          {
+            "id": "hours",
+            "show": true,
+            "lines": [
+              "&eOpen all day"
+            ]
+          }
+        ]
+      }
+    ],
+    "coverage": [
+      "text lines",
+      "display styling",
+      "interaction hitbox",
+      "hologram pages",
+      "export"
+    ],
+    "assertions": {
+      "lines.0": "&6&lMarket Hall",
+      "hitbox.width": 2.5,
+      "pages.0.id": "hours"
+    }
+  },
+  {
+    "id": "animation",
+    "create": "New animation",
+    "fixture": "animation",
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Frame interval",
+        "value": "750"
+      },
+      {
+        "kind": "click",
+        "button": "Ping-pong"
+      },
+      {
+        "kind": "input",
+        "selector": "input[placeholder='&cFrame text']",
+        "value": "&aMarket",
+        "index": 1
+      }
+    ],
+    "coverage": [
+      "animation editing",
+      "preview",
+      "JSON export"
+    ],
+    "assertions": {
+      "frameIntervalMs": 750,
+      "mode": "ascend_descend",
+      "frames.1": "&aMarket"
+    }
+  },
+  {
+    "id": "surface",
+    "create": "New surface",
+    "fixture": "surface",
+    "operations": [
+      {
+        "kind": "input",
+        "selector": "input[placeholder='&7Welcome, &f{{ player.name }}']",
+        "value": "&6Market opens in &f5 minutes"
+      },
+      {
+        "kind": "select",
+        "selector": ".hui-inspector-body select",
+        "value": "notice"
+      }
+    ],
+    "coverage": [
+      "surface editing",
+      "preview",
+      "JSON export"
+    ],
+    "assertions": {
+      "presentation.text": "&6Market opens in &f5 minutes",
+      "presentation.priority": "notice"
+    }
+  },
+  {
+    "id": "motd",
+    "create": "New MOTD",
+    "fixture": "motd",
+    "operations": [
+      {
+        "kind": "input",
+        "selector": "input[placeholder='&dA glossy server']",
+        "value": "&6&lMarket Server"
+      },
+      {
+        "kind": "input",
+        "aria": "Entry weight",
+        "value": "3"
+      }
+    ],
+    "coverage": [
+      "server list description",
+      "weighted entries",
+      "server icon controls",
+      "player count controls",
+      "export"
+    ],
+    "assertions": {
+      "entries.0.lines.0": "&6&lMarket Server",
+      "entries.0.weight": 3
+    }
+  },
+  {
+    "id": "connections",
+    "create": "New connection messages",
+    "fixture": "connections",
+    "operations": [
+      {
+        "kind": "input",
+        "selector": "input[placeholder='&a+ &f{{ subject.name }} &7joined']",
+        "value": "&aWelcome, &f{{ subject.name }}",
+        "index": 0
+      }
+    ],
+    "coverage": [
+      "join and leave messages",
+      "conditions",
+      "audience",
+      "export"
+    ],
+    "assertions": {
+      "join.presentation.text": "&aWelcome, &f{{ subject.name }}"
+    }
+  },
+  {
+    "id": "channel",
+    "create": "New chat channel",
+    "fixture": "channel",
+    "operations": [
+      {
+        "kind": "input",
+        "aria": "Normal message format",
+        "value": "&6[Market] &f{{ sender.name }}&8: &f{{ message }}"
+      },
+      {
+        "kind": "input",
+        "aria": "Preview chat message",
+        "value": "Hello @Steve, trading [item] today!"
+      },
+      {
+        "kind": "input",
+        "aria": "Item text",
+        "value": "&b[{{ item.name }}]{{ item.countSuffix }}"
+      }
+    ],
+    "coverage": [
+      "channel format",
+      "mention highlighting",
+      "item links",
+      "preview message",
+      "export"
+    ],
+    "assertions": {
+      "format": "&6[Market] &f{{ sender.name }}&8: &f{{ message }}"
+    }
+  },
+  {
+    "id": "emoji",
+    "create": "New emoji",
+    "fixture": "emoji",
+    "operations": [
+      {
+        "kind": "input",
+        "selector": "input[placeholder='U+2764;']",
+        "value": "U+2764;"
+      },
+      {
+        "kind": "input",
+        "selector": "input[placeholder='<3']",
+        "value": ":heart:"
+      }
+    ],
+    "coverage": [
+      "emoji editing",
+      "preview",
+      "JSON export"
+    ],
+    "assertions": {
+      "emoji": "U+2764;",
+      "trigger": ":heart:"
+    }
+  },
+  {
+    "id": "bubble-style",
+    "create": "New bubble style",
+    "fixture": "bubble-style",
+    "operations": [
+      {
+        "kind": "input",
+        "selector": "input[placeholder='&7']",
+        "value": "&b"
+      },
+      {
+        "kind": "input",
+        "field": "Word wrap",
+        "value": "24"
+      },
+      {
+        "kind": "input",
+        "field": "Lifetime",
+        "value": "6000"
+      }
+    ],
+    "coverage": [
+      "bubble prefix",
+      "line wrapping",
+      "lifetime",
+      "display style",
+      "preview"
+    ],
+    "assertions": {
+      "prefix": "&b",
+      "wordWrapChars": 24,
+      "maxAliveMs": 6000
+    }
+  },
+  {
+    "id": "damage-indicators",
+    "create": "Damage indicators",
+    "fixture": "damage-indicators",
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Decimal places",
+        "value": "1"
+      },
+      {
+        "kind": "input",
+        "field": "Text format",
+        "value": "&6-{amount}",
+        "index": 0
+      }
+    ],
+    "coverage": [
+      "damage and healing format",
+      "admission",
+      "lifetime",
+      "audience",
+      "combat preview"
+    ],
+    "assertions": {
+      "limits.decimals": 1,
+      "damage.presentation.format": "&6-{amount}"
+    }
+  },
+  {
+    "id": "entity-overlays",
+    "create": "Entity overlays",
+    "fixture": "entity-overlays",
+    "operations": [
+      {
+        "kind": "input",
+        "aria": "Sample name",
+        "value": "Market Sentinel"
+      },
+      {
+        "kind": "input",
+        "selector": ".hui-inspector-body textarea",
+        "value": "&6{name}"
+      },
+      {
+        "kind": "input",
+        "aria": "Health segments",
+        "value": "12"
+      }
+    ],
+    "coverage": [
+      "entity sample",
+      "editable label",
+      "segmented health",
+      "line visibility",
+      "entity preview"
+    ],
+    "assertions": {
+      "healthSegments": 12,
+      "lines.0.text": "&6{name}"
+    }
+  },
+  {
+    "id": "tablist",
+    "create": "New tablist",
+    "fixture": "tablist",
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Header",
+        "value": "&6&lMarket Players"
+      },
+      {
+        "kind": "input",
+        "field": "Footer",
+        "value": "&7Trade and explore"
+      }
+    ],
+    "coverage": [
+      "header/footer",
+      "player list",
+      "conditional formats",
+      "layout controls"
+    ],
+    "assertions": {
+      "headerFooter.presentation.header": "&6&lMarket Players",
+      "headerFooter.presentation.footer": "&7Trade and explore"
+    }
+  },
+  {
+    "id": "inventory",
+    "create": "New inventory",
+    "fixture": "inventory",
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Title",
+        "value": "&6Market Stock"
+      },
+      {
+        "kind": "select",
+        "selector": ".hui-inspector-body select",
+        "value": "9x6"
+      }
+    ],
+    "coverage": [
+      "inventory title",
+      "resolution",
+      "mask",
+      "item slots",
+      "inventory preview"
+    ],
+    "assertions": {
+      "title": "&6Market Stock",
+      "resolution": "9x6"
+    }
+  },
+  {
+    "id": "nameplate",
+    "create": "New nameplate",
+    "fixture": "nameplate",
+    "operations": [
+      {
+        "kind": "input",
+        "selector": "input[placeholder='Nameplate line']",
+        "value": "&6{{ subject.name }}",
+        "index": 0
+      },
+      {
+        "kind": "input",
+        "aria": "Preview player",
+        "value": "Trader"
+      }
+    ],
+    "coverage": [
+      "player nameplates",
+      "health expression",
+      "preview player",
+      "visibility",
+      "offset"
+    ],
+    "assertions": {
+      "presentation.lines.0.text": "&6{{ subject.name }}"
+    }
+  },
+  {
+    "id": "nametag",
+    "create": "New nametag",
+    "fixture": "nametag",
+    "operations": [
+      {
+        "kind": "input",
+        "aria": "Preview player",
+        "value": "Trader"
+      },
+      {
+        "kind": "input",
+        "aria": "Preview permissions",
+        "value": "gloss.nametag.default,gloss.nametag.staff"
+      },
+      {
+        "kind": "input",
+        "aria": "Prefix",
+        "value": "&c[Market Staff] "
+      }
+    ],
+    "coverage": [
+      "team prefix",
+      "permission variant",
+      "player preview",
+      "collision",
+      "name visibility"
+    ],
+    "assertions": {
+      "variants.0.presentation.prefix": "&c[Market Staff] "
+    }
+  },
+  {
+    "id": "marker",
+    "create": "New marker",
+    "fixture": "marker",
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Label",
+        "value": "&6Market Square"
+      },
+      {
+        "kind": "input",
+        "field": "Hide within (blocks)",
+        "value": "8"
+      }
+    ],
+    "coverage": [
+      "world pin",
+      "position",
+      "label",
+      "beam",
+      "distance"
+    ],
+    "assertions": {
+      "label": "&6Market Square",
+      "hideWithin": 8
+    }
+  },
+  {
+    "id": "waypoint",
+    "create": "Waypoints",
+    "fixture": "waypoint",
+    "operations": [
+      {
+        "kind": "select",
+        "selector": ".hui-inspector-body select",
+        "index": 0,
+        "value": "player"
+      },
+      {
+        "kind": "input",
+        "field": "Player",
+        "value": "Trader"
+      },
+      {
+        "kind": "select",
+        "selector": ".hui-inspector-body select",
+        "index": 1,
+        "value": "bowtie"
+      }
+    ],
+    "coverage": [
+      "player waypoint anchor",
+      "bowtie style",
+      "color",
+      "range",
+      "audience"
+    ],
+    "assertions": {
+      "anchor.player": "Trader",
+      "style": "bowtie"
+    }
+  },
+  {
+    "id": "names",
+    "create": "Names",
+    "fixture": "names",
+    "operations": [
+      {
+        "kind": "extras",
+        "section": "Materials",
+        "key": "stone",
+        "value": "Market Stone",
+        "literal": true
+      }
+    ],
+    "coverage": [
+      "name catalogs",
+      "material display override",
+      "literal string preservation",
+      "export"
+    ],
+    "assertions": {
+      "materials.stone": "Market Stone"
+    }
+  },
+  {
+    "id": "strings",
+    "create": "Strings",
+    "fixture": "strings",
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Fallback",
+        "value": "en_GB"
+      },
+      {
+        "kind": "extras",
+        "section": "Entries",
+        "key": "shop",
+        "value": "Market Hall",
+        "literal": true
+      }
+    ],
+    "coverage": [
+      "locale",
+      "fallback",
+      "translated entries",
+      "literal text",
+      "export"
+    ],
+    "assertions": {
+      "entries.shop": "Market Hall",
+      "fallback": "en_GB"
+    }
+  },
+  {
+    "id": "menu-slider",
+    "create": "New menu",
+    "fixture": "menu-forms",
+    "coverage": [
+      "slider authoring",
+      "quantity expression",
+      "click width",
+      "interactive local session value",
+      "JSON export"
+    ],
+    "setup": [
+      {
+        "kind": "component",
+        "id": "amount"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      }
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Label",
+        "value": "&aOrder size: {{session.amount}}"
+      },
+      {
+        "kind": "input",
+        "field": "Step",
+        "value": "2"
+      },
+      {
+        "kind": "mode",
+        "value": "Preview"
+      },
+      {
+        "kind": "previewClick",
+        "id": "amount",
+        "button": "right"
+      },
+      {
+        "kind": "wait",
+        "ms": 1700
+      }
+    ],
+    "assertions": {
+      "components.2.data.label": "&aOrder size: {{session.amount}}",
+      "components.2.data.step": 2
+    }
+  },
+  {
+    "id": "menu-list",
+    "create": "New menu",
+    "fixture": "menu-forms",
+    "coverage": [
+      "list source expression",
+      "page size",
+      "grid expansion",
+      "distinct entry labels",
+      "entry action context",
+      "export"
+    ],
+    "setup": [
+      {
+        "kind": "component",
+        "id": "stock"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      }
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Source expression",
+        "value": "['Oak', 'Birch', 'Cherry']"
+      },
+      {
+        "kind": "input",
+        "field": "Page size",
+        "value": "2"
+      },
+      {
+        "kind": "mode",
+        "value": "Preview"
+      },
+      {
+        "kind": "distinctSprites",
+        "ids": [
+          "stock[0]",
+          "stock[1]"
+        ]
+      },
+      {
+        "kind": "previewClick",
+        "id": "stock[1]",
+        "expectChange": false
+      }
+    ],
+    "assertions": {
+      "components.4.data.source": "['Oak', 'Birch', 'Cherry']",
+      "components.4.data.pageSize": 2
+    }
+  },
+  {
+    "id": "menu-field",
+    "create": "New menu",
+    "fixture": "menu-forms",
+    "coverage": [
+      "field label",
+      "prompt choice",
+      "initial value",
+      "local preview input",
+      "session text update",
+      "export"
+    ],
+    "setup": [
+      {
+        "kind": "component",
+        "id": "name"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      }
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Label",
+        "value": "&bCustomer: {{session.name}}"
+      },
+      {
+        "kind": "mode",
+        "value": "Preview"
+      },
+      {
+        "kind": "previewClick",
+        "id": "name",
+        "expectChange": false
+      },
+      {
+        "kind": "input",
+        "selector": "input[placeholder=\"Value\"]:visible",
+        "value": "Trader"
+      },
+      {
+        "kind": "click",
+        "button": "Save"
+      },
+      {
+        "kind": "wait",
+        "ms": 2200
+      }
+    ],
+    "assertions": {
+      "components.3.data.label": "&bCustomer: {{session.name}}",
+      "components.3.data.prompt": "anvil",
+      "vars.name": "'Builder'"
+    }
+  },
+  {
+    "id": "menu-tabs",
+    "create": "New menu",
+    "fixture": "menu-forms",
+    "coverage": [
+      "tab labels",
+      "spacing",
+      "centered row",
+      "local page selection",
+      "session text update",
+      "export"
+    ],
+    "setup": [
+      {
+        "kind": "component",
+        "id": "pages"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      }
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Label",
+        "index": 1,
+        "value": "&bSupport"
+      },
+      {
+        "kind": "input",
+        "field": "Spacing",
+        "value": "2"
+      },
+      {
+        "kind": "mode",
+        "value": "Preview"
+      },
+      {
+        "kind": "previewClick",
+        "id": "pages#1",
+        "expectChange": false
+      },
+      {
+        "kind": "wait",
+        "ms": 2000
+      }
+    ],
+    "assertions": {
+      "components.1.data.tabs.1.label": "&bSupport",
+      "components.1.data.spacing": 2
+    }
+  },
+  {
+    "id": "menu-shop",
+    "create": "New menu",
+    "fixture": "menu-shop",
+    "coverage": [
+      "menu components",
+      "item icons",
+      "formatted label editing",
+      "button actions",
+      "click preview log",
+      "export"
+    ],
+    "setup": [
+      {
+        "kind": "component",
+        "id": "title"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      }
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "selector": ".hui-inspector-body textarea",
+        "value": "&6&lMarket Hall"
+      },
+      {
+        "kind": "component",
+        "id": "sword"
+      },
+      {
+        "kind": "mode",
+        "value": "Preview"
+      },
+      {
+        "kind": "previewClick",
+        "id": "sword",
+        "expectChange": false
+      }
+    ],
+    "assertions": {
+      "components.0.data.icon.text": "&6&lMarket Hall"
+    }
+  },
+  {
+    "id": "menu-toggle",
+    "create": "New menu",
+    "fixture": "menu-settings",
+    "coverage": [
+      "toggle conditions",
+      "two icons",
+      "true and false actions",
+      "interactive preview",
+      "export"
+    ],
+    "setup": [
+      {
+        "kind": "component",
+        "id": "flight"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      }
+    ],
+    "operations": [
+      {
+        "kind": "mode",
+        "value": "Preview"
+      },
+      {
+        "kind": "previewClick",
+        "id": "flight",
+        "expectChange": true
+      },
+      {
+        "kind": "previewClick",
+        "id": "flight",
+        "expectChange": true
+      }
+    ],
+    "assertions": {
+      "components.1.data.type": "toggle"
+    }
+  },
+  {
+    "id": "hologram-mixed",
+    "create": "New hologram",
+    "fixture": "hologram-mixed",
+    "coverage": [
+      "mixed text and object lines",
+      "item model",
+      "preview player head",
+      "block model",
+      "entity model",
+      "native row reservation",
+      "authored scale",
+      "object JSON preservation"
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "selector": "input[placeholder='&fText, %papi%, |animation.id|, {{ expression }}']",
+        "index": 0,
+        "value": "&6Market displays"
+      },
+      {
+        "kind": "extras",
+        "section": "Line 4",
+        "key": "block",
+        "value": "minecraft:emerald_block",
+        "literal": true
+      }
+    ],
+    "assertions": {
+      "lines.0": "&6Market displays",
+      "lines.1.item.item": "diamond",
+      "lines.2.head": "Builder",
+      "lines.3.block": "minecraft:emerald_block",
+      "lines.4.entity": "minecraft:zombie"
+    }
+  },
+  {
+    "id": "container-preview",
+    "create": "New preview document",
+    "fixture": "container-preview",
+    "coverage": [
+      "container preview card",
+      "furnace live samples",
+      "scale authoring",
+      "visibility expression",
+      "export"
+    ],
+    "operations": [
+      {
+        "kind": "select",
+        "selector": "select",
+        "index": 0,
+        "value": "furnace"
+      },
+      {
+        "kind": "extras",
+        "section": "Settings",
+        "key": "scale",
+        "value": 0.85
+      },
+      {
+        "kind": "input",
+        "aria": "Visibility expression",
+        "value": "true",
+        "index": 0
+      }
+    ],
+    "assertions": {
+      "scale": 0.85,
+      "show": true
+    }
+  },
+  {
+    "id": "real-drops",
+    "create": "Real drops",
+    "fixture": "real-drops",
+    "coverage": [
+      "drop model scale",
+      "drop labels",
+      "stack preview",
+      "export"
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "field": "Default items",
+        "value": "0.6"
+      },
+      {
+        "kind": "input",
+        "field": "Format",
+        "value": "&e{count}x {type}"
+      }
+    ],
+    "assertions": {
+      "presentation.scale.defaultScale": 0.6,
+      "presentation.labels.format": "&e{count}x {type}"
+    }
+  },
+  {
+    "id": "world-panel",
+    "create": "New menu",
+    "coverage": [
+      "workspace flow map",
+      "world panel creation",
+      "world key and UUID",
+      "root menu",
+      "exported panel definition",
+      "navigation route from authored menu"
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "selector": ".hui-field input",
+        "index": 0,
+        "value": "market-panel"
+      },
+      {
+        "kind": "input",
+        "selector": ".hui-field input",
+        "index": 2,
+        "value": "00000000-0000-0000-0000-000000000001"
+      },
+      {
+        "kind": "click",
+        "button": "Create world panel"
+      },
+      {
+        "kind": "download",
+        "button": "Export world panel",
+        "name": "market-panel",
+        "assertions": {
+          "id": "market-panel",
+          "transform.worldUuid": "00000000-0000-0000-0000-000000000001",
+          "rootMenuId": "my-menu"
+        }
+      }
+    ],
+    "fixture": "menu-flow",
+    "setup": [
+      {
+        "kind": "newDocument",
+        "create": "New menu flow map"
+      }
+    ]
+  },
+  {
+    "id": "project-workflow",
+    "create": "New menu",
+    "fixture": "menu-shop",
+    "coverage": [
+      "Visual Code Split Preview modes",
+      "authored title edit",
+      "Undo and Redo",
+      "JSON export"
+    ],
+    "setup": [
+      {
+        "kind": "component",
+        "id": "title"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      }
+    ],
+    "operations": [
+      {
+        "kind": "input",
+        "selector": ".hui-inspector-body textarea",
+        "value": "&6&lMarket Studio"
+      },
+      {
+        "kind": "shortcut",
+        "key": "ControlOrMeta+z"
+      },
+      {
+        "kind": "wait",
+        "ms": 1500
+      },
+      {
+        "kind": "shortcut",
+        "key": "ControlOrMeta+Shift+z"
+      },
+      {
+        "kind": "mode",
+        "value": "Code"
+      },
+      {
+        "kind": "wait",
+        "ms": 1800
+      },
+      {
+        "kind": "mode",
+        "value": "Split"
+      },
+      {
+        "kind": "wait",
+        "ms": 1800
+      },
+      {
+        "kind": "mode",
+        "value": "Preview"
+      },
+      {
+        "kind": "wait",
+        "ms": 1800
+      },
+      {
+        "kind": "mode",
+        "value": "Visual"
+      }
+    ],
+    "assertions": {
+      "components.0.data.icon.text": "&6&lMarket Studio"
+    }
+  },
+  {
+    "id": "seeded-randomizer",
+    "create": "New menu",
+    "coverage": [
+      "authored seed",
+      "generated current components",
+      "Undo restores previous document",
+      "same seed repeats complete exported JSON"
+    ],
+    "operations": [
+      {
+        "kind": "click",
+        "selector": ".hui-library-row-menu",
+        "index": 0
+      },
+      {
+        "kind": "click",
+        "button": "Create random menu",
+        "role": "menuitem"
+      },
+      {
+        "kind": "input",
+        "aria": "Seed",
+        "value": "1234"
+      },
+      {
+        "kind": "click",
+        "button": "Generate with seed",
+        "key": "Shift"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      },
+      {
+        "kind": "exportSnapshot",
+        "name": "seed1234"
+      },
+      {
+        "kind": "shortcut",
+        "key": "ControlOrMeta+z"
+      },
+      {
+        "kind": "click",
+        "selector": ".hui-library-row-menu",
+        "index": 0
+      },
+      {
+        "kind": "click",
+        "button": "Create random menu",
+        "role": "menuitem"
+      },
+      {
+        "kind": "input",
+        "aria": "Seed",
+        "value": "1234"
+      },
+      {
+        "kind": "click",
+        "button": "Generate with seed",
+        "key": "Shift"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      },
+      {
+        "kind": "exportSnapshot",
+        "equals": "seed1234"
+      }
+    ]
+  },
+  {
+    "id": "image-library",
+    "create": "New menu",
+    "coverage": [
+      "canvas image placement",
+      "real PNG upload",
+      "image path rename",
+      "textImage icon",
+      "image archive export"
+    ],
+    "operations": [
+      {
+        "kind": "canvasContext",
+        "x": 0.3,
+        "y": 0.35
+      },
+      {
+        "kind": "click",
+        "button": "Image or GIF",
+        "role": "menuitem"
+      },
+      {
+        "kind": "upload",
+        "button": "Upload images",
+        "file": "web/assets/mc/26.2/hud/heart_full.png"
+      },
+      {
+        "kind": "input",
+        "aria": "Path for heart_full.png",
+        "value": "icons/market-heart.png"
+      },
+      {
+        "kind": "download",
+        "button": "Download images.zip",
+        "name": "market-images",
+        "format": "zip",
+        "entries": [
+          "icons/market-heart.png"
+        ]
+      },
+      {
+        "kind": "click",
+        "button": "Use image"
+      },
+      {
+        "kind": "click",
+        "button": "Fit to components (F)"
+      }
+    ]
+  }
+]
