@@ -110,6 +110,12 @@ class _EntityOverlayInspectorState extends State<EntityOverlayInspector> {
             (GlossEntityOverlaysDoc edited, bool value) =>
                 edited.includePlayers = value,
           ),
+          _toggle(
+            'Override mob nametags',
+            doc.overrideNametag,
+            (GlossEntityOverlaysDoc edited, bool value) =>
+                edited.overrideNametag = value,
+          ),
           _number(
             'Display range',
             'range',

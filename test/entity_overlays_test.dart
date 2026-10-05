@@ -33,6 +33,34 @@ final class _OverlayAnimations implements GlossAnimationResolver {
 }
 
 void main() {
+  test('native nametag override defaults off and preserves the rows', () {
+    final GlossEntityOverlaysDoc defaults = GlossEntityOverlaysDoc();
+    expect(defaults.overrideNametag, isFalse);
+    expect(
+      GlossEntityOverlaysDoc.fromJson(<String, Object?>{
+        'schemaVersion': 2,
+      }).overrideNametag,
+      isFalse,
+    );
+    final GlossEntityOverlaysDoc enabled = GlossEntityOverlaysDoc(
+      overrideNametag: true,
+    );
+    final GlossEntityOverlaysDoc restored = decodeGlossEntityOverlaysDoc(
+      encodeGlossEntityOverlaysDoc(enabled),
+    );
+    expect(restored.overrideNametag, isTrue);
+    expect(restored.extras, isNot(contains('overrideNametag')));
+    expect(
+      restored.lines.map((GlossEntityOverlayLine line) => line.toJson()).toList(),
+      defaults.lines.map((GlossEntityOverlayLine line) => line.toJson()).toList(),
+    );
+    restored.overrideNametag = false;
+    expect(
+      decodeGlossEntityOverlaysDoc(encodeGlossEntityOverlaysDoc(restored)).overrideNametag,
+      isFalse,
+    );
+  });
+
   test('rainbow wraps resolved entity tokens without exposing markup', () {
     final GlossEntityOverlaysDoc doc = GlossEntityOverlaysDoc()
       ..lines = <GlossEntityOverlayLine>[
@@ -560,6 +588,13 @@ void main() {
     expect(store.entityOverlaysDoc!.healthSegments, 18);
     expect(store.performUndo(), isTrue);
     expect(store.entityOverlaysDoc!.healthSegments, 10);
+    store.mutateEntityOverlays(
+      'Override mob nametags',
+      (GlossEntityOverlaysDoc doc) => doc.overrideNametag = true,
+    );
+    expect(store.entityOverlaysDoc!.overrideNametag, isTrue);
+    expect(store.performUndo(), isTrue);
+    expect(store.entityOverlaysDoc!.overrideNametag, isFalse);
     final String exported = store.exportJson();
     store.importJsonAsNewDocument('default.json', exported);
     expect(store.docType, DocumentTypes.entityOverlays);

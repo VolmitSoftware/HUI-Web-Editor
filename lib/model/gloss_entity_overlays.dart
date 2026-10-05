@@ -122,6 +122,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
     this.maxEntitiesPerViewer = 16,
     this.maxActiveOverlays = 1024,
     this.includePlayers = true,
+    this.overrideNametag = false,
     this.verticalOffset = 0.35,
     this.healthSegments = 10,
     GlossHealthBar? healthBar,
@@ -151,6 +152,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
   int maxEntitiesPerViewer;
   int maxActiveOverlays;
   bool includePlayers;
+  bool overrideNametag;
   double verticalOffset;
   int healthSegments;
   GlossHealthBar healthBar;
@@ -189,6 +191,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
       maxActiveOverlays: huiReadInt(map, 'maxActiveOverlays', fallback: 1024),
       includePlayers:
           map['includePlayers'] == null || huiReadBool(map, 'includePlayers'),
+      overrideNametag: huiReadBool(map, 'overrideNametag'),
       verticalOffset: huiReadDouble(map, 'verticalOffset', fallback: 0.35),
       healthSegments: huiReadInt(map, 'healthSegments', fallback: 10),
       healthBar: GlossHealthBar.fromJson(map['healthBar']),
@@ -247,6 +250,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
     'maxEntitiesPerViewer': maxEntitiesPerViewer,
     'maxActiveOverlays': maxActiveOverlays,
     'includePlayers': includePlayers,
+    'overrideNametag': overrideNametag,
     'verticalOffset': verticalOffset,
     'healthSegments': healthSegments,
     'healthBar': healthBar.toJson(),

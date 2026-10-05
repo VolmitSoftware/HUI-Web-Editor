@@ -2824,6 +2824,13 @@ final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
       summary: 'Includes nearby players.',
       defaultLiteral: 'true',
     ),
+    const GlossJsonField(
+      key: 'overrideNametag',
+      type: GlossJsonType.boolean,
+      title: 'Override mob nametags',
+      summary: 'Hides native mob nametags while Gloss displays their names.',
+      defaultLiteral: 'false',
+    ),
     for (final (
           String key,
           String title,
