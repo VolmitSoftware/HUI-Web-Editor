@@ -580,6 +580,8 @@ void main() {
       isTrue,
     );
     final String generated = encodeWorkspacePanel(store.activePanel!.data);
+    expect(generated, isNot(encodeWorkspacePanel(source)));
+    expect(store.workspace.activeId, document.id);
     expect(store.activePanel!.data.positions[document.id]!.x, 12);
     expect(store.performUndo(), isTrue);
     expect(store.activePanel!.data.toJson(), source.toJson());

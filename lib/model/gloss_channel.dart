@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'gloss_doc.dart';
 import 'json_codec.dart';
 
+const int glossChannelCurrentSchemaVersion = 2;
+
 bool looksLikeChannelDoc(Object? json) =>
     json is Map &&
     json['schemaVersion'] is num &&
@@ -242,6 +244,97 @@ final class GlossChannelFilter {
   }, extras);
 }
 
+final class GlossChannelFiltering {
+  GlossChannelFiltering({
+    this.syntax = 're2',
+    this.maxInputCharacters = 4096,
+    this.maxOutputCharacters = 16384,
+    this.maxPatternCharacters = 1024,
+    this.maxReplacementCharacters = 4096,
+    this.maxFilters = 64,
+    this.maxMatches = 4096,
+    this.maxProgramSize = 16384,
+    this.maxNestingDepth = 32,
+    this.maxWorkUnits = 2000000,
+    this.budgetMicros = 2000,
+    this.onLimit = 'drop',
+    Map<String, Object?>? extras,
+  }) : extras = extras ?? <String, Object?>{};
+  String syntax;
+  int maxInputCharacters;
+  int maxOutputCharacters;
+  int maxPatternCharacters;
+  int maxReplacementCharacters;
+  int maxFilters;
+  int maxMatches;
+  int maxProgramSize;
+  int maxNestingDepth;
+  int maxWorkUnits;
+  int budgetMicros;
+  String onLimit;
+  Map<String, Object?> extras;
+  static GlossChannelFiltering fromJson(Object? raw) {
+    final Map<String, Object?> map = raw == null
+        ? <String, Object?>{}
+        : huiReadObject(raw, r'$.filtering');
+    return GlossChannelFiltering(
+      syntax: huiReadString(map, 'syntax', fallback: 're2'),
+      maxInputCharacters: huiReadInt(map, 'maxInputCharacters', fallback: 4096),
+      maxOutputCharacters: huiReadInt(
+        map,
+        'maxOutputCharacters',
+        fallback: 16384,
+      ),
+      maxPatternCharacters: huiReadInt(
+        map,
+        'maxPatternCharacters',
+        fallback: 1024,
+      ),
+      maxReplacementCharacters: huiReadInt(
+        map,
+        'maxReplacementCharacters',
+        fallback: 4096,
+      ),
+      maxFilters: huiReadInt(map, 'maxFilters', fallback: 64),
+      maxMatches: huiReadInt(map, 'maxMatches', fallback: 4096),
+      maxProgramSize: huiReadInt(map, 'maxProgramSize', fallback: 16384),
+      maxNestingDepth: huiReadInt(map, 'maxNestingDepth', fallback: 32),
+      maxWorkUnits: huiReadInt(map, 'maxWorkUnits', fallback: 2000000),
+      budgetMicros: huiReadInt(map, 'budgetMicros', fallback: 2000),
+      onLimit: huiReadString(map, 'onLimit', fallback: 'drop'),
+      extras: huiCollectExtras(map, <String>{
+        'syntax',
+        'onLimit',
+        'maxInputCharacters',
+        'maxOutputCharacters',
+        'maxPatternCharacters',
+        'maxReplacementCharacters',
+        'maxFilters',
+        'maxMatches',
+        'maxProgramSize',
+        'maxNestingDepth',
+        'maxWorkUnits',
+        'budgetMicros',
+      }),
+    );
+  }
+
+  Map<String, Object?> toJson() => huiMergeExtras(<String, Object?>{
+    'syntax': syntax,
+    'maxInputCharacters': maxInputCharacters,
+    'maxOutputCharacters': maxOutputCharacters,
+    'maxPatternCharacters': maxPatternCharacters,
+    'maxReplacementCharacters': maxReplacementCharacters,
+    'maxFilters': maxFilters,
+    'maxMatches': maxMatches,
+    'maxProgramSize': maxProgramSize,
+    'maxNestingDepth': maxNestingDepth,
+    'maxWorkUnits': maxWorkUnits,
+    'budgetMicros': budgetMicros,
+    'onLimit': onLimit,
+  }, extras);
+}
+
 final class GlossChannelThrottle {
   GlossChannelThrottle({
     this.repeatWindowTicks = 100,
@@ -286,6 +379,7 @@ final class GlossChannelVariant {
     this.links,
     this.filters,
     this.throttle,
+    this.filtering,
     Map<String, Object?>? extras,
   }) : extras = extras ?? <String, Object?>{};
   String id;
@@ -298,6 +392,7 @@ final class GlossChannelVariant {
   GlossChannelLinks? links;
   List<GlossChannelFilter>? filters;
   GlossChannelThrottle? throttle;
+  GlossChannelFiltering? filtering;
   Map<String, Object?> extras;
 
   static GlossChannelVariant fromJson(Object? raw) {
@@ -328,6 +423,9 @@ final class GlossChannelVariant {
               for (final Object? filter in huiReadList(map['filters']))
                 GlossChannelFilter.fromJson(filter),
             ],
+      filtering: map['filtering'] == null
+          ? null
+          : GlossChannelFiltering.fromJson(map['filtering']),
       throttle: map['throttle'] == null
           ? null
           : GlossChannelThrottle.fromJson(map['throttle']),
@@ -342,6 +440,7 @@ final class GlossChannelVariant {
         'links',
         'filters',
         'throttle',
+        'filtering',
       }),
     );
   }
@@ -360,6 +459,7 @@ final class GlossChannelVariant {
         for (final GlossChannelFilter filter in filters!) filter.toJson(),
       ],
     if (throttle != null) 'throttle': throttle!.toJson(),
+    if (filtering != null) 'filtering': filtering!.toJson(),
   }, extras);
 
   GlossChannelDoc apply(GlossChannelDoc base) => GlossChannelDoc(
@@ -374,12 +474,13 @@ final class GlossChannelVariant {
     links: links ?? base.links,
     filters: filters ?? base.filters,
     throttle: throttle ?? base.throttle,
+    filtering: filtering ?? base.filtering,
   );
 }
 
 final class GlossChannelDoc extends GlossDoc {
   GlossChannelDoc({
-    super.schemaVersion = 1,
+    super.schemaVersion = glossChannelCurrentSchemaVersion,
     super.revision = 1,
     this.show = 'true',
     this.format = '&f{{ sender.name }}&8: &f{{ message }}',
@@ -389,6 +490,7 @@ final class GlossChannelDoc extends GlossDoc {
     this.items,
     this.links,
     this.throttle,
+    this.filtering,
     List<GlossChannelFilter>? filters,
     List<GlossChannelVariant>? variants,
     Map<String, Object?>? extras,
@@ -407,13 +509,24 @@ final class GlossChannelDoc extends GlossDoc {
   GlossChannelItems? items;
   GlossChannelLinks? links;
   GlossChannelThrottle? throttle;
+  GlossChannelFiltering? filtering;
   List<GlossChannelFilter> filters;
   List<GlossChannelVariant> variants;
   Map<String, Object?> extras;
 
   static GlossChannelDoc fromJson(Object? raw) {
     final Map<String, Object?> map = huiReadObject(raw, r'$');
-    glossReadSchemaVersion(map, 'channel');
+    glossReadSchemaVersion(
+      map,
+      'channel',
+      expected: glossChannelCurrentSchemaVersion,
+    );
+    if (map['schemaVersion'] != glossChannelCurrentSchemaVersion) {
+      throw const HuiFormatException(
+        'Channel schemaVersion must be 2.',
+        r'$.schemaVersion',
+      );
+    }
     return GlossChannelDoc(
       revision: glossReadRevision(map),
       show: map['show'] ?? 'true',
@@ -426,6 +539,9 @@ final class GlossChannelDoc extends GlossDoc {
       links: map['links'] == null
           ? null
           : GlossChannelLinks.fromJson(map['links']),
+      filtering: map['filtering'] == null
+          ? null
+          : GlossChannelFiltering.fromJson(map['filtering']),
       throttle: map['throttle'] == null
           ? null
           : GlossChannelThrottle.fromJson(map['throttle']),
@@ -453,6 +569,7 @@ final class GlossChannelDoc extends GlossDoc {
         'links',
         'filters',
         'throttle',
+        'filtering',
         'variants',
       }),
     );
@@ -470,6 +587,7 @@ final class GlossChannelDoc extends GlossDoc {
     if (items != null) 'items': items!.toJson(),
     if (links != null) 'links': links!.toJson(),
     if (throttle != null) 'throttle': throttle!.toJson(),
+    if (filtering != null) 'filtering': filtering!.toJson(),
     if (filters.isNotEmpty)
       'filters': <Map<String, Object?>>[
         for (final GlossChannelFilter filter in filters) filter.toJson(),

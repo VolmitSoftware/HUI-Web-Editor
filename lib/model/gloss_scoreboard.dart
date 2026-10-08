@@ -42,7 +42,9 @@ bool looksLikeScoreboardDoc(Object? json) {
   }
   final Object? lines = presentation['lines'];
   if (lines is! List || lines.isEmpty) return false;
-  return lines.first is String || lines.first is num;
+  return lines.first is String ||
+      json['schemaVersion'] == glossScoreboardCurrentSchemaVersion &&
+          lines.first is Map;
 }
 
 GlossScoreboardDoc decodeGlossScoreboardDoc(String json) {
@@ -115,17 +117,95 @@ final class GlossScoreboardSelect {
   );
 }
 
+final class GlossScoreboardLine {
+  GlossScoreboardLine({
+    this.text = '',
+    this.value,
+    this.format,
+    this.id,
+    this.show = true,
+    this.section,
+    Map<String, Object?>? extras,
+  }) : extras = extras ?? <String, Object?>{};
+
+  String text;
+  String? value;
+  String? format;
+  String? id;
+  Object show;
+  String? section;
+  Map<String, Object?> extras;
+
+  static GlossScoreboardLine fromJson(Object? raw, String path) {
+    if (raw == null || raw is String) {
+      return GlossScoreboardLine(text: raw as String? ?? '');
+    }
+    final Map<String, Object?> map = huiReadObject(raw, path);
+    final Object show = map['show'] ?? true;
+    if (show is! bool && show is! String) {
+      throw HuiFormatException(
+        'Show must be a boolean or expression.',
+        '$path.show',
+      );
+    }
+    return GlossScoreboardLine(
+      text: huiReadString(map, 'text'),
+      value: map['value'] == null ? null : huiReadString(map, 'value'),
+      format: map['format'] == null ? null : huiReadString(map, 'format'),
+      id: map['id'] == null ? null : huiReadString(map, 'id'),
+      show: show,
+      section: map['section'] == null ? null : huiReadString(map, 'section'),
+      extras: huiCollectExtras(map, const <String>{
+        'text',
+        'value',
+        'format',
+        'id',
+        'show',
+        'section',
+      }),
+    );
+  }
+
+  Object toJson() {
+    if (value == null &&
+        format == null &&
+        id == null &&
+        show == true &&
+        section == null &&
+        extras.isEmpty) {
+      return text;
+    }
+    return <String, Object?>{
+      if (section == null || text.isNotEmpty) 'text': text,
+      if (section != null) 'section': section,
+      if (value != null) 'value': value,
+      if (format != null) 'format': format,
+      if (id != null) 'id': id,
+      if (show != true) 'show': show,
+      ...extras,
+    };
+  }
+
+  GlossScoreboardLine copy() =>
+      GlossScoreboardLine.fromJson(huiDeepCopy(toJson()), r'$.line');
+}
+
+List<GlossScoreboardLine> glossScoreboardLines(Iterable<String> text) =>
+    <GlossScoreboardLine>[
+      for (final String line in text) GlossScoreboardLine(text: line),
+    ];
+
 final class GlossScoreboardPresentation {
   GlossScoreboardPresentation({
     this.title = '',
-    List<String>? lines,
+    List<GlossScoreboardLine>? lines,
     this.hideNumbers = false,
     Map<String, dynamic>? extras,
-  }) : lines = lines ?? <String>[],
+  }) : lines = lines ?? <GlossScoreboardLine>[],
        extras = extras ?? <String, dynamic>{};
 
   String title;
-  List<String> lines;
+  List<GlossScoreboardLine> lines;
   bool hideNumbers;
   Map<String, dynamic> extras;
 
@@ -133,7 +213,12 @@ final class GlossScoreboardPresentation {
     final Map<String, dynamic> map = huiReadObject(raw, path);
     return GlossScoreboardPresentation(
       title: huiReadString(map, 'title'),
-      lines: glossReadStringList(map['lines']),
+      lines: <GlossScoreboardLine>[
+        for (final (int index, Object? line) in huiReadList(
+          map['lines'],
+        ).indexed)
+          GlossScoreboardLine.fromJson(line, '$path.lines[$index]'),
+      ],
       hideNumbers: huiReadBool(map, 'hideNumbers'),
       extras: huiCollectExtras(map, _presentationKnown),
     );
@@ -141,13 +226,17 @@ final class GlossScoreboardPresentation {
 
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
     'title': title,
-    'lines': List<String>.of(lines),
+    'lines': <Object>[
+      for (final GlossScoreboardLine line in lines) line.toJson(),
+    ],
     'hideNumbers': hideNumbers,
   }, extras);
 
   GlossScoreboardPresentation copy() => GlossScoreboardPresentation(
     title: title,
-    lines: List<String>.of(lines),
+    lines: <GlossScoreboardLine>[
+      for (final GlossScoreboardLine line in lines) line.copy(),
+    ],
     hideNumbers: hideNumbers,
     extras: huiDeepCopyMap(extras),
   );

@@ -57,5 +57,6 @@
   "stackDistance": 0.26,
   "blacklistWorlds": [],
   "maxPerSender": 4,
+  "overflow": "replace-oldest",
   "format": "{message}"
 }

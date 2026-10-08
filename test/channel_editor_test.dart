@@ -17,7 +17,7 @@ void main() {
     'channels preserve optional blocks and unknown mention fields through export',
     () {
       final GlossChannelDoc doc = decodeGlossChannelDoc(
-        '''{"schemaVersion":1,"revision":9,
+        '''{"schemaVersion":2,"revision":9,
       "channel":{"name":"global","default":true},"format":"{{ sender.name }}: {{ message }}",
       "mentions":{"enabled":false,"messageFormat":"<green>{{ message }}</green>","custom":7},
       "items":{"enabled":false},"filters":[{"match":"bad","replace":"ok"}],

@@ -43,7 +43,10 @@ enum WorkspaceDocKind {
   marker,
   names,
   strings,
-  waypoint;
+  waypoint,
+  glyph,
+  behavior,
+  presets;
 
   bool get hasRuntimeId => this != WorkspaceDocKind.panel;
 
@@ -110,6 +113,7 @@ class WorkspaceDoc {
     required this.updatedAt,
     required this.folderId,
     this.kind = WorkspaceDocKind.menu,
+    this.presetContext,
   });
 
   final String id;
@@ -120,6 +124,8 @@ class WorkspaceDoc {
   String? folderId;
   int updatedAt;
 
+  String? presetContext;
+
   Map<String, dynamic> toJson() => <String, dynamic>{
     'id': id,
     'title': title,
@@ -128,6 +134,7 @@ class WorkspaceDoc {
     'updatedAt': updatedAt,
     'kind': kind.name,
     'folderId': folderId,
+    if (presetContext != null) 'presetContext': presetContext,
   };
 
   static WorkspaceDoc? fromJson(Object? raw) {
@@ -164,6 +171,7 @@ class WorkspaceDoc {
       updatedAt: updatedAt is num ? updatedAt.toInt() : 0,
       kind: kind,
       folderId: folderId as String?,
+      presetContext: raw['presetContext'] is String ? raw['presetContext'] as String : null,
     );
   }
 }
@@ -440,6 +448,7 @@ class Workspace extends ChangeNotifier {
     String? runtimeId,
     WorkspaceDocKind kind = WorkspaceDocKind.menu,
     String? folderId,
+    String? presetContext,
   }) {
     _requireReady();
     _requireWritable();
@@ -458,6 +467,7 @@ class Workspace extends ChangeNotifier {
       updatedAt: _stamp(),
       kind: kind,
       folderId: targetFolder,
+      presetContext: presetContext,
     );
     _docs.add(doc);
     _activeId = doc.id;
@@ -539,6 +549,7 @@ class Workspace extends ChangeNotifier {
     required WorkspaceDocKind kind,
     String? folderId,
     String? runtimeId,
+    String? presetContext,
   }) {
     if (!canWrite ||
         !_isJson(json) ||
@@ -558,6 +569,7 @@ class Workspace extends ChangeNotifier {
       ..runtimeId = canonicalRuntimeId
       ..json = json
       ..kind = kind
+      ..presetContext = presetContext
       ..folderId = folderId
       ..updatedAt = _stamp();
     save();

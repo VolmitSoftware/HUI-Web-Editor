@@ -224,7 +224,7 @@ const String _bubble =
     '"select":{"priority":5,"when":"inGroup(\'viewer\', \'vip\')"}}';
 
 const String _tablist =
-    '{"schemaVersion":2,"revision":2,'
+    '{"schemaVersion":3,"revision":2,'
     '"headerFooter":{"enabled":true,"presentation":{"header":"h",'
     '"footer":"f"},"variants":[]},'
     r'"listNames":{"enabled":true,"presentation":{"format":"$player"},'
@@ -284,12 +284,16 @@ void main() {
     });
 
     test('every editable kind has a model and the editor-only ones do not', () {
-      expect(glossJsonSchemas.keys, hasLength(17));
+      expect(glossJsonSchemas.keys, hasLength(21));
       for (final String kind in <String>[
         'channel',
         'names',
         'strings',
+        'presets',
+        'inventory',
         'waypoint',
+        'glyph',
+        'behavior',
         'menu',
         'hologram',
         'animation',

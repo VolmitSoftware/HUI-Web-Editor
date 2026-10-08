@@ -50,6 +50,7 @@ void main() {
   group('key candidates', () {
     test('offers the root keys of the open kind', () {
       expect(_labels(_offer('hologram', '{\n  |\n}')), <String>[
+        'refresh',
         'variants', 'pages', 'actions', 'hitbox',
         'viewDistance',
         'refreshTicks',
@@ -63,6 +64,7 @@ void main() {
         'yaw',
         'pitch',
         'particleLayers',
+        'preset',
       ]);
     });
 

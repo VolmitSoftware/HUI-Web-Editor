@@ -24,6 +24,7 @@ final class GlossWaypointDoc extends GlossDoc {
     GlossMarkerAnchor? anchor,
     this.color = '#ffffff',
     this.style = 'default',
+    this.fallbackStyle = 'default',
     this.range = 0,
     this.show = true,
     this.audience = true,
@@ -36,6 +37,7 @@ final class GlossWaypointDoc extends GlossDoc {
   GlossMarkerAnchor anchor;
   String color;
   String style;
+  String fallbackStyle;
   double range;
   Object? show;
   Object? audience;
@@ -56,6 +58,7 @@ final class GlossWaypointDoc extends GlossDoc {
       ),
       color: huiReadString(map, 'color', fallback: '#ffffff'),
       style: huiReadString(map, 'style', fallback: 'default'),
+      fallbackStyle: huiReadString(map, 'fallbackStyle', fallback: 'default'),
       range: huiReadDouble(map, 'range'),
       show: map['show'] ?? true,
       audience: audience['when'] ?? true,
@@ -66,6 +69,7 @@ final class GlossWaypointDoc extends GlossDoc {
         'anchor',
         'color',
         'style',
+        'fallbackStyle',
         'range',
         'show',
         'audience',
@@ -81,6 +85,7 @@ final class GlossWaypointDoc extends GlossDoc {
     'anchor': anchor.toJson(),
     'color': color,
     'style': style,
+    'fallbackStyle': fallbackStyle,
     'range': range,
     'show': show,
     'audience': <String, Object?>{

@@ -6,7 +6,7 @@ import 'gloss_doc.dart';
 import 'json_codec.dart';
 import 'gloss_tab_layout.dart';
 
-const int glossTablistCurrentSchemaVersion = 2;
+const int glossTablistCurrentSchemaVersion = 3;
 const String glossTablistFallbackFormat = r'$player';
 
 bool looksLikeTablistDoc(Object? json) {

@@ -15,6 +15,7 @@ import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'extras_editor.dart';
 import 'display_style_editor.dart';
+import 'display_refresh_editor.dart';
 import 'hologram_box_editor.dart';
 import '../../model/gloss_hologram_box.dart';
 import 'gloss_visibility_editor.dart';
@@ -84,6 +85,16 @@ class DamageIndicatorInspector extends StatelessWidget {
   Widget _limits(GlossDamageIndicatorsDoc doc) => InspectorSection(
     title: huiText('Admission and formatting'),
     children: <Widget>[
+      _integer(label: huiText('Aggregation ticks'),
+        help: huiText('Sample net health change over 1..200 ticks. One pending sample per target.'),
+        path: r'$.limits.aggregationTicks', value: doc.limits.aggregationTicks,
+        onChanged: (int value) => _mutate('indicator aggregation',
+          (GlossDamageIndicatorsDoc edited) => edited.limits.aggregationTicks = value)),
+      _integer(label: huiText('Maximum pending samples'),
+        help: huiText('Global pending target limit, 1..16384. New samples are rejected when full.'),
+        path: r'$.limits.maxPendingSamples', value: doc.limits.maxPendingSamples,
+        onChanged: (int value) => _mutate('indicator sample capacity',
+          (GlossDamageIndicatorsDoc edited) => edited.limits.maxPendingSamples = value)),
       _integer(
         label: huiText('Maximum per second'),
         help: huiText('Global spawn budget. 1..1000.'),
@@ -291,6 +302,8 @@ class DamageIndicatorInspector extends StatelessWidget {
     )
     mutate,
   ) => <Widget>[
+    DisplayRefreshEditor(refresh: presentation.refresh, onChanged: (String label, GlossDisplayRefresh next) =>
+      mutate(label, (GlossDamageIndicatorPresentation edited) => edited.refresh = next)),
     DisplayStyleEditor(
       style: presentation.style,
       defaults: defaultHologramDisplayStyle(),
@@ -497,6 +510,7 @@ class DamageIndicatorInspector extends StatelessWidget {
     control: dom.div(<Widget>[
       HuiNumberField(
         value: value.toDouble(),
+        ariaLabel: label,
         step: 1,
         decimals: 0,
         integer: true,

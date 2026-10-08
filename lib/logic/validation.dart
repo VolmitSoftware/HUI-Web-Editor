@@ -1,4 +1,5 @@
 import 'gloss_show.dart';
+import 'action_document_validation.dart';
 import 'hologram_box_validation.dart';
 import '../config/defaults.dart' show validateMenuId;
 import '../l10n/hui_localizations.dart';
@@ -550,6 +551,7 @@ class _Validator {
   }
 
   void validateMenu(HuiMenu menu) {
+    issues.addAll(validateActionDocument(menu.toJson()));
     issues.addAll(validateGlossShow(menu.extras['show'], path: 'show'));
     issues.addAll(validateParticleLayers(menu.particleLayers));
     if (menu.absentKeys.contains('offset')) {

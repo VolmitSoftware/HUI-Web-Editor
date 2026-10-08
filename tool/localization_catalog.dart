@@ -5103,7 +5103,7 @@ final RegExp _doubledDomainMarkerPattern = RegExp(
 
 final RegExp _hexColorPattern = RegExp(r'#[0-9A-Fa-f]{3,8}\b');
 
-final RegExp _repeatedCharacterPattern = RegExp(r'(.)\1{7,}', dotAll: true);
+final RegExp _repeatedCharacterPattern = RegExp(r'([^0-9])\1{7,}', dotAll: true);
 
 final RegExp _repeatedWordPattern = RegExp(
   r'\b([\p{L}\p{N}]{2,})(?:[\s,;:|/·—–-]+\1){2,}\b',

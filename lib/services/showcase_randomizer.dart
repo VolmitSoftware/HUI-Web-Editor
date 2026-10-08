@@ -33,10 +33,7 @@ bool canRandomizeShowcase(
   DocumentTypeAdapter type, {
   bool linkedPanel = false,
 }) =>
-    type is! NamesDocumentType &&
-    type is! StringsDocumentType &&
-    type is! WaypointDocumentType &&
-    (type is! PanelDocumentType || linkedPanel);
+    type is PanelDocumentType ? linkedPanel : type.hasRuntimePreview;
 
 bool randomizeShowcaseDocument(
   EditorStore store,
@@ -45,6 +42,12 @@ bool randomizeShowcaseDocument(
 }) {
   if (store.workspace.byId(documentId) == null) return false;
   if (!store.openDocument(documentId)) return false;
+  if (!canRandomizeShowcase(
+    store.docType,
+    linkedPanel: store.activePanel?.data.runtimeBoard != null,
+  )) {
+    return false;
+  }
   final math.Random source = random ?? math.Random();
   switch (store.docType) {
     case MenuDocumentType():
@@ -2435,7 +2438,7 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
     ),
     presentation: GlossScoreboardPresentation(
       title: '$titlePrefix${server.toUpperCase()}',
-      lines: lines,
+      lines: glossScoreboardLines(lines),
       hideNumbers: random.nextInt(4) != 0,
     ),
     variants: <GlossScoreboardVariant>[
@@ -2445,11 +2448,11 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
         when: 'viewer.healthPercent <= 25',
         presentation: GlossScoreboardPresentation(
           title: '&c&lLOW HEALTH',
-          lines: <String>[
+          lines: glossScoreboardLines(<String>[
             '&cYou are in danger',
             '&7Health &f{{ fixed(player.health, 1) }}',
             '&7Find somewhere safe',
-          ],
+          ]),
           hideNumbers: true,
         ),
       ),
@@ -2465,14 +2468,14 @@ GlossScoreboardDoc buildRandomScoreboardShowcase(
           ]),
           presentation: GlossScoreboardPresentation(
             title: '${mood.legacy}${showcasePick(random, showcaseStatusWords)}',
-            lines: <String>[
+            lines: glossScoreboardLines(<String>[
               '&f{{ player.name }}',
               '&7${showcasePick(random, showcaseEvents)}',
               for (final String line in (List<String>.of(
                 lines,
               )..shuffle(random)).take(3 + random.nextInt(7)))
                 line,
-            ],
+            ]),
             hideNumbers: random.nextBool(),
           ),
         ),

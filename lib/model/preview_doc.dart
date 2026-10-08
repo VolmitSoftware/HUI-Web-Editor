@@ -589,7 +589,10 @@ class HuiPreviewElement {
 // ---------------------------------------------------------------------
 
 const Set<String> _docKnown = <String>{
-  'scale', 'viewDistance',
+  'scale',
+  'viewDistance',
+  'contentRefreshTicks',
+  'accessCheckTicks',
   'show',
   'match',
   'variants',
@@ -604,6 +607,8 @@ const Set<String> _docKnown = <String>{
 class HuiPreviewDoc {
   double scale;
   double viewDistance;
+  int? contentRefreshTicks;
+  int? accessCheckTicks;
   HuiRawExpr show;
   HuiIconStyle? textStyle;
   HuiIconStyle? itemStyle;
@@ -618,6 +623,8 @@ class HuiPreviewDoc {
   HuiPreviewDoc({
     this.scale = 0.65,
     this.viewDistance = 10,
+    this.contentRefreshTicks,
+    this.accessCheckTicks,
     this.show,
     this.textStyle,
     this.itemStyle,
@@ -635,6 +642,8 @@ class HuiPreviewDoc {
     final HuiPreviewDoc copied = HuiPreviewDoc(
       scale: scale,
       viewDistance: viewDistance,
+      contentRefreshTicks: contentRefreshTicks,
+      accessCheckTicks: accessCheckTicks,
       show: huiDeepCopy(show),
       textStyle: textStyle?.copy(),
       itemStyle: itemStyle?.copy(),
@@ -650,7 +659,14 @@ class HuiPreviewDoc {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> out = <String, dynamic>{'scale': scale, 'viewDistance': viewDistance};
+    final Map<String, dynamic> out = <String, dynamic>{
+      'scale': scale,
+      'viewDistance': viewDistance,
+    };
+    if (contentRefreshTicks != null) {
+      out['contentRefreshTicks'] = contentRefreshTicks;
+    }
+    if (accessCheckTicks != null) out['accessCheckTicks'] = accessCheckTicks;
     if (show != null) out['show'] = show;
     if (textStyle != null) out['textStyle'] = textStyle!.toJson();
     if (itemStyle != null) out['itemStyle'] = itemStyle!.toJson();
@@ -693,6 +709,8 @@ class HuiPreviewDoc {
     final HuiPreviewDoc doc = HuiPreviewDoc(
       scale: huiReadDouble(map, 'scale', fallback: 0.65),
       viewDistance: huiReadDouble(map, 'viewDistance', fallback: 10),
+      contentRefreshTicks: _readRefreshTicks(map, 'contentRefreshTicks'),
+      accessCheckTicks: _readRefreshTicks(map, 'accessCheckTicks'),
       show: huiDeepCopy(map['show']),
       textStyle: HuiIconStyle.fromJsonOrNull(
         map['textStyle'],
@@ -711,5 +729,14 @@ class HuiPreviewDoc {
     doc.extras = huiCollectExtras(map, _docKnown);
     doc.particleLayersPresent = map.containsKey('particleLayers');
     return doc;
+  }
+
+  static int? _readRefreshTicks(Map<String, dynamic> source, String key) {
+    final Object? value = source[key];
+    if (value == null) return null;
+    if (value is! num || !value.isFinite || value % 1 != 0) {
+      throw FormatException('$key must be an integer.');
+    }
+    return value.toInt();
   }
 }

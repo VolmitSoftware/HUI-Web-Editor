@@ -22,6 +22,45 @@ const String _validPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==';
 
 void main() {
+  test('fixed singleton document ids are enforced by sync', () {
+    for (final String kind in <String>['names', 'presets']) {
+      final Map<String, dynamic> raw = _focusedProject(kind: kind,
+        id: 'incorrect', json: '{"schemaVersion":1,"revision":1}', revision: 1);
+      expect(() => EditorSyncProject.decode(raw), throwsFormatException);
+    }
+  });
+
+  test('focused preset context survives import, visual edits and publication', () async {
+    final Map<String, Object?> catalog = <String, Object?>{
+      'schemaVersion': 1, 'revision': 1,
+      'defaults': <String, Object?>{'boards': <String, Object?>{
+        'select': <String, Object?>{'priority': 0, 'when': 'true'}, 'variants': <Object?>[],
+        'presentation': <String, Object?>{'title': 'Inherited', 'lines': <String>['Row']},
+      }},
+    };
+    const String source = '{"schemaVersion":2,"revision":1}';
+    final Map<String, dynamic> raw = _focusedProject(kind: 'scoreboard', id: 'main', json: source, revision: 1);
+    (raw['constraints'] as Map)['presets'] = catalog;
+    raw['baseRevision'] = editorSyncProjectRevision(raw);
+    final EditorSyncProject project = EditorSyncProject.decode(raw);
+    final Workspace workspace = Workspace(autoLoad: false);
+    final ImageLibrary images = ImageLibrary(autoLoad: false);
+    final EditorSyncBinding binding = await importEditorSyncProject(
+      capability: _binding(), project: project, workspace: workspace, images: images,
+    );
+    final EditorStore store = EditorStore(workspace: workspace, images: images);
+    addTearDown(store.dispose);
+    expect(store.scoreboardDoc!.presentation.title, 'Inherited');
+    expect(store.exportJson(), source);
+    store.mutateGloss('title', (GlossDoc doc) => (doc as GlossScoreboardDoc).presentation.title = 'Own');
+    store.flushAutosave();
+    final EditorSyncProject collected = collectEditorSyncProject(binding: binding, workspace: workspace, images: images);
+    expect(collected.constraints.presets, catalog);
+    expect(jsonDecode(collected.documents.single.json), <String, Object?>{
+      'schemaVersion': 2, 'revision': 1, 'presentation': <String, Object?>{'title': 'Own'},
+    });
+  });
+
   test('focused sync import and refresh adopt the already active document', () async {
     final Workspace workspace = Workspace(autoLoad: false);
     final ImageLibrary images = ImageLibrary(autoLoad: false);
@@ -101,6 +140,7 @@ void main() {
   test('all registered runtime kinds have v3 wire codecs', () {
     expect(huiEditorSyncDocumentKinds, <String>[
       'animation',
+      'behavior',
       'bubble-style',
       'channel',
       'connections',
@@ -108,6 +148,7 @@ void main() {
       'damage-indicators',
       'emoji',
       'entity-overlays',
+      'glyph',
       'hologram',
       'inventory',
       'marker',
@@ -117,6 +158,7 @@ void main() {
       'names',
       'nametag',
       'panel',
+      'presets',
       'real-drops',
       'scoreboard',
       'strings',
@@ -381,6 +423,85 @@ void main() {
       imagePaths: const <String>[],
       constraints: const EditorSyncConstraints(
         subjectId: 'main',
+        documentKinds: <String>['menu', 'panel'],
+        createDocumentKinds: <String>['menu'],
+        allowDeletes: false,
+        newMenuPrefix: 'scope/',
+        newImagePrefix: 'sync/main/',
+      ),
+      warnings: const <String>[],
+    );
+
+    final EditorSyncProject collected = collectEditorSyncProject(
+      binding: binding,
+      workspace: workspace,
+      images: images,
+    );
+    expect(
+      collected.menus.map((EditorSyncDocument document) => document.id),
+      <String>['root', 'scope/child'],
+    );
+  });
+
+  test('focused panel collection follows inherited roots and navigation', () {
+    final Workspace workspace = Workspace(autoLoad: false);
+    final ImageLibrary images = ImageLibrary(autoLoad: false);
+    final HuiMenu rootMenu = HuiMenu(
+      components: <HuiComponent>[
+        HuiComponent(
+          'next',
+          Vec3.zero(),
+          HuiButtonData(0.05, <HuiAction>[HuiNavigateAction('scope/child')]),
+        ),
+      ],
+    );
+    final WorkspaceDoc root = workspace.create(
+      title: 'Root',
+      runtimeId: 'root',
+      json: '{"preset":"root"}',
+      kind: WorkspaceDocKind.menu,
+    );
+    workspace.create(
+      title: 'Child',
+      runtimeId: 'scope/child',
+      json: encodeHuiMenu(HuiMenu()),
+      kind: WorkspaceDocKind.menu,
+    );
+    workspace.create(
+      title: 'Unrelated',
+      runtimeId: 'scope/unrelated',
+      json: encodeHuiMenu(HuiMenu()),
+      kind: WorkspaceDocKind.menu,
+    );
+    final WorkspaceDoc panel = workspace.create(
+      title: 'Panel',
+      runtimeId: null,
+      json: encodeWorkspacePanel(
+        WorkspacePanelData(
+          runtimeBoardId: 'main',
+          runtimeBoard: <String, dynamic>{..._panelDefinition('root')}..remove('rootMenuId'),
+        ),
+      ),
+      kind: WorkspaceDocKind.panel,
+    );
+    final EditorSyncBinding binding = EditorSyncBinding(
+      sessionId: _sessionId,
+      editorToken: _editorToken,
+      relayEndpoint: Uri.parse('https://relay.example/v3'),
+      kind: 'panel',
+      subjectId: 'main',
+      baseRevision: _zeroRevision,
+      documentIds: <String, String>{
+        'menu\u0000root': root.id,
+        'panel\u0000main': panel.id,
+      },
+      imagePaths: const <String>[],
+      constraints: EditorSyncConstraints(
+        subjectId: 'main',
+        presets: <String, Object?>{'schemaVersion': 1, 'revision': 1,
+          'defaults': <String, Object?>{'panels': <String, Object?>{'rootMenuId': 'root'}},
+          'presets': <String, Object?>{'menus': <String, Object?>{'root': <String, Object?>{'values': rootMenu.toJson()}}},
+        },
         documentKinds: <String>['menu', 'panel'],
         createDocumentKinds: <String>['menu'],
         allowDeletes: false,

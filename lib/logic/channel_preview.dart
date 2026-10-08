@@ -5,6 +5,7 @@ import '../model/gloss_channel.dart';
 import '../model/gloss_names.dart';
 import '../model/preview_doc.dart';
 import 'gloss_show.dart';
+import 'channel_filter_preview.dart';
 import 'gloss_text.dart';
 import 'preview_expr.dart';
 
@@ -14,11 +15,13 @@ final class ChannelPreview {
     required this.mentioned,
     required this.visible,
     required this.hoverText,
+    this.filterNotice,
   });
   final GlossLineRender render;
   final bool mentioned;
   final bool visible;
   final String hoverText;
+  final String? filterNotice;
   String get text => render.renderedText;
 }
 
@@ -33,6 +36,8 @@ ChannelPreview channelPreview(
   Set<String> senderPermissions = const <String>{},
   GlossAnimationResolver animations = const GlossNoAnimations(),
   GlossEmojiResolver emoji = const GlossNoEmoji(),
+  ChannelFilterResult Function(GlossChannelDoc, String) filterPreview =
+      previewChannelFilters,
 }) {
   final Map<String, Object> values = <String, Object>{
     ...glossScopedSampleValues,
@@ -57,7 +62,7 @@ ChannelPreview channelPreview(
       },
     ),
   );
-  final bool visible = _matches(doc.show, scope);
+  bool visible = _matches(doc.show, scope);
   final _ChannelScope sendingScope = _ChannelScope(
     GlossConditionContext(
       variables: <String, Object>{
@@ -72,16 +77,9 @@ ChannelPreview channelPreview(
     ),
   );
   final GlossChannelDoc sending = _selected(doc, sendingScope);
-  for (final GlossChannelFilter filter in sending.filters) {
-    try {
-      message = message.replaceAllMapped(
-        RegExp(filter.match),
-        (Match match) => _filterReplacement(filter.replace, match),
-      );
-    } on FormatException {
-      continue;
-    }
-  }
+  final ChannelFilterResult filtered = filterPreview(sending, message);
+  message = filtered.message ?? '';
+  visible = visible && filtered.message != null;
   doc = _selected(doc, scope);
   final List<String> literals = <String>[];
   String literal(String value) {
@@ -207,50 +205,8 @@ ChannelPreview channelPreview(
     mentioned: mentioned,
     visible: visible,
     hoverText: hoverText,
+    filterNotice: filtered.notice,
   );
-}
-
-String _filterReplacement(String replacement, Match match) {
-  final StringBuffer result = StringBuffer();
-  for (int index = 0; index < replacement.length; index++) {
-    final String character = replacement[index];
-    if (character == r'\') {
-      if (++index >= replacement.length) {
-        throw const FormatException();
-      }
-      result.write(replacement[index]);
-    } else if (character == r'$') {
-      if (++index >= replacement.length) {
-        throw const FormatException();
-      }
-      if (replacement[index] == '{') {
-        final int end = replacement.indexOf('}', index + 1);
-        if (end < 0 || match is! RegExpMatch) {
-          throw const FormatException();
-        }
-        final String name = replacement.substring(index + 1, end);
-        if (!match.groupNames.contains(name)) throw const FormatException();
-        result.write(match.namedGroup(name) ?? '');
-        index = end;
-      } else {
-        final int? first = int.tryParse(replacement[index]);
-        if (first == null || first > match.groupCount) {
-          throw const FormatException();
-        }
-        int group = first;
-        while (index + 1 < replacement.length) {
-          final int? digit = int.tryParse(replacement[index + 1]);
-          if (digit == null || group * 10 + digit > match.groupCount) break;
-          group = group * 10 + digit;
-          index++;
-        }
-        result.write(match.group(group) ?? '');
-      }
-    } else {
-      result.write(character);
-    }
-  }
-  return result.toString();
 }
 
 bool _matches(Object? raw, _ChannelScope scope) {

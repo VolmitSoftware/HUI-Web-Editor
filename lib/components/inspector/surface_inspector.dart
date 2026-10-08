@@ -24,6 +24,7 @@ import 'field_help.dart';
 import 'gloss_visibility_editor.dart';
 import 'inspector_widgets.dart';
 import 'line_list_section.dart';
+import 'surface_subscriptions_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class SurfaceInspector extends StatefulWidget {
@@ -61,18 +62,98 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
       ),
       _kind(doc),
       _selection(doc),
+      _delivery(doc),
+      SurfaceSubscriptionsEditor(store: _store),
       _presentation(
         doc,
         doc.presentation,
         r'$.presentation',
         huiText('Default presentation'),
-        (void Function(GlossSurfacePresentation) mutate) => _store.mutateSurface(
-          'surface default presentation',
-          (GlossSurfaceDoc edited) => mutate(edited.presentation),
-        ),
+        (void Function(GlossSurfacePresentation) mutate) =>
+            _store.mutateSurface(
+              'surface default presentation',
+              (GlossSurfaceDoc edited) => mutate(edited.presentation),
+            ),
       ),
       _variants(doc),
     ]);
+  }
+
+  Widget _delivery(GlossSurfaceDoc doc) {
+    final Object? raw = doc.extras['delivery'];
+    final Map<String, Object?> policy = raw is Map
+        ? Map<String, Object?>.from(raw)
+        : <String, Object?>{};
+    void change(String key, Object value) =>
+        _store.mutateSurface('surface delivery', (GlossSurfaceDoc edited) {
+          final Object? current = edited.extras['delivery'];
+          final Map<String, Object?> next = current is Map
+              ? Map<String, Object?>.from(current)
+              : <String, Object?>{};
+          next[key] = value;
+          edited.extras['delivery'] = next;
+        });
+    Widget choice(String key, String fallback, List<String> values) => HuiField(
+      label: huiText(key),
+      control: ArcaneSelect(
+        value: policy[key] is String ? policy[key]! as String : fallback,
+        options: <ArcaneSelectOption>[
+          for (final String value in values)
+            ArcaneSelectOption(value: value, label: huiText(value)),
+        ],
+        onChanged: (String value) => change(key, value),
+      ),
+    );
+    Widget number(String key, int fallback) => HuiField(
+      label: huiText(key),
+      control: TextInput(
+        value: '${policy[key] ?? fallback}',
+        size: ComponentSize.sm,
+        fullWidth: true,
+        attributes: <String, String>{'aria-label': key, 'inputmode': 'numeric'},
+        onChanged: (String value) {
+          final int? parsed = int.tryParse(value);
+          if (parsed != null) change(key, parsed);
+        },
+      ),
+    );
+    return InspectorSection(
+      title: huiText('Delivery and events'),
+      children: <Widget>[
+        HuiSwitchRow(
+          label: huiText('Automatic selection'),
+          value: doc.extras['automatic'] != false,
+          onChanged: (bool value) => _store.mutateSurface(
+            'automatic selection',
+            (GlossSurfaceDoc edited) => edited.extras['automatic'] = value,
+          ),
+        ),
+        if (doc.resolvedSurface == glossSurfaceKindBossbar)
+          HuiField(
+            label: huiText('Bossbar group'),
+            control: TextInput(
+              value: doc.extras['group'] is String
+                  ? doc.extras['group']! as String
+                  : 'main',
+              size: ComponentSize.sm,
+              fullWidth: true,
+              attributes: const <String, String>{'aria-label': 'Bossbar group'},
+              onChanged: (String value) => _store.mutateSurface(
+                'bossbar group',
+                (GlossSurfaceDoc edited) => edited.extras['group'] = value,
+              ),
+            ),
+          ),
+        choice('mode', 'replace', <String>['queue', 'replace', 'drop']),
+        choice('preempt', 'always', <String>['higher', 'always', 'never']),
+        choice('overflow', 'reject', <String>['drop-oldest', 'reject']),
+        choice('deduplicate', 'none', <String>['none', 'purpose', 'content']),
+        number('maxPending', 32),
+        number('cooldownTicks', 0),
+        number('expireTicks', 1200),
+        HuiInlineIssues(_issuesFor(r'$.delivery')),
+      ],
+    );
   }
 
   Widget _header(GlossSurfaceDoc doc) =>
@@ -261,11 +342,12 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
         variant.presentation,
         '$path.presentation',
         huiText('Variant presentation'),
-        (void Function(GlossSurfacePresentation) mutate) => _store.mutateSurface(
-          'surface variant presentation',
-          (GlossSurfaceDoc edited) =>
-              mutate(edited.variants[index].presentation),
-        ),
+        (void Function(GlossSurfacePresentation) mutate) =>
+            _store.mutateSurface(
+              'surface variant presentation',
+              (GlossSurfaceDoc edited) =>
+                  mutate(edited.variants[index].presentation),
+            ),
       ),
     ]);
   }
@@ -318,6 +400,25 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
                 }),
           ),
         if (surface == glossSurfaceKindBossbar) ...<Widget>[
+          for (final String flag in <String>[
+            'darken_sky',
+            'play_boss_music',
+            'create_fog',
+          ])
+            HuiSwitchRow(
+              label: huiText(flag),
+              value: presentation.flags?.contains(flag) ?? false,
+              onChanged: (bool value) =>
+                  mutate((GlossSurfacePresentation edited) {
+                    final Set<String> flags = <String>{...?edited.flags};
+                    if (value) {
+                      flags.add(flag);
+                    } else {
+                      flags.remove(flag);
+                    }
+                    edited.flags = flags.toList();
+                  }),
+            ),
           _lineField(
             label: huiText('Progress'),
             docKey: 'surface.presentation.progress',
@@ -454,19 +555,18 @@ class _SurfaceInspectorState extends State<SurfaceInspector> {
           HuiSwitchRow(
             label: slot,
             value: selected.contains(slot),
-            onChanged: (bool value) =>
-                mutate((GlossSurfacePresentation edited) {
-                  final List<String> next = <String>[
-                    for (final String candidate in glossSurfaceSlots)
-                      if (candidate == slot
-                          ? value
-                          : (edited.slots ?? const <String>[]).contains(
-                              candidate,
-                            ))
-                        candidate,
-                  ];
-                  edited.slots = next.isEmpty ? null : next;
-                }),
+            onChanged: (bool value) => mutate((
+              GlossSurfacePresentation edited,
+            ) {
+              final List<String> next = <String>[
+                for (final String candidate in glossSurfaceSlots)
+                  if (candidate == slot
+                      ? value
+                      : (edited.slots ?? const <String>[]).contains(candidate))
+                    candidate,
+              ];
+              edited.slots = next.isEmpty ? null : next;
+            }),
           ),
         HuiInlineIssues(_issuesFor('$path.slots')),
       ]),

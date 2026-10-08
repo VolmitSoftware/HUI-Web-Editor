@@ -4,11 +4,6 @@ import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
-extension on GlossScoreboardDoc {
-  String effectiveTitle(String boardId) =>
-      presentation.title.isEmpty ? boardId : presentation.title;
-}
-
 void main() {
   test('title preview preserves the complete rendered value', () {
     final GlossLineRender render = renderGlossScoreboardTitle('&a${'x' * 31}');
@@ -122,44 +117,10 @@ void main() {
     expect(clipped.deliveredVisibleLength, 29);
   });
 
-  group('empty title falls back to the board id', () {
-    test('a blank title renders the id, like GlossBoardMeta.fromDoc', () {
-      final GlossScoreboardDoc doc = GlossScoreboardDoc();
-
-      expect(doc.effectiveTitle('welcome'), 'welcome');
-      expect(
-        renderGlossScoreboardTitle(doc.effectiveTitle('welcome')).plainText,
-        'welcome',
-      );
-    });
-
-    test('an authored title is never replaced', () {
-      final GlossScoreboardDoc doc = GlossScoreboardDoc(
-        presentation: GlossScoreboardPresentation(title: '&d&lGloss'),
-      );
-
-      expect(doc.effectiveTitle('welcome'), '&d&lGloss');
-      expect(
-        renderGlossScoreboardTitle(doc.effectiveTitle('welcome')).plainText,
-        'Gloss',
-      );
-    });
-
-    test('the fallback tests isEmpty, not a trim', () {
-      final GlossScoreboardDoc doc = GlossScoreboardDoc(
-        presentation: GlossScoreboardPresentation(title: ' '),
-      );
-
-      expect(doc.effectiveTitle('welcome'), ' ');
-    });
-
-    test('the fallback id stays full width', () {
-      final GlossScoreboardDoc doc = GlossScoreboardDoc();
-
-      expect(
-        renderGlossScoreboardTitle(doc.effectiveTitle('x' * 40)).plainText,
-        'x' * 40,
-      );
-    });
+  test('an explicitly blank title remains blank through document rendering', () {
+    final GlossScoreboardDoc doc = decodeGlossScoreboardDoc(
+      '{"schemaVersion":2,"revision":1,"select":{},"presentation":{"title":""},"variants":[]}',
+    );
+    expect(renderGlossScoreboardTitle(doc.presentation.title).plainText, '');
   });
 }

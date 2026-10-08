@@ -6,6 +6,33 @@ import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('nameplate visibility and health controls preserve base and variant values', () {
+    final GlossNameplateDoc doc = GlossNameplateDoc(presentation: GlossNameplatePresentation(
+      lines: <GlossNameplateLine>[GlossNameplateLine(text: '{bar}')], healthSegments: 23,
+      hideInvisible: false, hideSpectator: false, includeNpcs: false, showSelf: true,
+    ), variants: <GlossNameplateVariant>[GlossNameplateVariant(id: 'other', when: 'false',
+      presentation: GlossNameplatePresentation(healthSegments: 7, includeNpcs: false))]);
+    final GlossNameplateDoc decoded = decodeGlossNameplateDoc(encodeGlossNameplateDoc(doc));
+    expect(decoded.presentation.healthSegments, 23);
+    expect(decoded.presentation.hideInvisible, false);
+    expect(decoded.presentation.hideSpectator, false);
+    expect(decoded.presentation.includeNpcs, false);
+    expect(decoded.presentation.showSelf, true);
+    expect(decoded.variants.single.presentation.healthSegments, 7);
+    expect(decoded.variants.single.presentation.includeNpcs, false);
+    expect(cloneGlossNameplateDoc(doc).toJson(), doc.toJson());
+    expect(resolveNameplatePreview(decoded, identityPreviewContext('Player', <String>{},
+      invisible: true, spectator: true, self: true)), isNotNull);
+    expect(resolveNameplatePreview(decoded, identityPreviewContext('Player', <String>{}, npc: true)), isNull);
+    decoded.presentation.includeNpcs = true;
+    decoded.presentation.showSelf = false;
+    expect(resolveNameplatePreview(decoded, identityPreviewContext('Player', <String>{}, self: true)), isNull);
+    decoded.presentation.hideInvisible = true;
+    expect(resolveNameplatePreview(decoded, identityPreviewContext('Player', <String>{}, invisible: true)), isNull);
+    decoded.presentation.hideSpectator = true;
+    expect(resolveNameplatePreview(decoded, identityPreviewContext('Player', <String>{}, spectator: true)), isNull);
+  });
+
   test('nameplate names inherit workspace nametags with stable priority ties', () {
     final GlossNametagDoc first = GlossNametagDoc(
       presentation: GlossNametagPresentation(prefix: '&b[Member] ', color: 'aqua'),

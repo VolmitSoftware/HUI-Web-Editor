@@ -18,7 +18,10 @@ import 'marker_document_type.dart';
 import 'menu_document_type.dart';
 import 'names_document_type.dart';
 import 'strings_document_type.dart';
+import 'presets_document_type.dart';
 import 'waypoint_document_type.dart';
+import 'glyph_document_type.dart';
+import 'behavior_document_type.dart';
 import 'motd_document_type.dart';
 import 'nameplate_document_type.dart';
 import 'nametag_document_type.dart';
@@ -30,8 +33,11 @@ import 'tablist_document_type.dart';
 
 /// The const adapter instances, one per [WorkspaceDocKind].
 abstract final class DocumentTypes {
+  static const PresetsDocumentType presets = PresetsDocumentType();
   static const StringsDocumentType strings = StringsDocumentType();
   static const WaypointDocumentType waypoint = WaypointDocumentType();
+  static const GlyphDocumentType glyph = GlyphDocumentType();
+  static const BehaviorDocumentType behavior = BehaviorDocumentType();
   static const NamesDocumentType names = NamesDocumentType();
   static const MenuDocumentType menu = MenuDocumentType();
   static const ContainerPreviewDocumentType containerPreview =
@@ -64,8 +70,11 @@ abstract final class DocumentTypeRegistry {
   /// coverage so a new enum value cannot ship without an adapter.
   static const Map<WorkspaceDocKind, DocumentTypeAdapter> _byKind =
       <WorkspaceDocKind, DocumentTypeAdapter>{
+        WorkspaceDocKind.presets: DocumentTypes.presets,
         WorkspaceDocKind.strings: DocumentTypes.strings,
         WorkspaceDocKind.waypoint: DocumentTypes.waypoint,
+        WorkspaceDocKind.glyph: DocumentTypes.glyph,
+        WorkspaceDocKind.behavior: DocumentTypes.behavior,
         WorkspaceDocKind.names: DocumentTypes.names,
         WorkspaceDocKind.menu: DocumentTypes.menu,
         WorkspaceDocKind.containerPreview: DocumentTypes.containerPreview,
@@ -91,8 +100,11 @@ abstract final class DocumentTypeRegistry {
 
   /// Every adapter, in workspace-rail order.
   static const List<DocumentTypeAdapter> all = <DocumentTypeAdapter>[
+    DocumentTypes.presets,
     DocumentTypes.strings,
     DocumentTypes.waypoint,
+    DocumentTypes.glyph,
+    DocumentTypes.behavior,
     DocumentTypes.names,
     DocumentTypes.menu,
     DocumentTypes.containerPreview,

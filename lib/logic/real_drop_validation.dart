@@ -7,6 +7,7 @@ import 'preview_expr.dart';
 import 'particle_layer_validation.dart';
 import 'real_drop_script.dart';
 import 'validation.dart';
+import 'display_refresh_validation.dart';
 import 'hologram_box_validation.dart';
 import 'gloss_show.dart';
 
@@ -63,6 +64,7 @@ List<HuiIssue> _atPresentation(
 
 List<HuiIssue> _validatePresentation(GlossRealDropPresentation doc) {
   final List<HuiIssue> issues = <HuiIssue>[];
+  issues.addAll(validateDisplayRefresh(doc.labels.refresh, path: r'$.labels.refresh'));
   issues.addAll(validateParticleLayers(doc.particleLayers));
   issues.addAll(validateGlossShow(doc.labels.show, path: r'$.labels.show'));
 

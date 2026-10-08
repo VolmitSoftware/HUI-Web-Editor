@@ -290,7 +290,14 @@ class ComponentInspector extends StatelessWidget {
           catalogs: catalogs,
           catalogsLoading: catalogsLoading,
           session: session,
-          componentId: _id,
+          sessionKey: _id,
+          onEdit: (String label, void Function(List<HuiAction>) update) =>
+              store.editComponent(
+                _id,
+                label,
+                (HuiComponent edited) =>
+                    update(readActionSlot(edited.data, ActionSlot.actions)),
+              ),
           slot: ActionSlot.actions,
           actions: data.actions,
           description: huiText(
@@ -346,7 +353,14 @@ class ComponentInspector extends StatelessWidget {
         catalogs: catalogs,
         catalogsLoading: catalogsLoading,
         session: session,
-        componentId: _id,
+        sessionKey: _id,
+        onEdit: (String label, void Function(List<HuiAction>) update) =>
+            store.editComponent(
+              _id,
+              label,
+              (HuiComponent edited) =>
+                  update(readActionSlot(edited.data, ActionSlot.trueActions)),
+            ),
         slot: ActionSlot.trueActions,
         actions: toggle.trueActions,
         description: huiText(
@@ -359,7 +373,14 @@ class ComponentInspector extends StatelessWidget {
         catalogs: catalogs,
         catalogsLoading: catalogsLoading,
         session: session,
-        componentId: _id,
+        sessionKey: _id,
+        onEdit: (String label, void Function(List<HuiAction>) update) =>
+            store.editComponent(
+              _id,
+              label,
+              (HuiComponent edited) =>
+                  update(readActionSlot(edited.data, ActionSlot.falseActions)),
+            ),
         slot: ActionSlot.falseActions,
         actions: toggle.falseActions,
         description: huiText(

@@ -169,14 +169,24 @@ class WaypointInspector extends StatelessWidget {
           ),
           HuiField(
             label: huiText('Style'),
-            control: ArcaneSelect(
+            control: TextInput(
               value: doc.style,
+              onChanged: (String value) =>
+                  _edit('style', (GlossWaypointDoc doc) => doc.style = value),
+            ),
+          ),
+          HuiField(
+            label: huiText('Fallback style'),
+            control: ArcaneSelect(
+              value: doc.fallbackStyle,
               options: const <ArcaneSelectOption>[
                 ArcaneSelectOption(value: 'default', label: 'default'),
                 ArcaneSelectOption(value: 'bowtie', label: 'bowtie'),
               ],
-              onChanged: (String value) =>
-                  _edit('style', (GlossWaypointDoc doc) => doc.style = value),
+              onChanged: (String value) => _edit(
+                'fallback style',
+                (GlossWaypointDoc doc) => doc.fallbackStyle = value,
+              ),
             ),
           ),
           HuiField(

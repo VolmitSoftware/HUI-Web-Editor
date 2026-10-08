@@ -45,6 +45,7 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_display_refresh.dart';
 import 'gloss_hologram_box.dart';
 import 'hui_icons.dart';
 import 'json_codec.dart';
@@ -127,7 +128,7 @@ const Set<String> _docKnown = <String>{
   'revision',
   'prefix',
   'offset',
-  'stackDistance', 'blacklistWorlds', 'maxPerSender', 'format',
+  'stackDistance', 'blacklistWorlds', 'maxPerSender', 'format', 'overflow', 'refresh',
   'wordWrapChars',
   'maxAliveMs',
   'motion',
@@ -443,6 +444,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     this.maxAliveMs = 0,
     this.stackDistance = 0.26,
     this.maxPerSender = 4,
+    this.overflow = 'replace-oldest',
+    GlossDisplayRefresh? refresh,
     this.format = '{message}',
     List<String>? blacklistWorlds,
     GlossBubbleMotion? motion,
@@ -455,7 +458,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
     List<GlossParticleLayer>? particleLayers,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
-  }) : blacklistWorlds = blacklistWorlds ?? <String>[],
+  }) : refresh = refresh ?? GlossDisplayRefresh(),
+       blacklistWorlds = blacklistWorlds ?? <String>[],
        style = style ?? defaultHologramDisplayStyle(),
        box = box ?? GlossHologramBox(),
        motion = motion ?? GlossBubbleMotion.runtimeDefaults(),
@@ -478,6 +482,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
   int maxAliveMs;
   double stackDistance;
   int maxPerSender;
+  String overflow;
+  GlossDisplayRefresh refresh;
   String format;
   List<String> blacklistWorlds;
 
@@ -563,6 +569,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
       maxAliveMs: huiReadInt(map, 'maxAliveMs'),
       stackDistance: huiReadDouble(map, 'stackDistance', fallback: 0.26),
       maxPerSender: huiReadInt(map, 'maxPerSender', fallback: 4),
+      overflow: huiReadString(map, 'overflow', fallback: 'replace-oldest'),
+      refresh: GlossDisplayRefresh.fromJson(map['refresh']),
       format: huiReadString(map, 'format', fallback: '{message}'),
       blacklistWorlds: huiReadList(map['blacklistWorlds']).map((Object? value) => value.toString()).toList(),
       motion: GlossBubbleMotion.fromJson(map['motion']),
@@ -607,6 +615,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
         'maxAliveMs': maxAliveMs,
       if (stackDistance != 0.26) 'stackDistance': stackDistance,
       if (maxPerSender != 4) 'maxPerSender': maxPerSender,
+      if (overflow != 'replace-oldest') 'overflow': overflow,
+      if (!refresh.isEmpty) 'refresh': refresh.toJson(),
       if (format != '{message}') 'format': format,
       if (blacklistWorlds.isNotEmpty) 'blacklistWorlds': List<String>.of(blacklistWorlds),
       'motion': motion.toJson(),
@@ -638,6 +648,8 @@ final class GlossBubbleStyleDoc extends GlossDoc {
       maxAliveMs: maxAliveMs,
       stackDistance: stackDistance,
       maxPerSender: maxPerSender,
+      overflow: overflow,
+      refresh: refresh.copy(),
       format: format,
       blacklistWorlds: List<String>.of(blacklistWorlds),
       motion: motion.copy(),

@@ -128,8 +128,7 @@ class _SurfaceViewState extends State<SurfaceView> {
           _bossbar(resolved, nowMs),
         if (silence == null && doc.resolvedSurface == glossSurfaceKindTitle)
           _title(resolved, nowMs),
-        if (silence == null &&
-            doc.resolvedSurface == glossSurfaceKindActionbar)
+        if (silence == null && doc.resolvedSurface == glossSurfaceKindActionbar)
           _actionbar(resolved, nowMs),
         if (!component.gameContext) _hotbar(),
       ],
@@ -238,18 +237,20 @@ class _SurfaceViewState extends State<SurfaceView> {
   Widget _hotbar() => dom.div(classes: 'hui-surface-hotbar', <Widget>[
     for (int index = 0; index < _hotbarSlots; index++)
       dom.span(
-        classes:
-            'hui-surface-hotbar-slot${index == 0 ? ' is-selected' : ''}',
+        classes: 'hui-surface-hotbar-slot${index == 0 ? ' is-selected' : ''}',
         const <Widget>[],
       ),
   ]);
 
-  Widget _silent(GlossSurfaceSilence silence) =>
-      dom.div(classes: 'hui-surface-silent', <Widget>[
-        Text(_silentReason(silence)),
-      ]);
+  Widget _silent(GlossSurfaceSilence silence) => dom.div(
+    classes: 'hui-surface-silent',
+    <Widget>[Text(_silentReason(silence))],
+  );
 
   String _silentReason(GlossSurfaceSilence silence) => switch (silence) {
+    GlossSurfaceSilence.eventOnly => huiText(
+      'This surface waits for an event or surface action. Automatic selection is off.',
+    ),
     GlossSurfaceSilence.documentHidden => huiText(
       'The document show condition is false right now, so nothing is drawn.',
     ),

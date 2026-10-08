@@ -55,6 +55,7 @@ List<HuiIssue> validateSurfaceDoc(
   final HuiIssue? revisionIssue = glossRevisionIssue(doc.revision);
   if (revisionIssue != null) issues.add(revisionIssue);
 
+  _validateDispatch(doc, issues);
   _validateSurfaceKind(doc, issues);
   _validateSelect(doc, issues);
 
@@ -243,6 +244,25 @@ void _validatePresentation(
   List<HuiIssue> issues,
   GlossAnimationResolver animations,
 ) {
+  final List<String> flags = presentation.flags ?? <String>[];
+  if (flags.toSet().length != flags.length ||
+      flags.any(
+        (String flag) => !<String>[
+          'darken_sky',
+          'play_boss_music',
+          'create_fog',
+        ].contains(flag),
+      ) ||
+      (flags.isNotEmpty && doc.surface != glossSurfaceKindBossbar)) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: '$path.flags',
+        message:
+            'Bossbars accept unique darken_sky, play_boss_music and create_fog flags.',
+      ),
+    );
+  }
   if (doc.hasKnownSurface) {
     _validateKindFields(presentation, path, doc.surface, issues);
   }
@@ -372,10 +392,7 @@ void _validateKindFields(
         message:
             'Gloss drops {field} on a {surface} surface, so this value never '
             'reaches the client.',
-        messageArguments: <String, Object?>{
-          'field': field,
-          'surface': surface,
-        },
+        messageArguments: <String, Object?>{'field': field, 'surface': surface},
         fix:
             'Delete the field, or change the surface this document draws on '
             'to one that uses it.',
@@ -384,11 +401,7 @@ void _validateKindFields(
   }
 }
 
-void _validateSlots(
-  List<String>? slots,
-  String path,
-  List<HuiIssue> issues,
-) {
+void _validateSlots(List<String>? slots, String path, List<HuiIssue> issues) {
   if (slots == null) return;
   for (final String slot in slots) {
     final String normalized = slot.trim().toLowerCase();
@@ -533,4 +546,112 @@ void _validateLine(
       (path: path, text: text),
     ], expressionSamples: glossSurfaceSamples),
   );
+}
+
+void _validateDispatch(GlossSurfaceDoc doc, List<HuiIssue> issues) {
+  void error(String path, String message) => issues.add(
+    HuiIssue(severity: HuiSeverity.error, path: path, message: message),
+  );
+  final Object? group = doc.extras['group'];
+  if (group != null &&
+      (group is! String ||
+          !RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$').hasMatch(group) ||
+          doc.surface != 'bossbar' && group != 'main')) {
+    error(
+      r'$.group',
+      'Only bossbars support named groups; use 1–64 letters, digits, dots, underscores or hyphens, starting with a letter or digit.',
+    );
+  }
+  final Object? automatic = doc.extras['automatic'];
+  if (automatic != null && automatic is! bool) {
+    error(r'$.automatic', 'Automatic selection must be a boolean.');
+  }
+  final Object? policy = doc.extras['delivery'];
+  if (policy != null && policy is! Map) {
+    error(r'$.delivery', 'Delivery must be an object.');
+  }
+  if (policy is Map) {
+    const Map<String, List<String>> choices = <String, List<String>>{
+      'mode': <String>['queue', 'replace', 'drop'],
+      'preempt': <String>['higher', 'always', 'never'],
+      'overflow': <String>['drop-oldest', 'reject'],
+      'deduplicate': <String>['none', 'purpose', 'content'],
+    };
+    for (final MapEntry<String, List<String>> entry in choices.entries) {
+      if (policy[entry.key] != null &&
+          !entry.value.contains(policy[entry.key])) {
+        error(
+          r'$.delivery.' + entry.key,
+          'Use one of: ${entry.value.join(', ')}.',
+        );
+      }
+    }
+    for (final String key in <String>[
+      'maxPending',
+      'cooldownTicks',
+      'expireTicks',
+    ]) {
+      final Object? value = policy[key];
+      final int min = key == 'cooldownTicks' ? 0 : 1;
+      final int max = key == 'maxPending' ? 256 : 72000;
+      if (value != null && (value is! int || value < min || value > max)) {
+        error(r'$.delivery.' + key, 'Use an integer between $min and $max.');
+      }
+    }
+  }
+  final Object? triggers = doc.toJson()['on'];
+  if (triggers != null && triggers is! List) {
+    error(r'$.on', 'Events must be an array.');
+  }
+  if (triggers is List) {
+    if (triggers.length > 64) {
+      error(r'$.on', 'A surface supports at most 64 event entries.');
+    }
+    for (final (int index, Object? entry) in triggers.indexed) {
+      final String path =
+          r'$.on['
+          '$index]';
+      if (entry is! Map) {
+        error(path, 'An event entry must be an object.');
+        continue;
+      }
+      if (!<String>[
+        'join',
+        'world_change',
+        'server_change',
+        'interval',
+      ].contains(entry['trigger'])) {
+        error(
+          '$path.trigger',
+          'Use join, world_change, server_change or interval.',
+        );
+      }
+      final Object? every = entry['everyTicks'];
+      if (entry['trigger'] == 'interval') {
+        if (every is! int || every < 1 || every > 1728000) {
+          error('$path.everyTicks', 'Intervals require 1–1728000 ticks.');
+        }
+      } else if (every != null) {
+        error('$path.everyTicks', 'Only interval events accept everyTicks.');
+      }
+      final Object? delay = entry['delayTicks'];
+      if (delay != null && (delay is! int || delay < 0 || delay > 72000)) {
+        error('$path.delayTicks', 'Delay must be 0–72000 ticks.');
+      }
+      if (entry['when'] != null && entry['when'] is! String) {
+        issues.add(
+          HuiIssue(
+            severity: HuiSeverity.error,
+            path: '$path.when',
+            message: 'Expected a string',
+          ),
+        );
+      }
+      if (entry['when'] is String) {
+        issues.addAll(
+          glossConditionIssues(entry['when'] as String, '$path.when'),
+        );
+      }
+    }
+  }
 }

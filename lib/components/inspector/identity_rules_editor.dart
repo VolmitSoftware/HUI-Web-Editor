@@ -139,6 +139,37 @@ class IdentityRulesEditor extends StatelessWidget {
             _change('offset', () => value.offset = next),
       ),
     ),
+    HuiField(
+      label: 'Health segments',
+      control: HuiNumberField(
+        ariaLabel: 'Variant health segments',
+        value: value.healthSegments.toDouble(),
+        integer: true,
+        min: 1,
+        max: 40,
+        onChanged: (double next) => _change('health segments', () => value.healthSegments = next.round()),
+      ),
+    ),
+    HuiSwitchRow(
+      label: 'Hide invisible players',
+      value: value.hideInvisible,
+      onChanged: (bool next) => _change('hide invisible players', () => value.hideInvisible = next),
+    ),
+    HuiSwitchRow(
+      label: 'Hide spectators',
+      value: value.hideSpectator,
+      onChanged: (bool next) => _change('hide spectators', () => value.hideSpectator = next),
+    ),
+    HuiSwitchRow(
+      label: 'Include NPCs',
+      value: value.includeNpcs,
+      onChanged: (bool next) => _change('include npcs', () => value.includeNpcs = next),
+    ),
+    HuiSwitchRow(
+      label: 'Show own plate',
+      value: value.showSelf,
+      onChanged: (bool next) => _change('show own plate', () => value.showSelf = next),
+    ),
     HuiSwitchRow(
       label: 'Hide while sneaking',
       value: value.hideSneaking,

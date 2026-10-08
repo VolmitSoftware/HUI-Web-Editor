@@ -43,6 +43,9 @@ import 'state/editor_scope.dart';
 import 'doctype/doctype.dart';
 import 'components/inspector/names_inspector.dart';
 import 'components/inspector/catalog_document_inspector.dart';
+import 'components/inspector/glyph_inspector.dart';
+import 'components/inspector/behavior_inspector.dart';
+import 'components/inspector/presets_editor.dart';
 import 'l10n/hui_locale_loader.dart';
 import 'l10n/hui_locale_preferences.dart';
 import 'l10n/hui_localizations.dart';
@@ -1003,8 +1006,11 @@ class _AppState extends State<App> {
           status: _status,
         ),
         surfaces: <DocumentSurface, Widget>{
+          DocumentSurface.presets: PresetsEditor(store: _store),
           DocumentSurface.strings: CatalogDocumentView(store: _store),
           DocumentSurface.waypoint: CatalogDocumentView(store: _store),
+          DocumentSurface.glyph: GlyphView(store: _store),
+          DocumentSurface.behavior: BehaviorView(store: _store),
           DocumentSurface.names: NamesView(store: _store),
           DocumentSurface.panel: PanelView(store: _store),
           DocumentSurface.hologram: HologramView(

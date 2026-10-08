@@ -17,6 +17,7 @@ import '../model/gloss_motd.dart';
 import 'gloss_text.dart';
 import 'validation.dart';
 import 'gloss_show.dart';
+import 'motd_clock.dart';
 
 /// The vanilla server list truncates rows client-side around this many
 /// visible characters; longer lines risk an ellipsis. Client behavior, not a
@@ -47,6 +48,7 @@ List<HuiIssue> validateMotdDoc(
   }
 
   issues.addAll(_faviconIssues(doc.favicon, r'$.favicon', knownImagePaths));
+  _policyIssues(doc, issues, knownImagePaths);
 
   if (doc.entries.isEmpty) {
     issues.add(
@@ -187,6 +189,13 @@ List<HuiIssue> validateMotdDoc(
   }
 
   _linkIssues(doc.links, issues);
+  if (doc.serverLinks != null) {
+    _linkIssues(
+      doc.serverLinks!.links ?? const <GlossMotdLink>[],
+      issues,
+      rootPath: r'$.serverLinks.links',
+    );
+  }
 
   final HuiIssue? metrics = glossMetricInfo(<String>[
     for (final GlossMotdEntry entry in doc.entries) ...<String>[
@@ -197,6 +206,9 @@ List<HuiIssue> validateMotdDoc(
       ?entry.version,
     ],
     for (final GlossMotdLink link in doc.links) ?link.label,
+    for (final GlossMotdLink link
+        in doc.serverLinks?.links ?? const <GlossMotdLink>[])
+      ?link.label,
   ]);
   if (metrics != null) issues.add(metrics);
   issues.addAll(
@@ -226,6 +238,12 @@ List<HuiIssue> validateMotdDoc(
       for (int link = 0; link < doc.links.length; link++)
         if (doc.links[link].label != null)
           (path: 'links[$link].label', text: doc.links[link].label!),
+      for (int link = 0; link < (doc.serverLinks?.links?.length ?? 0); link++)
+        if (doc.serverLinks!.links![link].label != null)
+          (
+            path: 'serverLinks.links[$link].label',
+            text: doc.serverLinks!.links![link].label!,
+          ),
     ], playerBacked: false),
   );
 
@@ -238,7 +256,7 @@ List<HuiIssue> validateMotdDoc(
 void _countIssues(String? raw, String path, List<HuiIssue> issues) {
   if (raw == null || raw.trim().isEmpty) return;
   if (glossMotdIsTemplate(raw)) return;
-  if (double.tryParse(raw.trim()) != null) return;
+  if (double.tryParse(raw.trim())?.isFinite ?? false) return;
   issues.add(
     HuiIssue(
       severity: HuiSeverity.error,
@@ -254,12 +272,16 @@ void _countIssues(String? raw, String path, List<HuiIssue> issues) {
 
 /// `MotdDoc.copyLinks` and the `MotdLink` constructor: every one of these
 /// throws at parse, so a document that trips one does not load at all.
-void _linkIssues(List<GlossMotdLink> links, List<HuiIssue> issues) {
+void _linkIssues(
+  List<GlossMotdLink> links,
+  List<HuiIssue> issues, {
+  String rootPath = 'links',
+}) {
   if (links.length > glossMotdMaxLinks) {
     issues.add(
       HuiIssue(
         severity: HuiSeverity.error,
-        path: r'$.links',
+        path: rootPath == 'links' ? r'$.links' : rootPath,
         message:
             'This document declares {count} server links; Gloss rejects the '
             'whole file past {maximum}.',
@@ -274,7 +296,7 @@ void _linkIssues(List<GlossMotdLink> links, List<HuiIssue> issues) {
 
   for (int index = 0; index < links.length; index++) {
     final GlossMotdLink link = links[index];
-    final String path = 'links[$index]';
+    final String path = '$rootPath[$index]';
     final String type = link.type?.trim() ?? '';
     final String label = link.label?.trim() ?? '';
     if (type.isNotEmpty && !glossMotdLinkTypes.contains(type)) {
@@ -388,4 +410,193 @@ List<HuiIssue> _faviconIssues(
         fix: 'Point the field at a 64x64 PNG.',
       ),
   ];
+}
+
+void _policyIssues(
+  GlossMotdDoc doc,
+  List<HuiIssue> issues,
+  Set<String>? images,
+) {
+  void error(String path, {required String message}) => issues.add(
+    HuiIssue(severity: HuiSeverity.error, path: path, message: message),
+  );
+  final GlossMotdRotation? rotation = doc.rotation;
+  if (rotation != null) {
+    if (!const <String>{
+      'weighted',
+      'sequence',
+      'time',
+      'first',
+    }.contains(rotation.effectiveMode)) {
+      error(
+        r'$.rotation.mode',
+        message: 'Rotation must be weighted, sequence, time or first.',
+      );
+    }
+    if (rotation.effectiveIntervalSeconds < 1 ||
+        rotation.effectiveIntervalSeconds > 86400) {
+      error(
+        r'$.rotation.intervalSeconds',
+        message: 'Rotation interval must be 1 through 86400 seconds.',
+      );
+    }
+  }
+  if (doc.effectiveState.trim().isEmpty) {
+    error(r'$.state', message: 'MOTD state must not be blank.');
+  }
+  _iconSetIssues(doc.icons, r'$.icons', images, issues);
+  for (int index = 0; index < doc.entries.length; index++) {
+    final GlossMotdEntry entry = doc.entries[index];
+    final String path = 'entries[$index]';
+    _iconSetIssues(entry.icons, '$path.icons', images, issues);
+    if (!const <String>{
+      'inherit',
+      'replace',
+      'hide',
+    }.contains(entry.effectiveSampleMode)) {
+      error(
+        '$path.sampleMode',
+        message: 'Sample mode must be inherit, replace or hide.',
+      );
+    }
+    final GlossMotdCounts? counts = entry.counts;
+    if (counts != null) {
+      for (final (String name, String? mode, int? value)
+          in <(String, String?, int?)>[
+            ('online', counts.onlineMode, counts.onlineValue),
+            ('maximum', counts.maximumMode, counts.maximumValue),
+          ]) {
+        if (!const <String>{
+          'inherit',
+          'fixed',
+          'offset',
+        }.contains(mode ?? 'inherit')) {
+          error(
+            '$path.counts.${name}Mode',
+            message: 'Count mode must be inherit, fixed or offset.',
+          );
+        }
+        if (value != null && (value < -2147483648 || value > 2147483647)) {
+          error(
+            '$path.counts.${name}Value',
+            message: 'Count values must fit a signed 32-bit integer.',
+          );
+        }
+        if (mode == 'fixed' && (value ?? 0) < 0) {
+          error(
+            '$path.counts.${name}Value',
+            message: 'Fixed counts must not be negative.',
+          );
+        }
+      }
+    }
+    final GlossMotdSelector? select = entry.select;
+    if (select == null) continue;
+    final String selectorPath = '$path.select';
+    for (final (int hostIndex, String hostname)
+        in (select.hostnames ?? const <String>[]).indexed) {
+      final String host = hostname.trim().toLowerCase();
+      final String suffix = host.startsWith('*.') ? host.substring(2) : host;
+      if (suffix.isEmpty ||
+          suffix.contains('*') ||
+          suffix.contains('/') ||
+          host.length > 253) {
+        error(
+          '$selectorPath.hostnames[$hostIndex]',
+          message:
+              'Use an exact hostname or a wildcard suffix such as *.example.org.',
+        );
+      }
+    }
+    for (final (String name, int? minimum, int? maximum)
+        in <(String, int?, int?)>[
+          ('Protocol', select.minProtocol, select.maxProtocol),
+          ('Online', select.minOnline, select.maxOnline),
+        ]) {
+      if (minimum != null && (minimum < 0 || minimum > 2147483647)) {
+        error(
+          '$selectorPath.min$name',
+          message: 'The minimum must be 0 through 2147483647.',
+        );
+      }
+      if (maximum != null && (maximum < 0 || maximum > 2147483647)) {
+        error(
+          '$selectorPath.max$name',
+          message: 'The maximum must be 0 through 2147483647.',
+        );
+      }
+      if (minimum != null && maximum != null && minimum > maximum) {
+        error(
+          '$selectorPath.max$name',
+          message: 'The maximum must be at least the minimum.',
+        );
+      }
+    }
+    try {
+      motdZonedTime(select.zone ?? 'UTC', 0);
+    } on FormatException {
+      error(
+        '$selectorPath.zone',
+        message: 'Use a known IANA time zone or a valid UTC offset.',
+      );
+    }
+    if ((select.startTime == null) != (select.endTime == null)) {
+      error(
+        '$selectorPath.startTime',
+        message: 'Set both the start and end times, or leave both absent.',
+      );
+    }
+    for (final (String key, String? value) in <(String, String?)>[
+      ('startTime', select.startTime),
+      ('endTime', select.endTime),
+    ]) {
+      if (value != null && motdTimeNanos(value) == null) {
+        error(
+          '$selectorPath.$key',
+          message:
+              'Use HH:mm, optionally followed by seconds and fractional seconds.',
+        );
+      }
+    }
+    for (final (int dayIndex, int day)
+        in (select.days ?? const <int>[]).indexed) {
+      if (day < 1 || day > 7) {
+        error(
+          '$selectorPath.days[$dayIndex]',
+          message: 'Weekdays must be 1 through 7, Monday through Sunday.',
+        );
+      }
+    }
+  }
+}
+
+void _iconSetIssues(
+  List<String>? icons,
+  String path,
+  Set<String>? images,
+  List<HuiIssue> issues,
+) {
+  if (icons == null) return;
+  if (icons.length > 64) {
+    issues.add(
+      HuiIssue(
+        severity: HuiSeverity.error,
+        path: path,
+        message: 'An icon set supports at most 64 images.',
+      ),
+    );
+  }
+  for (final (int index, String icon) in icons.indexed) {
+    if (icon.trim().isEmpty) {
+      issues.add(
+        HuiIssue(
+          severity: HuiSeverity.error,
+          path: '$path[$index]',
+          message: 'An icon path must not be blank.',
+        ),
+      );
+    } else {
+      issues.addAll(_faviconIssues(icon, '$path[$index]', images));
+    }
+  }
 }

@@ -21,6 +21,7 @@ import '../config/defaults.dart';
 import '../config/gloss_templates.dart';
 import '../doctype/doctype.dart';
 import '../logic/canvas_scene.dart';
+import '../logic/document_presets.dart';
 import '../logic/gloss_text.dart';
 import '../logic/validation.dart';
 import '../logic/preview_sim_controls.dart';
@@ -163,6 +164,12 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// The active Gloss document (hologram, animation or scoreboard model), or
   /// null while another kind is open. Always written through [_setGlossDoc].
   GlossDoc? _glossDoc;
+  DocumentPresets _activePresets = DocumentPresets.empty;
+  InheritedDocumentSource? _inheritedSource;
+  String? _presetFailureSource;
+  String? _panelCacheSource;
+  DocumentPresets? _panelCachePresets;
+  WorkspacePanelDecodeResult? _panelCache;
 
   /// Bumped on every change to [_glossDoc] — the Gloss surfaces' memo key,
   /// the exact counterpart of [_previewRevision].
@@ -299,7 +306,19 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   WorkspacePanelDecodeResult? get activePanel {
     if (!isPanelDoc) return null;
     final WorkspaceDoc? doc = workspace.active;
-    return doc == null ? null : decodeWorkspacePanel(doc.json);
+    if (doc == null) return null;
+    if (_panelCacheSource == doc.json && identical(_panelCachePresets, _activePresets)) return _panelCache;
+    final WorkspacePanelDecodeResult decoded = decodeWorkspacePanel(doc.json);
+    final Map<String, dynamic>? authored = decoded.data.runtimeBoard;
+    _panelCacheSource = doc.json;
+    _panelCachePresets = _activePresets;
+    if (authored == null || decoded.warning != null) return _panelCache = decoded;
+    try {
+      final Map<String, dynamic> resolved = jsonDecode(_activePresets.resolve('panel', jsonEncode(authored))) as Map<String, dynamic>;
+      return _panelCache = WorkspacePanelDecodeResult(decoded.data.copyWith(runtimeBoard: resolved), null);
+    } on FormatException catch (failure) {
+      return _panelCache = WorkspacePanelDecodeResult(decoded.data, failure.message);
+    }
   }
 
   /// The active container-preview document, or null while [isPreviewDoc] is
@@ -325,7 +344,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     for (final WorkspaceDoc doc in workspace.docs) {
       if (doc.kind != DocumentTypes.names.kind) continue;
       try {
-        return _namesCache = decodeGlossNamesDoc(doc.json).catalog;
+        return _namesCache = decodeGlossNamesDoc(
+          _presetsFor(doc).resolve('names', doc.json),
+        ).catalog;
       } on FormatException {
         return const GlossNamesCatalog();
       } on HuiFormatException {
@@ -469,7 +490,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
 
   /// Every write path below (`mutate`, `replaceMenu`, `applyCode`) requires
   /// this to keep the guarantee that [_menu] is really the live document.
-  bool get _menuWritable => hasActiveDocument && isMenuDoc;
+  bool get _menuWritable => hasActiveDocument && isMenuDoc && _presetFailureSource == null;
 
   /// Export file base name, always sanitized.
   String get menuId => _menuId;
@@ -479,6 +500,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   String get exportFileName => '$_menuId.json';
 
   void setMenuId(String value) {
+    if (_presetFailureSource != null) return;
     if (!_docType.hasRuntimeId || _docType.fixedRuntimeId != null) return;
     final String sanitized = sanitizeMenuId(value);
     if (sanitized == _menuId) return;
@@ -1270,6 +1292,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// push one undo entry, revalidate, autosave, notify. A no-op while
   /// [isGlossDoc] is false.
   void mutateGloss(String label, void Function(GlossDoc doc) fn) {
+    if (_presetFailureSource != null) return;
     final GlossDoc? doc = _glossDoc;
     if (doc == null || !isGlossDoc) return;
     final String before = _snapshot();
@@ -1480,7 +1503,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
           model = _glossDoc! as GlossEmojiDoc;
         } else {
           try {
-            model = decodeGlossEmojiDoc(doc.json);
+            model = decodeGlossEmojiDoc(_presetsFor(doc).resolve('emoji', doc.json));
           } catch (_) {
             // An unreadable document substitutes nothing, exactly like a
             // file the plugin's registry failed to parse.
@@ -1525,7 +1548,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
           continue;
         }
         try {
-          built[id] = decodeGlossAnimationDoc(doc.json);
+          built[id] = decodeGlossAnimationDoc(_presetsFor(doc).resolve('animation', doc.json));
         } catch (_) {
           built[id] = null;
         }
@@ -2068,9 +2091,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   // --- import / export ------------------------------------------------------
 
   /// The active document's JSON, in whichever shape [docKind] says it is.
-  String exportJson() => _docType.exportJson(this);
+  String exportJson() => _presetFailureSource ?? (_inheritedSource == null ? _docType.exportJson(this) : _snapshot());
 
-  String formattedJson() => _docType.formattedJson(this);
+  String formattedJson() => _presetFailureSource ?? (_inheritedSource == null ? _docType.formattedJson(this) : _snapshot());
 
   /// Replaces the active document with [content], auto-detecting whether it
   /// is a Gloss menu or a container-preview document via
@@ -2084,8 +2107,18 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       return;
     }
     final Object? decoded;
+    final Object? parsed;
     try {
-      decoded = jsonDecode(content);
+      parsed = jsonDecode(content);
+    } on FormatException {
+      _fail('That file could not be read as JSON.');
+      return;
+    }
+    try {
+      decoded = _importShape(parsed, content);
+    } on FormatException catch (error) {
+      _fail(error.message);
+      return;
     } catch (_) {
       _fail('That file could not be read as JSON.');
       return;
@@ -2106,6 +2139,19 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// nothing recognizable. The kinds' shape checks are mutually exclusive
   /// (anchor / frames / title+lines under a versioned envelope), so registry
   /// order does not decide anything here.
+  Object? _importShape(Object? decoded, String source) {
+    if (decoded is! Map || decoded['preset'] is! String
+        || decoded.containsKey('components') || looksLikePreviewDoc(decoded)
+        || _glossKindOf(decoded) != null) {
+      return decoded;
+    }
+    final Set<String> collections = _importPresets.collectionsForPreset(decoded['preset'] as String);
+    if (collections.length != 1) {
+      throw const FormatException('This preset does not identify one document kind. Open the intended kind and use its code editor.');
+    }
+    return jsonDecode(_importPresets.resolve(collections.single, source));
+  }
+
   GlossDocumentTypeAdapter? _glossKindOf(Object? decoded) {
     for (final DocumentTypeAdapter adapter in DocumentTypeRegistry.all) {
       if (adapter is GlossDocumentTypeAdapter && adapter.looksLike(decoded)) {
@@ -2124,8 +2170,18 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       return false;
     }
     final Object? decoded;
+    final Object? parsed;
     try {
-      decoded = jsonDecode(content);
+      parsed = jsonDecode(content);
+    } on FormatException {
+      _fail('That file could not be read as JSON.');
+      return false;
+    }
+    try {
+      decoded = _importShape(parsed, content);
+    } on FormatException catch (error) {
+      _fail(error.message);
+      return false;
     } catch (_) {
       _fail('That file could not be read as JSON.');
       return false;
@@ -2162,7 +2218,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   ) {
     final GlossDoc parsed;
     try {
-      parsed = type.decodeDoc(content);
+      parsed = type.decodeDoc(_importPresets.resolve(type.syncWireKind, content));
     } on HuiFormatException catch (error) {
       _failResolved(
         () => huiText('{message} (at {path})', <String, Object?>{
@@ -2183,7 +2239,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     final WorkspaceDoc? existing = _fixedGlossDocument(type);
     if (existing != null) {
       if (!openDocument(existing.id)) return false;
-      replaceGlossDoc('Import JSON', parsed);
+      _replaceImportedGloss(parsed, content);
       return true;
     }
     final String runtimeId =
@@ -2194,11 +2250,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       runtimeId: runtimeId,
       json: content,
       kind: type.kind,
+      presetContext: workspace.active?.presetContext,
     );
-    _adoptDocument(
-      type,
-      AdoptedDocument(editorId: sanitizeMenuId(runtimeId), model: parsed),
-    );
+    _adoptActiveDocument();
     _inform('Imported {id} as a new {document}.', <String, Object?>{
       'id': runtimeId,
       'document': type.noun,
@@ -2214,8 +2268,10 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     String content,
   ) {
     final GlossDoc parsed;
+    final DocumentPresets presets;
     try {
-      parsed = type.decodeDoc(content);
+      presets = _importPresets;
+      parsed = type.decodeDoc(presets.resolve(type.syncWireKind, content));
     } on HuiFormatException catch (e) {
       _failResolved(
         () => huiText('{message} (at {path})', <String, Object?>{
@@ -2235,7 +2291,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     }
     final WorkspaceDoc? existing = _fixedGlossDocument(type);
     if (existing != null) {
-      if (openDocument(existing.id)) replaceGlossDoc('Import JSON', parsed);
+      if (openDocument(existing.id)) _replaceImportedGloss(parsed, content);
       return;
     }
     _lastError = null;
@@ -2247,8 +2303,10 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _undo.clear();
     _clearCoalesce();
     _docType = type;
+    _activePresets = presets;
     _setPreviewDoc(null);
     _setGlossDoc(parsed);
+    _resetInheritedSource(content);
     _animationCache = null;
     _emojiCache = null;
     _namesCache = null;
@@ -2258,10 +2316,20 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _inform('Imported {id}.', <String, Object?>{'id': importedId});
   }
 
+  void _replaceImportedGloss(GlossDoc parsed, String source) {
+    final String before = _snapshot();
+    _setGlossDoc(parsed);
+    _resetInheritedSource(source);
+    _animationCache = null;
+    _emojiCache = null;
+    _namesCache = null;
+    _pushUndo('Import JSON', before, coalesce: false);
+    _afterChange();
+  }
+
   bool _importPreviewAsNewDocument(String requestedId, String content) {
-    final HuiPreviewDoc parsed;
     try {
-      parsed = decodeHuiPreviewDoc(content);
+      decodeHuiPreviewDoc(_importPresets.resolve(DocumentTypes.containerPreview.syncWireKind, content));
     } on HuiFormatException catch (error) {
       _failResolved(
         () => huiText('{message} (at {path})', <String, Object?>{
@@ -2284,8 +2352,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       runtimeId: runtimeId,
       json: content,
       kind: DocumentTypes.containerPreview.kind,
+      presetContext: workspace.active?.presetContext,
     );
-    _adoptPreview(parsed, runtimeId);
+    _adoptActiveDocument();
     _inform('Imported {id} as a new preview.', <String, Object?>{
       'id': runtimeId,
     });
@@ -2331,8 +2400,10 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
 
   void _importMenuJson(String name, String content) {
     final HuiMenu parsed;
+    final DocumentPresets presets;
     try {
-      parsed = decodeHuiMenu(content);
+      presets = _importPresets;
+      parsed = decodeHuiMenu(presets.resolve(DocumentTypes.menu.syncWireKind, content));
     } on HuiFormatException catch (e) {
       _failResolved(
         () => huiText('{message} (at {path})', <String, Object?>{
@@ -2354,9 +2425,11 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     final bool wasMenu = _menuWritable;
     final String before = _snapshot();
     _docType = DocumentTypes.menu;
+    _activePresets = presets;
     _setPreviewDoc(null);
     _setGlossDoc(null);
     _menu = parsed;
+    _resetInheritedSource(content);
     _menuId = importedId;
     _coerceView();
     if (wasMenu) {
@@ -2375,8 +2448,10 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
 
   void _importPreviewJson(String name, String content) {
     final HuiPreviewDoc parsed;
+    final DocumentPresets presets;
     try {
-      parsed = decodeHuiPreviewDoc(content);
+      presets = _importPresets;
+      parsed = decodeHuiPreviewDoc(presets.resolve(DocumentTypes.containerPreview.syncWireKind, content));
     } on HuiFormatException catch (e) {
       _failResolved(
         () => huiText('{message} (at {path})', <String, Object?>{
@@ -2398,8 +2473,10 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _undo.clear();
     _clearCoalesce();
     _docType = DocumentTypes.containerPreview;
+    _activePresets = presets;
     _setPreviewDoc(parsed);
     _setGlossDoc(null);
+    _resetInheritedSource(content);
     _menuId = importedId;
     _coerceView();
     _afterChange();
@@ -2412,13 +2489,18 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// Returns false and keeps the text when it does not parse, so the editor can
   /// show the error without losing the user's typing.
   bool applyCode(String text) {
+    if (_presetFailureSource != null) {
+      _setCodeError('Fix the preset catalog and reopen this document before editing.');
+      _notify();
+      return false;
+    }
     if (isPanelDoc) return false;
     if (isPreviewDoc) return _applyPreviewCode(text);
     final DocumentTypeAdapter type = _docType;
     if (type is GlossDocumentTypeAdapter) return _applyGlossCode(type, text);
     final HuiMenu parsed;
     try {
-      parsed = decodeHuiMenu(text);
+      parsed = decodeHuiMenu(_activePresets.resolve(_docType.syncWireKind, text));
     } on HuiFormatException catch (e) {
       _setCodeFormatError(e);
       _notify();
@@ -2435,6 +2517,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       return true;
     }
     _menu = parsed;
+    _resetInheritedSource(text);
     _pruneSelection();
     _pushUndo('code edit', before);
     _afterChange(menuSource: text);
@@ -2451,7 +2534,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   bool _applyPreviewCode(String text) {
     final Object? decoded;
     try {
-      decoded = jsonDecode(text);
+      decoded = jsonDecode(_activePresets.resolve(_docType.syncWireKind, text));
     } catch (_) {
       _setCodeError('That is not valid JSON.');
       _notify();
@@ -2488,6 +2571,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       return true;
     }
     _setPreviewDoc(parsed);
+    _resetInheritedSource(text);
     _pushUndo('code edit', before);
     _prunePreviewSelection();
     _afterChange();
@@ -2502,7 +2586,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   bool _applyGlossCode(GlossDocumentTypeAdapter type, String text) {
     final Object? decoded;
     try {
-      decoded = jsonDecode(text);
+      decoded = jsonDecode(_activePresets.resolve(type.syncWireKind, text));
     } catch (_) {
       _setCodeError('That is not valid JSON.');
       _notify();
@@ -2515,7 +2599,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     }
     final GlossDoc parsed;
     try {
-      parsed = type.decodeDoc(text);
+      parsed = type.decodeDoc(jsonEncode(decoded));
     } on HuiFormatException catch (e) {
       _setCodeFormatError(e);
       _notify();
@@ -2535,6 +2619,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       return true;
     }
     _setGlossDoc(parsed);
+    _resetInheritedSource(text);
     _animationCache = null;
     _emojiCache = null;
     _namesCache = null;
@@ -2615,9 +2700,8 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       _failWorkspaceProtected();
       return false;
     }
-    final HuiMenu parsed;
     try {
-      parsed = decodeHuiMenu(json);
+      decodeHuiMenu(_importPresets.resolve(DocumentTypes.menu.syncWireKind, json));
     } on HuiFormatException catch (error) {
       _failResolved(
         () => huiText('{message} (at {path})', <String, Object?>{
@@ -2638,8 +2722,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       json: json,
       kind: DocumentTypes.menu.kind,
       folderId: folderId,
+      presetContext: workspace.active?.presetContext,
     );
-    _adoptMenu(parsed, id, source: json);
+    _adoptActiveDocument();
     return true;
   }
 
@@ -2769,7 +2854,13 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   bool updatePanel(WorkspacePanelData panel, {bool coalesce = true}) {
     if (!isPanelDoc || !workspace.canWrite) return false;
     final String before = _snapshot();
-    final String next = encodeWorkspacePanel(panel);
+    final Map<String, dynamic>? authored = decodeWorkspacePanel(before).data.runtimeBoard;
+    final Map<String, dynamic>? baseline = panelDoc?.runtimeBoard;
+    final Map<String, dynamic>? edited = panel.runtimeBoard;
+    final WorkspacePanelData nextPanel = authored == null || baseline == null || edited == null ? panel
+        : panel.copyWith(runtimeBoard: jsonDecode(InheritedDocumentSource(jsonEncode(authored),
+            jsonEncode(baseline)).encode(jsonEncode(edited))) as Map<String, dynamic>);
+    final String next = encodeWorkspacePanel(nextPanel);
     if (before == next) return true;
     final bool saved = workspace.updateActive(json: next);
     if (saved) {
@@ -2816,6 +2907,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       ).duplicateJson(source, workspace),
       kind: source.kind,
       folderId: source.folderId,
+      presetContext: source.presetContext,
     );
     _adoptActiveDocument();
     return copy;
@@ -2847,7 +2939,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _autosaveTimer?.cancel();
     _autosaveTimer = null;
     bool changed = false;
-    if (_documentDirty) {
+    if (_documentDirty && _presetFailureSource == null) {
       final int editorRevision = _documentRevision;
       final bool documentSaved = workspace.updateActive(
         runtimeId: _menuId,
@@ -2913,7 +3005,31 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// Menu-editing call sites only ever run while [_menuWritable] is true, so
   /// they always see the menu encoding; the adapter dispatch is what lets
   /// [flushAutosave] persist a preview document too.
-  String _snapshot() => _docType.snapshot(this);
+  String _snapshot() => _presetFailureSource ?? (isPanelDoc ? workspace.active!.json
+      : _inheritedSource?.encode(_canonicalSnapshot()) ?? _docType.snapshot(this));
+
+  String _canonicalSnapshot() => _menuWritable ? encodeHuiMenu(_menu) : _docType.snapshot(this);
+
+  DocumentPresets get _importPresets => _docType.syncWireKind == 'presets'
+      ? DocumentPresets.parse(_snapshot()) : _activePresets;
+
+  void _resetInheritedSource(String source) {
+    _presetFailureSource = null;
+    _inheritedSource = !isPanelDoc && _activePresets.applies(_docType.syncWireKind, source)
+        ? InheritedDocumentSource(source, _canonicalSnapshot()) : null;
+  }
+
+  DocumentPresets _presetsFor(WorkspaceDoc document) {
+    if (DocumentTypeRegistry.of(document.kind).syncWireKind == 'presets') return DocumentPresets.empty;
+    final String? context = document.presetContext;
+    if (context != null) return DocumentPresets.parse(context);
+    for (final WorkspaceDoc candidate in workspace.docs) {
+      if (DocumentTypeRegistry.of(candidate.kind).syncWireKind == 'presets') {
+        return DocumentPresets.parse(candidate.json);
+      }
+    }
+    return DocumentPresets.empty;
+  }
 
   /// Blocks are authored to two or three decimals; killing float noise keeps
   /// exported JSON and snapshot comparisons stable.
@@ -2996,7 +3112,9 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// snapshot into a preview document or the other way round.
   bool _applySnapshot(String snapshot) {
     try {
-      _installModel(_docType.decodeSnapshot(snapshot));
+      _installModel(_docType.decodeSnapshot(isPanelDoc ? snapshot
+          : _activePresets.resolve(_docType.syncWireKind, snapshot)));
+      _resetInheritedSource(snapshot);
       if (isPanelDoc) {
         _documentRevision++;
         _lastSavedAt = DateTime.now();
@@ -3162,10 +3280,26 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
       workspace.write(emptyWorkspaceKey, 'false');
     }
     final DocumentTypeAdapter type = DocumentTypeRegistry.of(doc.kind);
-    _adoptDocument(type, type.adopt(doc));
+    try {
+      final DocumentPresets presets = _presetsFor(doc);
+      final WorkspaceDoc effective = WorkspaceDoc(
+        id: doc.id, title: doc.title, runtimeId: doc.runtimeId,
+        json: type == DocumentTypes.panel ? doc.json : presets.resolve(type.syncWireKind, doc.json),
+        updatedAt: doc.updatedAt, folderId: doc.folderId, kind: doc.kind,
+      );
+      _adoptDocument(type, type.adopt(effective), authoredSource: doc.json, presets: presets);
+    } on FormatException catch (error) {
+      _adoptDocument(type, type.adopt(doc));
+      _presetFailureSource = doc.json;
+      _documentDirty = false;
+      _fail('Could not resolve document presets: {message}', <String, Object?>{'message': error.message});
+    }
   }
 
   void _adoptEmptyWorkspace() {
+    _activePresets = DocumentPresets.empty;
+    _inheritedSource = null;
+    _presetFailureSource = null;
     _docType = DocumentTypes.menu;
     _menu = HuiMenu();
     _menuId = '';
@@ -3209,12 +3343,16 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
   /// Makes [adopted] the open document: installs the model, resets every
   /// per-document piece of editor state and reports a decode failure after
   /// the replacement document is fully up.
-  void _adoptDocument(DocumentTypeAdapter type, AdoptedDocument adopted) {
+  void _adoptDocument(DocumentTypeAdapter type, AdoptedDocument adopted,
+      {String? authoredSource, DocumentPresets? presets}) {
     if (_keepWorkspaceEmpty && workspace.active != null) {
       _keepWorkspaceEmpty = false;
       workspace.write(emptyWorkspaceKey, 'false');
     }
     _docType = type;
+    _activePresets = presets ?? DocumentPresets.empty;
+    _inheritedSource = null;
+    _presetFailureSource = null;
     _preservedMenuSource = adopted.preservedSource;
     final Object? model = adopted.model;
     // The menu slot is cleared, not left behind, when another kind takes over.
@@ -3224,6 +3362,7 @@ class EditorStore extends ChangeNotifier implements DocumentStateView {
     _menu = model is HuiMenu ? model : HuiMenu();
     _setPreviewDoc(model is HuiPreviewDoc ? model : null);
     _setGlossDoc(model is GlossDoc ? model : null);
+    if (authoredSource != null && adopted.failure == null) _resetInheritedSource(authoredSource);
     _animationCache = null;
     _emojiCache = null;
     _namesCache = null;

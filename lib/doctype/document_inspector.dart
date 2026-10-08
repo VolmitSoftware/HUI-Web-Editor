@@ -20,7 +20,11 @@ import '../components/inspector/hologram_inspector.dart';
 import '../components/inspector/inspector_session.dart';
 import '../components/inspector/menu_inspector.dart';
 import '../components/inspector/names_inspector.dart';
+import '../components/inspector/presets_editor.dart';
+import '../components/inspector/document_preset_picker.dart';
 import '../components/inspector/catalog_document_inspector.dart';
+import '../components/inspector/glyph_inspector.dart';
+import '../components/inspector/behavior_inspector.dart';
 import '../components/inspector/connections_inspector.dart';
 import '../components/inspector/channel_inspector.dart';
 import '../components/inspector/motd_inspector.dart';
@@ -66,8 +70,11 @@ typedef DocumentInspectorBuilder =
 
 final Map<WorkspaceDocKind, DocumentInspectorBuilder> _builders =
     <WorkspaceDocKind, DocumentInspectorBuilder>{
+      DocumentTypes.presets.kind: (DocumentInspectorScope scope) => <Widget>[PresetsInspector(store: scope.store)],
       DocumentTypes.strings.kind: (DocumentInspectorScope scope) => <Widget>[StringsInspector(store: scope.store)],
       DocumentTypes.waypoint.kind: (DocumentInspectorScope scope) => <Widget>[WaypointInspector(store: scope.store)],
+      DocumentTypes.behavior.kind: (DocumentInspectorScope scope) => <Widget>[BehaviorInspector(store: scope.store)],
+      DocumentTypes.glyph.kind: (DocumentInspectorScope scope) => <Widget>[GlyphInspector(store: scope.store)],
       DocumentTypes.names.kind: (DocumentInspectorScope scope) => <Widget>[NamesInspector(store: scope.store)],
       DocumentTypes.menu.kind: _menuBody,
       DocumentTypes.containerPreview.kind: _previewBody,
@@ -93,7 +100,7 @@ final Map<WorkspaceDocKind, DocumentInspectorBuilder> _builders =
 
 /// The inspector body for the active document kind.
 List<Widget> buildDocumentInspector(DocumentInspectorScope scope) =>
-    _builders[scope.store.docKind]!(scope);
+    <Widget>[DocumentPresetPicker(store: scope.store), ..._builders[scope.store.docKind]!(scope)];
 
 List<Widget> _panelBody(DocumentInspectorScope scope) => <Widget>[
   PanelInspector(store: scope.store),

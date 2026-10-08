@@ -8,6 +8,7 @@ import 'gloss_text.dart';
 import 'gloss_condition_validation.dart';
 import 'validation.dart';
 import 'gloss_show.dart';
+import 'preview_expr.dart';
 
 List<HuiIssue> validateTablistDoc(
   GlossTablistDoc doc, {
@@ -45,35 +46,16 @@ List<HuiIssue> validateTablistDoc(
   final GlossTabLayout? layout = doc.layout;
   if (layout != null) {
     issues.addAll(validateGlossShow(layout.show, path: r'$.layout.show'));
-    void error(String path) => issues.add(
-      HuiIssue(
-        severity: HuiSeverity.error,
-        path: path,
-        message: 'Value is outside the layout bounds.',
-      ),
-    );
-    if (layout.enabled && (layout.columns < 1 || layout.columns > 4)) {
-      error(r'$.layout.columns');
-    }
-    if (layout.enabled && (layout.rows < 1 || layout.rows > 20)) {
-      error(r'$.layout.rows');
-    }
-    final GlossTabPlayers? players = layout.players;
-    if (players != null) {
-      issues.addAll(
-        validateGlossShow(players.filter, path: r'$.layout.players.filter'),
-      );
-      if (players.column < 0 ||
-          players.columns < 1 ||
-          players.column + players.columns > layout.columns) {
-        error(r'$.layout.players.columns');
-      }
-      if (players.rows < 1 || players.rows > layout.rows) {
-        error(r'$.layout.players.rows');
-      }
-      if (players.overflow != 'hide' && players.overflow != 'count') {
-        error(r'$.layout.players.overflow');
-      }
+    _validateLayout(layout, r'$.layout', issues);
+    final Set<String> ids = <String>{};
+    for (int index = 0; index < layout.variants.length; index++) {
+      final GlossTabLayoutVariant variant = layout.variants[index];
+      final String path =
+          r'$.layout.variants['
+          '$index]';
+      _validateLayoutIdentity(variant.id, '$path.id', ids, issues);
+      issues.addAll(glossConditionIssues(variant.when, '$path.when'));
+      _validateLayout(variant.presentation, '$path.presentation', issues);
     }
   }
 
@@ -270,3 +252,169 @@ void _danglingRefs(
 
 void _validateCondition(String source, String path, List<HuiIssue> issues) =>
     issues.addAll(glossConditionIssues(source, path));
+
+void _layoutError(List<HuiIssue> issues, String path, String message) {
+  issues.add(
+    HuiIssue(severity: HuiSeverity.error, path: path, message: message),
+  );
+}
+
+void _validateLayout(
+  GlossTabPresentation layout,
+  String path,
+  List<HuiIssue> issues,
+) {
+  if (layout.entries < 1 || layout.entries > 80) {
+    _layoutError(
+      issues,
+      '$path.entries',
+      'Minecraft tab layouts require 1–80 entries.',
+    );
+    return;
+  }
+  final Set<int> occupied = <int>{};
+  bool claim(int column, int row, String owner) {
+    final int index = column * layout.rows + row;
+    if (column < 0 ||
+        column >= layout.columns ||
+        row < 0 ||
+        row >= layout.rows ||
+        index >= layout.entries) {
+      _layoutError(
+        issues,
+        owner,
+        'Cell is outside the entry-count-derived client geometry.',
+      );
+      return false;
+    }
+    if (!occupied.add(index)) {
+      _layoutError(
+        issues,
+        owner,
+        'Fixed slots and roster sections cannot overlap.',
+      );
+    }
+    return true;
+  }
+
+  for (int index = 0; index < layout.slots.length; index++) {
+    final GlossTabSlot slot = layout.slots[index];
+    claim(slot.column, slot.row, '$path.slots[$index]');
+    issues.addAll(
+      glossTextExpressionIssues(<({String path, String text})>[
+        (path: '$path.slots[$index].text', text: slot.text),
+      ]),
+    );
+    if (slot.ping != null && (slot.ping! < -1 || slot.ping! > 10000)) {
+      _layoutError(
+        issues,
+        '$path.slots[$index].ping',
+        'Ping must be between -1 and 10000.',
+      );
+    }
+  }
+  final Set<String> ids = <String>{};
+  for (int index = 0; index < layout.sections.length; index++) {
+    final GlossTabSection section = layout.sections[index];
+    final String owner = '$path.sections[$index]';
+    _validateLayoutIdentity(section.id, '$owner.id', ids, issues);
+    issues.addAll(glossConditionIssues(section.filter, '$owner.filter'));
+    if (section.columns < 1 ||
+        section.columns > 4 ||
+        section.rows < 1 ||
+        section.rows > 20) {
+      _layoutError(
+        issues,
+        owner,
+        'Section dimensions must fit 1–4 columns and 1–20 rows.',
+      );
+    } else {
+      for (
+        int column = section.column;
+        column < section.column + section.columns;
+        column++
+      ) {
+        for (int row = section.row; row < section.row + section.rows; row++) {
+          claim(column, row, owner);
+        }
+      }
+    }
+    if (!<String>{'hide', 'count'}.contains(section.overflow)) {
+      _layoutError(
+        issues,
+        '$owner.overflow',
+        'Overflow must be hide or count.',
+      );
+    }
+    if (section.sort.length > 16) {
+      _layoutError(
+        issues,
+        '$owner.sort',
+        'A section accepts at most 16 sort keys.',
+      );
+    }
+    for (int keyIndex = 0; keyIndex < section.sort.length; keyIndex++) {
+      final GlossTabSortKey key = section.sort[keyIndex];
+      try {
+        parsePreviewExpr(key.expression);
+      } on PExprException {
+        _layoutError(
+          issues,
+          '$owner.sort[$keyIndex].expression',
+          'Invalid sort expression.',
+        );
+      }
+      if (!<String>{'text', 'number'}.contains(key.type)) {
+        _layoutError(
+          issues,
+          '$owner.sort[$keyIndex].type',
+          'Sort type must be text or number.',
+        );
+      }
+      if (!<String>{'ascending', 'descending'}.contains(key.direction)) {
+        _layoutError(
+          issues,
+          '$owner.sort[$keyIndex].direction',
+          'Sort direction must be ascending or descending.',
+        );
+      }
+    }
+    issues.addAll(
+      glossTextExpressionIssues(<({String path, String text})>[
+        if (section.format != null)
+          (path: '$owner.format', text: section.format!),
+        (path: '$owner.overflowFormat', text: section.overflowFormat),
+      ]),
+    );
+  }
+  for (final MapEntry<String, GlossTabSkin> entry in layout.skins.entries) {
+    _validateLayoutIdentity(entry.key, '$path.skins', <String>{}, issues);
+    if (entry.value.value.trim().isEmpty ||
+        entry.value.value.length > 16384 ||
+        (entry.value.signature?.length ?? 0) > 16384) {
+      _layoutError(
+        issues,
+        '$path.skins.${entry.key}',
+        'Texture values require 1–16384 characters; signatures accept at most 16384.',
+      );
+    }
+  }
+}
+
+void _validateLayoutIdentity(
+  String id,
+  String path,
+  Set<String> ids,
+  List<HuiIssue> issues,
+) {
+  final String normalized = id.trim();
+  if (!RegExp(r'^[\p{L}\p{Nd}._-]+$', unicode: true).hasMatch(normalized)) {
+    _layoutError(
+      issues,
+      path,
+      'Use a nonempty identifier containing letters, numbers, dots, hyphens or underscores.',
+    );
+  } else if (!ids.add(normalized)) {
+    _layoutError(issues, path, 'Identifiers must be unique after trimming.');
+  }
+}

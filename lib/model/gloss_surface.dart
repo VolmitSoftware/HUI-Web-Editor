@@ -27,6 +27,7 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_surface_subscription.dart';
 import 'json_codec.dart';
 
 /// `SurfaceKind.ACTIONBAR`.
@@ -127,13 +128,9 @@ const String glossSurfaceNeverCondition = 'false';
 /// The presentation keys `Presentation.forKind` keeps, per surface kind.
 /// Everything else the file carried is dropped before the runtime sees it.
 const Map<String, Set<String>> glossSurfaceKindFields = <String, Set<String>>{
-  glossSurfaceKindActionbar: <String>{
-    'text',
-    'slots',
-    'priority',
-    'ttlTicks',
-  },
+  glossSurfaceKindActionbar: <String>{'text', 'slots', 'priority', 'ttlTicks'},
   glossSurfaceKindBossbar: <String>{
+    'flags',
     'title',
     'slots',
     'progress',
@@ -200,6 +197,7 @@ const Set<String> _docKnown = <String>{
 const Set<String> _selectKnown = <String>{'priority', 'when'};
 
 const Set<String> _presentationKnown = <String>{
+  'flags',
   'text',
   'slots',
   'title',
@@ -305,6 +303,7 @@ final class GlossSurfacePresentation {
     this.fadeOutTicks,
     this.trigger,
     this.repeatTicks,
+    this.flags,
     Map<String, dynamic>? extras,
   }) : extras = extras ?? <String, dynamic>{};
 
@@ -335,6 +334,7 @@ final class GlossSurfacePresentation {
   int? fadeOutTicks;
   String? trigger;
   int? repeatTicks;
+  List<String>? flags;
 
   Map<String, dynamic> extras;
 
@@ -355,6 +355,7 @@ final class GlossSurfacePresentation {
     if (fadeOutTicks != null) 'fadeOutTicks',
     if (trigger != null) 'trigger',
     if (repeatTicks != null) 'repeatTicks',
+    if (flags != null) 'flags',
   };
 
   static GlossSurfacePresentation fromJson(Object? raw, String path) {
@@ -374,6 +375,12 @@ final class GlossSurfacePresentation {
       fadeOutTicks: _readIntOrNull(map, 'fadeOutTicks'),
       trigger: _readStringOrNull(map, 'trigger'),
       repeatTicks: _readIntOrNull(map, 'repeatTicks'),
+      flags: map['flags'] == null
+          ? null
+          : <String>[
+              for (final Object? flag in huiReadList(map['flags']))
+                flag.toString(),
+            ],
       extras: huiCollectExtras(map, _presentationKnown),
     );
   }
@@ -393,6 +400,7 @@ final class GlossSurfacePresentation {
     if (fadeOutTicks != null) 'fadeOutTicks': fadeOutTicks,
     if (trigger != null) 'trigger': trigger,
     if (repeatTicks != null) 'repeatTicks': repeatTicks,
+    if (flags != null) 'flags': List<String>.of(flags!),
   }, extras);
 
   GlossSurfacePresentation copy() => GlossSurfacePresentation(
@@ -410,6 +418,7 @@ final class GlossSurfacePresentation {
     fadeOutTicks: fadeOutTicks,
     trigger: trigger,
     repeatTicks: repeatTicks,
+    flags: flags == null ? null : List<String>.of(flags!),
     extras: huiDeepCopyMap(extras),
   );
 }
@@ -471,6 +480,7 @@ final class GlossSurfaceDoc extends GlossDoc {
     super.schemaVersion = glossCurrentSchemaVersion,
     super.revision = glossInitialRevision,
     this.surface = glossSurfaceKindActionbar,
+    this.on,
     GlossSurfaceSelect? select,
     GlossSurfacePresentation? presentation,
     List<GlossSurfaceVariant>? variants,
@@ -487,6 +497,9 @@ final class GlossSurfaceDoc extends GlossDoc {
   GlossSurfaceSelect select;
   GlossSurfacePresentation presentation;
   List<GlossSurfaceVariant> variants;
+  List<GlossSurfaceSubscription>? on;
+
+  bool get hasMalformedSubscriptions => on == null && extras['on'] != null;
 
   /// Carries the document `show` the way every other Gloss kind does.
   Map<String, dynamic> extras;
@@ -503,10 +516,13 @@ final class GlossSurfaceDoc extends GlossDoc {
     final Map<String, dynamic> map = huiReadObject(raw, r'$');
     glossReadSchemaVersion(map, 'surface');
     final List<Object?> rawVariants = huiReadList(map['variants']);
+    final List<GlossSurfaceSubscription>? subscriptions =
+        GlossSurfaceSubscription.readList(map['on']);
     return GlossSurfaceDoc(
       schemaVersion: glossCurrentSchemaVersion,
       revision: glossReadRevision(map),
       surface: huiReadString(map, 'surface'),
+      on: subscriptions,
       select: GlossSurfaceSelect.fromJson(map['select']),
       presentation: GlossSurfacePresentation.fromJson(
         map['presentation'],
@@ -516,7 +532,10 @@ final class GlossSurfaceDoc extends GlossDoc {
         for (int index = 0; index < rawVariants.length; index++)
           GlossSurfaceVariant.fromJson(rawVariants[index], index),
       ],
-      extras: huiCollectExtras(map, _docKnown),
+      extras: huiCollectExtras(map, <String>{
+        ..._docKnown,
+        if (subscriptions != null) 'on',
+      }),
     );
   }
 
@@ -525,6 +544,11 @@ final class GlossSurfaceDoc extends GlossDoc {
     'schemaVersion': schemaVersion,
     'revision': revision,
     'surface': surface,
+    if (on != null)
+      'on': <Map<String, Object?>>[
+        for (final GlossSurfaceSubscription subscription in on!)
+          subscription.toJson(),
+      ],
     'select': select.toJson(),
     'presentation': presentation.toJson(),
     'variants': <Map<String, dynamic>>[
@@ -536,6 +560,12 @@ final class GlossSurfaceDoc extends GlossDoc {
     schemaVersion: schemaVersion,
     revision: revision,
     surface: surface,
+    on: on == null
+        ? null
+        : <GlossSurfaceSubscription>[
+            for (final GlossSurfaceSubscription subscription in on!)
+              subscription.copy(),
+          ],
     select: select.copy(),
     presentation: presentation.copy(),
     variants: <GlossSurfaceVariant>[
@@ -582,14 +612,14 @@ GlossSurfacePresentation glossSurfaceEffective(
         ),
         priority: priority,
         ttlTicks: ttlTicks,
+        flags: authored.flags,
       );
     case glossSurfaceKindTitle:
-      final String trigger =
-          _effectiveName(
-            authored.trigger,
-            glossSurfaceTriggers,
-            glossSurfaceDefaultTrigger,
-          )!;
+      final String trigger = _effectiveName(
+        authored.trigger,
+        glossSurfaceTriggers,
+        glossSurfaceDefaultTrigger,
+      )!;
       final int stay = authored.stayTicks == null
           ? glossSurfaceDefaultStayTicks
           : _clampTicks(
@@ -668,15 +698,17 @@ String? glossSurfaceProgressSource(String? authored) {
   final String normalized = (authored ?? '').trim();
   if (normalized.isEmpty) return null;
   if (normalized.startsWith('{{') && normalized.endsWith('}}')) {
-    final String inner = normalized
-        .substring(2, normalized.length - 2)
-        .trim();
+    final String inner = normalized.substring(2, normalized.length - 2).trim();
     return inner.isEmpty ? '' : inner;
   }
   return normalized;
 }
 
-String? _effectiveName(String? authored, List<String> allowed, String fallback) {
+String? _effectiveName(
+  String? authored,
+  List<String> allowed,
+  String fallback,
+) {
   final String normalized = (authored ?? '').trim().toLowerCase();
   if (normalized.isEmpty) return fallback;
   return allowed.contains(normalized) ? normalized : fallback;

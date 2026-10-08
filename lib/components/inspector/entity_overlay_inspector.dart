@@ -143,6 +143,14 @@ class _EntityOverlayInspectorState extends State<EntityOverlayInspector> {
             integer: true,
           ),
           _number(
+            'Snapshot read limit',
+            'snapshotReadLimit',
+            doc.snapshotReadLimit,
+            'Distinct captured reads per entity. 16..65536.',
+            (GlossEntityOverlaysDoc edited, double value) => edited.snapshotReadLimit = value.round(),
+            integer: true,
+          ),
+          _number(
             'Maximum active overlays',
             'maxActiveOverlays',
             doc.maxActiveOverlays,

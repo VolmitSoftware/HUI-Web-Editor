@@ -52,6 +52,7 @@ class InventoryInspector extends StatelessWidget {
         lede: huiText('Chest window'),
         revision: doc.revision,
       ),
+      _refresh(doc),
       ExtrasEditor(title: huiText('Contents'), extensionKeys: false,
         extras: <String, Object?>{'slots': doc.slots, 'list': doc.toJson()['list'], 'variants': doc.variants},
         onChanged: (String label, Map<String, dynamic> next) => store.replaceGlossDoc(label,
@@ -113,6 +114,32 @@ class InventoryInspector extends StatelessWidget {
       ),
     ]);
   }
+  Widget _refresh(GlossInventoryDoc doc) {
+    final Object? raw = doc.extras['refresh'];
+    final Map<String, Object?> refresh = raw is Map<String, Object?> ? raw : <String, Object?>{};
+    void change(String key, Object value) => store.mutateInventory('inventory refresh', (GlossInventoryDoc edited) {
+      edited.extras['refresh'] = <String, Object?>{...refresh, key: value};
+    });
+    return InspectorSection(title: huiText('Refresh'), children: <Widget>[
+      HuiField(label: huiText('Mode'), help: huiText('Dynamic refreshes only changing content. Always also refreshes static content.'), control: ArcaneSelect(
+        value: refresh['mode'] is String ? refresh['mode'] as String : 'dynamic',
+        options: _options(const <String>['dynamic', 'always']),
+        onChanged: (String value) => change('mode', value),
+      )),
+      for (final String field in <String>['titleTicks', 'slotsTicks', 'conditionsTicks', 'listTicks'])
+        HuiField(label: huiText(field), help: huiText('Ticks between refreshes; 0 leaves this category to opening and manual updates.'), control: TextInput(
+          value: '${refresh[field] ?? (field == 'listTicks' ? doc.list?.refreshTicks ?? 20 : 20)}',
+          attributes: <String, String>{'aria-label': field, 'inputmode': 'numeric'},
+          onChanged: (String value) {
+            final int? parsed = int.tryParse(value);
+            if (parsed != null) {
+              change(field, parsed);
+            }
+          },
+        )),
+    ]);
+  }
+
 }
 
 class NameplateInspector extends StatelessWidget {
@@ -193,6 +220,42 @@ class NameplateInspector extends StatelessWidget {
             (GlossNameplateDoc edited) => edited.presentation.offset = value,
           ),
         ),
+      ),
+      HuiField(
+        label: 'Health segments',
+        control: HuiNumberField(
+          ariaLabel: 'Health segments',
+          value: doc.presentation.healthSegments.toDouble(),
+          integer: true,
+          min: 1,
+          max: 40,
+          onChanged: (double value) => store.mutateNameplate('health segments',
+            (GlossNameplateDoc edited) => edited.presentation.healthSegments = value.round()),
+        ),
+      ),
+      HuiSwitchRow(
+        label: 'Hide invisible players',
+        value: doc.presentation.hideInvisible,
+        onChanged: (bool value) => store.mutateNameplate('hide invisible players',
+          (GlossNameplateDoc edited) => edited.presentation.hideInvisible = value),
+      ),
+      HuiSwitchRow(
+        label: 'Hide spectators',
+        value: doc.presentation.hideSpectator,
+        onChanged: (bool value) => store.mutateNameplate('hide spectators',
+          (GlossNameplateDoc edited) => edited.presentation.hideSpectator = value),
+      ),
+      HuiSwitchRow(
+        label: 'Include NPCs',
+        value: doc.presentation.includeNpcs,
+        onChanged: (bool value) => store.mutateNameplate('include npcs',
+          (GlossNameplateDoc edited) => edited.presentation.includeNpcs = value),
+      ),
+      HuiSwitchRow(
+        label: 'Show own plate',
+        value: doc.presentation.showSelf,
+        onChanged: (bool value) => store.mutateNameplate('show own plate',
+          (GlossNameplateDoc edited) => edited.presentation.showSelf = value),
       ),
       HuiSwitchRow(
         label: huiText('Hide while sneaking'),

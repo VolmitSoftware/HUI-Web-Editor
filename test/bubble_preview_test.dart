@@ -22,6 +22,19 @@ GlossBubbleStyleDoc _style({
 );
 
 void main() {
+  test('overflow rejects new messages without resurrecting them after expiry', () {
+    final GlossBubbleStyleDoc style = _style()..maxPerSender = 1..overflow = 'reject-new';
+    final GlossBubblePreviewTimeline timeline = GlossBubblePreviewTimeline(style);
+    expect(timeline.bubblesAt(2000).single.text, contains('Important server'));
+    expect(timeline.bubblesAt(5100), isEmpty);
+    expect(timeline.bubblesAt(5500).single.text, contains('soap'));
+    style.overflow = 'replace-oldest';
+    expect(GlossBubblePreviewTimeline(style).bubblesAt(2000).single.text, contains('reject this'));
+    expect(decodeGlossBubbleStyleDoc(encodeGlossBubbleStyleDoc(style)).overflow, 'replace-oldest');
+    style.overflow = 'reject-new';
+    expect(cloneGlossBubbleStyleDoc(style).overflow, 'reject-new');
+  });
+
   test('rich prefixes render while player text stays literal', () {
     final GlossBubblePreviewBubble original = GlossBubblePreviewTimeline(
       _style(),

@@ -1,6 +1,7 @@
 import 'package:gloss_editor/config/gloss_json_schema.dart';
 import 'package:gloss_editor/logic/canvas_scene.dart';
 import 'package:gloss_editor/logic/channel_preview.dart';
+import 'package:gloss_editor/logic/channel_filter_preview.dart';
 import 'package:gloss_editor/logic/channel_validation.dart';
 import 'package:gloss_editor/logic/gloss_text.dart';
 import 'package:gloss_editor/logic/motd_validation.dart';
@@ -9,7 +10,7 @@ import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('channel filter replacement expands Java capture groups', () {
+  test('channel preview reports unavailable browser engine on the VM', () {
     final GlossChannelDoc doc = GlossChannelDoc(
       format: '{{ message }}',
       filters: <GlossChannelFilter>[
@@ -21,13 +22,13 @@ void main() {
     );
     expect(
       channelPreview(doc, message: 'hello Alex').render.plainText,
-      'Hi Alex, Alex',
+      'hello Alex',
     );
   });
 
   test('channel variants preserve empty overrides and optional blocks', () {
     final GlossChannelDoc doc = decodeGlossChannelDoc('''{
-      "schemaVersion":1,"revision":1,"channel":{"name":"global"},"format":"{{ message }}",
+      "schemaVersion":2,"revision":1,"channel":{"name":"global"},"format":"{{ message }}",
       "card":["base"],"filters":[{"match":"old","replace":"new"}],
       "variants":[{"id":"plain","when":"true","card":[],"filters":[],
         "items":{"enabled":false,"custom":7},"links":{"enabled":false},
@@ -72,7 +73,14 @@ void main() {
           ),
         ],
       );
-      final ChannelPreview preview = channelPreview(doc, message: 'old');
+      final ChannelPreview preview = channelPreview(
+        doc,
+        message: 'old',
+        filterPreview: (GlossChannelDoc selected, String message) {
+          expect(selected.filters.single.replace, 'sent');
+          return const ChannelFilterResult('sent');
+        },
+      );
       expect(preview.render.plainText, 'Received sent');
       expect(preview.hoverText, 'Recipient card');
     },

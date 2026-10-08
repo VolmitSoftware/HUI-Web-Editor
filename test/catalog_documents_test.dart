@@ -103,4 +103,22 @@ void main() {
       contains(r'$.anchor'),
     );
   });
+  test('custom waypoint keys and fallback styles round-trip and validate', () {
+    final GlossWaypointDoc doc = GlossWaypointDoc(
+      style: 'trails:quest',
+      fallbackStyle: 'bowtie',
+    );
+    final GlossWaypointDoc copy = decodeGlossWaypointDoc(
+      encodeGlossWaypointDoc(doc),
+    );
+    expect(copy.style, 'trails:quest');
+    expect(copy.fallbackStyle, 'bowtie');
+    expect(validateWaypointDoc(copy), isEmpty);
+    copy.style = 'trails:../outside';
+    copy.fallbackStyle = 'trails:other';
+    expect(
+      validateWaypointDoc(copy).map((issue) => issue.path),
+      containsAll(<String>[r'$.style', r'$.fallbackStyle']),
+    );
+  });
 }

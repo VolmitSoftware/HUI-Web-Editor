@@ -96,6 +96,10 @@ const Set<String> _docKnown = <String>{
   'favicon',
   'entries',
   'links',
+  'rotation',
+  'icons',
+  'state',
+  'serverLinks',
 };
 
 const Set<String> _entryKnown = <String>{
@@ -107,6 +111,10 @@ const Set<String> _entryKnown = <String>{
   'version',
   'show',
   'weight',
+  'select',
+  'icons',
+  'counts',
+  'sampleMode',
 };
 
 const Set<String> _linkKnown = <String>{'type', 'label', 'url'};
@@ -194,6 +202,10 @@ final class GlossMotdEntry {
     this.version,
     this.show = true,
     this.weight = 1,
+    this.select,
+    this.icons,
+    this.counts,
+    this.sampleMode,
     Map<String, dynamic>? extras,
   }) : lines = lines ?? <String>[],
        sample = sample ?? <String>[],
@@ -220,6 +232,13 @@ final class GlossMotdEntry {
   String? version;
   Object? show;
   int weight;
+  GlossMotdSelector? select;
+  List<String>? icons;
+  GlossMotdCounts? counts;
+  String? sampleMode;
+
+  String get effectiveSampleMode =>
+      sampleMode ?? (sample.isEmpty ? 'inherit' : 'replace');
 
   Map<String, dynamic> extras;
 
@@ -237,6 +256,14 @@ final class GlossMotdEntry {
       version: _readTrimmable(map['version']),
       show: map['show'] ?? true,
       weight: huiReadInt(map, 'weight', fallback: 1),
+      select: map['select'] == null
+          ? null
+          : GlossMotdSelector.fromJson(map['select'], '$path.select'),
+      icons: _motdStrings(map['icons'], '$path.icons'),
+      counts: map['counts'] == null
+          ? null
+          : GlossMotdCounts.fromJson(map['counts'], '$path.counts'),
+      sampleMode: _motdString(map['sampleMode'], '$path.sampleMode'),
       extras: huiCollectExtras(map, _entryKnown),
     );
   }
@@ -250,6 +277,10 @@ final class GlossMotdEntry {
     if (_emitTrimmable(version)) 'version': version,
     if (show != true) 'show': show,
     if (weight != 1) 'weight': weight,
+    if (select != null) 'select': select!.toJson(),
+    if (icons != null) 'icons': List<String>.of(icons!),
+    if (counts != null) 'counts': counts!.toJson(),
+    if (sampleMode != null) 'sampleMode': sampleMode,
   }, extras);
 
   GlossMotdEntry copy() => GlossMotdEntry(
@@ -261,6 +292,10 @@ final class GlossMotdEntry {
     version: version,
     show: show,
     weight: weight,
+    select: select?.copy(),
+    icons: icons == null ? null : List<String>.of(icons!),
+    counts: counts?.copy(),
+    sampleMode: sampleMode,
     extras: huiDeepCopyMap(extras),
   );
 }
@@ -270,6 +305,10 @@ final class GlossMotdDoc extends GlossDoc {
     super.schemaVersion = glossCurrentSchemaVersion,
     super.revision = glossInitialRevision,
     this.favicon,
+    this.rotation,
+    this.icons,
+    this.state,
+    this.serverLinks,
     List<GlossMotdEntry>? entries,
     List<GlossMotdLink>? links,
     Map<String, dynamic>? extras,
@@ -291,6 +330,26 @@ final class GlossMotdDoc extends GlossDoc {
   /// The server-list icon every entry uses unless it names its own. Null or
   /// blank leaves the server's own `server-icon.png` in place.
   String? favicon;
+  GlossMotdRotation? rotation;
+  List<String>? icons;
+  String? state;
+  GlossMotdServerLinks? serverLinks;
+
+  String get effectiveState => state ?? 'normal';
+  List<GlossMotdLink> enabledLinks(bool motdEnabled) => serverLinks == null
+      ? (motdEnabled ? links : const <GlossMotdLink>[])
+      : serverLinks!.enabled != false
+      ? serverLinks!.links ?? const <GlossMotdLink>[]
+      : const <GlossMotdLink>[];
+
+  List<String> iconsFor(GlossMotdEntry entry) {
+    if (entry.icons?.isNotEmpty ?? false) return entry.icons!;
+    if (_emitTrimmable(entry.favicon)) return <String>[entry.favicon!.trim()];
+    if (icons?.isNotEmpty ?? false) return icons!;
+    return _emitTrimmable(favicon)
+        ? <String>[favicon!.trim()]
+        : const <String>[];
+  }
 
   Map<String, dynamic> extras;
   Set<String> absentKeys;
@@ -302,6 +361,14 @@ final class GlossMotdDoc extends GlossDoc {
       schemaVersion: glossCurrentSchemaVersion,
       revision: glossReadRevision(map),
       favicon: _readTrimmable(map['favicon']),
+      rotation: map['rotation'] == null
+          ? null
+          : GlossMotdRotation.fromJson(map['rotation'], r'$.rotation'),
+      icons: _motdStrings(map['icons'], r'$.icons'),
+      state: _motdString(map['state'], r'$.state'),
+      serverLinks: map['serverLinks'] == null
+          ? null
+          : GlossMotdServerLinks.fromJson(map['serverLinks'], r'$.serverLinks'),
       entries: <GlossMotdEntry>[
         for (final (int index, Object? entry) in huiReadList(
           map['entries'],
@@ -328,6 +395,10 @@ final class GlossMotdDoc extends GlossDoc {
       'schemaVersion': schemaVersion,
       if (!absentKeys.contains('revision')) 'revision': revision,
       if (_emitTrimmable(favicon)) 'favicon': favicon,
+      if (rotation != null) 'rotation': rotation!.toJson(),
+      if (icons != null) 'icons': List<String>.of(icons!),
+      if (state != null) 'state': state,
+      if (serverLinks != null) 'serverLinks': serverLinks!.toJson(),
       if (!absentKeys.contains('entries') || entries.isNotEmpty)
         'entries': <Map<String, dynamic>>[
           for (final GlossMotdEntry entry in entries) entry.toJson(),
@@ -353,6 +424,10 @@ final class GlossMotdDoc extends GlossDoc {
     schemaVersion: schemaVersion,
     revision: revision,
     favicon: favicon,
+    rotation: rotation?.copy(),
+    icons: icons == null ? null : List<String>.of(icons!),
+    state: state,
+    serverLinks: serverLinks?.copy(),
     entries: <GlossMotdEntry>[
       for (final GlossMotdEntry entry in entries) entry.copy(),
     ],
@@ -360,4 +435,231 @@ final class GlossMotdDoc extends GlossDoc {
     extras: huiDeepCopyMap(extras),
     absentKeys: Set<String>.of(absentKeys),
   );
+}
+
+final class GlossMotdRotation {
+  GlossMotdRotation({
+    this.mode,
+    this.intervalSeconds,
+    Map<String, Object?>? extras,
+  }) : extras = extras ?? <String, Object?>{};
+  String? mode;
+  int? intervalSeconds;
+  Map<String, Object?> extras;
+  String get effectiveMode => mode ?? 'weighted';
+  int get effectiveIntervalSeconds => intervalSeconds ?? 60;
+  static GlossMotdRotation fromJson(Object? raw, String path) {
+    final Map<String, Object?> map = huiReadObject(raw, path);
+    return GlossMotdRotation(
+      mode: _motdString(map['mode'], '$path.mode'),
+      intervalSeconds: _motdInt(
+        map['intervalSeconds'],
+        '$path.intervalSeconds',
+      ),
+      extras: huiCollectExtras(map, const <String>{'mode', 'intervalSeconds'}),
+    );
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    ...extras,
+    if (mode != null) 'mode': mode,
+    if (intervalSeconds != null) 'intervalSeconds': intervalSeconds,
+  };
+  GlossMotdRotation copy() => fromJson(huiDeepCopy(toJson()), r'$.rotation');
+}
+
+final class GlossMotdCounts {
+  GlossMotdCounts({
+    this.onlineMode,
+    this.onlineValue,
+    this.maximumMode,
+    this.maximumValue,
+    this.hide,
+    Map<String, Object?>? extras,
+  }) : extras = extras ?? <String, Object?>{};
+  String? onlineMode;
+  int? onlineValue;
+  String? maximumMode;
+  int? maximumValue;
+  bool? hide;
+  Map<String, Object?> extras;
+  static GlossMotdCounts fromJson(Object? raw, String path) {
+    final Map<String, Object?> map = huiReadObject(raw, path);
+    return GlossMotdCounts(
+      onlineMode: _motdString(map['onlineMode'], '$path.onlineMode'),
+      onlineValue: _motdInt(map['onlineValue'], '$path.onlineValue'),
+      maximumMode: _motdString(map['maximumMode'], '$path.maximumMode'),
+      maximumValue: _motdInt(map['maximumValue'], '$path.maximumValue'),
+      hide: _motdBool(map['hide'], '$path.hide'),
+      extras: huiCollectExtras(map, const <String>{
+        'onlineMode',
+        'onlineValue',
+        'maximumMode',
+        'maximumValue',
+        'hide',
+      }),
+    );
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    ...extras,
+    if (onlineMode != null) 'onlineMode': onlineMode,
+    if (onlineValue != null) 'onlineValue': onlineValue,
+    if (maximumMode != null) 'maximumMode': maximumMode,
+    if (maximumValue != null) 'maximumValue': maximumValue,
+    if (hide != null) 'hide': hide,
+  };
+  GlossMotdCounts copy() => fromJson(huiDeepCopy(toJson()), r'$.counts');
+}
+
+final class GlossMotdSelector {
+  GlossMotdSelector({
+    this.hostnames,
+    this.minProtocol,
+    this.maxProtocol,
+    this.zone,
+    this.startTime,
+    this.endTime,
+    this.days,
+    this.states,
+    this.minOnline,
+    this.maxOnline,
+    Map<String, Object?>? extras,
+  }) : extras = extras ?? <String, Object?>{};
+  List<String>? hostnames;
+  int? minProtocol;
+  int? maxProtocol;
+  String? zone;
+  String? startTime;
+  String? endTime;
+  List<int>? days;
+  List<String>? states;
+  int? minOnline;
+  int? maxOnline;
+  Map<String, Object?> extras;
+  static GlossMotdSelector fromJson(Object? raw, String path) {
+    final Map<String, Object?> map = huiReadObject(raw, path);
+    final Object? rawDays = map['days'];
+    if (rawDays != null && rawDays is! List) {
+      throw HuiFormatException('Expected an array', '$path.days');
+    }
+    return GlossMotdSelector(
+      hostnames: _motdStrings(map['hostnames'], '$path.hostnames'),
+      minProtocol: _motdInt(map['minProtocol'], '$path.minProtocol'),
+      maxProtocol: _motdInt(map['maxProtocol'], '$path.maxProtocol'),
+      zone: _motdString(map['zone'], '$path.zone'),
+      startTime: _motdString(map['startTime'], '$path.startTime'),
+      endTime: _motdString(map['endTime'], '$path.endTime'),
+      days: rawDays == null
+          ? null
+          : <int>[
+              for (final (int index, Object? value)
+                  in (rawDays as List<Object?>).indexed)
+                _motdInt(value, '$path.days[$index]') ??
+                    (throw HuiFormatException(
+                      'Expected an integer',
+                      '$path.days[$index]',
+                    )),
+            ],
+      states: _motdStrings(map['states'], '$path.states'),
+      minOnline: _motdInt(map['minOnline'], '$path.minOnline'),
+      maxOnline: _motdInt(map['maxOnline'], '$path.maxOnline'),
+      extras: huiCollectExtras(map, const <String>{
+        'hostnames',
+        'minProtocol',
+        'maxProtocol',
+        'zone',
+        'startTime',
+        'endTime',
+        'days',
+        'states',
+        'minOnline',
+        'maxOnline',
+      }),
+    );
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    ...extras,
+    if (hostnames != null) 'hostnames': List<String>.of(hostnames!),
+    if (minProtocol != null) 'minProtocol': minProtocol,
+    if (maxProtocol != null) 'maxProtocol': maxProtocol,
+    if (zone != null) 'zone': zone,
+    if (startTime != null) 'startTime': startTime,
+    if (endTime != null) 'endTime': endTime,
+    if (days != null) 'days': List<int>.of(days!),
+    if (states != null) 'states': List<String>.of(states!),
+    if (minOnline != null) 'minOnline': minOnline,
+    if (maxOnline != null) 'maxOnline': maxOnline,
+  };
+  GlossMotdSelector copy() => fromJson(huiDeepCopy(toJson()), r'$.select');
+}
+
+final class GlossMotdServerLinks {
+  GlossMotdServerLinks({this.enabled, this.links, Map<String, Object?>? extras})
+    : extras = extras ?? <String, Object?>{};
+  bool? enabled;
+  List<GlossMotdLink>? links;
+  Map<String, Object?> extras;
+  static GlossMotdServerLinks fromJson(Object? raw, String path) {
+    final Map<String, Object?> map = huiReadObject(raw, path);
+    final Object? rawLinks = map['links'];
+    if (rawLinks != null && rawLinks is! List) {
+      throw HuiFormatException('Expected an array', '$path.links');
+    }
+    return GlossMotdServerLinks(
+      enabled: _motdBool(map['enabled'], '$path.enabled'),
+      links: rawLinks == null
+          ? null
+          : <GlossMotdLink>[
+              for (final (int index, Object? value)
+                  in (rawLinks as List<Object?>).indexed)
+                GlossMotdLink.fromJson(value, '$path.links[$index]'),
+            ],
+      extras: huiCollectExtras(map, const <String>{'enabled', 'links'}),
+    );
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    ...extras,
+    if (enabled != null) 'enabled': enabled,
+    if (links != null)
+      'links': <Map<String, dynamic>>[
+        for (final GlossMotdLink link in links!) link.toJson(),
+      ],
+  };
+  GlossMotdServerLinks copy() =>
+      fromJson(huiDeepCopy(toJson()), r'$.serverLinks');
+}
+
+String? _motdString(Object? raw, String path) {
+  if (raw == null || raw is String) return raw as String?;
+  throw HuiFormatException('Expected a string', path);
+}
+
+int? _motdInt(Object? raw, String path) {
+  if (raw == null) return null;
+  if (raw is num &&
+      raw.isFinite &&
+      raw == raw.truncateToDouble() &&
+      raw >= -2147483648 &&
+      raw <= 2147483647) {
+    return raw.toInt();
+  }
+  throw HuiFormatException('Expected a 32-bit integer', path);
+}
+
+bool? _motdBool(Object? raw, String path) {
+  if (raw == null || raw is bool) return raw as bool?;
+  throw HuiFormatException('Expected a boolean', path);
+}
+
+List<String>? _motdStrings(Object? raw, String path) {
+  if (raw == null) return null;
+  if (raw is! List) throw HuiFormatException('Expected an array', path);
+  return <String>[
+    for (final (int index, Object? value) in raw.indexed)
+      _motdString(value, '$path[$index]') ??
+          (throw HuiFormatException('Expected a string', '$path[$index]')),
+  ];
 }

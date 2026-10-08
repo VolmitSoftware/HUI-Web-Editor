@@ -19,8 +19,10 @@ import '../../state/workspace.dart';
 import '../common/common.dart';
 import 'action_presets.dart';
 import 'extras_editor.dart';
+import 'dialog_action_fields.dart';
 import 'field_help.dart';
 import 'inspector_session.dart';
+import 'runtime_action_fields.dart';
 import 'inspector_widgets.dart';
 import 'registry_picker.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
@@ -89,7 +91,13 @@ class ActionsEditor extends StatelessWidget {
     required this.store,
     required this.catalogs,
     required this.session,
-    required this.componentId,
+    required this.sessionKey,
+    required this.onEdit,
+    this.clickContext = true,
+    this.title,
+    this.path,
+    this.depth = 0,
+    this.timedSteps = false,
     required this.slot,
     required this.actions,
     this.catalogsLoading = false,
@@ -101,7 +109,14 @@ class ActionsEditor extends StatelessWidget {
   final EditorStore store;
   final HuiCatalogs catalogs;
   final InspectorSession session;
-  final String componentId;
+  final String sessionKey;
+  final void Function(String label, void Function(List<HuiAction>) update)
+  onEdit;
+  final bool clickContext;
+  final String? title;
+  final String? path;
+  final int depth;
+  final bool timedSteps;
   final ActionSlot slot;
   final List<HuiAction> actions;
 
@@ -115,16 +130,14 @@ class ActionsEditor extends StatelessWidget {
   List<HuiIssue> _issuesFor(int index) {
     // Leading dot matters: without it the `actions` marker also matches
     // `trueActions[0]` and `falseActions[0]`.
-    final String marker = '.${slot.jsonKey}[$index]';
+    final String marker = '${path ?? '.${slot.jsonKey}'}[$index]';
     return issues
         .where((HuiIssue issue) => issue.path.contains(marker))
         .toList();
   }
 
   void _edit(String label, void Function(List<HuiAction> list) fn) {
-    store.editComponent(componentId, label, (HuiComponent component) {
-      fn(readActionSlot(component.data, slot));
-    });
+    onEdit(label, fn);
   }
 
   void _add(String type) => _edit('add $type action', (List<HuiAction> list) {
@@ -159,7 +172,7 @@ class ActionsEditor extends StatelessWidget {
     final HuiAction current = actions[index];
     if (current.type == nextType) return;
     final HuiAction next = session.switchAction(
-      InspectorSession.actionSlot(componentId, slot.jsonKey, index),
+      InspectorSession.actionSlot(sessionKey, slot.jsonKey, index),
       current,
       nextType,
     );
@@ -168,7 +181,7 @@ class ActionsEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InspectorSection(
-    title: slot.label,
+    title: title ?? slot.label,
     description: description,
     trailing: dom.div(classes: 'hui-field-tools', <Widget>[
       if (slot.docKey != null) HuiFieldHelp(slot.docKey!),
@@ -177,19 +190,34 @@ class ActionsEditor extends StatelessWidget {
       ]),
     ]),
     children: <Widget>[
-      ActionPresetsRow(menuId: store.menuId, onInsert: _insert),
+      if (clickContext)
+        ActionPresetsRow(menuId: store.menuId, onInsert: _insert),
       if (actions.isEmpty)
         HuiEmptyState(
           icon: ArcaneIcon.listX(size: IconSize.md),
           title: huiText('No actions'),
-          body: huiText(
-            'The component still clicks and highlights, it just does '
-            'nothing. Start from a preset above or add one below.',
-          ),
+          body: !clickContext
+              ? huiText('Add action')
+              : huiText(
+                  'The component still clicks and highlights, it just does '
+                  'nothing. Start from a preset above or add one below.',
+                ),
         )
       else
         for (int i = 0; i < actions.length; i++) _row(i),
       dom.div(classes: 'hui-action-add', <Widget>[
+        ArcaneSelect(
+          label: huiText('Add action'),
+          value: '',
+          options: <ArcaneSelectOption>[
+            ArcaneSelectOption(value: '', label: huiText('Add action')),
+            for (final String type in runtimeAuthoringTypes)
+              ArcaneSelectOption(value: type, label: type),
+          ],
+          onChanged: (String value) {
+            if (value.isNotEmpty) _add(value);
+          },
+        ),
         Button(
           variant: ButtonVariant.outline,
           size: ButtonSize.sm,
@@ -232,8 +260,21 @@ class ActionsEditor extends StatelessWidget {
           onPressed: () => _add('connect'),
           label: huiText('Add connect'),
         ),
+        Button(
+          variant: ButtonVariant.outline,
+          size: ButtonSize.sm,
+          onPressed: () => _add('dialog'),
+          label: huiText('Add dialog'),
+        ),
+        if (clickContext)
+          Button(
+            variant: ButtonVariant.outline,
+            size: ButtonSize.sm,
+            onPressed: () => _add('call'),
+            label: huiText('Call named action'),
+          ),
       ]),
-      if (actions.length > 1)
+      if (clickContext && actions.length > 1)
         HuiNote(
           huiText(
             'Matching actions run top to bottom. Navigation stops only the '
@@ -242,196 +283,298 @@ class ActionsEditor extends StatelessWidget {
         ),
       // One disclosure for the whole list rather than one per row: the
       // semantics are the same for every action in it.
-      HuiMore(
-        summary: huiText('Placeholders, permissions and sound categories'),
-        children: <Widget>[
-          HuiNote(
-            huiText(
-              "%player% and %player_name% become the clicking player's name; all other command tokens stay literal.",
+      if (clickContext)
+        HuiMore(
+          summary: huiText('Placeholders, permissions and sound categories'),
+          children: <Widget>[
+            HuiNote(
+              huiText(
+                "%player% and %player_name% become the clicking player's name; all other command tokens stay literal.",
+              ),
             ),
-          ),
-          HuiNote(
-            huiText(
-              'Run as the player, a command fails silently when they lack the '
-              'permission node. Use the console when the player must not need '
-              'the node themselves.',
+            HuiNote(
+              huiText(
+                'Run as the player, a command fails silently when they lack the '
+                'permission node. Use the console when the player must not need '
+                'the node themselves.',
+              ),
             ),
-          ),
-          // Category, volume and pitch all have defaults now
-          // (`SoundActionData.java:24-25`), so an omitted one costs the
-          // author's intent rather than the click.
-          HuiNote(
-            huiText(
-              'A sound with no category plays on master, and an omitted '
-              'volume or pitch is 1. The editor writes all three anyway, so '
-              'the file never depends on a default that only the plugin '
-              'knows.',
+            // Category, volume and pitch all have defaults now
+            // (`SoundActionData.java:24-25`), so an omitted one costs the
+            // author's intent rather than the click.
+            HuiNote(
+              huiText(
+                'A sound with no category plays on master, and an omitted '
+                'volume or pitch is 1. The editor writes all three anyway, so '
+                'the file never depends on a default that only the plugin '
+                'knows.',
+              ),
+              tone: HuiNoteTone.warning,
+              title: huiText('Sound defaults'),
             ),
-            tone: HuiNoteTone.warning,
-            title: huiText('Sound defaults'),
-          ),
-          HuiNote(huiText('Sounds are played to the clicking player only.')),
-        ],
-      ),
+            HuiNote(huiText('Sounds are played to the clicking player only.')),
+          ],
+        ),
     ],
   );
 
   Widget _row(int index) {
     final HuiAction action = actions[index];
-    return dom.div(classes: 'hui-action-row', <Widget>[
-      dom.div(classes: 'hui-action-row-head', <Widget>[
-        dom.span(classes: 'hui-action-index', <Widget>[
-          Text(huiText("{value}", <String, Object?>{'value': index + 1})),
+    return dom.div(
+      classes: 'hui-action-row',
+      attributes: <String, String>{'data-action-path': '$sessionKey/$index'},
+      <Widget>[
+        dom.div(classes: 'hui-action-row-head', <Widget>[
+          dom.span(classes: 'hui-action-index', <Widget>[
+            Text(huiText("{value}", <String, Object?>{'value': index + 1})),
+          ]),
+          HuiSegmented(
+            value: action.type,
+            onChanged: (String type) => _convert(index, type),
+            segments: <HuiSegment>[
+              if (action is HuiRuntimeAction)
+                HuiSegment(value: action.type, label: action.type),
+              HuiSegment(
+                value: 'command',
+                label: huiText('Command'),
+                icon: ArcaneIcon.terminal(size: IconSize.sm),
+                hint: huiText('Runs a console or player command.'),
+              ),
+              HuiSegment(
+                value: 'sound',
+                label: huiText('Sound'),
+                icon: ArcaneIcon.volume2(size: IconSize.sm),
+                hint: huiText('Plays a sound to the clicking player only.'),
+              ),
+              HuiSegment(
+                value: 'navigate',
+                label: huiText('Navigate'),
+                icon: ArcaneIcon.externalLink(size: IconSize.sm),
+                hint: huiText('Moves this viewer to another menu page.'),
+              ),
+              HuiSegment(
+                value: 'message',
+                label: huiText('Message'),
+                icon: ArcaneIcon.messageCircle(size: IconSize.sm),
+                hint: huiText('Sends MiniMessage text to the clicking player.'),
+              ),
+              HuiSegment(
+                value: 'teleport',
+                label: huiText('Teleport'),
+                icon: ArcaneIcon.locateFixed(size: IconSize.sm),
+                hint: huiText(
+                  'Teleports the clicking player to a loaded world.',
+                ),
+              ),
+              HuiSegment(
+                value: 'connect',
+                label: huiText('Connect'),
+                icon: ArcaneIcon.share2(size: IconSize.sm),
+                hint: huiText(
+                  'Moves the clicking player through the server proxy.',
+                ),
+              ),
+            ],
+          ),
+          HuiRowTools(
+            onMoveUp: index == 0 ? null : () => _move(index, -1),
+            onMoveDown: index == actions.length - 1
+                ? null
+                : () => _move(index, 1),
+            onRemove: () => _remove(index),
+            removeLabel: huiText('Remove action {number}', <String, Object?>{
+              'number': index + 1,
+            }),
+          ),
         ]),
-        HuiSegmented(
-          value: action.type,
-          onChanged: (String type) => _convert(index, type),
-          segments: <HuiSegment>[
-            if (action is HuiRuntimeAction)
-              HuiSegment(value: action.type, label: action.type),
-            HuiSegment(
-              value: 'command',
-              label: huiText('Command'),
-              icon: ArcaneIcon.terminal(size: IconSize.sm),
-              hint: huiText('Runs a console or player command.'),
+        dom.div(classes: 'hui-action-row-body', <Widget>[
+          if (!clickContext && action is! HuiRuntimeAction) ...<Widget>[
+            HuiField(
+              label: huiText('Condition'),
+              control: TextInput(
+                value: '${action.extras['when'] ?? ''}',
+                attributes: <String, String>{
+                  'aria-label': '$sessionKey/$index/when',
+                },
+                onChanged: (String value) {
+                  final HuiAction next = action.copy();
+                  if (value.isEmpty) {
+                    next.extras.remove('when');
+                  } else {
+                    next.extras['when'] = value;
+                  }
+                  _replace(index, 'action condition', next);
+                },
+              ),
             ),
-            HuiSegment(
-              value: 'sound',
-              label: huiText('Sound'),
-              icon: ArcaneIcon.volume2(size: IconSize.sm),
-              hint: huiText('Plays a sound to the clicking player only.'),
-            ),
-            HuiSegment(
-              value: 'navigate',
-              label: huiText('Navigate'),
-              icon: ArcaneIcon.externalLink(size: IconSize.sm),
-              hint: huiText('Moves this viewer to another menu page.'),
-            ),
-            HuiSegment(
-              value: 'message',
-              label: huiText('Message'),
-              icon: ArcaneIcon.messageCircle(size: IconSize.sm),
-              hint: huiText('Sends MiniMessage text to the clicking player.'),
-            ),
-            HuiSegment(
-              value: 'teleport',
-              label: huiText('Teleport'),
-              icon: ArcaneIcon.locateFixed(size: IconSize.sm),
-              hint: huiText('Teleports the clicking player to a loaded world.'),
-            ),
-            HuiSegment(
-              value: 'connect',
-              label: huiText('Connect'),
-              icon: ArcaneIcon.share2(size: IconSize.sm),
-              hint: huiText(
-                'Moves the clicking player through the server proxy.',
+            HuiField(
+              label: huiText('Cooldown ticks'),
+              control: TextInput(
+                value: '${action.extras['cooldownTicks'] ?? ''}',
+                attributes: <String, String>{
+                  'aria-label': '$sessionKey/$index/cooldownTicks',
+                },
+                onChanged: (String value) {
+                  final int? ticks = int.tryParse(value);
+                  if (ticks == null && value.trim().isNotEmpty) return;
+                  final HuiAction next = action.copy();
+                  if (ticks == null) {
+                    next.extras.remove('cooldownTicks');
+                  } else {
+                    next.extras['cooldownTicks'] = ticks;
+                  }
+                  _replace(index, 'action cooldown', next);
+                },
               ),
             ),
           ],
-        ),
-        HuiRowTools(
-          onMoveUp: index == 0 ? null : () => _move(index, -1),
-          onMoveDown: index == actions.length - 1
-              ? null
-              : () => _move(index, 1),
-          onRemove: () => _remove(index),
-          removeLabel: huiText('Remove action {number}', <String, Object?>{
-            'number': index + 1,
-          }),
-        ),
-      ]),
-      dom.div(classes: 'hui-action-row-body', <Widget>[
-        HuiField(
-          label: huiText('Click trigger'),
-          help: huiText(
-            'Any matches left, right, and both sneak-modified clicks.',
-          ),
-          control: dom.div(<Widget>[
-            ArcaneSelect(
-              value: action.trigger,
-              fullWidth: true,
-              size: ComponentSize.sm,
-              onChanged: (String value) {
-                final HuiAction next = action.copy()..trigger = value;
-                _replace(index, 'action click trigger', next);
-              },
-              options: <ArcaneSelectOption>[
-                for (final String trigger in huiActionTriggers)
-                  ArcaneSelectOption(
-                    label: _triggerLabel(trigger),
-                    value: trigger,
-                  ),
-                if (!huiActionTriggers.contains(action.trigger))
-                  ArcaneSelectOption(
-                    label: huiText("{trigger} (unknown)", <String, Object?>{
-                      'trigger': action.trigger,
-                    }),
-                    value: action.trigger,
-                  ),
-              ],
+          if (timedSteps)
+            HuiField(
+              label: huiText('At ticks'),
+              control: TextInput(
+                value: '${action.extras['atTicks'] ?? ''}',
+                attributes: <String, String>{
+                  'aria-label': '$sessionKey/$index/atTicks',
+                },
+                onChanged: (String value) {
+                  final int? ticks = int.tryParse(value);
+                  if (ticks == null && value.trim().isNotEmpty) return;
+                  final HuiAction next = action.copy();
+                  if (ticks == null) {
+                    next.extras.remove('atTicks');
+                  } else {
+                    next.extras['atTicks'] = ticks;
+                  }
+                  _replace(index, 'sequence cue', next);
+                },
+              ),
             ),
-            HuiInlineIssues(
-              _issuesFor(index)
-                  .where((HuiIssue issue) => issue.path.endsWith('.trigger'))
-                  .toList(),
+          if (clickContext)
+            HuiField(
+              label: huiText('Click trigger'),
+              help: huiText(
+                'Any matches left, right, and both sneak-modified clicks.',
+              ),
+              control: dom.div(<Widget>[
+                ArcaneSelect(
+                  value: action.trigger,
+                  fullWidth: true,
+                  size: ComponentSize.sm,
+                  onChanged: (String value) {
+                    final HuiAction next = action.copy()..trigger = value;
+                    _replace(index, 'action click trigger', next);
+                  },
+                  options: <ArcaneSelectOption>[
+                    for (final String trigger in huiActionTriggers)
+                      ArcaneSelectOption(
+                        label: _triggerLabel(trigger),
+                        value: trigger,
+                      ),
+                    if (!huiActionTriggers.contains(action.trigger))
+                      ArcaneSelectOption(
+                        label: huiText("{trigger} (unknown)", <String, Object?>{
+                          'trigger': action.trigger,
+                        }),
+                        value: action.trigger,
+                      ),
+                  ],
+                ),
+                HuiInlineIssues(
+                  _issuesFor(index)
+                      .where(
+                        (HuiIssue issue) => issue.path.endsWith('.trigger'),
+                      )
+                      .toList(),
+                ),
+              ]),
             ),
-          ]),
-        ),
-        switch (action) {
-          final HuiCommandAction command => _CommandActionFields(
-            action: command,
-            issues: _issuesFor(index),
-            onChanged: (String label, HuiAction next) =>
-                _replace(index, label, next),
+          switch (action) {
+            final HuiCommandAction command => _CommandActionFields(
+              action: command,
+              issues: _issuesFor(index),
+              onChanged: (String label, HuiAction next) =>
+                  _replace(index, label, next),
+            ),
+            final HuiSoundAction sound => _SoundActionFields(
+              action: sound,
+              catalogs: catalogs,
+              catalogsLoading: catalogsLoading,
+              issues: _issuesFor(index),
+              onChanged: (String label, HuiAction next) =>
+                  _replace(index, label, next),
+            ),
+            final HuiMessageAction message => _MessageActionFields(
+              action: message,
+              issues: _issuesFor(index),
+              onChanged: (String label, HuiAction next) =>
+                  _replace(index, label, next),
+            ),
+            final HuiTeleportAction teleport => _TeleportActionFields(
+              action: teleport,
+              issues: _issuesFor(index),
+              onChanged: (String label, HuiAction next) =>
+                  _replace(index, label, next),
+            ),
+            final HuiConnectAction connect => _ConnectActionFields(
+              action: connect,
+              issues: _issuesFor(index),
+              onChanged: (String label, HuiAction next) =>
+                  _replace(index, label, next),
+            ),
+            final HuiRuntimeAction runtime =>
+              runtime.type == 'dialog'
+                  ? DialogActionFields(
+                      action: runtime,
+                      onChanged: (HuiRuntimeAction next) =>
+                          _replace(index, 'dialog', next),
+                    )
+                  : RuntimeActionFields(
+                      action: runtime,
+                      store: store,
+                      session: session,
+                      sessionKey: '$sessionKey/$index',
+                      depth: depth,
+                      clickContext: clickContext,
+                      onChanged: (HuiRuntimeAction next) =>
+                          _replace(index, 'runtime action', next),
+                    ),
+            final HuiNavigateAction navigation => _NavigateActionFields(
+              action: navigation,
+              store: store,
+              issues: _issuesFor(index),
+              onChanged: (String label, HuiAction next) =>
+                  _replace(index, label, next),
+            ),
+          },
+          ExtrasEditor(
+            title: huiText('Action'),
+            extensionKeys: action is! HuiRuntimeAction,
+            extras: <String, Object?>{
+              for (final MapEntry<String, Object?> field
+                  in action.extras.entries)
+                if (action is! HuiRuntimeAction ||
+                    !runtimeManagedKeys(action.type).contains(field.key))
+                  field.key: field.value,
+            },
+            onChanged: (String label, Map<String, dynamic> next) =>
+                _edit(label, (List<HuiAction> list) {
+                  if (index >= 0 && index < list.length) {
+                    list[index].extras = <String, Object?>{
+                      if (list[index] is HuiRuntimeAction)
+                        for (final MapEntry<String, Object?> field
+                            in list[index].extras.entries)
+                          if (runtimeManagedKeys(
+                            list[index].type,
+                          ).contains(field.key))
+                            field.key: field.value,
+                      ...next,
+                    };
+                  }
+                }),
           ),
-          final HuiSoundAction sound => _SoundActionFields(
-            action: sound,
-            catalogs: catalogs,
-            catalogsLoading: catalogsLoading,
-            issues: _issuesFor(index),
-            onChanged: (String label, HuiAction next) =>
-                _replace(index, label, next),
-          ),
-          final HuiMessageAction message => _MessageActionFields(
-            action: message,
-            issues: _issuesFor(index),
-            onChanged: (String label, HuiAction next) =>
-                _replace(index, label, next),
-          ),
-          final HuiTeleportAction teleport => _TeleportActionFields(
-            action: teleport,
-            issues: _issuesFor(index),
-            onChanged: (String label, HuiAction next) =>
-                _replace(index, label, next),
-          ),
-          final HuiConnectAction connect => _ConnectActionFields(
-            action: connect,
-            issues: _issuesFor(index),
-            onChanged: (String label, HuiAction next) =>
-                _replace(index, label, next),
-          ),
-          HuiRuntimeAction() => const dom.div(<Widget>[]),
-          final HuiNavigateAction navigation => _NavigateActionFields(
-            action: navigation,
-            store: store,
-            issues: _issuesFor(index),
-            onChanged: (String label, HuiAction next) =>
-                _replace(index, label, next),
-          ),
-        },
-        ExtrasEditor(
-          title: huiText('Action'),
-          extensionKeys: action is! HuiRuntimeAction,
-          extras: action.extras,
-          onChanged: (String label, Map<String, dynamic> next) =>
-              _edit(label, (List<HuiAction> list) {
-                if (index >= 0 && index < list.length) {
-                  list[index].extras = next;
-                }
-              }),
-        ),
-      ]),
-    ]);
+        ]),
+      ],
+    );
   }
 
   static String _triggerLabel(String trigger) => switch (trigger) {

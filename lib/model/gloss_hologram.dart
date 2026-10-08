@@ -3,6 +3,7 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_display_refresh.dart';
 import 'gloss_presentation_variant.dart';
 import 'gloss_hologram_box.dart';
 import 'hui_icons.dart';
@@ -78,7 +79,7 @@ const Set<String> _docKnown = <String>{
   'lines',
   'style',
   'box',
-  'viewDistance', 'refreshTicks',
+  'viewDistance', 'refreshTicks', 'refresh',
   'yaw',
   'pitch',
   'particleLayers',
@@ -192,13 +193,15 @@ final class GlossHologramDoc extends GlossDoc {
     GlossHologramBox? box,
     this.viewDistance = 48,
     this.refreshTicks = 10,
+    GlossDisplayRefresh? refresh,
     this.yaw = 0,
     this.pitch = 0,
     List<GlossParticleLayer>? particleLayers,
     List<GlossPresentationVariant>? variants,
     Map<String, dynamic>? extras,
     Set<String>? absentKeys,
-  }) : style = style ?? defaultHologramDisplayStyle(),
+  }) : refresh = refresh ?? GlossDisplayRefresh(),
+       style = style ?? defaultHologramDisplayStyle(),
        box = box ?? GlossHologramBox(),
        anchor = anchor ?? GlossHologramAnchor(),
        lines = lines == null ? <Object?>[] : glossReadHologramLines(lines),
@@ -226,6 +229,7 @@ final class GlossHologramDoc extends GlossDoc {
   /// on the axes the [style.billboard] mode turns.
   double viewDistance;
   int refreshTicks;
+  GlossDisplayRefresh refresh;
   double yaw;
 
   /// Entity pitch in degrees, -90 to 90, positive tipping the face downward.
@@ -262,6 +266,7 @@ final class GlossHologramDoc extends GlossDoc {
       box: GlossHologramBox.fromJson(map['box']),
       viewDistance: huiReadDouble(map, 'viewDistance', fallback: 48),
       refreshTicks: huiReadInt(map, 'refreshTicks', fallback: 10),
+      refresh: GlossDisplayRefresh.fromJson(map['refresh']),
       yaw: huiReadDouble(map, 'yaw'),
       pitch: huiReadDouble(map, 'pitch'),
       particleLayers: glossReadParticleLayers(map['particleLayers']),
@@ -299,6 +304,7 @@ final class GlossHologramDoc extends GlossDoc {
         'box': box.toJson(),
       if (viewDistance != 48) 'viewDistance': viewDistance,
       if (refreshTicks != 10) 'refreshTicks': refreshTicks,
+      if (!refresh.isEmpty) 'refresh': refresh.toJson(),
       if (!absentKeys.contains('yaw') || yaw != 0) 'yaw': yaw,
       if (!absentKeys.contains('pitch') || pitch != 0) 'pitch': pitch,
       if (particleLayersPresent || particleLayers.isNotEmpty)
@@ -317,6 +323,7 @@ final class GlossHologramDoc extends GlossDoc {
       box: box.copy(),
       viewDistance: viewDistance,
       refreshTicks: refreshTicks,
+      refresh: refresh.copy(),
       yaw: yaw,
       pitch: pitch,
       particleLayers: glossCopyParticleLayers(particleLayers),

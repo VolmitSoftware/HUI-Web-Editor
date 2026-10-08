@@ -7,7 +7,7 @@ GlossScoreboardDoc _valid() => GlossScoreboardDoc(
   select: GlossScoreboardSelect(when: 'true'),
   presentation: GlossScoreboardPresentation(
     title: '&d&lGloss',
-    lines: <String>['&fWelcome!'],
+    lines: glossScoreboardLines(<String>['&fWelcome!']),
   ),
 );
 
@@ -63,7 +63,7 @@ void main() {
           when: 'true',
           presentation: GlossScoreboardPresentation(
             title: 'x' * 33,
-            lines: <String>['x' * 33],
+            lines: glossScoreboardLines(<String>['x' * 33]),
           ),
         ),
       );
@@ -72,9 +72,9 @@ void main() {
 
   test('more than fifteen lines warns at the nested presentation path', () {
     final GlossScoreboardDoc doc = _valid()
-      ..presentation.lines = <String>[
+      ..presentation.lines = glossScoreboardLines(<String>[
         for (int index = 0; index < 16; index++) 'line $index',
-      ];
+      ]);
     expect(validateScoreboardDoc(doc).single.path, r'$.presentation.lines');
   });
 }

@@ -186,6 +186,7 @@ class ChannelInspector extends StatelessWidget {
               edited.links = next.links;
               edited.filters = next.filters;
               edited.throttle = next.throttle;
+              edited.filtering = next.filtering;
             }),
       ),
       InspectorSection(

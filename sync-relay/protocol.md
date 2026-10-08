@@ -80,6 +80,7 @@ kind a newer server adds shows up here rather than being quietly dropped.
 | `names` | `names.json` | SINGLE | yes | `names` |
 | `nametag` | `nametags` | FOLDER | yes | - |
 | `panel` | `panels` | TREE | yes | - |
+| `presets` | `presets.json` | SINGLE | yes | `presets` |
 | `real-drops` | `real-drops` | REAL_DROPS | yes | `default` |
 | `scoreboard` | `boards` | FOLDER | yes | - |
 | `strings` | `strings` | FOLDER | yes | - |

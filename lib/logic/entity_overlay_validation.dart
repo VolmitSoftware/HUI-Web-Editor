@@ -22,6 +22,7 @@ List<HuiIssue> validateEntityOverlaysDoc(GlossEntityOverlaysDoc doc) {
     'updateIntervalTicks': (doc.updateIntervalTicks, 1, 40),
     'maxEntitiesPerViewer': (doc.maxEntitiesPerViewer, 1, 256),
     'maxActiveOverlays': (doc.maxActiveOverlays, 16, 16384),
+    'snapshotReadLimit': (doc.snapshotReadLimit, 16, 65536),
     'verticalOffset': (doc.verticalOffset, -2, 8),
     'healthSegments': (doc.healthSegments, 1, 40),
     'hitHighlightMs': (doc.hitHighlightMs, 0, 10000),

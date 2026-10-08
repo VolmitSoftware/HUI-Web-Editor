@@ -175,6 +175,9 @@ enum DocumentSurface {
   names,
   strings,
   waypoint,
+  glyph,
+  behavior,
+  presets,
 }
 
 /// One heading-plus-grid section of a kind's template tab.

@@ -19,7 +19,9 @@ const String kGlossDamageIndicatorsDefaultJson = r'''
     "minimumDelta": 0.009,
     "decimals": 0,
     "viewRange": 48,
-    "debounceMs": 150
+    "debounceMs": 150,
+    "aggregationTicks": 2,
+    "maxPendingSamples": 256
   },
   "damage": {
     "when": "true",
@@ -1209,6 +1211,7 @@ const String kGlossBubbleDefaultJson = r'''
   "stackDistance": 0.26,
   "blacklistWorlds": [],
   "maxPerSender": 4,
+  "overflow": "replace-oldest",
   "format": "{message}"
 }
 ''';
@@ -1297,7 +1300,7 @@ GlossBubbleStyleDoc buildShowcaseGlossBubbleStyle() =>
 /// first run.
 const String kGlossTablistDefaultJson = r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "show": true,
   "headerFooter": {
@@ -1333,7 +1336,7 @@ const String kGlossTablistDefaultJson = r'''
 /// names using both tokens.
 const String kGlossTablistShowcaseJson = r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 1,
   "headerFooter": {
     "enabled": true,

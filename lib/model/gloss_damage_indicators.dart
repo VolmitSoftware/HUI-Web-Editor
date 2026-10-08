@@ -3,6 +3,7 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_display_refresh.dart';
 import 'gloss_hologram_box.dart';
 import 'hui_icons.dart';
 import 'json_codec.dart';
@@ -45,7 +46,7 @@ const Set<String> _docKnown = <String>{
   'audience',
 };
 const Set<String> _limitsKnown = <String>{
-  'viewRange', 'debounceMs',
+  'viewRange', 'debounceMs', 'aggregationTicks', 'maxPendingSamples',
   'maxPerSecond',
   'lifetimeMs',
   'minimumDelta',
@@ -59,6 +60,7 @@ const Set<String> _variantKnown = <String>{
   'presentation',
 };
 const Set<String> _indicatorPresentationKnown = <String>{
+  'refresh',
   'format',
   'offset',
   'motion',
@@ -84,6 +86,8 @@ final class GlossDamageIndicatorLimits {
   GlossDamageIndicatorLimits({
     this.viewRange = 48,
     this.debounceMs = 150,
+    this.aggregationTicks = 2,
+    this.maxPendingSamples = 256,
     this.maxPerSecond = 40,
     this.lifetimeMs = 3000,
     this.minimumDelta = 0.009,
@@ -93,6 +97,8 @@ final class GlossDamageIndicatorLimits {
 
   double viewRange;
   int debounceMs;
+  int aggregationTicks;
+  int maxPendingSamples;
   int maxPerSecond;
   int lifetimeMs;
   double minimumDelta;
@@ -105,6 +111,8 @@ final class GlossDamageIndicatorLimits {
     return GlossDamageIndicatorLimits(
       viewRange: huiReadDouble(map, 'viewRange', fallback: 48),
       debounceMs: huiReadInt(map, 'debounceMs', fallback: 150),
+      aggregationTicks: huiReadInt(map, 'aggregationTicks', fallback: 2),
+      maxPendingSamples: huiReadInt(map, 'maxPendingSamples', fallback: 256),
       maxPerSecond: huiReadInt(map, 'maxPerSecond', fallback: 40),
       lifetimeMs: huiReadInt(map, 'lifetimeMs', fallback: 3000),
       minimumDelta: huiReadDouble(map, 'minimumDelta', fallback: 0.009),
@@ -116,6 +124,8 @@ final class GlossDamageIndicatorLimits {
   Map<String, dynamic> toJson() => huiMergeExtras(<String, dynamic>{
     'viewRange': viewRange,
     'debounceMs': debounceMs,
+    'aggregationTicks': aggregationTicks,
+    'maxPendingSamples': maxPendingSamples,
     'maxPerSecond': maxPerSecond,
     'lifetimeMs': lifetimeMs,
     'minimumDelta': minimumDelta,
@@ -249,9 +259,11 @@ final class GlossDamageIndicatorPresentation {
     required this.transform,
     HuiIconStyle? style,
     GlossHologramBox? box,
+    GlossDisplayRefresh? refresh,
     List<GlossParticleLayer>? particleLayers,
     Map<String, dynamic>? extras,
-  }) : style = style ?? defaultHologramDisplayStyle(),
+  }) : refresh = refresh ?? GlossDisplayRefresh(),
+       style = style ?? defaultHologramDisplayStyle(),
        box = box ?? GlossHologramBox(),
        particleLayers = particleLayers ?? <GlossParticleLayer>[],
        extras = extras ?? <String, dynamic>{};
@@ -264,6 +276,7 @@ final class GlossDamageIndicatorPresentation {
   bool boxPresent = true;
   HuiIconStyle style;
   GlossHologramBox box;
+  GlossDisplayRefresh refresh;
   List<GlossParticleLayer> particleLayers;
   bool particleLayersPresent = false;
   Map<String, dynamic> extras;
@@ -337,6 +350,7 @@ final class GlossDamageIndicatorPresentation {
               HuiIconStyle.fromJsonOrNull(map['style']) ??
               defaultHologramDisplayStyle(),
           box: GlossHologramBox.fromJson(map['box']),
+          refresh: GlossDisplayRefresh.fromJson(map['refresh']),
           particleLayers: glossReadParticleLayers(map['particleLayers']),
           extras: huiCollectExtras(map, _indicatorPresentationKnown),
         );
@@ -351,6 +365,7 @@ final class GlossDamageIndicatorPresentation {
     'offset': offset.toJson(),
     'motion': motion.toJson(),
     'transform': transform.toJson(),
+    if (!refresh.isEmpty) 'refresh': refresh.toJson(),
     if (stylePresent ||
         jsonEncode(style.toJson()) !=
             jsonEncode(defaultHologramDisplayStyle().toJson()))
@@ -371,6 +386,7 @@ final class GlossDamageIndicatorPresentation {
           transform: transform.copy(),
           style: style.copy(),
           box: box.copy(),
+          refresh: refresh.copy(),
           particleLayers: glossCopyParticleLayers(particleLayers),
           extras: huiDeepCopyMap(extras),
         );

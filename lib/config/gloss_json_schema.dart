@@ -26,6 +26,11 @@ import '../model/gloss_hologram.dart';
 import '../model/gloss_motd.dart';
 import '../model/gloss_names.dart';
 import 'catalog_document_schema.dart';
+import 'glyph_json_schema.dart';
+import 'display_refresh_schema.dart';
+import 'behavior_json_schema.dart';
+import 'presets_json_schema.dart';
+import 'inventory_json_schema.dart';
 import '../model/gloss_real_drop_animation.dart';
 import '../model/gloss_real_drops.dart';
 import '../model/gloss_scoreboard.dart';
@@ -193,6 +198,7 @@ GlossJsonField _displayVariantsField({bool overlay = false}) => GlossJsonField(
 
 final GlossJsonObject glossHologramJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
+    glossDisplayRefreshField,
     _displayVariantsField(),
     const GlossJsonField(
       key: 'pages',
@@ -379,13 +385,237 @@ const GlossJsonObject _conditionSelectNode = GlossJsonObject(
   ],
 );
 
+const GlossJsonObject _scoreboardRowNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'text',
+      type: GlossJsonType.string,
+      title: 'Label',
+      summary: 'Left column text.',
+      defaultLiteral: '""',
+    ),
+    GlossJsonField(
+      key: 'value',
+      type: GlossJsonType.string,
+      title: 'Value',
+      summary: 'Text for fixed or styled score formats.',
+    ),
+    GlossJsonField(
+      key: 'format',
+      type: GlossJsonType.string,
+      title: 'Score format',
+      summary: 'blank, fixed, styled or number. A value defaults to fixed.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"blank"'),
+        GlossJsonValue('"fixed"'),
+        GlossJsonValue('"styled"'),
+        GlossJsonValue('"number"'),
+      ],
+    ),
+    GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Row ID',
+      summary:
+          'Stable unique identity within the expanded page; 1–64 letters, digits, dots, underscores or hyphens.',
+    ),
+    glossShowField,
+    GlossJsonField(
+      key: 'section',
+      type: GlossJsonType.string,
+      title: 'Section reference',
+      summary:
+          'Insert a named layout section. Only show may accompany a section reference.',
+    ),
+  ],
+);
+
+const GlossJsonArray _scoreboardRowsNode = GlossJsonArray(
+  itemType: GlossJsonType.any,
+  item: _scoreboardRowNode,
+  itemTitle: 'Row',
+  itemSummary: 'Text string, configured row, or section reference.',
+);
+
+const GlossJsonObject _scoreboardLayoutNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'sections',
+      type: GlossJsonType.object,
+      title: 'Sections',
+      summary: 'Up to 64 named reusable row lists; references may not recurse.',
+      node: GlossJsonObject(
+        openKeyType: GlossJsonType.array,
+        openKeyTitle: 'Section',
+        openKeySummary: 'A list of text strings or row objects.',
+      ),
+    ),
+    GlossJsonField(
+      key: 'pages',
+      type: GlossJsonType.array,
+      title: 'Pages',
+      summary: 'Rotate through up to 64 eligible pages in order.',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.object,
+        item: GlossJsonObject(
+          fields: <GlossJsonField>[
+            GlossJsonField(
+              key: 'id',
+              type: GlossJsonType.string,
+              title: 'Page ID',
+              summary: 'Unique page identity.',
+            ),
+            GlossJsonField(
+              key: 'title',
+              type: GlossJsonType.string,
+              title: 'Page title',
+              summary: 'Omitted uses the presentation title.',
+            ),
+            GlossJsonField(
+              key: 'lines',
+              type: GlossJsonType.array,
+              title: 'Rows',
+              summary: 'Rows for this page.',
+              node: _scoreboardRowsNode,
+            ),
+            glossShowField,
+            GlossJsonField(
+              key: 'durationTicks',
+              type: GlossJsonType.integer,
+              title: 'Duration',
+              summary: '1–72000 ticks.',
+              defaultLiteral: '100',
+            ),
+          ],
+        ),
+      ),
+    ),
+    GlossJsonField(
+      key: 'overflow',
+      type: GlossJsonType.string,
+      title: 'Overflow',
+      summary:
+          'truncate shows the first 15 visible rows; error rejects more than 15 expanded rows.',
+      defaultLiteral: '"truncate"',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"truncate"'),
+        GlossJsonValue('"error"'),
+      ],
+    ),
+    GlossJsonField(
+      key: 'refresh',
+      type: GlossJsonType.object,
+      title: 'Refresh',
+      summary:
+          'Optional independent intervals; omitted values use automatic animation detection.',
+      node: GlossJsonObject(
+        fields: <GlossJsonField>[
+          GlossJsonField(
+            key: 'titleTicks',
+            type: GlossJsonType.integer,
+            title: 'Title interval',
+            summary: '1–72000 ticks.',
+          ),
+          GlossJsonField(
+            key: 'textTicks',
+            type: GlossJsonType.integer,
+            title: 'Label interval',
+            summary: '1–72000 ticks.',
+          ),
+          GlossJsonField(
+            key: 'valueTicks',
+            type: GlossJsonType.integer,
+            title: 'Value interval',
+            summary: '1–72000 ticks.',
+          ),
+        ],
+      ),
+    ),
+  ],
+);
+
+const GlossJsonObject _scoreboardObjectiveNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'title',
+      type: GlossJsonType.string,
+      title: 'Title',
+      summary: 'Native objective title rendered for the viewer.',
+    ),
+    GlossJsonField(
+      key: 'value',
+      type: GlossJsonType.string,
+      title: 'Numeric value',
+      summary: 'Subject expression, rounded to a signed 32-bit integer.',
+      defaultLiteral: '"subject.health"',
+    ),
+    GlossJsonField(
+      key: 'renderType',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"integer"'),
+        GlossJsonValue('"hearts"'),
+      ],
+      type: GlossJsonType.string,
+      title: 'Render type',
+      summary: 'Native integer or hearts rendering.',
+      defaultLiteral: '"integer"',
+    ),
+    GlossJsonField(
+      key: 'format',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"number"'),
+        GlossJsonValue('"blank"'),
+        GlossJsonValue('"fixed"'),
+        GlossJsonValue('"styled"'),
+      ],
+      type: GlossJsonType.string,
+      title: 'Score format',
+      summary: 'number, blank, fixed or styled.',
+      defaultLiteral: '"number"',
+    ),
+    GlossJsonField(
+      key: 'valueText',
+      type: GlossJsonType.string,
+      title: 'Formatted value',
+      summary: 'Fixed text or styled formatting, rendered for the subject.',
+    ),
+    glossShowField,
+    GlossJsonField(
+      key: 'subjects',
+      type: GlossJsonType.any,
+      title: 'Subject condition',
+      summary: 'Only matching online players publish a score.',
+      defaultLiteral: 'true',
+    ),
+    GlossJsonField(
+      key: 'refreshTicks',
+      type: GlossJsonType.integer,
+      title: 'Refresh interval',
+      summary: '1–72000 ticks.',
+      defaultLiteral: '20',
+    ),
+    GlossJsonField(
+      key: 'conflict',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"yield"'),
+        GlossJsonValue('"override"'),
+      ],
+      type: GlossJsonType.string,
+      title: 'Slot conflict',
+      summary:
+          'yield preserves foreign objectives; override explicitly takes the slot.',
+      defaultLiteral: '"yield"',
+    ),
+  ],
+);
+
 const GlossJsonObject _scoreboardPresentationNode = GlossJsonObject(
   fields: <GlossJsonField>[
     GlossJsonField(
       key: 'title',
       type: GlossJsonType.string,
       title: 'Title',
-      summary: 'Full-width sidebar header. Empty falls back to the board id.',
+      summary: 'Full-width sidebar header. Empty stays blank.',
       docKey: 'scoreboard.presentation.title',
       defaultLiteral: '""',
     ),
@@ -394,10 +624,9 @@ const GlossJsonObject _scoreboardPresentationNode = GlossJsonObject(
       type: GlossJsonType.array,
       title: 'Lines',
       summary:
-          'Sidebar rows, top first. Past $glossBoardMaxLines never reaches '
-          'the client.',
+          'Sidebar rows, top first. Up to $glossBoardMaxLines visible rows render.',
       docKey: 'scoreboard.presentation.lines',
-      node: _textLinesNode,
+      node: _scoreboardRowsNode,
     ),
     GlossJsonField(
       key: 'hideNumbers',
@@ -406,6 +635,13 @@ const GlossJsonObject _scoreboardPresentationNode = GlossJsonObject(
       summary: 'Uses the blank score format on 1.20.3 and newer clients.',
       docKey: 'scoreboard.presentation.hideNumbers',
       defaultLiteral: 'false',
+    ),
+    GlossJsonField(
+      key: 'layout',
+      type: GlossJsonType.object,
+      title: 'Layout',
+      summary: 'Sections, pages, overflow and independent refresh intervals.',
+      node: _scoreboardLayoutNode,
     ),
   ],
 );
@@ -474,6 +710,30 @@ final GlossJsonObject glossScoreboardJsonSchema = GlossJsonObject(
         itemSummary: 'One condition and complete sidebar presentation.',
       ),
     ),
+    const GlossJsonField(
+      key: 'objectives',
+      type: GlossJsonType.object,
+      title: 'Native objectives',
+      summary: 'Optional native player-list and below-name scores.',
+      node: GlossJsonObject(
+        fields: <GlossJsonField>[
+          GlossJsonField(
+            key: 'playerList',
+            type: GlossJsonType.object,
+            title: 'Player-list objective',
+            summary: 'Native tab overlay score slot.',
+            node: _scoreboardObjectiveNode,
+          ),
+          GlossJsonField(
+            key: 'belowName',
+            type: GlossJsonType.object,
+            title: 'Below-name objective',
+            summary: 'Native score attached to player names.',
+            node: _scoreboardObjectiveNode,
+          ),
+        ],
+      ),
+    ),
   ],
 );
 
@@ -502,8 +762,138 @@ const GlossJsonObject _surfaceSelectNode = GlossJsonObject(
   ],
 );
 
+const GlossJsonObject _surfaceDeliveryNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'mode',
+      type: GlossJsonType.string,
+      title: 'Busy-slot behavior',
+      summary: 'Queue, replace when allowed, or drop while busy.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"queue"'),
+        GlossJsonValue('"replace"'),
+        GlossJsonValue('"drop"'),
+      ],
+      defaultLiteral: '"replace"',
+    ),
+    GlossJsonField(
+      key: 'preempt',
+      type: GlossJsonType.string,
+      title: 'Preemption',
+      summary: 'Which new deliveries interrupt active content.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"higher"'),
+        GlossJsonValue('"always"'),
+        GlossJsonValue('"never"'),
+      ],
+      defaultLiteral: '"always"',
+    ),
+    GlossJsonField(
+      key: 'maxPending',
+      type: GlossJsonType.integer,
+      title: 'Queue capacity',
+      summary: 'Pending requests per viewer and lane, from 1 to 256.',
+      defaultLiteral: '32',
+    ),
+    GlossJsonField(
+      key: 'overflow',
+      type: GlossJsonType.string,
+      title: 'Full queue',
+      summary:
+          'Reject the incoming request or discard the oldest pending request.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"reject"'),
+        GlossJsonValue('"drop-oldest"'),
+      ],
+      defaultLiteral: '"reject"',
+    ),
+    GlossJsonField(
+      key: 'cooldownTicks',
+      type: GlossJsonType.integer,
+      title: 'Cooldown',
+      summary:
+          'Minimum ticks between accepted requests for this document, 0–72000.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'deduplicate',
+      type: GlossJsonType.string,
+      title: 'Deduplication',
+      summary:
+          'Match pending and active requests by document purpose or rendered content.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"none"'),
+        GlossJsonValue('"purpose"'),
+        GlossJsonValue('"content"'),
+      ],
+      defaultLiteral: '"none"',
+    ),
+    GlossJsonField(
+      key: 'expireTicks',
+      type: GlossJsonType.integer,
+      title: 'Queue expiration',
+      summary: 'Drop requests that wait this many ticks, 1–72000.',
+      defaultLiteral: '1200',
+    ),
+  ],
+);
+
+const GlossJsonObject _surfaceEventNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'trigger',
+      type: GlossJsonType.string,
+      title: 'Event',
+      summary: 'Join, interval, backend world change or proxy server change.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"join"'),
+        GlossJsonValue('"interval"'),
+        GlossJsonValue('"world_change"'),
+        GlossJsonValue('"server_change"'),
+      ],
+    ),
+    GlossJsonField(
+      key: 'everyTicks',
+      type: GlossJsonType.integer,
+      title: 'Interval',
+      summary: 'Required for interval events, 1–1728000 ticks.',
+    ),
+    GlossJsonField(
+      key: 'delayTicks',
+      type: GlossJsonType.integer,
+      title: 'Delay',
+      summary: 'Wait 0–72000 ticks after the event before submitting.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'Condition',
+      summary: 'Viewer condition evaluated when this event fires.',
+      defaultLiteral: '"true"',
+    ),
+  ],
+);
+
 final GlossJsonObject _surfacePresentationNode = GlossJsonObject(
   fields: <GlossJsonField>[
+    const GlossJsonField(
+      key: 'flags',
+      type: GlossJsonType.array,
+      title: 'Bossbar flags',
+      summary: 'Client sky, boss music and fog effects; bossbars only.',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.string,
+        itemTitle: 'Flag',
+        itemSummary: 'One supported client bossbar effect.',
+        itemValues: <GlossJsonValue>[
+          GlossJsonValue('"darken_sky"'),
+          GlossJsonValue('"play_boss_music"'),
+          GlossJsonValue('"create_fog"'),
+        ],
+      ),
+    ),
+
     const GlossJsonField(
       key: 'text',
       type: GlossJsonType.string,
@@ -679,6 +1069,40 @@ final GlossJsonObject glossSurfaceJsonSchema = GlossJsonObject(
     _schemaVersionField(1),
     _revisionField,
     glossShowField,
+    const GlossJsonField(
+      key: 'group',
+      type: GlossJsonType.string,
+      title: 'Bossbar group',
+      summary: 'Independent bossbar selection group, default main.',
+      defaultLiteral: '"main"',
+    ),
+    const GlossJsonField(
+      key: 'automatic',
+      type: GlossJsonType.boolean,
+      title: 'Automatic selection',
+      summary: 'False restricts this document to events and surface actions.',
+      defaultLiteral: 'true',
+    ),
+    const GlossJsonField(
+      key: 'delivery',
+      type: GlossJsonType.object,
+      title: 'Delivery policy',
+      summary: 'Finite request queue and preemption policy.',
+      node: _surfaceDeliveryNode,
+    ),
+    const GlossJsonField(
+      key: 'on',
+      type: GlossJsonType.array,
+      title: 'Events and intervals',
+      summary:
+          'Up to 64 event subscriptions; unsupported platform events fail to load.',
+      node: GlossJsonArray(
+        item: _surfaceEventNode,
+        itemTitle: 'Subscription',
+        itemSummary: 'Submit the surface when an event and condition match.',
+      ),
+    ),
+
     GlossJsonField(
       key: 'surface',
       type: GlossJsonType.string,
@@ -720,9 +1144,224 @@ final GlossJsonObject glossSurfaceJsonSchema = GlossJsonObject(
 
 // --- MOTD -------------------------------------------------------------------
 
+const GlossJsonArray _motdIconsNode = GlossJsonArray(
+  itemType: GlossJsonType.string,
+  itemTitle: 'Icon path',
+  itemSummary: 'A 64×64 PNG under images/.',
+);
+const GlossJsonObject _motdRotationNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'mode',
+      type: GlossJsonType.string,
+      title: 'Rotation mode',
+      summary:
+          'Weighted random selection, per-request sequence, epoch-time rotation, or first eligible response.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"weighted"'),
+        GlossJsonValue('"sequence"'),
+        GlossJsonValue('"time"'),
+        GlossJsonValue('"first"'),
+      ],
+      defaultLiteral: '"weighted"',
+    ),
+    GlossJsonField(
+      key: 'intervalSeconds',
+      type: GlossJsonType.integer,
+      title: 'Rotation interval seconds',
+      summary: 'Time rotation interval, 1 through 86400 seconds. Default 60.',
+      defaultLiteral: '60',
+    ),
+  ],
+);
+const GlossJsonObject _motdSelectorNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'hostnames',
+      type: GlossJsonType.array,
+      title: 'Hostnames',
+      summary:
+          'Exact requested hostnames or *.example.org suffixes. Empty matches any hostname.',
+      node: _textLinesNode,
+    ),
+    GlossJsonField(
+      key: 'minProtocol',
+      type: GlossJsonType.integer,
+      title: 'Minimum protocol',
+      summary:
+          'Inclusive nonnegative client protocol bound. Unavailable metadata does not match.',
+    ),
+    GlossJsonField(
+      key: 'maxProtocol',
+      type: GlossJsonType.integer,
+      title: 'Maximum protocol',
+      summary:
+          'Inclusive protocol bound, at least the minimum. Paper and Velocity only.',
+    ),
+    GlossJsonField(
+      key: 'zone',
+      type: GlossJsonType.string,
+      title: 'Time zone',
+      summary: 'IANA zone or UTC offset used by calendar conditions.',
+      defaultLiteral: '"UTC"',
+    ),
+    GlossJsonField(
+      key: 'startTime',
+      type: GlossJsonType.string,
+      title: 'Start time',
+      summary: 'Inclusive local time in HH:mm format; requires an end time.',
+    ),
+    GlossJsonField(
+      key: 'endTime',
+      type: GlossJsonType.string,
+      title: 'End time',
+      summary:
+          'Exclusive local time; overnight ranges are allowed. Equal times cover the full day.',
+    ),
+    GlossJsonField(
+      key: 'days',
+      type: GlossJsonType.array,
+      title: 'Weekdays',
+      summary:
+          'ISO weekdays 1 through 7, Monday through Sunday. Empty means every day.',
+      node: GlossJsonArray(
+        itemType: GlossJsonType.integer,
+        itemTitle: 'Weekday',
+        itemSummary: 'An ISO weekday from 1 through 7.',
+      ),
+    ),
+    GlossJsonField(
+      key: 'states',
+      type: GlossJsonType.array,
+      title: 'Matching states',
+      summary: 'Exact values of the document state. Empty means any state.',
+      node: _textLinesNode,
+    ),
+    GlossJsonField(
+      key: 'minOnline',
+      type: GlossJsonType.integer,
+      title: 'Minimum real online',
+      summary:
+          'Inclusive nonnegative real online-count bound, before display overrides.',
+    ),
+    GlossJsonField(
+      key: 'maxOnline',
+      type: GlossJsonType.integer,
+      title: 'Maximum real online',
+      summary: 'Inclusive real online-count bound, at least the minimum.',
+    ),
+  ],
+);
+const List<GlossJsonValue> _motdCountModes = <GlossJsonValue>[
+  GlossJsonValue('"inherit"'),
+  GlossJsonValue('"fixed"'),
+  GlossJsonValue('"offset"'),
+];
+const GlossJsonObject _motdCountsNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'onlineMode',
+      type: GlossJsonType.string,
+      title: 'Online count mode',
+      summary:
+          'Inherit the response, set a fixed count, or offset the real count. Paper and Velocity only.',
+      values: _motdCountModes,
+      defaultLiteral: '"inherit"',
+    ),
+    GlossJsonField(
+      key: 'onlineValue',
+      type: GlossJsonType.integer,
+      title: 'Online count value',
+      summary:
+          'Signed 32-bit integer. Fixed counts must be nonnegative; offset results clamp to the valid count range.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'maximumMode',
+      type: GlossJsonType.string,
+      title: 'Maximum count mode',
+      summary:
+          'Presentation policy only; this does not change admission limits.',
+      values: _motdCountModes,
+      defaultLiteral: '"inherit"',
+    ),
+    GlossJsonField(
+      key: 'maximumValue',
+      type: GlossJsonType.integer,
+      title: 'Maximum count value',
+      summary: 'Signed 32-bit integer; fixed values must not be negative.',
+      defaultLiteral: '0',
+    ),
+    GlossJsonField(
+      key: 'hide',
+      type: GlossJsonType.boolean,
+      title: 'Hide player counts',
+      summary: 'Hide counts and the hover sample on Paper and Velocity.',
+      defaultLiteral: 'false',
+    ),
+  ],
+);
+const GlossJsonObject _motdServerLinksNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Publish server links',
+      summary: 'Independent of the MOTD feature switch and entry selection.',
+      defaultLiteral: 'true',
+    ),
+    GlossJsonField(
+      key: 'links',
+      type: GlossJsonType.array,
+      title: 'Server links',
+      summary: 'Up to 16 pause-menu links, updated for connected players.',
+      node: GlossJsonArray(
+        item: _motdLinkNode,
+        itemType: GlossJsonType.object,
+        itemTitle: 'Server link',
+        itemSummary:
+            'A client label or custom label and an HTTP or HTTPS address.',
+      ),
+    ),
+  ],
+);
+
 const GlossJsonObject _motdEntryNode = GlossJsonObject(
   fields: <GlossJsonField>[
     glossShowField,
+    GlossJsonField(
+      key: 'select',
+      type: GlossJsonType.object,
+      title: 'Request selection',
+      summary: 'Host, protocol, calendar, state and real-count conditions.',
+      node: _motdSelectorNode,
+    ),
+    GlossJsonField(
+      key: 'icons',
+      type: GlossJsonType.array,
+      title: 'Entry icon set',
+      summary:
+          'Up to 64 icons, preferred over this entry’s single icon and document icons.',
+      node: _motdIconsNode,
+    ),
+    GlossJsonField(
+      key: 'counts',
+      type: GlossJsonType.object,
+      title: 'Count policy',
+      summary: 'Explicit modes take precedence over count expressions.',
+      node: _motdCountsNode,
+    ),
+    GlossJsonField(
+      key: 'sampleMode',
+      type: GlossJsonType.string,
+      title: 'Sample mode',
+      summary: 'Omitted: replace when sample lines exist, otherwise inherit.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"inherit"'),
+        GlossJsonValue('"replace"'),
+        GlossJsonValue('"hide"'),
+      ],
+    ),
     GlossJsonField(
       key: 'weight',
       type: GlossJsonType.integer,
@@ -835,6 +1474,35 @@ final GlossJsonObject glossMotdJsonSchema = GlossJsonObject(
     _revisionField,
     glossShowField,
     const GlossJsonField(
+      key: 'rotation',
+      type: GlossJsonType.object,
+      title: 'Rotation policy',
+      summary: 'Selects one eligible response and its icon.',
+      node: _motdRotationNode,
+    ),
+    const GlossJsonField(
+      key: 'icons',
+      type: GlossJsonType.array,
+      title: 'Document icon set',
+      summary: 'Up to 64 icons used when an entry has no icon override.',
+      node: _motdIconsNode,
+    ),
+    const GlossJsonField(
+      key: 'state',
+      type: GlossJsonType.string,
+      title: 'Server state',
+      summary: 'Nonblank state matched by entry selectors.',
+      defaultLiteral: '"normal"',
+    ),
+    const GlossJsonField(
+      key: 'serverLinks',
+      type: GlossJsonType.object,
+      title: 'Independent server links',
+      summary:
+          'When present, replaces the original links list independently of MOTD selection.',
+      node: _motdServerLinksNode,
+    ),
+    const GlossJsonField(
       key: 'favicon',
       type: GlossJsonType.string,
       title: 'Server icon',
@@ -847,7 +1515,8 @@ final GlossJsonObject glossMotdJsonSchema = GlossJsonObject(
       key: 'entries',
       type: GlossJsonType.array,
       title: 'Entries',
-      summary: 'The random-pick pool. One entry per ping. Must not be empty.',
+      summary:
+          'The response pool. One eligible entry per ping. Must not be empty.',
       docKey: 'motd.entries',
       node: GlossJsonArray(
         item: _motdEntryNode,
@@ -1191,6 +1860,19 @@ const GlossJsonObject _bubbleSelectNode = GlossJsonObject(
 
 final GlossJsonObject glossBubbleStyleJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
+    glossDisplayRefreshField,
+    const GlossJsonField(
+      key: 'overflow',
+      type: GlossJsonType.string,
+      title: 'Overflow',
+      summary:
+          'At the sender limit, replace the oldest bubble or reject the new message.',
+      defaultLiteral: '"replace-oldest"',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"replace-oldest"'),
+        GlossJsonValue('"reject-new"'),
+      ],
+    ),
     const GlossJsonField(
       key: 'stackDistance',
       type: GlossJsonType.number,
@@ -1462,6 +2144,286 @@ const GlossJsonObject _tablistListNamesNode = GlossJsonObject(
   ],
 );
 
+const GlossJsonObject _tabLayoutSlotNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'column',
+      type: GlossJsonType.integer,
+      title: 'Column',
+      summary: 'Column. Range 0..3.',
+    ),
+    GlossJsonField(
+      key: 'row',
+      type: GlossJsonType.integer,
+      title: 'Row',
+      summary: 'Row. Range 0..19.',
+    ),
+    GlossJsonField(
+      key: 'text',
+      type: GlossJsonType.string,
+      title: 'Text',
+      summary: 'Text.',
+    ),
+    GlossJsonField(
+      key: 'skin',
+      type: GlossJsonType.string,
+      title: 'Skin',
+      summary: 'Skin.',
+    ),
+    GlossJsonField(
+      key: 'ping',
+      type: GlossJsonType.integer,
+      title: 'Ping',
+      summary: 'Ping. Range -1..10000.',
+    ),
+    GlossJsonField(
+      key: 'hat',
+      type: GlossJsonType.boolean,
+      title: 'Hat',
+      summary: 'Hat.',
+    ),
+  ],
+);
+
+const GlossJsonObject _tabLayoutSortKeyNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'expression',
+      type: GlossJsonType.string,
+      title: 'Expression',
+      summary: 'Expression.',
+    ),
+    GlossJsonField(
+      key: 'type',
+      type: GlossJsonType.string,
+      title: 'Type',
+      summary: 'Type.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"number"'),
+        GlossJsonValue('"text"'),
+      ],
+    ),
+    GlossJsonField(
+      key: 'direction',
+      type: GlossJsonType.string,
+      title: 'Direction',
+      summary: 'Direction.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"ascending"'),
+        GlossJsonValue('"descending"'),
+      ],
+    ),
+  ],
+);
+
+const GlossJsonObject _tabLayoutSectionNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Id',
+      summary: 'Id.',
+    ),
+    GlossJsonField(
+      key: 'column',
+      type: GlossJsonType.integer,
+      title: 'Column',
+      summary: 'Column. Range 0..3.',
+    ),
+    GlossJsonField(
+      key: 'row',
+      type: GlossJsonType.integer,
+      title: 'Row',
+      summary: 'Row. Range 0..19.',
+    ),
+    GlossJsonField(
+      key: 'columns',
+      type: GlossJsonType.integer,
+      title: 'Columns',
+      summary: 'Columns. Range 1..4.',
+    ),
+    GlossJsonField(
+      key: 'rows',
+      type: GlossJsonType.integer,
+      title: 'Rows',
+      summary: 'Rows. Range 1..20.',
+    ),
+    GlossJsonField(
+      key: 'filter',
+      type: GlossJsonType.string,
+      title: 'Filter',
+      summary: 'Filter.',
+    ),
+    GlossJsonField(
+      key: 'format',
+      type: GlossJsonType.string,
+      title: 'Format',
+      summary: 'Format.',
+    ),
+    GlossJsonField(
+      key: 'sort',
+      type: GlossJsonType.array,
+      title: 'Sort',
+      summary: 'Sort.',
+      node: GlossJsonArray(item: _tabLayoutSortKeyNode),
+    ),
+    GlossJsonField(
+      key: 'overflow',
+      type: GlossJsonType.string,
+      title: 'Overflow',
+      summary: 'Overflow.',
+      values: <GlossJsonValue>[
+        GlossJsonValue('"hide"'),
+        GlossJsonValue('"count"'),
+      ],
+    ),
+    GlossJsonField(
+      key: 'overflowFormat',
+      type: GlossJsonType.string,
+      title: 'OverflowFormat',
+      summary: 'OverflowFormat.',
+    ),
+    GlossJsonField(
+      key: 'includeNpcs',
+      type: GlossJsonType.boolean,
+      title: 'IncludeNpcs',
+      summary: 'IncludeNpcs.',
+    ),
+    GlossJsonField(
+      key: 'skin',
+      type: GlossJsonType.string,
+      title: 'Skin',
+      summary: 'Skin.',
+    ),
+    GlossJsonField(
+      key: 'hat',
+      type: GlossJsonType.boolean,
+      title: 'Hat',
+      summary: 'Hat.',
+    ),
+  ],
+);
+
+const GlossJsonObject _tabLayoutLayoutPresentationNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'entries',
+      type: GlossJsonType.integer,
+      title: 'Entries',
+      summary: 'Entries. Range 1..80.',
+    ),
+    GlossJsonField(
+      key: 'slots',
+      type: GlossJsonType.array,
+      title: 'Slots',
+      summary: 'Slots.',
+      node: GlossJsonArray(item: _tabLayoutSlotNode),
+    ),
+    GlossJsonField(
+      key: 'sections',
+      type: GlossJsonType.array,
+      title: 'Sections',
+      summary: 'Sections.',
+      node: GlossJsonArray(item: _tabLayoutSectionNode),
+    ),
+    GlossJsonField(
+      key: 'skins',
+      type: GlossJsonType.object,
+      title: 'Skins',
+      summary: 'Skins.',
+      node: GlossJsonObject(
+        openKeyType: GlossJsonType.object,
+        openKeySummary:
+            'Named skin with value and optional signature, each up to 16384 characters.',
+      ),
+    ),
+  ],
+);
+
+const GlossJsonObject _tabLayoutLayoutVariantNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'id',
+      type: GlossJsonType.string,
+      title: 'Id',
+      summary: 'Id.',
+    ),
+    GlossJsonField(
+      key: 'priority',
+      type: GlossJsonType.integer,
+      title: 'Priority',
+      summary: 'Priority.',
+    ),
+    GlossJsonField(
+      key: 'when',
+      type: GlossJsonType.string,
+      title: 'When',
+      summary: 'When.',
+    ),
+    GlossJsonField(
+      key: 'presentation',
+      type: GlossJsonType.object,
+      title: 'Presentation',
+      summary: 'Presentation.',
+      node: _tabLayoutLayoutPresentationNode,
+    ),
+  ],
+);
+const GlossJsonObject _tabLayoutNode = GlossJsonObject(
+  fields: <GlossJsonField>[
+    GlossJsonField(
+      key: 'entries',
+      type: GlossJsonType.integer,
+      title: 'Entries',
+      summary: 'Entries. Range 1..80.',
+    ),
+    GlossJsonField(
+      key: 'slots',
+      type: GlossJsonType.array,
+      title: 'Slots',
+      summary: 'Slots.',
+      node: GlossJsonArray(item: _tabLayoutSlotNode),
+    ),
+    GlossJsonField(
+      key: 'sections',
+      type: GlossJsonType.array,
+      title: 'Sections',
+      summary: 'Sections.',
+      node: GlossJsonArray(item: _tabLayoutSectionNode),
+    ),
+    GlossJsonField(
+      key: 'skins',
+      type: GlossJsonType.object,
+      title: 'Skins',
+      summary: 'Skins.',
+      node: GlossJsonObject(
+        openKeyType: GlossJsonType.object,
+        openKeySummary:
+            'Named skin with value and optional signature, each up to 16384 characters.',
+      ),
+    ),
+    GlossJsonField(
+      key: 'enabled',
+      type: GlossJsonType.boolean,
+      title: 'Enabled',
+      summary: 'Enabled.',
+    ),
+    GlossJsonField(
+      key: 'show',
+      type: GlossJsonType.any,
+      title: 'Show',
+      summary: 'Show.',
+    ),
+    GlossJsonField(
+      key: 'variants',
+      type: GlossJsonType.array,
+      title: 'Variants',
+      summary: 'Variants.',
+      node: GlossJsonArray(item: _tabLayoutLayoutVariantNode),
+    ),
+  ],
+);
+
 final GlossJsonObject glossTablistJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     _schemaVersionField(glossTablistCurrentSchemaVersion),
@@ -1471,95 +2433,8 @@ final GlossJsonObject glossTablistJsonSchema = GlossJsonObject(
       key: 'layout',
       type: GlossJsonType.object,
       title: 'Layout',
-      summary: 'Layout',
-      node: GlossJsonObject(
-        fields: <GlossJsonField>[
-          GlossJsonField(
-            key: 'enabled',
-            type: GlossJsonType.boolean,
-            title: 'Enabled',
-            summary: 'Enabled',
-          ),
-          GlossJsonField(
-            key: 'columns',
-            type: GlossJsonType.integer,
-            title: 'Columns',
-            summary: 'Columns',
-          ),
-          GlossJsonField(
-            key: 'rows',
-            type: GlossJsonType.integer,
-            title: 'Rows',
-            summary: 'Rows',
-          ),
-          GlossJsonField(
-            key: 'show',
-            type: GlossJsonType.any,
-            title: 'Visibility',
-            summary: 'Visibility',
-          ),
-          GlossJsonField(
-            key: 'slots',
-            type: GlossJsonType.array,
-            title: 'Slots',
-            summary: 'Slots',
-            node: GlossJsonArray(
-              item: GlossJsonObject(openKeyType: GlossJsonType.any),
-            ),
-          ),
-          GlossJsonField(
-            key: 'players',
-            type: GlossJsonType.object,
-            title: 'Players',
-            summary: 'Players',
-            node: GlossJsonObject(
-              fields: <GlossJsonField>[
-                GlossJsonField(
-                  key: 'column',
-                  type: GlossJsonType.integer,
-                  title: 'Column',
-                  summary: 'Column',
-                ),
-                GlossJsonField(
-                  key: 'columns',
-                  type: GlossJsonType.integer,
-                  title: 'Columns',
-                  summary: 'Columns',
-                ),
-                GlossJsonField(
-                  key: 'rows',
-                  type: GlossJsonType.integer,
-                  title: 'Rows',
-                  summary: 'Rows',
-                ),
-                GlossJsonField(
-                  key: 'filter',
-                  type: GlossJsonType.string,
-                  title: 'Filter',
-                  summary: 'Filter',
-                ),
-                GlossJsonField(
-                  key: 'overflow',
-                  type: GlossJsonType.string,
-                  title: 'Overflow',
-                  summary: 'Overflow',
-                  values: <GlossJsonValue>[
-                    GlossJsonValue('"hide"'),
-                    GlossJsonValue('"count"'),
-                  ],
-                ),
-                GlossJsonField(
-                  key: 'overflowFormat',
-                  type: GlossJsonType.string,
-                  title: 'Format',
-                  summary: 'Format',
-                  defaultLiteral: '"+{count}"',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      summary: 'Count-derived client grid and conditional roster sections.',
+      node: _tabLayoutNode,
     ),
     const GlossJsonField(
       key: 'headerFooter',
@@ -1797,6 +2672,7 @@ const GlossJsonObject _realDropLandingNode = GlossJsonObject(
 
 final GlossJsonObject _realDropLabelsNode = GlossJsonObject(
   fields: <GlossJsonField>[
+    glossDisplayRefreshField,
     const GlossJsonField(
       key: 'show',
       type: GlossJsonType.any,
@@ -2444,6 +3320,21 @@ final GlossJsonObject glossRealDropsJsonSchema = GlossJsonObject(
 const GlossJsonObject _damageIndicatorLimitsNode = GlossJsonObject(
   fields: <GlossJsonField>[
     GlossJsonField(
+      key: 'aggregationTicks',
+      type: GlossJsonType.integer,
+      title: 'Aggregation ticks',
+      summary: 'Net health sampling window, 1 through 200 ticks.',
+      defaultLiteral: '2',
+    ),
+    GlossJsonField(
+      key: 'maxPendingSamples',
+      type: GlossJsonType.integer,
+      title: 'Maximum pending samples',
+      summary:
+          'Global pending target capacity, 1 through 16384. New targets are rejected when full.',
+      defaultLiteral: '256',
+    ),
+    GlossJsonField(
       key: 'viewRange',
       type: GlossJsonType.number,
       title: 'View range',
@@ -2573,6 +3464,7 @@ final GlossJsonObject _damageIndicatorStyleNode = GlossJsonObject(
 final GlossJsonObject _damageIndicatorCompletePresentationNode =
     GlossJsonObject(
       fields: <GlossJsonField>[
+        glossDisplayRefreshField,
         glossDisplayStyleField,
         glossHologramBoxField,
         const GlossJsonField(
@@ -2862,6 +3754,13 @@ final GlossJsonObject glossEntityOverlaysJsonSchema = GlossJsonObject(
             true,
           ),
           (
+            'snapshotReadLimit',
+            'Snapshot read limit',
+            'Distinct captured reads per entity. Gloss clamps to 16..65536.',
+            '4096',
+            true,
+          ),
+          (
             'maxActiveOverlays',
             'Overlay limit',
             'Overlays tracked at once across every viewer. Gloss clamps to 16..16384.',
@@ -2974,13 +3873,103 @@ final GlossJsonObject glossNamesJsonSchema = GlossJsonObject(
   ],
 );
 
+const GlossJsonField _channelFilteringField = GlossJsonField(
+  key: 'filtering',
+  type: GlossJsonType.object,
+  title: 'Filter policy',
+  summary:
+      'RE2 limits and policy for incomplete filtering; variants replace the whole block.',
+  node: GlossJsonObject(
+    fields: <GlossJsonField>[
+      GlossJsonField(
+        key: 'syntax',
+        type: GlossJsonType.string,
+        title: 'syntax',
+        summary: 'syntax',
+        values: <GlossJsonValue>[GlossJsonValue('"re2"')],
+      ),
+      GlossJsonField(
+        key: 'maxInputCharacters',
+        type: GlossJsonType.integer,
+        title: 'maxInputCharacters',
+        summary: 'maxInputCharacters',
+      ),
+      GlossJsonField(
+        key: 'maxOutputCharacters',
+        type: GlossJsonType.integer,
+        title: 'maxOutputCharacters',
+        summary: 'maxOutputCharacters',
+      ),
+      GlossJsonField(
+        key: 'maxPatternCharacters',
+        type: GlossJsonType.integer,
+        title: 'maxPatternCharacters',
+        summary: 'maxPatternCharacters',
+      ),
+      GlossJsonField(
+        key: 'maxReplacementCharacters',
+        type: GlossJsonType.integer,
+        title: 'maxReplacementCharacters',
+        summary: 'maxReplacementCharacters',
+      ),
+      GlossJsonField(
+        key: 'maxFilters',
+        type: GlossJsonType.integer,
+        title: 'maxFilters',
+        summary: 'maxFilters',
+      ),
+      GlossJsonField(
+        key: 'maxMatches',
+        type: GlossJsonType.integer,
+        title: 'maxMatches',
+        summary: 'maxMatches',
+      ),
+      GlossJsonField(
+        key: 'maxProgramSize',
+        type: GlossJsonType.integer,
+        title: 'maxProgramSize',
+        summary: 'maxProgramSize',
+      ),
+      GlossJsonField(
+        key: 'maxNestingDepth',
+        type: GlossJsonType.integer,
+        title: 'maxNestingDepth',
+        summary: 'maxNestingDepth',
+      ),
+      GlossJsonField(
+        key: 'maxWorkUnits',
+        type: GlossJsonType.integer,
+        title: 'maxWorkUnits',
+        summary: 'maxWorkUnits',
+      ),
+      GlossJsonField(
+        key: 'budgetMicros',
+        type: GlossJsonType.integer,
+        title: 'budgetMicros',
+        summary: 'budgetMicros',
+      ),
+      GlossJsonField(
+        key: 'onLimit',
+        type: GlossJsonType.string,
+        title: 'onLimit',
+        summary: 'onLimit',
+        values: <GlossJsonValue>[
+          GlossJsonValue('"drop"'),
+          GlossJsonValue('"keep-completed"'),
+        ],
+      ),
+    ],
+  ),
+);
+
 const GlossJsonObject glossChannelJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
     GlossJsonField(
       key: 'schemaVersion',
       type: GlossJsonType.integer,
       title: 'schemaVersion',
-      summary: 'schemaVersion',
+      summary: 'Channel schema version 2.',
+      values: <GlossJsonValue>[GlossJsonValue('2')],
     ),
     GlossJsonField(
       key: 'revision',
@@ -3203,18 +4192,19 @@ const GlossJsonObject glossChannelJsonSchema = GlossJsonObject(
               key: 'match',
               type: GlossJsonType.string,
               title: 'match',
-              summary: 'match',
+              summary: 'RE2 pattern; no lookaround or backreferences.',
             ),
             GlossJsonField(
               key: 'replace',
               type: GlossJsonType.string,
               title: 'replace',
-              summary: 'replace',
+              summary: 'Literal replacement; captured groups are not expanded.',
             ),
           ],
         ),
       ),
     ),
+    _channelFilteringField,
     GlossJsonField(
       key: 'throttle',
       type: GlossJsonType.object,
@@ -3415,18 +4405,20 @@ const GlossJsonObject glossChannelJsonSchema = GlossJsonObject(
                       key: 'match',
                       type: GlossJsonType.string,
                       title: 'match',
-                      summary: 'match',
+                      summary: 'RE2 pattern; no lookaround or backreferences.',
                     ),
                     GlossJsonField(
                       key: 'replace',
                       type: GlossJsonType.string,
                       title: 'replace',
-                      summary: 'replace',
+                      summary:
+                          'Literal replacement; captured groups are not expanded.',
                     ),
                   ],
                 ),
               ),
             ),
+            _channelFilteringField,
             GlossJsonField(
               key: 'throttle',
               type: GlossJsonType.object,
@@ -3469,25 +4461,56 @@ const GlossJsonObject glossChannelJsonSchema = GlossJsonObject(
 /// The two kinds deliberately absent are `panel`, which is an editor-only flow
 /// map with no code view at all, and `containerPreview`, whose format is the
 /// preview schema rather than a Gloss runtime document.
-final Map<String, GlossJsonObject> glossJsonSchemas = <String, GlossJsonObject>{
-  'channel': glossChannelJsonSchema,
-  'names': glossNamesJsonSchema,
-  'strings': glossStringsJsonSchema,
-  'waypoint': glossWaypointJsonSchema,
-  'menu': glossMenuJsonSchema,
-  'hologram': glossHologramJsonSchema,
-  'animation': glossAnimationJsonSchema,
-  'scoreboard': glossScoreboardJsonSchema,
-  'surface': glossSurfaceJsonSchema,
-  'motd': glossMotdJsonSchema,
-  'connections': glossConnectionsJsonSchema,
-  'emoji': glossEmojiJsonSchema,
-  'bubbleStyle': glossBubbleStyleJsonSchema,
-  'tablist': glossTablistJsonSchema,
-  'realDrops': glossRealDropsJsonSchema,
-  'damageIndicators': glossDamageIndicatorsJsonSchema,
-  'entityOverlays': glossEntityOverlaysJsonSchema,
-};
+final Map<String, GlossJsonObject> glossJsonSchemas =
+    <String, GlossJsonObject>{
+      'channel': glossChannelJsonSchema,
+      'names': glossNamesJsonSchema,
+      'strings': glossStringsJsonSchema,
+      'presets': glossPresetsJsonSchema,
+      'inventory': glossInventoryJsonSchema,
+      'waypoint': glossWaypointJsonSchema,
+      'glyph': glossGlyphJsonSchema,
+      'behavior': glossBehaviorJsonSchema,
+      'menu': glossMenuJsonSchema,
+      'hologram': glossHologramJsonSchema,
+      'animation': glossAnimationJsonSchema,
+      'scoreboard': glossScoreboardJsonSchema,
+      'surface': glossSurfaceJsonSchema,
+      'motd': glossMotdJsonSchema,
+      'connections': glossConnectionsJsonSchema,
+      'emoji': glossEmojiJsonSchema,
+      'bubbleStyle': glossBubbleStyleJsonSchema,
+      'tablist': glossTablistJsonSchema,
+      'realDrops': glossRealDropsJsonSchema,
+      'damageIndicators': glossDamageIndicatorsJsonSchema,
+      'entityOverlays': glossEntityOverlaysJsonSchema,
+    }.map(
+      (
+        String kind,
+        GlossJsonObject schema,
+      ) => MapEntry<String, GlossJsonObject>(
+        kind,
+        kind == 'presets'
+            ? schema
+            : GlossJsonObject(
+                fields: <GlossJsonField>[
+                  ...schema.fields,
+                  const GlossJsonField(
+                    key: 'preset',
+                    type: GlossJsonType.string,
+                    title: 'Preset',
+                    summary:
+                        'Named preset in this document collection. Authored fields override inherited values.',
+                  ),
+                ],
+                discriminator: schema.discriminator,
+                variants: schema.variants,
+                openKeyType: schema.openKeyType,
+                openKeyTitle: schema.openKeyTitle,
+                openKeySummary: schema.openKeySummary,
+              ),
+      ),
+    );
 
 /// The model for [kindName], or null when this build has none for that kind.
 GlossJsonObject? glossJsonSchemaFor(String kindName) =>

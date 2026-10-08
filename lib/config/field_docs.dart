@@ -994,7 +994,8 @@ const Map<String, HuiFieldDoc> huiFieldDocs = <String, HuiFieldDoc>{
         'placeholders, |animation.<id>|, metrics, colours and {{ code }} all '
         'work. VolmLib sends each row as one complete modern component without '
         'character truncation. Line breaks become spaces, rows never wrap, and only '
-        'the first 15 lines reach the client.',
+        'the first 15 visible rows reach the client. Object rows add value, format, '
+        'stable id and show conditions. Sections and pages live under layout.',
     citation: 'BoardEntry.java:24-40',
   ),
   'scoreboard.presentation.hideNumbers': HuiFieldDoc(

@@ -341,7 +341,8 @@ void main() {
       expect(store.scoreboardDoc!.presentation.lines, hasLength(3));
       store.mutateScoreboard(
         'add line',
-        (GlossScoreboardDoc doc) => doc.presentation.lines.add('&bnew'),
+        (GlossScoreboardDoc doc) =>
+            doc.presentation.lines.add(GlossScoreboardLine(text: '&bnew')),
       );
       expect(store.scoreboardDoc!.presentation.lines, hasLength(4));
       expect(store.performUndo(), isTrue);
@@ -370,7 +371,7 @@ void main() {
         from: GlossScoreboardDoc(
           presentation: GlossScoreboardPresentation(
             title: '&dGloss',
-            lines: <String>['|animation.pulse|'],
+            lines: glossScoreboardLines(<String>['|animation.pulse|']),
           ),
         ),
       );

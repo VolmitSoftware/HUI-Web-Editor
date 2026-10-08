@@ -15,13 +15,19 @@ import 'preview_expr.dart';
 import 'preview_expr_functions.dart';
 import 'particle_layer_validation.dart';
 import 'validation.dart';
+import 'display_refresh_validation.dart';
 import 'hologram_box_validation.dart';
 import 'gloss_show.dart';
 
 List<HuiIssue> validateBubbleStyleDoc(GlossBubbleStyleDoc doc) {
   final List<HuiIssue> issues = <HuiIssue>[
+    ...validateDisplayRefresh(doc.refresh),
     ...validateGlossShow(doc.extras['show']),
   ];
+  if (!const <String>{'replace-oldest', 'reject-new'}.contains(doc.overflow.trim().toLowerCase())) {
+    issues.add(const HuiIssue(severity: HuiSeverity.error, path: r'$.overflow',
+      message: 'Choose replace-oldest or reject-new.'));
+  }
 
   for (final HuiIssue? issue in <HuiIssue?>[
     runtimeRangeIssue(r'$.stackDistance', doc.stackDistance, 0.05, 2),

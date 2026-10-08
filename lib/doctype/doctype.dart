@@ -28,4 +28,7 @@ export 'channel_document_type.dart';
 export 'names_document_type.dart';
 
 export 'strings_document_type.dart';
+export 'presets_document_type.dart';
 export 'waypoint_document_type.dart';
+export 'glyph_document_type.dart';
+export 'behavior_document_type.dart';

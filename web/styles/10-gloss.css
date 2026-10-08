@@ -428,6 +428,21 @@
   container-type: inline-size;
 }
 
+.hui-motd-stage > .hui-gloss-game {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.hui-motd-request {
+  flex: 0 0 auto;
+  max-height: 45%;
+  min-width: 0;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 12px 16px;
+}
+
 /* The multiplayer screen: dirt-dark backdrop, one hovered server row. */
 .hui-motd-screen {
   display: flex;

@@ -283,7 +283,7 @@ void main() {
       expect(first.select.when, 'false');
       expect(first.variants, isEmpty);
       expect(validateScoreboardDoc(first), isEmpty);
-      for (final String line in first.presentation.lines) {
+      for (final String line in first.presentation.lines.map((GlossScoreboardLine row) => row.text)) {
         expect(
           measureGlossScoreboardLine(line, _Animations()).truncated,
           isFalse,
@@ -314,7 +314,7 @@ void main() {
       expect(doc.variants, isEmpty);
       expect(validateScoreboardDoc(doc, animations: animations), isEmpty);
       for (int index = 0; index < doc.presentation.lines.length; index++) {
-        final String line = doc.presentation.lines[index];
+        final String line = doc.presentation.lines[index].text;
         final GlossScoreboardLineMeasure measure = measureGlossScoreboardLine(
           line,
           animations,
@@ -653,16 +653,16 @@ void main() {
     expect(doc.select.priority, 20);
     expect(doc.presentation.hideNumbers, isTrue);
     expect(doc.variants.single.id, 'critical-health');
-    expect(doc.presentation.lines.join('\n'), contains('{{ player.name }}'));
-    expect(doc.presentation.lines.join('\n'), contains('server.tps'));
-    expect(doc.presentation.lines.join('\n'), contains("papi('vault_prefix',"));
+    expect(doc.presentation.lines.map((GlossScoreboardLine row) => row.text).join('\n'), contains('{{ player.name }}'));
+    expect(doc.presentation.lines.map((GlossScoreboardLine row) => row.text).join('\n'), contains('server.tps'));
+    expect(doc.presentation.lines.map((GlossScoreboardLine row) => row.text).join('\n'), contains("papi('vault_prefix',"));
     expect(
-      doc.presentation.lines.join('\n'),
+      doc.presentation.lines.map((GlossScoreboardLine row) => row.text).join('\n'),
       contains("metric('react.tick-ms',"),
     );
     final String ticker = doc.presentation.lines.singleWhere(
-      (String line) => line.contains('LIVE EVENT'),
-    );
+      (GlossScoreboardLine row) => row.text.contains('LIVE EVENT'),
+    ).text;
     expect(ticker, contains('floor(time.seconds)'));
     expect(ticker, isNot(contains('time.seconds *')));
     const int epochMs = 1787426000000;
@@ -683,7 +683,7 @@ void main() {
       reason: 'scoreboard uses its shipped animation references',
     );
     for (int index = 0; index < doc.presentation.lines.length; index++) {
-      final String line = doc.presentation.lines[index];
+      final String line = doc.presentation.lines[index].text;
       final GlossScoreboardLineMeasure measure = measureGlossScoreboardLine(
         line,
         animations,

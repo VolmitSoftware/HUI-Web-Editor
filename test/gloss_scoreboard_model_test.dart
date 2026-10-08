@@ -36,7 +36,10 @@ void main() {
     expect(doc.select.priority, 20);
     expect(doc.select.when, 'viewer.health < 5');
     expect(doc.presentation.title, '&d&lGloss');
-    expect(doc.presentation.lines, <String>['one', 'two']);
+    expect(
+      doc.presentation.lines.map((GlossScoreboardLine line) => line.text),
+      <String>['one', 'two'],
+    );
     expect(doc.presentation.hideNumbers, isTrue);
     expect(doc.variants.single.id, 'critical');
     expect(doc.variants.single.presentation.title, '&cLOW HEALTH');
@@ -81,7 +84,7 @@ void main() {
   test('copy is deep', () {
     final GlossScoreboardDoc doc = decodeGlossScoreboardDoc(_board);
     final GlossScoreboardDoc copied = doc.copy();
-    copied.presentation.lines.add('extra');
+    copied.presentation.lines.add(GlossScoreboardLine(text: 'extra'));
     copied.variants.single.presentation.title = 'other';
     expect(doc.presentation.lines, hasLength(2));
     expect(doc.variants.single.presentation.title, '&cLOW HEALTH');

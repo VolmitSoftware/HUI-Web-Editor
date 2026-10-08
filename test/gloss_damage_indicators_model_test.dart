@@ -5,6 +5,20 @@ import 'package:gloss_editor/model/model.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('aggregation and pending sample policy round-trip with range validation', () {
+    final GlossDamageIndicatorsDoc doc = buildDefaultGlossDamageIndicators();
+    doc.limits.aggregationTicks = 12;
+    doc.limits.maxPendingSamples = 64;
+    final GlossDamageIndicatorsDoc copy = decodeGlossDamageIndicatorsDoc(encodeGlossDamageIndicatorsDoc(doc));
+    expect(copy.limits.aggregationTicks, 12);
+    expect(copy.limits.maxPendingSamples, 64);
+    expect(validateDamageIndicatorsDoc(copy), isEmpty);
+    copy.limits.aggregationTicks = 0;
+    copy.limits.maxPendingSamples = 20000;
+    expect(validateDamageIndicatorsDoc(copy).map((HuiIssue issue) => issue.path),
+      containsAll(<String>[r'$.limits.aggregationTicks', r'$.limits.maxPendingSamples']));
+  });
+
   test('shipped indicator default decodes and normalizes canonically', () {
     final GlossDamageIndicatorsDoc doc = buildDefaultGlossDamageIndicators();
     expect(doc.limits.maxPerSecond, 40);

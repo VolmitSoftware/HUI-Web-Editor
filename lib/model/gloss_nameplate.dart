@@ -125,6 +125,11 @@ final class GlossNameplatePresentation {
     List<GlossNameplateLine>? lines,
     this.offset = glossNameplateDefaultOffset,
     this.hideSneaking = true,
+    this.healthSegments = 10,
+    this.hideInvisible = true,
+    this.hideSpectator = true,
+    this.includeNpcs = true,
+    this.showSelf = false,
     GlossHealthBar? healthBar,
     HuiIconStyle? style,
     GlossHologramBox? box,
@@ -140,6 +145,11 @@ final class GlossNameplatePresentation {
   List<GlossNameplateLine> lines;
   double offset;
   bool hideSneaking;
+  int healthSegments;
+  bool hideInvisible;
+  bool hideSpectator;
+  bool includeNpcs;
+  bool showSelf;
   GlossHealthBar healthBar;
   HuiIconStyle style;
   GlossHologramBox box;
@@ -150,6 +160,11 @@ final class GlossNameplatePresentation {
     final Map<String, dynamic> map = huiReadObject(raw, path);
     return GlossNameplatePresentation(
       healthBar: GlossHealthBar.fromJson(map['healthBar']),
+      healthSegments: huiReadInt(map, 'healthSegments', fallback: 10),
+      hideInvisible: map['hideInvisible'] == null ? true : huiReadBool(map, 'hideInvisible'),
+      hideSpectator: map['hideSpectator'] == null ? true : huiReadBool(map, 'hideSpectator'),
+      includeNpcs: map['includeNpcs'] == null ? true : huiReadBool(map, 'includeNpcs'),
+      showSelf: huiReadBool(map, 'showSelf'),
       style: HuiIconStyle.fromJsonOrNull(map['style']),
       box: GlossHologramBox.fromJson(map['box']),
       lines: <GlossNameplateLine>[
@@ -174,7 +189,7 @@ final class GlossNameplatePresentation {
         'healthBar', 'style', 'box',
         'lines',
         'offset',
-        'hideSneaking',
+        'hideSneaking', 'healthSegments', 'hideInvisible', 'hideSpectator', 'includeNpcs', 'showSelf',
         'relations',
       }),
     );
@@ -189,6 +204,11 @@ final class GlossNameplatePresentation {
     'box': box.toJson(),
     'offset': offset,
     'hideSneaking': hideSneaking,
+    'healthSegments': healthSegments,
+    'hideInvisible': hideInvisible,
+    'hideSpectator': hideSpectator,
+    'includeNpcs': includeNpcs,
+    'showSelf': showSelf,
     if (relations.isNotEmpty)
       'relations': <Map<String, dynamic>>[
         for (final GlossNameplateRelation relation in relations)
@@ -205,6 +225,11 @@ final class GlossNameplatePresentation {
     box: box.copy(),
     offset: offset,
     hideSneaking: hideSneaking,
+    healthSegments: healthSegments,
+    hideInvisible: hideInvisible,
+    hideSpectator: hideSpectator,
+    includeNpcs: includeNpcs,
+    showSelf: showSelf,
     relations: <GlossNameplateRelation>[
       for (final GlossNameplateRelation relation in relations) relation.copy(),
     ],

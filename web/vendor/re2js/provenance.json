@@ -1,0 +1,9 @@
+{
+  "name": "re2js",
+  "version": "2.8.6",
+  "source": "https://github.com/le0pard/re2js",
+  "license": "MIT",
+  "package": "https://registry.npmjs.org/re2js/-/re2js-2.8.6.tgz",
+  "packageIntegrity": "sha512-xLgQil4kIUCrAzVk9fRSkxkFNwmygLFjVxXrLc65aE1F0+Zsb8rxumFBy4XKyvgMCTL6kilDq3EZ0piE2dP/Dg==",
+  "assetSha256": "0c17466dccd37c81e3a92aa7849912c601ddf93555334b12690f4be1202d2bfb"
+}

@@ -13,6 +13,7 @@ import 'gloss_text.dart';
 import 'gloss_particle_text.dart';
 import 'particle_layer_validation.dart';
 import 'validation.dart';
+import 'display_refresh_validation.dart';
 import 'presentation_variants.dart';
 import 'hologram_box_validation.dart';
 import 'gloss_show.dart';
@@ -22,6 +23,7 @@ List<HuiIssue> validateHologramDoc(
   GlossAnimationResolver animations = const GlossNoAnimations(),
 }) {
   final List<HuiIssue> issues = <HuiIssue>[
+    ...validateDisplayRefresh(doc.refresh),
     ...validateGlossShow(doc.extras['show']),
   ];
 

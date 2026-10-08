@@ -21,6 +21,7 @@ import 'field_help.dart';
 import 'extras_editor.dart';
 import 'inspector_widgets.dart';
 import 'display_style_editor.dart';
+import 'display_refresh_editor.dart';
 import 'hologram_box_editor.dart';
 import '../../model/gloss_hologram_box.dart';
 import 'gloss_visibility_editor.dart';
@@ -73,6 +74,8 @@ class _HologramInspectorState extends State<HologramInspector> {
         ),
       ),
       _header(doc),
+      DisplayRefreshEditor(refresh: doc.refresh, onChanged: (String label, GlossDisplayRefresh next) =>
+        _store.mutateHologram(label, (GlossHologramDoc edited) => edited.refresh = next)),
       ExtrasEditor(title: huiText('Contents'), extensionKeys: false,
         extras: <String, Object?>{'pages': doc.extras['pages'] ?? <Object?>[], 'actions': doc.extras['actions'] ?? <Object?>[], 'hitbox': doc.extras['hitbox'] ?? <String, Object?>{}, 'variants': doc.variants.map((GlossPresentationVariant variant) => variant.toJson()).toList()},
         onChanged: (String label, Map<String, dynamic> next) => _store.replaceGlossDoc(label,

@@ -19,6 +19,7 @@
 library;
 
 import '../logic/json_schema.dart';
+import 'dialog_json_schema.dart';
 import '../model/hui_actions.dart';
 import '../model/hui_component.dart';
 import '../model/hui_icons.dart';
@@ -867,6 +868,23 @@ final GlossJsonObject glossActionNode = GlossJsonObject(
     ),
   ],
   variants: <String, List<GlossJsonField>>{
+    'dialog': glossDialogActionFields,
+    'call': <GlossJsonField>[
+      const GlossJsonField(key: 'action', type: GlossJsonType.string, title: 'Named action', summary: 'Name in the document actions object.'),
+      const GlossJsonField(key: 'when', type: GlossJsonType.string, title: 'Condition', summary: 'Runs the referenced actions when this is true.'),
+      const GlossJsonField(key: 'cooldownTicks', type: GlossJsonType.integer, title: 'Cooldown', summary: 'Ticks before this call can run again.'),
+    ],
+    'surface': <GlossJsonField>[
+      const GlossJsonField(key: 'surface', type: GlossJsonType.string, title: 'Surface document', summary: 'Id of the authored surface to deliver.'),
+      const GlossJsonField(key: 'audience', type: GlossJsonType.object, title: 'Audience', summary: 'Viewer, server, world or radius recipients.', node: GlossJsonObject(fields: <GlossJsonField>[
+        GlossJsonField(key: 'scope', type: GlossJsonType.string, title: 'Scope', summary: 'Recipient scope relative to the triggering player.', defaultLiteral: '"viewer"', values: <GlossJsonValue>[GlossJsonValue('"viewer"'), GlossJsonValue('"server"'), GlossJsonValue('"world"'), GlossJsonValue('"radius"')]),
+        GlossJsonField(key: 'radius', type: GlossJsonType.number, title: 'Radius', summary: 'Required for radius scope, positive and at most 4096 blocks.'),
+        GlossJsonField(key: 'when', type: GlossJsonType.any, title: 'Recipient condition', summary: 'Boolean or expression evaluated on each recipient.', defaultLiteral: 'true'),
+      ])),
+      const GlossJsonField(key: 'when', type: GlossJsonType.string, title: 'Condition', summary: 'Condition evaluated before invoking this action.'),
+      const GlossJsonField(key: 'cooldownTicks', type: GlossJsonType.integer, title: 'Action cooldown', summary: 'Ticks before this action can be invoked again.'),
+    ],
+
     'command': <GlossJsonField>[
       const GlossJsonField(
         key: 'command',
@@ -1269,6 +1287,7 @@ final GlossJsonObject glossComponentNode = GlossJsonObject(
 /// The menu document root.
 final GlossJsonObject glossMenuJsonSchema = GlossJsonObject(
   fields: <GlossJsonField>[
+    const GlossJsonField(key: 'actions', type: GlossJsonType.object, title: 'Named actions', summary: 'Up to 256 reusable action lists; call by name. Cycles and more than 32 nested calls are rejected.', node: GlossJsonObject(openKeyType: GlossJsonType.array, openKeySummary: 'An ordinary action list.')),
     const GlossJsonField(
       key: 'show',
       type: GlossJsonType.any,

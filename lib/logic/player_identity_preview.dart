@@ -28,6 +28,10 @@ GlossConditionContext identityPreviewContext(
   String name,
   Set<String> permissions, {
   bool sneaking = false,
+  bool invisible = false,
+  bool spectator = false,
+  bool npc = false,
+  bool self = false,
 }) => GlossConditionContext(
   variables: <String, Object?>{
     ...glossScopedSampleValues,
@@ -38,6 +42,11 @@ GlossConditionContext identityPreviewContext(
     'subject.health': 18.0,
     'subject.maxHealth': 20.0,
     'subject.sneaking': sneaking,
+    'subject.invisible': invisible,
+    'subject.gameMode': spectator ? 'SPECTATOR' : 'SURVIVAL',
+    'subject.npc': npc,
+    'subject.uuid': 'sample-subject',
+    'viewer.uuid': self ? 'sample-subject' : 'sample-viewer',
     'subject.level': 27.0,
   },
   permissionsByRole: <String, Set<String>>{'subject': permissions},
@@ -91,7 +100,15 @@ GlossNameplatePresentation? resolveNameplatePreview(
       selected = variant;
     }
   }
-  return selected?.presentation ?? doc.presentation;
+  final GlossNameplatePresentation presentation = selected?.presentation ?? doc.presentation;
+  if ((presentation.hideSneaking && context.variable('subject.sneaking') == true) ||
+      (presentation.hideInvisible && context.variable('subject.invisible') == true) ||
+      (presentation.hideSpectator && context.variable('subject.gameMode') == 'SPECTATOR') ||
+      (!presentation.includeNpcs && context.variable('subject.npc') == true) ||
+      (!presentation.showSelf && context.variable('subject.uuid') == context.variable('viewer.uuid'))) {
+    return null;
+  }
+  return presentation;
 }
 
 String nametagPreviewText(GlossNametagPresentation presentation) =>

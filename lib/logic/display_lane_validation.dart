@@ -6,6 +6,7 @@ import 'gloss_show.dart';
 import 'validation.dart';
 import 'health_bar_validation.dart';
 import 'hologram_box_validation.dart';
+import 'action_document_validation.dart';
 
 List<HuiIssue> _envelope(GlossDoc doc, Object? show) => <HuiIssue>[
   ...validateGlossShow(show),
@@ -14,6 +15,21 @@ List<HuiIssue> _envelope(GlossDoc doc, Object? show) => <HuiIssue>[
 
 List<HuiIssue> validateInventoryDoc(GlossInventoryDoc doc) {
   final List<HuiIssue> issues = _envelope(doc, doc.extras['show']);
+  issues.addAll(validateActionDocument(doc.toJson()));
+  final Object? refresh = doc.extras['refresh'];
+  if (refresh != null && refresh is! Map) {
+    issues.add(const HuiIssue(severity: HuiSeverity.error, path: r'$.refresh', message: 'Inventory refresh must be an object.'));
+  } else if (refresh is Map) {
+    if (refresh['mode'] != null && !const <String>['dynamic', 'always'].contains(refresh['mode'])) {
+      issues.add(const HuiIssue(severity: HuiSeverity.error, path: r'$.refresh.mode', message: 'Refresh mode must be dynamic or always.'));
+    }
+    for (final String key in <String>['titleTicks', 'slotsTicks', 'conditionsTicks', 'listTicks']) {
+      final Object? value = refresh[key];
+      if (value != null && (value is! num || !value.isFinite || value % 1 != 0 || value < 0 || value > 1200)) {
+        issues.add(HuiIssue(severity: HuiSeverity.error, path: r'$.refresh.' + key, message: 'Refresh ticks must be an integer from 0 to 1200.'));
+      }
+    }
+  }
   if (!glossInventoryResolutions.contains(doc.resolution)) {
     issues.add(
       const HuiIssue(
@@ -88,6 +104,16 @@ List<HuiIssue> validateInventoryDoc(GlossInventoryDoc doc) {
 
 List<HuiIssue> validateNameplateDoc(GlossNameplateDoc doc) {
   final List<HuiIssue> issues = _envelope(doc, doc.extras['show']);
+  void validateSegments(GlossNameplatePresentation presentation, String path) {
+    if (presentation.healthSegments < 1 || presentation.healthSegments > 40) {
+      issues.add(HuiIssue(severity: HuiSeverity.warning, path: '$path.healthSegments',
+        message: 'Health segments are clamped to 1..40 by the server.', fix: 'Choose 1 through 40.'));
+    }
+  }
+  validateSegments(doc.presentation, r'$.presentation');
+  for (int index = 0; index < doc.variants.length; index++) {
+    validateSegments(doc.variants[index].presentation, '\$.variants[$index].presentation');
+  }
   issues.addAll(validateHealthBar(doc.presentation.healthBar, path: r'$.presentation.healthBar'));
   issues.addAll(validateIconDisplayStyle(doc.presentation.style, path: r'$.presentation.style'));
   issues.addAll(validateHologramBox(doc.presentation.box, path: r'$.presentation.box'));

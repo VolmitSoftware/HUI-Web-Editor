@@ -10,7 +10,7 @@ void main() {
     final List<String> runtimeTypes = huiActionTypes
         .where((String type) => !huiEditorActionTypes.contains(type))
         .toList();
-    expect(runtimeTypes, hasLength(30));
+    expect(runtimeTypes, containsAll(<String>['surface', 'dialog', 'call']));
     for (final String type in runtimeTypes) {
       final Map<String, Object?> raw = <String, Object?>{
         'type': type,

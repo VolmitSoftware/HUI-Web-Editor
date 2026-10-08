@@ -6,6 +6,7 @@ import 'gloss_particle_text.dart';
 import 'preview_expr.dart';
 import 'particle_layer_validation.dart';
 import 'validation.dart';
+import 'display_refresh_validation.dart';
 import 'hologram_box_validation.dart';
 import 'gloss_show.dart';
 
@@ -20,6 +21,8 @@ List<HuiIssue> validateDamageIndicatorsDoc(GlossDamageIndicatorsDoc doc) {
 
   _range(issues, r'$.limits.viewRange', doc.limits.viewRange, 4, 128);
   _range(issues, r'$.limits.debounceMs', doc.limits.debounceMs, 0, 60000);
+  _range(issues, r'$.limits.aggregationTicks', doc.limits.aggregationTicks, 1, 200);
+  _range(issues, r'$.limits.maxPendingSamples', doc.limits.maxPendingSamples, 1, 16384);
   _range(issues, r'$.limits.maxPerSecond', doc.limits.maxPerSecond, 1, 1000);
   _range(issues, r'$.limits.lifetimeMs', doc.limits.lifetimeMs, 250, 30000);
   _range(issues, r'$.limits.minimumDelta', doc.limits.minimumDelta, 0, 1000);
@@ -65,6 +68,7 @@ void _presentation(
   String path,
   GlossDamageIndicatorPresentation presentation,
 ) {
+  issues.addAll(validateDisplayRefresh(presentation.refresh, path: '$path.refresh'));
   issues.addAll(
     validateIconDisplayStyle(presentation.style, path: '$path.style'),
   );

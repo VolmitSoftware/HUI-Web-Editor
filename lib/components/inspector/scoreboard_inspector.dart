@@ -15,6 +15,7 @@ import 'inspector_widgets.dart';
 import 'gloss_visibility_editor.dart';
 import '../../logic/gloss_show.dart';
 import 'line_list_section.dart';
+import 'scoreboard_advanced_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class ScoreboardInspector extends StatefulWidget {
@@ -67,6 +68,13 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
             ),
       ),
       _variants(doc),
+      ScoreboardObjectivesEditor(
+        raw: doc.extras['objectives'],
+        onChanged: (Map<String, Object?> value) => _store.mutateScoreboard(
+          'scoreboard native objectives',
+          (GlossScoreboardDoc edited) => edited.extras['objectives'] = value,
+        ),
+      ),
     ]);
   }
 
@@ -270,47 +278,47 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
           edited.hideNumbers = value;
         }),
       ),
-      HuiLineListSection(
-        title: huiText('Lines'),
-        docKey: 'scoreboard.presentation.lines',
-        addLabel: huiText('Add line'),
-        itemCount: presentation.lines.length,
-        issues: _issuesFor('$path.lines'),
-        emptyBody: huiText('Add a line to put content under the title.'),
-        onAdd: () => mutate(
-          (GlossScoreboardPresentation edited) => edited.lines.add(''),
-        ),
-        onReorder: (int from, int to) =>
-            mutate((GlossScoreboardPresentation edited) {
-              final String moved = edited.lines.removeAt(from);
-              edited.lines.insert(to, moved);
-            }),
-        itemBuilder: (int index) => HuiLineRow(
-          value: presentation.lines[index],
-          placeholder: huiText('&fText or {{ expression }}'),
-          removeLabel: huiText('Delete line {number}', <String, Object?>{
-            'number': index + 1,
-          }),
-          beyondRender: index >= glossBoardMaxLines,
-          onChanged: (String value) =>
-              mutate((GlossScoreboardPresentation edited) {
-                edited.lines[index] = value;
-              }),
-          preview: GlossTextLine(
-            render: renderGlossScoreboardLine(
-              presentation.lines[index],
-              animations: _store.workspaceAnimations,
-              emoji: _store.workspaceEmoji,
-            ),
-          ),
-          chips: const <Widget>[],
-          onRemove: () => mutate(
-            (GlossScoreboardPresentation edited) =>
-                edited.lines.removeAt(index),
-          ),
+      _rows(
+        presentation.lines,
+        path,
+        (void Function(List<GlossScoreboardLine>) change) => mutate(
+          (GlossScoreboardPresentation edited) => change(edited.lines),
         ),
       ),
+      ScoreboardLayoutEditor(
+        presentation: presentation,
+        path: path,
+        mutate: mutate,
+        rowsBuilder: _rows,
+      ),
     ],
+  );
+
+  Widget _rows(
+    List<GlossScoreboardLine> rows,
+    String path,
+    void Function(void Function(List<GlossScoreboardLine>)) mutate,
+  ) => HuiLineListSection(
+    title: huiText('Lines'),
+    docKey: 'scoreboard.presentation.lines',
+    addLabel: huiText('Add line'),
+    itemCount: rows.length,
+    issues: _issuesFor('$path.lines'),
+    emptyBody: huiText('Add a line to put content under the title.'),
+    onAdd: () => mutate(
+      (List<GlossScoreboardLine> edited) => edited.add(GlossScoreboardLine()),
+    ),
+    onReorder: (int from, int to) => mutate((List<GlossScoreboardLine> edited) {
+      edited.insert(to, edited.removeAt(from));
+    }),
+    itemBuilder: (int index) => _line(
+      rows[index],
+      index,
+      (void Function(GlossScoreboardLine) change) =>
+          mutate((List<GlossScoreboardLine> edited) => change(edited[index])),
+      () =>
+          mutate((List<GlossScoreboardLine> edited) => edited.removeAt(index)),
+    ),
   );
 
   Widget _integerField({
@@ -370,4 +378,139 @@ class _ScoreboardInspectorState extends State<ScoreboardInspector> {
     }
     return id;
   }
+
+  Widget _line(
+    GlossScoreboardLine line,
+    int index,
+    void Function(void Function(GlossScoreboardLine)) mutate,
+    void Function() remove,
+  ) => dom.div(<Widget>[
+    HuiLineRow(
+      value: line.section ?? line.text,
+      placeholder: line.section == null
+          ? huiText('&fText or {{ expression }}')
+          : huiText('Section name'),
+      removeLabel: huiText('Delete line {number}', <String, Object?>{
+        'number': index + 1,
+      }),
+      onChanged: (String value) => mutate((GlossScoreboardLine edited) {
+        if (edited.section == null) {
+          edited.text = value;
+        } else {
+          edited.section = value;
+        }
+      }),
+      preview: line.section == null
+          ? GlossTextLine(
+              render: renderGlossScoreboardLine(
+                line.text,
+                animations: _store.workspaceAnimations,
+                emoji: _store.workspaceEmoji,
+              ),
+            )
+          : Text(
+              huiText('Reusable section: {name}', <String, Object?>{
+                'name': line.section,
+              }),
+            ),
+      onRemove: remove,
+    ),
+    dom.details(<Widget>[
+      dom.summary(<Widget>[Text(huiText('Row settings'))]),
+      HuiField(
+        label: huiText('Row type'),
+        control: ArcaneSelect(
+          value: line.section == null ? 'text' : 'section',
+          options: <ArcaneSelectOption>[
+            ArcaneSelectOption(value: 'text', label: huiText('Text')),
+            ArcaneSelectOption(
+              value: 'section',
+              label: huiText('Section reference'),
+            ),
+          ],
+          onChanged: (String value) => mutate((GlossScoreboardLine edited) {
+            edited.section = value == 'section' ? '' : null;
+            if (value == 'section') {
+              edited.text = '';
+              edited.value = null;
+              edited.format = null;
+              edited.id = null;
+            }
+          }),
+        ),
+      ),
+      if (line.section == null) ...<Widget>[
+        _lineField(
+          'Row ID',
+          line.id ?? '',
+          index,
+          (String value) => mutate(
+            (GlossScoreboardLine edited) =>
+                edited.id = value.isEmpty ? null : value,
+          ),
+        ),
+        _lineField(
+          'Value',
+          line.value ?? '',
+          index,
+          (String value) => mutate(
+            (GlossScoreboardLine edited) =>
+                edited.value = value.isEmpty ? null : value,
+          ),
+        ),
+        HuiField(
+          label: huiText('Score format'),
+          control: ArcaneSelect(
+            value: line.format ?? '',
+            options: <ArcaneSelectOption>[
+              ArcaneSelectOption(value: '', label: huiText('Automatic')),
+              for (final String format in <String>[
+                'number',
+                'blank',
+                'fixed',
+                'styled',
+              ])
+                ArcaneSelectOption(value: format, label: format),
+            ],
+            onChanged: (String value) => mutate(
+              (GlossScoreboardLine edited) =>
+                  edited.format = value.isEmpty ? null : value,
+            ),
+          ),
+        ),
+      ],
+      _lineField(
+        'Show condition',
+        line.show.toString(),
+        index,
+        (String value) => mutate(
+          (GlossScoreboardLine edited) =>
+              edited.show = value.isEmpty || value == 'true'
+              ? true
+              : value == 'false'
+              ? false
+              : value,
+        ),
+      ),
+    ]),
+  ]);
+
+  Widget _lineField(
+    String label,
+    String value,
+    int index,
+    void Function(String) onChanged,
+  ) => HuiField(
+    label: huiText(label),
+    control: TextInput(
+      value: value,
+      size: ComponentSize.sm,
+      fullWidth: true,
+      onChanged: onChanged,
+      attributes: <String, String>{
+        'aria-label': '${huiText(label)} ${index + 1}',
+        'spellcheck': 'false',
+      },
+    ),
+  );
 }

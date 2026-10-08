@@ -108,12 +108,28 @@ List<HuiIssue> validateWaypointDoc(GlossWaypointDoc doc) {
       ),
     );
   }
-  if (!const <String>['default', 'bowtie'].contains(doc.style)) {
+  final bool validStyle =
+      const <String>['default', 'bowtie'].contains(doc.style) ||
+      (RegExp(r'^[a-z0-9_.-]+:[a-z0-9_./-]+$').hasMatch(doc.style) &&
+          !doc.style.contains('..') &&
+          !doc.style.contains('//') &&
+          !doc.style.contains(':/') &&
+          !doc.style.endsWith('/'));
+  if (!validStyle) {
     issues.add(
       const HuiIssue(
         severity: HuiSeverity.error,
         path: r'$.style',
-        message: 'Choose default or bowtie.',
+        message: 'Use default, bowtie, or a namespaced style key.',
+      ),
+    );
+  }
+  if (!const <String>['default', 'bowtie'].contains(doc.fallbackStyle)) {
+    issues.add(
+      const HuiIssue(
+        severity: HuiSeverity.error,
+        path: r'$.fallbackStyle',
+        message: 'Choose default or bowtie for the fallback.',
       ),
     );
   }

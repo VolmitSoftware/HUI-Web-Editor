@@ -33,6 +33,16 @@ final class _OverlayAnimations implements GlossAnimationResolver {
 }
 
 void main() {
+  test('snapshot read limit survives typed edits and export', () {
+    final GlossEntityOverlaysDoc doc = decodeGlossEntityOverlaysDoc(
+      '{"schemaVersion":2,"revision":7,"snapshotReadLimit":32000}');
+    doc.range = 27;
+    final GlossEntityOverlaysDoc copy = decodeGlossEntityOverlaysDoc(encodeGlossEntityOverlaysDoc(doc));
+    expect(copy.snapshotReadLimit, 32000);
+    expect(copy.range, 27);
+    expect(copy.revision, 7);
+  });
+
   test('native nametag override defaults off and preserves the rows', () {
     final GlossEntityOverlaysDoc defaults = GlossEntityOverlaysDoc();
     expect(defaults.overrideNametag, isFalse);
@@ -103,7 +113,7 @@ void main() {
         schema['properties']! as Map<String, Object?>;
     final Map<String, Object?> actual = GlossEntityOverlaysDoc().toJson();
     expect(actual, GlossEntityOverlaysDoc.fromJson(expected).toJson());
-    expect(properties.keys, unorderedEquals(<String>{...actual.keys, 'variants'}));
+    expect(properties.keys, unorderedEquals(<String>{...actual.keys, 'variants', 'preset'}));
     for (final MapEntry<String, Object?> entry in properties.entries) {
       final Map<String, Object?> property =
           entry.value! as Map<String, Object?>;

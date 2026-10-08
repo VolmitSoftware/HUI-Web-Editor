@@ -81,6 +81,11 @@ class _ChannelViewState extends State<ChannelView> {
         value: _allowed,
         onChanged: (bool value) => setState(() => _allowed = value),
       ),
+      if (preview.filterNotice != null)
+        dom.p(
+          attributes: const <String, String>{'role': 'status'},
+          <Widget>[Text(preview.filterNotice!)],
+        ),
       Text(
         preview.mentioned && doc.mentions.sound.isNotEmpty
             ? 'Tagged player sound: ${doc.mentions.sound}'

@@ -33,6 +33,7 @@ class ChannelFieldsEditor extends StatelessWidget {
     'links' => GlossChannelLinks().toJson(),
     'mentions' => GlossChannelMentions().toJson(),
     'throttle' => GlossChannelThrottle().toJson(),
+    'filtering' => GlossChannelFiltering().toJson(),
     _ => <String, Object?>{},
   };
   Map<String, Object?> _map(String key) => value[key] is Map
@@ -198,6 +199,62 @@ class ChannelFieldsEditor extends StatelessWidget {
             }),
         ],
       ),
+      _block('filtering', 'Filter policy', (Map<String, Object?> raw) {
+        final Map<String, Object?> block = <String, Object?>{
+          ...GlossChannelFiltering().toJson(),
+          ...raw,
+        };
+        return <Widget>[
+          HuiField(
+            label: huiText('Pattern syntax'),
+            help: huiText(
+              'RE2 expressions. Lookaround and backreferences are unsupported. Replacements are literal.',
+            ),
+            control: dom.span(<Widget>[Text('${block['syntax']}')]),
+          ),
+          for (final MapEntry<String, String> field in const <String, String>{
+            'maxInputCharacters': 'Maximum input characters',
+            'maxOutputCharacters': 'Maximum output characters',
+            'maxPatternCharacters': 'Maximum pattern characters',
+            'maxReplacementCharacters': 'Maximum replacement characters',
+            'maxFilters': 'Maximum filters',
+            'maxMatches': 'Maximum matches',
+            'maxProgramSize': 'Maximum expression program size',
+            'maxNestingDepth': 'Maximum expression nesting',
+            'maxWorkUnits': 'Maximum search work units',
+            'budgetMicros': 'Elapsed target in microseconds',
+          }.entries)
+            _text(field.value, '${block[field.key]}', (String text) {
+              final int? number = int.tryParse(text);
+              if (number != null) {
+                _set('filtering', <String, Object?>{
+                  ...block,
+                  field.key: number,
+                });
+              }
+            }),
+          HuiField(
+            label: huiText('When a filter limit is reached'),
+            help: huiText(
+              'Drop requires all filters to finish. Keep completed may deliver text that later filters would remove. Oversized input always drops.',
+            ),
+            control: HuiSegmented(
+              value: '${block['onLimit']}',
+              segments: <HuiSegment>[
+                HuiSegment(value: 'drop', label: huiText('Drop message')),
+                HuiSegment(
+                  value: 'keep-completed',
+                  label: huiText('Keep completed'),
+                ),
+              ],
+              onChanged: (String policy) => _set('filtering', <String, Object?>{
+                ...block,
+                'onLimit': policy,
+              }),
+            ),
+          ),
+        ];
+      }),
       InspectorSection(
         title: huiText('Message filters'),
         children: <Widget>[
@@ -212,7 +269,7 @@ class ChannelFieldsEditor extends StatelessWidget {
             for (int index = 0; index < filters.length; index++) ...<Widget>[
               for (final String key in <String>['match', 'replace'])
                 _text(
-                  key == 'match' ? 'Pattern' : 'Replacement',
+                  key == 'match' ? 'RE2 pattern' : 'Literal replacement',
                   '${huiReadObject(filters[index], 'filter')[key] ?? ''}',
                   (String text) {
                     final List<Object?> next = List<Object?>.of(filters);

@@ -26,6 +26,7 @@ import 'inspector_widgets.dart';
 import 'gloss_visibility_editor.dart';
 import '../../logic/gloss_show.dart';
 import 'line_list_section.dart';
+import 'motd_policy_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
 
 class MotdInspector extends StatefulWidget {
@@ -74,6 +75,7 @@ class _MotdInspectorState extends State<MotdInspector> {
     return dom.div(classes: 'hui-inspector-body is-motd', <Widget>[
       _header(doc),
       _favicon(doc),
+      MotdDocumentPolicies(store: _store),
       GlossVisibilityEditor(
         raw: doc.extras['show'],
         sectionKey: 'motd.visibility',
@@ -90,22 +92,27 @@ class _MotdInspectorState extends State<MotdInspector> {
     ]);
   }
 
-  Widget _header(GlossMotdDoc doc) =>
-      dom.div(classes: 'hui-inspector-headgroup', <Widget>[
-        dom.div(classes: 'hui-inspector-header is-motd', <Widget>[
-          HuiEyebrow(huiText('MOTD')),
-          dom.div(classes: 'hui-inspector-title-row', <Widget>[
-            dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
-              Text(_store.menuId),
-            ]),
-            const HuiFieldHelp('motd.id'),
-          ]),
+  Widget _header(
+    GlossMotdDoc doc,
+  ) => dom.div(classes: 'hui-inspector-headgroup', <Widget>[
+    dom.div(classes: 'hui-inspector-header is-motd', <Widget>[
+      HuiEyebrow(huiText('MOTD')),
+      dom.div(classes: 'hui-inspector-title-row', <Widget>[
+        dom.h2(classes: 'hui-inspector-title hui-ltr', <Widget>[
+          Text(_store.menuId),
         ]),
-        dom.p(classes: 'hui-inspector-lede', <Widget>[
-          Text(huiText('Each ping chooses a visible entry using its weight.')),
-        ]),
-        HuiRevisionRow(revision: doc.revision),
-      ]);
+        const HuiFieldHelp('motd.id'),
+      ]),
+    ]),
+    dom.p(classes: 'hui-inspector-lede', <Widget>[
+      Text(
+        huiText(
+          'Each status request selects an eligible entry using the response policy.',
+        ),
+      ),
+    ]),
+    HuiRevisionRow(revision: doc.revision),
+  ]);
 
   /// The document-wide server-list icon. A path under
   /// `plugins/Gloss/images/`, the same library every menu image comes from,
@@ -212,9 +219,7 @@ class _MotdInspectorState extends State<MotdInspector> {
     itemCount: doc.links.length,
     issues: _issuesFor(r'$.links'),
     description: huiText(
-      'Up to {maximum} entries the client lists in its pause menu. Players '
-      'who are already connected keep the list the server held when they '
-      'joined.',
+      'Up to {maximum} pause-menu links, refreshed for connected players. Independent server links take precedence when configured.',
       <String, Object?>{'maximum': glossMotdMaxLinks},
     ),
     emptyBody: huiText(
@@ -641,6 +646,7 @@ class _MotdInspectorState extends State<MotdInspector> {
           },
         ),
       ),
+      MotdEntryPolicies(store: _store, index: index),
       _entryFavicon(entry, index),
       _sample(entry, index),
       _pingExtras(entry, index),

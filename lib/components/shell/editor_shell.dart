@@ -721,7 +721,10 @@ class _CenterArea extends StatelessWidget {
   static String _surfaceCellClass(DocumentSurface surface) => switch (surface) {
     DocumentSurface.names => 'is-names',
     DocumentSurface.strings => 'is-strings',
+    DocumentSurface.presets => 'is-presets',
     DocumentSurface.waypoint => 'is-waypoint',
+    DocumentSurface.glyph => 'is-glyph',
+      DocumentSurface.behavior => 'is-behavior',
     DocumentSurface.canvas => 'is-canvas',
     DocumentSurface.previewCard => 'is-preview-card',
     DocumentSurface.panel => 'is-board',

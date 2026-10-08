@@ -121,6 +121,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
     this.updateIntervalTicks = 5,
     this.maxEntitiesPerViewer = 16,
     this.maxActiveOverlays = 1024,
+    this.snapshotReadLimit = 4096,
     this.includePlayers = true,
     this.overrideNametag = false,
     this.verticalOffset = 0.35,
@@ -151,6 +152,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
   int updateIntervalTicks;
   int maxEntitiesPerViewer;
   int maxActiveOverlays;
+  int snapshotReadLimit;
   bool includePlayers;
   bool overrideNametag;
   double verticalOffset;
@@ -189,6 +191,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
         fallback: 16,
       ),
       maxActiveOverlays: huiReadInt(map, 'maxActiveOverlays', fallback: 1024),
+      snapshotReadLimit: huiReadInt(map, 'snapshotReadLimit', fallback: 4096),
       includePlayers:
           map['includePlayers'] == null || huiReadBool(map, 'includePlayers'),
       overrideNametag: huiReadBool(map, 'overrideNametag'),
@@ -249,6 +252,7 @@ final class GlossEntityOverlaysDoc extends GlossDoc {
     'updateIntervalTicks': updateIntervalTicks,
     'maxEntitiesPerViewer': maxEntitiesPerViewer,
     'maxActiveOverlays': maxActiveOverlays,
+    'snapshotReadLimit': snapshotReadLimit,
     'includePlayers': includePlayers,
     'overrideNametag': overrideNametag,
     'verticalOffset': verticalOffset,

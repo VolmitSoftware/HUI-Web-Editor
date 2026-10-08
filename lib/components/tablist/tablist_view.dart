@@ -29,7 +29,6 @@ import 'package:jaspr/dom.dart' as dom;
 import '../../logic/gloss_text.dart';
 import '../../logic/tablist_selection.dart';
 import '../../logic/tablist_layout_preview.dart';
-import '../../logic/gloss_show.dart';
 import '../../logic/preview_expr.dart';
 import '../../model/model.dart';
 import '../../state/editor_store.dart';
@@ -150,6 +149,18 @@ class _TablistViewState extends State<TablistView> {
       for (final GlossTablistListNameVariant variant in doc.listNames.variants)
         variant.presentation.format,
     ];
+    for (final GlossTabPresentation presentation in <GlossTabPresentation>[
+      if (doc.layout != null) doc.layout!,
+      for (final GlossTabLayoutVariant variant
+          in doc.layout?.variants ?? const <GlossTabLayoutVariant>[])
+        variant.presentation,
+    ]) {
+      text.addAll(presentation.slots.map((GlossTabSlot slot) => slot.text));
+      for (final GlossTabSection section in presentation.sections) {
+        text.add(section.overflowFormat);
+        if (section.format != null) text.add(section.format!);
+      }
+    }
     for (final String value in text) {
       if (renderGlossLine(value, animations: animations).isAnimated) {
         return true;
@@ -209,7 +220,8 @@ class _TablistViewState extends State<TablistView> {
       _isAnimated(doc, animations) ||
           doc.extras['show'] is String ||
           doc.headerFooter.extras['show'] is String ||
-          doc.listNames.extras['show'] is String,
+          doc.listNames.extras['show'] is String ||
+          (doc.layout?.enabled ?? false),
     );
     final int nowMs = DateTime.now().millisecondsSinceEpoch;
     final GlossConditionContext viewerContext = _conditionContext();
@@ -232,28 +244,16 @@ class _TablistViewState extends State<TablistView> {
         ]),
     ];
 
-    final GlossTabLayout? layout = doc.layout;
-    final bool layoutVisible =
-        layout != null &&
-        layout.enabled &&
-        glossShowMatches(layout.show, scope: viewerContext, nowMs: nowMs);
-    final List<_MockPlayer> listed = <_MockPlayer>[
-      for (final _MockPlayer player in _players)
-        if (!layoutVisible ||
-            layout.players == null ||
-            glossShowMatches(
-              layout.players!.filter,
-              scope: _conditionContext(
-                subjectName: player.name,
-                subjectGroup: player.group,
-                subjectOp: player.op,
-              ),
-              nowMs: nowMs,
-            ))
-          player,
-    ];
+    final GlossTabPresentation? layout = glossResolveTabLayout(
+      doc.layout,
+      viewerContext,
+      nowMs: nowMs,
+      documentShow: doc.extras['show'],
+    );
+    final bool layoutVisible = layout != null;
+    final List<_MockPlayer> listed = List<_MockPlayer>.of(_players);
+    final Map<String, double> weights = <String, double>{};
     if (layoutVisible) {
-      final Map<String, double> weights = <String, double>{};
       final Object? sort = doc.extras['sort'];
       if (sort is Map && sort['enabled'] == true && sort['weight'] is String) {
         try {
@@ -286,7 +286,28 @@ class _TablistViewState extends State<TablistView> {
         GlossTabPreviewCell(_listNameRaw(doc, player), player.pingBars),
     ];
     final List<GlossTabPreviewCell> cells = layoutVisible
-        ? glossTabLayoutCells(layout, playerCells)
+        ? glossTabLayoutCells(
+            layout,
+            <GlossTabPreviewPlayer>[
+              for (final _MockPlayer player in listed)
+                GlossTabPreviewPlayer(
+                  name: player.name,
+                  group: player.group ?? '',
+                  cell: GlossTabPreviewCell(
+                    _listNameRaw(doc, player),
+                    player.pingBars,
+                  ),
+                  order: weights[player.name] ?? 0,
+                  scope: _conditionContext(
+                    subjectName: player.name,
+                    subjectGroup: player.group,
+                    subjectOp: player.op,
+                  ),
+                ),
+            ],
+            viewerScope: viewerContext,
+            nowMs: nowMs,
+          )
         : playerCells;
     final Widget screen = dom.div(classes: 'hui-tablist-screen', <Widget>[
       if (glossTablistHeaderFooterVisible(doc, viewerContext, nowMs: nowMs))

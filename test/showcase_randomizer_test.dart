@@ -28,7 +28,9 @@ import 'package:test/test.dart';
 
 extension on GlossScoreboardDoc {
   String get title => presentation.title;
-  List<String> get lines => presentation.lines;
+  List<String> get lines => <String>[
+    for (final GlossScoreboardLine line in presentation.lines) line.text,
+  ];
   bool get hideNumbers => presentation.hideNumbers;
 }
 
@@ -121,6 +123,25 @@ void main() {
             : 0,
         reason: type.noun,
       );
+    }
+  });
+
+  test('authoring catalogs do not offer or apply showcase randomization', () {
+    for (final DocumentTypeAdapter type in DocumentTypeRegistry.all) {
+      if (type.hasRuntimePreview) continue;
+      final EditorStore store = _store();
+      type.createNew(store);
+      final WorkspaceDoc document = store.workspace.active!;
+      final String before = document.json;
+      expect(canRandomizeShowcase(type), isFalse, reason: type.noun);
+      if (type is! PanelDocumentType) {
+        expect(canRandomizeShowcase(type, linkedPanel: true), isFalse,
+            reason: type.noun);
+      }
+      expect(randomizeShowcaseDocument(store, document.id), isFalse,
+          reason: type.noun);
+      expect(store.workspace.active!.json, before, reason: type.noun);
+      expect(store.canUndo, isFalse, reason: type.noun);
     }
   });
 
@@ -1213,7 +1234,9 @@ void main() {
 
   test('every runtime kind has a teaching template', () {
     for (final DocumentTypeAdapter type in DocumentTypeRegistry.all) {
-      if (type.kind == WorkspaceDocKind.panel) continue;
+      if (!type.hasRuntimePreview || type.kind == WorkspaceDocKind.panel) {
+        continue;
+      }
       expect(
         type.templateSections.expand(
           (DocumentTemplateSection section) => section.templates,

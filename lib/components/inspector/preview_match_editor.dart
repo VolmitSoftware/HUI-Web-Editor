@@ -63,23 +63,64 @@ class PreviewMatchEditor extends StatelessWidget {
   void _mutate(String label, void Function(HuiPreviewDoc doc) fn) =>
       store.mutatePreview(label, fn);
 
+  Widget _refreshField(
+    String label,
+    int value,
+    void Function(HuiPreviewDoc doc, int value) update,
+  ) => HuiField(
+    label: huiText(label),
+    control: TextInput(
+      value: '$value',
+      attributes: <String, String>{'aria-label': label, 'inputmode': 'numeric'},
+      onChanged: (String text) {
+        final int? parsed = int.tryParse(text);
+        if (parsed != null) {
+          _mutate(label, (HuiPreviewDoc doc) => update(doc, parsed));
+        }
+      },
+    ),
+  );
+
   @override
   Widget build(
     BuildContext context,
   ) => dom.div(classes: 'hui-inspector-body is-menu', <Widget>[
     _header(),
     ExtrasEditor(
-        title: huiText('Settings'),
-        extensionKeys: false,
-        extras: <String, Object?>{'scale': _doc.scale, 'viewDistance': _doc.viewDistance},
-        onChanged: (String label, Map<String, dynamic> next) => _mutate(
-          label, (HuiPreviewDoc edited) {
-            edited.scale = huiReadDouble(next, 'scale', fallback: 0.65);
-            edited.viewDistance = huiReadDouble(next, 'viewDistance', fallback: 10);
-          },
+      title: huiText('Settings'),
+      extensionKeys: false,
+      extras: <String, Object?>{
+        'scale': _doc.scale,
+        'viewDistance': _doc.viewDistance,
+      },
+      onChanged: (String label, Map<String, dynamic> next) => _mutate(label, (
+        HuiPreviewDoc edited,
+      ) {
+        edited.scale = huiReadDouble(next, 'scale', fallback: 0.65);
+        edited.viewDistance = huiReadDouble(next, 'viewDistance', fallback: 10);
+      }),
+    ),
+    InspectorSection(
+      title: huiText('Refresh'),
+      children: <Widget>[
+        _refreshField(
+          'Content refresh ticks',
+          _doc.contentRefreshTicks ?? 4,
+          (HuiPreviewDoc doc, int value) => doc.contentRefreshTicks = value,
         ),
-      ),
-      _matchSection(),
+        _refreshField(
+          'Access check ticks',
+          _doc.accessCheckTicks ?? 10,
+          (HuiPreviewDoc doc, int value) => doc.accessCheckTicks = value,
+        ),
+        HuiNote(
+          huiText(
+            'Use 1–1200 ticks. Access checks also refresh content; lower values detect protection changes sooner.',
+          ),
+        ),
+      ],
+    ),
+    _matchSection(),
     _variantsSection(),
     _cardSection(),
     DisplayStyleEditor(

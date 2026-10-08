@@ -17,6 +17,7 @@ import 'real_drop_animation_inspector.dart';
 import 'reorder_list.dart';
 import 'particle_layers_editor.dart';
 import 'display_style_editor.dart';
+import 'display_refresh_editor.dart';
 import 'hologram_box_editor.dart';
 import 'gloss_visibility_editor.dart';
 import 'package:gloss_editor/l10n/hui_localizations.dart';
@@ -678,6 +679,8 @@ class _RealDropInspectorState extends State<RealDropInspector> {
             ),
       ),
       _bundle(doc.labels.bundle),
+      DisplayRefreshEditor(refresh: doc.labels.refresh, onChanged: (String label, GlossDisplayRefresh next) =>
+        _mutatePresentation(label, (GlossRealDropPresentation edited) => edited.labels.refresh = next)),
       DisplayStyleEditor(
         style: doc.labels.style,
         defaults: defaultRealDropLabelStyle(),

@@ -3,6 +3,7 @@ library;
 import 'dart:convert';
 
 import 'gloss_doc.dart';
+import 'gloss_display_refresh.dart';
 import 'gloss_hologram_box.dart';
 import 'hui_icons.dart';
 import 'gloss_real_drop_animation.dart';
@@ -408,13 +409,15 @@ final class GlossRealDropLabels {
     this.format = glossRealDropLabelFormatDefault,
     this.useItemDisplayNames = false,
     this.preserveCustomNames = true,
+    GlossDisplayRefresh? refresh,
     this.show = true,
     Map<String, String>? names,
     GlossRealDropLabelBundle? bundle,
     HuiIconStyle? style,
     GlossHologramBox? box,
     Map<String, Object?>? extras,
-  }) : names = names ?? <String, String>{},
+  }) : refresh = refresh ?? GlossDisplayRefresh(),
+       names = names ?? <String, String>{},
        bundle = bundle ?? GlossRealDropLabelBundle(),
        style = style ?? defaultRealDropLabelStyle(),
        box = box ?? GlossHologramBox(),
@@ -425,6 +428,7 @@ final class GlossRealDropLabels {
   String format;
   bool useItemDisplayNames;
   bool preserveCustomNames;
+  GlossDisplayRefresh refresh;
   Object? show;
 
   /// Material to `{type}` name, in file order. Kept as typed; the server trims
@@ -448,6 +452,7 @@ final class GlossRealDropLabels {
       ),
       useItemDisplayNames: huiReadBool(map, 'useItemDisplayNames'),
       preserveCustomNames: map['preserveCustomNames'] == null || huiReadBool(map, 'preserveCustomNames'),
+      refresh: GlossDisplayRefresh.fromJson(map['refresh']),
       show: huiDeepCopy(map['show'] ?? true),
       names: _readNames(map['names']),
       bundle: GlossRealDropLabelBundle.fromJson(map['bundle']),
@@ -457,7 +462,7 @@ final class GlossRealDropLabels {
         'enabled',
         'yOffset',
         'format',
-        'useItemDisplayNames', 'preserveCustomNames', 'show',
+        'useItemDisplayNames', 'preserveCustomNames', 'show', 'refresh',
         'names',
         'bundle',
         'style',
@@ -481,6 +486,7 @@ final class GlossRealDropLabels {
     'format': format,
     'useItemDisplayNames': useItemDisplayNames,
     if (!preserveCustomNames) 'preserveCustomNames': preserveCustomNames,
+    if (!refresh.isEmpty) 'refresh': refresh.toJson(),
     if (show != true) 'show': huiDeepCopy(show),
     'names': Map<String, String>.of(names),
     'bundle': bundle.toJson(),

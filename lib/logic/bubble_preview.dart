@@ -44,6 +44,7 @@ final class GlossBubblePreviewTimeline {
     : _show = style.extras['show'],
       _spread = spread ?? style.stackDistance.clamp(0.05, 2),
       _maxPerSender = style.maxPerSender.clamp(1, 64),
+      _rejectNew = style.overflow.trim().toLowerCase() == 'reject-new',
       _maxAliveMs = style.effectiveMaxAliveMs,
       _prefix = style.effectivePrefix,
       _motion = _compileMotion(style.motion),
@@ -80,6 +81,7 @@ final class GlossBubblePreviewTimeline {
   final double _spread;
   final int _maxAliveMs;
   final int _maxPerSender;
+  final bool _rejectNew;
   final String _prefix;
   final GlossBubbleMotionProgram? _motion;
   final GlossBubbleShimmer _shimmer;
@@ -92,13 +94,17 @@ final class GlossBubblePreviewTimeline {
       return const <GlossBubblePreviewBubble>[];
     }
     final int cycle = _periodMs <= 0 ? 0 : nowMs % _periodMs;
-    final List<_BubbleSpawn> live = <_BubbleSpawn>[
-      for (final _BubbleSpawn spawn in _spawns)
-        if (cycle >= spawn.at && cycle < spawn.at + _maxAliveMs) spawn,
-    ];
-    if (live.length > _maxPerSender) {
-      live.removeRange(0, live.length - _maxPerSender);
+    final List<_BubbleSpawn> live = <_BubbleSpawn>[];
+    for (final _BubbleSpawn spawn in _spawns) {
+      if (spawn.at > cycle) break;
+      live.removeWhere((_BubbleSpawn prior) => spawn.at >= prior.at + _maxAliveMs);
+      if (live.length >= _maxPerSender) {
+        if (_rejectNew) continue;
+        live.removeAt(0);
+      }
+      live.add(spawn);
     }
+    live.removeWhere((_BubbleSpawn spawn) => cycle >= spawn.at + _maxAliveMs);
     final List<int> lineCounts = <int>[
       for (final _BubbleSpawn spawn in live) spawn.lineCount,
     ];

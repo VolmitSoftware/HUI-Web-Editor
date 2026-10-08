@@ -205,6 +205,93 @@ HuiIconStyle createDefaultIconStyle() => HuiIconStyle();
 /// Default action for [actionType]; unknown types fall back to a command.
 HuiAction createDefaultAction(String actionType) {
   switch (actionType) {
+    case 'sequence':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'steps': <Object?>[
+          <String, Object?>{'type': 'message', 'message': 'Hello'},
+        ],
+      });
+    case 'parallel':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'branches': <Object?>[<Object?>[]],
+      });
+    case 'repeat':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'times': 1,
+        'steps': <Object?>[],
+      });
+    case 'if':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'when': 'true',
+        'then': <Object?>[],
+        'else': <Object?>[],
+      });
+    case 'switch':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'on': "'default'",
+        'cases': <String, Object?>{'default': <Object?>[]},
+      });
+    case 'chance':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'percent': 50,
+        'then': <Object?>[],
+        'else': <Object?>[],
+      });
+    case 'delay':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'ticks': 20,
+      });
+    case 'cooldown':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'key': 'action',
+        'ticks': 20,
+        'then': <Object?>[],
+        'else': <Object?>[],
+      });
+    case 'setState':
+    case 'addState':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'key': 'counter',
+        'value': actionType == 'setState' ? '0' : '1',
+      });
+    case 'clearState':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'key': 'counter',
+      });
+    case 'emit':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': actionType,
+        'name': 'event',
+      });
+    case 'stop':
+      return HuiRuntimeAction.fromMap(<String, Object?>{'type': actionType});
+    case 'call':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': 'call',
+        'action': '',
+      });
+    case 'dialog':
+      return HuiRuntimeAction.fromMap(<String, Object?>{
+        'type': 'dialog',
+        'title': 'Choose an option',
+        'kind': 'notice',
+        'body': <Object?>[
+          <String, Object?>{'text': 'Read this message before continuing.'},
+        ],
+        'buttons': <Object?>[
+          <String, Object?>{'label': 'Continue', 'actions': <Object?>[]},
+        ],
+      });
     case 'sound':
       return HuiSoundAction('ui.button.click', 'master', 1, 1);
     case 'navigate':

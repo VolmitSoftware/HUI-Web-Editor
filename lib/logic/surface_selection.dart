@@ -17,6 +17,8 @@ import 'preview_expr.dart';
 
 /// Why a surface draws nothing for the sampled viewer.
 enum GlossSurfaceSilence {
+  eventOnly,
+
   /// The document `show` condition is false right now.
   documentHidden,
 
@@ -45,6 +47,7 @@ GlossSurfaceSilence? glossSurfaceSilence(
   GlossConditionContext? context,
   int nowMs = 0,
 }) {
+  if (doc.extras['automatic'] == false) return GlossSurfaceSilence.eventOnly;
   final GlossConditionContext scope = context ?? glossSurfaceSampleContext();
   if (!glossShowMatches(doc.extras['show'], scope: scope, nowMs: nowMs)) {
     return GlossSurfaceSilence.documentHidden;

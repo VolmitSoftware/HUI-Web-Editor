@@ -2,10 +2,8 @@
 /// way the client draws it.
 ///
 /// The title and rows render through Gloss's text pipeline as complete modern
-/// components without character truncation. An empty title is not blank in
-/// game — `GlossBoardMeta.fromDoc` falls back to the board id — so the preview
-/// shows the id too. At most 15 lines reach the client. The dimmed score column
-/// stands in for the vanilla sidebar's row scores.
+/// components without character truncation. Empty titles stay blank. At most
+/// 15 visible lines reach the client, with each row's authored score format.
 ///
 /// With `gameContext` the sidebar mounts into the shared game-screen frame at
 /// the right edge, where the client actually draws it; without it the surface
@@ -17,6 +15,7 @@
 library;
 
 import '../../logic/gloss_show.dart';
+import '../../logic/scoreboard_layout.dart';
 import 'dart:async';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
@@ -104,6 +103,17 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     GlossScoreboardPresentation presentation,
     GlossAnimationResolver animations,
   ) {
+    final Object? layout = presentation.extras['layout'];
+    if (layout is Map &&
+        layout['pages'] is List &&
+        (layout['pages']! as List).isNotEmpty) {
+      return true;
+    }
+    if (presentation.lines.any(
+      (GlossScoreboardLine row) => row.show is String || row.section != null,
+    )) {
+      return true;
+    }
     if (renderGlossLine(
       _effectiveTitle(presentation),
       animations: animations,
@@ -115,7 +125,13 @@ class _ScoreboardViewState extends State<ScoreboardView> {
         : presentation.lines.length;
     for (int index = 0; index < rendered; index++) {
       if (renderGlossLine(
-        presentation.lines[index],
+        presentation.lines[index].value ?? '',
+        animations: animations,
+      ).isAnimated) {
+        return true;
+      }
+      if (renderGlossLine(
+        presentation.lines[index].text,
         animations: animations,
       ).isAnimated) {
         return true;
@@ -143,23 +159,23 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     final GlossAnimationResolver animations = _store.workspaceAnimations;
     final GlossEmojiResolver emoji = _store.workspaceEmoji;
     final GlossConditionContext conditionContext = _conditionContext();
-    final GlossScoreboardPresentation presentation =
+    final GlossScoreboardPresentation authored =
         glossResolveScoreboardPresentation(doc, conditionContext);
+    final int nowMs = DateTime.now().millisecondsSinceEpoch;
+    final GlossScoreboardPresentation presentation =
+        glossResolveScoreboardLayout(authored, conditionContext, nowMs);
     final String? variantId = glossResolveScoreboardVariantId(
       doc,
       conditionContext,
     );
     _syncTicker(
-      _isAnimated(presentation, animations) || doc.extras['show'] is String,
+      _isAnimated(authored, animations) || doc.extras['show'] is String,
     );
-    final int nowMs = DateTime.now().millisecondsSinceEpoch;
-
     final int rendered = presentation.lines.length > glossBoardMaxLines
         ? glossBoardMaxLines
         : presentation.lines.length;
     final int clipped = presentation.lines.length - rendered;
     final String title = _effectiveTitle(presentation);
-    final bool titleFellBack = presentation.title.isEmpty;
 
     final Widget sidebar = dom.div(
       styles: dom.Styles(
@@ -189,19 +205,31 @@ class _ScoreboardViewState extends State<ScoreboardView> {
             dom.span(classes: 'hui-scoreboard-row-text', <Widget>[
               GlossTextLine(
                 render: renderGlossScoreboardLine(
-                  presentation.lines[index],
+                  presentation.lines[index].text,
                   animations: animations,
                   emoji: emoji,
                   nowMs: nowMs,
                 ),
               ),
             ]),
-            if (!presentation.hideNumbers)
+            if (glossScoreboardValue(
+                  presentation.lines[index],
+                  index,
+                  presentation.hideNumbers,
+                ) !=
+                null)
               dom.span(classes: 'hui-scoreboard-score', <Widget>[
-                Text(
-                  huiText("{glossBoardScoreForRow}", <String, Object?>{
-                    'glossBoardScoreForRow': glossBoardScoreForRow(index),
-                  }),
+                GlossTextLine(
+                  render: renderGlossScoreboardLine(
+                    glossScoreboardValue(
+                      presentation.lines[index],
+                      index,
+                      presentation.hideNumbers,
+                    )!,
+                    animations: animations,
+                    emoji: emoji,
+                    nowMs: nowMs,
+                  ),
                 ),
               ]),
           ]),
@@ -251,7 +279,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
         ],
       ),
       dom.div(classes: 'hui-scoreboard-readout', <Widget>[
-        Text(_readout(presentation, variantId, clipped, titleFellBack)),
+        Text(_readout(presentation, variantId, clipped)),
       ]),
       _conditionControls(),
       ScoreboardSelectionSimulator(store: _store, context: conditionContext),
@@ -282,7 +310,6 @@ class _ScoreboardViewState extends State<ScoreboardView> {
     GlossScoreboardPresentation presentation,
     String? variantId,
     int clipped,
-    bool titleFellBack,
   ) {
     final List<String> parts = <String>[
       variantId == null
@@ -294,7 +321,6 @@ class _ScoreboardViewState extends State<ScoreboardView> {
               'still draw the red column',
             )
           : huiText('score numbers visible'),
-      if (titleFellBack) huiText('blank title falls back to the board id'),
       if (clipped > 0)
         huiPlural(
           'scoreboard.readout.clipped-lines',
@@ -307,7 +333,7 @@ class _ScoreboardViewState extends State<ScoreboardView> {
   }
 
   String _effectiveTitle(GlossScoreboardPresentation presentation) =>
-      presentation.title.isEmpty ? _store.menuId : presentation.title;
+      presentation.title;
 
   GlossConditionContext _conditionContext() {
     final Set<String> groups = _groups

@@ -153,10 +153,10 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     body:
         'Defines the type of action. Accepted values: command, sound, '
         'message, teleport, connect, navigate, title, actionbar, bossbar, '
-        'close, inventory, setSession, prompt, book, give, take, economy, '
-        'delay, sequence, parallel, repeat, if, switch, chance, cooldown, '
-        'emit, broadcast, effect, particle, stop, setState, addState, '
-        'clearState, sky, camera, glow.',
+        'surface, close, inventory, setSession, prompt, dialog, book, '
+        'give, take, economy, delay, call, sequence, parallel, repeat, '
+        'if, switch, chance, cooldown, emit, broadcast, effect, particle, '
+        'stop, setState, addState, clearState, sky, camera, glow.',
     citation: 'gloss.schema.json#/\$defs/action/properties/type',
   ),
   'action.when': HuiFieldDoc(
@@ -300,12 +300,31 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'minecraft. The resolved material must be a block.',
     citation: 'gloss.schema.json#/\$defs/blockIcon/properties/block',
   ),
+  'icon.block.lore': HuiFieldDoc(
+    title: 'Lore',
+    body: 'Inventory item lore. Supports expressions and colors.',
+    citation: 'gloss.schema.json#/\$defs/blockIcon/properties/lore',
+  ),
+  'icon.block.name': HuiFieldDoc(
+    title: 'Name',
+    body:
+        'Display name for the inventory item. Supports expressions and '
+        'colors.',
+    citation: 'gloss.schema.json#/\$defs/blockIcon/properties/name',
+  ),
   'icon.customItem.count': HuiFieldDoc(
     title: 'Count',
     body:
         'Defines the count of the resolved item stack. Zero and negative '
         'values become 1.',
     citation: 'gloss.schema.json#/\$defs/customItemIcon/properties/count',
+  ),
+  'icon.customItem.countFormat': HuiFieldDoc(
+    title: 'Count format',
+    body:
+        'Stack badge text. Supports {count}, colors and expressions. '
+        'Omitted, this is &f&l{count}.',
+    citation: 'gloss.schema.json#/\$defs/customItemIcon/properties/countFormat',
   ),
   'icon.customItem.item': HuiFieldDoc(
     title: 'Item',
@@ -351,6 +370,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'material.',
     citation: 'gloss.schema.json#/\$defs/itemIcon/properties/count',
   ),
+  'icon.item.countFormat': HuiFieldDoc(
+    title: 'Count format',
+    body:
+        'Stack badge text. Supports {count}, colors and expressions. '
+        'Omitted, this is &f&l{count}.',
+    citation: 'gloss.schema.json#/\$defs/itemIcon/properties/countFormat',
+  ),
   'icon.item.customModelValue': HuiFieldDoc(
     title: 'Custom model value',
     body:
@@ -362,6 +388,30 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Item',
     body: 'Defines the type of item displayed.',
     citation: 'gloss.schema.json#/\$defs/itemIcon/properties/item',
+  ),
+  'icon.item.lore': HuiFieldDoc(
+    title: 'Lore',
+    body: 'Inventory item lore. Supports expressions and colors.',
+    citation: 'gloss.schema.json#/\$defs/itemIcon/properties/lore',
+  ),
+  'icon.item.name': HuiFieldDoc(
+    title: 'Name',
+    body:
+        'Display name for the inventory item. Supports expressions and '
+        'colors.',
+    citation: 'gloss.schema.json#/\$defs/itemIcon/properties/name',
+  ),
+  'icon.playerHead.lore': HuiFieldDoc(
+    title: 'Lore',
+    body: 'Inventory item lore. Supports expressions and colors.',
+    citation: 'gloss.schema.json#/\$defs/playerHeadIcon/properties/lore',
+  ),
+  'icon.playerHead.name': HuiFieldDoc(
+    title: 'Name',
+    body:
+        'Display name for the inventory item. Supports expressions and '
+        'colors.',
+    citation: 'gloss.schema.json#/\$defs/playerHeadIcon/properties/name',
   ),
   'icon.playerHead.player': HuiFieldDoc(
     title: 'Player',
@@ -520,6 +570,14 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'animatedTextImage, item, block, customItem, entity, playerHead.',
     citation: 'gloss.schema.json#/\$defs/icon/properties/type',
   ),
+  'menu.actions': HuiFieldDoc(
+    title: 'Actions',
+    body:
+        'Named action lists invoked with call. Cycles, more than 32 '
+        'nested calls and expanded documents over 100000 JSON nodes are '
+        'rejected.',
+    citation: 'gloss.schema.json#/properties/actions',
+  ),
   'menu.closeOnDeath': HuiFieldDoc(
     title: 'Close on death',
     body:
@@ -587,6 +645,14 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'Starting values for session.<name>. Each value is a constant '
         'expression; anything that needs live state is ignored.',
     citation: 'gloss.schema.json#/properties/vars',
+  ),
+  'preview.accessCheckTicks': HuiFieldDoc(
+    title: 'Access check ticks',
+    body:
+        'Ticks between container protection checks; cannot be disabled. '
+        'Lower values detect changed access sooner. Accepted range: 1 '
+        'through 1200. Omitted, this is 10.',
+    citation: 'gloss-preview.schema.json#/properties/accessCheckTicks',
   ),
   'preview.card': HuiFieldDoc(
     title: 'Card',
@@ -693,6 +759,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'Omitted, this is 4.',
     citation: 'gloss-preview.schema.json#/\$defs/card/properties/trayPadding',
   ),
+  'preview.contentRefreshTicks': HuiFieldDoc(
+    title: 'Content refresh ticks',
+    body:
+        'Ticks between live content refreshes. Access checks also refresh '
+        'content. Accepted range: 1 through 1200. Omitted, this is 4.',
+    citation: 'gloss-preview.schema.json#/properties/contentRefreshTicks',
+  ),
   'preview.element.background': HuiFieldDoc(
     title: 'Background',
     body:
@@ -709,9 +782,10 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Color',
     body:
         'Fill colour. Required for types panel and cell. On a cell this '
-        'is one of the only two live fields: it is re-evaluated every '
-        'four ticks while the preview is on screen. On a panel it is '
-        'evaluated once when the preview is built.',
+        'is one of the only two live fields: it is re-evaluated at '
+        'contentRefreshTicks and on access rechecks while the preview is '
+        'on screen. On a panel it is evaluated once when the preview is '
+        'built.',
     citation: 'gloss-preview.schema.json#/\$defs/element/properties/color',
   ),
   'preview.element.height': HuiFieldDoc(
@@ -752,12 +826,12 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Text',
     body:
         'Expression producing the label text. Required for type label. '
-        'One of the only two live fields: re-evaluated every four ticks '
-        'while the preview is on screen, unless it folds to a constant, '
-        'in which case it is parsed once and reused. The result is parsed '
-        'for legacy \'&\' codes and MiniMessage tags, so concatenating '
-        'differently prefixed fragments in one expression yields one '
-        'multi-run label.',
+        'One of the only two live fields: re-evaluated at '
+        'contentRefreshTicks and on access rechecks while the preview is '
+        'on screen, unless it folds to a constant, in which case it is '
+        'parsed once and reused. The result is parsed for legacy \'&\' '
+        'codes and MiniMessage tags, so concatenating differently '
+        'prefixed fragments in one expression yields one multi-run label.',
     citation: 'gloss-preview.schema.json#/\$defs/element/properties/text',
   ),
   'preview.element.type': HuiFieldDoc(
@@ -823,21 +897,21 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     body:
         'A string in the preview expression DSL, evaluated against the '
         'previewed container\'s live state. Only cell.color and label.text '
-        'are re-evaluated while the preview is on screen (every 200 ms); '
-        'every other expression field is evaluated once when the preview '
-        'is built. Grammar: number, string (single- or double-quoted, '
-        'escapes \\\\ \\\' \\" \\n), colour (#RGB, #RRGGBB, #AARRGGBB), '
-        'true/false, variable (dotted, e.g. surge.active or vars.accent), '
-        'nested array literal ([a, [b, c]]), call, unary ! and -, * / %, '
-        '+ -, < <= > >=, == !=, &&, ||, and a ? b : c. Strings '
-        'concatenate with +. % is Java\'s truncating remainder (-1 % 3 is '
-        '-1) while mod() floors (mod(-1, 3) is 2); both throw on a zero '
-        'divisor. Functions: clamp, lerp, min, max, floor, ceil, round, '
-        'abs, mod, sin, cos, rgb, argb, alpha, mix, palette, str, fixed, '
-        'plain, readable, align, marquee, timeline, typewriter, flash, '
-        'wipe, scanner, scramble, odometer, wave, lang, count, occupied, '
-        'item. See the Gloss docs pages '
-        '/gloss/13-expressions-placeholders and '
+        'are re-evaluated while the preview is on screen at '
+        'contentRefreshTicks and on access rechecks; every other '
+        'expression field is evaluated once when the preview is built. '
+        'Grammar: number, string (single- or double-quoted, escapes \\\\ \\\' '
+        '\\" \\n), colour (#RGB, #RRGGBB, #AARRGGBB), true/false, variable '
+        '(dotted, e.g. surge.active or vars.accent), nested array literal '
+        '([a, [b, c]]), call, unary ! and -, * / %, + -, < <= > >=, == '
+        '!=, &&, ||, and a ? b : c. Strings concatenate with +. % is '
+        'Java\'s truncating remainder (-1 % 3 is -1) while mod() floors '
+        '(mod(-1, 3) is 2); both throw on a zero divisor. Functions: '
+        'clamp, lerp, min, max, floor, ceil, round, abs, mod, sin, cos, '
+        'rgb, argb, alpha, mix, palette, str, fixed, plain, readable, '
+        'align, marquee, timeline, typewriter, flash, wipe, scanner, '
+        'scramble, odometer, wave, lang, count, occupied, item. See the '
+        'Gloss docs pages /gloss/13-expressions-placeholders and '
         '/gloss/15-container-previews in the central VolmitSoftware/docs '
         'repo.',
     citation: 'gloss-preview.schema.json#/\$defs/expression',
@@ -923,6 +997,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'projection or its labels.',
     citation: 'gloss-preview.schema.json#/properties/particleLayers',
   ),
+  'preview.preset': HuiFieldDoc(
+    title: 'Preset',
+    body:
+        'Named preset from this collection in presets.json; document '
+        'fields override inherited values.',
+    citation: 'gloss-preview.schema.json#/properties/preset',
+  ),
   'preview.repeat.count': HuiFieldDoc(
     title: 'Count',
     body:
@@ -940,6 +1021,11 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         '\'i\'. Must be a valid identifier and must not collide with \'vars\' '
         'or a state variable name, which would make it unreachable.',
     citation: 'gloss-preview.schema.json#/\$defs/repeat/properties/var',
+  ),
+  'preview.scale': HuiFieldDoc(
+    title: 'Scale',
+    body: 'Accepted range: 0.25 through 4. Omitted, this is 0.65.',
+    citation: 'gloss-preview.schema.json#/properties/scale',
   ),
   'preview.show': HuiFieldDoc(
     title: 'Show',
@@ -1008,6 +1094,11 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         '"#FFB02E26" without losing the alpha byte to a signed int. A '
         'leading \'#\' that is not a valid colour literal fails to compile.',
     citation: 'gloss-preview.schema.json#/\$defs/vars',
+  ),
+  'preview.viewDistance': HuiFieldDoc(
+    title: 'View distance',
+    body: 'Accepted range: 1 through 24. Omitted, this is 10.',
+    citation: 'gloss-preview.schema.json#/properties/viewDistance',
   ),
   'realDrops.audience': HuiFieldDoc(
     title: 'Audience',
@@ -1182,6 +1273,21 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'with a blank name are ignored. Applies to bundle contents too. '
         'Omitted, this is {}.',
     citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/names',
+  ),
+  'realDrops.labels.preserveCustomNames': HuiFieldDoc(
+    title: 'Preserve custom names',
+    body:
+        'Preserves custom item names when rendering drop labels. Omitted, '
+        'this is true.',
+    citation:
+        'gloss-real-drops.schema.json#/\$defs/labels/properties/preserveCustomNames',
+  ),
+  'realDrops.labels.show': HuiFieldDoc(
+    title: 'Show',
+    body:
+        'Boolean or viewer condition controlling drop label visibility. '
+        'Omitted, this is true.',
+    citation: 'gloss-real-drops.schema.json#/\$defs/labels/properties/show',
   ),
   'realDrops.labels.style': HuiFieldDoc(
     title: 'Style',
@@ -1482,6 +1588,13 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
         'The complete fallback presentation used when no conditional '
         'variant matches.',
     citation: 'gloss-real-drops.schema.json#/properties/presentation',
+  ),
+  'realDrops.preset': HuiFieldDoc(
+    title: 'Preset',
+    body:
+        'Named preset from this collection in presets.json; document '
+        'fields override inherited values.',
+    citation: 'gloss-real-drops.schema.json#/properties/preset',
   ),
   'realDrops.revision': HuiFieldDoc(
     title: 'Revision',

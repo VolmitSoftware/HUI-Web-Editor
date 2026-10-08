@@ -114,7 +114,16 @@ const GlossJsonObject glossWaypointJsonSchema = GlossJsonObject(
       key: 'style',
       type: GlossJsonType.string,
       title: 'Style',
-      summary: 'Choose default or bowtie.',
+      summary:
+          'Use default, bowtie, or a namespaced style from the loaded Gloss pack.',
+      defaultLiteral: '"default"',
+    ),
+    GlossJsonField(
+      key: 'fallbackStyle',
+      type: GlossJsonType.string,
+      title: 'Fallback style',
+      summary:
+          'Vanilla icon while the custom style or current pack is unavailable.',
       defaultLiteral: '"default"',
       values: <GlossJsonValue>[
         GlossJsonValue('"default"'),

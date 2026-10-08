@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 const String _tablist = r'''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "revision": 7,
   "headerFooter": {
     "enabled": true,
@@ -35,7 +35,7 @@ const String _tablist = r'''
 ''';
 
 void main() {
-  test('decodes both conditional schema 2 sections', () {
+  test('decodes both conditional schema 3 sections', () {
     final GlossTablistDoc doc = decodeGlossTablistDoc(_tablist);
     expect(doc.schemaVersion, glossTablistCurrentSchemaVersion);
     expect(doc.headerFooter.enabled, isTrue);
@@ -84,7 +84,7 @@ void main() {
     expect(looksLikeTablistDoc(jsonDecode(_tablist)), isTrue);
     expect(
       looksLikeTablistDoc(<String, Object?>{
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'useHeaderFooter': true,
       }),
       isFalse,

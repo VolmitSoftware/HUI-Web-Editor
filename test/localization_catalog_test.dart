@@ -67,6 +67,24 @@ void main() {
     );
   });
 
+  test('numeric limits are not pathological character repetition', () {
+    final LocalizationCatalog catalog = readLocalizationCatalog(
+      File('${root.path}/l10n/en_US.json'),
+    );
+    catalog.messages['1 through 100000000.'] = '1 through 100000000.';
+    expect(
+      validateLocalizationCatalog(catalog, source).where(
+        (String error) => error.contains('pathological repetition'),
+      ),
+      isEmpty,
+    );
+    catalog.messages['1 through 100000000.'] = 'aaaaaaaa';
+    expect(
+      validateLocalizationCatalog(catalog, source),
+      contains(contains('pathological repetition')),
+    );
+  });
+
   test('semantic audit corrections remain complete and locked', () {
     for (final MapEntry<String, Map<String, String>> localeEntry
         in semanticAuditGlossary.entries) {

@@ -37,6 +37,18 @@ List<HuiIssue> parseCheckPreviewDoc(HuiPreviewDoc doc) {
   for (final HuiIssue? issue in <HuiIssue?>[
     runtimeRangeIssue(r'$.scale', doc.scale, 0.25, 4),
     runtimeRangeIssue(r'$.viewDistance', doc.viewDistance, 1, 24),
+    runtimeRangeIssue(
+      r'$.contentRefreshTicks',
+      doc.contentRefreshTicks ?? 4,
+      1,
+      1200,
+    ),
+    runtimeRangeIssue(
+      r'$.accessCheckTicks',
+      doc.accessCheckTicks ?? 10,
+      1,
+      1200,
+    ),
   ]) {
     if (issue != null) issues.add(issue);
   }

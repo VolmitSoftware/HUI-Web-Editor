@@ -17,6 +17,7 @@ import 'field_help.dart';
 import 'inspector_widgets.dart';
 import 'extras_editor.dart';
 import 'display_style_editor.dart';
+import 'display_refresh_editor.dart';
 import 'hologram_box_editor.dart';
 import '../../model/gloss_hologram_box.dart';
 import 'gloss_visibility_editor.dart';
@@ -94,7 +95,18 @@ class _BubbleInspectorState extends State<BubbleInspector> {
           },
         ),
       ),
+      HuiField(label: huiText('Overflow'), control: ArcaneSelect(
+        value: doc.overflow,
+        options: const <ArcaneSelectOption>[
+          ArcaneSelectOption(value: 'replace-oldest', label: 'Replace oldest'),
+          ArcaneSelectOption(value: 'reject-new', label: 'Reject new'),
+        ],
+        onChanged: (String value) => _store.mutateBubbleStyle('overflow',
+          (GlossBubbleStyleDoc edited) => edited.overflow = value),
+      )),
       _look(doc),
+      DisplayRefreshEditor(refresh: doc.refresh, onChanged: (String label, GlossDisplayRefresh next) =>
+        _store.mutateBubbleStyle(label, (GlossBubbleStyleDoc edited) => edited.refresh = next)),
       ParticleLayersEditor(
         layers: doc.particleLayers,
         sectionKey: 'bubble.particleLayers',

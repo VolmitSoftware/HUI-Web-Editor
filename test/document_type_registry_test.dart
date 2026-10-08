@@ -89,6 +89,25 @@ void main() {
     }
   });
 
+  test('line-only presentations distinguish typed scoreboards from nameplates', () {
+    for (final int schemaVersion in <int>[1, 2]) {
+      final Map<String, Object> source = <String, Object>{
+        'schemaVersion': schemaVersion,
+        'select': <String, Object>{},
+        'presentation': <String, Object>{
+          'lines': <Object>[
+            <String, Object>{'text': 'Player'},
+          ],
+        },
+        'variants': <Object>[],
+      };
+      expect(
+        DocumentTypeRegistry.detectTransferable(source).syncWireKind,
+        schemaVersion == 1 ? 'nameplate' : 'scoreboard',
+      );
+    }
+  });
+
   test('detectTransferable keeps malformed unmarked JSON on menu fallback', () {
     final DocumentTypeAdapter type = DocumentTypeRegistry.detectTransferable(
       <String, Object>{'unknown': true},
