@@ -10,7 +10,8 @@ permissions:
   contents: read
 
 env:
-  ARCANE_JASPR_REF: d89881d89253da34cf741a3bd2bfe0ae90f27cc5
+  ARCANE_JASPR_REF: 539bf90ed05837e637aedac8f994817a50945a8a
+  DART_VERSION: 3.13.5
   FIREBASE_PROJECT_ID: holoui-editor
   FIREBASE_TOOLS_VERSION: 15.25.1
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -58,7 +59,7 @@ jobs:
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: ${{ env.DART_VERSION }}
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -66,7 +67,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Get dependencies
-        run: dart pub get
+        run: dart pub get --enforce-lockfile
 
       - name: Analyze
         run: dart analyze

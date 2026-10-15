@@ -33,11 +33,13 @@ Workspace bundles and server projects persist documents and workspace-scoped ima
 
 ## Development
 
-Requires Dart ≥ 3.10 and a checkout of `arcane_jaspr` at `.deps/arcane_jaspr` (a symlink to a local clone works):
+Use Dart 3.13.5 and the `arcane_jaspr` revision pinned in `.github/workflows/firebase-hosting.yml`, checked out at `.deps/arcane_jaspr`. That checkout supplies the core, Ascii theme, and shared renderers. A symlink to a local clone at the same revision also works.
 
 ```bash
-git clone https://github.com/ArcaneArts/arcane_jaspr .deps/arcane_jaspr   # or: ln -s /path/to/arcane_jaspr .deps/arcane_jaspr
-dart pub get
+git clone https://github.com/ArcaneArts/arcane_jaspr .deps/arcane_jaspr
+ARCANE_JASPR_REF="$(sed -n 's/^  ARCANE_JASPR_REF: //p' .github/workflows/firebase-hosting.yml)"
+git -C .deps/arcane_jaspr checkout "$ARCANE_JASPR_REF"
+dart pub get --enforce-lockfile
 dart run jaspr_cli:jaspr serve      # dev server on :8080
 dart test                           # core-logic test suite
 dart run jaspr_cli:jaspr build      # static output in build/jaspr/

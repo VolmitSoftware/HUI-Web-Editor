@@ -2,6 +2,7 @@
 .dart_tool/
 build/
 pubspec.lock
+!/pubspec.lock
 .deps/
 .codegraph/
 .qa/
