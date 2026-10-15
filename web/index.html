@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <title>Gloss Editor</title>
   <meta name="description" content="Visual web editor for creating and previewing Gloss menu configurations.">
-  <meta name="theme-color" content="#050505">
+  <meta id="gloss-theme-color" name="theme-color" content="#111310">
   <meta property="og:title" content="Gloss Editor">
   <meta property="og:description" content="Visual web editor for creating and previewing Gloss menu configurations.">
   <meta property="og:image" content="assets/brand/icon-512x512.png">
@@ -75,6 +75,9 @@
       var root = document.documentElement;
       root.classList.remove('light', 'dark');
       root.classList.add(mode);
+      document.getElementById('gloss-theme-color').setAttribute(
+        'content', mode === 'light' ? '#f6f5f0' : '#111310'
+      );
       root.lang = localeTags[locale];
       root.dir = locale === 'he_IL' ? 'rtl' : 'ltr';
       document.getElementById('hui-manifest').setAttribute(
@@ -103,8 +106,8 @@
 
   <style>
     html, body { margin: 0; padding: 0; min-height: 100vh; }
-    html.dark body { background: #050505; color: #f7f4ec; }
-    html.light body { background: #ffffff; color: #09090b; }
+    html.dark body { background: #111310; color: #e8ebe3; }
+    html.light body { background: #f6f5f0; color: #242822; }
     .hui-boot { position: fixed; inset: 0; display: grid; place-items: center; z-index: 999; }
     .hui-boot-spinner { width: 28px; height: 28px; border-radius: 50%;
       border: 2px solid rgba(128,128,128,.25); border-top-color: currentColor;

@@ -35,4 +35,10 @@ void stampDocumentTheme(Brightness brightness) {
   root.classList.remove('light');
   root.classList.remove('dark');
   root.classList.add(brightness == Brightness.light ? 'light' : 'dark');
+  web.document
+      .getElementById('gloss-theme-color')
+      ?.setAttribute(
+        'content',
+        brightness == Brightness.light ? '#f6f5f0' : '#111310',
+      );
 }

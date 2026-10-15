@@ -3,6 +3,7 @@ library;
 import 'dart:math' as math;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
+import 'package:arcane_jaspr_ascii/arcane_jaspr_ascii.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show Listenable, ListenableBuilder;
 
@@ -80,9 +81,10 @@ class _PanelViewState extends State<PanelView> {
           ArcaneIcon.workflow(size: IconSize.md),
           dom.div(<Widget>[
             dom.h1(<Widget>[
-              Text(
+              AsciiText(
                 component.store.workspace.active?.title ??
                     huiText('Menu flow map'),
+                duration: const Duration(milliseconds: 540),
               ),
             ]),
             dom.p(<Widget>[

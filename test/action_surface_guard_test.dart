@@ -28,7 +28,6 @@ void main() {
       "label: huiText('Command palette')",
       "label: huiText('Settings')",
       "label: huiText('Help')",
-      "huiText('Light theme')",
     ],
     2: <String>["label: huiText('Images')"],
     3: <String>[
@@ -210,19 +209,8 @@ void main() {
   });
 
   test('danger text and filled delete actions keep accessible hierarchy', () {
-    final String lightTokens = _between(
-      foundationsCss,
-      'html.light, html.light #arcane-root {',
-      'html.dark, html.dark #arcane-root {',
-    );
-    final String darkTokens = _between(
-      foundationsCss,
-      'html.dark, html.dark #arcane-root {',
-      'html, body {',
-    );
     expect(foundationsCss, contains('--hui-danger-fill: var(--destructive);'));
-    expect(lightTokens, contains('--hui-danger: #b4232c;'));
-    expect(darkTokens, contains('--hui-danger: #ff8a8d;'));
+    expect(foundationsCss, contains('--hui-danger: var(--destructive);'));
     expect(
       shellCss,
       contains('.hui-armed > .arcane-button[data-variant="destructive"] {'),

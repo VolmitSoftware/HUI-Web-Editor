@@ -64,6 +64,11 @@
 /* The three axis fields are emitted with an inline `repeat(3, minmax(0, 1fr))`,
    which cannot wrap; `auto-fit` keeps three columns while they are usable and
    drops to two, then one, on a narrow pane instead of clipping z. */
+.hui-vec3 > .arcane-floating-container > [data-arcane-anchor-id] {
+  width: 100%;
+  min-width: 0;
+}
+
 .hui-inspector-body .hui-vec3 {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 78px), 1fr)) !important;
 }

@@ -38,47 +38,32 @@
   --hui-space-3: 12px;
   --hui-space-4: 16px;
   --hui-space-5: 20px;
-  --hui-transition: 120ms ease;
+  --hui-transition: var(--ascii-duration, 180ms) ease;
   --hui-rail-width: 240px;
   --hui-inspector-width: 320px;
   --hui-mc-font: "Minecraftia", "Geist Mono", monospace;
 }
-html.light, html.light #arcane-root, html.dark, html.dark #arcane-root {
+html, #arcane-root {
   --hui-text: var(--foreground);
   --hui-muted: var(--muted-foreground);
   --hui-accent: var(--primary);
   --hui-accent-foreground: var(--primary-foreground);
   --hui-ring: var(--ring);
   --hui-danger-fill: var(--destructive);
-  --hui-warning: var(--warning, #a06022);
-  --hui-info: var(--info, #007acc);
-  --hui-success: var(--success, #2e7d55);
-}
-html.light, html.light #arcane-root {
-  --hui-danger: #b4232c;
-  --hui-bg: #f7f7f8;
-  --hui-panel: #ffffff;
-  --hui-panel-soft: #eeeeef;
-  --hui-surface: #f4f4f5;
-  --hui-surface-raised: #ffffff;
-  --hui-border: #cfcfd3;
-  --hui-border-soft: #dedee2;
-  --hui-shadow-xs: 0 1px 2px rgb(20 20 24 / .04);
-  --hui-shadow-sm: 0 8px 22px rgb(20 20 24 / .08);
-  --hui-shadow-md: 0 18px 48px rgb(20 20 24 / .13);
-}
-html.dark, html.dark #arcane-root {
-  --hui-danger: #ff8a8d;
-  --hui-bg: #0a0a0b;
-  --hui-panel: #111113;
-  --hui-panel-soft: #17171a;
-  --hui-surface: #141416;
-  --hui-surface-raised: #1d1d21;
-  --hui-border: #303036;
-  --hui-border-soft: #242429;
-  --hui-shadow-xs: 0 1px 2px rgb(0 0 0 / .22);
-  --hui-shadow-sm: 0 10px 26px rgb(0 0 0 / .24);
-  --hui-shadow-md: 0 24px 60px rgb(0 0 0 / .32);
+  --hui-danger: var(--destructive);
+  --hui-warning: var(--warning);
+  --hui-info: var(--info);
+  --hui-success: var(--success);
+  --hui-bg: var(--background);
+  --hui-panel: var(--card);
+  --hui-panel-soft: var(--muted);
+  --hui-surface: color-mix(in srgb, var(--card) 58%, var(--background));
+  --hui-surface-raised: var(--popover);
+  --hui-border: var(--border);
+  --hui-border-soft: var(--ascii-soft-rule);
+  --hui-shadow-xs: none;
+  --hui-shadow-sm: 0 8px 22px rgb(0 0 0 / .12);
+  --hui-shadow-md: 0 18px 48px rgb(0 0 0 / .18);
 }
 
 html, body {
@@ -98,6 +83,7 @@ button, input, textarea, select { font: inherit; }
 
 /* Uppercase micro-label used across the editor */
 .hui-eyebrow {
+  font-family: var(--font-mono);
   color: var(--hui-muted); font-size: .7rem; font-weight: 680;
   letter-spacing: .085em; line-height: 1.2; text-transform: uppercase;
 }

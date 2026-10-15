@@ -7,6 +7,7 @@
 library;
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
+import 'package:arcane_jaspr_ascii/arcane_jaspr_ascii.dart';
 import 'package:arcane_jaspr/component/input/mutable_text_types.dart';
 import 'package:jaspr/dom.dart' as dom;
 import 'package:jaspr/jaspr.dart' show Listenable;
@@ -105,6 +106,8 @@ class _TopBarState extends State<TopBar> {
       ..write(component.syncControls?.busy)
       ..write('|')
       ..write(component.syncControls?.message)
+      ..write('|')
+      ..write(component.darkMode)
       ..write('|')
       ..write(component.activeLocale)
       ..write('|')
@@ -214,6 +217,17 @@ class _TopBarState extends State<TopBar> {
             ]),
             for (int tier = 1; tier <= _overflowTiers; tier++)
               _overflowMenu(tier),
+            _cluster(huiText('Editor'), 'appearance', <Widget>[
+              _action(
+                icon: component.darkMode
+                    ? ArcaneIcon.sun(size: IconSize.sm)
+                    : ArcaneIcon.moon(size: IconSize.sm),
+                label: component.darkMode
+                    ? huiText('Light theme')
+                    : huiText('Dark theme'),
+                onPressed: _intents.toggleTheme,
+              ),
+            ]),
             _cluster(huiText('Language'), 'language', <Widget>[
               _languagePicker(),
             ]),
@@ -476,15 +490,6 @@ class _TopBarState extends State<TopBar> {
       icon: ArcaneIcon.settings(size: IconSize.sm),
       onSelect: _intents.openSettings,
     ),
-    BarMenuAction(
-      label: component.darkMode
-          ? huiText('Light theme')
-          : huiText('Dark theme'),
-      icon: component.darkMode
-          ? ArcaneIcon.sun(size: IconSize.sm)
-          : ArcaneIcon.moon(size: IconSize.sm),
-      onSelect: _intents.toggleTheme,
-    ),
   ];
 
   Widget _mobilePaneControls() => dom.div(
@@ -543,7 +548,9 @@ class _TopBarState extends State<TopBar> {
       classes: 'hui-brand-mark',
       attributes: <String, String>{'aria-hidden': 'true'},
     ),
-    dom.span(classes: 'hui-brand-word', <Widget>[Text('Gloss')]),
+    dom.span(classes: 'hui-brand-word', <Widget>[
+      AsciiText('Gloss', duration: Duration(milliseconds: 600)),
+    ]),
   ]);
 
   Widget _documentSwitcher() => dom.div(classes: 'hui-doc', <Widget>[

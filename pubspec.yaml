@@ -12,8 +12,8 @@ dependencies:
   # Local checkout (or symlink) at .deps/arcane_jaspr — portable for CI.
   arcane_jaspr:
     path: .deps/arcane_jaspr
-  arcane_jaspr_shadcn:
-    path: .deps/arcane_jaspr/packages/arcane_jaspr_shadcn
+  arcane_jaspr_ascii:
+    path: .deps/arcane_jaspr/packages/arcane_jaspr_ascii
   fast_log: ^1.0.7
   archive: ^4.0.2
   crypto: ^3.0.7
@@ -30,9 +30,11 @@ dev_dependencies:
   lints: ^6.1.0
   test: ^1.25.0
 
-# arcane_jaspr_shadcn declares the hosted arcane_jaspr; the override keeps
+# arcane_jaspr_ascii declares the hosted arcane_jaspr; the override keeps
 # resolution on the local path checkout.
 dependency_overrides:
+  arcane_jaspr_shadcn:
+    path: .deps/arcane_jaspr/packages/arcane_jaspr_shadcn
   arcane_jaspr:
     path: .deps/arcane_jaspr
 

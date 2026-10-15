@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:arcane_jaspr/arcane_jaspr.dart';
-import 'package:arcane_jaspr_shadcn/arcane_jaspr_shadcn.dart';
+import 'package:arcane_jaspr_ascii/arcane_jaspr_ascii.dart';
 
 import 'components/canvas/canvas.dart';
 import 'components/panel/panel.dart';
@@ -65,28 +65,6 @@ enum _EditorDialog {
   settings,
   help,
   newDocument,
-}
-
-/// Shadcn with every remote asset stripped out.
-///
-/// The stock stylesheet injects a render-blocking Google Fonts link and its
-/// preconnects for Inter. Geist is bundled in `web/assets/fonts/`, so the
-/// remote list is emptied and the font stack is declared here.
-class _OfflineShadcnStylesheet extends ShadcnStylesheet {
-  const _OfflineShadcnStylesheet({super.theme});
-
-  @override
-  FontConfig get fonts => const FontConfig(
-    sans:
-        "'Geist', ui-sans-serif, system-ui, -apple-system, "
-        "BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    mono:
-        "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, "
-        'Consolas, monospace',
-  );
-
-  @override
-  RadiusConfig get radius => const RadiusConfig.sharp();
 }
 
 class App extends StatefulWidget {
@@ -919,7 +897,7 @@ class _AppState extends State<App> {
 
   @override
   Widget build(BuildContext context) => ArcaneApp(
-    stylesheet: const _OfflineShadcnStylesheet(theme: ShadcnTheme.midnight),
+    stylesheet: const AsciiStylesheet(),
     brightness: _brightness,
     // Stays true, and the reason is not the one the flag's name suggests.
     // `ArcaneApp` gates ONE component on it (`support/app.dart:114`) and

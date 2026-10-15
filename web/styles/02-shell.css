@@ -209,8 +209,8 @@ body.hui-resizing * { cursor: col-resize !important; }
 
 /* ---- Top bar ------------------------------------------------------------ */
 .hui-bar {
-  --hui-command-height: 36px;
-  --hui-context-height: 30px;
+  --hui-command-height: 46px;
+  --hui-context-height: 36px;
   position: relative;
   z-index: 20;
   display: grid;
@@ -227,7 +227,7 @@ body.hui-resizing * { cursor: col-resize !important; }
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   min-width: 0;
-  padding: 0 8px;
+  padding: 0 12px;
 }
 
 .hui-bar-primary {
@@ -318,8 +318,9 @@ body.hui-resizing * { cursor: col-resize !important; }
 .hui-brand { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .hui-brand-mark { display: block; width: 18px; height: 18px; }
 .hui-brand-word {
-  font-size: 0.82rem;
-  font-weight: 650;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
@@ -1064,6 +1065,10 @@ textarea[dir="ltr"] {
     gap: 0;
     padding-inline: 4px;
   }
+  #arcane-root .hui-bar-context .arcane-button::before,
+  #arcane-root .hui-bar-context .arcane-button::after {
+    display: none !important;
+  }
   .hui-bar-left { min-width: 0; }
   .hui-bar-center { width: 100%; min-width: 0; }
   .hui-bar-context-tools {
@@ -1140,9 +1145,9 @@ textarea[dir="ltr"] {
   }
 
   .hui-brand { display: none; }
-  .hui-kind-picker .arcane-button > i:first-child,
-  .hui-bar-view-picker .arcane-button > i:first-child,
-  .hui-mobile-panes .arcane-button > i { display: none !important; }
+  .hui-kind-picker .arcane-button > [data-arcane-semantic-icon],
+  .hui-bar-view-picker .arcane-button > [data-arcane-semantic-icon],
+  .hui-mobile-panes .arcane-button > [data-arcane-semantic-icon] { display: none !important; }
 
   /* The rename pencil is a 40px press target buying an action the rail also
      offers, and it was taking that 40px straight out of the document name —
