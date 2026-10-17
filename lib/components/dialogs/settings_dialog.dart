@@ -207,6 +207,7 @@ class SettingsDialog extends StatelessWidget {
                 'The page is stamped before paint, so reloading never flashes the wrong theme.',
               ),
         control: ArcaneToggleSwitch(
+          ariaLabel: huiText('Dark mode'),
           value: isDarkMode,
           disabled: onToggleTheme == null,
           onChanged: (bool _) => onToggleTheme?.call(),
@@ -226,6 +227,7 @@ class SettingsDialog extends StatelessWidget {
         label: huiText('Show grid'),
         inline: true,
         control: ArcaneToggleSwitch(
+          ariaLabel: huiText('Show grid'),
           value: store.showGrid,
           onChanged: (bool value) => store.showGrid = value,
         ),
@@ -234,6 +236,7 @@ class SettingsDialog extends StatelessWidget {
         label: huiText('Snap to grid'),
         inline: true,
         control: ArcaneToggleSwitch(
+          ariaLabel: huiText('Snap to grid'),
           value: store.snapToGrid,
           onChanged: (bool value) => store.snapToGrid = value,
         ),
@@ -257,6 +260,7 @@ class SettingsDialog extends StatelessWidget {
         inline: true,
         help: huiText('Draws the component anchor dots and the menu centre.'),
         control: ArcaneToggleSwitch(
+          ariaLabel: huiText('Show anchors'),
           value: store.showAnchors,
           onChanged: (bool value) => store.showAnchors = value,
         ),
@@ -266,6 +270,7 @@ class SettingsDialog extends StatelessWidget {
         inline: true,
         help: huiText('Mirrors the plugin debugHitbox particles.'),
         control: ArcaneToggleSwitch(
+          ariaLabel: huiText('Show hitboxes'),
           value: store.showHitboxes,
           onChanged: (bool value) => store.showHitboxes = value,
         ),
@@ -279,6 +284,7 @@ class SettingsDialog extends StatelessWidget {
           'clean anchors.',
         ),
         control: ArcaneToggleSwitch(
+          ariaLabel: huiText('True render offsets'),
           value: store.trueRender,
           onChanged: (bool value) => store.trueRender = value,
         ),

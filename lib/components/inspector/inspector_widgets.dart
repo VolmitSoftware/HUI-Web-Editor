@@ -653,7 +653,7 @@ class HuiSwitchRow extends StatelessWidget {
             <Widget>[
               ?trailing,
               ArcaneToggleSwitch(
-                label: label,
+                ariaLabel: label,
                 value: value,
                 disabled: disabled,
                 size: ComponentSize.sm,
