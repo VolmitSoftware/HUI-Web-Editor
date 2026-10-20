@@ -4457,7 +4457,7 @@
     "Use {value}": "{value}を使用してください",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "Minecraft の空白のスコア数値形式を使うため、1.20.3+ のクライアントでは赤い 15..1 の列が描画されません。古いサーバーでは、ViaVersion のグローバルな hide-scoreboard-numbers オプションが 1.20.3+ のクライアントに同等の変換を提供します。",
     "Uses the blank score format on 1.20.3 and newer clients.": "1.20.3 以降のクライアントでは空のスコア形式を使用します。",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "アイテムに独自の表示名（金床での名前変更など）がある場合、それを {type} として使用します。省略時は false です。",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "アイテムに独自の表示名（金床での名前変更など）がある場合、それを {type} として使用します。省略時は true です。",
     "Uses the runtime display-entity defaults.": "実行時の表示エンティティのデフォルトを使用します。",
     "VIP overworld": "VIP オーバーワールド",
     "Validation": "検証",

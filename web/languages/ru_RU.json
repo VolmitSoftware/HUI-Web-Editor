@@ -4457,7 +4457,7 @@
     "Use {value}": "Используйте {value}",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "Использует пустой формат числа очков Minecraft, поэтому клиенты версии 1.20.3+ не рисуют красный столбец 15..1. На более старом сервере опция глобального скрытия номеров табло ViaVersion обеспечивает эквивалентный перевод для клиентов версии 1.20.3+.",
     "Uses the blank score format on 1.20.3 and newer clients.": "Использует пустой формат оценки в клиентах версии 1.20.3 и более поздних версиях.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "Использует собственное отображаемое имя предмета, например заданное на наковальне, как {type}, если оно есть. Если не указано, используется false.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "Использует собственное отображаемое имя предмета, например заданное на наковальне, как {type}, если оно есть. Если не указано, используется true.",
     "Uses the runtime display-entity defaults.": "Использует настройки по умолчанию для объекта отображения во время выполнения.",
     "VIP overworld": "VIP мир",
     "Validation": "Валидация",

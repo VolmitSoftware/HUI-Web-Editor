@@ -407,7 +407,7 @@ final class GlossRealDropLabels {
     this.enabled = true,
     this.yOffset = 0.55,
     this.format = glossRealDropLabelFormatDefault,
-    this.useItemDisplayNames = false,
+    this.useItemDisplayNames = true,
     this.preserveCustomNames = true,
     GlossDisplayRefresh? refresh,
     this.show = true,
@@ -450,7 +450,8 @@ final class GlossRealDropLabels {
         'format',
         fallback: glossRealDropLabelFormatDefault,
       ),
-      useItemDisplayNames: huiReadBool(map, 'useItemDisplayNames'),
+      useItemDisplayNames: map['useItemDisplayNames'] == null ||
+          huiReadBool(map, 'useItemDisplayNames'),
       preserveCustomNames: map['preserveCustomNames'] == null || huiReadBool(map, 'preserveCustomNames'),
       refresh: GlossDisplayRefresh.fromJson(map['refresh']),
       show: huiDeepCopy(map['show'] ?? true),

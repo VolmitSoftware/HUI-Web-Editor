@@ -4457,7 +4457,7 @@
     "Use {value}": "Sử dụng {value}",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "Sử dụng định dạng số điểm trống của Minecraft để khách hàng 1.20.3+ không vẽ cột 15..1 màu đỏ. Trên máy chủ cũ hơn, tùy chọn ẩn bảng điểm toàn cầu của ViaVersion cung cấp bản dịch tương đương cho máy khách 1.20.3+.",
     "Uses the blank score format on 1.20.3 and newer clients.": "Sử dụng định dạng điểm trống trên 1.20.3 và các máy khách mới hơn.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "Dùng tên hiển thị riêng của vật phẩm, chẳng hạn tên đặt bằng đe, làm {type} khi có. Nếu bỏ qua, giá trị là false.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "Dùng tên hiển thị riêng của vật phẩm, chẳng hạn tên đặt bằng đe, làm {type} khi có. Nếu bỏ qua, giá trị là true.",
     "Uses the runtime display-entity defaults.": "Sử dụng các giá trị mặc định của thực thể hiển thị thời gian chạy.",
     "VIP overworld": "Thế giới VIP",
     "Validation": "Xác thực",

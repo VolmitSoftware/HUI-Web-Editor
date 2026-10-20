@@ -4457,7 +4457,7 @@
     "Use {value}": "Use {value}",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.",
     "Uses the blank score format on 1.20.3 and newer clients.": "Uses the blank score format on 1.20.3 and newer clients.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.",
     "Uses the runtime display-entity defaults.": "Uses the runtime display-entity defaults.",
     "VIP overworld": "VIP overworld",
     "Validation": "Validation",

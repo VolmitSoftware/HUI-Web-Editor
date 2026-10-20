@@ -4457,7 +4457,7 @@
     "Use {value}": "Użyj {value}",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "Używa formatu pustej liczby punktów Minecrafta, więc klienci 1.20.3+ nie rysują czerwonej kolumny 15..1. Na starszych serwerach globalna opcja ViaVersion hide-scoreboard-numbers zapewnia równoważne tłumaczenie dla klientów w wersji 1.20.3+.",
     "Uses the blank score format on 1.20.3 and newer clients.": "Używa pustego formatu wyniku na klientach 1.20.3 i nowszych.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "Używa własnej wyświetlanej nazwy przedmiotu, np. nadanej na kowadle, jako {type}, jeśli ją ma. Jeśli pominięto, wynosi false.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "Używa własnej wyświetlanej nazwy przedmiotu, np. nadanej na kowadle, jako {type}, jeśli ją ma. Jeśli pominięto, wynosi true.",
     "Uses the runtime display-entity defaults.": "Używa domyślnych ustawień encji wyświetlanej środowiska wykonawczego.",
     "VIP overworld": "Świat VIP",
     "Validation": "Walidacja",

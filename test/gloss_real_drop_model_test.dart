@@ -143,7 +143,7 @@ void main() {
       <String, Object?>{},
     );
     expect(labels.format, '&7{count}x {type}');
-    expect(labels.useItemDisplayNames, isFalse);
+    expect(labels.useItemDisplayNames, isTrue);
     expect(labels.names, isEmpty);
     expect(
       labels.bundle.format,
@@ -155,6 +155,17 @@ void main() {
     expect(labels.bundle.entryFormat, '&7- &f{count}x {type}');
     expect(labels.bundle.moreFormat, '&8+{remaining} more');
     expect(labels.extras, isEmpty);
+  });
+
+  test('item name defaults and explicit opt-out survive copying', () {
+    expect(GlossRealDropLabels().copy().useItemDisplayNames, isTrue);
+    expect(GlossRealDropLabels.fromJson(null).useItemDisplayNames, isTrue);
+    expect(
+      GlossRealDropLabels.fromJson(<String, Object?>{
+        'useItemDisplayNames': false,
+      }).copy().useItemDisplayNames,
+      isFalse,
+    );
   });
 
   test('label text, names and bundle round-trip in file order', () {

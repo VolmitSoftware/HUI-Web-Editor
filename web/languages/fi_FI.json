@@ -4457,7 +4457,7 @@
     "Use {value}": "Käytä {value}",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "Käyttää Minecraftin tyhjää tulosnumeromuotoa, joten 1.20.3+ -asiakkaat eivät piirrä punaista 15..1-saraketta. Vanhemmalla palvelimella ViaVersion:n globaali hide-scoreboard-numbers -vaihtoehto tarjoaa vastaavan käännöksen 1.20.3+-asiakkaille.",
     "Uses the blank score format on 1.20.3 and newer clients.": "Käyttää tyhjää partituurimuotoa 1.20.3:ssa ja uudemmissa asiakkaissa.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "Käyttää esineen omaa näyttönimeä, kuten alasimella annettua nimeä, muuttujana {type}, kun esineellä sellainen on. Jos arvo puuttuu, se on false.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "Käyttää esineen omaa näyttönimeä, kuten alasimella annettua nimeä, muuttujana {type}, kun esineellä sellainen on. Jos arvo puuttuu, se on true.",
     "Uses the runtime display-entity defaults.": "Käyttää ajonaikaisen näyttöyksikön oletusasetuksia.",
     "VIP overworld": "VIP-maailma",
     "Validation": "Validointi",

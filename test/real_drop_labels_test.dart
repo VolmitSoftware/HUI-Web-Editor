@@ -30,15 +30,10 @@ void main() {
     expect(glossDropTypeName(labels, 'OAK_LOG'), 'Oak Log');
   });
 
-  test('an item display name wins only when the labels opt in', () {
+  test('an item display name wins by default with an explicit opt-out', () {
     final GlossRealDropLabels labels = GlossRealDropLabels(
       names: <String, String>{'DIAMOND_SWORD': 'Blade'},
     );
-    expect(
-      glossDropTypeName(labels, 'DIAMOND_SWORD', displayName: '&bExcalibur'),
-      'Blade',
-    );
-    labels.useItemDisplayNames = true;
     expect(
       glossDropTypeName(labels, 'DIAMOND_SWORD', displayName: '&bExcalibur'),
       '&bExcalibur',
@@ -46,6 +41,23 @@ void main() {
     expect(
       glossDropTypeName(labels, 'DIAMOND_SWORD', displayName: ' '),
       'Blade',
+    );
+    labels.useItemDisplayNames = false;
+    expect(
+      glossDropTypeName(labels, 'DIAMOND_SWORD', displayName: '&bExcalibur'),
+      'Blade',
+    );
+  });
+
+  test('a named core uses its name instead of Firework Star', () {
+    expect(
+      glossDropLabel(
+        GlossRealDropLabels(),
+        material: 'FIREWORK_STAR',
+        count: 1,
+        displayName: 'Angler Core',
+      ),
+      '&71x Angler Core',
     );
   });
 

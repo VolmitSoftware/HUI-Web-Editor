@@ -4457,7 +4457,7 @@
     "Use {value}": "{value} kullanın",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "1.20.3+ istemcilerin kırmızı 15..1 sütununu çizmemesi için Minecraft'ın boş puan numarası formatını kullanır. Daha eski bir sunucuda, ViaVersion'ın genel puan tablosu numaralarını gizleme seçeneği, 1.20.3+ istemciler için eşdeğer çeviriyi sağlar.",
     "Uses the blank score format on 1.20.3 and newer clients.": "1.20.3 ve daha yeni istemcilerde boş puan formatını kullanır.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "Eşyanın örste verilen ad gibi kendi görünen adı varsa bunu {type} olarak kullanır. Belirtilmezse false kullanılır.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "Eşyanın örste verilen ad gibi kendi görünen adı varsa bunu {type} olarak kullanır. Belirtilmezse true kullanılır.",
     "Uses the runtime display-entity defaults.": "Çalışma zamanı görüntü varlığı varsayılanlarını kullanır.",
     "VIP overworld": "VIP dünya",
     "Validation": "Doğrulama",

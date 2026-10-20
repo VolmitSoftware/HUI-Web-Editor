@@ -4457,7 +4457,7 @@
     "Use {value}": "{value} 사용",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "Minecraft의 빈 점수 숫자 형식을 사용하므로 1.20.3+ 클라이언트는 빨간색 15..1 열을 그리지 않습니다. 이전 서버에서 ViaVersion의 전역 hide-scoreboard-numbers 옵션은 1.20.3+ 클라이언트에 대해 동등한 번역을 제공합니다.",
     "Uses the blank score format on 1.20.3 and newer clients.": "1.20.3 및 최신 클라이언트에서는 빈 점수 형식을 사용합니다.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "아이템에 모루로 바꾼 이름 같은 자체 표시 이름이 있으면 그것을 {type}(으)로 사용합니다. 생략하면 false입니다.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "아이템에 모루로 바꾼 이름 같은 자체 표시 이름이 있으면 그것을 {type}(으)로 사용합니다. 생략하면 true입니다.",
     "Uses the runtime display-entity defaults.": "런타임 표시 엔터티 기본값을 사용합니다.",
     "VIP overworld": "VIP 오버월드",
     "Validation": "검증",

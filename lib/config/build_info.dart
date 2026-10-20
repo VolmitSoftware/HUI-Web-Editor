@@ -7,7 +7,7 @@ library;
 
 const String huiBuildVersion = String.fromEnvironment(
   'GLOSS_VERSION',
-  defaultValue: '4.0.0',
+  defaultValue: '4.0.1',
 );
 
 const String huiBuildCommit = String.fromEnvironment(

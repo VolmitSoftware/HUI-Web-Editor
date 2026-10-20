@@ -4457,7 +4457,7 @@
     "Use {value}": "Naudokite {value}",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "Naudoja Minecraft 's tuščią rezultatą numeris formatas, todėl 1.20.3+ klientai nėra atkreipti raudona 15.. 1 stulpelis. Senesniame serveryje ViaVersion pasaulinis hide- scoreboard- numerių pasirinkimas suteikia lygiavertį vertimą 1.20.3+ klientams.",
     "Uses the blank score format on 1.20.3 and newer clients.": "Naudoja tuščią balų formatą 1.20.3 ir naujesnėse programose.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "Naudoja paties daikto rodomą pavadinimą, pavyzdžiui, suteiktą priekalu, kaip {type}, kai jis toks yra. Jei nenurodyta, tai false.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "Naudoja paties daikto rodomą pavadinimą, pavyzdžiui, suteiktą priekalu, kaip {type}, kai jis toks yra. Jei nenurodyta, tai true.",
     "Uses the runtime display-entity defaults.": "Naudoja vykdymo laiko rodymo objekto numatytuosius nustatymus.",
     "VIP overworld": "VIP pasaulis",
     "Validation": "Patvirtinimas",

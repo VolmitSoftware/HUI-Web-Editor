@@ -2,7 +2,7 @@
 
 Visual web editor for [Gloss](https://github.com/VolmitSoftware/Gloss) menu and display configurations. Build holographic menus on a calibrated canvas, edit every field the plugin actually parses, and export documents and images that drop straight into `plugins/Gloss/`.
 
-Version 4.0.0 — a from-scratch rewrite in [arcane_jaspr](https://github.com/ArcaneArts/arcane_jaspr) (Dart, compiled to a fully static site). Replaces the retired Next.js editor.
+Version 4.0.1 — a from-scratch rewrite in [arcane_jaspr](https://github.com/ArcaneArts/arcane_jaspr) (Dart, compiled to a fully static site). Replaces the retired Next.js editor.
 
 ## Features
 

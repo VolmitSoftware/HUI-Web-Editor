@@ -307,21 +307,25 @@ void main() {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
     expect(
       DropStageTimeline(doc, _drop('cobblestone')).label,
-      '&71x Cobblestone',
+      '&71x ${_drop('cobblestone').displayName}',
     );
   });
 
-  test('multi-item labels use the shipped format and Title Case names', () {
+  test('multi-item labels use the shipped format and item names', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
-    expect(DropStageTimeline(doc, _drop('cookie')).label, '&73x Cookie');
+    expect(
+      DropStageTimeline(doc, _drop('cookie')).label,
+      '&73x ${_drop('cookie').displayName}',
+    );
     expect(
       DropStageTimeline(doc, _drop('diamond_pickaxe')).label,
-      '&71x Diamond Pickaxe',
+      '&71x ${_drop('diamond_pickaxe').displayName}',
     );
   });
 
   test('the selected presentation decides the label text', () {
     final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
+    doc.presentation.labels.useItemDisplayNames = false;
     doc.presentation.labels.format = '{type} &8({count})';
     doc.presentation.labels.names['cobblestone '] = '&fCobble';
     expect(
@@ -332,16 +336,18 @@ void main() {
   });
 
   test(
-    'item display names replace the type only when the document opts in',
+    'item display names replace the type by default with an explicit opt-out',
     () {
       final GlossRealDropSettingsDoc doc = buildDefaultGlossRealDrops();
       final ShowcaseDrop drop = _drop('diamond_pickaxe');
       doc.presentation.labels.names['DIAMOND_PICKAXE'] = 'Pick';
-      expect(DropStageTimeline(doc, drop).label, '&71x Pick');
-      doc.presentation.labels.useItemDisplayNames = true;
       final DropStageTimeline renamed = DropStageTimeline(doc, drop);
       expect(renamed.label, '&71x ${drop.displayName}');
       expect(renamed.usesItemDisplayName, isTrue);
+      doc.presentation.labels.useItemDisplayNames = false;
+      final DropStageTimeline material = DropStageTimeline(doc, drop);
+      expect(material.label, '&71x Pick');
+      expect(material.usesItemDisplayName, isFalse);
     },
   );
 

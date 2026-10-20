@@ -4457,7 +4457,7 @@
     "Use {value}": "Gebruik {value}",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "Maakt gebruik van Minecraft's lege notatie voor scorenummers, zodat 1.20.3+ clients niet de rode kolom 15..1 tekenen. Op een oudere server biedt ViaVersion's globale optie voor het verbergen van scorebordnummers de equivalente vertaling voor 1.20.3+ clients.",
     "Uses the blank score format on 1.20.3 and newer clients.": "Gebruikt het lege scoreformaat op 1.20.3 en nieuwere clients.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "Gebruikt de eigen weergavenaam van het voorwerp, zoals een nieuwe naam via het aambeeld, als {type} wanneer het er een heeft. Indien weggelaten is dit false.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "Gebruikt de eigen weergavenaam van het voorwerp, zoals een nieuwe naam via het aambeeld, als {type} wanneer het er een heeft. Indien weggelaten is dit true.",
     "Uses the runtime display-entity defaults.": "Gebruikt de standaardinstellingen voor de weergave-entiteit van runtime.",
     "VIP overworld": "VIP-overwereld",
     "Validation": "Validatie",

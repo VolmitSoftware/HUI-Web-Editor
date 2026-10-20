@@ -4457,7 +4457,7 @@
     "Use {value}": "השתמש ב-{value}",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "משתמש בפורמט מספר הציון הריק של Minecraft כך שלקוחות 1.20.3+ לא יציירו את העמודה האדומה 15..1. בשרת ישן יותר, האפשרות הגלובלית של Hide-Scoreboard-numbers של ViaVersion מספקת את התרגום המקביל עבור לקוחות 1.20.3+.",
     "Uses the blank score format on 1.20.3 and newer clients.": "משתמש בפורמט הניקוד הריק בלקוחות 1.20.3 ומעלה.",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "משתמש בשם התצוגה של הפריט עצמו, למשל שם שניתן בסדן, בתור {type} כשיש לו כזה. אם מושמט, הערך הוא false.",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "משתמש בשם התצוגה של הפריט עצמו, למשל שם שניתן בסדן, בתור {type} כשיש לו כזה. אם מושמט, הערך הוא true.",
     "Uses the runtime display-entity defaults.": "משתמש בברירות המחדל של ישות התצוגה בזמן ריצה.",
     "VIP overworld": "העולם העליון של VIP",
     "Validation": "אימות",

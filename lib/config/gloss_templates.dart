@@ -246,7 +246,7 @@ const String kGlossRealDropsDefaultJson = r'''
       "enabled": true,
       "yOffset": 0.55,
       "format": "&7{count}x {type}",
-      "useItemDisplayNames": false,
+      "useItemDisplayNames": true,
       "names": {},
       "bundle": {
         "format": "&7Bundle &8(&7{total} items&8): &7{contents}",

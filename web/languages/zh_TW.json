@@ -4457,7 +4457,7 @@
     "Use {value}": "使用{value}",
     "Uses Minecraft's blank score number format so 1.20.3+ clients do not draw the red 15..1 column. On an older server, ViaVersion's global hide-scoreboard-numbers option provides the equivalent translation for 1.20.3+ clients.": "使用 Minecraft 的空白分數數字格式，因此 1.20.3+ 用戶端不會繪製紅色 15..1 欄位。 在較舊的伺服器上，ViaVersion 的全域 hide-scoreboard-numbers 選項為 1.20.3+ 用戶端提供等效的轉換。",
     "Uses the blank score format on 1.20.3 and newer clients.": "在 1.20.3 及更高版本的用戶端上使用空白樂譜格式。",
-    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is false.": "當物品有自己的顯示名稱（例如在鐵砧上重新命名）時，將其用作 {type}。省略時為 false。",
+    "Uses the item's own display name, such as an anvil rename, as {type} when it has one. Omitted, this is true.": "當物品有自己的顯示名稱（例如在鐵砧上重新命名）時，將其用作 {type}。省略時為 true。",
     "Uses the runtime display-entity defaults.": "使用運行時顯示實體預設值。",
     "VIP overworld": "VIP世界",
     "Validation": "驗證",

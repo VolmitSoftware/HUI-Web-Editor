@@ -1302,7 +1302,7 @@ const Map<String, HuiFieldDoc> huiGeneratedFieldDocs = <String, HuiFieldDoc>{
     title: 'Use item display names',
     body:
         'Uses the item\'s own display name, such as an anvil rename, as '
-        '{type} when it has one. Omitted, this is false.',
+        '{type} when it has one. Omitted, this is true.',
     citation:
         'gloss-real-drops.schema.json#/\$defs/labels/properties/useItemDisplayNames',
   ),
